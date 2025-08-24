@@ -24,4 +24,3 @@ class MemoryEventHandler(BaseEventHandler):
         """
         # Future memory management events will be registered here
         # For example: query_memory, clear_memory, export_memory, etc.
-        pass

@@ -15,15 +15,14 @@ from multiple sources with intelligent fallback logic:
 The system includes caching for performance and validation for data integrity.
 """
 
+import contextlib
 import json
 import logging
 import re
 import subprocess
 from datetime import datetime, timedelta
 from functools import lru_cache
-from typing import Dict, List, Optional, Tuple, Union
-
-from claude_mpm.services.version_control.semantic_versioning import SemanticVersion
+from typing import Dict, List, Optional, Tuple
 
 
 class VersionSource:
@@ -73,9 +72,9 @@ class VersionMetadata:
         return {
             "version": self.version,
             "source": self.source,
-            "release_date": self.release_date.isoformat()
-            if self.release_date
-            else None,
+            "release_date": (
+                self.release_date.isoformat() if self.release_date else None
+            ),
             "commit_hash": self.commit_hash,
             "author": self.author,
             "message": self.message,
@@ -213,13 +212,13 @@ class EnhancedVersionParser:
         """Get version(s) from a specific source."""
         if source == VersionSource.GIT_TAGS:
             return self._get_version_from_git(latest_only)
-        elif source == VersionSource.VERSION_FILE:
+        if source == VersionSource.VERSION_FILE:
             return self._get_version_from_file()
-        elif source == VersionSource.PACKAGE_JSON:
+        if source == VersionSource.PACKAGE_JSON:
             return self._get_version_from_package_json()
-        elif source == VersionSource.PYPROJECT_TOML:
+        if source == VersionSource.PYPROJECT_TOML:
             return self._get_version_from_pyproject()
-        elif source == VersionSource.CHANGELOG:
+        if source == VersionSource.CHANGELOG:
             versions = self._get_versions_from_changelog()
             return versions[0] if versions else None
         return None
@@ -228,9 +227,9 @@ class EnhancedVersionParser:
         """Get all versions from a specific source."""
         if source == VersionSource.GIT_TAGS:
             return self._get_all_versions_from_git()
-        elif source == VersionSource.CHANGELOG:
+        if source == VersionSource.CHANGELOG:
             return self._get_versions_from_changelog()
-        elif source in [
+        if source in [
             VersionSource.VERSION_FILE,
             VersionSource.PACKAGE_JSON,
             VersionSource.PYPROJECT_TOML,
@@ -318,10 +317,8 @@ class EnhancedVersionParser:
         # Parse date if provided
         release_date = None
         if date_str:
-            try:
+            with contextlib.suppress(Exception):
                 release_date = datetime.fromisoformat(date_str.replace(" ", "T"))
-            except:
-                pass
 
         # Get commit hash for this tag
         commit_hash = None
@@ -422,10 +419,8 @@ class EnhancedVersionParser:
                         # Parse release date
                         release_date = None
                         if date_str:
-                            try:
+                            with contextlib.suppress(Exception):
                                 release_date = datetime.strptime(date_str, "%Y-%m-%d")
-                            except:
-                                pass
 
                         # Extract changes for this version
                         changes = self._extract_changelog_changes(

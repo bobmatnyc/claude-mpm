@@ -22,4 +22,3 @@ class ProjectEventHandler(BaseEventHandler):
         handler is ready for future expansion.
         """
         # Future project events will be registered here
-        pass

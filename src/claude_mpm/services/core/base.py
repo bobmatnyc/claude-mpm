@@ -9,7 +9,6 @@ and lifecycle management.
 Part of TSK-0046: Service Layer Architecture Reorganization
 """
 
-import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
@@ -56,7 +55,6 @@ class BaseService(ABC):
         Returns:
             True if initialization successful, False otherwise
         """
-        pass
 
     @abstractmethod
     async def shutdown(self) -> None:
@@ -65,7 +63,6 @@ class BaseService(ABC):
 
         This method should clean up any resources held by the service.
         """
-        pass
 
     def get_config(self, key: str, default: Any = None) -> Any:
         """
@@ -157,7 +154,6 @@ class SyncBaseService(ABC):
         Returns:
             True if initialization successful, False otherwise
         """
-        pass
 
     @abstractmethod
     def shutdown(self) -> None:
@@ -166,7 +162,6 @@ class SyncBaseService(ABC):
 
         This method should clean up any resources held by the service.
         """
-        pass
 
     def get_config(self, key: str, default: Any = None) -> Any:
         """

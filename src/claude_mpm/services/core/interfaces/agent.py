@@ -68,29 +68,24 @@ class IAgentRegistry(ABC):
         self, force_refresh: bool = False
     ) -> Dict[str, AgentMetadata]:
         """Discover all available agents"""
-        pass
 
     @abstractmethod
     async def get_agent(self, agent_name: str) -> Optional[AgentMetadata]:
         """Get specific agent metadata"""
-        pass
 
     @abstractmethod
     async def list_agents(
         self, agent_type: Optional[str] = None, tier: Optional[str] = None
     ) -> List[AgentMetadata]:
         """List agents with optional filtering"""
-        pass
 
     @abstractmethod
     async def get_specialized_agents(self, agent_type: str) -> List[AgentMetadata]:
         """Get agents of a specific specialized type"""
-        pass
 
     @abstractmethod
     async def refresh_agent_cache(self) -> None:
         """Refresh the agent metadata cache"""
-        pass
 
 
 # Agent deployment interface
@@ -118,7 +113,6 @@ class AgentDeploymentInterface(ABC):
         Returns:
             Dictionary with deployment results and status
         """
-        pass
 
     @abstractmethod
     def validate_agent(self, agent_path: Path) -> Tuple[bool, List[str]]:
@@ -130,7 +124,6 @@ class AgentDeploymentInterface(ABC):
         Returns:
             Tuple of (is_valid, list_of_errors)
         """
-        pass
 
     @abstractmethod
     def get_deployment_status(self, agent_name: str) -> Dict[str, Any]:
@@ -142,7 +135,6 @@ class AgentDeploymentInterface(ABC):
         Returns:
             Dictionary with deployment status information
         """
-        pass
 
 
 # Agent capabilities interface
@@ -168,7 +160,6 @@ class AgentCapabilitiesInterface(ABC):
         Returns:
             Formatted capabilities string for Claude consumption
         """
-        pass
 
 
 # System instructions interface
@@ -194,7 +185,6 @@ class SystemInstructionsInterface(ABC):
         Returns:
             Processed system instructions string
         """
-        pass
 
     @abstractmethod
     def get_available_instruction_types(self) -> List[str]:
@@ -203,7 +193,6 @@ class SystemInstructionsInterface(ABC):
         Returns:
             List of available instruction type names
         """
-        pass
 
     @abstractmethod
     def validate_instructions(self, instructions: str) -> Tuple[bool, List[str]]:
@@ -215,7 +204,6 @@ class SystemInstructionsInterface(ABC):
         Returns:
             Tuple of (is_valid, list_of_errors)
         """
-        pass
 
 
 # Subprocess launcher interface
@@ -241,7 +229,6 @@ class SubprocessLauncherInterface(ABC):
         Returns:
             Dictionary with subprocess information and handles
         """
-        pass
 
     @abstractmethod
     async def launch_subprocess_async(
@@ -256,7 +243,6 @@ class SubprocessLauncherInterface(ABC):
         Returns:
             Dictionary with subprocess information and handles
         """
-        pass
 
     @abstractmethod
     def terminate_subprocess(self, process_id: str) -> bool:
@@ -268,7 +254,6 @@ class SubprocessLauncherInterface(ABC):
         Returns:
             True if termination successful
         """
-        pass
 
     @abstractmethod
     def get_subprocess_status(self, process_id: str) -> Dict[str, Any]:
@@ -280,7 +265,6 @@ class SubprocessLauncherInterface(ABC):
         Returns:
             Dictionary with process status information
         """
-        pass
 
 
 # Runner configuration interface
@@ -306,7 +290,6 @@ class RunnerConfigurationInterface(ABC):
         Returns:
             Dictionary with initialization results
         """
-        pass
 
     @abstractmethod
     def register_services(self, service_container) -> None:
@@ -315,7 +298,6 @@ class RunnerConfigurationInterface(ABC):
         Args:
             service_container: Service container for registration
         """
-        pass
 
     @abstractmethod
     def load_configuration(self, config_path: Optional[Path] = None) -> Dict[str, Any]:
@@ -327,7 +309,6 @@ class RunnerConfigurationInterface(ABC):
         Returns:
             Loaded configuration dictionary
         """
-        pass
 
     @abstractmethod
     def validate_configuration(self, config: Dict[str, Any]) -> Tuple[bool, List[str]]:
@@ -339,7 +320,6 @@ class RunnerConfigurationInterface(ABC):
         Returns:
             Tuple of (is_valid, list_of_errors)
         """
-        pass
 
     @abstractmethod
     def setup_logging(self, config: Dict[str, Any]) -> None:
@@ -348,4 +328,3 @@ class RunnerConfigurationInterface(ABC):
         Args:
             config: Logging configuration
         """
-        pass

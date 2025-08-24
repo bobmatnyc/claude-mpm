@@ -5,13 +5,14 @@ providing a clean interface for the SocketIOServer to register all
 events without knowing the details of each handler.
 """
 
-from logging import Logger
 from typing import TYPE_CHECKING, List, Optional, Type
 
 from ....core.logger import get_logger
 from .base import BaseEventHandler
 
 if TYPE_CHECKING:
+    from logging import Logger
+
     from ..server import SocketIOServer
 
 from .connection import ConnectionEventHandler
@@ -46,7 +47,7 @@ class EventHandlerRegistry:
         Args:
             server: The SocketIOServer instance
         """
-        self.server: "SocketIOServer" = server
+        self.server: SocketIOServer = server
         self.logger: Logger = get_logger("EventHandlerRegistry")
         self.handlers: List[BaseEventHandler] = []
         self._initialized: bool = False
@@ -73,8 +74,11 @@ class EventHandlerRegistry:
         # Add debug logging for deployment context
         try:
             from ....core.unified_paths import PathContext
+
             deployment_context = PathContext.detect_deployment_context()
-            self.logger.info(f"Initializing event handlers in {deployment_context.value} mode")
+            self.logger.info(
+                f"Initializing event handlers in {deployment_context.value} mode"
+            )
         except Exception as e:
             self.logger.debug(f"Could not detect deployment context: {e}")
 
@@ -88,7 +92,9 @@ class EventHandlerRegistry:
                 self.handlers.append(handler)
                 self.logger.info(f"✅ Initialized handler: {handler_class.__name__}")
             except Exception as e:
-                self.logger.error(f"❌ Failed to initialize {handler_class.__name__}: {e}")
+                self.logger.error(
+                    f"❌ Failed to initialize {handler_class.__name__}: {e}"
+                )
                 import traceback
 
                 self.logger.error(f"Stack trace: {traceback.format_exc()}")
@@ -107,31 +113,43 @@ class EventHandlerRegistry:
             self.logger.error("Registry not initialized. Call initialize() first.")
             raise RuntimeError("EventHandlerRegistry not initialized")
 
-        self.logger.info(f"🔄 Starting event registration for {len(self.handlers)} handlers")
-        
+        self.logger.info(
+            f"🔄 Starting event registration for {len(self.handlers)} handlers"
+        )
+
         # Verify Socket.IO server is available
-        if not hasattr(self.server, 'core') or not self.server.core or not self.server.core.sio:
-            self.logger.error("❌ Socket.IO server instance not available for event registration")
+        if (
+            not hasattr(self.server, "core")
+            or not self.server.core
+            or not self.server.core.sio
+        ):
+            self.logger.error(
+                "❌ Socket.IO server instance not available for event registration"
+            )
             raise RuntimeError("Socket.IO server not available")
-        
+
         self.logger.debug(f"Socket.IO server available: {type(self.server.core.sio)}")
 
         registered_count = 0
         for handler in self.handlers:
             try:
-                self.logger.debug(f"Registering events for {handler.__class__.__name__}")
-                
+                self.logger.debug(
+                    f"Registering events for {handler.__class__.__name__}"
+                )
+
                 # Get the number of registered events before and after
-                sio_events_before = len(getattr(self.server.core.sio, 'handlers', {}))
-                
+                sio_events_before = len(getattr(self.server.core.sio, "handlers", {}))
+
                 handler.register_events()
-                
-                sio_events_after = len(getattr(self.server.core.sio, 'handlers', {}))
+
+                sio_events_after = len(getattr(self.server.core.sio, "handlers", {}))
                 events_added = sio_events_after - sio_events_before
-                
+
                 registered_count += 1
-                self.logger.info(f"✅ Registered {events_added} events for {handler.__class__.__name__}")
-                
+                self.logger.info(
+                    f"✅ Registered {events_added} events for {handler.__class__.__name__}"
+                )
+
             except NotImplementedError:
                 # Handler has no events to register (like ProjectEventHandler)
                 self.logger.debug(
@@ -146,7 +164,7 @@ class EventHandlerRegistry:
                 self.logger.error(f"Stack trace: {traceback.format_exc()}")
 
         # Final verification
-        total_sio_events = len(getattr(self.server.core.sio, 'handlers', {}))
+        total_sio_events = len(getattr(self.server.core.sio, "handlers", {}))
         self.logger.info(
             f"🎉 Event registration complete: {registered_count} handlers processed, "
             f"{total_sio_events} total Socket.IO events registered"

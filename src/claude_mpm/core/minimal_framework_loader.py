@@ -1,7 +1,8 @@
 """Minimal framework loader for better performance."""
 
+import contextlib
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Optional
 
 try:
     from ..core.logger import get_logger
@@ -45,18 +46,14 @@ class MinimalFrameworkLoader:
         working_claude_path = Path.cwd() / "CLAUDE.md"  # Legacy support
 
         if working_instructions_path.exists():
-            try:
+            with contextlib.suppress(Exception):
                 working_claude = working_instructions_path.read_text()
-            except:
-                pass
         elif working_claude_path.exists():
-            try:
+            with contextlib.suppress(Exception):
                 working_claude = working_claude_path.read_text()
-            except:
-                pass
 
         # Build minimal framework
-        framework = f"""# Claude MPM Framework
+        framework = """# Claude MPM Framework
 
 You are a multi-agent orchestrator in the Claude MPM framework.
 

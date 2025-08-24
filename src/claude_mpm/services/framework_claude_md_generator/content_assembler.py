@@ -8,7 +8,7 @@ import hashlib
 import logging
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from claude_mpm.services.agents.management import AgentCapabilitiesGenerator
 from claude_mpm.services.agents.registry import DeployedAgentDiscovery
@@ -58,7 +58,7 @@ class ContentAssembler:
 
         # Generate all sections
         content_parts = []
-        for section_name, (generator_func, section_data) in sections.items():
+        for _section_name, (generator_func, section_data) in sections.items():
             section_content = generator_func(section_data)
             content_parts.append(section_content)
 
@@ -66,9 +66,7 @@ class ContentAssembler:
         full_content = "\n".join(content_parts)
 
         # Apply template variable substitution
-        full_content = self.apply_template_variables(full_content)
-
-        return full_content
+        return self.apply_template_variables(full_content)
 
     def apply_template_variables(self, content: str) -> str:
         """

@@ -132,11 +132,10 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
         default=3,
         help="Maximum retry attempts per package (default: 3)",
     )
-    
+
     # Cleanup orphaned agents
     cleanup_orphaned_parser = agents_subparsers.add_parser(
-        "cleanup-orphaned",
-        help="Clean up orphaned agents that don't have templates"
+        "cleanup-orphaned", help="Clean up orphaned agents that don't have templates"
     )
     cleanup_orphaned_parser.add_argument(
         "--agents-dir",

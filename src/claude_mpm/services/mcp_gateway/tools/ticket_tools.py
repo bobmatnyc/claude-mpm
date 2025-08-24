@@ -18,9 +18,7 @@ DESIGN DECISIONS:
 
 import asyncio
 import json
-import subprocess
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     MCPToolDefinition,
@@ -106,7 +104,7 @@ class TicketCreateTool(BaseToolAdapter):
             if "priority" in params:
                 cmd.extend(["--priority", params["priority"]])
 
-            if "tags" in params and params["tags"]:
+            if params.get("tags"):
                 # aitrackdown uses --tag for tags (singular)
                 for tag in params["tags"]:
                     cmd.extend(["--tag", tag])
@@ -152,15 +150,14 @@ class TicketCreateTool(BaseToolAdapter):
                     execution_time=execution_time,
                     metadata={"tool": "ticket_create", "operation": "create"},
                 )
-            else:
-                error_msg = stderr.decode() if stderr else stdout.decode()
-                self._update_metrics(False, execution_time)
+            error_msg = stderr.decode() if stderr else stdout.decode()
+            self._update_metrics(False, execution_time)
 
-                return MCPToolResult(
-                    success=False,
-                    error=f"Failed to create ticket: {error_msg}",
-                    execution_time=execution_time,
-                )
+            return MCPToolResult(
+                success=False,
+                error=f"Failed to create ticket: {error_msg}",
+                execution_time=execution_time,
+            )
 
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
@@ -168,7 +165,7 @@ class TicketCreateTool(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"Ticket creation failed: {str(e)}",
+                error=f"Ticket creation failed: {e!s}",
                 execution_time=execution_time,
             )
 
@@ -278,15 +275,14 @@ class TicketListTool(BaseToolAdapter):
                         "count": len(tickets) if isinstance(tickets, list) else 1,
                     },
                 )
-            else:
-                error_msg = stderr.decode() if stderr else stdout.decode()
-                self._update_metrics(False, execution_time)
+            error_msg = stderr.decode() if stderr else stdout.decode()
+            self._update_metrics(False, execution_time)
 
-                return MCPToolResult(
-                    success=False,
-                    error=f"Failed to list tickets: {error_msg}",
-                    execution_time=execution_time,
-                )
+            return MCPToolResult(
+                success=False,
+                error=f"Failed to list tickets: {error_msg}",
+                execution_time=execution_time,
+            )
 
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
@@ -294,7 +290,7 @@ class TicketListTool(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"Ticket listing failed: {str(e)}",
+                error=f"Ticket listing failed: {e!s}",
                 execution_time=execution_time,
             )
 
@@ -408,15 +404,14 @@ class TicketUpdateTool(BaseToolAdapter):
                     execution_time=execution_time,
                     metadata={"tool": "ticket_update", "operation": "update"},
                 )
-            else:
-                error_msg = stderr.decode() if stderr else stdout.decode()
-                self._update_metrics(False, execution_time)
+            error_msg = stderr.decode() if stderr else stdout.decode()
+            self._update_metrics(False, execution_time)
 
-                return MCPToolResult(
-                    success=False,
-                    error=f"Failed to update ticket: {error_msg}",
-                    execution_time=execution_time,
-                )
+            return MCPToolResult(
+                success=False,
+                error=f"Failed to update ticket: {error_msg}",
+                execution_time=execution_time,
+            )
 
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
@@ -424,7 +419,7 @@ class TicketUpdateTool(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"Ticket update failed: {str(e)}",
+                error=f"Ticket update failed: {e!s}",
                 execution_time=execution_time,
             )
 
@@ -513,15 +508,14 @@ class TicketViewTool(BaseToolAdapter):
                         "ticket_id": ticket_id,
                     },
                 )
-            else:
-                error_msg = stderr.decode() if stderr else stdout.decode()
-                self._update_metrics(False, execution_time)
+            error_msg = stderr.decode() if stderr else stdout.decode()
+            self._update_metrics(False, execution_time)
 
-                return MCPToolResult(
-                    success=False,
-                    error=f"Failed to view ticket: {error_msg}",
-                    execution_time=execution_time,
-                )
+            return MCPToolResult(
+                success=False,
+                error=f"Failed to view ticket: {error_msg}",
+                execution_time=execution_time,
+            )
 
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
@@ -529,7 +523,7 @@ class TicketViewTool(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"Ticket view failed: {str(e)}",
+                error=f"Ticket view failed: {e!s}",
                 execution_time=execution_time,
             )
 
@@ -621,15 +615,14 @@ class TicketSearchTool(BaseToolAdapter):
                         "query": query,
                     },
                 )
-            else:
-                error_msg = stderr.decode() if stderr else stdout.decode()
-                self._update_metrics(False, execution_time)
+            error_msg = stderr.decode() if stderr else stdout.decode()
+            self._update_metrics(False, execution_time)
 
-                return MCPToolResult(
-                    success=False,
-                    error=f"Failed to search tickets: {error_msg}",
-                    execution_time=execution_time,
-                )
+            return MCPToolResult(
+                success=False,
+                error=f"Failed to search tickets: {error_msg}",
+                execution_time=execution_time,
+            )
 
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
@@ -637,7 +630,7 @@ class TicketSearchTool(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"Ticket search failed: {str(e)}",
+                error=f"Ticket search failed: {e!s}",
                 execution_time=execution_time,
             )
 
@@ -646,7 +639,7 @@ class TicketSearchTool(BaseToolAdapter):
 __all__ = [
     "TicketCreateTool",
     "TicketListTool",
+    "TicketSearchTool",
     "TicketUpdateTool",
     "TicketViewTool",
-    "TicketSearchTool",
 ]

@@ -19,16 +19,15 @@ import asyncio
 import logging
 import os
 import signal
-import threading
 import time
 from abc import ABC, abstractmethod
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
-from claude_mpm.core.constants import PerformanceConfig, RetryConfig, TimeoutConfig
+from claude_mpm.core.constants import PerformanceConfig, RetryConfig
 
 from .infrastructure.monitoring import HealthCheckResult, HealthStatus
 
@@ -85,17 +84,14 @@ class RecoveryStrategy(ABC):
     @abstractmethod
     def should_recover(self, health_result: HealthCheckResult) -> bool:
         """Determine if recovery should be triggered based on health result."""
-        pass
 
     @abstractmethod
     def get_recovery_action(self, health_result: HealthCheckResult) -> RecoveryAction:
         """Determine the appropriate recovery action."""
-        pass
 
     @abstractmethod
     def get_name(self) -> str:
         """Get the name of this recovery strategy."""
-        pass
 
 
 class GradedRecoveryStrategy(RecoveryStrategy):
@@ -183,16 +179,14 @@ class GradedRecoveryStrategy(RecoveryStrategy):
         if health_result.overall_status == HealthStatus.CRITICAL:
             if failure_count >= 3:
                 return RecoveryAction.EMERGENCY_STOP
-            elif failure_count >= 2:
+            if failure_count >= 2:
                 return RecoveryAction.RESTART_SERVICE
-            else:
-                return RecoveryAction.CLEAR_CONNECTIONS
+            return RecoveryAction.CLEAR_CONNECTIONS
 
-        elif health_result.overall_status == HealthStatus.WARNING:
+        if health_result.overall_status == HealthStatus.WARNING:
             if failure_count >= self.warning_threshold:
                 return RecoveryAction.CLEAR_CONNECTIONS
-            else:
-                return RecoveryAction.LOG_WARNING
+            return RecoveryAction.LOG_WARNING
 
         return RecoveryAction.NONE
 
@@ -242,17 +236,14 @@ class CircuitBreaker:
         if self.state == CircuitState.CLOSED:
             return True
 
-        elif self.state == CircuitState.OPEN:
+        if self.state == CircuitState.OPEN:
             # Check if timeout has elapsed
             if current_time - self.last_failure_time >= self.timeout_seconds:
                 self._transition_to_half_open()
                 return True
             return False
 
-        elif self.state == CircuitState.HALF_OPEN:
-            return True
-
-        return False
+        return self.state == CircuitState.HALF_OPEN
 
     def record_success(self) -> None:
         """Record a successful recovery operation."""
@@ -612,8 +603,8 @@ class RecoveryManager:
             self.logger.info("Attempting graceful service restart")
 
             # Save current configuration
-            host = getattr(self.server_instance, "host", "localhost")
-            port = getattr(self.server_instance, "port", 8765)
+            getattr(self.server_instance, "host", "localhost")
+            getattr(self.server_instance, "port", 8765)
 
             # Stop current server
             try:

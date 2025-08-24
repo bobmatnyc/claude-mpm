@@ -12,17 +12,15 @@ rather than a single list with type checking because:
 """
 
 import time
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.interfaces import HookServiceInterface
-from claude_mpm.core.logging_config import get_logger, log_operation
+from claude_mpm.core.logging_config import get_logger
 from claude_mpm.hooks.base_hook import (
     BaseHook,
     HookContext,
     HookResult,
-    HookType,
     PostDelegationHook,
     PreDelegationHook,
 )
@@ -83,7 +81,7 @@ class HookService(HookServiceInterface):
                 )
                 return True
 
-            elif isinstance(hook, PostDelegationHook):
+            if isinstance(hook, PostDelegationHook):
                 self.post_delegation_hooks.append(hook)
                 # Sort by priority
                 self.post_delegation_hooks.sort(key=lambda h: h.priority)
@@ -92,11 +90,10 @@ class HookService(HookServiceInterface):
                 )
                 return True
 
-            else:
-                self.logger.warning(
-                    f"Attempted to register unsupported hook type: {type(hook).__name__}"
-                )
-                return False
+            self.logger.warning(
+                f"Attempted to register unsupported hook type: {type(hook).__name__}"
+            )
+            return False
 
         except Exception as e:
             self.logger.error(f"Failed to register hook {hook.name}: {e}")

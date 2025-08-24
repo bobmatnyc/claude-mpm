@@ -34,89 +34,89 @@ def __getattr__(name):
         from .core.interfaces import IMCPGateway
 
         return IMCPGateway
-    elif name == "IMCPToolRegistry":
+    if name == "IMCPToolRegistry":
         from .core.interfaces import IMCPToolRegistry
 
         return IMCPToolRegistry
-    elif name == "IMCPConfiguration":
+    if name == "IMCPConfiguration":
         from .core.interfaces import IMCPConfiguration
 
         return IMCPConfiguration
-    elif name == "IMCPToolAdapter":
+    if name == "IMCPToolAdapter":
         from .core.interfaces import IMCPToolAdapter
 
         return IMCPToolAdapter
-    elif name == "BaseMCPService":
+    if name == "BaseMCPService":
         from .core.base import BaseMCPService
 
         return BaseMCPService
 
     # Gateway implementations
-    elif name == "MCPGateway":
+    if name == "MCPGateway":
         from .server.mcp_gateway import MCPGateway
 
         return MCPGateway
-    elif name == "StdioHandler":
+    if name == "StdioHandler":
         from .server.stdio_handler import StdioHandler
 
         return StdioHandler
-    elif name == "AlternativeStdioHandler":
+    if name == "AlternativeStdioHandler":
         from .server.stdio_handler import AlternativeStdioHandler
 
         return AlternativeStdioHandler
 
     # Tool registry and adapters
-    elif name == "ToolRegistry":
+    if name == "ToolRegistry":
         from .registry.tool_registry import ToolRegistry
 
         return ToolRegistry
-    elif name == "BaseToolAdapter":
+    if name == "BaseToolAdapter":
         from .tools.base_adapter import BaseToolAdapter
 
         return BaseToolAdapter
-    elif name == "EchoToolAdapter":
+    if name == "EchoToolAdapter":
         from .tools.base_adapter import EchoToolAdapter
 
         return EchoToolAdapter
-    elif name == "CalculatorToolAdapter":
+    if name == "CalculatorToolAdapter":
         from .tools.base_adapter import CalculatorToolAdapter
 
         return CalculatorToolAdapter
-    elif name == "SystemInfoToolAdapter":
+    if name == "SystemInfoToolAdapter":
         from .tools.base_adapter import SystemInfoToolAdapter
 
         return SystemInfoToolAdapter
 
     # Configuration management
-    elif name == "MCPConfiguration":
+    if name == "MCPConfiguration":
         from .config.configuration import MCPConfiguration
 
         return MCPConfiguration
-    elif name == "MCPConfigLoader":
+    if name == "MCPConfigLoader":
         from .config.config_loader import MCPConfigLoader
 
         return MCPConfigLoader
 
     # Service registry
-    elif name == "MCPServiceRegistry":
+    if name == "MCPServiceRegistry":
         from .registry.service_registry import MCPServiceRegistry
 
         return MCPServiceRegistry
 
     # Exceptions
-    elif name == "MCPException":
+    if name == "MCPException":
         from .core.exceptions import MCPException
 
         return MCPException
-    elif name == "MCPConfigurationError":
+    if name == "MCPConfigurationError":
         from .core.exceptions import MCPConfigurationError
 
         return MCPConfigurationError
-    elif name == "MCPToolNotFoundError":
+    if name == "MCPToolNotFoundError":
         from .core.exceptions import MCPToolNotFoundError
 
         return MCPToolNotFoundError
-    elif name == "MCPServerError":
+    if name == "MCPServerError":
         from .core.exceptions import MCPServerError
 
         return MCPServerError
@@ -126,30 +126,30 @@ def __getattr__(name):
 
 # Public API exports
 __all__ = [
+    "AlternativeStdioHandler",
+    "BaseMCPService",
+    "BaseToolAdapter",
+    "CalculatorToolAdapter",
+    "EchoToolAdapter",
+    "IMCPConfiguration",
     # Core interfaces
     "IMCPGateway",
-    "IMCPToolRegistry",
-    "IMCPConfiguration",
     "IMCPToolAdapter",
-    "BaseMCPService",
-    # Gateway implementations
-    "MCPGateway",
-    "StdioHandler",
-    "AlternativeStdioHandler",
-    # Tool management
-    "ToolRegistry",
-    "BaseToolAdapter",
-    "EchoToolAdapter",
-    "CalculatorToolAdapter",
-    "SystemInfoToolAdapter",
+    "IMCPToolRegistry",
+    "MCPConfigLoader",
     # Configuration
     "MCPConfiguration",
-    "MCPConfigLoader",
-    # Service registry
-    "MCPServiceRegistry",
+    "MCPConfigurationError",
     # Exceptions
     "MCPException",
-    "MCPConfigurationError",
-    "MCPToolNotFoundError",
+    # Gateway implementations
+    "MCPGateway",
     "MCPServerError",
+    # Service registry
+    "MCPServiceRegistry",
+    "MCPToolNotFoundError",
+    "StdioHandler",
+    "SystemInfoToolAdapter",
+    # Tool management
+    "ToolRegistry",
 ]

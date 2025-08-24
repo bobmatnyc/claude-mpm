@@ -16,18 +16,18 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Deque, Dict, List, Optional, Set
 
-from ....core.logging_config import get_logger
 from ..event_normalizer import EventNormalizer
 
 
 @dataclass
 class RetryableEvent:
     """Represents an event that can be retried on failure.
-    
+
     WHY: Network failures are common and transient. By tracking retry
     attempts, we can recover from temporary issues while avoiding
     infinite retry loops.
     """
+
     event_type: str
     data: Dict[str, Any]
     attempt_count: int = 0
@@ -35,82 +35,73 @@ class RetryableEvent:
     created_at: float = None
     last_attempt: float = None
     skip_sid: Optional[str] = None
-    
+
     def __post_init__(self):
         if self.created_at is None:
             self.created_at = time.time()
         if self.last_attempt is None:
             self.last_attempt = time.time()
-    
+
     def should_retry(self) -> bool:
         """Check if this event should be retried.
-        
+
         WHY: We need to balance reliability with resource usage.
         Events older than 30 seconds or with too many attempts
         should be abandoned.
         """
         if self.attempt_count >= self.max_retries:
             return False
-        
+
         # Don't retry events older than 30 seconds
-        if time.time() - self.created_at > 30:
-            return False
-            
-        return True
-    
+        return not time.time() - self.created_at > 30
+
     def get_backoff_delay(self) -> float:
         """Calculate exponential backoff delay.
-        
+
         WHY: Exponential backoff prevents overwhelming the system
         during recovery from failures.
         """
         base_delay = 1.0  # 1 second
-        max_delay = 8.0   # 8 seconds max
-        
-        delay = min(base_delay * (2 ** self.attempt_count), max_delay)
-        return delay
+        max_delay = 8.0  # 8 seconds max
+
+        return min(base_delay * (2**self.attempt_count), max_delay)
 
 
 class RetryQueue:
     """Manages retry queue for failed event broadcasts.
-    
+
     WHY: Transient network issues shouldn't cause event loss.
     This queue provides resilient event delivery with backoff.
     """
-    
+
     def __init__(self, max_size: int = 1000):
         self.queue: Deque[RetryableEvent] = deque(maxlen=max_size)
         self.lock = asyncio.Lock()
-        self.stats = {
-            'queued': 0,
-            'retried': 0,
-            'succeeded': 0,
-            'abandoned': 0
-        }
-    
+        self.stats = {"queued": 0, "retried": 0, "succeeded": 0, "abandoned": 0}
+
     async def add(self, event: RetryableEvent) -> None:
         """Add an event to the retry queue."""
         async with self.lock:
             self.queue.append(event)
-            self.stats['queued'] += 1
-    
+            self.stats["queued"] += 1
+
     async def get_ready_events(self) -> List[RetryableEvent]:
         """Get events that are ready for retry.
-        
+
         WHY: We need to respect backoff delays to avoid
         overwhelming the system during recovery.
         """
         async with self.lock:
             current_time = time.time()
             ready = []
-            
+
             # Check each event in queue
             remaining = []
             for event in self.queue:
                 if not event.should_retry():
-                    self.stats['abandoned'] += 1
+                    self.stats["abandoned"] += 1
                     continue
-                
+
                 # First attempt (attempt_count == 0) should be immediate
                 if event.attempt_count == 0:
                     ready.append(event)
@@ -121,32 +112,29 @@ class RetryQueue:
                         ready.append(event)
                     else:
                         remaining.append(event)
-            
+
             # Update queue with events not ready yet
             self.queue.clear()
             self.queue.extend(remaining)
-            
+
             return ready
-    
+
     async def mark_success(self, event: RetryableEvent) -> None:
         """Mark an event as successfully sent."""
-        self.stats['succeeded'] += 1
-    
+        self.stats["succeeded"] += 1
+
     async def mark_retry(self, event: RetryableEvent) -> None:
         """Mark an event for retry."""
         event.attempt_count += 1
         event.last_attempt = time.time()
-        self.stats['retried'] += 1
-        
+        self.stats["retried"] += 1
+
         if event.should_retry():
             await self.add(event)
-    
+
     def get_stats(self) -> Dict[str, int]:
         """Get retry queue statistics."""
-        return {
-            **self.stats,
-            'queue_size': len(self.queue)
-        }
+        return {**self.stats, "queue_size": len(self.queue)}
 
 
 class SocketIOEventBroadcaster:
@@ -174,21 +162,21 @@ class SocketIOEventBroadcaster:
         self.logger = logger
         self.loop = None  # Will be set by main server
         self.server = server  # Reference to main server for event history
-        
+
         # Initialize retry queue for resilient delivery
         self.retry_queue = RetryQueue(max_size=1000)
         self.retry_task = None
         self.retry_interval = 2.0  # Process retry queue every 2 seconds
-        
+
         # Initialize event normalizer for consistent schema
         self.normalizer = EventNormalizer()
-    
+
     def start_retry_processor(self):
         """Start the background retry processor.
-        
+
         WHY: Failed broadcasts need to be retried automatically
         to ensure reliable event delivery.
-        
+
         IMPORTANT: This method must handle being called from a different thread
         than the one running the event loop.
         """
@@ -199,8 +187,12 @@ class SocketIOEventBroadcaster:
                     running_loop = asyncio.get_running_loop()
                     if running_loop == self.loop:
                         # Same thread, can use create_task directly
-                        self.retry_task = asyncio.create_task(self._process_retry_queue())
-                        self.logger.info("🔄 Started retry queue processor (same thread)")
+                        self.retry_task = asyncio.create_task(
+                            self._process_retry_queue()
+                        )
+                        self.logger.info(
+                            "🔄 Started retry queue processor (same thread)"
+                        )
                     else:
                         # Different thread, need to schedule in the target loop
                         self._start_retry_in_loop()
@@ -209,13 +201,14 @@ class SocketIOEventBroadcaster:
                     self._start_retry_in_loop()
             except Exception as e:
                 self.logger.error(f"Failed to start retry processor: {e}")
-    
+
     def _start_retry_in_loop(self):
         """Helper to start retry processor from a different thread."""
+
         async def _create_retry_task():
             self.retry_task = asyncio.create_task(self._process_retry_queue())
             self.logger.info("🔄 Started retry queue processor (cross-thread)")
-        
+
         # Schedule the task creation in the target loop
         future = asyncio.run_coroutine_threadsafe(_create_retry_task(), self.loop)
         try:
@@ -223,43 +216,43 @@ class SocketIOEventBroadcaster:
             future.result(timeout=1.0)
         except Exception as e:
             self.logger.error(f"Failed to schedule retry processor: {e}")
-    
+
     def stop_retry_processor(self):
         """Stop the background retry processor."""
         if self.retry_task:
             self.retry_task.cancel()
             self.retry_task = None
             self.logger.info("🚫 Stopped retry queue processor")
-    
+
     async def _process_retry_queue(self):
         """Process the retry queue periodically.
-        
+
         WHY: Regular processing ensures failed events are retried
         with appropriate backoff delays.
         """
         while True:
             try:
                 await asyncio.sleep(self.retry_interval)
-                
+
                 # Get events ready for retry
                 ready_events = await self.retry_queue.get_ready_events()
-                
+
                 if ready_events:
                     self.logger.debug(
                         f"🔄 Processing {len(ready_events)} events from retry queue"
                     )
-                    
+
                     for event in ready_events:
                         success = await self._retry_broadcast(event)
-                        
+
                         if success:
                             await self.retry_queue.mark_success(event)
                         else:
                             await self.retry_queue.mark_retry(event)
-                    
+
                     # Log stats periodically
                     stats = self.retry_queue.get_stats()
-                    if stats['retried'] > 0 or stats['abandoned'] > 0:
+                    if stats["retried"] > 0 or stats["abandoned"] > 0:
                         self.logger.info(
                             f"📊 Retry queue stats - "
                             f"queued: {stats['queued']}, "
@@ -268,15 +261,15 @@ class SocketIOEventBroadcaster:
                             f"abandoned: {stats['abandoned']}, "
                             f"current size: {stats['queue_size']}"
                         )
-                        
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 self.logger.error(f"Error processing retry queue: {e}")
-    
+
     async def _retry_broadcast(self, event: RetryableEvent) -> bool:
         """Retry broadcasting a failed event.
-        
+
         WHY: Isolated retry logic allows for special handling
         and metrics tracking of retry attempts. Uses normalizer
         to ensure consistent schema.
@@ -285,27 +278,27 @@ class SocketIOEventBroadcaster:
             self.logger.debug(
                 f"🔄 Retrying {event.event_type} (attempt {event.attempt_count + 1}/{event.max_retries})"
             )
-            
+
             # Reconstruct the raw event
             raw_event = {
                 "type": event.event_type,
                 "timestamp": datetime.now().isoformat(),
                 "data": {**event.data, "retry_attempt": event.attempt_count + 1},
             }
-            
+
             # Normalize the event
             normalized = self.normalizer.normalize(raw_event)
             full_event = normalized.to_dict()
-            
+
             # Attempt broadcast
             if event.skip_sid:
                 await self.sio.emit("claude_event", full_event, skip_sid=event.skip_sid)
             else:
                 await self.sio.emit("claude_event", full_event)
-            
+
             self.logger.debug(f"✅ Successfully retried {event.event_type}")
             return True
-            
+
         except Exception as e:
             self.logger.warning(
                 f"⚠️ Retry failed for {event.event_type} "
@@ -313,9 +306,11 @@ class SocketIOEventBroadcaster:
             )
             return False
 
-    def broadcast_event(self, event_type: str, data: Dict[str, Any], skip_sid: Optional[str] = None):
+    def broadcast_event(
+        self, event_type: str, data: Dict[str, Any], skip_sid: Optional[str] = None
+    ):
         """Broadcast an event to all connected clients with retry support.
-        
+
         WHY: Enhanced with retry queue to ensure reliable delivery
         even during transient network issues. Now uses EventNormalizer
         to ensure consistent event schema.
@@ -329,7 +324,7 @@ class SocketIOEventBroadcaster:
             "timestamp": datetime.now().isoformat(),
             "data": data,
         }
-        
+
         # Normalize the event to consistent schema
         normalized = self.normalizer.normalize(raw_event)
         event = normalized.to_dict()
@@ -338,12 +333,14 @@ class SocketIOEventBroadcaster:
         with self.buffer_lock:
             self.event_buffer.append(event)
             self.stats["events_buffered"] += 1
-            
+
             # Also add to event history if available (for client replay)
             # Access through server reference to maintain single history source
-            if hasattr(self, 'server') and hasattr(self.server, 'event_history'):
+            if hasattr(self, "server") and hasattr(self.server, "event_history"):
                 self.server.event_history.append(event)
-                self.logger.debug(f"Added {event['type']}/{event['subtype']} to history (total: {len(self.server.event_history)})")
+                self.logger.debug(
+                    f"Added {event['type']}/{event['subtype']} to history (total: {len(self.server.event_history)})"
+                )
 
         # Broadcast to all connected clients
         broadcast_success = False
@@ -355,9 +352,9 @@ class SocketIOEventBroadcaster:
                     coro = self.sio.emit("claude_event", event, skip_sid=skip_sid)
                 else:
                     coro = self.sio.emit("claude_event", event)
-                
+
                 future = asyncio.run_coroutine_threadsafe(coro, self.loop)
-                
+
                 # Wait briefly to see if broadcast succeeds
                 try:
                     future.result(timeout=0.5)  # 500ms timeout
@@ -374,21 +371,18 @@ class SocketIOEventBroadcaster:
 
         except Exception as e:
             self.logger.error(f"Failed to broadcast event {event_type}: {e}")
-        
+
         # Add to retry queue if broadcast failed
         if not broadcast_success and self.loop:
             retryable_event = RetryableEvent(
-                event_type=event_type,
-                data=data,
-                skip_sid=skip_sid
+                event_type=event_type, data=data, skip_sid=skip_sid
             )
-            
+
             # Queue for retry
             asyncio.run_coroutine_threadsafe(
-                self.retry_queue.add(retryable_event),
-                self.loop
+                self.retry_queue.add(retryable_event), self.loop
             )
-            
+
             self.logger.warning(
                 f"⚠️ Queued {event_type} for retry (queue size: {len(self.retry_queue.queue)})"
             )
@@ -529,10 +523,10 @@ class SocketIOEventBroadcaster:
     def system_status(self, status: Dict[str, Any]):
         """Broadcast system status information."""
         self.broadcast_event("system_status", status)
-    
+
     def broadcast_system_heartbeat(self, heartbeat_data: Dict[str, Any]):
         """Broadcast system heartbeat event.
-        
+
         WHY: System events are separate from hook events to provide
         server health monitoring independent of Claude activity.
         Now uses broadcast_event for consistency with buffering and normalization.

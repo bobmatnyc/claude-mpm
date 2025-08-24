@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from claude_mpm.core.config import Config
 
@@ -48,7 +48,6 @@ class BaseDeploymentStrategy(ABC):
         Returns:
             True if this strategy should handle the deployment
         """
-        pass
 
     @abstractmethod
     def determine_target_directory(self, context: DeploymentContext) -> Path:
@@ -60,7 +59,6 @@ class BaseDeploymentStrategy(ABC):
         Returns:
             Path where agents should be deployed
         """
-        pass
 
     @abstractmethod
     def get_templates_directory(self, context: DeploymentContext) -> Path:
@@ -72,7 +70,6 @@ class BaseDeploymentStrategy(ABC):
         Returns:
             Path to the templates directory
         """
-        pass
 
     @abstractmethod
     def get_excluded_agents(self, context: DeploymentContext) -> List[str]:
@@ -84,7 +81,6 @@ class BaseDeploymentStrategy(ABC):
         Returns:
             List of agent names to exclude from deployment
         """
-        pass
 
     @abstractmethod
     def should_deploy_system_instructions(self, context: DeploymentContext) -> bool:
@@ -96,7 +92,6 @@ class BaseDeploymentStrategy(ABC):
         Returns:
             True if system instructions should be deployed
         """
-        pass
 
     @abstractmethod
     def get_deployment_priority(self) -> int:
@@ -108,7 +103,6 @@ class BaseDeploymentStrategy(ABC):
         Returns:
             Priority number (lower = higher priority)
         """
-        pass
 
     def __str__(self) -> str:
         """String representation of the strategy."""

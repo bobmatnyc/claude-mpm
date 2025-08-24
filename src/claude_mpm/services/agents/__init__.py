@@ -40,37 +40,37 @@ from .registry.modification_tracker import (
 )
 
 __all__ = [
-    # Registry
-    "AgentRegistry",
-    "AgentMetadata",
-    "AgentTier",
-    "AgentType",
-    "DeployedAgentDiscovery",
-    "AgentModificationTracker",
-    "ModificationType",
-    "ModificationTier",
-    "AgentModification",
-    "ModificationHistory",
-    # Loading
-    "FrameworkAgentLoader",
-    "AgentProfileLoader",
-    "BaseAgentManager",
+    "AgentCapabilitiesGenerator",
     # Deployment
     "AgentDeploymentService",
     "AgentLifecycleManager",
-    "LifecycleState",
-    "LifecycleOperation",
     "AgentLifecycleRecord",
-    "LifecycleOperationResult",
-    "AgentVersionManager",
-    # Memory
-    "AgentMemoryManager",
-    "get_memory_manager",
-    "AgentPersistenceService",
-    "PersistenceStrategy",
-    "PersistenceOperation",
-    "PersistenceRecord",
     # Management
     "AgentManager",
-    "AgentCapabilitiesGenerator",
+    # Memory
+    "AgentMemoryManager",
+    "AgentMetadata",
+    "AgentModification",
+    "AgentModificationTracker",
+    "AgentPersistenceService",
+    "AgentProfileLoader",
+    # Registry
+    "AgentRegistry",
+    "AgentTier",
+    "AgentType",
+    "AgentVersionManager",
+    "BaseAgentManager",
+    "DeployedAgentDiscovery",
+    # Loading
+    "FrameworkAgentLoader",
+    "LifecycleOperation",
+    "LifecycleOperationResult",
+    "LifecycleState",
+    "ModificationHistory",
+    "ModificationTier",
+    "ModificationType",
+    "PersistenceOperation",
+    "PersistenceRecord",
+    "PersistenceStrategy",
+    "get_memory_manager",
 ]

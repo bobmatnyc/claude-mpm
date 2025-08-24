@@ -14,36 +14,34 @@ Effective ticket management is crucial for project success. This guide covers pr
 
 ```bash
 # 1. Create epic for major initiative
-claude-mpm tickets create "User Dashboard Redesign" \
-  --type epic \
+aitrackdown create epic "User Dashboard Redesign" \
   --priority high \
   --description "Modernize user dashboard with improved UX and performance"
 
 # 2. Break down into feature issues
-claude-mpm tickets create "Dashboard Navigation Enhancement" \
-  --type issue \
-  --parent-epic EP-0012 \
+aitrackdown create issue "Dashboard Navigation Enhancement" \
+  --epic EP-0012 \
   --priority high \
-  --tags "frontend,ux,navigation"
+  --tag frontend --tag ux --tag navigation
 
-claude-mpm tickets create "Performance Optimization for Dashboard" \
-  --type issue \
-  --parent-epic EP-0012 \
+aitrackdown create "Performance Optimization for Dashboard" \
+  issue \
+  --epic EP-0012 \
   --priority medium \
-  --tags "performance,backend,optimization"
+  --tag "performance,backend,optimization"
 
 # 3. Create implementation tasks
-claude-mpm tickets create "Redesign navigation menu component" \
-  --type task \
-  --parent-issue ISS-0067 \
+aitrackdown create "Redesign navigation menu component" \
+  task \
+  --issue ISS-0067 \
   --priority high \
-  --tags "frontend,react,component"
+  --tag "frontend,react,component"
 
-claude-mpm tickets create "Implement lazy loading for dashboard widgets" \
-  --type task \
-  --parent-issue ISS-0068 \
+aitrackdown create "Implement lazy loading for dashboard widgets" \
+  task \
+  --issue ISS-0068 \
   --priority medium \
-  --tags "frontend,performance,lazy-loading"
+  --tag "frontend,performance,lazy-loading"
 ```
 
 **Workflow Progression:**
@@ -62,30 +60,30 @@ Epic: Planning → In Progress → Review → Done
 
 ```bash
 # 1. Create bug issue
-claude-mpm tickets create "Login form validation not working" \
-  --type bug \
+aitrackdown create "Login form validation not working" \
+  issue \
   --priority critical \
   --description "Users can submit empty login forms without validation errors" \
-  --tags "frontend,validation,auth"
+  --tag "frontend,validation,auth"
 
 # 2. Create investigation and fix tasks
-claude-mpm tickets create "Investigate validation logic failure" \
-  --type task \
-  --parent-issue ISS-0069 \
+aitrackdown create "Investigate validation logic failure" \
+  task \
+  --issue ISS-0069 \
   --priority critical \
-  --tags "investigation,debugging"
+  --tag "investigation,debugging"
 
-claude-mpm tickets create "Fix validation component state management" \
-  --type task \
-  --parent-issue ISS-0069 \
+aitrackdown create "Fix validation component state management" \
+  task \
+  --issue ISS-0069 \
   --priority critical \
-  --tags "frontend,react,fix"
+  --tag "frontend,react,fix"
 
-claude-mpm tickets create "Add comprehensive validation tests" \
-  --type task \
-  --parent-issue ISS-0069 \
+aitrackdown create "Add comprehensive validation tests" \
+  task \
+  --issue ISS-0069 \
   --priority high \
-  --tags "testing,validation,coverage"
+  --tag "testing,validation,coverage"
 ```
 
 ### Maintenance and Tech Debt Workflow
@@ -94,22 +92,22 @@ claude-mpm tickets create "Add comprehensive validation tests" \
 
 ```bash
 # 1. Create tech debt epic
-claude-mpm tickets create "Code Quality Improvements Q3 2025" \
-  --type epic \
+aitrackdown create "Code Quality Improvements Q3 2025" \
+  epic \
   --priority medium \
   --description "Systematic code quality improvements across codebase" \
-  --tags "tech-debt,quality,maintenance"
+  --tag "tech-debt,quality,maintenance"
 
 # 2. Create specific improvement issues
-claude-mpm tickets create "Refactor monolithic user service" \
-  --type issue \
-  --parent-epic EP-0013 \
+aitrackdown create "Refactor monolithic user service" \
+  issue \
+  --epic EP-0013 \
   --priority medium \
   --description "Break down 500-line user service into smaller, focused modules"
 
-claude-mpm tickets create "Update deprecated dependencies" \
-  --type issue \
-  --parent-epic EP-0013 \
+aitrackdown create "Update deprecated dependencies" \
+  issue \
+  --epic EP-0013 \
   --priority low \
   --description "Update 12 deprecated npm packages to current versions"
 ```
@@ -133,36 +131,34 @@ Open → In Progress → Ready → Reopened → In Progress → Done
 
 **Moving to In Progress:**
 ```bash
-# Always add assignee and comment when starting work
-claude-mpm tickets update TSK-0123 \
-  --status in_progress \
-  --assign john.doe@company.com
+# Always add comment when starting work
+aitrackdown transition TSK-0123 in-progress --comment "Started implementation. Estimated completion: 2025-08-16"
 
-claude-mpm tickets comment TSK-0123 \
-  "Started implementation. Estimated completion: 2025-08-16"
+# Assign the ticket if needed
+aitrackdown assign TSK-0123 john.doe@company.com
 ```
 
 **Marking as Blocked:**
 ```bash
 # Always specify blocking reason and link to blocker
-claude-mpm tickets workflow TSK-0123 blocked \
+aitrackdown transition TSK-0123 blocked \
   --comment "Blocked by TSK-0122 (API endpoint not ready)"
 
 # Create blocking relationship if needed
-aitrackdown task link TSK-0123 --blocks TSK-0122
+aitrackdown link TSK-0123 --blocks TSK-0122
 ```
 
 **Moving to Ready for Review:**
 ```bash
 # Include completion details and review requirements
-claude-mpm tickets workflow TSK-0123 ready \
+aitrackdown transition TSK-0123 ready \
   --comment "Implementation complete. Requires: code review, testing. PR: #456"
 ```
 
 **Closing as Done:**
 ```bash
 # Include completion summary and verification
-claude-mpm tickets close TSK-0123 \
+aitrackdown close TSK-0123 \
   --resolution "Feature implemented and tested. Deployed in version 1.2.3"
 ```
 
@@ -240,10 +236,10 @@ Track delivery timeline:
 
 **Example Tag Usage:**
 ```bash
-claude-mpm tickets create "Implement two-factor authentication" \
-  --type feature \
+aitrackdown create "Implement two-factor authentication" \
+  issue \
   --priority high \
-  --tags "auth,security,frontend,backend,sprint-24,customer-requested"
+  --tag "auth,security,frontend,backend,sprint-24,customer-requested"
 ```
 
 ## Priority Assignment Guidelines
@@ -325,12 +321,12 @@ aitrackdown monitor setup \
 
 **Step 1: Update Priority**
 ```bash
-claude-mpm tickets update TSK-0123 --priority critical
+aitrackdown edit TSK-0123 --priority critical
 ```
 
 **Step 2: Add Escalation Comment**
 ```bash
-claude-mpm tickets comment TSK-0123 \
+aitrackdown comment TSK-0123 \
   "ESCALATED: Customer impact increasing. Need immediate attention from team lead."
 ```
 
@@ -348,10 +344,10 @@ aitrackdown notify send TSK-0123 \
 **Pre-Sprint Preparation:**
 ```bash
 # Review epic progress
-claude-mpm tickets list --type epic --status in_progress --verbose
+aitrackdown status epic --status in-progress --verbose
 
 # Identify ready issues for sprint
-claude-mpm tickets search "status:open priority:high" --type issue
+aitrackdown search "status:open priority:high" issue
 
 # Ensure tasks are properly broken down
 aitrackdown epic status EP-0012 --show-incomplete-breakdown
@@ -379,14 +375,14 @@ aitrackdown team balance --sprint 24 --capacity-file team_capacity.yaml
 # Related to EP-0012
 
 # Update ticket status when PR is ready
-claude-mpm tickets workflow TSK-0123 ready \
+aitrackdown transition TSK-0123 ready \
   --comment "Implementation complete. PR #456 ready for review"
 ```
 
 **Review Completion:**
 ```bash
 # Update status after approval
-claude-mpm tickets workflow TSK-0123 tested \
+aitrackdown transition TSK-0123 tested \
   --comment "Code review passed. PR #456 approved and merged"
 ```
 
@@ -395,9 +391,9 @@ claude-mpm tickets workflow TSK-0123 tested \
 **Generate Standup Reports:**
 ```bash
 # Show your current work
-claude-mpm tickets list \
+aitrackdown status \
   --assignee "$(git config user.email)" \
-  --status in_progress \
+  --status in-progress \
   --verbose
 
 # Show team progress
@@ -409,10 +405,10 @@ aitrackdown report sprint-progress \
 **Update Work Status:**
 ```bash
 # Quick status updates during standup
-claude-mpm tickets comment TSK-0123 \
+aitrackdown comment TSK-0123 \
   "50% complete. Implementing core logic. No blockers."
 
-claude-mpm tickets comment TSK-0124 \
+aitrackdown comment TSK-0124 \
   "Blocked by API endpoint. Switching to TSK-0125."
 ```
 
@@ -423,17 +419,17 @@ claude-mpm tickets comment TSK-0124 \
 **Create Testing Tasks:**
 ```bash
 # Link testing tasks to feature development
-claude-mpm tickets create "Integration testing for OAuth2 flow" \
-  --type task \
-  --parent-issue ISS-0067 \
-  --tags "testing,integration,auth" \
+aitrackdown create "Integration testing for OAuth2 flow" \
+  task \
+  --issue ISS-0067 \
+  --tag "testing,integration,auth" \
   --priority high
 ```
 
 **Test Results Tracking:**
 ```bash
 # Document test outcomes
-claude-mpm tickets comment TSK-0125 \
+aitrackdown comment TSK-0125 \
   "Test Results: 
   - Unit Tests: 45/45 passing
   - Integration Tests: 12/12 passing  
@@ -446,15 +442,15 @@ claude-mpm tickets comment TSK-0125 \
 **From Testing to Development:**
 ```bash
 # QA creates bug report
-claude-mpm tickets create "Validation errors persist after form reset" \
-  --type bug \
+aitrackdown create "Validation errors persist after form reset" \
+  issue \
   --priority high \
   --description "Steps to reproduce: 1) Submit invalid form 2) Reset form 3) Errors still visible"
 
 # Developer creates fix task
-claude-mpm tickets create "Clear validation state on form reset" \
-  --type task \
-  --parent-issue BUG-0089 \
+aitrackdown create "Clear validation state on form reset" \
+  task \
+  --issue BUG-0089 \
   --assign developer@company.com
 ```
 
@@ -495,12 +491,12 @@ aitrackdown report velocity \
 **Collect Retrospective Data:**
 ```bash
 # Issues that went well
-claude-mpm tickets search "status:done" \
+aitrackdown search "status:done" \
   --period "last-sprint" \
-  --tags "went-well"
+  --tag "went-well"
 
 # Identify improvement areas
-claude-mpm tickets search "status:reopened OR priority:critical" \
+aitrackdown search "status:reopened OR priority:critical" \
   --period "last-sprint"
 
 # Process improvement opportunities
@@ -524,7 +520,7 @@ aitrackdown report blockers \
 aitrackdown relationship audit --fix-orphaned
 
 # Manually fix specific relationships
-claude-mpm tickets update TSK-0123 --parent-issue ISS-0067
+aitrackdown edit TSK-0123 --issue ISS-0067
 
 # Rebuild hierarchy cache
 aitrackdown admin rebuild-hierarchy
@@ -543,8 +539,8 @@ aitrackdown admin rebuild-hierarchy
 aitrackdown workflow validate --fix-violations
 
 # Reset problematic tickets
-claude-mpm tickets update TSK-0123 --status in_progress
-claude-mpm tickets comment TSK-0123 "Reopened: completion criteria not met"
+aitrackdown edit TSK-0123 --status in-progress
+aitrackdown comment TSK-0123 "Reopened: completion criteria not met"
 ```
 
 ### Performance Issues with Large Projects
@@ -576,9 +572,9 @@ aitrackdown admin optimize --rebuild-indices
 **Cross-Team Dependencies:**
 ```bash
 # Create coordination epic
-claude-mpm tickets create "Backend/Frontend API Integration" \
-  --type epic \
-  --tags "coordination,backend-team,frontend-team"
+aitrackdown create "Backend/Frontend API Integration" \
+  epic \
+  --tag "coordination,backend-team,frontend-team"
 
 # Link dependent issues
 aitrackdown issue link ISS-0067 --depends-on ISS-0068
@@ -588,9 +584,9 @@ aitrackdown issue link ISS-0068 --blocks ISS-0067
 **Shared Component Development:**
 ```bash
 # Tag shared components clearly
-claude-mpm tickets create "Update shared authentication library" \
-  --type issue \
-  --tags "shared-component,auth,affects-multiple-teams" \
+aitrackdown create "Update shared authentication library" \
+  issue \
+  --tag "shared-component,auth,affects-multiple-teams" \
   --priority high
 ```
 
@@ -599,9 +595,9 @@ claude-mpm tickets create "Update shared authentication library" \
 **Release Planning:**
 ```bash
 # Create release epic
-claude-mpm tickets create "Version 2.1.0 Release" \
-  --type epic \
-  --tags "release,v2.1.0,milestone"
+aitrackdown create "Version 2.1.0 Release" \
+  epic \
+  --tag "release,v2.1.0,milestone"
 
 # Link all release issues
 aitrackdown epic add-issues EP-0015 \
@@ -617,15 +613,15 @@ aitrackdown report release-readiness \
 **Hotfix Workflow:**
 ```bash
 # Create hotfix issue
-claude-mpm tickets create "Critical security patch for auth module" \
-  --type bug \
+aitrackdown create "Critical security patch for auth module" \
+  issue \
   --priority critical \
-  --tags "hotfix,security,urgent"
+  --tag "hotfix,security,urgent"
 
 # Fast-track workflow
-claude-mpm tickets workflow BUG-0090 in_progress
+aitrackdown transition BUG-0090 in_progress
 # ... immediate fix and testing ...
-claude-mpm tickets close BUG-0090 --resolution "Deployed hotfix v2.0.1"
+aitrackdown close BUG-0090 --resolution "Deployed hotfix v2.0.1"
 ```
 
 ## Integration with Development Tools

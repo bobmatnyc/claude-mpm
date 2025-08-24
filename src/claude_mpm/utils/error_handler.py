@@ -6,7 +6,6 @@ Inspired by awesome-claude-code's comprehensive error handling approach.
 
 import logging
 import sys
-import traceback
 from datetime import datetime
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Type
@@ -31,7 +30,7 @@ class MPMError(Exception):
 
     def get_user_friendly_message(self) -> str:
         """Get a user-friendly error message."""
-        lines = [f"❌ Error: {str(self)}"]
+        lines = [f"❌ Error: {self!s}"]
 
         if self.details:
             lines.append("\nDetails:")
@@ -49,25 +48,17 @@ class MPMError(Exception):
 class AgentLoadError(MPMError):
     """Raised when agent loading fails."""
 
-    pass
-
 
 class ValidationError(MPMError):
     """Raised when validation fails."""
-
-    pass
 
 
 class ExecutionError(MPMError):
     """Raised when agent execution fails."""
 
-    pass
-
 
 class ConfigurationError(MPMError):
     """Raised when configuration is invalid."""
-
-    pass
 
 
 def handle_errors(
@@ -131,7 +122,7 @@ class ErrorContext:
         """Exit the context, handling any errors."""
         if exc_type is None:
             logger.debug(f"Completed operation: {self.operation}")
-            return
+            return None
 
         # Log the error with context
         logger.error(
@@ -216,8 +207,7 @@ def retry_on_error(
 
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
-        else:
-            return sync_wrapper
+        return sync_wrapper
 
     return decorator
 

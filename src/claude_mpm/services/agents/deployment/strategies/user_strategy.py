@@ -49,10 +49,7 @@ class UserAgentDeploymentStrategy(BaseDeploymentStrategy):
         # Check for user-specific environment variable
         import os
 
-        if "CLAUDE_MPM_USER_PWD" in os.environ:
-            return True
-
-        return False
+        return "CLAUDE_MPM_USER_PWD" in os.environ
 
     def determine_target_directory(self, context: DeploymentContext) -> Path:
         """Determine target directory for user agents.
@@ -70,9 +67,8 @@ class UserAgentDeploymentStrategy(BaseDeploymentStrategy):
         # Always deploy to project directory
         if context.working_directory:
             return context.working_directory / ".claude" / "agents"
-        else:
-            # Fallback to current working directory if not specified
-            return Path.cwd() / ".claude" / "agents"
+        # Fallback to current working directory if not specified
+        return Path.cwd() / ".claude" / "agents"
 
     def get_templates_directory(self, context: DeploymentContext) -> Path:
         """Get templates directory for user agents.

@@ -37,7 +37,7 @@ claude-mpm
 claude-mpm run -i "prompt" [options]
 
 # List tickets  
-claude-mpm tickets
+aitrackdown status tasks
 
 # Show info
 claude-mpm info

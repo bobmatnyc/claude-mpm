@@ -7,13 +7,17 @@ Provides factory patterns for services that require complex initialization
 or have multiple configuration options.
 """
 
+import os
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Optional, TypeVar
 
 from ..services import AgentDeploymentService
 from .config import Config
 from .container import DIContainer
 from .logger import get_logger
+
+if TYPE_CHECKING:
+    from .unified_config import ConfigurationService
 
 # Note: Orchestration functionality has been replaced by claude_runner
 
@@ -28,7 +32,6 @@ class ServiceFactory(ABC):
     @abstractmethod
     def create(self, container: DIContainer, **kwargs) -> Any:
         """Create a service instance."""
-        pass
 
 
 # OrchestratorFactoryWrapper has been removed - orchestration replaced by claude_runner
@@ -57,8 +60,6 @@ class AgentServiceFactory(ServiceFactory):
         config = container.resolve(Config)
 
         # Get directories from config if not provided
-        import os
-
         if framework_dir is None:
             framework_dir = Path(config.get("framework.dir", "framework"))
 
@@ -112,14 +113,13 @@ class SessionManagerFactory(ServiceFactory):
             return AgentSessionManager(
                 session_dir=session_dir, max_sessions_per_agent=max_sessions
             )
-        else:
-            from ..core.session_manager import SessionManager
+        from ..core.session_manager import SessionManager
 
-            session_dir = kwargs.get("session_dir") or Path(
-                config.get("session.dir", ".claude-mpm/sessions")
-            )
+        session_dir = kwargs.get("session_dir") or Path(
+            config.get("session.dir", ".claude-mpm/sessions")
+        )
 
-            return SessionManager(session_dir=session_dir)
+        return SessionManager(session_dir=session_dir)
 
 
 class ConfigurationFactory(ServiceFactory):
@@ -148,8 +148,6 @@ class ConfigurationFactory(ServiceFactory):
         config = Config(config_data or {}, config_path)
 
         # Load environment variables
-        import os
-
         for key, value in os.environ.items():
             if key.startswith(env_prefix):
                 # Convert CLAUDE_MPM_FOO_BAR to foo.bar

@@ -87,8 +87,7 @@ class DeploymentConfig:
         """
         if self.case_sensitive_exclusion:
             return agent_name in self.excluded_agents
-        else:
-            return agent_name.lower() in [name.lower() for name in self.excluded_agents]
+        return agent_name.lower() in [name.lower() for name in self.excluded_agents]
 
     def get_effective_excluded_agents(self) -> List[str]:
         """Get the effective list of excluded agents.
@@ -159,12 +158,12 @@ class DeploymentConfig:
             "use_async": self.use_async,
             "target_dir": str(self.target_dir) if self.target_dir else None,
             "templates_dir": str(self.templates_dir) if self.templates_dir else None,
-            "base_agent_path": str(self.base_agent_path)
-            if self.base_agent_path
-            else None,
-            "working_directory": str(self.working_directory)
-            if self.working_directory
-            else None,
+            "base_agent_path": (
+                str(self.base_agent_path) if self.base_agent_path else None
+            ),
+            "working_directory": (
+                str(self.working_directory) if self.working_directory else None
+            ),
             "deploy_system_instructions": self.deploy_system_instructions,
             "deploy_user_instructions": self.deploy_user_instructions,
             "repair_existing_agents": self.repair_existing_agents,

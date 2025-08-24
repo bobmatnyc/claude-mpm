@@ -1,5 +1,3 @@
-from pathlib import Path
-
 """System instructions service for loading and processing system instructions.
 
 This service handles:
@@ -36,11 +34,9 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
 
     async def _initialize(self) -> None:
         """Initialize the service. No special initialization needed."""
-        pass
 
     async def _cleanup(self) -> None:
         """Cleanup service resources. No cleanup needed."""
-        pass
 
     def load_system_instructions(self, instruction_type: str = "default") -> str:
         """Load and process system instructions from agents/INSTRUCTIONS.md.
@@ -50,7 +46,7 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
 
         Now uses the FrameworkLoader for comprehensive instruction loading including:
         - INSTRUCTIONS.md
-        - WORKFLOW.md  
+        - WORKFLOW.md
         - MEMORY.md
         - Actual PM memories from .claude-mpm/memories/PM.md
         - Agent capabilities
@@ -64,23 +60,28 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
             if self._loaded_instructions is not None:
                 self.logger.debug("Returning cached system instructions")
                 return self._loaded_instructions
-            
+
             # Create FrameworkLoader only once
             if self._framework_loader is None:
                 from claude_mpm.core.framework_loader import FrameworkLoader
+
                 self._framework_loader = FrameworkLoader()
                 self.logger.debug("Created new FrameworkLoader instance")
-            
+
             # Load instructions and cache them
             instructions = self._framework_loader.get_framework_instructions()
-            
+
             if instructions:
                 self._loaded_instructions = instructions
-                self.logger.info("Loaded and cached framework instructions via FrameworkLoader")
+                self.logger.info(
+                    "Loaded and cached framework instructions via FrameworkLoader"
+                )
                 return instructions
-            
+
             # Fallback if FrameworkLoader returns empty
-            self.logger.warning("FrameworkLoader returned empty instructions, using fallback")
+            self.logger.warning(
+                "FrameworkLoader returned empty instructions, using fallback"
+            )
             fallback = "# System Instructions\n\nNo specific system instructions found. Using default behavior."
             self._loaded_instructions = fallback
             return fallback
@@ -177,9 +178,7 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
             cleaned = "\n".join(cleaned_lines)
 
             # Also remove any leading blank lines that might result
-            cleaned = cleaned.lstrip("\n")
-
-            return cleaned
+            return cleaned.lstrip("\n")
 
         except Exception as e:
             self.logger.warning(f"Error stripping metadata comments: {e}")

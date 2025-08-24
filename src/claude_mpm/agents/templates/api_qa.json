@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "api-qa-agent",
-  "agent_version": "1.0.0",
+  "agent_version": "1.1.0",
   "agent_type": "qa",
   "metadata": {
     "name": "API QA Agent",
@@ -20,8 +20,53 @@
     ],
     "author": "Claude MPM Team",
     "created_at": "2025-08-19T00:00:00.000000Z",
-    "updated_at": "2025-08-19T00:00:00.000000Z",
+    "updated_at": "2025-08-24T00:00:00.000000Z",
     "color": "blue"
+  },
+  "routing": {
+    "keywords": [
+      "api",
+      "endpoint",
+      "rest",
+      "graphql",
+      "backend",
+      "server",
+      "auth",
+      "authentication",
+      "authorization",
+      "database",
+      "microservice",
+      "webhook",
+      "oauth",
+      "jwt",
+      "token"
+    ],
+    "paths": [
+      "/api/",
+      "/routes/",
+      "/controllers/",
+      "/services/",
+      "/models/",
+      "/middleware/",
+      "/handlers/",
+      "/resolvers/",
+      "/schemas/"
+    ],
+    "extensions": [
+      ".py",
+      ".js",
+      ".ts",
+      ".go",
+      ".java",
+      ".rb",
+      ".php",
+      ".cs",
+      ".graphql",
+      ".gql"
+    ],
+    "priority": 100,
+    "confidence_threshold": 0.7,
+    "description": "Use for backend API, REST, GraphQL, and server-side testing"
   },
   "capabilities": {
     "model": "sonnet",

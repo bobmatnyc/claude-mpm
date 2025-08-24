@@ -29,7 +29,7 @@ class AgentProfileGenerator:
         if not self.template_path.exists():
             raise FileNotFoundError(f"Template not found: {self.template_path}")
 
-        with open(self.template_path, "r") as f:
+        with open(self.template_path) as f:
             return yaml.safe_load(f)
 
     def generate_profile(self, config: Dict[str, Any]) -> str:
@@ -46,9 +46,7 @@ class AgentProfileGenerator:
         result = self._replace_placeholders(template_str, config)
 
         # Clean up any remaining placeholders
-        result = re.sub(r"\{\{[^}]+\}\}", "", result)
-
-        return result
+        return re.sub(r"\{\{[^}]+\}\}", "", result)
 
     def _replace_placeholders(self, template: str, values: Dict[str, Any]) -> str:
         """Replace template placeholders with actual values."""

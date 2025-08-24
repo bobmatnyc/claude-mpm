@@ -3,7 +3,6 @@
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from claude_mpm.core.config import Config
 from claude_mpm.core.interfaces import AgentDeploymentInterface
 from claude_mpm.core.logger import get_logger
 
@@ -12,10 +11,8 @@ from .facade import DeploymentFacade
 from .pipeline import (
     DeploymentPipelineBuilder,
     DeploymentPipelineExecutor,
-    PipelineContext,
 )
-from .processors import AgentProcessor
-from .results import DeploymentMetrics, DeploymentResultBuilder
+from .results import DeploymentResultBuilder
 
 # Import refactored components
 from .strategies import DeploymentContext, DeploymentStrategySelector
@@ -69,7 +66,7 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
             self.pipeline_builder, self.pipeline_executor
         )
 
-        self.logger.info(f"Refactored deployment service initialized")
+        self.logger.info("Refactored deployment service initialized")
         self.logger.info(f"Templates directory: {self.templates_dir}")
         self.logger.info(f"Base agent path: {self.base_agent_path}")
         self.logger.info(f"Working directory: {self.working_directory}")
@@ -167,7 +164,7 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
 
         except Exception as e:
             self.logger.error(f"Agent validation failed: {e}", exc_info=True)
-            return False, [f"Validation error: {str(e)}"]
+            return False, [f"Validation error: {e!s}"]
 
     def clean_deployment(self, preserve_user_agents: bool = True) -> bool:
         """Clean up deployed agents.
@@ -236,7 +233,7 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
             available_executors = self.deployment_facade.get_available_executors()
 
             # Build status information
-            status = {
+            return {
                 "service_version": "refactored-1.0.0",
                 "status": "ready",
                 "templates_dir": str(self.templates_dir),
@@ -253,8 +250,6 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
                     "deployment_facade": True,
                 },
             }
-
-            return status
 
         except Exception as e:
             self.logger.error(f"Failed to get deployment status: {e}", exc_info=True)
@@ -292,7 +287,7 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
             strategy = self.strategy_selector.select_strategy(deployment_context)
 
             # Use facade with synchronous deployment for reliability
-            results = self.deployment_facade.deploy_agents(
+            return self.deployment_facade.deploy_agents(
                 templates_dir=self.templates_dir,
                 base_agent_path=self.base_agent_path,
                 working_directory=self.working_directory,
@@ -302,8 +297,6 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
                 config=None,
                 use_async=False,  # Use synchronous deployment to ensure agents are ready when Claude Code launches
             )
-
-            return results
 
         except Exception as e:
             self.logger.error(f"Async deployment failed: {e}", exc_info=True)

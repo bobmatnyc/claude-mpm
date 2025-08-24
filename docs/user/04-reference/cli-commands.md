@@ -410,7 +410,7 @@ claude-mpm run -i "Implement the user API we just created" --non-interactive
 # Only continue if tickets were created
 if claude-mpm run -i "Plan the feature" --non-interactive | grep -q "Created ticket"; then
     echo "Tickets created, proceeding..."
-    ./ticket list
+    aitrackdown status tasks
 fi
 ```
 
@@ -437,7 +437,7 @@ claude-mpm run -i "Write a fibonacci function" --non-interactive | \
   sed -n '/```python/,/```/p' > fib.py
 
 # Count tickets created
-claude-mpm tickets --format json | jq '.tickets | length'
+aitrackdown status tasks --json | jq '. | length'
 ```
 
 ## Debugging Commands
@@ -478,7 +478,7 @@ watch -n 1 'ps aux | grep claude'
 
 ```bash
 # Morning: Check tickets
-./ticket list --status pending
+aitrackdown status tasks --status open
 
 # Start work
 claude-mpm  # Interactive session
@@ -487,7 +487,7 @@ claude-mpm  # Interactive session
 claude-mpm run -i "TODO: Fix bug in auth" --non-interactive
 
 # End of day: Review
-claude-mpm tickets --limit 20
+aitrackdown status tasks --limit 20
 ```
 
 ### Project Setup
@@ -502,7 +502,7 @@ mkdir -p .claude/agents tickets/tasks
 claude-mpm run -i "Help me plan a web application" --non-interactive
 
 # Review created tickets
-./ticket list
+aitrackdown status tasks
 ```
 
 ### CI/CD Integration

@@ -11,15 +11,21 @@ import json
 import logging
 import logging.handlers
 import sys
+import threading
 import time
 from collections import defaultdict
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
+
+from claude_mpm.core.unified_paths import get_project_root
 
 # Rich support has been removed
 HAS_RICH = False
+
+# Thread lock for symlink creation to prevent race conditions
+_symlink_lock = threading.Lock()
 
 
 class LogLevel(Enum):
@@ -225,8 +231,6 @@ def setup_logging(
             # Use default log directory
             if log_dir is None:
                 # Use deployment root for logs to keep everything centralized
-                from claude_mpm.core.unified_paths import get_project_root
-
                 deployment_root = get_project_root()
                 log_dir = deployment_root / ".claude-mpm" / "logs"
 
@@ -238,12 +242,59 @@ def setup_logging(
 
             file_handler = logging.FileHandler(log_file)
 
-            # Also create a symlink to latest log
+            # Clean up old MPM logs (using configured retention count)
+            try:
+                deleted_count = cleanup_old_mpm_logs(log_dir)
+                if deleted_count > 0:
+                    # Log to the new file handler that we're about to add
+                    pass  # Deletion count will be logged when logger is ready
+            except Exception:
+                pass  # Ignore cleanup errors
+
+            # Also create a symlink to latest log (with thread safety)
             latest_link = log_dir / "latest.log"
-            if latest_link.exists() and latest_link.is_symlink():
-                latest_link.unlink()
-            if not latest_link.exists():
-                latest_link.symlink_to(log_file.name)
+
+            # Use a lock to prevent race conditions in concurrent environments
+            with _symlink_lock:
+                # Remove existing symlink/file if it exists
+                # Note: We need to handle both regular files and symlinks (including broken ones)
+                try:
+                    # unlink() works for both files and symlinks, even broken ones
+                    # This is more robust than checking exists() which returns False for broken symlinks
+                    if latest_link.is_symlink() or latest_link.exists():
+                        latest_link.unlink()
+                except (OSError, PermissionError) as e:
+                    # Log warning but continue - symlink is nice-to-have, not critical
+                    logger.debug(f"Could not remove existing latest.log: {e}")
+                except Exception as e:
+                    # Catch any other unexpected errors
+                    logger.debug(f"Unexpected error removing latest.log: {e}")
+
+                # Create new symlink with proper error handling
+                try:
+                    # Use relative path for better portability
+                    latest_link.symlink_to(log_file.name)
+                except FileExistsError:
+                    # This can happen in race conditions - try to remove and recreate
+                    try:
+                        latest_link.unlink()
+                        latest_link.symlink_to(log_file.name)
+                    except Exception as e:
+                        logger.debug(
+                            f"Could not recreate latest.log symlink after FileExistsError: {e}"
+                        )
+                except (OSError, NotImplementedError) as e:
+                    # Handle platforms where symlinks aren't supported (e.g., Windows without admin)
+                    # or filesystem doesn't support symlinks
+                    logger.debug(f"Could not create latest.log symlink: {e}")
+                    # Fallback: try to create a regular file with reference to actual log
+                    try:
+                        latest_link.write_text(f"Latest log: {log_file.name}\n")
+                    except Exception:
+                        pass  # Silently fail - logging should not break the application
+                except Exception as e:
+                    # Catch any other unexpected errors to ensure logging doesn't break
+                    logger.debug(f"Unexpected error creating latest.log symlink: {e}")
 
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(formatter if json_format else detailed_formatter)
@@ -253,6 +304,72 @@ def setup_logging(
     logger.propagate = False
 
     return logger
+
+
+def cleanup_old_mpm_logs(
+    log_dir: Optional[Path] = None, keep_count: Optional[int] = None
+) -> int:
+    """
+    Clean up old MPM log files using time-based retention.
+
+    WHY: This function now delegates to LogManager for unified log management
+    with time-based retention instead of count-based.
+
+    DESIGN DECISIONS:
+    - Delegates to LogManager for consistency
+    - Uses time-based retention (48 hours default)
+    - Maintains backward compatibility
+
+    Args:
+        log_dir: Directory containing log files (defaults to .claude-mpm/logs)
+        keep_count: Ignored (kept for backward compatibility)
+
+    Returns:
+        Number of log files deleted
+    """
+    try:
+        from .log_manager import get_log_manager
+
+        log_manager = get_log_manager()
+
+        # Use LogManager's time-based cleanup (48 hours default)
+        return log_manager.cleanup_old_mpm_logs(log_dir)
+    except ImportError:
+        # Fallback to old implementation if LogManager not available
+        # Get retention count from configuration if not specified
+        if keep_count is None:
+            from claude_mpm.core.config_constants import ConfigConstants
+
+            keep_count = (
+                ConfigConstants.get_logging_setting("mpm_logs_retention_count") or 10
+            )
+        if log_dir is None:
+            deployment_root = get_project_root()
+            log_dir = deployment_root / ".claude-mpm" / "logs"
+
+        if not log_dir.exists():
+            return 0
+
+        # Get all MPM log files
+        log_files = sorted(
+            log_dir.glob("mpm_*.log"), key=lambda p: p.stat().st_mtime, reverse=True
+        )  # Newest first
+
+        if len(log_files) <= keep_count:
+            return 0  # Already within limit
+
+        # Delete older files beyond keep_count
+        deleted_count = 0
+        for log_file in log_files[
+            keep_count:
+        ]:  # Keep only the most recent keep_count files
+            try:
+                log_file.unlink()
+                deleted_count += 1
+            except Exception:
+                pass  # Ignore deletion errors
+
+        return deleted_count
 
 
 def get_logger(name: str) -> logging.Logger:

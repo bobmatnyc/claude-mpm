@@ -8,7 +8,6 @@ maintainability and testability.
 """
 
 import json
-import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -114,26 +113,26 @@ class AgentConfigurationManager:
         # Agent-specific tools based on name patterns
         agent_tools = {
             # Security agents
-            "security": base_tools + ["SecurityScan", "VulnerabilityCheck"],
-            "sec": base_tools + ["SecurityScan", "VulnerabilityCheck"],
+            "security": [*base_tools, "SecurityScan", "VulnerabilityCheck"],
+            "sec": [*base_tools, "SecurityScan", "VulnerabilityCheck"],
             # QA and testing agents
-            "qa": base_tools + ["TestRunner", "CodeAnalysis"],
-            "test": base_tools + ["TestRunner", "CodeAnalysis"],
-            "testing": base_tools + ["TestRunner", "CodeAnalysis"],
+            "qa": [*base_tools, "TestRunner", "CodeAnalysis"],
+            "test": [*base_tools, "TestRunner", "CodeAnalysis"],
+            "testing": [*base_tools, "TestRunner", "CodeAnalysis"],
             # Documentation agents
-            "doc": base_tools + ["DocumentGenerator", "MarkdownProcessor"],
-            "docs": base_tools + ["DocumentGenerator", "MarkdownProcessor"],
-            "documentation": base_tools + ["DocumentGenerator", "MarkdownProcessor"],
+            "doc": [*base_tools, "DocumentGenerator", "MarkdownProcessor"],
+            "docs": [*base_tools, "DocumentGenerator", "MarkdownProcessor"],
+            "documentation": [*base_tools, "DocumentGenerator", "MarkdownProcessor"],
             # Data processing agents
-            "data": base_tools + ["DataProcessor", "CSVHandler"],
-            "analytics": base_tools + ["DataProcessor", "CSVHandler"],
+            "data": [*base_tools, "DataProcessor", "CSVHandler"],
+            "analytics": [*base_tools, "DataProcessor", "CSVHandler"],
             # Operations agents
-            "ops": base_tools + ["SystemMonitor", "LogAnalyzer"],
-            "operations": base_tools + ["SystemMonitor", "LogAnalyzer"],
-            "monitor": base_tools + ["SystemMonitor", "LogAnalyzer"],
+            "ops": [*base_tools, "SystemMonitor", "LogAnalyzer"],
+            "operations": [*base_tools, "SystemMonitor", "LogAnalyzer"],
+            "monitor": [*base_tools, "SystemMonitor", "LogAnalyzer"],
             # Research agents
-            "research": base_tools + ["WebSearch", "DataCollector"],
-            "analysis": base_tools + ["WebSearch", "DataCollector"],
+            "research": [*base_tools, "WebSearch", "DataCollector"],
+            "analysis": [*base_tools, "WebSearch", "DataCollector"],
         }
 
         # Check agent name for tool assignment
@@ -150,7 +149,7 @@ class AgentConfigurationManager:
                 return agent_tools[spec_lower]
 
         # Return default tools with web search and bash
-        return base_tools + ["Bash", "WebSearch"]
+        return [*base_tools, "Bash", "WebSearch"]
 
     def get_agent_specific_config(self, agent_name: str) -> Dict[str, Any]:
         """
@@ -348,9 +347,9 @@ class AgentConfigurationManager:
         base_agent_data, base_agent_version = self.load_base_agent()
 
         return {
-            "base_agent_path": str(self.base_agent_path)
-            if self.base_agent_path
-            else None,
+            "base_agent_path": (
+                str(self.base_agent_path) if self.base_agent_path else None
+            ),
             "base_agent_loaded": self._base_agent_cache is not None,
             "base_agent_version": base_agent_version,
             "base_agent_name": base_agent_data.get("name", "unknown"),

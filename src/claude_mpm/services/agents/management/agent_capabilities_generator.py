@@ -44,14 +44,12 @@ class AgentCapabilitiesGenerator:
             )
 
             # Render template
-            content = self.template.render(
+            return self.template.render(
                 core_agents=core_agent_list,
                 detailed_capabilities=detailed_capabilities,
                 agents_by_tier=agents_by_tier,
                 total_agents=len(deployed_agents),
             )
-
-            return content
 
         except Exception as e:
             logger.error(f"Failed to generate capabilities section: {e}")

@@ -19,91 +19,91 @@ def __getattr__(name):
         from .ticket_manager import TicketManager
 
         return TicketManager
-    elif name == "AgentDeploymentService":
+    if name == "AgentDeploymentService":
         # Use correct path
         from .agents.deployment import AgentDeploymentService
 
         return AgentDeploymentService
-    elif name == "AgentMemoryManager":
+    if name == "AgentMemoryManager":
         from .agents.memory import AgentMemoryManager
 
         return AgentMemoryManager
-    elif name == "get_memory_manager":
+    if name == "get_memory_manager":
         from .agents.memory import get_memory_manager
 
         return get_memory_manager
     # Add backward compatibility for other agent services
-    elif name == "AgentRegistry":
+    if name == "AgentRegistry":
         # Use correct path
         from .agents.registry import AgentRegistry
 
         return AgentRegistry
-    elif name == "AgentLifecycleManager":
+    if name == "AgentLifecycleManager":
         from .agents.deployment import AgentLifecycleManager
 
         return AgentLifecycleManager
-    elif name == "AgentManager":
+    if name == "AgentManager":
         from .agents.management import AgentManager
 
         return AgentManager
-    elif name == "AgentCapabilitiesGenerator":
+    if name == "AgentCapabilitiesGenerator":
         from .agents.management import AgentCapabilitiesGenerator
 
         return AgentCapabilitiesGenerator
-    elif name == "AgentModificationTracker":
+    if name == "AgentModificationTracker":
         from .agents.registry import AgentModificationTracker
 
         return AgentModificationTracker
-    elif name == "AgentPersistenceService":
+    if name == "AgentPersistenceService":
         from .agents.memory import AgentPersistenceService
 
         return AgentPersistenceService
-    elif name == "AgentProfileLoader":
+    if name == "AgentProfileLoader":
         from .agents.loading import AgentProfileLoader
 
         return AgentProfileLoader
-    elif name == "AgentVersionManager":
+    if name == "AgentVersionManager":
         from .agents.deployment import AgentVersionManager
 
         return AgentVersionManager
-    elif name == "BaseAgentManager":
+    if name == "BaseAgentManager":
         from .agents.loading import BaseAgentManager
 
         return BaseAgentManager
-    elif name == "DeployedAgentDiscovery":
+    if name == "DeployedAgentDiscovery":
         from .agents.registry import DeployedAgentDiscovery
 
         return DeployedAgentDiscovery
-    elif name == "FrameworkAgentLoader":
+    if name == "FrameworkAgentLoader":
         from .agents.loading import FrameworkAgentLoader
 
         return FrameworkAgentLoader
-    elif name == "HookService":
+    if name == "HookService":
         from .hook_service import HookService
 
         return HookService
-    elif name == "ProjectAnalyzer":
+    if name == "ProjectAnalyzer":
         from .project.analyzer import ProjectAnalyzer
 
         return ProjectAnalyzer
-    elif name == "AdvancedHealthMonitor":
+    if name == "AdvancedHealthMonitor":
         from .infrastructure.monitoring import AdvancedHealthMonitor
 
         return AdvancedHealthMonitor
-    elif name == "HealthMonitor":
+    if name == "HealthMonitor":
         # For backward compatibility, return AdvancedHealthMonitor
         # Note: There's also a different HealthMonitor in infrastructure.health_monitor
         from .infrastructure.monitoring import AdvancedHealthMonitor
 
         return AdvancedHealthMonitor
-    elif name == "RecoveryManager":
+    if name == "RecoveryManager":
         try:
             from .recovery_manager import RecoveryManager
 
             return RecoveryManager
         except ImportError:
             raise AttributeError(f"Recovery management not available: {name}")
-    elif name == "StandaloneSocketIOServer" or name == "SocketIOServer":
+    elif name in {"StandaloneSocketIOServer", "SocketIOServer"}:
         from .socketio_server import SocketIOServer
 
         return SocketIOServer
@@ -187,50 +187,50 @@ def __getattr__(name):
 
 
 __all__ = [
-    "TicketManager",
-    "AgentDeploymentService",
-    "AgentMemoryManager",
-    "get_memory_manager",
-    "HookService",
-    "ProjectAnalyzer",
     "AdvancedHealthMonitor",
-    "HealthMonitor",  # New alias
-    "RecoveryManager",
-    "StandaloneSocketIOServer",
-    "SocketIOServer",  # New alias
-    # Additional agent services for backward compatibility
-    "AgentRegistry",
-    "AgentLifecycleManager",
-    "AgentManager",
-    "AgentManagementService",  # New service
     "AgentCapabilitiesGenerator",
+    "AgentDeploymentService",
+    "AgentLifecycleManager",
+    "AgentManagementService",  # New service
+    "AgentManager",
+    "AgentMemoryManager",
     "AgentModificationTracker",
     "AgentPersistenceService",
     "AgentProfileLoader",
+    # Additional agent services for backward compatibility
+    "AgentRegistry",
     "AgentVersionManager",
     "BaseAgentManager",
-    "DeployedAgentDiscovery",
-    "FrameworkAgentLoader",
-    # Project services
-    "ProjectRegistry",  # New service
-    # Infrastructure services
-    "LoggingService",  # New service
-    # Communication services
-    "SocketIOClientManager",  # New service
-    # Memory services (backward compatibility)
-    "MemoryBuilder",
-    "MemoryRouter",
-    "MemoryOptimizer",
-    "SimpleCacheService",
-    "SharedPromptCache",
-    # MCP Gateway services
-    "MCPConfiguration",
-    "MCPConfigLoader",
-    "MCPServer",
-    "MCPToolRegistry",
     "BaseMCPService",
     # Core exports
     "BaseService",
-    "SyncBaseService",
+    "DeployedAgentDiscovery",
+    "FrameworkAgentLoader",
+    "HealthMonitor",  # New alias
+    "HookService",
+    # Infrastructure services
+    "LoggingService",  # New service
+    "MCPConfigLoader",
+    # MCP Gateway services
+    "MCPConfiguration",
+    "MCPServer",
+    "MCPToolRegistry",
+    # Memory services (backward compatibility)
+    "MemoryBuilder",
+    "MemoryOptimizer",
+    "MemoryRouter",
+    "ProjectAnalyzer",
+    # Project services
+    "ProjectRegistry",  # New service
+    "RecoveryManager",
+    "SharedPromptCache",
+    "SimpleCacheService",
     "SingletonService",
+    # Communication services
+    "SocketIOClientManager",  # New service
+    "SocketIOServer",  # New alias
+    "StandaloneSocketIOServer",
+    "SyncBaseService",
+    "TicketManager",
+    "get_memory_manager",
 ]

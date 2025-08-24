@@ -7,11 +7,10 @@ Extracted from AgentDeploymentService as part of the refactoring to improve
 maintainability and testability.
 """
 
-import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -67,11 +66,10 @@ class AgentFormatConverter:
                             # MD file is newer or same age, skip conversion
                             results["skipped"].append(yaml_file.name)
                             continue
-                        else:
-                            # MD file is older, proceed with conversion
-                            self.logger.info(
-                                f"MD file {md_file.name} is older than YAML, converting..."
-                            )
+                        # MD file is older, proceed with conversion
+                        self.logger.info(
+                            f"MD file {md_file.name} is older than YAML, converting..."
+                        )
 
                     # Read YAML content
                     yaml_content = yaml_file.read_text()
@@ -248,7 +246,7 @@ model: "{model}"
 
         # Add instructions field if there's markdown content
         if markdown_content:
-            frontmatter += f"\ninstructions: |\n"
+            frontmatter += "\ninstructions: |\n"
             # Indent markdown content
             for line in markdown_content.split("\n"):
                 frontmatter += f"  {line}\n"
@@ -269,13 +267,12 @@ model: "{model}"
 
         if content.startswith("---") and "---" in content[3:]:
             return "markdown_yaml"
-        elif content.startswith("{") and content.endswith("}"):
+        if content.startswith("{") and content.endswith("}"):
             return "json"
-        elif ":" in content and not content.startswith("#"):
+        if ":" in content and not content.startswith("#"):
             # Likely YAML if it has key-value pairs and doesn't start with markdown header
             return "yaml"
-        else:
-            return "unknown"
+        return "unknown"
 
     def normalize_agent_content(
         self, content: str, agent_name: str, target_format: str = "markdown_yaml"
@@ -307,10 +304,9 @@ model: "{model}"
         # Convert to target format
         if target_format == "yaml":
             return self.convert_md_to_yaml(intermediate)
-        elif target_format == "json":
+        if target_format == "json":
             return self._convert_md_to_json(intermediate)
-        else:
-            return intermediate
+        return intermediate
 
     def get_conversion_stats(self, target_dir: Path) -> Dict[str, Any]:
         """

@@ -95,7 +95,7 @@ class CircuitBreaker:
         """Check if execution is allowed based on circuit state."""
         if self.state == CircuitState.CLOSED:
             return True
-        elif self.state == CircuitState.OPEN:
+        if self.state == CircuitState.OPEN:
             # Check if recovery timeout has passed
             if (
                 self.last_failure_time
@@ -108,7 +108,7 @@ class CircuitBreaker:
                 )
                 return True
             return False
-        elif self.state == CircuitState.HALF_OPEN:
+        if self.state == CircuitState.HALF_OPEN:
             # Allow one test request
             return True
 
@@ -496,7 +496,7 @@ class SocketIOConnectionPool:
                 await client.emit(event.event, enhanced_data, namespace=namespace)
 
             # Update stats
-            for conn_id, stats in self.connection_stats.items():
+            for _conn_id, stats in self.connection_stats.items():
                 if stats.is_connected:
                     stats.events_sent += len(events)
                     stats.consecutive_errors = 0
@@ -547,7 +547,7 @@ class SocketIOConnectionPool:
                     )
 
                 # Update stats
-                for conn_id, stats in self.connection_stats.items():
+                for _conn_id, stats in self.connection_stats.items():
                     if stats.is_connected:
                         stats.events_sent += len(events)
                         stats.consecutive_errors = 0
@@ -562,7 +562,7 @@ class SocketIOConnectionPool:
             self.logger.error(f"Failed to emit batch to {namespace}: {e}")
 
             # Update stats
-            for conn_id, stats in self.connection_stats.items():
+            for _conn_id, stats in self.connection_stats.items():
                 if stats.is_connected:
                     stats.errors += 1
                     stats.consecutive_errors += 1
@@ -572,7 +572,7 @@ class SocketIOConnectionPool:
         finally:
             self._return_connection(client)
             # Only close loop if we created it
-            if loop and not asyncio.get_event_loop() == loop:
+            if loop and asyncio.get_event_loop() != loop:
                 try:
                     # Ensure all tasks are done before closing
                     pending = asyncio.all_tasks(loop)
@@ -730,6 +730,26 @@ class SocketIOConnectionPool:
             return True
         except (asyncio.TimeoutError, Exception):
             return False
+
+    def emit(self, event: str, data: Dict[str, Any]) -> bool:
+        """Emit an event through the connection pool.
+
+        This method provides compatibility for the legacy emit() interface
+        by mapping to the modern emit_event() method with appropriate defaults.
+
+        Args:
+            event: Event name (e.g., "claude_event")
+            data: Event data dictionary
+
+        Returns:
+            bool: True if event was sent successfully (always True for async emission)
+        """
+        if not SOCKETIO_AVAILABLE or not self._running:
+            return False
+
+        # Map to the modern emit_event method using default namespace
+        self.emit_event("/", event, data)
+        return True
 
     def get_stats(self) -> Dict[str, Any]:
         """Get connection pool statistics."""

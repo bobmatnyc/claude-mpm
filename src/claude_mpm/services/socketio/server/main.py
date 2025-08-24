@@ -10,8 +10,6 @@ delegates to specialized components rather than inheriting from them.
 """
 
 import asyncio
-import logging
-import os
 import threading
 import time
 from collections import deque
@@ -31,15 +29,10 @@ except ImportError:
     web = None
 
 from ....core.constants import (
-    NetworkConfig,
-    PerformanceConfig,
     SystemLimits,
-    TimeoutConfig,
 )
+from ....core.logging_config import get_logger
 from ...core.interfaces.communication import SocketIOServiceInterface
-from ....core.logging_config import get_logger, log_operation, log_performance_context
-from ....core.unified_paths import get_project_root, get_scripts_dir
-from ...exceptions import SocketIOServerError as MPMConnectionError
 from ..handlers import EventHandlerRegistry, FileEventHandler, GitEventHandler
 from .broadcaster import SocketIOEventBroadcaster
 from .core import SocketIOServerCore
@@ -91,10 +84,10 @@ class SocketIOServer(SocketIOServiceInterface):
         self.claude_status = "unknown"
         self.claude_pid = None
         self.event_history = deque(maxlen=SystemLimits.MAX_EVENTS_BUFFER)
-        
+
         # Active session tracking for heartbeat
         self.active_sessions: Dict[str, Dict[str, Any]] = {}
-        
+
         # EventBus integration
         self.eventbus_integration = None
 
@@ -106,7 +99,14 @@ class SocketIOServer(SocketIOServiceInterface):
 
         # Set reference to main server for session data
         self.core.main_server = self
-        
+
+        # Debug logging for EventBus initialization
+        self.logger.info("Starting Socket.IO server with EventBus integration...")
+        print(
+            f"[{datetime.now().isoformat()}] SocketIOServer.start_sync() called",
+            flush=True,
+        )
+
         # Start the core server
         self.core.start_sync()
 
@@ -127,11 +127,11 @@ class SocketIOServer(SocketIOServiceInterface):
         max_wait = 5.0  # Maximum wait time in seconds
         wait_interval = 0.1  # Check interval
         waited = 0.0
-        
+
         while self.core.loop is None and waited < max_wait:
             time.sleep(wait_interval)
             waited += wait_interval
-        
+
         if self.core.loop is None:
             self.logger.warning(
                 f"Event loop not initialized after {max_wait}s wait. "
@@ -139,27 +139,51 @@ class SocketIOServer(SocketIOServiceInterface):
             )
         else:
             self.logger.debug(f"Event loop ready after {waited:.1f}s")
-            
+
             # Set the loop reference for broadcaster
             self.broadcaster.loop = self.core.loop
-            
+
             # Start the retry processor for resilient event delivery
             self.broadcaster.start_retry_processor()
 
         # Register events
         self._register_events()
-        
+
         # Setup EventBus integration
         # WHY: This connects the EventBus to the Socket.IO server, allowing
         # events from other parts of the system to be broadcast to dashboard
+        print(
+            f"[{datetime.now().isoformat()}] Setting up EventBus integration...",
+            flush=True,
+        )
         try:
             self.eventbus_integration = EventBusIntegration(self)
+            print(
+                f"[{datetime.now().isoformat()}] EventBusIntegration instance created",
+                flush=True,
+            )
+
             if self.eventbus_integration.setup(self.port):
                 self.logger.info("EventBus integration setup successful")
+                print(
+                    f"[{datetime.now().isoformat()}] EventBus integration setup successful",
+                    flush=True,
+                )
             else:
                 self.logger.warning("EventBus integration setup failed or disabled")
+                print(
+                    f"[{datetime.now().isoformat()}] EventBus integration setup failed or disabled",
+                    flush=True,
+                )
         except Exception as e:
             self.logger.error(f"Failed to setup EventBus integration: {e}")
+            print(
+                f"[{datetime.now().isoformat()}] Failed to setup EventBus integration: {e}",
+                flush=True,
+            )
+            import traceback
+
+            traceback.print_exc()
             self.eventbus_integration = None
 
         # Update running state
@@ -175,7 +199,7 @@ class SocketIOServer(SocketIOServiceInterface):
         # Stop the retry processor if running
         if self.broadcaster:
             self.broadcaster.stop_retry_processor()
-        
+
         # Teardown EventBus integration
         if self.eventbus_integration:
             try:
@@ -183,14 +207,15 @@ class SocketIOServer(SocketIOServiceInterface):
                 self.logger.info("EventBus integration teardown complete")
             except Exception as e:
                 self.logger.error(f"Error during EventBus teardown: {e}")
-        
+
         # Stop health monitoring in connection handler
         if self.event_registry:
             from ..handlers import ConnectionEventHandler
+
             conn_handler = self.event_registry.get_handler(ConnectionEventHandler)
-            if conn_handler and hasattr(conn_handler, 'stop_health_monitoring'):
+            if conn_handler and hasattr(conn_handler, "stop_health_monitoring"):
                 conn_handler.stop_health_monitoring()
-        
+
         self.core.stop_sync()
         self.running = False
 
@@ -219,25 +244,27 @@ class SocketIOServer(SocketIOServiceInterface):
         """Broadcast an event to all connected clients."""
         if self.broadcaster:
             self.broadcaster.broadcast_event(event_type, data)
-    
-    def send_to_client(self, client_id: str, event_type: str, data: Dict[str, Any]) -> bool:
+
+    def send_to_client(
+        self, client_id: str, event_type: str, data: Dict[str, Any]
+    ) -> bool:
         """Send an event to a specific client.
-        
-        WHY: The SocketIOServiceInterface requires this method for targeted 
+
+        WHY: The SocketIOServiceInterface requires this method for targeted
         messaging. We delegate to the Socket.IO server's emit method with
         the client's session ID as the room.
-        
+
         Args:
             client_id: ID of the target client
             event_type: Type of event to send
             data: Event data to send
-            
+
         Returns:
             True if message sent successfully
         """
         if not self.core or not self.core.sio:
             return False
-        
+
         try:
             # Socket.IO uses session IDs as room names for individual clients
             # We can send to a specific client by using their session ID as the room
@@ -246,7 +273,7 @@ class SocketIOServer(SocketIOServiceInterface):
                 if self.core.loop:
                     asyncio.run_coroutine_threadsafe(
                         self.core.sio.emit(event_type, data, room=client_id),
-                        self.core.loop
+                        self.core.loop,
                     )
                     return True
             return False
@@ -257,7 +284,7 @@ class SocketIOServer(SocketIOServiceInterface):
     def session_started(self, session_id: str, launch_method: str, working_dir: str):
         """Notify that a session has started."""
         self.session_id = session_id
-        
+
         # Track active session for heartbeat
         self.active_sessions[session_id] = {
             "session_id": session_id,
@@ -267,7 +294,7 @@ class SocketIOServer(SocketIOServiceInterface):
             "launch_method": launch_method,
             "working_dir": working_dir,
         }
-        
+
         if self.broadcaster:
             self.broadcaster.session_started(session_id, launch_method, working_dir)
 
@@ -276,7 +303,7 @@ class SocketIOServer(SocketIOServiceInterface):
         # Remove from active sessions
         if self.session_id and self.session_id in self.active_sessions:
             del self.active_sessions[self.session_id]
-            
+
         if self.broadcaster:
             self.broadcaster.session_ended()
 
@@ -300,7 +327,7 @@ class SocketIOServer(SocketIOServiceInterface):
         if self.session_id and self.session_id in self.active_sessions:
             self.active_sessions[self.session_id]["agent"] = agent
             self.active_sessions[self.session_id]["status"] = status
-            
+
         if self.broadcaster:
             self.broadcaster.agent_delegated(agent, task, status)
 
@@ -344,16 +371,16 @@ class SocketIOServer(SocketIOServiceInterface):
     def is_running(self) -> bool:
         """Check if server is running."""
         return self.core.is_running()
-    
+
     def get_active_sessions(self) -> List[Dict[str, Any]]:
         """Get list of active sessions for heartbeat.
-        
+
         WHY: Provides session information for system heartbeat events.
         """
         # Clean up old sessions (older than 1 hour)
         cutoff_time = datetime.now().timestamp() - 3600
         sessions_to_remove = []
-        
+
         for session_id, session_data in self.active_sessions.items():
             try:
                 start_time = datetime.fromisoformat(session_data["start_time"])
@@ -361,13 +388,12 @@ class SocketIOServer(SocketIOServiceInterface):
                     sessions_to_remove.append(session_id)
             except:
                 pass
-        
+
         for session_id in sessions_to_remove:
             del self.active_sessions[session_id]
-        
+
         # Return list of active sessions
         return list(self.active_sessions.values())
-
 
     # Legacy compatibility properties
     @property

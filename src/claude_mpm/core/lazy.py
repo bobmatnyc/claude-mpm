@@ -67,7 +67,7 @@ class LazyService(Generic[T]):
         self,
         service_class: Type[T],
         init_args: tuple = (),
-        init_kwargs: dict = None,
+        init_kwargs: Optional[dict] = None,
         name: Optional[str] = None,
         eager: bool = False,
     ):
@@ -198,7 +198,7 @@ class LazyServiceRegistry:
         name: str,
         service_class: Type,
         init_args: tuple = (),
-        init_kwargs: dict = None,
+        init_kwargs: Optional[dict] = None,
         eager: bool = False,
     ) -> LazyService:
         """Register a lazy service.
@@ -285,7 +285,7 @@ def lazy_load(
     service_class: Type,
     name: Optional[str] = None,
     init_args: tuple = (),
-    init_kwargs: dict = None,
+    init_kwargs: Optional[dict] = None,
 ) -> LazyService:
     """Convenience function to create and register a lazy service.
 
@@ -356,7 +356,7 @@ class lazy_property:
         self.lock = threading.RLock()
         functools.update_wrapper(self, func)
 
-    def __get__(self, obj: Any, objtype: Type = None) -> Any:
+    def __get__(self, obj: Any, objtype: Optional[Type] = None) -> Any:
         if obj is None:
             return self
 
@@ -388,7 +388,7 @@ class AsyncLazyService(Generic[T]):
         self,
         service_class: Type[T],
         init_args: tuple = (),
-        init_kwargs: dict = None,
+        init_kwargs: Optional[dict] = None,
         name: Optional[str] = None,
     ):
         self._service_class = service_class

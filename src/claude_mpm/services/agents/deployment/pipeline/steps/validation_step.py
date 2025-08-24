@@ -68,7 +68,7 @@ class ValidationStep(BaseDeploymentStep):
             execution_time = time.time() - start_time
             context.step_timings[self.name] = execution_time
 
-            error_msg = f"Validation step failed: {str(e)}"
+            error_msg = f"Validation step failed: {e!s}"
             self.logger.error(error_msg, exc_info=True)
             context.add_error(error_msg)
 

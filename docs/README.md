@@ -19,6 +19,7 @@ Welcome to the Claude MPM documentation. This directory contains comprehensive g
 - **[Schema Reference](./developer/schemas/SCHEMA_REFERENCE.md)** - JSON schemas
 
 ### For Contributors
+- **[Development Setup](./DEVELOPMENT_SETUP.md)** - Mamba and venv environment setup
 - **[Project Structure](./STRUCTURE.md)** - Codebase organization
 - **[Quality Assurance](./QA.md)** - Testing and validation
 - **[Deployment Guide](./DEPLOY.md)** - Release and publishing

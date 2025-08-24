@@ -34,11 +34,9 @@ class SessionManagementService(BaseService, SessionManagementInterface):
 
     async def _initialize(self) -> None:
         """Initialize the service. No special initialization needed."""
-        pass
 
     async def _cleanup(self) -> None:
         """Cleanup service resources. No cleanup needed."""
-        pass
 
     def run_interactive_session(self, initial_context: Optional[str] = None) -> bool:
         """Run Claude in interactive mode using session delegation.
@@ -252,9 +250,8 @@ class SessionManagementService(BaseService, SessionManagementInterface):
 
             self.logger.info(f"Ended session {session_id}")
             return True
-        else:
-            self.logger.warning(f"Session {session_id} not found")
-            return False
+        self.logger.warning(f"Session {session_id} not found")
+        return False
 
     def get_session_status(self, session_id: str) -> Dict[str, Any]:
         """Get status of a session.
@@ -267,12 +264,11 @@ class SessionManagementService(BaseService, SessionManagementInterface):
         """
         if session_id in self.active_sessions:
             return self.active_sessions[session_id].copy()
-        else:
-            return {
-                "id": session_id,
-                "status": "not_found",
-                "error": "Session not found",
-            }
+        return {
+            "id": session_id,
+            "status": "not_found",
+            "error": "Session not found",
+        }
 
     def list_active_sessions(self) -> List[str]:
         """List all active session IDs.

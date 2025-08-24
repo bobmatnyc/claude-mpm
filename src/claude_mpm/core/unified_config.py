@@ -13,7 +13,6 @@ Design Principles:
 6. Backward compatibility with existing config systems
 """
 
-import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -56,7 +55,7 @@ class LoggingConfig(BaseModel):
     )
 
     @validator("level")
-    def validate_log_level(cls, v):
+    def validate_log_level(self, v):
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if v.upper() not in valid_levels:
             raise ValueError(f"Invalid log level. Must be one of: {valid_levels}")
@@ -267,7 +266,7 @@ class UnifiedConfig(BaseSettings):
         extra = "allow"  # Allow extra fields for backward compatibility
 
     @validator("environment")
-    def validate_environment(cls, v):
+    def validate_environment(self, v):
         valid_envs = ["development", "testing", "production"]
         if v not in valid_envs:
             raise ValueError(f"Invalid environment. Must be one of: {valid_envs}")
@@ -437,7 +436,7 @@ class ConfigurationService:
                 if config_path.exists():
                     import yaml
 
-                    with open(config_path, "r") as f:
+                    with open(config_path) as f:
                         file_config = yaml.safe_load(f) or {}
                     config_data.update(file_config)
                     break
@@ -514,8 +513,7 @@ class ConfigurationService:
             # Pydantic validation happens automatically, but we can add custom validation here
             if self._config.network.socketio_port in range(1024, 65536):
                 return True
-            else:
-                raise ConfigurationError("Invalid SocketIO port range")
+            raise ConfigurationError("Invalid SocketIO port range")
         except Exception as e:
             raise ConfigurationError(f"Configuration validation failed: {e}")
 

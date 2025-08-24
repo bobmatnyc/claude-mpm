@@ -13,7 +13,7 @@ DESIGN DECISIONS:
 
 import shutil
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Any, Dict
 
 from ..shared import BaseCommand, CommandResult
 
@@ -35,15 +35,16 @@ class InfoCommand(BaseCommand):
             # Gather system information
             info_data = self._gather_system_info(args)
 
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
-            if output_format in ['json', 'yaml']:
+            if output_format in ["json", "yaml"]:
                 # Structured output
-                return CommandResult.success_result("System information retrieved", data=info_data)
-            else:
-                # Text output
-                self._display_text_info(info_data)
-                return CommandResult.success_result("System information displayed")
+                return CommandResult.success_result(
+                    "System information retrieved", data=info_data
+                )
+            # Text output
+            self._display_text_info(info_data)
+            return CommandResult.success_result("System information displayed")
 
         except Exception as e:
             self.logger.error(f"Error gathering system info: {e}", exc_info=True)
@@ -57,20 +58,26 @@ class InfoCommand(BaseCommand):
             from claude_mpm.core.framework_loader import FrameworkLoader
 
         # Framework information
-        framework_path = getattr(args, 'framework_path', None)
+        framework_path = getattr(args, "framework_path", None)
         loader = FrameworkLoader(framework_path)
 
         framework_info = {
             "loaded": loader.framework_content["loaded"],
-            "name": "claude-multiagent-pm" if loader.framework_content["loaded"] else "Not found",
-            "version": loader.framework_content.get('version', 'unknown'),
+            "name": (
+                "claude-multiagent-pm"
+                if loader.framework_content["loaded"]
+                else "Not found"
+            ),
+            "version": loader.framework_content.get("version", "unknown"),
             "path": str(loader.framework_path) if loader.framework_path else None,
-            "agents": loader.get_agent_list() if loader.framework_content["loaded"] else []
+            "agents": (
+                loader.get_agent_list() if loader.framework_content["loaded"] else []
+            ),
         }
 
         # Configuration information
         config_info = {
-            "log_directory": getattr(args, 'log_dir', None) or '~/.claude-mpm/logs'
+            "log_directory": getattr(args, "log_dir", None) or "~/.claude-mpm/logs"
         }
 
         # Agent hierarchy
@@ -79,12 +86,12 @@ class InfoCommand(BaseCommand):
         if loader.agent_registry:
             hierarchy = loader.agent_registry.get_agent_hierarchy()
             agent_hierarchy = {
-                "project_agents": len(hierarchy['project']),
-                "user_agents": len(hierarchy['user']),
-                "system_agents": len(hierarchy['system']),
-                "project_agent_list": hierarchy['project'],
-                "user_agent_list": hierarchy['user'],
-                "system_agent_list": hierarchy['system']
+                "project_agents": len(hierarchy["project"]),
+                "user_agents": len(hierarchy["user"]),
+                "system_agents": len(hierarchy["system"]),
+                "project_agent_list": hierarchy["project"],
+                "user_agent_list": hierarchy["user"],
+                "system_agent_list": hierarchy["system"],
             }
             core_agents = loader.agent_registry.get_core_agents()
 
@@ -96,7 +103,7 @@ class InfoCommand(BaseCommand):
             "configuration": config_info,
             "agent_hierarchy": agent_hierarchy,
             "core_agents": core_agents,
-            "dependencies": dependencies
+            "dependencies": dependencies,
         }
 
     def _check_dependencies(self) -> Dict[str, Any]:
@@ -108,20 +115,21 @@ class InfoCommand(BaseCommand):
         dependencies["claude_cli"] = {
             "installed": bool(claude_path),
             "path": claude_path,
-            "status": "✓ Installed" if claude_path else "✗ Not found in PATH"
+            "status": "✓ Installed" if claude_path else "✗ Not found in PATH",
         }
 
         # Check ai-trackdown-pytools
         try:
             import ai_trackdown_pytools
+
             dependencies["ai_trackdown_pytools"] = {
                 "installed": True,
-                "status": "✓ Installed"
+                "status": "✓ Installed",
             }
         except ImportError:
             dependencies["ai_trackdown_pytools"] = {
                 "installed": False,
-                "status": "✗ Not installed"
+                "status": "✗ Not installed",
             }
 
         # Check Claude Code hooks
@@ -130,7 +138,11 @@ class InfoCommand(BaseCommand):
             "installed": claude_settings.exists(),
             "settings_path": str(claude_settings),
             "status": "✓ Installed" if claude_settings.exists() else "✗ Not installed",
-            "install_command": "python scripts/install_hooks.py" if not claude_settings.exists() else None
+            "install_command": (
+                "python scripts/install_hooks.py"
+                if not claude_settings.exists()
+                else None
+            ),
         }
 
         return dependencies
@@ -193,7 +205,7 @@ def show_info(args):
     result = command.execute(args)
 
     # Print result if structured output format is requested
-    if hasattr(args, 'format') and args.format in ['json', 'yaml']:
+    if hasattr(args, "format") and args.format in ["json", "yaml"]:
         command.print_result(result, args)
 
     return result.exit_code

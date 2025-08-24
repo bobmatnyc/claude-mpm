@@ -195,7 +195,7 @@ class SessionManager:
         session_file = self.session_dir / "active_sessions.json"
         if session_file.exists():
             try:
-                with open(session_file, "r") as f:
+                with open(session_file) as f:
                     self.active_sessions = json.load(f)
 
                 # Clean up old sessions on load (archive by default)
@@ -323,7 +323,6 @@ class OrchestrationSession:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit session context."""
         # Could add cleanup here if needed
-        pass
 
 
 # Example usage in subprocess orchestrator:

@@ -21,8 +21,8 @@ from ..constants import CLICommands, LogLevel
 from .commands import (  # run_guarded_session is imported lazily to avoid loading experimental code
     aggregate_command,
     cleanup_memory,
-    manage_agents,
     manage_agent_manager,
+    manage_agents,
     manage_config,
     manage_mcp,
     manage_memory,
@@ -40,17 +40,16 @@ from .utils import ensure_directories, setup_logging
 package_version_file = Path(__file__).parent.parent / "VERSION"
 if package_version_file.exists():
     __version__ = package_version_file.read_text().strip()
+# Use centralized path management for VERSION file
+elif paths.version_file.exists():
+    __version__ = paths.version_file.read_text().strip()
 else:
-    # Use centralized path management for VERSION file
-    if paths.version_file.exists():
-        __version__ = paths.version_file.read_text().strip()
-    else:
-        # Try to import from package as fallback
-        try:
-            from .. import __version__
-        except ImportError:
-            # Default version if all else fails
-            __version__ = "0.0.0"
+    # Try to import from package as fallback
+    try:
+        from .. import __version__
+    except ImportError:
+        # Default version if all else fails
+        __version__ = "0.0.0"
 
 
 def main(argv: Optional[list] = None):
@@ -75,8 +74,9 @@ def main(argv: Optional[list] = None):
     """
     # Disable telemetry by default (set early in case any imported modules check it)
     import os
-    os.environ.setdefault('DISABLE_TELEMETRY', '1')
-    
+
+    os.environ.setdefault("DISABLE_TELEMETRY", "1")
+
     # Ensure directories are initialized on first run
     ensure_directories()
 
@@ -88,15 +88,16 @@ def main(argv: Optional[list] = None):
     parser = create_parser(version=__version__)
     processed_argv = preprocess_args(argv)
     args = parser.parse_args(processed_argv)
-    
+
     # Skip auto-configuration for certain commands
     skip_auto_config_commands = ["--version", "-v", "--help", "-h"]
     # sys is already imported at module level (line 16), use it directly
-    should_skip_auto_config = (
-        any(cmd in (processed_argv or sys.argv[1:]) for cmd in skip_auto_config_commands)
-        or (hasattr(args, 'command') and args.command in ["info", "doctor", "config", "mcp"])  # Info, diagnostic, and MCP commands
-    )
-    
+    should_skip_auto_config = any(
+        cmd in (processed_argv or sys.argv[1:]) for cmd in skip_auto_config_commands
+    ) or (
+        hasattr(args, "command") and args.command in ["info", "doctor", "config", "mcp"]
+    )  # Info, diagnostic, and MCP commands
+
     if not should_skip_auto_config:
         # Check for MCP auto-configuration (pipx installations)
         _check_mcp_auto_configuration()
@@ -112,8 +113,8 @@ def main(argv: Optional[list] = None):
     ):
         # For MCP server, configure minimal stderr-only logging
         import logging
-        # sys is already imported at module level
 
+        # sys is already imported at module level
         # Only log errors to stderr for MCP server
         if not getattr(args, "test", False) and not getattr(
             args, "instructions", False
@@ -148,8 +149,7 @@ def main(argv: Optional[list] = None):
 
     # Execute command
     try:
-        exit_code = _execute_command(args.command, args)
-        return exit_code
+        return _execute_command(args.command, args)
     except KeyboardInterrupt:
         logger.info("Session interrupted by user")
         return 0
@@ -190,18 +190,18 @@ def _initialize_project_registry():
 def _check_mcp_auto_configuration():
     """
     Check and potentially auto-configure MCP for pipx installations.
-    
+
     WHY: Users installing via pipx should have MCP work out-of-the-box with
     minimal friction. This function offers one-time auto-configuration with
     user consent.
-    
+
     DESIGN DECISION: This is blocking but quick - it only runs once and has
     a 10-second timeout. We want to catch users on first run for the best
     experience.
     """
     try:
         from ..services.mcp_gateway.auto_configure import check_and_configure_mcp
-        
+
         # This function handles all the logic:
         # - Checks if already configured
         # - Checks if pipx installation
@@ -209,10 +209,11 @@ def _check_mcp_auto_configuration():
         # - Prompts user if needed
         # - Configures if user agrees
         check_and_configure_mcp()
-        
+
     except Exception as e:
         # Non-critical - log but don't fail
         from ..core.logger import get_logger
+
         logger = get_logger("cli")
         logger.debug(f"MCP auto-configuration check failed: {e}")
 
@@ -231,18 +232,19 @@ def _verify_mcp_gateway_startup():
     try:
         import asyncio
         import time
-        from ..services.mcp_gateway.core.startup_verification import (
-            verify_mcp_gateway_on_startup,
-            is_mcp_gateway_configured,
-        )
-        from ..services.mcp_gateway.core.process_pool import pre_warm_mcp_servers
+
         from ..core.logger import get_logger
-        
+        from ..services.mcp_gateway.core.process_pool import pre_warm_mcp_servers
+        from ..services.mcp_gateway.core.startup_verification import (
+            is_mcp_gateway_configured,
+            verify_mcp_gateway_on_startup,
+        )
+
         logger = get_logger("mcp_prewarm")
 
         # Quick check first - if already configured, skip detailed verification
         gateway_configured = is_mcp_gateway_configured()
-        
+
         # Pre-warm MCP servers regardless of gateway config
         # This eliminates the 11.9s delay on first agent invocation
         def run_pre_warming():
@@ -250,29 +252,30 @@ def _verify_mcp_gateway_startup():
                 start_time = time.time()
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                
+
                 # Pre-warm MCP servers (especially vector search)
                 logger.info("Pre-warming MCP servers to eliminate startup delay...")
                 loop.run_until_complete(pre_warm_mcp_servers())
-                
+
                 pre_warm_time = time.time() - start_time
                 if pre_warm_time > 1.0:
                     logger.info(f"MCP servers pre-warmed in {pre_warm_time:.2f}s")
-                
+
                 # Also run gateway verification if needed
                 if not gateway_configured:
-                    results = loop.run_until_complete(verify_mcp_gateway_on_startup())
-                
+                    loop.run_until_complete(verify_mcp_gateway_on_startup())
+
                 loop.close()
             except Exception as e:
                 # Non-blocking - log but don't fail
                 logger.debug(f"MCP pre-warming error (non-critical): {e}")
-        
+
         # Run pre-warming in background thread
         import threading
+
         pre_warm_thread = threading.Thread(target=run_pre_warming, daemon=True)
         pre_warm_thread.start()
-        
+
         return
 
         # Run detailed verification in background if not configured
@@ -287,6 +290,7 @@ def _verify_mcp_gateway_startup():
 
                     # Log results but don't block
                     from ..core.logger import get_logger
+
                     logger = get_logger("cli")
 
                     if results.get("gateway_configured"):
@@ -296,11 +300,13 @@ def _verify_mcp_gateway_startup():
 
                 except Exception as e:
                     from ..core.logger import get_logger
+
                     logger = get_logger("cli")
                     logger.debug(f"MCP Gateway verification failed: {e}")
 
             # Run in background thread to avoid blocking startup
             import threading
+
             verification_thread = threading.Thread(target=run_verification, daemon=True)
             verification_thread.start()
 
@@ -331,15 +337,15 @@ def _ensure_run_attributes(args):
     args.input = getattr(args, "input", None)
     args.non_interactive = getattr(args, "non_interactive", False)
     args.no_native_agents = getattr(args, "no_native_agents", False)
-    
+
     # Handle claude_args - if --resume flag is set, add it to claude_args
     claude_args = getattr(args, "claude_args", [])
     if getattr(args, "resume", False):
         # Add --resume to claude_args if not already present
         if "--resume" not in claude_args:
-            claude_args = ["--resume"] + claude_args
+            claude_args = ["--resume", *claude_args]
     args.claude_args = claude_args
-    
+
     args.launch_method = getattr(args, "launch_method", "exec")
     args.websocket = getattr(args, "websocket", False)
     args.websocket_port = getattr(args, "websocket_port", 8765)
@@ -403,11 +409,10 @@ def _execute_command(command: str, args) -> int:
         result = command_map[command](args)
         # Commands may return None (success) or an exit code
         return result if result is not None else 0
-    else:
-        # Unknown command - this shouldn't happen with argparse
-        # but we handle it for completeness
-        print(f"Unknown command: {command}")
-        return 1
+    # Unknown command - this shouldn't happen with argparse
+    # but we handle it for completeness
+    print(f"Unknown command: {command}")
+    return 1
 
 
 # For backward compatibility - export main

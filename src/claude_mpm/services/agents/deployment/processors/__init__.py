@@ -9,7 +9,7 @@ from .agent_deployment_result import AgentDeploymentResult
 from .agent_processor import AgentProcessor
 
 __all__ = [
-    "AgentProcessor",
     "AgentDeploymentContext",
     "AgentDeploymentResult",
+    "AgentProcessor",
 ]

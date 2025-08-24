@@ -10,6 +10,7 @@ This service handles:
 Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
+import contextlib
 import os
 import pty
 import select
@@ -40,11 +41,9 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
 
     async def _initialize(self) -> None:
         """Initialize the service. No special initialization needed."""
-        pass
 
     async def _cleanup(self) -> None:
         """Cleanup service resources. No cleanup needed."""
-        pass
 
     # Implementation of abstract methods from SubprocessLauncherInterface
 
@@ -206,10 +205,8 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
                 termios.tcsetattr(sys.stdin, termios.TCSADRAIN, original_tty)
 
             # Close PTY
-            try:
+            with contextlib.suppress(Exception):
                 os.close(master_fd)
-            except:
-                pass
 
             # Ensure process is terminated
             if "process" in locals() and process.poll() is None:
@@ -313,9 +310,9 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
         env = os.environ.copy()
         if base_env:
             env.update(base_env)
-        
+
         # Disable telemetry for Claude Code subprocesses
         # This ensures Claude Code doesn't send telemetry data during runtime
         env["DISABLE_TELEMETRY"] = "1"
-        
+
         return env

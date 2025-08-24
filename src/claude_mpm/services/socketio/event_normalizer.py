@@ -14,67 +14,70 @@ DESIGN DECISION: Transform all events to a consistent schema:
 """
 
 import re
-from datetime import datetime
-from typing import Any, Dict, Optional, Tuple
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, Optional, Tuple
 
 from ...core.logging_config import get_logger
 
 
 class EventSource(Enum):
     """Event sources.
-    
+
     WHY: Identifying where events come from helps with debugging,
     filtering, and understanding system behavior.
     """
-    HOOK = "hook"         # Events from Claude Code hooks
+
+    HOOK = "hook"  # Events from Claude Code hooks
     DASHBOARD = "dashboard"  # Events from dashboard UI
-    SYSTEM = "system"     # System/server operations
-    AGENT = "agent"       # Agent operations
-    CLI = "cli"           # CLI commands
-    API = "api"           # API calls
-    TEST = "test"         # Test scripts
+    SYSTEM = "system"  # System/server operations
+    AGENT = "agent"  # Agent operations
+    CLI = "cli"  # CLI commands
+    API = "api"  # API calls
+    TEST = "test"  # Test scripts
 
 
 class EventType(Enum):
     """Main event categories.
-    
+
     WHY: Categorizing events helps with filtering, routing, and understanding
     the system's behavior at a high level.
     """
-    HOOK = "hook"           # Claude Code hook events
-    SYSTEM = "system"       # System health and status events
-    SESSION = "session"     # Session lifecycle events
-    FILE = "file"          # File system events
+
+    HOOK = "hook"  # Claude Code hook events
+    SYSTEM = "system"  # System health and status events
+    SESSION = "session"  # Session lifecycle events
+    FILE = "file"  # File system events
     CONNECTION = "connection"  # Client connection events
-    MEMORY = "memory"      # Memory system events
-    GIT = "git"           # Git operation events
-    TODO = "todo"         # Todo list updates
-    TICKET = "ticket"     # Ticket system events
-    AGENT = "agent"       # Agent delegation events
-    ERROR = "error"       # Error events
+    MEMORY = "memory"  # Memory system events
+    GIT = "git"  # Git operation events
+    TODO = "todo"  # Todo list updates
+    TICKET = "ticket"  # Ticket system events
+    AGENT = "agent"  # Agent delegation events
+    ERROR = "error"  # Error events
     PERFORMANCE = "performance"  # Performance metrics
-    CLAUDE = "claude"     # Claude process events
-    TEST = "test"         # Test events
-    TOOL = "tool"         # Tool events
-    SUBAGENT = "subagent" # Subagent events
+    CLAUDE = "claude"  # Claude process events
+    TEST = "test"  # Test events
+    TOOL = "tool"  # Tool events
+    SUBAGENT = "subagent"  # Subagent events
 
 
 @dataclass
 class NormalizedEvent:
     """Represents a normalized event with consistent structure.
-    
+
     WHY: Using a dataclass ensures type safety and makes the event
     structure explicit and self-documenting.
     """
+
     event: str = "claude_event"  # Socket.IO event name
-    source: str = ""             # WHERE the event comes from
-    type: str = ""               # WHAT category of event
-    subtype: str = ""            # Specific event type
-    timestamp: str = ""          # ISO format timestamp
+    source: str = ""  # WHERE the event comes from
+    type: str = ""  # WHAT category of event
+    subtype: str = ""  # Specific event type
+    timestamp: str = ""  # ISO format timestamp
     data: Dict[str, Any] = field(default_factory=dict)  # Event payload
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for emission."""
         return {
@@ -83,17 +86,17 @@ class NormalizedEvent:
             "type": self.type,
             "subtype": self.subtype,
             "timestamp": self.timestamp,
-            "data": self.data
+            "data": self.data,
         }
 
 
 class EventNormalizer:
     """Normalizes events to a consistent schema.
-    
+
     WHY: This class handles the transformation of various event formats
     into a single, consistent schema that clients can reliably parse.
     """
-    
+
     # Mapping of event names to (type, subtype) tuples
     EVENT_MAPPINGS = {
         # Hook events
@@ -103,81 +106,66 @@ class EventNormalizer:
         "post_response": (EventType.HOOK, "post_response"),
         "hook_event": (EventType.HOOK, "generic"),
         "UserPrompt": (EventType.HOOK, "user_prompt"),  # Legacy format
-        
         # Test events (legacy format)
         "TestStart": (EventType.TEST, "start"),
         "TestEnd": (EventType.TEST, "end"),
-        
-        # Tool events (legacy format)  
+        # Tool events (legacy format)
         "ToolCall": (EventType.TOOL, "call"),
-        
         # Subagent events (legacy format)
         "SubagentStart": (EventType.SUBAGENT, "start"),
         "SubagentStop": (EventType.SUBAGENT, "stop"),
-        
         # System events
         "heartbeat": (EventType.SYSTEM, "heartbeat"),
         "system_status": (EventType.SYSTEM, "status"),
         "system_event": (EventType.SYSTEM, "generic"),
-        
         # Session events
         "session_started": (EventType.SESSION, "started"),
         "session_ended": (EventType.SESSION, "ended"),
         "session_event": (EventType.SESSION, "generic"),
-        
         # File events
         "file_changed": (EventType.FILE, "changed"),
         "file_created": (EventType.FILE, "created"),
         "file_deleted": (EventType.FILE, "deleted"),
         "file_event": (EventType.FILE, "generic"),
-        
         # Connection events
         "client_connected": (EventType.CONNECTION, "connected"),
         "client_disconnected": (EventType.CONNECTION, "disconnected"),
         "connection_event": (EventType.CONNECTION, "generic"),
-        
         # Memory events
         "memory_loaded": (EventType.MEMORY, "loaded"),
         "memory_created": (EventType.MEMORY, "created"),
         "memory_updated": (EventType.MEMORY, "updated"),
         "memory_injected": (EventType.MEMORY, "injected"),
         "memory_event": (EventType.MEMORY, "generic"),
-        
         # Git events
         "git_operation": (EventType.GIT, "operation"),
         "git_commit": (EventType.GIT, "commit"),
         "git_push": (EventType.GIT, "push"),
         "git_pull": (EventType.GIT, "pull"),
-        
         # Todo events
         "todo_updated": (EventType.TODO, "updated"),
         "todo_created": (EventType.TODO, "created"),
         "todo_completed": (EventType.TODO, "completed"),
-        
         # Ticket events
         "ticket_created": (EventType.TICKET, "created"),
         "ticket_updated": (EventType.TICKET, "updated"),
         "ticket_closed": (EventType.TICKET, "closed"),
-        
         # Agent events
         "agent_delegated": (EventType.AGENT, "delegated"),
         "agent_completed": (EventType.AGENT, "completed"),
-        
         # Claude events
         "claude_status": (EventType.CLAUDE, "status"),
         "claude_output": (EventType.CLAUDE, "output"),
         "claude_started": (EventType.CLAUDE, "started"),
         "claude_stopped": (EventType.CLAUDE, "stopped"),
-        
         # Error events
         "error": (EventType.ERROR, "general"),
         "error_occurred": (EventType.ERROR, "occurred"),
-        
         # Performance events
         "performance": (EventType.PERFORMANCE, "metric"),
         "performance_metric": (EventType.PERFORMANCE, "metric"),
     }
-    
+
     # Patterns to extract event type from various formats
     TYPE_PATTERNS = [
         # Pattern 1: event_type field
@@ -189,26 +177,28 @@ class EventNormalizer:
         # Pattern 4: Hook format (hook:event_name)
         (r'"hook"\s*:\s*"([^"]+)"', lambda m: f"hook_{m.group(1)}"),
     ]
-    
+
     def __init__(self):
         self.logger = get_logger(self.__class__.__name__)
         self.stats = {
             "normalized": 0,
             "already_normalized": 0,
             "unknown_format": 0,
-            "errors": 0
+            "errors": 0,
         }
-    
-    def normalize(self, event_data: Any, source: str = None) -> NormalizedEvent:
+
+    def normalize(
+        self, event_data: Any, source: Optional[str] = None
+    ) -> NormalizedEvent:
         """Normalize an event to the standard schema.
-        
+
         WHY: This method handles various input formats and transforms them
         into a consistent structure that all clients can understand.
-        
+
         Args:
             event_data: The event data in any supported format
             source: Optional source override (e.g., "hook", "dashboard", "test")
-            
+
         Returns:
             NormalizedEvent with consistent structure
         """
@@ -217,16 +207,16 @@ class EventNormalizer:
             if self._is_normalized(event_data):
                 self.stats["already_normalized"] += 1
                 return self._validate_normalized(event_data)
-            
+
             # Extract event information from various formats
             event_type, subtype, data = self._extract_event_info(event_data)
-            
+
             # Determine event source
             event_source = self._determine_source(event_data, event_type, source)
-            
+
             # Get or generate timestamp
             timestamp = self._extract_timestamp(event_data)
-            
+
             # Create normalized event
             normalized = NormalizedEvent(
                 event="claude_event",
@@ -234,18 +224,18 @@ class EventNormalizer:
                 type=event_type,
                 subtype=subtype,
                 timestamp=timestamp,
-                data=data
+                data=data,
             )
-            
+
             self.stats["normalized"] += 1
             self.logger.debug(f"Normalized event: {event_type}/{subtype}")
-            
+
             return normalized
-            
+
         except Exception as e:
             self.stats["errors"] += 1
             self.logger.error(f"Failed to normalize event: {e}")
-            
+
             # Return a generic event on error
             return NormalizedEvent(
                 event="claude_event",
@@ -253,24 +243,24 @@ class EventNormalizer:
                 type="unknown",
                 subtype="error",
                 timestamp=datetime.now().isoformat(),
-                data={"original": str(event_data), "error": str(e)}
+                data={"original": str(event_data), "error": str(e)},
             )
-    
+
     def _is_normalized(self, event_data: Any) -> bool:
         """Check if event is already in normalized format.
-        
+
         WHY: Avoid double-normalization and preserve already correct events.
         """
         if not isinstance(event_data, dict):
             return False
-        
+
         # Check for normalized format (must have source, type, subtype, timestamp, and data)
         required_fields = {"source", "type", "subtype", "timestamp", "data"}
         return all(field in event_data for field in required_fields)
-    
+
     def _validate_normalized(self, event_data: Dict[str, Any]) -> NormalizedEvent:
         """Validate and convert an already normalized event.
-        
+
         WHY: Ensure even pre-normalized events are valid and properly typed.
         """
         # Map source if it's a known indicator
@@ -280,19 +270,19 @@ class EventNormalizer:
         elif source not in [e.value for e in EventSource]:
             # If source is not a valid EventSource value, keep it as-is
             pass
-        
+
         return NormalizedEvent(
             event="claude_event",  # Always use standard event name
             source=source,
             type=event_data.get("type", "unknown"),
             subtype=event_data.get("subtype", "generic"),
             timestamp=event_data.get("timestamp", datetime.now().isoformat()),
-            data=event_data.get("data", {})
+            data=event_data.get("data", {}),
         )
-    
+
     def _extract_event_info(self, event_data: Any) -> Tuple[str, str, Dict[str, Any]]:
         """Extract event type, subtype, and data from various formats.
-        
+
         WHY: The system has multiple event formats that need to be handled:
         - Simple strings (event names)
         - Dictionaries with type field
@@ -303,7 +293,7 @@ class EventNormalizer:
         if isinstance(event_data, str):
             event_type, subtype = self._map_event_name(event_data)
             return event_type, subtype, {"event_name": event_data}
-        
+
         # Handle dictionary events
         if isinstance(event_data, dict):
             # Special case: type="hook" with event field (legacy hook format)
@@ -312,25 +302,25 @@ class EventNormalizer:
                 subtype = event_data["event"]
                 data = self._extract_data_payload(event_data)
                 return event_type, subtype, data
-            
+
             # Try to extract event name/type
             event_name = self._extract_event_name(event_data)
-            
+
             # Map to type and subtype
             event_type, subtype = self._map_event_name(event_name)
-            
+
             # Extract data payload
             data = self._extract_data_payload(event_data)
-            
+
             return event_type, subtype, data
-        
+
         # Unknown format
         self.stats["unknown_format"] += 1
         return "unknown", "generic", {"original": str(event_data)}
-    
+
     def _extract_event_name(self, event_dict: Dict[str, Any]) -> str:
         """Extract event name from dictionary.
-        
+
         WHY: Events use different field names for the event identifier.
         """
         # Priority order for event name fields
@@ -339,26 +329,28 @@ class EventNormalizer:
                 value = event_dict[field]
                 if isinstance(value, str):
                     return value
-        
+
         # Try to extract from JSON string representation
         event_str = str(event_dict)
         for pattern, extractor in self.TYPE_PATTERNS:
             match = re.search(pattern, event_str)
             if match:
                 return extractor(match)
-        
+
         return "unknown"
-    
+
     def _map_event_name(self, event_name: str) -> Tuple[str, str]:
         """Map event name to (type, subtype) tuple.
-        
+
         WHY: Consistent categorization helps clients filter and handle events.
         """
         # Direct mapping
         if event_name in self.EVENT_MAPPINGS:
             event_type, subtype = self.EVENT_MAPPINGS[event_name]
-            return event_type.value if isinstance(event_type, EventType) else event_type, subtype
-        
+            return (
+                event_type.value if isinstance(event_type, EventType) else event_type
+            ), subtype
+
         # Handle dotted event names (e.g., "connection.status", "session.started")
         if "." in event_name:
             parts = event_name.split(".", 1)
@@ -366,19 +358,34 @@ class EventNormalizer:
                 type_part, subtype_part = parts
                 # Map the type part to known types
                 type_lower = type_part.lower()
-                if type_lower in ["hook", "session", "file", "system", "connection", 
-                                 "memory", "git", "todo", "ticket", "agent", "claude",
-                                 "error", "performance", "test", "tool", "subagent"]:
+                if type_lower in [
+                    "hook",
+                    "session",
+                    "file",
+                    "system",
+                    "connection",
+                    "memory",
+                    "git",
+                    "todo",
+                    "ticket",
+                    "agent",
+                    "claude",
+                    "error",
+                    "performance",
+                    "test",
+                    "tool",
+                    "subagent",
+                ]:
                     return type_lower, subtype_part
-        
+
         # Try to infer from event name patterns
         event_lower = event_name.lower()
-        
+
         # Check if event name matches a known EventType value directly
         for event_type_enum in EventType:
             if event_lower == event_type_enum.value:
                 return event_type_enum.value, "generic"
-        
+
         # Hook events (hook_* or *_hook or hook.*)
         if "hook" in event_lower:
             # Handle "hook.event_name" format
@@ -388,83 +395,86 @@ class EventNormalizer:
                 if len(parts) > 1:
                     return EventType.HOOK.value, parts[1]
             # Handle pre_ and post_ prefixes
-            if event_lower.startswith("pre_"):
+            if event_lower.startswith(("pre_", "post_")):
                 return EventType.HOOK.value, event_lower
-            elif event_lower.startswith("post_"):
-                return EventType.HOOK.value, event_lower
-            else:
-                return EventType.HOOK.value, "generic"
-        
+            return EventType.HOOK.value, "generic"
+
         # Session events
         if "session" in event_lower:
             if "start" in event_lower:
                 return EventType.SESSION.value, "started"
-            elif "end" in event_lower:
+            if "end" in event_lower:
                 return EventType.SESSION.value, "ended"
-            else:
-                return EventType.SESSION.value, "generic"
-        
+            return EventType.SESSION.value, "generic"
+
         # File events
         if "file" in event_lower:
             if "create" in event_lower:
                 return EventType.FILE.value, "created"
-            elif "delete" in event_lower:
+            if "delete" in event_lower:
                 return EventType.FILE.value, "deleted"
-            elif "change" in event_lower or "modify" in event_lower:
+            if "change" in event_lower or "modify" in event_lower:
                 return EventType.FILE.value, "changed"
-            else:
-                return EventType.FILE.value, "generic"
-        
+            return EventType.FILE.value, "generic"
+
         # System events
         if "system" in event_lower or "heartbeat" in event_lower:
             if "heartbeat" in event_lower:
                 return EventType.SYSTEM.value, "heartbeat"
-            else:
-                return EventType.SYSTEM.value, "status"
-        
+            return EventType.SYSTEM.value, "status"
+
         # Connection events
         if "connect" in event_lower or "client" in event_lower:
             if "disconnect" in event_lower:
                 return EventType.CONNECTION.value, "disconnected"
-            elif "connect" in event_lower:
+            if "connect" in event_lower:
                 return EventType.CONNECTION.value, "connected"
-            else:
-                return EventType.CONNECTION.value, "generic"
-        
+            return EventType.CONNECTION.value, "generic"
+
         # Memory events
         if "memory" in event_lower:
             if "load" in event_lower:
                 return EventType.MEMORY.value, "loaded"
-            elif "create" in event_lower:
+            if "create" in event_lower:
                 return EventType.MEMORY.value, "created"
-            elif "update" in event_lower:
+            if "update" in event_lower:
                 return EventType.MEMORY.value, "updated"
-            elif "inject" in event_lower:
+            if "inject" in event_lower:
                 return EventType.MEMORY.value, "injected"
-            else:
-                return EventType.MEMORY.value, "generic"
-        
+            return EventType.MEMORY.value, "generic"
+
         # Default to unknown with lowercase subtype
         return "unknown", event_name.lower() if event_name else ""
-    
+
     def _extract_data_payload(self, event_dict: Dict[str, Any]) -> Dict[str, Any]:
         """Extract the data payload from an event dictionary.
-        
+
         WHY: Different event formats store the payload in different places.
         """
         # If there's a explicit data field, use it
         if "data" in event_dict:
-            return event_dict["data"] if isinstance(event_dict["data"], dict) else {"value": event_dict["data"]}
-        
+            return (
+                event_dict["data"]
+                if isinstance(event_dict["data"], dict)
+                else {"value": event_dict["data"]}
+            )
+
         # Otherwise, use the entire dict minus metadata fields
-        metadata_fields = {"event", "type", "subtype", "timestamp", "event_type", "hook"}
+        metadata_fields = {
+            "event",
+            "type",
+            "subtype",
+            "timestamp",
+            "event_type",
+            "hook",
+        }
         data = {k: v for k, v in event_dict.items() if k not in metadata_fields}
-        
+
         return data if data else event_dict
-    
+
     def _extract_timestamp(self, event_data: Any) -> str:
         """Extract or generate timestamp.
-        
+
         WHY: Consistent timestamp format is essential for event ordering
         and debugging.
         """
@@ -482,28 +492,30 @@ class EventNormalizer:
                             return datetime.fromtimestamp(timestamp).isoformat()
                     except:
                         pass
-        
+
         # Generate new timestamp if not found
         return datetime.now().isoformat()
-    
-    def _determine_source(self, event_data: Any, event_type: str, source_override: str = None) -> str:
+
+    def _determine_source(
+        self, event_data: Any, event_type: str, source_override: Optional[str] = None
+    ) -> str:
         """Determine the source of an event.
-        
+
         WHY: Knowing where events originate helps with debugging,
         filtering, and understanding system behavior.
-        
+
         Args:
             event_data: The raw event data
             event_type: The determined event type
             source_override: Optional explicit source
-            
+
         Returns:
             The event source as a string
         """
         # Use explicit source override if provided
         if source_override:
             return source_override
-        
+
         # Check if event data contains source field
         if isinstance(event_data, dict):
             # Direct source field
@@ -519,48 +531,55 @@ class EventNormalizer:
                         return source
                     # Otherwise, keep the original source value
                     return source
-            
+
             # Check for indicators of specific sources
             # Test indicator - only if type is actually "test"
-            if event_type == "test" or (isinstance(event_data.get("type"), str) and event_data.get("type") == "test"):
+            if event_type == "test" or (
+                isinstance(event_data.get("type"), str)
+                and event_data.get("type") == "test"
+            ):
                 return EventSource.TEST.value
-            
+
             # Dashboard indicator
             if "dashboard" in str(event_data).lower() or "ui_action" in event_data:
                 return EventSource.DASHBOARD.value
-            
+
             # CLI indicator
             if "cli" in str(event_data).lower() or "command" in event_data:
                 return EventSource.CLI.value
-            
+
             # API indicator
             if "api" in str(event_data).lower() or "endpoint" in event_data:
                 return EventSource.API.value
-        
+
         # Infer from event type
         if event_type == EventType.HOOK.value:
             return EventSource.HOOK.value
-        elif event_type == EventType.TEST.value:
+        if event_type == EventType.TEST.value:
             return EventSource.TEST.value
-        elif event_type in [EventType.AGENT.value, EventType.SUBAGENT.value]:
+        if event_type in [EventType.AGENT.value, EventType.SUBAGENT.value]:
             return EventSource.AGENT.value
-        elif event_type in [EventType.SYSTEM.value, EventType.SESSION.value, 
-                           EventType.CONNECTION.value, EventType.PERFORMANCE.value]:
+        if event_type in [
+            EventType.SYSTEM.value,
+            EventType.SESSION.value,
+            EventType.CONNECTION.value,
+            EventType.PERFORMANCE.value,
+        ]:
             return EventSource.SYSTEM.value
-        
+
         # Default to system source
         return EventSource.SYSTEM.value
-    
+
     def get_stats(self) -> Dict[str, int]:
         """Get normalization statistics.
-        
+
         WHY: Monitoring normalization helps identify problematic event sources.
         """
         return self.stats.copy()
-    
+
     def reset_stats(self):
         """Reset statistics counters.
-        
+
         WHY: Periodic reset prevents counter overflow and enables
         rate calculations.
         """
@@ -568,100 +587,99 @@ class EventNormalizer:
             "normalized": 0,
             "already_normalized": 0,
             "unknown_format": 0,
-            "errors": 0
+            "errors": 0,
         }
 
 
 # Utility functions for consistent event type checking
 def is_hook_event(event_data: Dict[str, Any]) -> bool:
     """Check if an event is a hook event (handles both normalized and legacy formats).
-    
+
     WHY: Hook events can come in multiple formats and we need consistent checking
     across the codebase to avoid missing events.
-    
+
     Args:
         event_data: Event dictionary to check
-        
+
     Returns:
         True if this is a hook event, False otherwise
     """
     if not isinstance(event_data, dict):
         return False
-    
+
     event_type = event_data.get("type", "")
-    
+
     # Check normalized format: type="hook"
     if event_type == "hook":
         return True
-    
+
     # Check legacy format: type="hook.something"
-    if isinstance(event_type, str) and event_type.startswith("hook."):
-        return True
-    
-    return False
+    return bool(isinstance(event_type, str) and event_type.startswith("hook."))
 
 
 def get_hook_event_name(event_data: Dict[str, Any]) -> str:
     """Extract the hook event name from either normalized or legacy format.
-    
+
     WHY: Hook events store their specific name differently in normalized vs legacy
     formats, and we need a consistent way to extract it.
-    
+
     Args:
         event_data: Event dictionary containing a hook event
-        
+
     Returns:
         The specific hook event name (e.g., "pre_tool", "user_prompt")
         or empty string if not a hook event
     """
     if not is_hook_event(event_data):
         return ""
-    
+
     event_type = event_data.get("type", "")
     event_subtype = event_data.get("subtype", "")
-    
+
     # Normalized format: type="hook", subtype="pre_tool"
     if event_type == "hook" and event_subtype:
         return event_subtype
-    
+
     # Legacy format: type="hook.pre_tool"
     if isinstance(event_type, str) and event_type.startswith("hook."):
         return event_type[5:]  # Remove "hook." prefix
-    
+
     # Fallback: check 'event' field (another legacy format)
     return event_data.get("event", "")
 
 
-def is_event_type(event_data: Dict[str, Any], type_name: str, subtype: Optional[str] = None) -> bool:
+def is_event_type(
+    event_data: Dict[str, Any], type_name: str, subtype: Optional[str] = None
+) -> bool:
     """Check if an event matches a specific type and optionally subtype.
-    
+
     WHY: This provides a consistent way to check event types that works with
     both normalized and legacy formats.
-    
+
     Args:
         event_data: Event dictionary to check
         type_name: The type to check for (e.g., "hook", "session", "file")
         subtype: Optional subtype to also check (e.g., "pre_tool", "started")
-        
+
     Returns:
         True if the event matches the specified type (and subtype if provided)
     """
     if not isinstance(event_data, dict):
         return False
-    
+
     event_type = event_data.get("type", "")
     event_subtype = event_data.get("subtype", "")
-    
+
     # Check normalized format
     if event_type == type_name:
         if subtype is None:
             return True
         return event_subtype == subtype
-    
+
     # Check legacy dotted format (e.g., "hook.pre_tool")
     if subtype and isinstance(event_type, str):
         legacy_type = f"{type_name}.{subtype}"
         if event_type == legacy_type:
             return True
-    
+
     return False

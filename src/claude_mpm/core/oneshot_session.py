@@ -4,30 +4,14 @@ This module encapsulates the logic for running one-time Claude commands,
 breaking down the monolithic run_oneshot method into focused, testable components.
 """
 
+import contextlib
 import os
 import subprocess
 import time
 import uuid
-from logging import Logger
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from claude_mpm.core.logger import get_logger
-from claude_mpm.core.typing_utils import (
-    ErrorResult,
-    SessionConfig,
-    SessionEvent,
-    SessionId,
-    SessionResult,
-    SessionStatus,
-    SuccessResult,
-)
-
-if TYPE_CHECKING:
-    from claude_mpm.agents.memory.ticket_manager import TicketManager
-    from claude_mpm.core.claude_runner import ClaudeRunner
-    from claude_mpm.core.logger import ProjectLogger
-    from claude_mpm.services.response_logger import ResponseLogger
-    from claude_mpm.services.socketio_server import SocketIOClientProxy
 
 
 class OneshotSession:
@@ -154,13 +138,13 @@ class OneshotSession:
 
         # Add system instructions if available
         system_prompt = self.runner._create_system_prompt()
-        
+
         # Debug: log the system prompt to check for issues
         if system_prompt:
             self.logger.debug(f"System prompt length: {len(system_prompt)}")
             if "Path.cwd()" in system_prompt or "Path(" in system_prompt:
                 self.logger.warning("System prompt contains Python code references!")
-        
+
         if system_prompt and system_prompt != self._get_simple_context():
             # The problem might be with insert positioning
             # Let's add system prompt differently
@@ -189,17 +173,18 @@ class OneshotSession:
             self.logger.debug(f"Running command: {' '.join(cmd[:5])}...")
             if len(cmd) > 5:
                 self.logger.debug(f"Command has {len(cmd)} arguments total")
-            
-            result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, env=env, check=False
+            )
 
             if result.returncode == 0:
                 response = result.stdout.strip()
                 self._handle_successful_response(response, prompt)
                 return (True, response)
-            else:
-                error_msg = result.stderr or "Unknown error"
-                self._handle_error_response(error_msg, result.returncode)
-                return (False, error_msg)
+            error_msg = result.stderr or "Unknown error"
+            self._handle_error_response(error_msg, result.returncode)
+            return (False, error_msg)
 
         except subprocess.TimeoutExpired as e:
             return self._handle_timeout(e)
@@ -218,10 +203,8 @@ class OneshotSession:
         """Clean up the session and restore state."""
         # Restore original working directory
         if self.original_cwd:
-            try:
+            with contextlib.suppress(Exception):
                 os.chdir(self.original_cwd)
-            except Exception:
-                pass
 
         # Log session summary
         if self.runner.project_logger:
@@ -268,11 +251,11 @@ class OneshotSession:
     def _prepare_environment(self) -> Dict[str, str]:
         """Prepare the execution environment."""
         env = os.environ.copy()
-        
+
         # Disable telemetry for Claude Code
         # This ensures Claude Code doesn't send telemetry data during runtime
         env["DISABLE_TELEMETRY"] = "1"
-        
+
         return env
 
     def _build_command(self) -> list:
@@ -342,9 +325,8 @@ class OneshotSession:
     def _handle_error_response(self, error_msg: str, return_code: int) -> None:
         """Handle an error response from Claude."""
         print(f"Error: {error_msg}")
-        
+
         # Debug: print full traceback if available
-        import traceback
         if "Traceback" in error_msg or "Error:" in error_msg:
             self.logger.debug(f"Full error output:\n{error_msg}")
 

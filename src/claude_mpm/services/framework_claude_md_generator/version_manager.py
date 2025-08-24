@@ -7,7 +7,7 @@ Handles version parsing, incrementing, and comparison operations.
 """
 
 import re
-from typing import Optional, Tuple
+from typing import Optional
 
 
 class VersionManager:
@@ -38,7 +38,7 @@ class VersionManager:
             version_path = package_path.parent / "framework" / "VERSION"
 
         if version_path.exists():
-            with open(version_path, "r") as f:
+            with open(version_path) as f:
                 version_content = f.read().strip()
                 # Framework VERSION file contains just the framework version number
                 try:
@@ -117,7 +117,6 @@ class VersionManager:
 
         if v1 < v2:
             return -1
-        elif v1 > v2:
+        if v1 > v2:
             return 1
-        else:
-            return 0
+        return 0

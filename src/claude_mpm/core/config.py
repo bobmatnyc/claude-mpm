@@ -37,12 +37,14 @@ class Config:
 
     _instance = None
     _initialized = False
-    _success_logged = False  # Class-level flag to track if success message was already logged
+    _success_logged = (
+        False  # Class-level flag to track if success message was already logged
+    )
     _lock = threading.Lock()  # Thread safety for singleton initialization
 
     def __new__(cls, *args, **kwargs):
         """Implement singleton pattern to ensure single configuration instance.
-        
+
         WHY: Configuration was being loaded 11 times during startup, once for each service.
         This singleton pattern ensures configuration is loaded only once and reused.
         Thread-safe implementation prevents race conditions during concurrent initialization.
@@ -54,7 +56,9 @@ class Config:
                     cls._instance = super().__new__(cls)
                     logger.info("Creating new Config singleton instance")
                 else:
-                    logger.debug("Reusing existing Config singleton instance (concurrent init)")
+                    logger.debug(
+                        "Reusing existing Config singleton instance (concurrent init)"
+                    )
         else:
             logger.debug("Reusing existing Config singleton instance")
         return cls._instance
@@ -79,23 +83,25 @@ class Config:
             logger.debug("Config already initialized, skipping re-initialization")
             # If someone tries to load a different config file after initialization,
             # log a debug message but don't reload
-            if config_file and str(config_file) != getattr(self, '_loaded_from', None):
+            if config_file and str(config_file) != getattr(self, "_loaded_from", None):
                 logger.debug(
                     f"Ignoring config_file parameter '{config_file}' - "
                     f"configuration already loaded from '{getattr(self, '_loaded_from', 'defaults')}'"
                 )
             return
-        
+
         # Thread-safe initialization - acquire lock for ENTIRE initialization process
         with Config._lock:
             # Double-check pattern - check again inside the lock
             if Config._initialized:
-                logger.debug("Config already initialized (concurrent), skipping re-initialization")
+                logger.debug(
+                    "Config already initialized (concurrent), skipping re-initialization"
+                )
                 return
-            
+
             Config._initialized = True
             logger.info("Initializing Config singleton for the first time")
-            
+
             # Initialize instance variables inside the lock to ensure thread safety
             self._config: Dict[str, Any] = {}
             self._env_prefix = env_prefix
@@ -121,7 +127,9 @@ class Config:
                 if default_config.exists():
                     self.load_file(default_config, is_initial_load=True)
                     self._loaded_from = str(default_config)
-                elif (alt_config := Path.cwd() / ".claude-mpm" / "configuration.yml").exists():
+                elif (
+                    alt_config := Path.cwd() / ".claude-mpm" / "configuration.yml"
+                ).exists():
                     # Also try .yml extension (using walrus operator for cleaner code)
                     self.load_file(alt_config, is_initial_load=True)
                     self._loaded_from = str(alt_config)
@@ -133,21 +141,27 @@ class Config:
             # Apply defaults
             self._apply_defaults()
 
-    def load_file(self, file_path: Union[str, Path], is_initial_load: bool = True) -> None:
+    def load_file(
+        self, file_path: Union[str, Path], is_initial_load: bool = True
+    ) -> None:
         """Load configuration from file with enhanced error handling.
 
         WHY: Configuration loading failures can cause silent issues. We need
         to provide clear, actionable error messages to help users fix problems.
-        
+
         Args:
             file_path: Path to the configuration file
             is_initial_load: Whether this is the initial configuration load (for logging control)
         """
         file_path = Path(file_path)
-        
+
         # Check if we've already loaded from this exact file to prevent duplicate messages
-        if hasattr(self, '_actual_loaded_file') and self._actual_loaded_file == str(file_path):
-            logger.debug(f"Configuration already loaded from {file_path}, skipping reload")
+        if hasattr(self, "_actual_loaded_file") and self._actual_loaded_file == str(
+            file_path
+        ):
+            logger.debug(
+                f"Configuration already loaded from {file_path}, skipping reload"
+            )
             return
 
         if not file_path.exists():
@@ -177,7 +191,7 @@ class Config:
                 self._config = self._config_mgr.merge_configs(self._config, file_config)
                 # Track that we've successfully loaded from this file
                 self._actual_loaded_file = str(file_path)
-                
+
                 # Only log success message once using class-level flag to avoid duplicate messages
                 # Check if we should log success message (thread-safe for reads after initialization)
                 if is_initial_load:
@@ -185,10 +199,14 @@ class Config:
                         # Set flag IMMEDIATELY before logging to prevent any possibility of duplicate
                         # messages. No lock needed here since we're already inside __init__ lock
                         Config._success_logged = True
-                        logger.info(f"✓ Successfully loaded configuration from {file_path}")
+                        logger.info(
+                            f"✓ Successfully loaded configuration from {file_path}"
+                        )
                     else:
                         # Configuration already successfully loaded before, just debug log
-                        logger.debug(f"Configuration already loaded, skipping success message for {file_path}")
+                        logger.debug(
+                            f"Configuration already loaded, skipping success message for {file_path}"
+                        )
                 else:
                     # Not initial load (shouldn't happen in normal flow, but handle gracefully)
                     logger.debug(f"Configuration reloaded from {file_path}")
@@ -225,7 +243,7 @@ class Config:
             logger.info("TIP: Validate your JSON at https://jsonlint.com/")
             self._config["_load_error"] = str(e)
 
-        except (OSError, IOError, PermissionError) as e:
+        except (OSError, PermissionError) as e:
             raise FileOperationError(
                 f"Failed to read configuration file: {e}",
                 context={
@@ -285,15 +303,14 @@ class Config:
         # Boolean conversion
         if value.lower() in ("true", "yes", "1", "on"):
             return True
-        elif value.lower() in ("false", "no", "0", "off"):
+        if value.lower() in ("false", "no", "0", "off"):
             return False
 
         # Numeric conversion
         try:
             if "." in value:
                 return float(value)
-            else:
-                return int(value)
+            return int(value)
         except ValueError:
             pass
 
@@ -580,7 +597,7 @@ class Config:
 
             logger.info(f"Configuration saved to {file_path}")
 
-        except (OSError, IOError, PermissionError) as e:
+        except (OSError, PermissionError) as e:
             raise FileOperationError(
                 f"Failed to write configuration file: {e}",
                 context={
@@ -809,7 +826,7 @@ class Config:
             if "enabled" in memory_config and not isinstance(
                 memory_config["enabled"], bool
             ):
-                errors.append(f"memory.enabled must be boolean")
+                errors.append("memory.enabled must be boolean")
 
             # Check limits
             limits = memory_config.get("limits", {})
@@ -850,7 +867,7 @@ class Config:
         """
         is_valid, errors, warnings = self.validate_configuration()
 
-        status = {
+        return {
             "valid": is_valid,
             "errors": errors,
             "warnings": warnings,
@@ -862,16 +879,14 @@ class Config:
             "memory_enabled": self.get("memory.enabled", False),
         }
 
-        return status
-
     def __repr__(self) -> str:
         """String representation of configuration."""
         return f"<Config({len(self._config)} keys)>"
-    
+
     @classmethod
     def reset_singleton(cls):
         """Reset the singleton instance (mainly for testing purposes).
-        
+
         WHY: During testing, we may need to reset the singleton to test different
         configurations. This method allows controlled reset of the singleton state.
         """

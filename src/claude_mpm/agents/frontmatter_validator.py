@@ -36,9 +36,9 @@ class ValidationResult:
     warnings: List[str]
     corrections: List[str]
     corrected_frontmatter: Optional[Dict[str, Any]] = None
-    field_corrections: Optional[
-        Dict[str, Any]
-    ] = None  # Specific field-level corrections
+    field_corrections: Optional[Dict[str, Any]] = (
+        None  # Specific field-level corrections
+    )
 
 
 class FrontmatterValidator:
@@ -139,7 +139,7 @@ class FrontmatterValidator:
         )
         if schema_path.exists():
             try:
-                with open(schema_path, "r") as f:
+                with open(schema_path) as f:
                     return json.load(f)
             except Exception as e:
                 logger.warning(f"Failed to load frontmatter schema: {e}")
@@ -510,7 +510,7 @@ class FrontmatterValidator:
             ValidationResult with validation status
         """
         try:
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 content = f.read()
 
             # Extract frontmatter
@@ -574,7 +574,7 @@ class FrontmatterValidator:
 
         if result.field_corrections and not dry_run:
             try:
-                with open(file_path, "r") as f:
+                with open(file_path) as f:
                     content = f.read()
 
                 # Find frontmatter boundaries

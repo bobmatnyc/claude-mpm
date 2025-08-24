@@ -42,7 +42,7 @@ class MCPConfigLoader:
             ".mcp_gateway.yaml",
             ".mcp_gateway.yml",
             "config.yaml",
-            "config.yml"
+            "config.yml",
         ],
         search_paths=[
             "~/.claude/mcp",
@@ -50,15 +50,10 @@ class MCPConfigLoader:
             ".",
             "./config",
             "./.claude",
-            "/etc/claude-mpm"
+            "/etc/claude-mpm",
         ],
         env_prefix="CLAUDE_MPM_MCP_",
-        defaults={
-            "host": "localhost",
-            "port": 3000,
-            "debug": False,
-            "timeout": 30
-        }
+        defaults={"host": "localhost", "port": 3000, "debug": False, "timeout": 30},
     )
 
     def __init__(self):
@@ -102,7 +97,7 @@ class MCPConfigLoader:
                 self.logger.error(f"Configuration file not found: {expanded_path}")
                 return None
 
-            with open(expanded_path, "r") as f:
+            with open(expanded_path) as f:
                 config = yaml.safe_load(f)
 
             self.logger.info(f"Configuration loaded from {expanded_path}")
@@ -179,42 +174,44 @@ class MCPConfigLoader:
                 filenames=[config_path.name],
                 search_paths=[str(config_path.parent)],
                 env_prefix=self.MCP_CONFIG_PATTERN.env_prefix,
-                defaults=MCPConfiguration.DEFAULT_CONFIG.copy()
+                defaults=MCPConfiguration.DEFAULT_CONFIG.copy(),
             )
-            config_obj = self._shared_loader.load_config(pattern, cache_key=f"mcp_{config_path}")
-            return config_obj.to_dict()
-        else:
-            # Use standard MCP pattern with defaults
-            pattern = ConfigPattern(
-                filenames=self.MCP_CONFIG_PATTERN.filenames,
-                search_paths=self.MCP_CONFIG_PATTERN.search_paths,
-                env_prefix=self.MCP_CONFIG_PATTERN.env_prefix,
-                defaults=MCPConfiguration.DEFAULT_CONFIG.copy()
+            config_obj = self._shared_loader.load_config(
+                pattern, cache_key=f"mcp_{config_path}"
             )
-            config_obj = self._shared_loader.load_config(pattern, cache_key="mcp_gateway")
             return config_obj.to_dict()
+        # Use standard MCP pattern with defaults
+        pattern = ConfigPattern(
+            filenames=self.MCP_CONFIG_PATTERN.filenames,
+            search_paths=self.MCP_CONFIG_PATTERN.search_paths,
+            env_prefix=self.MCP_CONFIG_PATTERN.env_prefix,
+            defaults=MCPConfiguration.DEFAULT_CONFIG.copy(),
+        )
+        config_obj = self._shared_loader.load_config(pattern, cache_key="mcp_gateway")
+        return config_obj.to_dict()
 
     # Backward compatibility methods (deprecated)
     def find_config_file(self) -> Optional[Path]:
         """Find configuration file using legacy method (deprecated)."""
         import warnings
+
         warnings.warn(
             "find_config_file is deprecated. Use load() method instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
         # Use shared loader to find config file
-        config_file = self._shared_loader._find_config_file(self.MCP_CONFIG_PATTERN)
-        return config_file
+        return self._shared_loader._find_config_file(self.MCP_CONFIG_PATTERN)
 
     def load_from_file(self, config_path: Path) -> Optional[dict]:
         """Load from file using legacy method (deprecated)."""
         import warnings
+
         warnings.warn(
             "load_from_file is deprecated. Use load() method instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
         # Use shared loader
@@ -223,10 +220,11 @@ class MCPConfigLoader:
     def load_from_env(self, prefix: str = "CLAUDE_MPM_MCP_") -> dict:
         """Load from environment using legacy method (deprecated)."""
         import warnings
+
         warnings.warn(
             "load_from_env is deprecated. Use load() method instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
         # Use shared loader

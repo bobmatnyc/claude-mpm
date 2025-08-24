@@ -1,7 +1,7 @@
 """Tool access control system for managing which tools agents can use."""
 
 import logging
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Set
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ class ToolAccessControl:
         if is_parent or agent_type == "pm":
             allowed = self.PM_TOOLS.copy()
             logger.debug(f"PM/Parent process allowed tools: {allowed}")
-            return sorted(list(allowed))
+            return sorted(allowed)
 
         # Check custom restrictions first
         if agent_type in self.custom_restrictions:
@@ -94,7 +94,7 @@ class ToolAccessControl:
         allowed = allowed - {"TodoWrite"}
 
         logger.debug(f"Agent '{agent_type}' allowed tools: {allowed}")
-        return sorted(list(allowed))
+        return sorted(allowed)
 
     def format_allowed_tools_arg(self, agent_type: str, is_parent: bool = False) -> str:
         """
@@ -166,8 +166,7 @@ class ToolAccessControl:
         """
         if agent_type.lower() == "pm":
             return """You have access to the TodoWrite tool for tracking tasks. Always prefix todos with [Agent] to indicate delegation target."""
-        else:
-            return """You do NOT have access to TodoWrite. Instead, when you identify tasks that need tracking:
+        return """You do NOT have access to TodoWrite. Instead, when you identify tasks that need tracking:
 1. Include them in your response with clear markers like "TODO:" or "TASK:"
 2. Format them as a structured list with priority and description
 3. The PM will extract and track these in the central todo list

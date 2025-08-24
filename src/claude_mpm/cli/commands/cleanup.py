@@ -154,12 +154,12 @@ def analyze_claude_json(file_path: Path) -> Tuple[Dict[str, Any], List[str]]:
     stats["file_size"] = file_stat.st_size
 
     # Count lines
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         stats["line_count"] = sum(1 for _ in f)
 
     # Try to parse JSON structure
     try:
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             data = json.load(f)
 
         # Analyze conversation structure
@@ -279,14 +279,14 @@ class CleanupCommand(BaseCommand):
     def validate_args(self, args) -> str:
         """Validate command arguments."""
         # Validate max_size format
-        max_size = getattr(args, 'max_size', '500KB')
+        max_size = getattr(args, "max_size", "500KB")
         try:
             parse_size(max_size)
         except ValueError as e:
             return str(e)
 
         # Validate days
-        days = getattr(args, 'days', 30)
+        days = getattr(args, "days", 30)
         if days < 0:
             return "Days must be a positive number"
 
@@ -298,20 +298,22 @@ class CleanupCommand(BaseCommand):
             # Gather cleanup information
             cleanup_data = self._analyze_cleanup_needs(args)
 
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
-            if output_format in ['json', 'yaml']:
+            if output_format in ["json", "yaml"]:
                 # Structured output
-                if getattr(args, 'dry_run', False):
-                    return CommandResult.success_result("Cleanup analysis completed (dry run)", data=cleanup_data)
-                else:
-                    # Perform actual cleanup
-                    result_data = self._perform_cleanup(args, cleanup_data)
-                    return CommandResult.success_result("Cleanup completed", data=result_data)
-            else:
-                # Text output using existing function
-                cleanup_memory(args)
-                return CommandResult.success_result("Cleanup completed")
+                if getattr(args, "dry_run", False):
+                    return CommandResult.success_result(
+                        "Cleanup analysis completed (dry run)", data=cleanup_data
+                    )
+                # Perform actual cleanup
+                result_data = self._perform_cleanup(args, cleanup_data)
+                return CommandResult.success_result(
+                    "Cleanup completed", data=result_data
+                )
+            # Text output using existing function
+            cleanup_memory(args)
+            return CommandResult.success_result("Cleanup completed")
 
         except Exception as e:
             self.logger.error(f"Error during cleanup: {e}", exc_info=True)
@@ -327,14 +329,14 @@ class CleanupCommand(BaseCommand):
                 "file_exists": False,
                 "file_path": str(claude_json),
                 "needs_cleanup": False,
-                "message": "No .claude.json file found - nothing to clean up"
+                "message": "No .claude.json file found - nothing to clean up",
             }
 
         # Analyze current state
         stats, issues = analyze_claude_json(claude_json)
 
         # Check if cleanup is needed
-        max_size = parse_size(getattr(args, 'max_size', '500KB'))
+        max_size = parse_size(getattr(args, "max_size", "500KB"))
         needs_cleanup = stats["file_size"] > max_size
 
         return {
@@ -348,11 +350,11 @@ class CleanupCommand(BaseCommand):
             "max_size_formatted": format_size(max_size),
             "current_size_formatted": format_size(stats["file_size"]),
             "settings": {
-                "days": getattr(args, 'days', 30),
-                "archive": getattr(args, 'archive', True),
-                "force": getattr(args, 'force', False),
-                "dry_run": getattr(args, 'dry_run', False)
-            }
+                "days": getattr(args, "days", 30),
+                "archive": getattr(args, "archive", True),
+                "force": getattr(args, "force", False),
+                "dry_run": getattr(args, "dry_run", False),
+            },
         }
 
     def _perform_cleanup(self, args, cleanup_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -366,11 +368,14 @@ class CleanupCommand(BaseCommand):
             "original_size": cleanup_data["stats"]["file_size"],
             "new_size": cleanup_data["stats"]["file_size"],
             "savings": 0,
-            "old_archives_removed": 0
+            "old_archives_removed": 0,
         }
 
         # Create archive if requested
-        if cleanup_data["settings"]["archive"] and not cleanup_data["settings"]["dry_run"]:
+        if (
+            cleanup_data["settings"]["archive"]
+            and not cleanup_data["settings"]["dry_run"]
+        ):
             try:
                 archive_path = create_archive(claude_json, archive_dir)
                 result["archive_created"] = True
@@ -382,7 +387,7 @@ class CleanupCommand(BaseCommand):
         original_size, new_size = clean_claude_json(
             claude_json,
             keep_days=cleanup_data["settings"]["days"],
-            dry_run=cleanup_data["settings"]["dry_run"]
+            dry_run=cleanup_data["settings"]["dry_run"],
         )
 
         result["original_size"] = original_size
@@ -390,7 +395,10 @@ class CleanupCommand(BaseCommand):
         result["savings"] = original_size - new_size
 
         # Clean up old archives
-        if cleanup_data["settings"]["archive"] and not cleanup_data["settings"]["dry_run"]:
+        if (
+            cleanup_data["settings"]["archive"]
+            and not cleanup_data["settings"]["dry_run"]
+        ):
             old_archives = clean_old_archives(archive_dir, keep_days=90)
             result["old_archives_removed"] = len(old_archives)
 
@@ -411,6 +419,7 @@ def cleanup_memory(args):
 def _cleanup_memory_original(args):
     """Original cleanup implementation for backward compatibility."""
     from ...core.logger import get_logger
+
     logger = get_logger("cleanup")
 
     # File paths
@@ -444,7 +453,7 @@ def _cleanup_memory_original(args):
             return
     else:
         print(f"⚠️  File size exceeds recommended limit of {format_size(max_size)}")
-        print(f"   This can cause memory issues when using --resume")
+        print("   This can cause memory issues when using --resume")
 
     # Show large conversations if any
     if stats["large_conversations"]:
@@ -455,12 +464,12 @@ def _cleanup_memory_original(args):
             )
 
     # Show cleanup plan
-    print(f"\n📋 Cleanup Plan:")
+    print("\n📋 Cleanup Plan:")
     print(f"   • Keep conversations from last {args.days} days")
     if args.archive:
         print(f"   • Archive old conversations to: {archive_dir}")
     else:
-        print(f"   • Delete old conversations (no archive)")
+        print("   • Delete old conversations (no archive)")
 
     if args.dry_run:
         print("\n🔍 DRY RUN MODE - No changes will be made")
@@ -496,7 +505,7 @@ def _cleanup_memory_original(args):
 
     # Create backup/archive
     if args.archive and not args.dry_run:
-        print(f"\n📦 Creating archive...")
+        print("\n📦 Creating archive...")
         try:
             archive_path = create_archive(claude_json, archive_dir)
             archive_size = archive_path.stat().st_size
@@ -510,7 +519,7 @@ def _cleanup_memory_original(args):
                 return
 
     # Perform cleanup
-    print(f"\n🧹 Cleaning up conversation history...")
+    print("\n🧹 Cleaning up conversation history...")
 
     try:
         original_size, new_size = clean_claude_json(
@@ -522,18 +531,15 @@ def _cleanup_memory_original(args):
                 f"📊 Would reduce size from {format_size(original_size)} to ~{format_size(new_size)}"
             )
             print(f"💾 Estimated savings: {format_size(original_size - new_size)}")
+        elif new_size < original_size:
+            print("✅ Cleanup complete!")
+            print(
+                f"📊 Reduced size from {format_size(original_size)} to {format_size(new_size)}"
+            )
+            print(f"💾 Saved: {format_size(original_size - new_size)}")
         else:
-            if new_size < original_size:
-                print(f"✅ Cleanup complete!")
-                print(
-                    f"📊 Reduced size from {format_size(original_size)} to {format_size(new_size)}"
-                )
-                print(f"💾 Saved: {format_size(original_size - new_size)}")
-            else:
-                print(f"ℹ️  No conversations were old enough to clean up")
-                print(
-                    f"💡 Try using --days with a smaller value to clean more aggressively"
-                )
+            print("ℹ️  No conversations were old enough to clean up")
+            print("💡 Try using --days with a smaller value to clean more aggressively")
 
     except Exception as e:
         logger.error(f"Cleanup failed: {e}")
@@ -542,7 +548,7 @@ def _cleanup_memory_original(args):
 
     # Clean up old archive files
     if args.archive and not args.dry_run:
-        print(f"\n🗑️  Cleaning up old archives...")
+        print("\n🗑️  Cleaning up old archives...")
         old_archives = clean_old_archives(archive_dir, keep_days=90)
         if old_archives:
             print(f"✅ Removed {len(old_archives)} old archive files")

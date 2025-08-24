@@ -19,7 +19,11 @@ logger = logging.getLogger(__name__)
 class DeployedAgentDiscovery(ConfigServiceBase):
     """Discovers and analyzes deployed agents in the project."""
 
-    def __init__(self, project_root: Path = None, config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        project_root: Optional[Path] = None,
+        config: Optional[Dict[str, Any]] = None,
+    ):
         """Initialize the discovery service.
 
         Args:
@@ -32,7 +36,7 @@ class DeployedAgentDiscovery(ConfigServiceBase):
         self.project_root = self.get_config_value(
             "project_root",
             default=project_root or get_path_manager().project_root,
-            config_type=Path
+            config_type=Path,
         )
         self.agent_registry = AgentRegistryAdapter()
         self.logger.debug(
@@ -111,7 +115,7 @@ class DeployedAgentDiscovery(ConfigServiceBase):
                     "tools": agent.get("tools", []),
                 }
             # Handle object format with metadata (new standardized schema)
-            elif hasattr(agent, "metadata"):
+            if hasattr(agent, "metadata"):
                 return {
                     "id": agent.agent_id,
                     "name": agent.metadata.name,
@@ -125,28 +129,27 @@ class DeployedAgentDiscovery(ConfigServiceBase):
                         else []
                     ),
                 }
-            else:
-                # Legacy object format fallback
-                agent_type = getattr(agent, "type", None)
-                agent_name = getattr(agent, "name", None)
+            # Legacy object format fallback
+            agent_type = getattr(agent, "type", None)
+            agent_name = getattr(agent, "name", None)
 
-                # Generate name from type if name not present
-                if not agent_name and agent_type:
-                    agent_name = agent_type.replace("_", " ").title()
-                elif not agent_name:
-                    agent_name = "Unknown Agent"
+            # Generate name from type if name not present
+            if not agent_name and agent_type:
+                agent_name = agent_type.replace("_", " ").title()
+            elif not agent_name:
+                agent_name = "Unknown Agent"
 
-                return {
-                    "id": getattr(agent, "agent_id", agent_type or "unknown"),
-                    "name": agent_name,
-                    "description": getattr(
-                        agent, "description", "No description available"
-                    ),
-                    "specializations": getattr(agent, "specializations", []),
-                    "capabilities": {},
-                    "source_tier": self._determine_source_tier(agent),
-                    "tools": getattr(agent, "tools", []),
-                }
+            return {
+                "id": getattr(agent, "agent_id", agent_type or "unknown"),
+                "name": agent_name,
+                "description": getattr(
+                    agent, "description", "No description available"
+                ),
+                "specializations": getattr(agent, "specializations", []),
+                "capabilities": {},
+                "source_tier": self._determine_source_tier(agent),
+                "tools": getattr(agent, "tools", []),
+            }
         except Exception as e:
             logger.error(f"Error extracting agent info: {e}")
             return None
@@ -163,7 +166,7 @@ class DeployedAgentDiscovery(ConfigServiceBase):
         try:
             path = Path(agent_path)
             if path.exists() and path.suffix == ".json":
-                with open(path, "r") as f:
+                with open(path) as f:
                     return json.load(f)
         except Exception as e:
             logger.warning(f"Failed to load full agent data from {agent_path}: {e}")
@@ -223,7 +226,7 @@ class DeployedAgentDiscovery(ConfigServiceBase):
             source_path = str(agent.source_path)
             if ".claude/agents" in source_path:
                 return "project"
-            elif str(Path.home()) in source_path:
+            if str(Path.home()) in source_path:
                 return "user"
 
         # Default to system tier

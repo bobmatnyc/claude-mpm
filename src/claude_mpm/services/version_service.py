@@ -25,11 +25,9 @@ class VersionService(BaseService, VersionServiceInterface):
 
     async def _initialize(self) -> None:
         """Initialize the service. No special initialization needed."""
-        pass
 
     async def _cleanup(self) -> None:
         """Cleanup service resources. No cleanup needed."""
-        pass
 
     def get_version(self) -> str:
         """
@@ -134,12 +132,16 @@ class VersionService(BaseService, VersionServiceInterface):
                 if build_file.exists():
                     build_content = build_file.read_text().strip()
                     build_number = int(build_content)
-                    self.logger.debug(f"Build number obtained from {build_file}: {build_number}")
+                    self.logger.debug(
+                        f"Build number obtained from {build_file}: {build_number}"
+                    )
                     return build_number
-            except (ValueError, IOError) as e:
+            except (OSError, ValueError) as e:
                 self.logger.debug(f"Could not read BUILD_NUMBER from {build_file}: {e}")
             except Exception as e:
-                self.logger.debug(f"Unexpected error reading BUILD_NUMBER from {build_file}: {e}")
+                self.logger.debug(
+                    f"Unexpected error reading BUILD_NUMBER from {build_file}: {e}"
+                )
 
         return None
 
@@ -162,8 +164,7 @@ class VersionService(BaseService, VersionServiceInterface):
         if build_number is not None:
             # UI/logging format with 'v' prefix and dash separator
             return f"v{version}-build.{build_number}"
-        else:
-            return f"v{version}"
+        return f"v{version}"
 
     def get_base_version(self) -> str:
         """Get base version without build number.
@@ -222,8 +223,7 @@ class VersionService(BaseService, VersionServiceInterface):
 
         if build_number is not None:
             return f"{base_version}+build.{build_number}"
-        else:
-            return base_version
+        return base_version
 
     # Implementation of abstract methods from VersionServiceInterface
 
@@ -256,8 +256,7 @@ class VersionService(BaseService, VersionServiceInterface):
         """
         if include_build:
             return self.get_version()  # Already includes build number
-        else:
-            return self.get_base_version()
+        return self.get_base_version()
 
     def check_for_updates(self) -> Dict[str, Any]:
         """Check for available updates.

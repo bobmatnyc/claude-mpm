@@ -17,14 +17,13 @@ WHY optimized agent loading:
 """
 
 import asyncio
-import hashlib
 import json
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 try:
     import aiofiles
@@ -34,8 +33,7 @@ except ImportError:
     AIOFILES_AVAILABLE = False
 
 from ..core.logger import get_logger
-from .cache import FileSystemCache, get_file_cache
-from .lazy import LazyService
+from .cache import get_file_cache
 
 
 @dataclass
@@ -308,7 +306,7 @@ class OptimizedAgentLoader:
             self.metrics.cache_misses += 1
 
             # Read file asynchronously
-            async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
+            async with aiofiles.open(file_path, encoding="utf-8") as f:
                 content = await f.read()
 
             # Parse in executor to avoid blocking

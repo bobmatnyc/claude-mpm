@@ -13,7 +13,6 @@ that supports:
 
 import inspect
 import threading
-from abc import ABC
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar, Union
 
@@ -76,21 +75,16 @@ class ServiceRegistration:
         # Get constructor parameters
         if inspect.isclass(self.implementation):
             return container.create_instance(self.implementation, self.dependencies)
-        else:
-            # It's already an instance or callable
-            return self.implementation
+        # It's already an instance or callable
+        return self.implementation
 
 
 class CircularDependencyError(Exception):
     """Raised when circular dependencies are detected."""
 
-    pass
-
 
 class ServiceNotFoundError(Exception):
     """Raised when a requested service is not registered."""
-
-    pass
 
 
 class ServiceScope:
@@ -337,17 +331,16 @@ class DIContainer(IServiceContainer):
                 if not hasattr(self, "_named_singletons"):
                     self._named_singletons = {}
                 self._named_singletons[named_key] = instance
+        # Normal registration without name
+        elif instance is not None:
+            self._register_internal(interface, instance=instance)
+        elif implementation is not None and not inspect.isclass(implementation):
+            # It's an instance passed as implementation (backward compatibility)
+            self._register_internal(interface, instance=implementation)
         else:
-            # Normal registration without name
-            if instance is not None:
-                self._register_internal(interface, instance=instance)
-            elif implementation is not None and not inspect.isclass(implementation):
-                # It's an instance passed as implementation (backward compatibility)
-                self._register_internal(interface, instance=implementation)
-            else:
-                self._register_internal(
-                    interface, implementation, lifetime=ServiceLifetime.SINGLETON
-                )
+            self._register_internal(
+                interface, implementation, lifetime=ServiceLifetime.SINGLETON
+            )
 
         # Handle disposal handler
         if dispose_handler:
@@ -485,12 +478,11 @@ class DIContainer(IServiceContainer):
             registration = self._named_registrations[name]
             if registration.instance is not None:
                 return registration.instance
-            elif registration.factory:
+            if registration.factory:
                 return registration.factory(self)
-            else:
-                return self.create_instance(
-                    registration.implementation, registration.dependencies
-                )
+            return self.create_instance(
+                registration.implementation, registration.dependencies
+            )
 
         return self._resolve_internal(interface)
 
@@ -669,8 +661,7 @@ class DIContainer(IServiceContainer):
                         raise CircularDependencyError(
                             f"Circular dependency detected: {cycle}"
                         )
-                    else:
-                        kwargs[param_name] = self.resolve(param_type)
+                    kwargs[param_name] = self.resolve(param_type)
                 elif param.default != param.empty:
                     # Use default value
                     kwargs[param_name] = param.default
@@ -813,7 +804,7 @@ class DIContainer(IServiceContainer):
         type_name = service_type.__name__.lower()
         similar = []
 
-        for registered_type in self._registrations.keys():
+        for registered_type in self._registrations:
             registered_name = registered_type.__name__
             registered_lower = registered_name.lower()
 
@@ -845,7 +836,7 @@ class DIContainer(IServiceContainer):
         name_lower = name.lower()
         similar = []
 
-        for registered_name in self._named_registrations.keys():
+        for registered_name in self._named_registrations:
             registered_lower = registered_name.lower()
 
             # Check for substring match

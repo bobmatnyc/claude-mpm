@@ -11,12 +11,13 @@ Part of ISS-0035: MCP Server Implementation - Core Server and Tool Registry
 import asyncio
 import json
 import sys
-import traceback
-from asyncio import StreamReader, StreamWriter
-from typing import Any, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from claude_mpm.services.mcp_gateway.core.base import BaseMCPService
 from claude_mpm.services.mcp_gateway.core.interfaces import IMCPCommunication
+
+if TYPE_CHECKING:
+    from asyncio import StreamReader, StreamWriter
 
 
 class StdioHandler(BaseMCPService, IMCPCommunication):

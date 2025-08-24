@@ -7,10 +7,8 @@ Extracted from AgentDeploymentService as part of the refactoring to improve
 maintainability and testability.
 """
 
-import logging
 import time
-from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -194,7 +192,7 @@ class AgentMetricsCollector:
         # Calculate additional performance metrics
         deployment_times = self._deployment_metrics["deployment_times"]
 
-        performance_summary = {
+        return {
             "total_deployments": metrics["total_deployments"],
             "success_rate": metrics["success_rate_percent"],
             "average_time_ms": metrics["average_deployment_time_ms"],
@@ -204,8 +202,6 @@ class AgentMetricsCollector:
             "most_common_agent_type": self._get_most_common_agent_type(),
             "error_rate_percent": self._calculate_error_rate(),
         }
-
-        return performance_summary
 
     def _categorize_error(self, error: str) -> str:
         """
@@ -221,16 +217,15 @@ class AgentMetricsCollector:
 
         if "json" in error_lower or "parse" in error_lower:
             return "parsing_error"
-        elif "file" in error_lower or "path" in error_lower:
+        if "file" in error_lower or "path" in error_lower:
             return "file_error"
-        elif "version" in error_lower:
+        if "version" in error_lower:
             return "version_error"
-        elif "template" in error_lower:
+        if "template" in error_lower:
             return "template_error"
-        elif "validation" in error_lower:
+        if "validation" in error_lower:
             return "validation_error"
-        else:
-            return "other_error"
+        return "other_error"
 
     def _extract_agent_type(self, agent_name: str) -> str:
         """
@@ -247,18 +242,17 @@ class AgentMetricsCollector:
         # Common agent type patterns
         if "security" in name_lower:
             return "security"
-        elif "qa" in name_lower or "test" in name_lower:
+        if "qa" in name_lower or "test" in name_lower:
             return "qa"
-        elif "doc" in name_lower:
+        if "doc" in name_lower:
             return "documentation"
-        elif "data" in name_lower:
+        if "data" in name_lower:
             return "data"
-        elif "ops" in name_lower:
+        if "ops" in name_lower:
             return "operations"
-        elif "research" in name_lower:
+        if "research" in name_lower:
             return "research"
-        else:
-            return "general"
+        return "general"
 
     def _get_most_common_agent_type(self) -> str:
         """Get the most commonly deployed agent type."""

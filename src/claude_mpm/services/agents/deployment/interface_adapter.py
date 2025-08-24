@@ -1,7 +1,7 @@
 """Interface adapter for AgentDeploymentService compliance."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from claude_mpm.core.interfaces import AgentDeploymentInterface
 from claude_mpm.core.logger import get_logger
@@ -102,7 +102,7 @@ class AgentDeploymentInterfaceAdapter(AgentDeploymentInterface):
             return self.deployment_service.validate_agent(agent_path)
         except Exception as e:
             self.logger.error(f"Agent validation failed: {e}", exc_info=True)
-            return False, [f"Validation error: {str(e)}"]
+            return False, [f"Validation error: {e!s}"]
 
     def clean_deployment(self, preserve_user_agents: bool = True) -> bool:
         """Clean up deployed agents.
@@ -122,11 +122,9 @@ class AgentDeploymentInterfaceAdapter(AgentDeploymentInterface):
                 # The existing method returns a dict, we need to return a bool
                 if isinstance(result, dict):
                     return result.get("success", False)
-                else:
-                    return bool(result)
-            else:
-                # Implement basic cleanup logic if method doesn't exist
-                return self._basic_cleanup(preserve_user_agents)
+                return bool(result)
+            # Implement basic cleanup logic if method doesn't exist
+            return self._basic_cleanup(preserve_user_agents)
 
         except Exception as e:
             self.logger.error(f"Deployment cleanup failed: {e}", exc_info=True)

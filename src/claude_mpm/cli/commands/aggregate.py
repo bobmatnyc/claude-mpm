@@ -17,7 +17,6 @@ import sys
 from typing import Optional
 
 from ...core.logger import get_logger
-from ...models.agent_session import AgentSession
 from ...services.event_aggregator import (
     aggregator_status,
     get_aggregator,
@@ -37,7 +36,7 @@ class AggregateCommand(BaseCommand):
 
     def validate_args(self, args) -> Optional[str]:
         """Validate command arguments."""
-        if not hasattr(args, 'aggregate_subcommand') or not args.aggregate_subcommand:
+        if not hasattr(args, "aggregate_subcommand") or not args.aggregate_subcommand:
             return "No aggregate subcommand specified"
 
         valid_commands = ["start", "stop", "status", "sessions", "view", "export"]
@@ -62,11 +61,15 @@ class AggregateCommand(BaseCommand):
             if args.aggregate_subcommand in command_map:
                 exit_code = command_map[args.aggregate_subcommand](args)
                 if exit_code == 0:
-                    return CommandResult.success_result(f"Aggregate {args.aggregate_subcommand} completed successfully")
-                else:
-                    return CommandResult.error_result(f"Aggregate {args.aggregate_subcommand} failed", exit_code=exit_code)
-            else:
-                return CommandResult.error_result(f"Unknown aggregate command: {args.aggregate_subcommand}")
+                    return CommandResult.success_result(
+                        f"Aggregate {args.aggregate_subcommand} completed successfully"
+                    )
+                return CommandResult.error_result(
+                    f"Aggregate {args.aggregate_subcommand} failed", exit_code=exit_code
+                )
+            return CommandResult.error_result(
+                f"Unknown aggregate command: {args.aggregate_subcommand}"
+            )
 
         except Exception as e:
             self.logger.error(f"Error executing aggregate command: {e}", exc_info=True)
@@ -107,7 +110,7 @@ def aggregate_command(args):
     result = command.execute(args)
 
     # Print result if structured output format is requested
-    if hasattr(args, 'format') and args.format in ['json', 'yaml']:
+    if hasattr(args, "format") and args.format in ["json", "yaml"]:
         command.print_result(result, args)
 
     return result.exit_code
@@ -123,19 +126,18 @@ def aggregate_command_legacy(args):
 
     if subcommand == "start":
         return start_command_legacy(args)
-    elif subcommand == "stop":
+    if subcommand == "stop":
         return stop_command_legacy(args)
-    elif subcommand == "status":
+    if subcommand == "status":
         return status_command_legacy(args)
-    elif subcommand == "sessions":
+    if subcommand == "sessions":
         return sessions_command_legacy(args)
-    elif subcommand == "view":
+    if subcommand == "view":
         return view_command_legacy(args)
-    elif subcommand == "export":
+    if subcommand == "export":
         return export_command_legacy(args)
-    else:
-        print(f"Unknown subcommand: {subcommand}", file=sys.stderr)
-        return 1
+    print(f"Unknown subcommand: {subcommand}", file=sys.stderr)
+    return 1
 
 
 def start_command_legacy(args):
@@ -165,12 +167,12 @@ def start_command_legacy(args):
     # Start the aggregator
     if start_aggregator():
         print("✅ Event Aggregator started successfully")
-        print(f"Capturing events from localhost:8765")
-        print(f"Sessions will be saved to: .claude-mpm/sessions/")
+        print("Capturing events from localhost:8765")
+        print("Sessions will be saved to: .claude-mpm/sessions/")
 
         # Show initial status
         status = aggregator_status()
-        print(f"\nStatus:")
+        print("\nStatus:")
         print(f"  Connected: {status['connected']}")
         print(f"  Active sessions: {status['active_sessions']}")
 
@@ -191,10 +193,9 @@ def start_command_legacy(args):
                 stop_aggregator()
 
         return 0
-    else:
-        print("❌ Failed to start Event Aggregator")
-        print("Check that python-socketio is installed: pip install python-socketio")
-        return 1
+    print("❌ Failed to start Event Aggregator")
+    print("Check that python-socketio is installed: pip install python-socketio")
+    return 1
 
 
 def stop_command_legacy(args):
@@ -216,10 +217,10 @@ def stop_command_legacy(args):
 
     # Show final statistics
     if status["total_events"] > 0:
-        print(f"\nStatistics:")
+        print("\nStatistics:")
         print(f"  Total events captured: {status['total_events']}")
         print(f"  Sessions completed: {status['sessions_completed']}")
-        print(f"  Events by type:")
+        print("  Events by type:")
         for event_type, count in sorted(
             status["events_by_type"].items(), key=lambda x: x[1], reverse=True
         )[:5]:
@@ -285,7 +286,7 @@ def sessions_command_legacy(args):
         print(f"   Delegations: {session['delegations']}")
         print(f"   Prompt: {session['initial_prompt']}")
 
-    print(f"\nUse 'claude-mpm aggregate view <session_id>' to view details")
+    print("\nUse 'claude-mpm aggregate view <session_id>' to view details")
 
     return 0
 
@@ -315,7 +316,7 @@ def view_command_legacy(args):
     if session.git_branch:
         print(f"Git branch: {session.git_branch}")
 
-    print(f"\nInitial prompt:")
+    print("\nInitial prompt:")
     print("-" * 40)
     if session.initial_prompt:
         print(session.initial_prompt[:500])
@@ -324,7 +325,7 @@ def view_command_legacy(args):
     else:
         print("(No prompt captured)")
 
-    print(f"\nMetrics:")
+    print("\nMetrics:")
     print("-" * 40)
     metrics = session.metrics
     print(f"Total events: {metrics.total_events}")
@@ -376,7 +377,7 @@ def view_command_legacy(args):
                     print(f"  Correlation: {event.correlation_id}")
 
     if session.final_response and not args.no_response:
-        print(f"\nFinal response:")
+        print("\nFinal response:")
         print("-" * 40)
         print(session.final_response[:1000])
         if len(session.final_response) > 1000:

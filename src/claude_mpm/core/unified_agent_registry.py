@@ -25,6 +25,7 @@ Architecture:
 - Discovery engine with tier-based precedence
 """
 
+import contextlib
 import json
 import logging
 import time
@@ -322,13 +323,12 @@ class UnifiedAgentRegistry:
             or str(self.path_manager.get_project_agents_dir()) in path_str
         ):
             return AgentTier.PROJECT
-        elif (
+        if (
             "user" in path_str
             or str(self.path_manager.get_user_agents_dir()) in path_str
         ):
             return AgentTier.USER
-        else:
-            return AgentTier.SYSTEM
+        return AgentTier.SYSTEM
 
     def _determine_agent_type(self, file_path: Path, tier: AgentTier) -> AgentType:
         """Determine agent type based on file path and tier."""
@@ -388,8 +388,7 @@ class UnifiedAgentRegistry:
 
         # Look for frontmatter
         if lines and lines[0].strip() == "---":
-            in_frontmatter = True
-            for i, line in enumerate(lines[1:], 1):
+            for _i, line in enumerate(lines[1:], 1):
                 if line.strip() == "---":
                     break
                 if line.startswith("description:"):
@@ -410,8 +409,7 @@ class UnifiedAgentRegistry:
         # Look for frontmatter
         lines = content.split("\n")
         if lines and lines[0].strip() == "---":
-            in_frontmatter = True
-            for i, line in enumerate(lines[1:], 1):
+            for _i, line in enumerate(lines[1:], 1):
                 if line.strip() == "---":
                     break
                 if line.startswith("specializations:"):
@@ -419,10 +417,8 @@ class UnifiedAgentRegistry:
                     spec_content = line.split(":", 1)[1].strip()
                     if spec_content.startswith("[") and spec_content.endswith("]"):
                         # JSON-style list
-                        try:
+                        with contextlib.suppress(Exception):
                             specializations = json.loads(spec_content)
-                        except:
-                            pass
 
         return specializations
 
@@ -500,7 +496,6 @@ class UnifiedAgentRegistry:
         """Cache the current registry state."""
         # For now, we just store in memory
         # In a full implementation, this could write to disk
-        pass
 
     # ========================================================================
     # Public API Methods
@@ -607,7 +602,7 @@ class UnifiedAgentRegistry:
         """Import registry from JSON file."""
         input_path = Path(input_path)
 
-        with open(input_path, "r") as f:
+        with open(input_path) as f:
             data = json.load(f)
 
         # Clear current registry
@@ -700,22 +695,22 @@ def list_agents_all() -> List[AgentMetadata]:
 # ============================================================================
 
 __all__ = [
-    "UnifiedAgentRegistry",
+    "AgentFormat",
     "AgentMetadata",
     "AgentTier",
     "AgentType",
-    "AgentFormat",
-    "get_agent_registry",
+    "UnifiedAgentRegistry",
     "discover_agents",
-    "list_agents",
+    "discover_agents_sync",
     "get_agent",
-    "get_core_agents",
-    "get_specialized_agents",
-    "get_project_agents",
     "get_agent_names",
+    "get_agent_registry",
+    "get_core_agents",
+    "get_project_agents",
     "get_registry_stats",
+    "get_specialized_agents",
     # Legacy compatibility
     "listAgents",
-    "discover_agents_sync",
+    "list_agents",
     "list_agents_all",
 ]

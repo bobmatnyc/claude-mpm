@@ -199,7 +199,7 @@ class InjectableService(BaseService, ABC):
         deps = []
         annotations = getattr(self.__class__, "__annotations__", {})
 
-        for attr_name, attr_type in annotations.items():
+        for attr_name, _attr_type in annotations.items():
             if hasattr(self, attr_name) and not attr_name.startswith("_"):
                 deps.append(
                     f"{attr_name}={getattr(self, attr_name).__class__.__name__}"

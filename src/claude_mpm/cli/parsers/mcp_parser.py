@@ -79,7 +79,7 @@ def add_mcp_subparser(subparsers) -> argparse.ArgumentParser:
     )
 
     # Stop MCP server
-    stop_mcp_parser = mcp_subparsers.add_parser(
+    mcp_subparsers.add_parser(
         MCPCommands.STOP.value, help="Stop the MCP Gateway server"
     )
 
@@ -172,7 +172,9 @@ def add_mcp_subparser(subparsers) -> argparse.ArgumentParser:
         "--test", action="store_true", help="Run in test mode with debug output"
     )
     server_mcp_parser.add_argument(
-        "--instructions", action="store_true", help="Show setup instructions for Claude Code"
+        "--instructions",
+        action="store_true",
+        help="Show setup instructions for Claude Code",
     )
 
     return mcp_parser

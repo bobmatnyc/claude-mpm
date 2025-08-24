@@ -1,7 +1,7 @@
 """Deployment result builder for creating structured deployment results."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from claude_mpm.core.logger import get_logger
 

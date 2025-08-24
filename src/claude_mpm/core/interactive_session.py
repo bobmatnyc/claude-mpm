@@ -4,11 +4,10 @@ This module provides the InteractiveSession class that manages Claude's interact
 with proper separation of concerns and reduced complexity.
 """
 
+import contextlib
 import os
 import subprocess
-import sys
 import uuid
-from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
 from claude_mpm.core.logger import get_logger
@@ -134,7 +133,6 @@ class InteractiveSession:
 
             # Deploy project-specific agents
             self.runner.deploy_project_agents_to_claude()
-            
 
             # Build command
             cmd = self._build_claude_command()
@@ -186,8 +184,7 @@ class InteractiveSession:
             # Launch using selected method
             if self.runner.launch_method == "subprocess":
                 return self._launch_subprocess_mode(cmd, env)
-            else:
-                return self._launch_exec_mode(cmd, env)
+            return self._launch_exec_mode(cmd, env)
 
         except FileNotFoundError as e:
             self._handle_launch_error("FileNotFoundError", e)
@@ -206,7 +203,11 @@ class InteractiveSession:
             return self._attempt_fallback_launch(environment)
 
     def process_interactive_command(self, prompt: str) -> Optional[bool]:
-        """Process special interactive commands like /agents and /mpm-doctor.
+        """Process special interactive commands.
+
+        NOTE: As of v4.1.2, MPM slash commands are deployed as markdown files
+        to ~/.claude/commands and handled directly by Claude Code.
+        This method is kept for potential future use with non-Claude commands.
 
         Args:
             prompt: User input command
@@ -214,21 +215,7 @@ class InteractiveSession:
         Returns:
             Optional[bool]: True if handled, False if error, None if not a special command
         """
-        # Parse command and arguments
-        parts = prompt.strip().split()
-        if not parts:
-            return None
-            
-        command = parts[0]
-        args = parts[1:]
-        
-        # Check for special commands
-        if command == "/agents":
-            return self._show_available_agents()
-        elif command == "/mpm-doctor":
-            return self._run_doctor_diagnostics(args)
-
-        # Not a special command
+        # Currently no commands are intercepted - all MPM commands are handled by Claude Code
         return None
 
     def cleanup_interactive_session(self) -> None:
@@ -239,10 +226,8 @@ class InteractiveSession:
         try:
             # Restore original directory
             if self.original_cwd and os.path.exists(self.original_cwd):
-                try:
+                with contextlib.suppress(OSError):
                     os.chdir(self.original_cwd)
-                except OSError:
-                    pass
 
             # Close WebSocket if connected
             if self.runner.websocket_server:
@@ -307,7 +292,7 @@ class InteractiveSession:
     def _display_welcome_message(self) -> None:
         """Display the interactive session welcome message."""
         version_str = self.runner._get_version()
-        
+
         # Get output style status
         output_style_info = self._get_output_style_info()
 
@@ -320,40 +305,47 @@ class InteractiveSession:
             print(f"\033[32m│\033[0m   {output_style_info:<49}\033[32m│\033[0m")
         print("\033[32m│                                                   │\033[0m")
         print(
-            "\033[32m│\033[0m   Commands:                                       \033[32m│\033[0m"
+            "\033[32m│\033[0m   MPM Commands (via Claude Code):                 \033[32m│\033[0m"
         )
         print(
-            "\033[32m│\033[0m     /agents      - Show available agents          \033[32m│\033[0m"
+            "\033[32m│\033[0m     /mpm        - MPM overview and help           \033[32m│\033[0m"
         )
         print(
-            "\033[32m│\033[0m     /mpm-doctor  - Run diagnostic checks          \033[32m│\033[0m"
+            "\033[32m│\033[0m     /mpm-agents - Show available agents           \033[32m│\033[0m"
         )
+        print(
+            "\033[32m│\033[0m     /mpm-doctor - Run diagnostic checks           \033[32m│\033[0m"
+        )
+        print(
+            "\033[32m│\033[0m     Type / for autocomplete in Claude Code        \033[32m│\033[0m"
+        )
+
         print("\033[32m╰───────────────────────────────────────────────────╯\033[0m")
         print("")  # Add blank line after box
-    
-    
+
     def _get_output_style_info(self) -> Optional[str]:
         """Get output style status for display."""
         try:
             # Check if output style manager is available through framework loader
-            if hasattr(self.runner, 'framework_loader') and self.runner.framework_loader:
-                if hasattr(self.runner.framework_loader, 'output_style_manager'):
-                    osm = self.runner.framework_loader.output_style_manager
-                    if osm:
-                        if osm.claude_version and osm.supports_output_styles():
-                            # Check if claude-mpm style is active
-                            settings_file = osm.settings_file
-                            if settings_file.exists():
-                                import json
-                                settings = json.loads(settings_file.read_text())
-                                active_style = settings.get("activeOutputStyle")
-                                if active_style == "claude-mpm":
-                                    return "Output Style: claude-mpm ✅"
-                                else:
-                                    return f"Output Style: {active_style or 'none'}"
-                            return "Output Style: Available"
-                        else:
-                            return "Output Style: Injected (legacy)"
+            if (
+                hasattr(self.runner, "framework_loader")
+                and self.runner.framework_loader
+            ) and hasattr(self.runner.framework_loader, "output_style_manager"):
+                osm = self.runner.framework_loader.output_style_manager
+                if osm:
+                    if osm.claude_version and osm.supports_output_styles():
+                        # Check if claude-mpm style is active
+                        settings_file = osm.settings_file
+                        if settings_file.exists():
+                            import json
+
+                            settings = json.loads(settings_file.read_text())
+                            active_style = settings.get("activeOutputStyle")
+                            if active_style == "claude-mpm":
+                                return "Output Style: claude-mpm ✅"
+                            return f"Output Style: {active_style or 'none'}"
+                        return "Output Style: Available"
+                    return "Output Style: Injected (legacy)"
         except Exception:
             pass
         return None
@@ -365,7 +357,9 @@ class InteractiveSession:
 
         if has_resume:
             # When resuming, use minimal command to avoid interfering with conversation selection
-            self.logger.info("🔄 Resume mode detected - using minimal Claude command to preserve conversation selection")
+            self.logger.info(
+                "🔄 Resume mode detected - using minimal Claude command to preserve conversation selection"
+            )
             cmd = ["claude"]
 
             # Add only the claude_args (which includes --resume)
@@ -374,26 +368,25 @@ class InteractiveSession:
                 self.logger.info(f"Resume command: {cmd}")
 
             return cmd
-        else:
-            # Normal mode - full command with all claude-mpm enhancements
-            cmd = ["claude", "--model", "opus", "--dangerously-skip-permissions"]
+        # Normal mode - full command with all claude-mpm enhancements
+        cmd = ["claude", "--model", "opus", "--dangerously-skip-permissions"]
 
-            # Add custom arguments
-            if self.runner.claude_args:
-                # Enhanced debug logging for --resume flag verification
-                self.logger.debug(f"Raw claude_args received: {self.runner.claude_args}")
-                cmd.extend(self.runner.claude_args)
+        # Add custom arguments
+        if self.runner.claude_args:
+            # Enhanced debug logging for --resume flag verification
+            self.logger.debug(f"Raw claude_args received: {self.runner.claude_args}")
+            cmd.extend(self.runner.claude_args)
 
-            # Add system instructions
-            from claude_mpm.core.claude_runner import create_simple_context
+        # Add system instructions
+        from claude_mpm.core.claude_runner import create_simple_context
 
-            system_prompt = self.runner._create_system_prompt()
-            if system_prompt and system_prompt != create_simple_context():
-                cmd.extend(["--append-system-prompt", system_prompt])
+        system_prompt = self.runner._create_system_prompt()
+        if system_prompt and system_prompt != create_simple_context():
+            cmd.extend(["--append-system-prompt", system_prompt])
 
         # Final command verification
         # self.logger.info(f"Final Claude command built: {' '.join(cmd)}")
-        
+
         # Explicit --resume flag verification
         if "--resume" in cmd:
             self.logger.info("✅ VERIFIED: --resume flag IS included in final command")
@@ -520,7 +513,9 @@ class InteractiveSession:
             cmd = environment["command"]
             env = environment["environment"]
 
-            result = subprocess.run(cmd, stdin=None, stdout=None, stderr=None, env=env)
+            result = subprocess.run(
+                cmd, stdin=None, stdout=None, stderr=None, env=env, check=False
+            )
 
             if result.returncode == 0:
                 if self.runner.project_logger:
@@ -530,9 +525,8 @@ class InteractiveSession:
                         component="session",
                     )
                 return True
-            else:
-                print(f"⚠️  Claude exited with code {result.returncode}")
-                return False
+            print(f"⚠️  Claude exited with code {result.returncode}")
+            return False
 
         except FileNotFoundError:
             print("❌ Fallback failed: Claude CLI not found in PATH")
@@ -545,89 +539,4 @@ class InteractiveSession:
             return True
         except Exception as e:
             print(f"❌ Fallback failed with unexpected error: {e}")
-            return False
-
-    def _show_available_agents(self) -> bool:
-        """Show available agents in the system."""
-        try:
-            from claude_mpm.cli.utils import get_agent_versions_display
-
-            agent_versions = get_agent_versions_display()
-
-            if agent_versions:
-                print(agent_versions)
-            else:
-                print("No deployed agents found")
-                print("\nTo deploy agents, run: claude-mpm --mpm:agents deploy")
-
-            return True
-
-        except ImportError:
-            print("Error: CLI module not available")
-            return False
-        except Exception as e:
-            print(f"Error getting agent versions: {e}")
-            return False
-
-    def _run_doctor_diagnostics(self, args: list) -> bool:
-        """Run doctor diagnostics from interactive mode.
-        
-        Args:
-            args: Command arguments (e.g., ['--verbose'])
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        try:
-            from claude_mpm.services.diagnostics import DiagnosticRunner, DoctorReporter
-            
-            # Parse arguments
-            verbose = "--verbose" in args or "-v" in args
-            no_color = "--no-color" in args
-            
-            # Print header
-            print("\n" + "="*60)
-            print("Claude MPM Doctor Report")
-            print("="*60)
-            
-            # Create diagnostic runner
-            runner = DiagnosticRunner(verbose=verbose)
-            
-            # Run diagnostics
-            try:
-                summary = runner.run_diagnostics()
-            except KeyboardInterrupt:
-                print("\nDiagnostics interrupted by user")
-                return False
-            except Exception as e:
-                print(f"\n❌ Diagnostic failed: {str(e)}")
-                if verbose:
-                    import traceback
-                    traceback.print_exc()
-                return False
-            
-            # Create reporter
-            reporter = DoctorReporter(
-                use_color=not no_color,
-                verbose=verbose
-            )
-            
-            # Display results in terminal format
-            reporter.report(summary, format="terminal")
-            
-            # Return based on status
-            if summary.error_count > 0:
-                return False
-            
-            return True
-            
-        except ImportError as e:
-            print(f"Error: Diagnostics module not available: {e}")
-            print("Please ensure claude-mpm is properly installed")
-            return False
-        except Exception as e:
-            print(f"Error running diagnostics: {e}")
-            if "--verbose" in args or "-v" in args:
-                import traceback
-                traceback.print_exc()
             return False

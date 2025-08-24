@@ -11,8 +11,8 @@ from .deployment_facade import DeploymentFacade
 from .sync_deployment_executor import SyncDeploymentExecutor
 
 __all__ = [
+    "AsyncDeploymentExecutor",
     "DeploymentExecutor",
     "DeploymentFacade",
-    "AsyncDeploymentExecutor",
     "SyncDeploymentExecutor",
 ]

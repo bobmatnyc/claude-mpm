@@ -65,12 +65,10 @@ class AgentPersistenceService:
     async def start(self) -> None:
         """Start the persistence service."""
         # No-op for stub
-        pass
 
     async def stop(self) -> None:
         """Stop the persistence service."""
         # No-op for stub
-        pass
 
     async def persist_agent(
         self,

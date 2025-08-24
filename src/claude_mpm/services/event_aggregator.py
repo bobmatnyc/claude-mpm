@@ -13,7 +13,6 @@ aggregator to run alongside the dashboard without any conflicts.
 
 import asyncio
 import json
-import os
 import signal
 import sys
 import threading
@@ -30,8 +29,10 @@ except ImportError:
     SOCKETIO_AVAILABLE = False
     socketio = None
 
+import contextlib
+
 from ..core.logger import get_logger
-from ..models.agent_session import AgentSession, EventCategory
+from ..models.agent_session import AgentSession
 
 
 class EventAggregator:
@@ -61,7 +62,6 @@ class EventAggregator:
         self.logger = get_logger("event_aggregator")
 
         # Load configuration using ConfigLoader
-        from claude_mpm.core.config import Config
         from claude_mpm.core.shared.config_loader import ConfigLoader
 
         config_loader = ConfigLoader()
@@ -136,10 +136,9 @@ class EventAggregator:
         if self.connected:
             self.logger.info("Event Aggregator started successfully")
             return True
-        else:
-            self.logger.error("Failed to connect to Socket.IO server")
-            self.running = False
-            return False
+        self.logger.error("Failed to connect to Socket.IO server")
+        self.running = False
+        return False
 
     def stop(self):
         """Stop the aggregator service."""
@@ -151,12 +150,10 @@ class EventAggregator:
 
         # Disconnect Socket.IO client
         if self.sio_client and self.connected:
-            try:
+            with contextlib.suppress(Exception):
                 asyncio.run_coroutine_threadsafe(
                     self.sio_client.disconnect(), self.client_loop
                 ).result(timeout=2)
-            except:
-                pass
 
         # Stop the client thread
         if self.client_thread and self.client_thread.is_alive():
@@ -207,10 +204,8 @@ class EventAggregator:
             # Cancel cleanup task
             if self.cleanup_task:
                 self.cleanup_task.cancel()
-                try:
+                with contextlib.suppress(asyncio.CancelledError):
                     await self.cleanup_task
-                except asyncio.CancelledError:
-                    pass
 
         except Exception as e:
             self.logger.error(f"Connection error: {e}")
@@ -470,9 +465,7 @@ class EventAggregator:
             "sessions_completed": self.sessions_completed,
             "total_events": self.total_events_captured,
             "events_by_type": dict(self.events_by_type),
-            "active_session_ids": [
-                sid[:8] + "..." for sid in self.active_sessions.keys()
-            ],
+            "active_session_ids": [sid[:8] + "..." for sid in self.active_sessions],
         }
 
     def list_sessions(self, limit: int = 10) -> List[Dict[str, Any]]:
@@ -496,7 +489,7 @@ class EventAggregator:
         for filepath in session_files:
             try:
                 # Load just the metadata, not the full session
-                with open(filepath, "r") as f:
+                with open(filepath) as f:
                     data = json.load(f)
 
                 sessions.append(

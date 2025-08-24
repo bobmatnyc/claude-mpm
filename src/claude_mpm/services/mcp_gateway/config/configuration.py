@@ -106,9 +106,8 @@ class MCPConfiguration(BaseMCPService, IMCPConfiguration):
         self._config_data = self.DEFAULT_CONFIG.copy()
 
         # Load from file if path provided
-        if self._config_path:
-            if not self.load_config(self._config_path):
-                return False
+        if self._config_path and not self.load_config(self._config_path):
+            return False
 
         # Apply environment variable overrides
         self._apply_env_overrides()
@@ -139,7 +138,7 @@ class MCPConfiguration(BaseMCPService, IMCPConfiguration):
                 self.log_warning(f"Configuration file not found: {config_path}")
                 return True  # Not an error, use defaults
 
-            with open(config_path, "r") as f:
+            with open(config_path) as f:
                 if config_path.suffix in [".yaml", ".yml"]:
                     loaded_config = yaml.safe_load(f) or {}
                 else:
@@ -384,7 +383,9 @@ class MCPConfiguration(BaseMCPService, IMCPConfiguration):
         # Revalidate
         return self.validate()
 
-    def get_config_with_validation(self, key: str, default: Any = None, config_type: type = None) -> Any:
+    def get_config_with_validation(
+        self, key: str, default: Any = None, config_type: Optional[type] = None
+    ) -> Any:
         """
         Get configuration value with validation using shared utilities.
 
@@ -397,7 +398,9 @@ class MCPConfiguration(BaseMCPService, IMCPConfiguration):
             Configuration value
         """
         try:
-            return self._config_helper.get_config_value(key, default, config_type=config_type)
+            return self._config_helper.get_config_value(
+                key, default, config_type=config_type
+            )
         except ValueError:
             # Fall back to standard get method
             return self.get(key, default)

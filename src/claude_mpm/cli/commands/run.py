@@ -20,10 +20,9 @@ import sys
 import time
 import webbrowser
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Optional
 
 from ...constants import LogLevel
-from ...core.config import Config
 from ...core.logger import get_logger
 from ...core.shared.config_loader import ConfigLoader
 from ...core.unified_paths import get_package_root, get_scripts_dir
@@ -31,11 +30,12 @@ from ...services.port_manager import PortManager
 from ...utils.dependency_manager import ensure_socketio_dependencies
 from ..shared import BaseCommand, CommandResult
 from ..startup_logging import (
-    log_startup_status, 
+    cleanup_old_startup_logs,
+    log_startup_status,
     setup_startup_logging,
-    cleanup_old_startup_logs
 )
 from ..utils import get_user_input, list_agent_versions_at_startup
+from .run_config_checker import RunConfigChecker
 
 
 def filter_claude_mpm_args(claude_args):
@@ -208,13 +208,16 @@ class RunCommand(BaseCommand):
             success = self._execute_run_session(args)
 
             if success:
-                return CommandResult.success_result("Claude session completed successfully")
-            else:
-                return CommandResult.error_result("Claude session failed", exit_code=1)
+                return CommandResult.success_result(
+                    "Claude session completed successfully"
+                )
+            return CommandResult.error_result("Claude session failed", exit_code=1)
 
         except KeyboardInterrupt:
             self.logger.info("Session interrupted by user")
-            return CommandResult.error_result("Session cancelled by user", exit_code=130)
+            return CommandResult.error_result(
+                "Session cancelled by user", exit_code=130
+            )
         except Exception as e:
             self.logger.error(f"Error running Claude session: {e}", exc_info=True)
             return CommandResult.error_result(f"Error running Claude session: {e}")
@@ -248,7 +251,9 @@ class RunCommand(BaseCommand):
             self._check_claude_json_memory(args)
 
             # Handle session management
-            session_manager, resume_session_id, resume_context = self._setup_session_management(args)
+            session_manager, resume_session_id, resume_context = (
+                self._setup_session_management(args)
+            )
 
             # Handle dependency checking
             self._handle_dependency_checking(args)
@@ -260,7 +265,9 @@ class RunCommand(BaseCommand):
             runner = self._setup_claude_runner(args, monitor_mode, websocket_port)
 
             # Create context and run session
-            context = self._create_session_context(args, session_manager, resume_session_id, resume_context)
+            context = self._create_session_context(
+                args, session_manager, resume_session_id, resume_context
+            )
 
             # Execute the session
             return self._execute_session(args, runner, context)
@@ -271,13 +278,11 @@ class RunCommand(BaseCommand):
 
     def _check_configuration_health(self):
         """Check configuration health at startup."""
-        from .run_config_checker import RunConfigChecker
         checker = RunConfigChecker(self.logger)
         checker.check_configuration_health()
 
     def _check_claude_json_memory(self, args):
         """Check .claude.json file size and warn about memory issues."""
-        from .run_config_checker import RunConfigChecker
         checker = RunConfigChecker(self.logger)
         checker.check_claude_json_memory(args)
 
@@ -300,8 +305,12 @@ class RunCommand(BaseCommand):
                     session_data = session_manager.get_session_by_id(resume_session_id)
                     if session_data:
                         resume_context = session_data.get("context", "default")
-                        self.logger.info(f"Resuming session {resume_session_id} (context: {resume_context})")
-                        print(f"🔄 Resuming session {resume_session_id[:8]}... (created: {session_data.get('created_at', 'unknown')})")
+                        self.logger.info(
+                            f"Resuming session {resume_session_id} (context: {resume_context})"
+                        )
+                        print(
+                            f"🔄 Resuming session {resume_session_id[:8]}... (created: {session_data.get('created_at', 'unknown')})"
+                        )
                     else:
                         self.logger.warning(f"Session {resume_session_id} not found")
                 else:
@@ -313,8 +322,12 @@ class RunCommand(BaseCommand):
                 session_data = session_manager.get_session_by_id(resume_session_id)
                 if session_data:
                     resume_context = session_data.get("context", "default")
-                    self.logger.info(f"Resuming session {resume_session_id} (context: {resume_context})")
-                    print(f"🔄 Resuming session {resume_session_id[:8]}... (context: {resume_context})")
+                    self.logger.info(
+                        f"Resuming session {resume_session_id} (context: {resume_context})"
+                    )
+                    print(
+                        f"🔄 Resuming session {resume_session_id[:8]}... (context: {resume_context})"
+                    )
                 else:
                     self.logger.error(f"Session {resume_session_id} not found")
                     print(f"❌ Session {resume_session_id} not found")
@@ -355,17 +368,25 @@ class RunCommand(BaseCommand):
                         # Check dependencies and prompt for installation if needed
                         missing_deps = loader.check_dependencies()
                         if missing_deps:
-                            self.logger.info(f"Found {len(missing_deps)} missing dependencies")
+                            self.logger.info(
+                                f"Found {len(missing_deps)} missing dependencies"
+                            )
 
                             # Prompt user for installation
-                            print(f"\n📦 Found {len(missing_deps)} missing dependencies:")
+                            print(
+                                f"\n📦 Found {len(missing_deps)} missing dependencies:"
+                            )
                             for dep in missing_deps[:5]:  # Show first 5
                                 print(f"  • {dep}")
                             if len(missing_deps) > 5:
                                 print(f"  ... and {len(missing_deps) - 5} more")
 
-                            response = input("\nInstall missing dependencies? (y/N): ").strip().lower()
-                            if response in ['y', 'yes']:
+                            response = (
+                                input("\nInstall missing dependencies? (y/N): ")
+                                .strip()
+                                .lower()
+                            )
+                            if response in ["y", "yes"]:
                                 loader.auto_install = True
                                 loader.install_dependencies(missing_deps)
                                 print("✅ Dependencies installed successfully")
@@ -375,8 +396,12 @@ class RunCommand(BaseCommand):
                         # Just check without prompting
                         missing_deps = loader.check_dependencies()
                         if missing_deps:
-                            self.logger.warning(f"Found {len(missing_deps)} missing dependencies")
-                            print(f"⚠️  Found {len(missing_deps)} missing dependencies. Use --force-check-dependencies to install.")
+                            self.logger.warning(
+                                f"Found {len(missing_deps)} missing dependencies"
+                            )
+                            print(
+                                f"⚠️  Found {len(missing_deps)} missing dependencies. Use --force-check-dependencies to install."
+                            )
 
                     # Update cache
                     smart_checker.update_cache(deployment_hash)
@@ -396,7 +421,9 @@ class RunCommand(BaseCommand):
         if monitor_mode:
             # Ensure Socket.IO dependencies are available
             if not ensure_socketio_dependencies():
-                self.logger.warning("Socket.IO dependencies not available, disabling monitor mode")
+                self.logger.warning(
+                    "Socket.IO dependencies not available, disabling monitor mode"
+                )
                 monitor_mode = False
             else:
                 # Get available port
@@ -405,8 +432,10 @@ class RunCommand(BaseCommand):
 
                 # Start Socket.IO server if not running
                 if not self._is_socketio_server_running(websocket_port):
-                    if not _start_socketio_server(websocket_port, self.logger):
-                        self.logger.warning("Failed to start Socket.IO server, disabling monitor mode")
+                    if not self._start_socketio_server(websocket_port, self.logger):
+                        self.logger.warning(
+                            "Failed to start Socket.IO server, disabling monitor mode"
+                        )
                         monitor_mode = False
                     else:
                         # Give server time to start
@@ -461,11 +490,15 @@ class RunCommand(BaseCommand):
         # Set browser opening flag for monitor mode
         if monitor_mode:
             runner._should_open_monitor_browser = True
-            runner._browser_opened_by_cli = getattr(args, "_browser_opened_by_cli", False)
+            runner._browser_opened_by_cli = getattr(
+                args, "_browser_opened_by_cli", False
+            )
 
         return runner
 
-    def _create_session_context(self, args, session_manager, resume_session_id, resume_context):
+    def _create_session_context(
+        self, args, session_manager, resume_session_id, resume_context
+    ):
         """Create session context."""
         try:
             from ...core.claude_runner import create_simple_context
@@ -476,7 +509,9 @@ class RunCommand(BaseCommand):
             # For resumed sessions, create enhanced context with session information
             context = create_session_context(resume_session_id, session_manager)
             # Update session usage
-            session_manager.active_sessions[resume_session_id]["last_used"] = datetime.now().isoformat()
+            session_manager.active_sessions[resume_session_id][
+                "last_used"
+            ] = datetime.now().isoformat()
             session_manager.active_sessions[resume_session_id]["use_count"] += 1
             session_manager._save_sessions()
         else:
@@ -501,18 +536,19 @@ class RunCommand(BaseCommand):
                 if not success:
                     self.logger.error("Session failed")
                     return False
-            else:
-                # Interactive mode
-                if getattr(args, "intercept_commands", False):
-                    wrapper_path = get_scripts_dir() / "interactive_wrapper.py"
-                    if wrapper_path.exists():
-                        print("Starting interactive session with command interception...")
-                        subprocess.run([sys.executable, str(wrapper_path)])
-                    else:
-                        self.logger.warning("Interactive wrapper not found, falling back to normal mode")
-                        runner.run_interactive(context)
+            # Interactive mode
+            elif getattr(args, "intercept_commands", False):
+                wrapper_path = get_scripts_dir() / "interactive_wrapper.py"
+                if wrapper_path.exists():
+                    print("Starting interactive session with command interception...")
+                    subprocess.run([sys.executable, str(wrapper_path)], check=False)
                 else:
+                    self.logger.warning(
+                        "Interactive wrapper not found, falling back to normal mode"
+                    )
                     runner.run_interactive(context)
+            else:
+                runner.run_interactive(context)
 
             return True
 
@@ -524,9 +560,10 @@ class RunCommand(BaseCommand):
         """Check if Socket.IO server is running on the specified port."""
         try:
             import socket
+
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.settimeout(1)
-                result = s.connect_ex(('localhost', port))
+                result = s.connect_ex(("localhost", port))
                 return result == 0
         except Exception:
             return False
@@ -561,14 +598,14 @@ def run_session_legacy(args):
         args: Parsed command line arguments
     """
     # Set up startup logging to file early in the process
-    startup_log_file = setup_startup_logging(Path.cwd())
-    
+    setup_startup_logging(Path.cwd())
+
     logger = get_logger("cli")
     if args.logging != LogLevel.OFF.value:
         logger.info("Starting Claude MPM session")
-        logger.info(f"Startup log: {startup_log_file}")
-    
-    # Clean up old startup logs (keep last 7 days or minimum 10 files)
+        # Log file already announced in startup_logging.py when created
+
+    # Clean up old startup logs (using configured retention count)
     try:
         deleted_count = cleanup_old_startup_logs(Path.cwd())
         if deleted_count > 0:
@@ -637,6 +674,14 @@ def run_session_legacy(args):
                 print("💡 Use 'claude-mpm sessions' to list available sessions")
                 return
 
+    # Deploy MPM slash commands to user's Claude configuration
+    try:
+        from ...services.command_deployment_service import deploy_commands_on_startup
+
+        deploy_commands_on_startup(force=False)
+    except Exception as e:
+        logger.debug(f"Failed to deploy MPM commands (non-critical): {e}")
+
     # Skip native agents if disabled
     if getattr(args, "no_native_agents", False):
         print("Native agents disabled")
@@ -689,7 +734,7 @@ def run_session_legacy(args):
 
                         if can_prompt and missing_count > 0:
                             # Interactive prompt for installation
-                            print(f"\n📦 Missing dependencies detected:")
+                            print("\n📦 Missing dependencies detected:")
                             for dep in results["summary"]["missing_python"][:5]:
                                 print(f"   - {dep}")
                             if missing_count > 5:
@@ -774,17 +819,17 @@ def run_session_legacy(args):
     # Create simple runner
     enable_tickets = not args.no_tickets
     raw_claude_args = getattr(args, "claude_args", []) or []
-    
+
     # Add --resume to claude_args if the flag is set
     resume_flag_present = getattr(args, "resume", False)
     if resume_flag_present:
         logger.info("📌 --resume flag detected in args")
         if "--resume" not in raw_claude_args:
-            raw_claude_args = ["--resume"] + raw_claude_args
+            raw_claude_args = ["--resume", *raw_claude_args]
             logger.info("✅ Added --resume to claude_args")
         else:
             logger.info("ℹ️ --resume already in claude_args")
-    
+
     # Filter out claude-mpm specific flags before passing to Claude CLI
     logger.debug(f"Pre-filter claude_args: {raw_claude_args}")
     claude_args = filter_claude_mpm_args(raw_claude_args)
@@ -794,9 +839,9 @@ def run_session_legacy(args):
     if raw_claude_args != claude_args:
         filtered_out = list(set(raw_claude_args) - set(claude_args))
         logger.debug(f"Filtered out MPM-specific args: {filtered_out}")
-    
+
     logger.info(f"Final claude_args being passed: {claude_args}")
-    
+
     # Explicit verification of --resume flag
     if resume_flag_present:
         if "--resume" in claude_args:
@@ -843,7 +888,7 @@ def run_session_legacy(args):
                     websocket_port, logger
                 )
                 if not success:
-                    print(f"⚠️  Failed to launch Socket.IO monitor")
+                    print("⚠️  Failed to launch Socket.IO monitor")
                     print(
                         f"  You can manually run: python scripts/launch_socketio_dashboard.py --port {websocket_port}"
                     )
@@ -905,20 +950,17 @@ def run_session_legacy(args):
         success = runner.run_oneshot(user_input, context)
         if not success:
             logger.error("Session failed")
-    else:
-        # Interactive mode
-        if getattr(args, "intercept_commands", False):
-            wrapper_path = get_scripts_dir() / "interactive_wrapper.py"
-            if wrapper_path.exists():
-                print("Starting interactive session with command interception...")
-                subprocess.run([sys.executable, str(wrapper_path)])
-            else:
-                logger.warning(
-                    "Interactive wrapper not found, falling back to normal mode"
-                )
-                runner.run_interactive(context)
+    # Interactive mode
+    elif getattr(args, "intercept_commands", False):
+        wrapper_path = get_scripts_dir() / "interactive_wrapper.py"
+        if wrapper_path.exists():
+            print("Starting interactive session with command interception...")
+            subprocess.run([sys.executable, str(wrapper_path)], check=False)
         else:
+            logger.warning("Interactive wrapper not found, falling back to normal mode")
             runner.run_interactive(context)
+    else:
+        runner.run_interactive(context)
 
 
 def launch_socketio_monitor(port, logger):
@@ -967,8 +1009,6 @@ def _start_standalone_socketio_server(port, logger):
     try:
         import subprocess
 
-        from ...core.unified_paths import get_scripts_dir
-
         # Get path to daemon script in package
         daemon_script = get_package_root() / "scripts" / "socketio_daemon.py"
 
@@ -983,6 +1023,7 @@ def _start_standalone_socketio_server(port, logger):
             [sys.executable, str(daemon_script), "start"],
             capture_output=True,
             text=True,
+            check=False,
         )
 
         if result.returncode != 0:
@@ -1025,29 +1066,28 @@ def _start_standalone_socketio_server(port, logger):
                 logger.info(
                     f"✅ Standalone Socket.IO server started successfully on port {port}"
                 )
-                logger.info(f"🕐 Server ready after {attempt} attempts ({elapsed:.1f}s)")
-                return True
-            else:
-                logger.debug(
-                    f"Server not yet accepting connections on attempt {attempt}"
+                logger.info(
+                    f"🕐 Server ready after {attempt} attempts ({elapsed:.1f}s)"
                 )
+                return True
+            logger.debug(f"Server not yet accepting connections on attempt {attempt}")
 
         # Timeout reached
-        elapsed_total = time.time() - start_time
+        time.time() - start_time
         logger.error(
             f"❌ Socket.IO server health check failed after {max_wait_time}s timeout ({attempt} attempts)"
         )
         logger.warning(
-            f"⏱️  Server may still be starting - try waiting a few more seconds"
+            "⏱️  Server may still be starting - try waiting a few more seconds"
         )
         logger.warning(
-            f"💡 The daemon process might be running but not yet accepting HTTP connections"
+            "💡 The daemon process might be running but not yet accepting HTTP connections"
         )
-        logger.error(f"🔧 Troubleshooting steps:")
-        logger.error(f"   - Wait a few more seconds and try again")
+        logger.error("🔧 Troubleshooting steps:")
+        logger.error("   - Wait a few more seconds and try again")
         logger.error(f"   - Check for port conflicts: lsof -i :{port}")
-        logger.error(f"   - Try a different port with --websocket-port")
-        logger.error(f"   - Verify dependencies: pip install python-socketio aiohttp")
+        logger.error("   - Try a different port with --websocket-port")
+        logger.error("   - Verify dependencies: pip install python-socketio aiohttp")
         return False
 
     except Exception as e:
@@ -1056,7 +1096,7 @@ def _start_standalone_socketio_server(port, logger):
 
         logger.error(f"📋 Stack trace: {traceback.format_exc()}")
         logger.error(
-            f"💡 This may be a dependency issue - try: pip install python-socketio aiohttp"
+            "💡 This may be a dependency issue - try: pip install python-socketio aiohttp"
         )
         return False
 
@@ -1124,8 +1164,6 @@ def open_in_browser_tab(url, logger):
 
 def _check_claude_json_memory(args, logger):
     """Check .claude.json file size and warn about memory issues."""
-    from .run_config_checker import RunConfigChecker
-
     checker = RunConfigChecker(logger)
     checker.check_claude_json_memory(args)
     """Check .claude.json file size and warn about memory issues.
@@ -1187,8 +1225,8 @@ def _check_claude_json_memory(args, logger):
         print(
             f"\n⚠️  CRITICAL: Large .claude.json file detected ({format_size(file_size)})"
         )
-        print(f"   This WILL cause memory issues when using --resume")
-        print(f"   Claude Code may consume 2GB+ of memory\n")
+        print("   This WILL cause memory issues when using --resume")
+        print("   Claude Code may consume 2GB+ of memory\n")
 
         if not getattr(args, "force", False):
             print("   Recommended actions:")
@@ -1243,8 +1281,6 @@ def _check_claude_json_memory(args, logger):
 
 def _check_configuration_health(logger):
     """Check configuration health at startup and warn about issues."""
-    from .run_config_checker import RunConfigChecker
-
     checker = RunConfigChecker(logger)
     checker.check_configuration_health()
     """Check configuration health at startup and warn about issues.

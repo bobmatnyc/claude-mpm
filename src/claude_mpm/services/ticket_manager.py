@@ -6,7 +6,7 @@ class TicketManager:
 
     def create_task(self, *args, **kwargs):
         """Stub method."""
-        return None
+        return
 
     def list_recent_tickets(self, *args, **kwargs):
         """Stub method."""
@@ -14,7 +14,7 @@ class TicketManager:
 
     def get_ticket(self, *args, **kwargs):
         """Stub method."""
-        return None
+        return
 
     def update_task(self, *args, **kwargs):
         """Stub method."""

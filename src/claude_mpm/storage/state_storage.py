@@ -20,12 +20,10 @@ import logging
 import os
 import pickle
 import platform
-import shutil
 import tempfile
 import time
-from contextlib import contextmanager
-from datetime import datetime
-from typing import Any, BinaryIO, Dict, Optional, TextIO, Union
+from contextlib import contextmanager, suppress
+from typing import Any, Dict, Optional, Tuple, Union
 
 
 class StateStorage:
@@ -76,17 +74,16 @@ class StateStorage:
                 return self._atomic_write(
                     file_path, data, serializer="json", compress=compress
                 )
+            # Direct write (not atomic)
+            if compress:
+                with gzip.open(file_path, "wt", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2, default=str)
             else:
-                # Direct write (not atomic)
-                if compress:
-                    with gzip.open(file_path, "wt", encoding="utf-8") as f:
-                        json.dump(data, f, indent=2, default=str)
-                else:
-                    with open(file_path, "w") as f:
-                        json.dump(data, f, indent=2, default=str)
+                with open(file_path, "w") as f:
+                    json.dump(data, f, indent=2, default=str)
 
-                self.write_count += 1
-                return True
+            self.write_count += 1
+            return True
 
         except Exception as e:
             self.logger.error(f"Failed to write JSON to {file_path}: {e}")
@@ -121,7 +118,7 @@ class StateStorage:
                     with gzip.open(file_path, "rt", encoding="utf-8") as f:
                         data = json.load(f)
                 else:
-                    with open(file_path, "r") as f:
+                    with open(file_path) as f:
                         data = json.load(f)
 
             self.read_count += 1
@@ -157,17 +154,16 @@ class StateStorage:
                 return self._atomic_write(
                     file_path, data, serializer="pickle", compress=compress
                 )
+            # Direct write (not atomic)
+            if compress:
+                with gzip.open(file_path, "wb") as f:
+                    pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
             else:
-                # Direct write (not atomic)
-                if compress:
-                    with gzip.open(file_path, "wb") as f:
-                        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
-                else:
-                    with open(file_path, "wb") as f:
-                        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+                with open(file_path, "wb") as f:
+                    pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-                self.write_count += 1
-                return True
+            self.write_count += 1
+            return True
 
         except Exception as e:
             self.logger.error(f"Failed to write pickle to {file_path}: {e}")
@@ -307,7 +303,7 @@ class StateStorage:
                 try:
                     fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                     break
-                except IOError:
+                except OSError:
                     if attempt == max_attempts - 1:
                         raise
                     time.sleep(0.1)
@@ -316,10 +312,8 @@ class StateStorage:
 
         finally:
             if f:
-                try:
+                with suppress(Exception):
                     fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-                except:
-                    pass
                 f.close()
 
     def _add_checksum(self, file_path: Union[str, Path]) -> None:
@@ -364,7 +358,7 @@ class StateStorage:
                 return True  # No checksum to verify
 
             # Read expected checksum
-            with open(checksum_path, "r") as f:
+            with open(checksum_path) as f:
                 expected = f.read().strip()
 
             # Calculate actual checksum

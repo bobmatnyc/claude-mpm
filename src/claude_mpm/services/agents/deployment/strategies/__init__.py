@@ -18,8 +18,8 @@ from .user_strategy import UserAgentDeploymentStrategy
 __all__ = [
     "BaseDeploymentStrategy",
     "DeploymentContext",
-    "SystemAgentDeploymentStrategy",
-    "ProjectAgentDeploymentStrategy",
-    "UserAgentDeploymentStrategy",
     "DeploymentStrategySelector",
+    "ProjectAgentDeploymentStrategy",
+    "SystemAgentDeploymentStrategy",
+    "UserAgentDeploymentStrategy",
 ]

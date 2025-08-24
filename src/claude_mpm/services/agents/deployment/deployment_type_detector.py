@@ -116,7 +116,7 @@ class DeploymentTypeDetector:
                 and "/templates" not in templates_str
             ):
                 return "PROJECT"
-            elif (
+            if (
                 "/.claude-mpm/agents" in templates_str
                 and "/templates" not in templates_str
             ):

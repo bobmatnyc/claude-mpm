@@ -15,9 +15,9 @@ Design Principles:
 """
 
 import asyncio
+import contextlib
 import logging
 import socket
-import threading
 import time
 from abc import ABC, abstractmethod
 from collections import deque
@@ -120,12 +120,10 @@ class HealthChecker(ABC):
     @abstractmethod
     def get_name(self) -> str:
         """Get the name of this health checker."""
-        pass
 
     @abstractmethod
     async def check_health(self) -> List[HealthMetric]:
         """Perform health check and return metrics."""
-        pass
 
 
 class ProcessResourceChecker(HealthChecker):
@@ -220,9 +218,11 @@ class ProcessResourceChecker(HealthChecker):
                 HealthMetric(
                     name="process_status",
                     value=status,
-                    status=HealthStatus.HEALTHY
-                    if process_healthy
-                    else HealthStatus.CRITICAL,
+                    status=(
+                        HealthStatus.HEALTHY
+                        if process_healthy
+                        else HealthStatus.CRITICAL
+                    ),
                     message=f"Process status: {status}",
                 )
             )
@@ -612,9 +612,9 @@ class ServiceHealthChecker(HealthChecker):
                 HealthMetric(
                     name="total_errors",
                     value=errors,
-                    status=HealthStatus.HEALTHY
-                    if errors == 0
-                    else HealthStatus.WARNING,
+                    status=(
+                        HealthStatus.HEALTHY if errors == 0 else HealthStatus.WARNING
+                    ),
                 )
             )
         except Exception as e:
@@ -843,7 +843,7 @@ class AdvancedHealthMonitor:
             return HealthStatus.UNKNOWN
 
         # Count metrics by status
-        status_counts = {status: 0 for status in HealthStatus}
+        status_counts = dict.fromkeys(HealthStatus, 0)
         for metric in metrics:
             status_counts[metric.status] += 1
 
@@ -890,10 +890,8 @@ class AdvancedHealthMonitor:
         self.monitoring = False
         if self.monitor_task:
             self.monitor_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self.monitor_task
-            except asyncio.CancelledError:
-                pass
             self.monitor_task = None
 
         self.logger.info("Stopped health monitoring")
@@ -966,7 +964,7 @@ class AdvancedHealthMonitor:
             }
 
         # Aggregate statistics
-        status_counts = {status: 0 for status in HealthStatus}
+        status_counts = dict.fromkeys(HealthStatus, 0)
         total_metrics = 0
         total_errors = 0
         total_duration_ms = 0
@@ -1019,18 +1017,18 @@ class AdvancedHealthMonitor:
                 "callbacks_count": len(self.health_callbacks),
             },
             "checkers": [checker.get_name() for checker in self.checkers],
-            "current_status": self.last_check_result.to_dict()
-            if self.last_check_result
-            else None,
+            "current_status": (
+                self.last_check_result.to_dict() if self.last_check_result else None
+            ),
             "aggregated_status": self.get_aggregated_status(),
             "monitoring_stats": dict(self.monitoring_stats),
             "history_summary": {
                 "total_checks": len(self.health_history),
-                "oldest_check": self.health_history[0].timestamp
-                if self.health_history
-                else None,
-                "newest_check": self.health_history[-1].timestamp
-                if self.health_history
-                else None,
+                "oldest_check": (
+                    self.health_history[0].timestamp if self.health_history else None
+                ),
+                "newest_check": (
+                    self.health_history[-1].timestamp if self.health_history else None
+                ),
             },
         }

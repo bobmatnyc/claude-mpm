@@ -1,47 +1,22 @@
 """Claude runner with both exec and subprocess launch methods."""
 
-import json
 import os
-import subprocess
-import sys
-import time
-import uuid
-from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
-
-from claude_mpm.config.paths import paths
+from typing import Optional
 
 # Core imports that don't cause circular dependencies
-from claude_mpm.core.config import Config
-from claude_mpm.core.container import ServiceLifetime, get_container
+from claude_mpm.core.container import get_container
 from claude_mpm.core.interfaces import (
     AgentDeploymentInterface,
-    HookServiceInterface,
-    TicketManagerInterface,
 )
-from claude_mpm.core.logger import ProjectLogger, get_project_logger
 from claude_mpm.core.logging_config import (
     get_logger,
-    log_operation,
-    log_performance_context,
 )
 from claude_mpm.services.core.interfaces import (
-    AgentCapabilitiesInterface,
-    CommandHandlerInterface,
-    MemoryHookInterface,
     RunnerConfigurationInterface,
-    SessionManagementInterface,
-    SubprocessLauncherInterface,
-    SystemInstructionsInterface,
-    UtilityServiceInterface,
-    VersionServiceInterface,
 )
 
 # Type checking imports to avoid circular dependencies
-if TYPE_CHECKING:
-    from claude_mpm.services.agents.deployment import AgentDeploymentService
-    from claude_mpm.services.hook_service import HookService
 
 
 class ClaudeRunner:
@@ -125,9 +100,7 @@ class ClaudeRunner:
         try:
             self.deployment_service = container.get(AgentDeploymentInterface)
         except Exception as e:
-            self.logger.error(
-                f"Failed to resolve AgentDeploymentService", exc_info=True
-            )
+            self.logger.error("Failed to resolve AgentDeploymentService", exc_info=True)
             raise RuntimeError(
                 f"Agent deployment service initialization failed: {e}"
             ) from e
@@ -213,7 +186,7 @@ class ClaudeRunner:
         # Deploy output style early (before Claude Code launches)
         # This ensures the "Claude MPM" output style is active on startup
         self._deploy_output_style()
-        
+
         # Create session log file using configuration service
         self.session_log_file = self.configuration_service.create_session_log_file(
             self.project_logger, self.log_level, config_data
@@ -260,15 +233,14 @@ class ClaudeRunner:
                 # Set Claude environment
                 self.deployment_service.set_claude_environment()
                 return True
-            else:
-                self.logger.info("All agents already up to date")
-                if self.project_logger:
-                    self.project_logger.log_system(
-                        "All agents already up to date",
-                        level="INFO",
-                        component="deployment",
-                    )
-                return True
+            self.logger.info("All agents already up to date")
+            if self.project_logger:
+                self.project_logger.log_system(
+                    "All agents already up to date",
+                    level="INFO",
+                    component="deployment",
+                )
+            return True
 
         except PermissionError as e:
             error_msg = f"Permission denied deploying agents to .claude/agents/: {e}"
@@ -366,15 +338,14 @@ class ClaudeRunner:
                     self.logger.info(f"Updated {updated_count} agents in project")
 
                 return True
-            elif results.get("skipped", []):
+            if results.get("skipped", []):
                 # Agents already exist and are current
                 self.logger.debug(
                     f"Project agents up to date: {len(results['skipped'])} agents"
                 )
                 return True
-            else:
-                self.logger.warning("No agents deployed to project")
-                return False
+            self.logger.warning("No agents deployed to project")
+            return False
 
         except Exception as e:
             self.logger.error(f"Failed to ensure project agents: {e}")
@@ -502,8 +473,13 @@ class ClaudeRunner:
                     if needs_update:
                         # Build the agent markdown using the pre-initialized service and base agent data
                         # Use template_builder service instead of removed _build_agent_markdown method
-                        agent_content = project_deployment.template_builder.build_agent_markdown(
-                            agent_name, json_file, base_agent_data, source_info="project"
+                        agent_content = (
+                            project_deployment.template_builder.build_agent_markdown(
+                                agent_name,
+                                json_file,
+                                base_agent_data,
+                                source_info="project",
+                            )
                         )
 
                         # Mark as project agent
@@ -584,15 +560,13 @@ class ClaudeRunner:
         """
         if self.session_management_service:
             return self.session_management_service.run_oneshot_session(prompt, context)
-        else:
-            self.logger.error("Session management service not available")
-            print("Error: Session management service not available")
-            return False
+        self.logger.error("Session management service not available")
+        print("Error: Session management service not available")
+        return False
 
     def _extract_tickets(self, text: str):
         """Extract tickets from Claude's response (disabled - use claude-mpm tickets CLI)."""
         # Ticket extraction disabled - users should use claude-mpm tickets CLI commands
-        pass
 
     def _load_system_instructions(self) -> Optional[str]:
         """Load and process system instructions.
@@ -601,12 +575,11 @@ class ClaudeRunner:
         """
         if self.system_instructions_service:
             return self.system_instructions_service.load_system_instructions()
-        else:
-            # Fallback if service is not available
-            self.logger.warning(
-                "System instructions service not available, using basic fallback"
-            )
-            return None
+        # Fallback if service is not available
+        self.logger.warning(
+            "System instructions service not available, using basic fallback"
+        )
+        return None
 
     def _process_base_pm_content(self, base_pm_content: str) -> str:
         """Process BASE_PM.md content with dynamic injections.
@@ -617,12 +590,11 @@ class ClaudeRunner:
             return self.system_instructions_service.process_base_pm_content(
                 base_pm_content
             )
-        else:
-            # Fallback if service is not available
-            self.logger.warning(
-                "System instructions service not available for BASE_PM processing"
-            )
-            return base_pm_content
+        # Fallback if service is not available
+        self.logger.warning(
+            "System instructions service not available for BASE_PM processing"
+        )
+        return base_pm_content
 
     def _strip_metadata_comments(self, content: str) -> str:
         """Strip HTML metadata comments from content.
@@ -631,12 +603,11 @@ class ClaudeRunner:
         """
         if self.system_instructions_service:
             return self.system_instructions_service.strip_metadata_comments(content)
-        else:
-            # Fallback if service is not available
-            self.logger.warning(
-                "System instructions service not available for metadata stripping"
-            )
-            return content
+        # Fallback if service is not available
+        self.logger.warning(
+            "System instructions service not available for metadata stripping"
+        )
+        return content
 
     def _generate_deployed_agent_capabilities(self) -> str:
         """Generate agent capabilities from deployed agents.
@@ -647,20 +618,16 @@ class ClaudeRunner:
             return (
                 self.agent_capabilities_service.generate_deployed_agent_capabilities()
             )
-        else:
-            # Fallback if service is not available
-            self.logger.warning(
-                "Agent capabilities service not available, using fallback"
-            )
-            return self._get_fallback_capabilities()
+        # Fallback if service is not available
+        self.logger.warning("Agent capabilities service not available, using fallback")
+        return self._get_fallback_capabilities()
 
     def _get_fallback_capabilities(self) -> str:
         """Return fallback agent capabilities when deployed agents can't be read."""
         # Delegate to the service if available, otherwise use basic fallback
         if self.agent_capabilities_service:
             return self.agent_capabilities_service._get_fallback_capabilities()
-        else:
-            return """
+        return """
 ## Available Agent Capabilities
 
 You have the following specialized agents available for delegation:
@@ -682,28 +649,24 @@ Use these agents to delegate specialized work via the Task tool.
             return self.system_instructions_service.create_system_prompt(
                 self.system_instructions
             )
-        else:
-            # Fallback if service is not available
-            if self.system_instructions:
-                return self.system_instructions
-            else:
-                return create_simple_context()
+        # Fallback if service is not available
+        if self.system_instructions:
+            return self.system_instructions
+        return create_simple_context()
 
     def _contains_delegation(self, text: str) -> bool:
         """Check if text contains signs of agent delegation using the utility service."""
         if self.utility_service:
             return self.utility_service.contains_delegation(text)
-        else:
-            # Fallback if service not available
-            return False
+        # Fallback if service not available
+        return False
 
     def _extract_agent_from_response(self, text: str) -> Optional[str]:
         """Try to extract agent name from delegation response using the utility service."""
         if self.utility_service:
             return self.utility_service.extract_agent_from_response(text)
-        else:
-            # Fallback if service not available
-            return None
+        # Fallback if service not available
+        return None
 
     def _handle_mpm_command(self, prompt: str) -> bool:
         """Handle /mpm: commands using the command handler service.
@@ -712,10 +675,9 @@ Use these agents to delegate specialized work via the Task tool.
         """
         if self.command_handler_service:
             return self.command_handler_service.handle_mpm_command(prompt)
-        else:
-            # Fallback if service not available
-            print("Command handler service not available")
-            return False
+        # Fallback if service not available
+        print("Command handler service not available")
+        return False
 
     def _log_session_event(self, event_data: dict):
         """Log an event to the session log file using the utility service."""
@@ -732,23 +694,22 @@ Use these agents to delegate specialized work via the Task tool.
         """
         if self.version_service:
             return self.version_service.get_version()
-        else:
-            # Fallback if service not available
-            return "v0.0.0"
+        # Fallback if service not available
+        return "v0.0.0"
 
     def _deploy_output_style(self) -> None:
         """Deploy the Claude MPM output style before Claude Code launches.
-        
+
         This method ensures the output style is set to "Claude MPM" on startup
         by deploying the style file and updating Claude Code settings.
         Only works for Claude Code >= 1.0.83.
         """
         try:
             from claude_mpm.core.output_style_manager import OutputStyleManager
-            
+
             # Create OutputStyleManager instance
             output_style_manager = OutputStyleManager()
-            
+
             # Check if Claude Code supports output styles
             if not output_style_manager.supports_output_styles():
                 self.logger.debug(
@@ -756,48 +717,59 @@ Use these agents to delegate specialized work via the Task tool.
                     "does not support output styles (requires >= 1.0.83)"
                 )
                 return
-            
+
             # Check if output style is already deployed and active
             settings_file = Path.home() / ".claude" / "settings.json"
             if settings_file.exists():
                 try:
                     import json
+
                     settings = json.loads(settings_file.read_text())
                     if settings.get("activeOutputStyle") == "claude-mpm":
                         # Already active, check if file exists
-                        output_style_file = Path.home() / ".claude" / "output-styles" / "claude-mpm.md"
+                        output_style_file = (
+                            Path.home() / ".claude" / "output-styles" / "claude-mpm.md"
+                        )
                         if output_style_file.exists():
-                            self.logger.debug("Output style 'Claude MPM' already deployed and active")
+                            self.logger.debug(
+                                "Output style 'Claude MPM' already deployed and active"
+                            )
                             return
                 except Exception:
                     pass  # Continue with deployment if we can't read settings
-            
+
             # Read the OUTPUT_STYLE.md content if it exists
-            output_style_path = Path(__file__).parent.parent / "agents" / "OUTPUT_STYLE.md"
-            
+            output_style_path = (
+                Path(__file__).parent.parent / "agents" / "OUTPUT_STYLE.md"
+            )
+
             if output_style_path.exists():
                 # Use existing OUTPUT_STYLE.md content
                 output_style_content = output_style_path.read_text()
                 self.logger.debug("Using existing OUTPUT_STYLE.md content")
             else:
                 # Extract output style content from framework instructions
-                output_style_content = output_style_manager.extract_output_style_content()
+                output_style_content = (
+                    output_style_manager.extract_output_style_content()
+                )
                 self.logger.debug("Extracted output style from framework instructions")
-            
+
             # Deploy the output style
             deployed = output_style_manager.deploy_output_style(output_style_content)
-            
+
             if deployed:
-                self.logger.info("✅ Output style 'Claude MPM' deployed and activated on startup")
+                self.logger.info(
+                    "✅ Output style 'Claude MPM' deployed and activated on startup"
+                )
                 if self.project_logger:
                     self.project_logger.log_system(
                         "Output style 'Claude MPM' deployed and activated on startup",
                         level="INFO",
-                        component="output_style"
+                        component="output_style",
                     )
             else:
                 self.logger.warning("Failed to deploy output style")
-                
+
         except ImportError as e:
             self.logger.warning(f"Could not import OutputStyleManager: {e}")
         except Exception as e:
@@ -806,8 +778,8 @@ Use these agents to delegate specialized work via the Task tool.
             if self.project_logger:
                 self.project_logger.log_system(
                     f"Output style deployment error: {e}",
-                    level="WARNING", 
-                    component="output_style"
+                    level="WARNING",
+                    component="output_style",
                 )
 
     def _launch_subprocess_interactive(self, cmd: list, env: dict):

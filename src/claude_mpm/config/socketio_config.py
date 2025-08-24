@@ -180,7 +180,7 @@ class ConfigManager:
         # Default to development
         return "development"
 
-    def get_config(self, environment: str = None) -> SocketIOConfig:
+    def get_config(self, environment: Optional[str] = None) -> SocketIOConfig:
         """Get configuration for the specified environment."""
         if environment is None:
             environment = self.detect_environment()
@@ -220,14 +220,14 @@ class ConfigManager:
         for config_path in self.config_search_paths:
             if config_path.exists():
                 try:
-                    with open(config_path, "r") as f:
+                    with open(config_path) as f:
                         return json.load(f)
                 except Exception as e:
                     print(f"Warning: Failed to load config from {config_path}: {e}")
 
         return None
 
-    def save_config(self, config: SocketIOConfig, path: str = None) -> bool:
+    def save_config(self, config: SocketIOConfig, path: Optional[str] = None) -> bool:
         """Save configuration to file."""
         import json
 
@@ -250,7 +250,7 @@ class ConfigManager:
 _config_manager = ConfigManager()
 
 
-def get_config(environment: str = None) -> SocketIOConfig:
+def get_config(environment: Optional[str] = None) -> SocketIOConfig:
     """Get Socket.IO configuration for the current or specified environment."""
     return _config_manager.get_config(environment)
 
@@ -266,5 +266,4 @@ def get_discovery_hosts(config: SocketIOConfig) -> List[str]:
     if config.host == "0.0.0.0":
         # If server binds to all interfaces, try localhost and 127.0.0.1 for discovery
         return ["localhost", "127.0.0.1"]
-    else:
-        return [config.host, "localhost", "127.0.0.1"]
+    return [config.host, "localhost", "127.0.0.1"]

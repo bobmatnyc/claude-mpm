@@ -13,9 +13,7 @@ Design Principles:
 5. Structured error data for programmatic handling
 """
 
-import os
 import platform
-import sys
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -29,7 +27,10 @@ class SocketIOServerError(Exception):
     """
 
     def __init__(
-        self, message: str, error_code: str = None, context: Dict[str, Any] = None
+        self,
+        message: str,
+        error_code: Optional[str] = None,
+        context: Optional[Dict[str, Any]] = None,
     ):
         """Initialize base server error.
 
@@ -66,9 +67,9 @@ class DaemonConflictError(SocketIOServerError):
         self,
         port: int,
         existing_pid: int,
-        existing_server_id: str = None,
-        process_info: Dict[str, Any] = None,
-        pidfile_path: Path = None,
+        existing_server_id: Optional[str] = None,
+        process_info: Optional[Dict[str, Any]] = None,
+        pidfile_path: Optional[Path] = None,
     ):
         """Initialize daemon conflict error with detailed context.
 
@@ -103,8 +104,8 @@ class DaemonConflictError(SocketIOServerError):
         """Build comprehensive error message with process details."""
         lines = [
             f"🚫 Socket.IO server conflict detected on port {self.port}",
-            f"",
-            f"CONFLICT DETAILS:",
+            "",
+            "CONFLICT DETAILS:",
             f"  • Existing PID: {self.existing_pid}",
             f"  • Server ID: {self.existing_server_id}",
         ]
@@ -145,8 +146,8 @@ class DaemonConflictError(SocketIOServerError):
 
         lines.extend(
             [
-                f"",
-                f"RESOLUTION STEPS:",
+                "",
+                "RESOLUTION STEPS:",
             ]
         )
 
@@ -169,9 +170,9 @@ class DaemonConflictError(SocketIOServerError):
 
         steps.extend(
             [
-                f"Wait a few seconds for port cleanup",
+                "Wait a few seconds for port cleanup",
                 f"Try starting the server again on port {self.port}",
-                f"Alternative: Use a different port with --port <new_port>",
+                "Alternative: Use a different port with --port <new_port>",
             ]
         )
 
@@ -189,7 +190,7 @@ class PortConflictError(SocketIOServerError):
         self,
         port: int,
         host: str = "localhost",
-        conflicting_process: Dict[str, Any] = None,
+        conflicting_process: Optional[Dict[str, Any]] = None,
     ):
         """Initialize port conflict error.
 
@@ -216,9 +217,9 @@ class PortConflictError(SocketIOServerError):
     def _build_error_message(self) -> str:
         """Build error message with port conflict details."""
         lines = [
-            f"🔌 Network port conflict detected",
-            f"",
-            f"PORT CONFLICT DETAILS:",
+            "🔌 Network port conflict detected",
+            "",
+            "PORT CONFLICT DETAILS:",
             f"  • Port: {self.port}",
             f"  • Host: {self.host}",
             f"  • Address: {self.host}:{self.port}",
@@ -232,8 +233,8 @@ class PortConflictError(SocketIOServerError):
 
             lines.extend(
                 [
-                    f"",
-                    f"CONFLICTING PROCESS:",
+                    "",
+                    "CONFLICTING PROCESS:",
                     f"  • PID: {pid or 'unknown'}",
                     f"  • Name: {name}",
                 ]
@@ -244,8 +245,8 @@ class PortConflictError(SocketIOServerError):
 
         lines.extend(
             [
-                f"",
-                f"RESOLUTION STEPS:",
+                "",
+                "RESOLUTION STEPS:",
             ]
         )
 
@@ -275,15 +276,15 @@ class PortConflictError(SocketIOServerError):
             steps.extend(
                 [
                     f"   • netstat -ano | findstr {self.port}",
-                    f'   • tasklist /fi "PID eq <PID_FROM_NETSTAT>"',
+                    '   • tasklist /fi "PID eq <PID_FROM_NETSTAT>"',
                 ]
             )
 
         steps.extend(
             [
-                f"Stop the conflicting process if it's safe to do so",
-                f"Wait for port cleanup (may take 30-60 seconds)",
-                f"Try again with the same port",
+                "Stop the conflicting process if it's safe to do so",
+                "Wait for port cleanup (may take 30-60 seconds)",
+                "Try again with the same port",
                 f"Alternative: Use a different port: --port {self.port + 1}",
             ]
         )
@@ -301,9 +302,9 @@ class StaleProcessError(SocketIOServerError):
     def __init__(
         self,
         pid: int,
-        pidfile_path: Path = None,
+        pidfile_path: Optional[Path] = None,
         process_status: str = "not_found",
-        validation_errors: List[str] = None,
+        validation_errors: Optional[List[str]] = None,
     ):
         """Initialize stale process error.
 
@@ -345,9 +346,9 @@ class StaleProcessError(SocketIOServerError):
         )
 
         lines = [
-            f"🧟 Stale process detected",
-            f"",
-            f"PROCESS DETAILS:",
+            "🧟 Stale process detected",
+            "",
+            "PROCESS DETAILS:",
             f"  • PID: {self.pid}",
             f"  • Status: {status_desc}",
         ]
@@ -363,8 +364,8 @@ class StaleProcessError(SocketIOServerError):
         if self.validation_errors:
             lines.extend(
                 [
-                    f"",
-                    f"VALIDATION ERRORS:",
+                    "",
+                    "VALIDATION ERRORS:",
                 ]
             )
             for error in self.validation_errors:
@@ -372,8 +373,8 @@ class StaleProcessError(SocketIOServerError):
 
         lines.extend(
             [
-                f"",
-                f"RESOLUTION STEPS:",
+                "",
+                "RESOLUTION STEPS:",
             ]
         )
 
@@ -431,8 +432,8 @@ class RecoveryFailedError(SocketIOServerError):
         recovery_action: str,
         failure_reason: str,
         attempt_count: int = 1,
-        health_status: Dict[str, Any] = None,
-        last_successful_recovery: str = None,
+        health_status: Optional[Dict[str, Any]] = None,
+        last_successful_recovery: Optional[str] = None,
     ):
         """Initialize recovery failure error.
 
@@ -465,9 +466,9 @@ class RecoveryFailedError(SocketIOServerError):
     def _build_error_message(self) -> str:
         """Build error message for recovery failure."""
         lines = [
-            f"🚨 Automatic recovery failed",
-            f"",
-            f"RECOVERY DETAILS:",
+            "🚨 Automatic recovery failed",
+            "",
+            "RECOVERY DETAILS:",
             f"  • Failed Action: {self.recovery_action}",
             f"  • Failure Reason: {self.failure_reason}",
             f"  • Attempt Count: {self.attempt_count}",
@@ -482,8 +483,8 @@ class RecoveryFailedError(SocketIOServerError):
         if self.health_status:
             lines.extend(
                 [
-                    f"",
-                    f"CURRENT HEALTH STATUS:",
+                    "",
+                    "CURRENT HEALTH STATUS:",
                 ]
             )
 
@@ -500,8 +501,8 @@ class RecoveryFailedError(SocketIOServerError):
 
         lines.extend(
             [
-                f"",
-                f"MANUAL RESOLUTION REQUIRED:",
+                "",
+                "MANUAL RESOLUTION REQUIRED:",
             ]
         )
 
@@ -567,8 +568,8 @@ class HealthCheckError(SocketIOServerError):
         self,
         check_name: str,
         check_status: str,
-        check_details: Dict[str, Any] = None,
-        threshold_exceeded: Dict[str, Any] = None,
+        check_details: Optional[Dict[str, Any]] = None,
+        threshold_exceeded: Optional[Dict[str, Any]] = None,
     ):
         """Initialize health check error.
 
@@ -603,8 +604,8 @@ class HealthCheckError(SocketIOServerError):
 
         lines = [
             f"{emoji} Health check failed: {self.check_name}",
-            f"",
-            f"CHECK DETAILS:",
+            "",
+            "CHECK DETAILS:",
             f"  • Check: {self.check_name}",
             f"  • Status: {self.check_status.upper()}",
         ]
@@ -619,8 +620,8 @@ class HealthCheckError(SocketIOServerError):
         if self.threshold_exceeded:
             lines.extend(
                 [
-                    f"",
-                    f"THRESHOLDS EXCEEDED:",
+                    "",
+                    "THRESHOLDS EXCEEDED:",
                 ]
             )
             for metric, info in self.threshold_exceeded.items():
@@ -632,8 +633,8 @@ class HealthCheckError(SocketIOServerError):
 
         lines.extend(
             [
-                f"",
-                f"RECOMMENDED ACTIONS:",
+                "",
+                "RECOMMENDED ACTIONS:",
             ]
         )
 
@@ -706,39 +707,39 @@ def format_troubleshooting_guide(error: SocketIOServerError) -> str:
         Formatted troubleshooting guide as a string
     """
     lines = [
-        f"═══════════════════════════════════════════════════════════════",
-        f"🔧 CLAUDE MPM SOCKET.IO SERVER TROUBLESHOOTING GUIDE",
-        f"═══════════════════════════════════════════════════════════════",
-        f"",
+        "═══════════════════════════════════════════════════════════════",
+        "🔧 CLAUDE MPM SOCKET.IO SERVER TROUBLESHOOTING GUIDE",
+        "═══════════════════════════════════════════════════════════════",
+        "",
         f"ERROR TYPE: {error.__class__.__name__}",
         f"ERROR CODE: {error.error_code}",
         f"TIMESTAMP: {error.timestamp}",
-        f"",
+        "",
         str(error),
-        f"",
-        f"ADDITIONAL TROUBLESHOOTING:",
-        f"",
-        f"🔍 DIAGNOSTIC COMMANDS:",
-        f"  • Check running processes: ps aux | grep socketio",
+        "",
+        "ADDITIONAL TROUBLESHOOTING:",
+        "",
+        "🔍 DIAGNOSTIC COMMANDS:",
+        "  • Check running processes: ps aux | grep socketio",
         f"  • Check port usage: lsof -i :{error.context.get('port', 'PORT')}",
-        f"  • Check system resources: top or htop",
-        f"  • Check disk space: df -h",
-        f"  • Check logs: tail -f /path/to/claude-mpm.log",
-        f"",
-        f"🛠️ COMMON SOLUTIONS:",
-        f"  1. Restart the Socket.IO server completely",
-        f"  2. Clear any stale PID files",
-        f"  3. Check for zombie processes and clean them up",
-        f"  4. Verify network port availability",
-        f"  5. Check system resource availability (CPU, memory, disk)",
-        f"  6. Review server configuration and permissions",
-        f"",
-        f"📞 GETTING HELP:",
-        f"  • Check the claude-mpm documentation",
-        f"  • Review server logs for additional context",
-        f"  • Report persistent issues with this error information",
-        f"",
-        f"🔗 ERROR CONTEXT DATA:",
+        "  • Check system resources: top or htop",
+        "  • Check disk space: df -h",
+        "  • Check logs: tail -f /path/to/claude-mpm.log",
+        "",
+        "🛠️ COMMON SOLUTIONS:",
+        "  1. Restart the Socket.IO server completely",
+        "  2. Clear any stale PID files",
+        "  3. Check for zombie processes and clean them up",
+        "  4. Verify network port availability",
+        "  5. Check system resource availability (CPU, memory, disk)",
+        "  6. Review server configuration and permissions",
+        "",
+        "📞 GETTING HELP:",
+        "  • Check the claude-mpm documentation",
+        "  • Review server logs for additional context",
+        "  • Report persistent issues with this error information",
+        "",
+        "🔗 ERROR CONTEXT DATA:",
     ]
 
     # Add structured context data
@@ -748,8 +749,8 @@ def format_troubleshooting_guide(error: SocketIOServerError) -> str:
 
     lines.extend(
         [
-            f"",
-            f"═══════════════════════════════════════════════════════════════",
+            "",
+            "═══════════════════════════════════════════════════════════════",
         ]
     )
 

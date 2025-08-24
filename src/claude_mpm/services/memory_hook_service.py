@@ -29,11 +29,9 @@ class MemoryHookService(BaseService, MemoryHookInterface):
 
     async def _initialize(self) -> None:
         """Initialize the service. No special initialization needed."""
-        pass
 
     async def _cleanup(self) -> None:
         """Cleanup service resources. No cleanup needed."""
-        pass
 
     def register_memory_hooks(self):
         """Register memory-related hooks with the hook service.
@@ -144,68 +142,86 @@ class MemoryHookService(BaseService, MemoryHookInterface):
         """
         try:
             from claude_mpm.hooks.base_hook import HookResult
-            
+
             # Extract agent_id and response from context
             agent_id = None
             response_text = None
-            
+
             # Try to get agent_id from various possible locations in context
-            if hasattr(context, 'data') and context.data:
+            if hasattr(context, "data") and context.data:
                 data = context.data
-                
+
                 # Check for agent_id in various locations
                 if isinstance(data, dict):
                     # Try direct agent_id field
-                    agent_id = data.get('agent_id')
-                    
+                    agent_id = data.get("agent_id")
+
                     # Try agent_type field
                     if not agent_id:
-                        agent_id = data.get('agent_type')
-                    
+                        agent_id = data.get("agent_type")
+
                     # Try subagent_type (for Task delegations)
                     if not agent_id:
-                        agent_id = data.get('subagent_type')
-                    
+                        agent_id = data.get("subagent_type")
+
                     # Try tool_parameters for Task delegations
-                    if not agent_id and 'tool_parameters' in data:
-                        params = data.get('tool_parameters', {})
+                    if not agent_id and "tool_parameters" in data:
+                        params = data.get("tool_parameters", {})
                         if isinstance(params, dict):
-                            agent_id = params.get('subagent_type')
-                    
+                            agent_id = params.get("subagent_type")
+
                     # Extract response text
-                    response_text = data.get('response') or data.get('result') or data.get('output')
-                    
+                    response_text = (
+                        data.get("response") or data.get("result") or data.get("output")
+                    )
+
                     # If response_text is a dict, try to get text from it
                     if isinstance(response_text, dict):
-                        response_text = response_text.get('text') or response_text.get('content') or str(response_text)
-            
+                        response_text = (
+                            response_text.get("text")
+                            or response_text.get("content")
+                            or str(response_text)
+                        )
+
             # Default to PM if no agent_id found
             if not agent_id:
                 agent_id = "PM"
                 self.logger.debug("No agent_id found in context, defaulting to PM")
-            
+
             # Only process if we have response text
             if response_text and isinstance(response_text, str):
                 self.logger.debug(f"Processing memory extraction for agent: {agent_id}")
-                
+
                 # Import and use the memory manager
-                from claude_mpm.services.agents.memory.agent_memory_manager import get_memory_manager
-                
+                from claude_mpm.services.agents.memory.agent_memory_manager import (
+                    get_memory_manager,
+                )
+
                 try:
                     memory_manager = get_memory_manager()
-                    
+
                     # Extract and update memory
-                    success = memory_manager.extract_and_update_memory(agent_id, response_text)
-                    
+                    success = memory_manager.extract_and_update_memory(
+                        agent_id, response_text
+                    )
+
                     if success:
-                        self.logger.info(f"Successfully extracted and saved memories for {agent_id}")
+                        self.logger.info(
+                            f"Successfully extracted and saved memories for {agent_id}"
+                        )
                     else:
-                        self.logger.debug(f"No memories found to extract for {agent_id}")
-                        
+                        self.logger.debug(
+                            f"No memories found to extract for {agent_id}"
+                        )
+
                 except Exception as mem_error:
-                    self.logger.warning(f"Failed to extract/save memories for {agent_id}: {mem_error}")
+                    self.logger.warning(
+                        f"Failed to extract/save memories for {agent_id}: {mem_error}"
+                    )
             else:
-                self.logger.debug("No response text found in context for memory extraction")
+                self.logger.debug(
+                    "No response text found in context for memory extraction"
+                )
 
             return HookResult(success=True, data=context.data, modified=False)
 
@@ -291,5 +307,3 @@ class MemoryHookService(BaseService, MemoryHookInterface):
             "total_hooks": len(self.registered_hooks),
             "status": "active" if self.registered_hooks else "inactive",
         }
-
-

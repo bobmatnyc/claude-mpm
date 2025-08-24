@@ -66,7 +66,7 @@ class DependencyCache:
             return self._cache_data
 
         try:
-            with open(self.cache_file, "r") as f:
+            with open(self.cache_file) as f:
                 self._cache_data = json.load(f)
                 return self._cache_data
         except Exception as e:

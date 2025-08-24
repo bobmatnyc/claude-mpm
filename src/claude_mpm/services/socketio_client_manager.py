@@ -15,7 +15,6 @@ WHY this approach:
 
 import asyncio
 import importlib.metadata
-import json
 import socket
 import threading
 import time
@@ -33,6 +32,8 @@ except ImportError:
     DEPENDENCIES_AVAILABLE = False
     requests = None
     socketio = None
+
+import contextlib
 
 from ..core.logger import get_logger
 
@@ -74,11 +75,10 @@ class ServerInfo:
             # Simple version comparison - in production use proper semver
             if client_version >= "0.7.0":
                 return True, warnings
-            else:
-                warnings.append(
-                    f"Client version {client_version} may not be fully supported"
-                )
-                return False, warnings
+            warnings.append(
+                f"Client version {client_version} may not be fully supported"
+            )
+            return False, warnings
         except Exception as e:
             warnings.append(f"Could not parse version: {e}")
             return False, warnings
@@ -106,7 +106,7 @@ class SocketIOClientManager:
             self.logger.warning("Socket.IO client dependencies not available")
 
     def discover_servers(
-        self, ports: List[int] = None, hosts: List[str] = None
+        self, ports: Optional[List[int]] = None, hosts: Optional[List[str]] = None
     ) -> List[ServerInfo]:
         """Discover available Socket.IO servers.
 
@@ -165,7 +165,7 @@ class SocketIOClientManager:
         return discovered
 
     def find_best_server(
-        self, discovered_servers: List[ServerInfo] = None
+        self, discovered_servers: Optional[List[ServerInfo]] = None
     ) -> Optional[ServerInfo]:
         """Find the best compatible server from discovered servers."""
         if discovered_servers is None:
@@ -272,10 +272,8 @@ class SocketIOClientManager:
         except Exception as e:
             self.logger.error(f"❌ Failed to connect to server {server_info.url}: {e}")
             if self.client:
-                try:
+                with contextlib.suppress(Exception):
                     await self.client.disconnect()
-                except:
-                    pass
                 self.client = None
             return False
 
@@ -408,7 +406,7 @@ class SocketIOClientManager:
                     else:
                         # Too many failed attempts, wait longer
                         self.logger.warning(
-                            f"⏳ Max connection attempts reached, waiting 30s..."
+                            "⏳ Max connection attempts reached, waiting 30s..."
                         )
                         await asyncio.sleep(30)
                         connection_attempts = 0  # Reset after longer wait

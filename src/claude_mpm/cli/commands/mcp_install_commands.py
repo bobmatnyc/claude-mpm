@@ -33,6 +33,7 @@ class MCPInstallCommands:
         print("\n1️⃣  Checking MCP package installation...")
         try:
             import mcp
+
             print("✅ MCP package already installed")
         except ImportError:
             print("📦 Installing MCP package...")
@@ -56,9 +57,8 @@ class MCPInstallCommands:
                 print("2. Test the server: claude-mpm mcp server --test")
                 print("3. Check status: claude-mpm mcp status")
                 return 0
-            else:
-                print("❌ Configuration failed")
-                return 1
+            print("❌ Configuration failed")
+            return 1
 
         except Exception as e:
             print(f"❌ Error during configuration: {e}")
@@ -66,7 +66,7 @@ class MCPInstallCommands:
 
     def _configure_claude_desktop(self, force=False):
         """Configure Claude Code to use the MCP gateway via CLI command.
-        
+
         WHY: Claude Code reads MCP server configurations from ~/.claude.json
         (not ~/.claude/settings.local.json). This method updates that file
         to include the claude-mpm-gateway server configuration.
@@ -77,10 +77,6 @@ class MCPInstallCommands:
         Returns:
             bool: True if configuration was successful
         """
-        import json
-        import platform
-        from pathlib import Path
-        from datetime import datetime
 
         # Determine Claude Code config path
         config_path = self._get_claude_config_path()
@@ -102,15 +98,15 @@ class MCPInstallCommands:
             return False
 
         # Determine if we need to use -m claude_mpm or direct command
-        if claude_mpm_path.endswith(('python', 'python3', 'python.exe', 'python3.exe')):
+        if claude_mpm_path.endswith(("python", "python3", "python.exe", "python3.exe")):
             # Using Python interpreter directly
             mcp_config = {
                 "command": claude_mpm_path,
                 "args": ["-m", "claude_mpm", "mcp", "server"],
                 "env": {
                     "PYTHONPATH": str(Path(__file__).parent.parent.parent.parent),
-                    "MCP_MODE": "production"
-                }
+                    "MCP_MODE": "production",
+                },
             }
         else:
             # Using installed claude-mpm command
@@ -119,8 +115,8 @@ class MCPInstallCommands:
                 "args": ["mcp", "server"],
                 "env": {
                     "PYTHONPATH": str(Path(__file__).parent.parent.parent.parent),
-                    "MCP_MODE": "production"
-                }
+                    "MCP_MODE": "production",
+                },
             }
 
         # Update configuration
@@ -143,7 +139,6 @@ class MCPInstallCommands:
         Returns:
             Path or None: Path to Claude Code config file
         """
-        from pathlib import Path
 
         # Claude Code reads MCP server configurations from ~/.claude.json
         # This is the actual file that Claude Code uses for MCP servers
@@ -167,6 +162,7 @@ class MCPInstallCommands:
             str or None: Path to claude-mpm executable
         """
         import sys
+
         from ...core.unified_paths import get_executable_path
 
         # Use the enhanced unified path manager for executable detection
@@ -178,6 +174,7 @@ class MCPInstallCommands:
         # Fallback: Use Python module invocation if no executable found
         try:
             import claude_mpm
+
             print(f"   Using Python module: {sys.executable} -m claude_mpm")
             return sys.executable
         except ImportError:
@@ -204,25 +201,33 @@ class MCPInstallCommands:
             if not force:
                 # Check if claude-mpm-gateway already exists
                 try:
-                    with open(config_path, 'r') as f:
+                    with open(config_path) as f:
                         existing_config = json.load(f)
 
-                    if (existing_config.get("mcpServers", {}).get("claude-mpm-gateway") and
-                        not force):
+                    if (
+                        existing_config.get("mcpServers", {}).get("claude-mpm-gateway")
+                        and not force
+                    ):
                         print("⚠️  claude-mpm-gateway is already configured")
-                        response = input("Do you want to overwrite it? (y/N): ").strip().lower()
-                        if response not in ['y', 'yes']:
+                        response = (
+                            input("Do you want to overwrite it? (y/N): ")
+                            .strip()
+                            .lower()
+                        )
+                        if response not in ["y", "yes"]:
                             print("❌ Configuration cancelled")
                             return None
 
                     config = existing_config
 
-                except (json.JSONDecodeError, IOError) as e:
+                except (OSError, json.JSONDecodeError) as e:
                     print(f"⚠️  Error reading existing config: {e}")
                     print("Creating backup and starting fresh...")
 
                     # Create backup
-                    backup_path = config_path.with_suffix(f'.backup.{datetime.now().strftime("%Y%m%d_%H%M%S")}.json')
+                    backup_path = config_path.with_suffix(
+                        f'.backup.{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+                    )
                     try:
                         config_path.rename(backup_path)
                         print(f"   Backup created: {backup_path}")
@@ -231,7 +236,7 @@ class MCPInstallCommands:
             else:
                 # Force mode - create backup but proceed
                 try:
-                    with open(config_path, 'r') as f:
+                    with open(config_path) as f:
                         existing_config = json.load(f)
                     config = existing_config
                     print("   Force mode: Overwriting existing configuration")
@@ -261,7 +266,7 @@ class MCPInstallCommands:
             config_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Write configuration with nice formatting
-            with open(config_path, 'w') as f:
+            with open(config_path, "w") as f:
                 json.dump(config, f, indent=2)
 
             print(f"\n✅ Configuration saved to {config_path}")

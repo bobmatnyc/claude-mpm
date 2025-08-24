@@ -16,30 +16,21 @@ strict type safety.
 
 import logging
 from datetime import datetime
-from enum import Enum
 from typing import (
-    TYPE_CHECKING,
     Any,
-    AsyncIterator,
     Awaitable,
     Callable,
     Dict,
-    Iterator,
     List,
     Literal,
     Optional,
     Protocol,
-    Set,
     Tuple,
     TypeVar,
     Union,
 )
 
 from typing_extensions import NotRequired, TypeAlias, TypedDict
-
-if TYPE_CHECKING:
-    from claude_mpm.core.claude_runner import ClaudeRunner
-    from claude_mpm.services.socketio_server import SocketIOClientProxy
 
 # Generic type variables
 T = TypeVar("T")
@@ -488,74 +479,74 @@ ErrorResult = Tuple[bool, Optional[str]]
 SuccessResult = Tuple[bool, Any]
 
 __all__ = [
-    # Basic type aliases
-    "PathLike",
-    "JSONValue",
-    "JSONDict",
-    "Headers",
-    "ErrorCode",
-    "LogLevel",
-    # Session types
-    "SessionId",
-    "SessionStatus",
-    "LaunchMethod",
-    "SessionConfig",
-    "SessionResult",
-    "SessionEvent",
+    "AgentCapabilities",
+    "AgentDefinition",
     # Agent types
     "AgentId",
-    "AgentVersion",
-    "AgentTier",
-    "ModelName",
-    "ResourceTier",
-    "AgentCapabilities",
     "AgentMetadata",
-    "AgentDefinition",
+    "AgentServiceProtocol",
+    "AgentTier",
+    "AgentVersion",
+    "ClaudeStatus",
+    "CommandArgs",
+    "CommandName",
+    "CommandResult",
+    # Common combinations
+    "CommonTypes",
+    "ConfigDict",
+    "DelegationInfo",
+    "DeploymentResult",
+    "ErrorCode",
+    "ErrorResult",
+    "EventData",
     # WebSocket types
     "EventName",
-    "EventData",
-    "SocketId",
-    "WebSocketMessage",
-    "ClaudeStatus",
-    "DelegationInfo",
+    "Headers",
+    "HookConfig",
+    "HookContext",
     # Hook types
     "HookName",
     "HookPriority",
     "HookResult",
-    "HookConfig",
-    "HookContext",
+    "JSONDict",
+    "JSONValue",
+    "LaunchMethod",
+    "LogLevel",
+    "LoggerProtocol",
+    "Memory",
+    "MemoryId",
+    "MemorySearchResult",
+    "MemoryServiceProtocol",
+    # Memory types
+    "MemoryType",
+    "ModelName",
+    # Basic type aliases
+    "PathLike",
+    # Other types
+    "ProjectConfig",
+    "ResourceTier",
+    "ResponseLogEntry",
+    "ServiceConfig",
+    "ServiceContainer",
+    "ServiceInfo",
     # Service types
     "ServiceName",
     "ServiceStatus",
-    "ServiceConfig",
-    "ServiceInfo",
-    # Memory types
-    "MemoryType",
-    "MemoryId",
-    "Memory",
-    "MemorySearchResult",
-    # Other types
-    "ProjectConfig",
-    "DeploymentResult",
-    "ResponseLogEntry",
-    "CommandName",
-    "CommandArgs",
-    "CommandResult",
+    "SessionConfig",
+    "SessionEvent",
+    # Session types
+    "SessionId",
     # Protocols
     "SessionProtocol",
-    "LoggerProtocol",
-    "WebSocketServerProtocol",
-    "AgentServiceProtocol",
-    "MemoryServiceProtocol",
-    "ServiceContainer",
+    "SessionResult",
+    "SessionStatus",
+    "SocketId",
+    "SuccessResult",
     # Generic type variables
     "T",
-    "TSession",
     "TAgent",
     "TService",
-    # Common combinations
-    "CommonTypes",
-    "ConfigDict",
-    "ErrorResult",
-    "SuccessResult",
+    "TSession",
+    "WebSocketMessage",
+    "WebSocketServerProtocol",
 ]

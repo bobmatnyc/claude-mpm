@@ -10,7 +10,6 @@ based on the execution context and user preferences.
 import json
 import os
 import sys
-import time
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, Optional, Tuple
@@ -256,16 +255,15 @@ class DependencyStrategy:
 
             if response in ["y", "yes"]:
                 return "yes"
-            elif response in ["n", "no", ""]:
+            if response in ["n", "no", ""]:
                 return "no"
-            elif response == "always":
+            if response == "always":
                 self._save_preference(DependencyMode.AUTO)
                 return "yes"
-            elif response == "never":
+            if response == "never":
                 self._save_preference(DependencyMode.OFF)
                 return "no"
-            else:
-                print("Invalid choice. Please enter: y, n, always, or never")
+            print("Invalid choice. Please enter: y, n, always, or never")
 
     def _save_preference(self, mode: DependencyMode) -> None:
         """
@@ -366,13 +364,13 @@ def lazy_check_agent_dependency(agent_id: str) -> bool:
         success, _ = loader.install_missing_dependencies(missing)
         return success
 
-    elif strategy.mode == DependencyMode.INTERACTIVE:
+    if strategy.mode == DependencyMode.INTERACTIVE:
         choice = strategy.prompt_for_installation(missing)
         if choice in ["yes"]:
             success, _ = loader.install_missing_dependencies(missing)
             return success
         return False
 
-    else:  # CHECK or OFF
-        logger.warning(f"Agent {agent_id} missing {len(missing)} dependencies")
-        return False  # Proceed anyway
+    # CHECK or OFF
+    logger.warning(f"Agent {agent_id} missing {len(missing)} dependencies")
+    return False  # Proceed anyway

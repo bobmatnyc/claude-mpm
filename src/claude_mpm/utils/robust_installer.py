@@ -12,10 +12,12 @@ multiple installation strategies (pip, conda, source) to maximize success rate.
 import re
 import subprocess
 import sys
+import sysconfig
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 from ..core.logger import get_logger
 
@@ -51,6 +53,9 @@ class RobustPackageInstaller:
     WHY: This class handles the complexity of package installation in various
     environments, network conditions, and Python versions. It ensures maximum
     success rate while providing clear feedback on failures.
+
+    DECISION: Added PEP 668 detection and handling to work with externally managed
+    Python environments (like Homebrew's Python 3.13).
     """
 
     def __init__(
@@ -75,6 +80,8 @@ class RobustPackageInstaller:
         self.use_cache = use_cache
         self.attempts: List[InstallAttempt] = []
         self.success_cache: Dict[str, bool] = {}
+        self.is_pep668_managed = self._check_pep668_managed()
+        self.pep668_warning_shown = False
 
     def install_package(
         self, package_spec: str, strategies: Optional[List[InstallStrategy]] = None
@@ -178,30 +185,79 @@ class RobustPackageInstaller:
             logger.debug(f"Running: {' '.join(cmd)}")
 
             result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=self.timeout
+                cmd, capture_output=True, text=True, timeout=self.timeout, check=False
             )
 
             if result.returncode == 0:
                 # Verify installation
                 if self._verify_installation(package_spec):
                     return True, None
-                else:
-                    return False, "Package installed but verification failed"
-            else:
-                error_msg = self._extract_error_message(result.stderr)
-                logger.debug(f"Installation failed: {error_msg}")
-                return False, error_msg
+                return False, "Package installed but verification failed"
+            error_msg = self._extract_error_message(result.stderr)
+            logger.debug(f"Installation failed: {error_msg}")
+            return False, error_msg
 
         except subprocess.TimeoutExpired:
             return False, f"Installation timed out after {self.timeout}s"
         except Exception as e:
-            return False, f"Unexpected error: {str(e)}"
+            return False, f"Unexpected error: {e!s}"
+
+    def _check_pep668_managed(self) -> bool:
+        """
+        Check if Python environment is PEP 668 externally managed.
+
+        WHY: PEP 668 prevents pip from installing packages into system Python
+        to avoid conflicts with system package managers (like Homebrew).
+
+        Returns:
+            True if PEP 668 managed, False otherwise
+        """
+        # Check for EXTERNALLY-MANAGED marker file
+        stdlib_path = sysconfig.get_path("stdlib")
+        marker_file = Path(stdlib_path) / "EXTERNALLY-MANAGED"
+
+        if marker_file.exists():
+            logger.debug(f"PEP 668 EXTERNALLY-MANAGED marker found at {marker_file}")
+            return True
+
+        # Also check parent directory (some Python installations place it there)
+        parent_marker = marker_file.parent.parent / "EXTERNALLY-MANAGED"
+        if parent_marker.exists():
+            logger.debug(f"PEP 668 EXTERNALLY-MANAGED marker found at {parent_marker}")
+            return True
+
+        return False
+
+    def _show_pep668_warning(self) -> None:
+        """
+        Show warning about PEP 668 managed environment.
+
+        WHY: Users should understand why we're bypassing PEP 668 restrictions
+        and be encouraged to use virtual environments as best practice.
+        """
+        if not self.pep668_warning_shown:
+            logger.warning(
+                "⚠️  PEP 668 MANAGED ENVIRONMENT DETECTED\n"
+                "Your Python installation is marked as externally managed (PEP 668).\n"
+                "This typically means you're using a system Python managed by Homebrew, apt, etc.\n"
+                "\n"
+                "Installing packages with --break-system-packages --user flags...\n"
+                "\n"
+                "RECOMMENDED: Use a virtual environment instead:\n"
+                "  python -m venv .venv\n"
+                "  source .venv/bin/activate  # On Windows: .venv\\Scripts\\activate\n"
+                "  pip install claude-mpm\n"
+            )
+            self.pep668_warning_shown = True
 
     def _build_install_command(
         self, package_spec: str, strategy: InstallStrategy
     ) -> List[str]:
         """
         Build the installation command for a given strategy.
+
+        WHY: PEP 668 support added to handle externally managed Python
+        environments by adding appropriate flags when needed.
 
         Args:
             package_spec: Package specification
@@ -212,22 +268,32 @@ class RobustPackageInstaller:
         """
         base_cmd = [sys.executable, "-m", "pip", "install"]
 
+        # Add PEP 668 bypass flags if needed
+        if self.is_pep668_managed:
+            self._show_pep668_warning()
+            # Add flags to bypass PEP 668 restrictions
+            base_cmd.extend(["--break-system-packages", "--user"])
+            logger.debug(
+                "Added --break-system-packages --user flags for PEP 668 environment"
+            )
+
         # Add cache control
         if not self.use_cache:
             base_cmd.append("--no-cache-dir")
 
         if strategy == InstallStrategy.PIP:
-            return base_cmd + [package_spec]
+            return [*base_cmd, package_spec]
 
-        elif strategy == InstallStrategy.PIP_NO_DEPS:
-            return base_cmd + ["--no-deps", package_spec]
+        if strategy == InstallStrategy.PIP_NO_DEPS:
+            return [*base_cmd, "--no-deps", package_spec]
 
-        elif strategy == InstallStrategy.PIP_UPGRADE:
-            return base_cmd + ["--upgrade", package_spec]
+        if strategy == InstallStrategy.PIP_UPGRADE:
+            return [*base_cmd, "--upgrade", package_spec]
 
-        elif strategy == InstallStrategy.PIP_INDEX_URL:
+        if strategy == InstallStrategy.PIP_INDEX_URL:
             # Try alternative index (PyPI mirror)
-            return base_cmd + [
+            return [
+                *base_cmd,
                 "--index-url",
                 "https://pypi.org/simple",
                 "--extra-index-url",
@@ -235,8 +301,7 @@ class RobustPackageInstaller:
                 package_spec,
             ]
 
-        else:
-            return base_cmd + [package_spec]
+        return [*base_cmd, package_spec]
 
     def _extract_package_name(self, package_spec: str) -> str:
         """
@@ -433,9 +498,8 @@ class RobustPackageInstaller:
 
         # Format error message
         if len(errors) == 1:
-            return list(errors)[0]
-        else:
-            return f"Multiple errors: {' | '.join(errors)}"
+            return next(iter(errors))
+        return f"Multiple errors: {' | '.join(errors)}"
 
     def install_packages(
         self, packages: List[str], parallel: bool = False
@@ -463,9 +527,8 @@ class RobustPackageInstaller:
             if success:
                 logger.info("Batch installation successful")
                 return packages, [], {}
-            else:
-                logger.warning(f"Batch installation failed: {error}")
-                logger.info("Falling back to individual installation...")
+            logger.warning(f"Batch installation failed: {error}")
+            logger.info("Falling back to individual installation...")
 
         # Install packages individually
         for i, package in enumerate(packages, 1):
@@ -492,13 +555,22 @@ class RobustPackageInstaller:
             Tuple of (success, error_message)
         """
         try:
-            cmd = [sys.executable, "-m", "pip", "install"] + packages
+            cmd = [sys.executable, "-m", "pip", "install"]
+
+            # Add PEP 668 bypass flags if needed
+            if self.is_pep668_managed:
+                self._show_pep668_warning()
+                cmd.extend(["--break-system-packages", "--user"])
+                logger.debug("Added PEP 668 flags for batch installation")
+
+            cmd.extend(packages)
 
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=self.timeout * 2,  # Longer timeout for batch
+                timeout=self.timeout * 2,
+                check=False,  # Longer timeout for batch
             )
 
             if result.returncode == 0:
@@ -506,16 +578,14 @@ class RobustPackageInstaller:
                 all_verified = all(self._verify_installation(pkg) for pkg in packages)
                 if all_verified:
                     return True, None
-                else:
-                    return False, "Some packages failed verification"
-            else:
-                error_msg = self._extract_error_message(result.stderr)
-                return False, error_msg
+                return False, "Some packages failed verification"
+            error_msg = self._extract_error_message(result.stderr)
+            return False, error_msg
 
         except subprocess.TimeoutExpired:
-            return False, f"Batch installation timed out"
+            return False, "Batch installation timed out"
         except Exception as e:
-            return False, f"Batch installation error: {str(e)}"
+            return False, f"Batch installation error: {e!s}"
 
     def get_report(self) -> str:
         """
@@ -528,6 +598,13 @@ class RobustPackageInstaller:
         lines.append("=" * 60)
         lines.append("INSTALLATION REPORT")
         lines.append("=" * 60)
+
+        # Add PEP 668 status
+        if self.is_pep668_managed:
+            lines.append("")
+            lines.append("⚠️  PEP 668 Managed Environment: YES")
+            lines.append("   Installations used --break-system-packages --user flags")
+            lines.append("   Consider using a virtual environment for better isolation")
 
         # Summary
         total_attempts = len(self.attempts)

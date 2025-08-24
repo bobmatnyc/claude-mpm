@@ -152,10 +152,9 @@ class DeploymentFacade:
                 executor = self.executors[preferred_executor]
                 if executor.is_available():
                     return executor
-                else:
-                    self.logger.warning(
-                        f"Preferred executor '{preferred_executor}' is not available"
-                    )
+                self.logger.warning(
+                    f"Preferred executor '{preferred_executor}' is not available"
+                )
             else:
                 self.logger.warning(f"Unknown executor '{preferred_executor}'")
 

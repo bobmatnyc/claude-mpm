@@ -12,17 +12,14 @@ import logging
 from threading import RLock
 from typing import Any, Dict, List, Optional, Type, TypeVar
 
-from claude_mpm.core.logger import get_logger
-from claude_mpm.services.mcp_gateway.core.base import BaseMCPService
-from claude_mpm.services.shared import ManagerBase
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     IMCPCommunication,
     IMCPConfiguration,
     IMCPGateway,
     IMCPLifecycle,
-    IMCPToolAdapter,
     IMCPToolRegistry,
 )
+from claude_mpm.services.shared import ManagerBase
 
 T = TypeVar("T")
 
@@ -324,10 +321,10 @@ class MCPServiceRegistry(ManagerBase):
         """
         with self._lock:
             services = set()
-            services.update(interface.__name__ for interface in self._services.keys())
-            services.update(interface.__name__ for interface in self._factories.keys())
-            services.update(interface.__name__ for interface in self._singletons.keys())
-            return sorted(list(services))
+            services.update(interface.__name__ for interface in self._services)
+            services.update(interface.__name__ for interface in self._factories)
+            services.update(interface.__name__ for interface in self._singletons)
+            return sorted(services)
 
     def clear(self) -> None:
         """Clear all service registrations."""

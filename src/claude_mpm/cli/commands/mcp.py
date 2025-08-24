@@ -1,5 +1,3 @@
-from pathlib import Path
-
 """
 MCP Gateway command implementation for claude-mpm.
 
@@ -11,11 +9,9 @@ that dispatches to specific subcommand handlers, maintaining consistency
 with other command modules like agents.py and memory.py.
 """
 
-import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 from ...constants import MCPCommands
 from ...core.logger import get_logger
@@ -70,7 +66,7 @@ def manage_mcp(args):
                 MCPGateway = None
             else:
                 print(
-                    f"\nError: MCP Gateway services not fully available",
+                    "\nError: MCP Gateway services not fully available",
                     file=sys.stderr,
                 )
                 print(f"Details: {e}", file=sys.stderr)
@@ -185,9 +181,9 @@ def _show_status(
     # Show available tools count
     if ToolRegistry:
         try:
-            registry = ToolRegistry()
+            ToolRegistry()
             # Don't initialize fully, just check
-            print(f"\n🔧 Tools: Check with 'claude-mpm mcp tools'")
+            print("\n🔧 Tools: Check with 'claude-mpm mcp tools'")
         except:
             print("\n🔧 Tools: Registry not available")
 

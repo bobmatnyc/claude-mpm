@@ -28,10 +28,9 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional
 
 from .config import Config
-from .logger import setup_logging
 from .mixins import LoggerMixin
 
 
@@ -158,13 +157,11 @@ class BaseService(LoggerMixin, ABC):
             self._init_enhanced_features()
 
         # Check for quiet mode
-        default_log_level = "INFO"
         if os.getenv("CLAUDE_PM_QUIET_MODE") == "true":
-            default_log_level = "WARNING"
             self.logger.setLevel(logging.WARNING)
 
         # Only log if not in quiet mode
-        if not os.environ.get("CLAUDE_PM_QUIET_MODE", "").lower() == "true":
+        if os.environ.get("CLAUDE_PM_QUIET_MODE", "").lower() != "true":
             self.logger.debug(f"Initialized {self.name} service")
 
     def _init_enhanced_features(self):
@@ -239,7 +236,7 @@ class BaseService(LoggerMixin, ABC):
             self.logger.error(f"Failed to start service {self.name}: {e}")
             self._health = ServiceHealth(
                 status="unhealthy",
-                message=f"Startup failed: {str(e)}",
+                message=f"Startup failed: {e!s}",
                 timestamp=datetime.now().isoformat(),
                 checks={"startup": False},
             )
@@ -406,7 +403,7 @@ class BaseService(LoggerMixin, ABC):
             self.logger.error(f"Health check failed for {self.name}: {e}")
             self._health = ServiceHealth(
                 status="unhealthy",
-                message=f"Health check error: {str(e)}",
+                message=f"Health check error: {e!s}",
                 timestamp=datetime.now().isoformat(),
                 checks={"health_check_error": True},
             )
@@ -624,10 +621,9 @@ class BaseService(LoggerMixin, ABC):
         if (
             self._circuit_breaker.failure_count
             >= self._circuit_breaker.failure_threshold
-        ):
-            if self._circuit_breaker.state != "open":
-                self._circuit_breaker.state = "open"
-                self.logger.warning(f"Circuit breaker opened for service {self.name}")
+        ) and self._circuit_breaker.state != "open":
+            self._circuit_breaker.state = "open"
+            self.logger.warning(f"Circuit breaker opened for service {self.name}")
 
     def _record_circuit_success(self) -> None:
         """Record circuit breaker success."""
@@ -706,7 +702,6 @@ class BaseService(LoggerMixin, ABC):
     async def _initialize_dependencies(self) -> None:
         """Initialize service dependencies (enhanced feature)."""
         # Override in subclasses for specific dependency setup
-        pass
 
     async def _register_with_health_monitor(self) -> None:
         """Register service with health monitor (enhanced feature)."""
@@ -729,12 +724,10 @@ class BaseService(LoggerMixin, ABC):
     @abstractmethod
     async def _initialize(self) -> None:
         """Initialize the service. Must be implemented by subclasses."""
-        pass
 
     @abstractmethod
     async def _cleanup(self) -> None:
         """Cleanup service resources. Must be implemented by subclasses."""
-        pass
 
     async def _health_check(self) -> Dict[str, bool]:
         """
@@ -816,7 +809,6 @@ class BaseService(LoggerMixin, ABC):
         - Store aggregated data, not raw events
         - Consider metric cardinality
         """
-        pass
 
     # Utility methods
 

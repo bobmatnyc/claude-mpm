@@ -19,15 +19,11 @@ REFACTORING NOTE: The original 961-line create_parser function has been split in
 - parsers/mcp_parser.py: MCP Gateway commands
 """
 
-import argparse
-from pathlib import Path
-from typing import List, Optional
-
 # Import from the new modular structure
 from .parsers import add_common_arguments, create_parser, preprocess_args
 
 # Re-export for backward compatibility
-__all__ = ["create_parser", "add_common_arguments", "preprocess_args"]
+__all__ = ["add_common_arguments", "create_parser", "preprocess_args"]
 
 # Legacy functions removed - all functionality moved to parsers/ modules
 # The original parser.py file contained a massive 961-line create_parser function

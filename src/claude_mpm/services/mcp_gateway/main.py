@@ -15,7 +15,7 @@ import asyncio
 import logging
 import signal
 import sys
-from typing import List, Optional
+from typing import Optional
 
 # Import with fallback handling for missing dependencies
 try:
@@ -259,6 +259,7 @@ class MCPGatewayOrchestrator:
         # Optional: Health check tool
         try:
             from .tools.health_check_tool import HealthCheckTool
+
             tools.append(HealthCheckTool())
         except Exception as e:
             self.logger.warning(f"Could not load health check tool: {e}")

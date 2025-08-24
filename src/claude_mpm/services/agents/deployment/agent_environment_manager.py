@@ -7,7 +7,6 @@ Extracted from AgentDeploymentService as part of the refactoring to improve
 maintainability and testability.
 """
 
-import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -236,15 +235,13 @@ cache/
         """
         current_env = self.get_current_environment()
 
-        info = {
+        return {
             "claude_environment_variables": current_env,
             "python_path": os.environ.get("PYTHONPATH", "Not set"),
             "current_working_directory": str(Path.cwd()),
             "user_home_directory": str(Path.home()),
             "claude_config_locations": self._find_claude_config_locations(),
         }
-
-        return info
 
     def cleanup_environment(self) -> Dict[str, Any]:
         """
@@ -257,9 +254,7 @@ cache/
 
         try:
             # Remove Claude-specific environment variables
-            claude_vars = [
-                key for key in os.environ.keys() if key.startswith("CLAUDE_")
-            ]
+            claude_vars = [key for key in os.environ if key.startswith("CLAUDE_")]
 
             for var in claude_vars:
                 if var in os.environ:
