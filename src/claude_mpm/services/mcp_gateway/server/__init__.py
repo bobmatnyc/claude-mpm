@@ -9,7 +9,7 @@ from .mcp_gateway import MCPGateway
 from .stdio_handler import AlternativeStdioHandler, StdioHandler
 
 __all__ = [
+    "AlternativeStdioHandler",
     "MCPGateway",
     "StdioHandler",
-    "AlternativeStdioHandler",
 ]

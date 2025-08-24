@@ -7,10 +7,9 @@ Extracted from AgentDeploymentService as part of the refactoring to improve
 maintainability and testability.
 """
 
-import logging
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -120,11 +119,10 @@ class AgentFileSystemManager:
                             # MD file is newer or same age, skip conversion
                             results["skipped"].append(yaml_file.name)
                             continue
-                        else:
-                            # MD file is older, proceed with conversion
-                            self.logger.info(
-                                f"MD file {md_file.name} is older than YAML, converting..."
-                            )
+                        # MD file is older, proceed with conversion
+                        self.logger.info(
+                            f"MD file {md_file.name} is older than YAML, converting..."
+                        )
 
                     # Read YAML content
                     yaml_content = yaml_file.read_text()
@@ -353,7 +351,7 @@ class AgentFileSystemManager:
             tools_list = '["Read", "Write", "Edit"]'
 
         # Build Markdown with YAML frontmatter
-        md_content = f"""---
+        return f"""---
 name: {name}
 description: "{description}"
 version: "{version}"
@@ -373,8 +371,6 @@ model: "sonnet"
 
 This agent provides specialized functionality for your tasks.
 """
-
-        return md_content
 
     def _extract_yaml_field(self, yaml_content: str, field_name: str) -> Optional[str]:
         """Extract a field value from YAML content."""

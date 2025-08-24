@@ -13,11 +13,10 @@ This module provides comprehensive Git operation management including:
 
 import logging
 import os
-import re
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -128,7 +127,7 @@ class GitOperationsManager:
         Raises:
             GitOperationError: If command fails and check=True
         """
-        cmd = ["git"] + args
+        cmd = ["git", *args]
         cwd = cwd or str(self.project_root)
 
         try:
@@ -444,7 +443,7 @@ class GitOperationsManager:
                 return GitOperationResult(
                     success=False,
                     operation="switch_branch",
-                    message=f"Cannot switch branch: uncommitted changes exist",
+                    message="Cannot switch branch: uncommitted changes exist",
                     error=f"Modified files: {', '.join(modified_files)}",
                     branch_before=current_branch,
                     branch_after=current_branch,
@@ -599,10 +598,9 @@ class GitOperationsManager:
             conflicted_files = []
             if has_conflicts:
                 lines = result.stdout.split("\n")
-                current_file = None
 
                 for line in lines:
-                    if line.startswith("+++") or line.startswith("---"):
+                    if line.startswith(("+++", "---")):
                         # Extract filename
                         parts = line.split("\t")
                         if len(parts) > 1:
@@ -775,7 +773,7 @@ class GitOperationsManager:
             for line in result.stdout.strip().split("\n"):
                 branch = line.strip().lstrip("* ").strip()
                 # Skip target branch and current branch
-                if branch and branch != target_branch and branch != current_branch:
+                if branch and branch not in (target_branch, current_branch):
                     merged_branches.append(branch)
 
             # Delete merged branches

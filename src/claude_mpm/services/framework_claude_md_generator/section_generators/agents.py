@@ -1,5 +1,3 @@
-from pathlib import Path
-
 """
 Agents section generator for framework CLAUDE.md.
 

@@ -14,16 +14,18 @@ DESIGN DECISIONS:
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
 
 import yaml
 
 from ...agents.frontmatter_validator import FrontmatterValidator
 from ...constants import AgentCommands
 from ...core.agent_registry import AgentRegistryAdapter
-from ...core.config import Config
+from ...core.logger import get_logger
 from ...core.shared.config_loader import ConfigLoader
-from ..shared import AgentCommand, CommandResult, add_agent_arguments, add_output_arguments
+from ..shared import (
+    AgentCommand,
+    CommandResult,
+)
 from ..utils import get_agent_versions_display
 
 
@@ -40,7 +42,10 @@ class AgentsCommand(AgentCommand):
         if self._deployment_service is None:
             try:
                 from ...services import AgentDeploymentService
-                from ...services.agents.deployment.deployment_wrapper import DeploymentServiceWrapper
+                from ...services.agents.deployment.deployment_wrapper import (
+                    DeploymentServiceWrapper,
+                )
+
                 base_service = AgentDeploymentService()
                 self._deployment_service = DeploymentServiceWrapper(base_service)
             except ImportError:
@@ -56,14 +61,18 @@ class AgentsCommand(AgentCommand):
         """Execute the agent command."""
         try:
             # Handle default case (no subcommand)
-            if not hasattr(args, 'agents_command') or not args.agents_command:
+            if not hasattr(args, "agents_command") or not args.agents_command:
                 return self._show_agent_versions(args)
 
             # Route to appropriate subcommand
             command_map = {
                 AgentCommands.LIST.value: self._list_agents,
-                AgentCommands.DEPLOY.value: lambda a: self._deploy_agents(a, force=False),
-                AgentCommands.FORCE_DEPLOY.value: lambda a: self._deploy_agents(a, force=True),
+                AgentCommands.DEPLOY.value: lambda a: self._deploy_agents(
+                    a, force=False
+                ),
+                AgentCommands.FORCE_DEPLOY.value: lambda a: self._deploy_agents(
+                    a, force=True
+                ),
                 AgentCommands.CLEAN.value: self._clean_agents,
                 AgentCommands.VIEW.value: self._view_agent,
                 AgentCommands.FIX.value: self._fix_agents,
@@ -76,10 +85,11 @@ class AgentsCommand(AgentCommand):
 
             if args.agents_command in command_map:
                 return command_map[args.agents_command](args)
-            else:
-                return CommandResult.error_result(f"Unknown agent command: {args.agents_command}")
+            return CommandResult.error_result(
+                f"Unknown agent command: {args.agents_command}"
+            )
 
-        except ImportError as e:
+        except ImportError:
             self.logger.error("Agent deployment service not available")
             return CommandResult.error_result("Agent deployment service not available")
         except Exception as e:
@@ -91,53 +101,58 @@ class AgentsCommand(AgentCommand):
         try:
             agent_versions = get_agent_versions_display()
 
-            output_format = getattr(args, 'format', 'text')
-            if output_format in ['json', 'yaml']:
+            output_format = getattr(args, "format", "text")
+            if output_format in ["json", "yaml"]:
                 # Parse the agent versions display into structured data
                 if agent_versions:
                     data = {"agent_versions": agent_versions, "has_agents": True}
-                    return CommandResult.success_result("Agent versions retrieved", data=data)
-                else:
-                    data = {"agent_versions": None, "has_agents": False, "suggestion": "To deploy agents, run: claude-mpm --mpm:agents deploy"}
-                    return CommandResult.success_result("No deployed agents found", data=data)
-            else:
-                # Text output
-                if agent_versions:
-                    print(agent_versions)
-                    return CommandResult.success_result("Agent versions displayed")
-                else:
-                    print("No deployed agents found")
-                    print("\nTo deploy agents, run: claude-mpm --mpm:agents deploy")
-                    return CommandResult.success_result("No deployed agents found")
+                    return CommandResult.success_result(
+                        "Agent versions retrieved", data=data
+                    )
+                data = {
+                    "agent_versions": None,
+                    "has_agents": False,
+                    "suggestion": "To deploy agents, run: claude-mpm --mpm:agents deploy",
+                }
+                return CommandResult.success_result(
+                    "No deployed agents found", data=data
+                )
+            # Text output
+            if agent_versions:
+                print(agent_versions)
+                return CommandResult.success_result("Agent versions displayed")
+            print("No deployed agents found")
+            print("\nTo deploy agents, run: claude-mpm --mpm:agents deploy")
+            return CommandResult.success_result("No deployed agents found")
 
         except Exception as e:
             self.logger.error(f"Error getting agent versions: {e}", exc_info=True)
             return CommandResult.error_result(f"Error getting agent versions: {e}")
 
-
     def _list_agents(self, args) -> CommandResult:
         """List available or deployed agents."""
         try:
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
             if hasattr(args, "by_tier") and args.by_tier:
                 return self._list_agents_by_tier(args)
-            elif getattr(args, 'system', False):
+            if getattr(args, "system", False):
                 return self._list_system_agents(args)
-            elif getattr(args, 'deployed', False):
+            if getattr(args, "deployed", False):
                 return self._list_deployed_agents(args)
-            else:
-                # Default: show usage
-                usage_msg = "Use --system to list system agents, --deployed to list deployed agents, or --by-tier to group by precedence"
+            # Default: show usage
+            usage_msg = "Use --system to list system agents, --deployed to list deployed agents, or --by-tier to group by precedence"
 
-                if output_format in ['json', 'yaml']:
-                    return CommandResult.error_result(
-                        "No list option specified",
-                        data={"usage": usage_msg, "available_options": ["--system", "--deployed", "--by-tier"]}
-                    )
-                else:
-                    print(usage_msg)
-                    return CommandResult.error_result("No list option specified")
+            if output_format in ["json", "yaml"]:
+                return CommandResult.error_result(
+                    "No list option specified",
+                    data={
+                        "usage": usage_msg,
+                        "available_options": ["--system", "--deployed", "--by-tier"],
+                    },
+                )
+            print(usage_msg)
+            return CommandResult.error_result("No list option specified")
 
         except Exception as e:
             self.logger.error(f"Error listing agents: {e}", exc_info=True)
@@ -147,31 +162,30 @@ class AgentsCommand(AgentCommand):
         """List available agent templates."""
         try:
             agents = self.deployment_service.list_available_agents()
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
-            if output_format in ['json', 'yaml']:
+            if output_format in ["json", "yaml"]:
                 return CommandResult.success_result(
                     f"Found {len(agents)} agent templates",
-                    data={"agents": agents, "count": len(agents)}
+                    data={"agents": agents, "count": len(agents)},
                 )
+            # Text output
+            print("Available Agent Templates:")
+            print("-" * 80)
+            if not agents:
+                print("No agent templates found")
             else:
-                # Text output
-                print("Available Agent Templates:")
-                print("-" * 80)
-                if not agents:
-                    print("No agent templates found")
-                else:
-                    for agent in agents:
-                        print(f"📄 {agent['file']}")
-                        if "name" in agent:
-                            print(f"   Name: {agent['name']}")
-                        if "description" in agent:
-                            print(f"   Description: {agent['description']}")
-                        if "version" in agent:
-                            print(f"   Version: {agent['version']}")
-                        print()
+                for agent in agents:
+                    print(f"📄 {agent['file']}")
+                    if "name" in agent:
+                        print(f"   Name: {agent['name']}")
+                    if "description" in agent:
+                        print(f"   Description: {agent['description']}")
+                    if "version" in agent:
+                        print(f"   Version: {agent['version']}")
+                    print()
 
-                return CommandResult.success_result(f"Listed {len(agents)} agent templates")
+            return CommandResult.success_result(f"Listed {len(agents)} agent templates")
 
         except Exception as e:
             self.logger.error(f"Error listing system agents: {e}", exc_info=True)
@@ -181,38 +195,39 @@ class AgentsCommand(AgentCommand):
         """List deployed agents."""
         try:
             verification = self.deployment_service.verify_deployment()
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
-            if output_format in ['json', 'yaml']:
+            if output_format in ["json", "yaml"]:
                 return CommandResult.success_result(
                     f"Found {len(verification['agents_found'])} deployed agents",
                     data={
                         "agents": verification["agents_found"],
                         "warnings": verification.get("warnings", []),
-                        "count": len(verification["agents_found"])
-                    }
+                        "count": len(verification["agents_found"]),
+                    },
                 )
+            # Text output
+            print("Deployed Agents:")
+            print("-" * 80)
+            if not verification["agents_found"]:
+                print("No deployed agents found")
             else:
-                # Text output
-                print("Deployed Agents:")
-                print("-" * 80)
-                if not verification["agents_found"]:
-                    print("No deployed agents found")
-                else:
-                    for agent in verification["agents_found"]:
-                        print(f"📄 {agent['file']}")
-                        if "name" in agent:
-                            print(f"   Name: {agent['name']}")
-                        if "path" in agent:
-                            print(f"   Path: {agent['path']}")
-                        print()
+                for agent in verification["agents_found"]:
+                    print(f"📄 {agent['file']}")
+                    if "name" in agent:
+                        print(f"   Name: {agent['name']}")
+                    if "path" in agent:
+                        print(f"   Path: {agent['path']}")
+                    print()
 
-                if verification["warnings"]:
-                    print("\nWarnings:")
-                    for warning in verification["warnings"]:
-                        print(f"  ⚠️  {warning}")
+            if verification["warnings"]:
+                print("\nWarnings:")
+                for warning in verification["warnings"]:
+                    print(f"  ⚠️  {warning}")
 
-                return CommandResult.success_result(f"Listed {len(verification['agents_found'])} deployed agents")
+            return CommandResult.success_result(
+                f"Listed {len(verification['agents_found'])} deployed agents"
+            )
 
         except Exception as e:
             self.logger.error(f"Error listing deployed agents: {e}", exc_info=True)
@@ -222,28 +237,26 @@ class AgentsCommand(AgentCommand):
         """List agents grouped by tier/precedence."""
         try:
             agents_by_tier = self.deployment_service.list_agents_by_tier()
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
-            if output_format in ['json', 'yaml']:
+            if output_format in ["json", "yaml"]:
                 return CommandResult.success_result(
-                    "Agents listed by tier",
-                    data=agents_by_tier
+                    "Agents listed by tier", data=agents_by_tier
                 )
-            else:
-                # Text output
-                print("Agents by Tier/Precedence:")
-                print("=" * 50)
+            # Text output
+            print("Agents by Tier/Precedence:")
+            print("=" * 50)
 
-                for tier, agents in agents_by_tier.items():
-                    print(f"\n{tier.upper()}:")
-                    print("-" * 20)
-                    if agents:
-                        for agent in agents:
-                            print(f"  • {agent}")
-                    else:
-                        print("  (none)")
+            for tier, agents in agents_by_tier.items():
+                print(f"\n{tier.upper()}:")
+                print("-" * 20)
+                if agents:
+                    for agent in agents:
+                        print(f"  • {agent}")
+                else:
+                    print("  (none)")
 
-                return CommandResult.success_result("Agents listed by tier")
+            return CommandResult.success_result("Agents listed by tier")
 
         except Exception as e:
             self.logger.error(f"Error listing agents by tier: {e}", exc_info=True)
@@ -259,29 +272,30 @@ class AgentsCommand(AgentCommand):
             project_result = self.deployment_service.deploy_project_agents(force=force)
 
             # Combine results
-            total_deployed = system_result.get('deployed_count', 0) + project_result.get('deployed_count', 0)
+            total_deployed = system_result.get(
+                "deployed_count", 0
+            ) + project_result.get("deployed_count", 0)
 
-            output_format = getattr(args, 'format', 'text')
-            if output_format in ['json', 'yaml']:
+            output_format = getattr(args, "format", "text")
+            if output_format in ["json", "yaml"]:
                 return CommandResult.success_result(
                     f"Deployed {total_deployed} agents",
                     data={
                         "system_agents": system_result,
                         "project_agents": project_result,
-                        "total_deployed": total_deployed
-                    }
+                        "total_deployed": total_deployed,
+                    },
                 )
-            else:
-                # Text output
-                if system_result.get('deployed_count', 0) > 0:
-                    print(f"✓ Deployed {system_result['deployed_count']} system agents")
-                if project_result.get('deployed_count', 0) > 0:
-                    print(f"✓ Deployed {project_result['deployed_count']} project agents")
+            # Text output
+            if system_result.get("deployed_count", 0) > 0:
+                print(f"✓ Deployed {system_result['deployed_count']} system agents")
+            if project_result.get("deployed_count", 0) > 0:
+                print(f"✓ Deployed {project_result['deployed_count']} project agents")
 
-                if total_deployed == 0:
-                    print("No agents were deployed (all up to date)")
+            if total_deployed == 0:
+                print("No agents were deployed (all up to date)")
 
-                return CommandResult.success_result(f"Deployed {total_deployed} agents")
+            return CommandResult.success_result(f"Deployed {total_deployed} agents")
 
         except Exception as e:
             self.logger.error(f"Error deploying agents: {e}", exc_info=True)
@@ -292,21 +306,19 @@ class AgentsCommand(AgentCommand):
         try:
             result = self.deployment_service.clean_deployment()
 
-            output_format = getattr(args, 'format', 'text')
-            if output_format in ['json', 'yaml']:
+            output_format = getattr(args, "format", "text")
+            if output_format in ["json", "yaml"]:
                 return CommandResult.success_result(
-                    f"Cleaned {result.get('cleaned_count', 0)} agents",
-                    data=result
+                    f"Cleaned {result.get('cleaned_count', 0)} agents", data=result
                 )
+            # Text output
+            cleaned_count = result.get("cleaned_count", 0)
+            if cleaned_count > 0:
+                print(f"✓ Cleaned {cleaned_count} deployed agents")
             else:
-                # Text output
-                cleaned_count = result.get('cleaned_count', 0)
-                if cleaned_count > 0:
-                    print(f"✓ Cleaned {cleaned_count} deployed agents")
-                else:
-                    print("No deployed agents to clean")
+                print("No deployed agents to clean")
 
-                return CommandResult.success_result(f"Cleaned {cleaned_count} agents")
+            return CommandResult.success_result(f"Cleaned {cleaned_count} agents")
 
         except Exception as e:
             self.logger.error(f"Error cleaning agents: {e}", exc_info=True)
@@ -315,27 +327,27 @@ class AgentsCommand(AgentCommand):
     def _view_agent(self, args) -> CommandResult:
         """View details of a specific agent."""
         try:
-            agent_name = getattr(args, 'agent_name', None)
+            agent_name = getattr(args, "agent_name", None)
             if not agent_name:
-                return CommandResult.error_result("Agent name is required for view command")
+                return CommandResult.error_result(
+                    "Agent name is required for view command"
+                )
 
             # Get agent details from deployment service
             agent_details = self.deployment_service.get_agent_details(agent_name)
 
-            output_format = getattr(args, 'format', 'text')
-            if output_format in ['json', 'yaml']:
+            output_format = getattr(args, "format", "text")
+            if output_format in ["json", "yaml"]:
                 return CommandResult.success_result(
-                    f"Agent details for {agent_name}",
-                    data=agent_details
+                    f"Agent details for {agent_name}", data=agent_details
                 )
-            else:
-                # Text output
-                print(f"Agent: {agent_name}")
-                print("-" * 40)
-                for key, value in agent_details.items():
-                    print(f"{key}: {value}")
+            # Text output
+            print(f"Agent: {agent_name}")
+            print("-" * 40)
+            for key, value in agent_details.items():
+                print(f"{key}: {value}")
 
-                return CommandResult.success_result(f"Displayed details for {agent_name}")
+            return CommandResult.success_result(f"Displayed details for {agent_name}")
 
         except Exception as e:
             self.logger.error(f"Error viewing agent: {e}", exc_info=True)
@@ -346,20 +358,18 @@ class AgentsCommand(AgentCommand):
         try:
             result = self.deployment_service.fix_deployment()
 
-            output_format = getattr(args, 'format', 'text')
-            if output_format in ['json', 'yaml']:
+            output_format = getattr(args, "format", "text")
+            if output_format in ["json", "yaml"]:
                 return CommandResult.success_result(
-                    "Agent deployment fixed",
-                    data=result
+                    "Agent deployment fixed", data=result
                 )
-            else:
-                # Text output
-                print("✓ Agent deployment issues fixed")
-                if result.get('fixes_applied'):
-                    for fix in result['fixes_applied']:
-                        print(f"  - {fix}")
+            # Text output
+            print("✓ Agent deployment issues fixed")
+            if result.get("fixes_applied"):
+                for fix in result["fixes_applied"]:
+                    print(f"  - {fix}")
 
-                return CommandResult.success_result("Agent deployment fixed")
+            return CommandResult.success_result("Agent deployment fixed")
 
         except Exception as e:
             self.logger.error(f"Error fixing agents: {e}", exc_info=True)
@@ -370,24 +380,22 @@ class AgentsCommand(AgentCommand):
         try:
             result = self.deployment_service.check_dependencies()
 
-            output_format = getattr(args, 'format', 'text')
-            if output_format in ['json', 'yaml']:
+            output_format = getattr(args, "format", "text")
+            if output_format in ["json", "yaml"]:
                 return CommandResult.success_result(
-                    "Dependency check completed",
-                    data=result
+                    "Dependency check completed", data=result
                 )
+            # Text output
+            print("Agent Dependencies Check:")
+            print("-" * 40)
+            if result.get("missing_dependencies"):
+                print("Missing dependencies:")
+                for dep in result["missing_dependencies"]:
+                    print(f"  - {dep}")
             else:
-                # Text output
-                print("Agent Dependencies Check:")
-                print("-" * 40)
-                if result.get('missing_dependencies'):
-                    print("Missing dependencies:")
-                    for dep in result['missing_dependencies']:
-                        print(f"  - {dep}")
-                else:
-                    print("✓ All dependencies satisfied")
+                print("✓ All dependencies satisfied")
 
-                return CommandResult.success_result("Dependency check completed")
+            return CommandResult.success_result("Dependency check completed")
 
         except Exception as e:
             self.logger.error(f"Error checking dependencies: {e}", exc_info=True)
@@ -398,21 +406,22 @@ class AgentsCommand(AgentCommand):
         try:
             result = self.deployment_service.install_dependencies()
 
-            output_format = getattr(args, 'format', 'text')
-            if output_format in ['json', 'yaml']:
+            output_format = getattr(args, "format", "text")
+            if output_format in ["json", "yaml"]:
                 return CommandResult.success_result(
                     f"Installed {result.get('installed_count', 0)} dependencies",
-                    data=result
+                    data=result,
                 )
+            # Text output
+            installed_count = result.get("installed_count", 0)
+            if installed_count > 0:
+                print(f"✓ Installed {installed_count} dependencies")
             else:
-                # Text output
-                installed_count = result.get('installed_count', 0)
-                if installed_count > 0:
-                    print(f"✓ Installed {installed_count} dependencies")
-                else:
-                    print("No dependencies needed installation")
+                print("No dependencies needed installation")
 
-                return CommandResult.success_result(f"Installed {installed_count} dependencies")
+            return CommandResult.success_result(
+                f"Installed {installed_count} dependencies"
+            )
 
         except Exception as e:
             self.logger.error(f"Error installing dependencies: {e}", exc_info=True)
@@ -423,25 +432,26 @@ class AgentsCommand(AgentCommand):
         try:
             result = self.deployment_service.list_dependencies()
 
-            output_format = getattr(args, 'format', 'text')
-            if output_format in ['json', 'yaml']:
+            output_format = getattr(args, "format", "text")
+            if output_format in ["json", "yaml"]:
                 return CommandResult.success_result(
                     f"Found {len(result.get('dependencies', []))} dependencies",
-                    data=result
+                    data=result,
                 )
+            # Text output
+            dependencies = result.get("dependencies", [])
+            print("Agent Dependencies:")
+            print("-" * 40)
+            if dependencies:
+                for dep in dependencies:
+                    status = "✓" if dep.get("installed") else "✗"
+                    print(f"{status} {dep.get('name', 'Unknown')}")
             else:
-                # Text output
-                dependencies = result.get('dependencies', [])
-                print("Agent Dependencies:")
-                print("-" * 40)
-                if dependencies:
-                    for dep in dependencies:
-                        status = "✓" if dep.get('installed') else "✗"
-                        print(f"{status} {dep.get('name', 'Unknown')}")
-                else:
-                    print("No dependencies found")
+                print("No dependencies found")
 
-                return CommandResult.success_result(f"Listed {len(dependencies)} dependencies")
+            return CommandResult.success_result(
+                f"Listed {len(dependencies)} dependencies"
+            )
 
         except Exception as e:
             self.logger.error(f"Error listing dependencies: {e}", exc_info=True)
@@ -452,34 +462,32 @@ class AgentsCommand(AgentCommand):
         try:
             result = self.deployment_service.fix_dependencies()
 
-            output_format = getattr(args, 'format', 'text')
-            if output_format in ['json', 'yaml']:
+            output_format = getattr(args, "format", "text")
+            if output_format in ["json", "yaml"]:
                 return CommandResult.success_result(
-                    "Dependency issues fixed",
-                    data=result
+                    "Dependency issues fixed", data=result
                 )
-            else:
-                # Text output
-                print("✓ Agent dependency issues fixed")
-                if result.get('fixes_applied'):
-                    for fix in result['fixes_applied']:
-                        print(f"  - {fix}")
+            # Text output
+            print("✓ Agent dependency issues fixed")
+            if result.get("fixes_applied"):
+                for fix in result["fixes_applied"]:
+                    print(f"  - {fix}")
 
-                return CommandResult.success_result("Dependency issues fixed")
+            return CommandResult.success_result("Dependency issues fixed")
 
         except Exception as e:
             self.logger.error(f"Error fixing dependencies: {e}", exc_info=True)
             return CommandResult.error_result(f"Error fixing dependencies: {e}")
-    
+
     def _cleanup_orphaned_agents(self, args) -> CommandResult:
         """Clean up orphaned agents that don't have templates."""
         try:
             from ...services.agents.deployment.multi_source_deployment_service import (
-                MultiSourceAgentDeploymentService
+                MultiSourceAgentDeploymentService,
             )
-            
+
             # Determine agents directory
-            if hasattr(args, 'agents_dir') and args.agents_dir:
+            if hasattr(args, "agents_dir") and args.agents_dir:
                 agents_dir = args.agents_dir
             else:
                 # Check for project-level .claude/agents first
@@ -489,65 +497,65 @@ class AgentsCommand(AgentCommand):
                 else:
                     # Fall back to user home directory
                     agents_dir = Path.home() / ".claude" / "agents"
-            
+
             if not agents_dir.exists():
-                return CommandResult.success_result(f"Agents directory not found: {agents_dir}")
-            
+                return CommandResult.success_result(
+                    f"Agents directory not found: {agents_dir}"
+                )
+
             # Initialize service
             service = MultiSourceAgentDeploymentService()
-            
+
             # Determine if we're doing a dry run
-            dry_run = getattr(args, 'dry_run', True)
-            if hasattr(args, 'force') and args.force:
+            dry_run = getattr(args, "dry_run", True)
+            if hasattr(args, "force") and args.force:
                 dry_run = False
-            
+
             # Perform cleanup
             results = service.cleanup_orphaned_agents(agents_dir, dry_run=dry_run)
-            
-            output_format = getattr(args, 'format', 'text')
-            quiet = getattr(args, 'quiet', False)
-            
-            if output_format in ['json', 'yaml']:
+
+            output_format = getattr(args, "format", "text")
+            quiet = getattr(args, "quiet", False)
+
+            if output_format in ["json", "yaml"]:
                 return CommandResult.success_result(
                     f"Found {len(results.get('orphaned', []))} orphaned agents",
-                    data=results
+                    data=results,
+                )
+            # Text output
+            if not results.get("orphaned"):
+                print("✅ No orphaned agents found")
+                return CommandResult.success_result("No orphaned agents found")
+
+            if not quiet:
+                print(f"\nFound {len(results['orphaned'])} orphaned agent(s):")
+                for orphan in results["orphaned"]:
+                    print(f"  - {orphan['name']} v{orphan['version']}")
+
+            if dry_run:
+                print(
+                    f"\n📝 This was a dry run. Use --force to actually remove "
+                    f"{len(results['orphaned'])} orphaned agent(s)"
                 )
             else:
-                # Text output
-                if not results.get("orphaned"):
-                    print("✅ No orphaned agents found")
-                    return CommandResult.success_result("No orphaned agents found")
-                
-                if not quiet:
-                    print(f"\nFound {len(results['orphaned'])} orphaned agent(s):")
-                    for orphan in results["orphaned"]:
-                        print(f"  - {orphan['name']} v{orphan['version']}")
-                
-                if dry_run:
+                if results.get("removed"):
                     print(
-                        f"\n📝 This was a dry run. Use --force to actually remove "
-                        f"{len(results['orphaned'])} orphaned agent(s)"
+                        f"\n✅ Successfully removed {len(results['removed'])} orphaned agent(s)"
                     )
-                else:
-                    if results.get("removed"):
-                        print(
-                            f"\n✅ Successfully removed {len(results['removed'])} orphaned agent(s)"
-                        )
-                    
-                    if results.get("errors"):
-                        print(f"\n❌ Encountered {len(results['errors'])} error(s):")
-                        for error in results["errors"]:
-                            print(f"  - {error}")
-                        return CommandResult.error_result(
-                            f"Cleanup completed with {len(results['errors'])} errors",
-                            data=results
-                        )
-                
-                return CommandResult.success_result(
-                    f"Cleanup {'preview' if dry_run else 'completed'}",
-                    data=results
-                )
-                
+
+                if results.get("errors"):
+                    print(f"\n❌ Encountered {len(results['errors'])} error(s):")
+                    for error in results["errors"]:
+                        print(f"  - {error}")
+                    return CommandResult.error_result(
+                        f"Cleanup completed with {len(results['errors'])} errors",
+                        data=results,
+                    )
+
+            return CommandResult.success_result(
+                f"Cleanup {'preview' if dry_run else 'completed'}", data=results
+            )
+
         except Exception as e:
             self.logger.error(f"Error during cleanup: {e}", exc_info=True)
             return CommandResult.error_result(f"Error during cleanup: {e}")
@@ -563,7 +571,7 @@ def manage_agents(args):
     result = command.execute(args)
 
     # Print result if structured output format is requested
-    if hasattr(args, 'format') and args.format in ['json', 'yaml']:
+    if hasattr(args, "format") and args.format in ["json", "yaml"]:
         command.print_result(result, args)
 
     return result.exit_code
@@ -611,7 +619,7 @@ def _deploy_agents(args, deployment_service, force=False):
 
             # Warn if commonly used agents are being excluded
             common_agents = {"engineer", "qa", "security", "documentation"}
-            excluded_common = set(a.lower() for a in excluded_agents) & common_agents
+            excluded_common = {a.lower() for a in excluded_agents} & common_agents
             if excluded_common:
                 print(
                     f"⚠️  Warning: Common agents are being excluded: {', '.join(excluded_common)}"
@@ -629,7 +637,6 @@ def _deploy_agents(args, deployment_service, force=False):
     results = deployment_service.deploy_agents(None, force_rebuild=force, config=config)
 
     # Also deploy project agents if they exist
-    import os
     from pathlib import Path
 
     # Use the user's working directory if available
@@ -700,7 +707,7 @@ def _deploy_agents(args, deployment_service, force=False):
         env_vars = deployment_service.set_claude_environment(
             args.target.parent if args.target else None
         )
-        print(f"\n✓ Set Claude environment variables:")
+        print("\n✓ Set Claude environment variables:")
         for key, value in env_vars.items():
             print(f"  - {key}={value}")
 
@@ -777,11 +784,11 @@ def _list_agents_by_tier():
             else:
                 # Check paths to determine actual locations
                 if tier_key == "project":
-                    print(f"  Location: .claude-mpm/agents/ (in current project)")
+                    print("  Location: .claude-mpm/agents/ (in current project)")
                 elif tier_key == "user":
-                    print(f"  Location: ~/.claude-mpm/agents/")
+                    print("  Location: ~/.claude-mpm/agents/")
                 else:
-                    print(f"  Location: Built-in framework agents")
+                    print("  Location: Built-in framework agents")
 
                 print(f"\n  Found {len(agents)} agent(s):\n")
 
@@ -863,7 +870,7 @@ def _view_agent(args):
             print(f"❌ Agent file not found: {agent_path}")
             return
 
-        with open(agent_path, "r") as f:
+        with open(agent_path) as f:
             content = f.read()
 
         # Display agent information
@@ -872,7 +879,7 @@ def _view_agent(args):
         print("=" * 80)
 
         # Basic info
-        print(f"\n📋 BASIC INFORMATION:")
+        print("\n📋 BASIC INFORMATION:")
         print(f"  Name: {agent.name}")
         print(f"  Type: {agent.type}")
         print(f"  Tier: {agent.tier.upper()}")
@@ -893,7 +900,7 @@ def _view_agent(args):
                     frontmatter_str = content[4:end_marker]
                     frontmatter = yaml.safe_load(frontmatter_str)
 
-                    print(f"\n📝 FRONTMATTER:")
+                    print("\n📝 FRONTMATTER:")
                     for key, value in frontmatter.items():
                         if isinstance(value, list):
                             print(f"  {key}: [{', '.join(str(v) for v in value)}]")
@@ -909,13 +916,11 @@ def _view_agent(args):
                     instructions = content[instructions_start:].strip()
 
                     if instructions:
-                        print(f"\n📖 INSTRUCTIONS PREVIEW (first 500 chars):")
+                        print("\n📖 INSTRUCTIONS PREVIEW (first 500 chars):")
                         print("  " + "-" * 76)
                         preview = instructions[:500]
                         if len(instructions) > 500:
-                            preview += "...\n\n  [Truncated - {:.1f}KB total]".format(
-                                len(instructions) / 1024
-                            )
+                            preview += f"...\n\n  [Truncated - {len(instructions) / 1024:.1f}KB total]"
 
                         for line in preview.split("\n"):
                             print(f"  {line}")
@@ -923,7 +928,7 @@ def _view_agent(args):
             except Exception as e:
                 print(f"\n⚠️  Could not parse frontmatter: {e}")
         else:
-            print(f"\n⚠️  No frontmatter found in agent file")
+            print("\n⚠️  No frontmatter found in agent file")
 
         # File stats
         import os
@@ -932,7 +937,7 @@ def _view_agent(args):
         from datetime import datetime
 
         modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
-        print(f"\n📊 FILE STATS:")
+        print("\n📊 FILE STATS:")
         print(f"  Size: {stat.st_size:,} bytes")
         print(f"  Last modified: {modified}")
 
@@ -1058,7 +1063,7 @@ def _check_agent_dependencies(args):
     """
     from ...utils.agent_dependency_loader import AgentDependencyLoader
 
-    verbose = getattr(args, "verbose", False)
+    getattr(args, "verbose", False)
     specific_agent = getattr(args, "agent", None)
 
     loader = AgentDependencyLoader(auto_install=False)
@@ -1093,7 +1098,6 @@ def _install_agent_dependencies(args):
     Args:
         args: Parsed command line arguments
     """
-    import sys
 
     from ...utils.agent_dependency_loader import AgentDependencyLoader
 
@@ -1160,7 +1164,6 @@ def _list_agent_dependencies(args):
     Args:
         args: Parsed command line arguments
     """
-    import json
 
     from ...utils.agent_dependency_loader import AgentDependencyLoader
 
@@ -1191,8 +1194,8 @@ def _list_agent_dependencies(args):
     elif output_format == "json":
         # Output JSON format
         output = {
-            "python": sorted(list(all_python_deps)),
-            "system": sorted(list(all_system_deps)),
+            "python": sorted(all_python_deps),
+            "system": sorted(all_system_deps),
             "agents": {},
         }
         for agent_id, deps in loader.agent_dependencies.items():

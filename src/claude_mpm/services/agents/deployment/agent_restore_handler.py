@@ -12,7 +12,6 @@ from claude_mpm.core.path_ops import path_ops
 if TYPE_CHECKING:
     from .agent_lifecycle_manager import (
         AgentLifecycleManager,
-        LifecycleOperation,
         LifecycleOperationResult,
     )
 

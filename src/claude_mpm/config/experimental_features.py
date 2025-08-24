@@ -12,7 +12,7 @@ gradual rollout of experimental features while maintaining stability in producti
 
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 
 class ExperimentalFeatures:
@@ -64,7 +64,7 @@ class ExperimentalFeatures:
         """
         if self._config_file and self._config_file.exists():
             try:
-                with open(self._config_file, "r") as f:
+                with open(self._config_file) as f:
                     config = json.load(f)
                     experimental = config.get("experimental_features", {})
                     self._features.update(experimental)
@@ -125,7 +125,7 @@ class ExperimentalFeatures:
         accepted_file = Path.home() / ".claude-mpm" / ".experimental_accepted"
         if accepted_file.exists():
             try:
-                with open(accepted_file, "r") as f:
+                with open(accepted_file) as f:
                     accepted = json.load(f)
                     if feature in accepted.get("features", []):
                         return False
@@ -148,7 +148,7 @@ class ExperimentalFeatures:
 
         try:
             if accepted_file.exists():
-                with open(accepted_file, "r") as f:
+                with open(accepted_file) as f:
                     data = json.load(f)
             else:
                 data = {"features": [], "timestamp": {}}

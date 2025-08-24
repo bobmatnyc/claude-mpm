@@ -14,7 +14,6 @@ This module handles:
 UPDATED: Migrated to use shared ConfigLoader pattern (TSK-0141)
 """
 
-import json
 import logging
 import os
 from dataclasses import dataclass, field
@@ -22,8 +21,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.core.shared.config_loader import ConfigLoader, ConfigPattern
+from claude_mpm.core.unified_paths import get_path_manager
 
 logger = logging.getLogger(__name__)
 
@@ -170,11 +169,13 @@ class AgentConfig:
                     "enable_caching": True,
                     "validate_on_load": True,
                     "strict_validation": False,
-                    "precedence_mode": "override"
-                }
+                    "precedence_mode": "override",
+                },
             )
 
-            loaded_config = config_loader.load_config(pattern, cache_key=f"agent_{config_file}")
+            loaded_config = config_loader.load_config(
+                pattern, cache_key=f"agent_{config_file}"
+            )
             data = loaded_config.to_dict()
 
             config = cls()
@@ -343,15 +344,15 @@ class AgentConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary for serialization."""
         return {
-            "project_agents_dir": str(self.project_agents_dir)
-            if self.project_agents_dir
-            else None,
-            "user_agents_dir": str(self.user_agents_dir)
-            if self.user_agents_dir
-            else None,
-            "system_agents_dir": str(self.system_agents_dir)
-            if self.system_agents_dir
-            else None,
+            "project_agents_dir": (
+                str(self.project_agents_dir) if self.project_agents_dir else None
+            ),
+            "user_agents_dir": (
+                str(self.user_agents_dir) if self.user_agents_dir else None
+            ),
+            "system_agents_dir": (
+                str(self.system_agents_dir) if self.system_agents_dir else None
+            ),
             "additional_paths": [str(p) for p in self.additional_paths],
             "precedence_mode": self.precedence_mode.value,
             "enable_project_agents": self.enable_project_agents,

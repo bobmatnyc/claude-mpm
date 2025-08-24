@@ -9,6 +9,6 @@ from .shared_prompt_cache import SharedPromptCache
 from .simple_cache import SimpleCacheService
 
 __all__ = [
-    "SimpleCacheService",
     "SharedPromptCache",
+    "SimpleCacheService",
 ]

@@ -12,11 +12,11 @@ from .template_generator import MemoryTemplateGenerator
 
 __all__ = [
     "AgentMemoryManager",
-    "get_memory_manager",
     "AgentPersistenceService",
-    "PersistenceStrategy",
+    "MemoryContentManager",
+    "MemoryTemplateGenerator",
     "PersistenceOperation",
     "PersistenceRecord",
-    "MemoryTemplateGenerator",
-    "MemoryContentManager",
+    "PersistenceStrategy",
+    "get_memory_manager",
 ]

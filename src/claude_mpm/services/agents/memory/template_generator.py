@@ -15,7 +15,7 @@ This module provides:
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from claude_mpm.core.config import Config
 
@@ -35,9 +35,7 @@ class MemoryTemplateGenerator:
         "Current Technical Context",
     ]
 
-    def __init__(
-        self, config: Config, working_directory: Path
-    ):
+    def __init__(self, config: Config, working_directory: Path):
         """Initialize the template generator.
 
         Args:
@@ -59,8 +57,8 @@ class MemoryTemplateGenerator:
             str: The basic memory template content
         """
         # Convert agent_id to proper name, handling cases like "test_agent" -> "Test"
-        agent_name = agent_id.replace("_agent", "").replace("_", " ").title()
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        agent_id.replace("_agent", "").replace("_", " ").title()
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # Create a simple template that agents will populate through learning
         return self._create_basic_memory_template(agent_id, limits)

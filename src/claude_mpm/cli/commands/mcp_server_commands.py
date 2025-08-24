@@ -4,9 +4,7 @@ This module provides MCP server management commands.
 Extracted from mcp.py to reduce complexity and improve maintainability.
 """
 
-import asyncio
 import os
-import shutil
 import sys
 from pathlib import Path
 
@@ -51,28 +49,31 @@ class MCPServerCommands:
             print("\n1. Run the configuration script:")
             print("   python scripts/configure_mcp_server.py")
             print("\n2. Or manually configure Claude Code:")
-            
+
             # Find project root for paths
             project_root = Path(__file__).parent.parent.parent.parent.parent
-            
+
             # Use the direct command, not the wrapper
             import shutil
+
             claude_mpm_path = shutil.which("claude-mpm")
             if not claude_mpm_path:
                 # Fallback to current executable
                 claude_mpm_path = sys.executable.replace("python", "claude-mpm")
-            
+
             print("\n   Add this to your Claude Code configuration:")
-            print("   (~/Library/Application Support/Claude/claude_desktop_config.json on macOS)")
+            print(
+                "   (~/Library/Application Support/Claude/claude_desktop_config.json on macOS)"
+            )
             print("\n   {")
             print('     "mcpServers": {')
             print('       "claude-mpm-gateway": {')
             print(f'         "command": "{claude_mpm_path}",')
-            print(f'         "args": ["mcp", "server"],')
+            print('         "args": ["mcp", "server"],')
             print(f'         "cwd": "{project_root}"')
-            print('       }')
-            print('     }')
-            print('   }')
+            print("       }")
+            print("     }")
+            print("   }")
             print("\n3. Restart Claude Code to load the MCP server")
             print("\nTo test the server directly:")
             print("   claude-mpm mcp server")
@@ -86,26 +87,30 @@ class MCPServerCommands:
         # Default behavior: Run the server directly in this process
         if test_mode:
             print("🧪 Starting MCP server in test mode...", file=sys.stderr)
-            print("   This will run the server with stdio communication.", file=sys.stderr)
+            print(
+                "   This will run the server with stdio communication.", file=sys.stderr
+            )
             print("   Press Ctrl+C to stop.\n", file=sys.stderr)
 
         try:
             # Import and run the server directly
-            from claude_mpm.services.mcp_gateway.server.stdio_server import SimpleMCPServer
-            
+            from claude_mpm.services.mcp_gateway.server.stdio_server import (
+                SimpleMCPServer,
+            )
+
             # Set environment variable if in test mode
             if test_mode:
                 os.environ["MCP_MODE"] = "test"
             else:
                 os.environ["MCP_MODE"] = "production"
-            
+
             # Create and run the server
             self.logger.info("Starting MCP Gateway Server directly...")
             server = SimpleMCPServer(name="claude-mpm-gateway", version="1.0.0")
-            
+
             # Run the server asynchronously
             await server.run()
-            
+
             return 0
 
         except ImportError as e:
@@ -113,7 +118,8 @@ class MCPServerCommands:
             # Don't print to stdout as it would interfere with JSON-RPC protocol
             # Log to stderr instead
             print(
-                f"❌ Error: Could not import MCP server components: {e}", file=sys.stderr
+                f"❌ Error: Could not import MCP server components: {e}",
+                file=sys.stderr,
             )
             print("\nMake sure the MCP package is installed:", file=sys.stderr)
             print("  pip install mcp", file=sys.stderr)

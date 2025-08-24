@@ -17,7 +17,7 @@ Created: 2025-07-16
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional
 
 from ..config.default_model_config import (
     DefaultModelConfigManager,
@@ -27,7 +27,7 @@ from ..config.model_env_defaults import (
     ModelEnvironmentLoader,
     get_model_for_agent_from_env,
 )
-from ..services.model_selector import ModelSelectionCriteria, ModelSelector, ModelType
+from ..services.model_selector import ModelSelector, ModelType
 
 logger = logging.getLogger(__name__)
 
@@ -518,8 +518,8 @@ class SystemAgentConfigManager:
             "capabilities_coverage": {
                 "total_capabilities": len(all_capabilities),
                 "total_specializations": len(all_specializations),
-                "unique_capabilities": sorted(list(all_capabilities)),
-                "unique_specializations": sorted(list(all_specializations)),
+                "unique_capabilities": sorted(all_capabilities),
+                "unique_specializations": sorted(all_specializations),
             },
             "configuration_health": self.validate_agent_model_assignments(),
         }
@@ -620,13 +620,13 @@ if __name__ == "__main__":
 
     # Show model distribution
     distribution = manager.get_model_distribution()
-    print(f"\nModel Distribution:")
+    print("\nModel Distribution:")
     for model_id, count in distribution.items():
         print(f"  {model_id}: {count} agents")
 
     # Show agents by model
-    print(f"\nAgents by Model:")
-    for model_id in distribution.keys():
+    print("\nAgents by Model:")
+    for model_id in distribution:
         agents_with_model = manager.get_agents_by_model(model_id)
         print(f"  {model_id}:")
         for agent in agents_with_model:
@@ -634,7 +634,7 @@ if __name__ == "__main__":
 
     # Validation
     validation = manager.validate_agent_model_assignments()
-    print(f"\nValidation Results:")
+    print("\nValidation Results:")
     print(f"  Valid: {validation['valid']}")
     print(f"  Issues: {len(validation['issues'])}")
     print(f"  Warnings: {len(validation['warnings'])}")
@@ -642,7 +642,7 @@ if __name__ == "__main__":
 
     # Configuration summary
     summary = manager.get_configuration_summary()
-    print(f"\nConfiguration Summary:")
+    print("\nConfiguration Summary:")
     print(f"  Enabled Agents: {summary['enabled_agents']}")
     print(f"  Environment Overrides: {len(summary['environment_overrides'])}")
     print(

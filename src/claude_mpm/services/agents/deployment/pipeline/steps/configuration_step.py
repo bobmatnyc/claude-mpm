@@ -63,7 +63,7 @@ class ConfigurationLoadStep(BaseDeploymentStep):
             execution_time = time.time() - start_time
             context.step_timings[self.name] = execution_time
 
-            error_msg = f"Failed to load configuration: {str(e)}"
+            error_msg = f"Failed to load configuration: {e!s}"
             self.logger.error(error_msg)
             context.add_error(error_msg)
 

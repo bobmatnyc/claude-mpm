@@ -17,8 +17,8 @@ from .agent_definition import (
 __all__ = [
     "AgentDefinition",
     "AgentMetadata",
-    "AgentType",
-    "AgentSection",
-    "AgentWorkflow",
     "AgentPermissions",
+    "AgentSection",
+    "AgentType",
+    "AgentWorkflow",
 ]

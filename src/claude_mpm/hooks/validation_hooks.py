@@ -61,7 +61,7 @@ class ValidationHooks:
                         result.is_valid = False
             except Exception as e:
                 logger.error(f"Pre-load hook failed: {e}")
-                result.warnings.append(f"Pre-load hook failed: {str(e)}")
+                result.warnings.append(f"Pre-load hook failed: {e!s}")
 
         return result
 
@@ -79,7 +79,7 @@ class ValidationHooks:
                     result.warnings.extend(hook_result.warnings)
             except Exception as e:
                 logger.error(f"Post-load hook failed: {e}")
-                result.warnings.append(f"Post-load hook failed: {str(e)}")
+                result.warnings.append(f"Post-load hook failed: {e!s}")
 
         return result
 
@@ -107,7 +107,7 @@ class ValidationHooks:
                     result.is_valid = False
             except Exception as e:
                 logger.error(f"Pre-execute hook failed: {e}")
-                result.warnings.append(f"Pre-execute hook failed: {str(e)}")
+                result.warnings.append(f"Pre-execute hook failed: {e!s}")
 
         return result
 
@@ -118,7 +118,7 @@ async def validate_agent_dependencies(profile_path: Path) -> ValidationResult:
     result = ValidationResult(is_valid=True)
 
     try:
-        with open(profile_path, "r") as f:
+        with open(profile_path) as f:
             profile_data = yaml.safe_load(f)
 
         # Check for circular dependencies

@@ -8,7 +8,6 @@ maintainability and testability.
 """
 
 import json
-import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -140,9 +139,8 @@ class AgentDiscoveryService:
         if template_file.exists():
             if self._validate_template_file(template_file):
                 return template_file
-            else:
-                self.logger.error(f"Invalid template file: {template_file}")
-                return None
+            self.logger.error(f"Invalid template file: {template_file}")
+            return None
 
         self.logger.error(f"Template not found for agent: {agent_name}")
         return None
@@ -198,10 +196,8 @@ class AgentDiscoveryService:
                 "name": metadata.get("name", template_file.stem),
                 "description": metadata.get("description", "No description available"),
                 "version": template_data.get(
-                    "agent_version", 
-                    template_data.get("version", 
-                        metadata.get("version", "1.0.0")
-                    )
+                    "agent_version",
+                    template_data.get("version", metadata.get("version", "1.0.0")),
                 ),
                 "tools": capabilities.get("tools", []),
                 "specializations": metadata.get(

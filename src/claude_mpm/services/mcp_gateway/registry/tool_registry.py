@@ -321,7 +321,7 @@ class ToolRegistry(BaseMCPService, IMCPToolRegistry):
             return result
 
         except Exception as e:
-            error_msg = f"Exception invoking tool {tool_name}: {str(e)}"
+            error_msg = f"Exception invoking tool {tool_name}: {e!s}"
             self.log_error(error_msg)
             self.log_error(f"Traceback: {traceback.format_exc()}")
 

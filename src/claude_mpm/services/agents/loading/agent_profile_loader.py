@@ -20,7 +20,6 @@ multi-file implementation for better maintainability.
 """
 
 import asyncio
-import hashlib
 import json
 import logging
 import os
@@ -28,7 +27,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
@@ -37,7 +36,6 @@ from claude_mpm.core.config import Config
 from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.services.agents.registry import AgentRegistry
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
-from claude_mpm.utils.path_operations import path_ops
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +144,7 @@ class AgentProfileLoader(BaseService):
         # Performance tracking
         self.load_metrics: Dict[str, float] = {}
 
-        logger.info(f"AgentProfileLoader initialized successfully")
+        logger.info("AgentProfileLoader initialized successfully")
         logger.info(f"  Working directory: {self.working_directory}")
         logger.info(f"  Framework path: {self.framework_path}")
         logger.info(f"  Tier paths: {list(self.tier_paths.keys())}")
@@ -329,7 +327,7 @@ class AgentProfileLoader(BaseService):
                     instructions = data.get("instructions", "")
 
             # Create profile
-            profile = AgentProfile(
+            return AgentProfile(
                 name=data.get("name", file_path.stem),
                 role=data.get("role", "agent"),
                 description=data.get("description", ""),
@@ -341,8 +339,6 @@ class AgentProfileLoader(BaseService):
                 metadata=data.get("metadata", {}),
                 status=ProfileStatus.LOADED,
             )
-
-            return profile
 
         except Exception as e:
             logger.error(f"Error parsing profile {file_path}: {e}")
@@ -421,9 +417,7 @@ class AgentProfileLoader(BaseService):
                 for file_path in tier_path.glob(pattern):
                     agent_name = file_path.stem
                     # Remove common suffixes
-                    if agent_name.endswith("_agent"):
-                        agent_name = agent_name[:-6]
-                    elif agent_name.endswith("-agent"):
+                    if agent_name.endswith(("_agent", "-agent")):
                         agent_name = agent_name[:-6]
 
                     if agent_name not in agents:
@@ -448,7 +442,7 @@ class AgentProfileLoader(BaseService):
         for agents in discovered.values():
             all_agents.update(agents)
 
-        return sorted(list(all_agents))
+        return sorted(all_agents)
 
     # ========================================================================
     # Improved Prompts Management
@@ -461,7 +455,7 @@ class AgentProfileLoader(BaseService):
 
         if prompt_file.exists():
             try:
-                with open(prompt_file, "r") as f:
+                with open(prompt_file) as f:
                     data = json.load(f)
                     for prompt_data in data:
                         prompt = ImprovedPrompt(

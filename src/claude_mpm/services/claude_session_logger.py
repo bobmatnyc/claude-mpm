@@ -159,8 +159,7 @@ class ClaudeSessionLogger:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
 
         # Create filename: session_id-agent-timestamp.json
-        filename = f"{self.session_id}-{agent_name}-{timestamp}.json"
-        return filename
+        return f"{self.session_id}-{agent_name}-{timestamp}.json"
 
     def log_response(
         self,

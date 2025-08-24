@@ -13,7 +13,7 @@ from .service_factory import ServiceFactory
 
 __all__ = [
     "AsyncServiceBase",
-    "ConfigServiceBase", 
+    "ConfigServiceBase",
     "LifecycleServiceBase",
     "ManagerBase",
     "ServiceFactory",

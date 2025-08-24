@@ -15,4 +15,4 @@ from .diagnostic_runner import DiagnosticRunner
 from .doctor_reporter import DoctorReporter
 from .models import DiagnosticResult, DiagnosticStatus
 
-__all__ = ["DiagnosticRunner", "DoctorReporter", "DiagnosticResult", "DiagnosticStatus"]
+__all__ = ["DiagnosticResult", "DiagnosticRunner", "DiagnosticStatus", "DoctorReporter"]

@@ -127,10 +127,7 @@ class EnvironmentContext:
                 return True
 
         # Additional heuristics for CI detection
-        if os.environ.get("BUILD_ID") or os.environ.get("BUILD_NUMBER"):
-            return True
-
-        return False
+        return bool(os.environ.get("BUILD_ID") or os.environ.get("BUILD_NUMBER"))
 
     @classmethod
     def _detect_docker(cls) -> bool:
@@ -152,7 +149,7 @@ class EnvironmentContext:
 
         # Check cgroup for docker/containerd references
         try:
-            with open("/proc/1/cgroup", "r") as f:
+            with open("/proc/1/cgroup") as f:
                 cgroup_content = f.read()
                 if "docker" in cgroup_content or "containerd" in cgroup_content:
                     return True
@@ -196,10 +193,7 @@ class EnvironmentContext:
             pass
 
         # Check for Jupyter-specific environment variables
-        if "JPY_PARENT_PID" in os.environ:
-            return True
-
-        return False
+        return "JPY_PARENT_PID" in os.environ
 
     @classmethod
     def _detect_ssh(cls) -> bool:

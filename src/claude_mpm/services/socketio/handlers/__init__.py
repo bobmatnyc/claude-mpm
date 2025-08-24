@@ -17,9 +17,9 @@ from .registry import EventHandlerRegistry
 __all__ = [
     "BaseEventHandler",
     "ConnectionEventHandler",
-    "ProjectEventHandler",
-    "MemoryEventHandler",
+    "EventHandlerRegistry",
     "FileEventHandler",
     "GitEventHandler",
-    "EventHandlerRegistry",
+    "MemoryEventHandler",
+    "ProjectEventHandler",
 ]

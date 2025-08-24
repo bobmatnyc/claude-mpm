@@ -4,6 +4,7 @@ This module provides validation and repair functionality for agent frontmatter.
 Extracted from AgentDeploymentService to reduce complexity and improve maintainability.
 """
 
+import contextlib
 import logging
 from pathlib import Path
 from typing import Any, Dict
@@ -139,10 +140,8 @@ class AgentFrontmatterValidator:
                         )
                         results["replaced"].append(agent_name)
                         # Delete the file so it will be recreated
-                        try:
+                        with contextlib.suppress(Exception):
                             agent_file.unlink()
-                        except Exception:
-                            pass
 
                 except Exception as e:
                     error_msg = f"Failed to validate agent {agent_file.name}: {e}"

@@ -1,7 +1,7 @@
 """Agent name normalization utilities for consistent naming across the system."""
 
 import logging
-from typing import Dict, Optional
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 

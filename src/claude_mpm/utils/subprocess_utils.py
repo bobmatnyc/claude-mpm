@@ -7,12 +7,12 @@ with proper error handling, timeouts, and process cleanup.
 """
 
 import asyncio
+import contextlib
 import logging
 import shlex
-import signal
 import subprocess
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import psutil
 
@@ -122,6 +122,7 @@ def run_subprocess(
             cwd=cwd,
             env=env,
             **kwargs,
+            check=False,
         )
 
         return SubprocessResult(
@@ -229,16 +230,14 @@ def terminate_process_tree(pid: int, timeout: float = 5.0) -> int:
 
     # Get all child processes recursively
     children = parent.children(recursive=True)
-    processes = [parent] + children
+    processes = [parent, *children]
 
     terminated_count = 0
 
     # First, try graceful termination
     for process in processes:
-        try:
+        with contextlib.suppress(psutil.NoSuchProcess):
             process.terminate()
-        except psutil.NoSuchProcess:
-            pass
 
     # Wait for processes to terminate gracefully
     gone, alive = psutil.wait_procs(processes, timeout=timeout)

@@ -76,7 +76,6 @@ class BaseDeploymentStep(ABC):
         Returns:
             Result of executing this step
         """
-        pass
 
     def should_execute(self, context) -> bool:
         """Check if this step should be executed.

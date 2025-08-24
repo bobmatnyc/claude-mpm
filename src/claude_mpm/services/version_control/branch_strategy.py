@@ -358,9 +358,8 @@ class BranchStrategyManager:
             self.current_strategy = self.strategies[strategy_type]
             self.logger.info(f"Set branch strategy to {strategy_type.value}")
             return True
-        else:
-            self.logger.error(f"Unknown strategy type: {strategy_type}")
-            return False
+        self.logger.error(f"Unknown strategy type: {strategy_type}")
+        return False
 
     def generate_branch_name(
         self,
@@ -395,10 +394,9 @@ class BranchStrategyManager:
             prefix = branch_type.value + "/"
             if ticket_id:
                 return f"{prefix}{ticket_id}"
-            elif description:
+            if description:
                 return f"{prefix}{self._sanitize_branch_name(description)}"
-            else:
-                return f"{prefix}{datetime.now().strftime('%Y%m%d')}"
+            return f"{prefix}{datetime.now().strftime('%Y%m%d')}"
 
         # Generate name based on rule
         if strategy.strategy_type == BranchStrategyType.ISSUE_DRIVEN:
@@ -614,8 +612,7 @@ class BranchStrategyManager:
         # Default merge message
         if ticket_title:
             return f"Merge {branch_name}: {ticket_title}"
-        else:
-            return f"Merge {branch_name}"
+        return f"Merge {branch_name}"
 
     def get_quality_gates(self) -> List[str]:
         """Get quality gates for the current strategy."""

@@ -7,10 +7,9 @@ Extracted from AgentDeploymentService as part of the refactoring to improve
 maintainability and testability.
 """
 
-import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Tuple
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -83,9 +82,8 @@ class AgentVersionManager:
         if isinstance(version_tuple, tuple) and len(version_tuple) == 3:
             major, minor, patch = version_tuple
             return f"{major}.{minor}.{patch}"
-        else:
-            # Fallback for legacy format
-            return str(version_tuple)
+        # Fallback for legacy format
+        return str(version_tuple)
 
     def is_old_version_format(self, version_str: str) -> bool:
         """
@@ -132,7 +130,7 @@ class AgentVersionManager:
         for a, b in zip(v1, v2):
             if a < b:
                 return -1
-            elif a > b:
+            if a > b:
                 return 1
         return 0
 
@@ -256,9 +254,9 @@ class AgentVersionManager:
             # Extract agent version from template
             metadata = template_data.get("metadata", {})
             current_agent_version = self.parse_version(
-                template_data.get("agent_version") or 
-                template_data.get("version") or
-                metadata.get("version", 0)
+                template_data.get("agent_version")
+                or template_data.get("version")
+                or metadata.get("version", 0)
             )
 
             # If old format detected, always trigger update for migration

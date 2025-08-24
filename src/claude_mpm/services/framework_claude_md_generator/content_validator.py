@@ -5,7 +5,7 @@ Validates generated content structure and completeness.
 """
 
 import re
-from typing import List, Set, Tuple
+from typing import List, Tuple
 
 
 class ContentValidator:

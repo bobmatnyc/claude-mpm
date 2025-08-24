@@ -263,6 +263,32 @@ PROJECT_ORGANIZER_CONFIG = {
     },
 }
 
+# ImageMagick Agent Metadata
+IMAGEMAGICK_CONFIG = {
+    "name": "imagemagick_agent",
+    "version": "1.0.0",
+    "type": "optimization_agent",
+    "capabilities": [
+        "image_optimization",
+        "format_conversion",
+        "responsive_image_generation",
+        "batch_processing",
+        "web_performance_optimization",
+        "core_web_vitals_improvement",
+        "avif_webp_conversion",
+        "quality_compression",
+    ],
+    "primary_interface": "imagemagick_cli",
+    "performance_targets": {
+        "single_image_optimization": "30s",
+        "batch_processing_100_images": "10m",
+        "format_conversion": "10s",
+        "responsive_set_generation": "60s",
+        "file_size_reduction": "50-70%",
+        "quality_threshold": "0.95_ssim",
+    },
+}
+
 # Aggregate all configs for easy access
 ALL_AGENT_CONFIGS = {
     "documentation": DOCUMENTATION_CONFIG,
@@ -276,4 +302,5 @@ ALL_AGENT_CONFIGS = {
     "engineer": ENGINEER_CONFIG,
     "data_engineer": DATA_ENGINEER_CONFIG,
     "project_organizer": PROJECT_ORGANIZER_CONFIG,
+    "imagemagick": IMAGEMAGICK_CONFIG,
 }

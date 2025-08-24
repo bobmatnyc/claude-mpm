@@ -14,7 +14,7 @@ import asyncio
 import threading
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 try:
     import socketio
@@ -55,7 +55,7 @@ class SocketIOClientProxy:
 
     def stop_sync(self):
         """Stop the Socket.IO client connection."""
-        self.logger.debug(f"SocketIOClientProxy: Disconnecting from server")
+        self.logger.debug("SocketIOClientProxy: Disconnecting from server")
         if self._sio_client:
             self._sio_client.disconnect()
 
@@ -90,7 +90,7 @@ class SocketIOClientProxy:
 
             @self._sio_client.event
             async def disconnect():
-                self.logger.info(f"SocketIOClientProxy: Disconnected from server")
+                self.logger.info("SocketIOClientProxy: Disconnected from server")
 
             # Connect to the server
             await self._sio_client.connect(f"http://127.0.0.1:{self.port}")
@@ -128,7 +128,7 @@ class SocketIOClientProxy:
                     and not self._client_loop.is_closed()
                 ):
                     try:
-                        future = asyncio.run_coroutine_threadsafe(
+                        asyncio.run_coroutine_threadsafe(
                             self._sio_client.emit("claude_event", event),
                             self._client_loop,
                         )
@@ -160,7 +160,7 @@ class SocketIOClientProxy:
         self.logger.debug(f"SocketIOClientProxy: Session started {session_id}")
 
     def session_ended(self):
-        self.logger.debug(f"SocketIOClientProxy: Session ended")
+        self.logger.debug("SocketIOClientProxy: Session ended")
 
     def claude_status_changed(
         self, status: str, pid: Optional[int] = None, message: str = ""

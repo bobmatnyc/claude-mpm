@@ -13,28 +13,27 @@ Part of ISS-0035: MCP Gateway Implementation - Core Gateway and Tool Registry
 """
 
 import asyncio
+import contextlib
 import json
 import traceback
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 # Import from the official MCP package
-from mcp.server import NotificationOptions, Server
+from mcp.server import Server
 from mcp.types import (
     EmbeddedResource,
     ImageContent,
-    InitializeResult,
     TextContent,
     Tool,
 )
 
-from claude_mpm.services.mcp_gateway.core.base import BaseMCPService, MCPServiceState
+from claude_mpm.services.mcp_gateway.core.base import BaseMCPService
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     IMCPCommunication,
     IMCPGateway,
     IMCPToolRegistry,
     MCPToolInvocation,
-    MCPToolResult,
 )
 
 
@@ -166,18 +165,14 @@ class MCPGateway(BaseMCPService, IMCPGateway):
                     # Return successful result
                     if isinstance(result.data, str):
                         return [TextContent(type="text", text=result.data)]
-                    else:
-                        return [
-                            TextContent(
-                                type="text", text=json.dumps(result.data, indent=2)
-                            )
-                        ]
-                else:
-                    # Return error
-                    return [TextContent(type="text", text=f"Error: {result.error}")]
+                    return [
+                        TextContent(type="text", text=json.dumps(result.data, indent=2))
+                    ]
+                # Return error
+                return [TextContent(type="text", text=f"Error: {result.error}")]
 
             except Exception as e:
-                error_msg = f"Failed to invoke tool {name}: {str(e)}"
+                error_msg = f"Failed to invoke tool {name}: {e!s}"
                 self.log_error(error_msg)
                 self._metrics["errors"] += 1
                 return [TextContent(type="text", text=f"Error: {error_msg}")]
@@ -267,10 +262,8 @@ class MCPGateway(BaseMCPService, IMCPGateway):
         # Cancel run task if active
         if self._run_task and not self._run_task.done():
             self._run_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._run_task
-            except asyncio.CancelledError:
-                pass
 
         # Clean up resources
         if self._tool_registry:
@@ -328,7 +321,7 @@ class MCPGateway(BaseMCPService, IMCPGateway):
             return {
                 "jsonrpc": "2.0",
                 "id": request.get("id"),
-                "error": {"code": -32603, "message": f"Internal error: {str(e)}"},
+                "error": {"code": -32603, "message": f"Internal error: {e!s}"},
             }
 
     async def run(self) -> None:

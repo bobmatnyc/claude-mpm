@@ -13,9 +13,9 @@ from .agent_versioning import AgentVersionManager
 __all__ = [
     "AgentDeploymentService",
     "AgentLifecycleManager",
-    "LifecycleState",
-    "LifecycleOperation",
     "AgentLifecycleRecord",
-    "LifecycleOperationResult",
     "AgentVersionManager",
+    "LifecycleOperation",
+    "LifecycleOperationResult",
+    "LifecycleState",
 ]

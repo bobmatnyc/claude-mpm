@@ -11,8 +11,8 @@ from .template_validator import TemplateValidator
 from .validation_result import ValidationResult, ValidationSeverity
 
 __all__ = [
-    "DeploymentValidator",
     "AgentValidator",
+    "DeploymentValidator",
     "TemplateValidator",
     "ValidationResult",
     "ValidationSeverity",

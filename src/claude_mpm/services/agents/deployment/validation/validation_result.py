@@ -175,12 +175,11 @@ class ValidationResult:
         Returns:
             New ValidationResult with merged issues
         """
-        merged = ValidationResult(
+        return ValidationResult(
             is_valid=self.is_valid and other.is_valid,
             issues=self.issues + other.issues,
             metadata={**self.metadata, **other.metadata},
         )
-        return merged
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert validation result to dictionary.
@@ -208,10 +207,7 @@ class ValidationResult:
 
     def __str__(self) -> str:
         """String representation of the validation result."""
-        if self.is_valid:
-            status = "VALID"
-        else:
-            status = "INVALID"
+        status = "VALID" if self.is_valid else "INVALID"
 
         summary = f"Validation {status}"
 

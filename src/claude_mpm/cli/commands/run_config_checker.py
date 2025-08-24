@@ -40,10 +40,9 @@ class RunConfigChecker:
                 """Format file size in human readable format."""
                 if size_bytes < 1024:
                     return f"{size_bytes} B"
-                elif size_bytes < 1024 * 1024:
+                if size_bytes < 1024 * 1024:
                     return f"{size_bytes / 1024:.1f} KB"
-                else:
-                    return f"{size_bytes / (1024 * 1024):.1f} MB"
+                return f"{size_bytes / (1024 * 1024):.1f} MB"
 
             # Warn if file is larger than 500KB
             if file_size > 500 * 1024:  # 500KB threshold
@@ -122,7 +121,7 @@ class RunConfigChecker:
                     print(
                         f"⚠️  Memory cleanup threshold is very low: {cleanup_threshold}MB"
                     )
-                    print(f"   Consider increasing to at least 50MB")
+                    print("   Consider increasing to at least 50MB")
 
             # Check for common configuration issues
             self._check_common_config_issues(config)
@@ -153,7 +152,7 @@ class RunConfigChecker:
                 if config.get(key) is not None:
                     self.logger.warning(f"Deprecated configuration key found: {key}")
                     print(f"⚠️  Deprecated configuration key: {key}")
-                    print(f"   Consider removing this key from your configuration")
+                    print("   Consider removing this key from your configuration")
 
         except Exception as e:
             self.logger.debug(f"Common config issues check failed: {e}")

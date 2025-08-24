@@ -9,7 +9,7 @@ from .commands import CommandDefinition, CommandRegistry, register_standard_comm
 
 __all__ = [
     "ArgumentRegistry",
-    "CommandRegistry",
     "CommandDefinition",
+    "CommandRegistry",
     "register_standard_commands",
 ]

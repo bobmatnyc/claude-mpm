@@ -13,7 +13,7 @@ agent outputs because:
 """
 
 import re
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.logger import get_logger
@@ -162,7 +162,7 @@ INSTRUCTIONS: Review your memory above before proceeding. Apply learned patterns
                 success=True,
                 data=context.data,
                 modified=False,
-                error=f"Memory injection failed: {str(e)}",
+                error=f"Memory injection failed: {e!s}",
             )
 
 
@@ -319,7 +319,7 @@ class MemoryPostDelegationHook(PostDelegationHook):
                 success=True,
                 data=context.data,
                 modified=False,
-                error=f"Learning extraction failed: {str(e)}",
+                error=f"Learning extraction failed: {e!s}",
             )
 
     def _extract_learnings(self, text: str) -> Dict[str, List[str]]:
@@ -339,7 +339,7 @@ class MemoryPostDelegationHook(PostDelegationHook):
         Returns:
             Dictionary mapping learning types to lists of extracted learnings
         """
-        learnings = {learning_type: [] for learning_type in self.type_mapping.keys()}
+        learnings = {learning_type: [] for learning_type in self.type_mapping}
         seen_learnings = set()  # Avoid duplicates
 
         # Pattern to find memory blocks with multiple trigger phrases
@@ -394,7 +394,7 @@ class MemoryPostDelegationHook(PostDelegationHook):
                         f"Unsupported learning type: {learning_type}. Supported types: {list(self.type_mapping.keys())}"
                     )
             else:
-                logger.debug(f"Invalid memory block format - missing Type or Content")
+                logger.debug("Invalid memory block format - missing Type or Content")
 
         # Log summary of extracted learnings
         total_learnings = sum(len(items) for items in learnings.values())

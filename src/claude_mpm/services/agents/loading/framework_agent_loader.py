@@ -12,14 +12,12 @@ This service integrates with the main agent_loader.py to provide
 markdown-based agent profiles alongside JSON-based templates.
 """
 
-import json
 import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from claude_mpm.agents.agent_loader import (
     AgentTier,
-    get_agent_tier,
     list_agents_by_tier,
 )
 from claude_mpm.core.unified_paths import get_path_manager
@@ -97,7 +95,7 @@ class FrameworkAgentLoader:
         current = Path.cwd()
 
         # Check current directory and parents
-        for path in [current] + list(current.parents):
+        for path in [current, *list(current.parents)]:
             framework_instructions = path / "agents" / "INSTRUCTIONS.md"
             framework_claude = path / "agents" / "CLAUDE.md"  # Legacy
             if framework_instructions.exists() or framework_claude.exists():
@@ -110,7 +108,7 @@ class FrameworkAgentLoader:
         current = Path.cwd()
 
         # Check current directory and parents for .claude-mpm
-        for path in [current] + list(current.parents):
+        for path in [current, *list(current.parents)]:
             claude_pm_dir = path / get_path_manager().CONFIG_DIR
             if claude_pm_dir.exists():
                 return path

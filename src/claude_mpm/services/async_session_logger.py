@@ -15,7 +15,6 @@ Key Features:
 - Configuration via .claude-mpm/configuration.yaml
 """
 
-import asyncio
 import json
 import logging
 import logging.handlers
@@ -27,7 +26,7 @@ from datetime import datetime
 from enum import Enum
 from queue import Full, Queue
 from threading import Lock, Thread
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional
 
 from claude_mpm.core.constants import PerformanceConfig, SystemLimits, TimeoutConfig
 

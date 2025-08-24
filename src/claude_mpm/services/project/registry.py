@@ -18,7 +18,6 @@ to provide complete project lifecycle tracking.
 
 import os
 import platform
-import shutil
 import subprocess
 import sys
 import uuid
@@ -29,13 +28,10 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from claude_mpm.core.logger import get_logger
-from claude_mpm.core.unified_paths import get_project_root
 
 
 class ProjectRegistryError(Exception):
     """Base exception for project registry operations."""
-
-    pass
 
 
 class ProjectRegistry:
@@ -102,10 +98,9 @@ class ProjectRegistry:
                 )
                 # Update existing entry with current session info
                 return self._update_existing_entry(existing_entry)
-            else:
-                self.logger.debug("Creating new project registry entry")
-                # Create new entry
-                return self._create_new_entry()
+            self.logger.debug("Creating new project registry entry")
+            # Create new entry
+            return self._create_new_entry()
 
         except Exception as e:
             self.logger.error(f"Failed to get or create project entry: {e}")
@@ -129,7 +124,7 @@ class ProjectRegistry:
             # Search all registry files
             for registry_file in self.registry_dir.glob("*.yaml"):
                 try:
-                    with open(registry_file, "r", encoding="utf-8") as f:
+                    with open(registry_file, encoding="utf-8") as f:
                         data = yaml.safe_load(f) or {}
 
                     # Check if project_path matches
@@ -311,6 +306,7 @@ class ProjectRegistry:
                 capture_output=True,
                 text=True,
                 timeout=5,
+                check=False,
             )
 
             if result.returncode == 0:
@@ -324,6 +320,7 @@ class ProjectRegistry:
                         capture_output=True,
                         text=True,
                         timeout=5,
+                        check=False,
                     )
                     if result.returncode == 0:
                         git_info["branch"] = result.stdout.strip()
@@ -338,6 +335,7 @@ class ProjectRegistry:
                         capture_output=True,
                         text=True,
                         timeout=5,
+                        check=False,
                     )
                     if result.returncode == 0:
                         git_info["remote_url"] = result.stdout.strip()
@@ -352,6 +350,7 @@ class ProjectRegistry:
                         capture_output=True,
                         text=True,
                         timeout=5,
+                        check=False,
                     )
                     if result.returncode == 0:
                         git_info["last_commit"] = result.stdout.strip()
@@ -366,6 +365,7 @@ class ProjectRegistry:
                         capture_output=True,
                         text=True,
                         timeout=5,
+                        check=False,
                     )
                     if result.returncode == 0:
                         git_info["has_uncommitted"] = bool(result.stdout.strip())
@@ -517,7 +517,7 @@ class ProjectRegistry:
         try:
             for registry_file in self.registry_dir.glob("*.yaml"):
                 try:
-                    with open(registry_file, "r", encoding="utf-8") as f:
+                    with open(registry_file, encoding="utf-8") as f:
                         data = yaml.safe_load(f) or {}
                     projects.append(data)
                 except Exception as e:
@@ -553,7 +553,7 @@ class ProjectRegistry:
         try:
             for registry_file in self.registry_dir.glob("*.yaml"):
                 try:
-                    with open(registry_file, "r", encoding="utf-8") as f:
+                    with open(registry_file, encoding="utf-8") as f:
                         data = yaml.safe_load(f) or {}
 
                     # Check last accessed time

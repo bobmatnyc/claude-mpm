@@ -8,7 +8,8 @@ Handles creation of necessary directories and configuration files.
 import json
 import os
 import shutil
-from typing import Any, Dict, Optional
+import sys
+from typing import Dict, Optional
 
 import yaml
 
@@ -142,12 +143,10 @@ class ProjectInitializer:
 
             # Log successful creation with details
             self.logger.info(f"Initialized project directory at {self.project_dir}")
-            self.logger.debug(f"Created directories: agents, config, responses, logs")
+            self.logger.debug("Created directories: agents, config, responses, logs")
 
             # Print appropriate message to console for visibility during startup
             # BUT: Don't print to stdout when running MCP server (interferes with JSON-RPC)
-            import sys
-
             is_mcp_mode = "mcp" in sys.argv and "start" in sys.argv
 
             if not is_mcp_mode:
@@ -216,8 +215,6 @@ class ProjectInitializer:
 
                 if migrated_count > 0:
                     # Don't print to stdout when running MCP server
-                    import sys
-
                     is_mcp_mode = "mcp" in sys.argv and "start" in sys.argv
                     if not is_mcp_mode:
                         print(
@@ -254,7 +251,7 @@ class ProjectInitializer:
         """
         try:
             # Read existing JSON configuration
-            with open(old_file, "r") as f:
+            with open(old_file) as f:
                 config = json.load(f)
 
             # Write as YAML
@@ -327,8 +324,6 @@ class ProjectInitializer:
         dependencies = {}
 
         # Check Python version
-        import sys
-
         dependencies["python"] = sys.version_info >= (3, 8)
 
         # Check Claude CLI

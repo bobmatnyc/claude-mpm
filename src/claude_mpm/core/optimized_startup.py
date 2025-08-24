@@ -20,7 +20,8 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
 
 from ..core.logger import get_logger
 from .cache import get_file_cache

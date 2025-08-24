@@ -12,7 +12,6 @@ chronological order for session replay and analysis.
 """
 
 import json
-import os
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -241,29 +240,28 @@ class AgentSession:
         # Check event type patterns
         if "prompt" in event_type.lower() or event_type == "user_input":
             return EventCategory.PROMPT
-        elif "delegation" in event_type.lower() or event_type == "Task":
+        if "delegation" in event_type.lower() or event_type == "Task":
             return EventCategory.DELEGATION
-        elif "tool" in event_type.lower() or event_type in [
+        if "tool" in event_type.lower() or event_type in [
             "PreToolUse",
             "PostToolUse",
         ]:
             return EventCategory.TOOL
-        elif (
+        if (
             "file" in event_type.lower()
             or "write" in event_type.lower()
             or "read" in event_type.lower()
         ):
             return EventCategory.FILE
-        elif "todo" in event_type.lower():
+        if "todo" in event_type.lower():
             return EventCategory.TODO
-        elif "response" in event_type.lower() or event_type in ["Stop", "SubagentStop"]:
+        if "response" in event_type.lower() or event_type in ["Stop", "SubagentStop"]:
             return EventCategory.RESPONSE
-        elif "memory" in event_type.lower():
+        if "memory" in event_type.lower():
             return EventCategory.MEMORY
-        elif "status" in event_type.lower() or "session" in event_type.lower():
+        if "status" in event_type.lower() or "session" in event_type.lower():
             return EventCategory.STATUS
-        else:
-            return EventCategory.SYSTEM
+        return EventCategory.SYSTEM
 
     def _process_event(self, event: SessionEvent):
         """Process specific event types to update session state.
@@ -376,9 +374,8 @@ class AgentSession:
                 self.active_delegation.todos_modified.append(data["todos"])
 
         # Track memory updates
-        elif event.category == EventCategory.MEMORY:
-            if self.active_delegation:
-                self.active_delegation.memory_updates.append(data)
+        elif event.category == EventCategory.MEMORY and self.active_delegation:
+            self.active_delegation.memory_updates.append(data)
 
     def finalize(self):
         """Finalize the session by calculating final metrics.
@@ -534,6 +531,6 @@ class AgentSession:
 
         WHY: Enables analysis of historical sessions.
         """
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             data = json.load(f)
         return cls.from_dict(data)

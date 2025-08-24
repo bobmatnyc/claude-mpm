@@ -18,17 +18,15 @@ WHY indexed memory:
 
 import bisect
 import hashlib
-import mmap
-import os
 import pickle
 import re
 import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from ...core.cache import FileSystemCache, get_file_cache
+from ...core.cache import get_file_cache
 from ...core.logger import get_logger
 
 
@@ -256,7 +254,7 @@ class BTreeIndex:
         self.index = [(k, id) for k, id in self.index if id != entry_id]
 
     def range_search(
-        self, min_key: Any = None, max_key: Any = None, limit: int = None
+        self, min_key: Any = None, max_key: Any = None, limit: Optional[int] = None
     ) -> List[str]:
         """Search for entries in key range.
 
@@ -366,8 +364,8 @@ class IndexedMemoryService:
         agent_id: str,
         content: str,
         category: str = "general",
-        tags: List[str] = None,
-        metadata: Dict[str, Any] = None,
+        tags: Optional[List[str]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Add a new memory entry.
 

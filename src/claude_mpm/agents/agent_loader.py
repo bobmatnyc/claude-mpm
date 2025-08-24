@@ -40,8 +40,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 # Import modular components
-from claude_mpm.core.unified_agent_registry import AgentTier
-from claude_mpm.core.unified_agent_registry import UnifiedAgentRegistry as AgentRegistry
+from claude_mpm.core.unified_agent_registry import (
+    AgentTier,
+    get_agent_registry,
+)
+from claude_mpm.core.unified_paths import get_path_manager
+from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 
 from ..core.agent_name_normalizer import AgentNameNormalizer
 from .base_agent_loader import prepend_base_instructions
@@ -71,11 +75,11 @@ __all__ = [
     "AgentLoader",
     "AgentTier",
     "get_agent_prompt",
-    "list_available_agents",
-    "validate_agent_files",
-    "reload_agents",
     "get_agent_tier",
     "list_agents_by_tier",
+    "list_available_agents",
+    "reload_agents",
+    "validate_agent_files",
 ]
 
 
@@ -237,8 +241,7 @@ class AgentLoader:
             return None
 
         # Prepend base instructions
-        full_prompt = prepend_base_instructions(instructions)
-        return full_prompt
+        return prepend_base_instructions(instructions)
 
     def get_agent_metadata(self, agent_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -626,9 +629,11 @@ def _get_model_config(
         selected_model = default_model
         model_config = {
             "selection_method": "agent_default",
-            "reason": "dynamic_selection_disabled"
-            if not enable_dynamic_selection
-            else "no_complexity_analysis",
+            "reason": (
+                "dynamic_selection_disabled"
+                if not enable_dynamic_selection
+                else "no_complexity_analysis"
+            ),
             "default_model": default_model,
         }
 
@@ -718,14 +723,13 @@ def get_agent_prompt(
                 actual_agent_id = f"{agent_key}_agent"
             else:
                 actual_agent_id = agent_key  # Use normalized key
+        # Unknown agent name - check both variations
+        elif loader.get_agent(cleaned):
+            actual_agent_id = cleaned
+        elif loader.get_agent(f"{cleaned}_agent"):
+            actual_agent_id = f"{cleaned}_agent"
         else:
-            # Unknown agent name - check both variations
-            if loader.get_agent(cleaned):
-                actual_agent_id = cleaned
-            elif loader.get_agent(f"{cleaned}_agent"):
-                actual_agent_id = f"{cleaned}_agent"
-            else:
-                actual_agent_id = cleaned  # Use cleaned name
+            actual_agent_id = cleaned  # Use cleaned name
 
     # Log the normalization for debugging
     if agent_name != actual_agent_id:
@@ -781,8 +785,7 @@ def get_agent_prompt(
     # Return format based on caller's needs
     if return_model_info:
         return final_prompt, selected_model, model_config
-    else:
-        return final_prompt
+    return final_prompt
 
 
 # Legacy hardcoded agent functions removed - use get_agent_prompt(agent_id) instead
@@ -881,7 +884,7 @@ def clear_agent_cache(agent_name: Optional[str] = None) -> None:
         else:
             # Clear all agent caches by iterating through registry
             loader = _get_loader()
-            for agent_id in loader._agent_registry.keys():
+            for agent_id in loader._agent_registry:
                 cache_key = f"{AGENT_CACHE_PREFIX}{agent_id}"
                 cache.invalidate(cache_key)
             logger.debug("All agent caches cleared")

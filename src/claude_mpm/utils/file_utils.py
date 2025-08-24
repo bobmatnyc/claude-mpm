@@ -61,7 +61,7 @@ def safe_read_file(path: Union[str, Path], encoding: str = "utf-8") -> str:
     path = Path(path)
     try:
         return path.read_text(encoding=encoding)
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         raise FileOperationError(
             f"File not found: {path}",
             context={

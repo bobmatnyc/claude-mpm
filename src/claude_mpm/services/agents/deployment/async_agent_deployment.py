@@ -29,7 +29,6 @@ from typing import Any, Dict, List, Optional, Tuple
 import aiofiles
 
 from claude_mpm.config.paths import paths
-from claude_mpm.constants import EnvironmentVars, Paths
 from claude_mpm.core.config import Config
 from claude_mpm.core.logger import get_logger
 
@@ -95,12 +94,12 @@ class AsyncAgentDeploymentService:
             "parallel_files_processed": 0,
             "time_saved_ms": 0.0,
         }
-        
+
         self.logger.info(f"Base agent path: {self.base_agent_path}")
-    
+
     def _find_base_agent_file(self) -> Path:
         """Find base agent file with priority-based search.
-        
+
         Priority order:
         1. Environment variable override (CLAUDE_MPM_BASE_AGENT_PATH)
         2. Current working directory (for local development)
@@ -113,49 +112,68 @@ class AsyncAgentDeploymentService:
         if env_path:
             env_base_agent = Path(env_path)
             if env_base_agent.exists():
-                self.logger.info(f"Using environment variable base_agent: {env_base_agent}")
+                self.logger.info(
+                    f"Using environment variable base_agent: {env_base_agent}"
+                )
                 return env_base_agent
-            else:
-                self.logger.warning(f"CLAUDE_MPM_BASE_AGENT_PATH set but file doesn't exist: {env_base_agent}")
-        
+            self.logger.warning(
+                f"CLAUDE_MPM_BASE_AGENT_PATH set but file doesn't exist: {env_base_agent}"
+            )
+
         # Priority 1: Check current working directory for local development
         cwd = Path.cwd()
         cwd_base_agent = cwd / "src" / "claude_mpm" / "agents" / "base_agent.json"
         if cwd_base_agent.exists():
-            self.logger.info(f"Using local development base_agent from cwd: {cwd_base_agent}")
+            self.logger.info(
+                f"Using local development base_agent from cwd: {cwd_base_agent}"
+            )
             return cwd_base_agent
-        
+
         # Priority 2: Check known development locations
         known_dev_paths = [
-            Path("/Users/masa/Projects/claude-mpm/src/claude_mpm/agents/base_agent.json"),
-            Path.home() / "Projects" / "claude-mpm" / "src" / "claude_mpm" / "agents" / "base_agent.json",
-            Path.home() / "projects" / "claude-mpm" / "src" / "claude_mpm" / "agents" / "base_agent.json",
+            Path(
+                "/Users/masa/Projects/claude-mpm/src/claude_mpm/agents/base_agent.json"
+            ),
+            Path.home()
+            / "Projects"
+            / "claude-mpm"
+            / "src"
+            / "claude_mpm"
+            / "agents"
+            / "base_agent.json",
+            Path.home()
+            / "projects"
+            / "claude-mpm"
+            / "src"
+            / "claude_mpm"
+            / "agents"
+            / "base_agent.json",
         ]
-        
+
         for dev_path in known_dev_paths:
             if dev_path.exists():
                 self.logger.info(f"Using development base_agent: {dev_path}")
                 return dev_path
-        
+
         # Priority 3: Check user override location
         user_base_agent = Path.home() / ".claude" / "agents" / "base_agent.json"
         if user_base_agent.exists():
             self.logger.info(f"Using user override base_agent: {user_base_agent}")
             return user_base_agent
-        
+
         # Priority 4: Use framework agents directory (fallback)
         framework_base_agent = paths.agents_dir / "base_agent.json"
         if framework_base_agent.exists():
             self.logger.info(f"Using framework base_agent: {framework_base_agent}")
             return framework_base_agent
-        
+
         # If still not found, log all searched locations
         self.logger.warning("Base agent file not found in any location:")
         self.logger.warning(f"  1. CWD: {cwd_base_agent}")
         self.logger.warning(f"  2. Dev paths: {known_dev_paths}")
         self.logger.warning(f"  3. User: {user_base_agent}")
         self.logger.warning(f"  4. Framework: {framework_base_agent}")
-        
+
         # Final fallback to framework path even if it doesn't exist
         return framework_base_agent
 
@@ -233,7 +251,7 @@ class AsyncAgentDeploymentService:
             """Load and parse a single agent file asynchronously."""
             try:
                 # Non-blocking file read
-                async with aiofiles.open(file_path, "r") as f:
+                async with aiofiles.open(file_path) as f:
                     content = await f.read()
 
                 # Parse JSON in thread pool (CPU-bound)
@@ -291,13 +309,12 @@ class AsyncAgentDeploymentService:
                 required_fields = ["agent_id", "instructions"]
                 if all(field in agent for field in required_fields):
                     return agent
-                else:
-                    missing = [f for f in required_fields if f not in agent]
-                    self.logger.warning(
-                        f"Agent {agent.get('_agent_name', 'unknown')} "
-                        f"missing required fields: {missing}"
-                    )
-                    return None
+                missing = [f for f in required_fields if f not in agent]
+                self.logger.warning(
+                    f"Agent {agent.get('_agent_name', 'unknown')} "
+                    f"missing required fields: {missing}"
+                )
+                return None
             except Exception as e:
                 self.logger.error(f"Validation error: {e}")
                 return None
@@ -415,10 +432,9 @@ class AsyncAgentDeploymentService:
 
         if target_dir.name == "agents":
             return target_dir
-        elif target_dir.name in [".claude-mpm", ".claude"]:
+        if target_dir.name in [".claude-mpm", ".claude"]:
             return target_dir / "agents"
-        else:
-            return target_dir / ".claude" / "agents"
+        return target_dir / ".claude" / "agents"
 
     def _filter_excluded_agents(
         self,
@@ -494,7 +510,6 @@ class AsyncAgentDeploymentService:
 
     def _build_agent_markdown_sync(self, agent_data: Dict[str, Any]) -> str:
         """Build agent markdown content matching the synchronous deployment format."""
-        from datetime import datetime
 
         # Extract agent info from the loaded JSON data
         agent_name = agent_data.get("_agent_name", "unknown")
@@ -521,7 +536,7 @@ class AsyncAgentDeploymentService:
         )
 
         # Get tags from new format (metadata.tags) or old format
-        tags = (
+        (
             agent_data.get("metadata", {}).get("tags")
             or agent_data.get("configuration_fields", {}).get("tags")
             or agent_data.get("tags")
@@ -583,7 +598,7 @@ class AsyncAgentDeploymentService:
             f"description: {description}",
             f"version: {version_string}",
             f"base_version: {self._format_version_display(base_version)}",
-            f"author: claude-mpm",  # Identify as system agent for deployment
+            "author: claude-mpm",  # Identify as system agent for deployment
             f"tools: {tools_str}",
             f"model: {model}",
         ]
@@ -667,9 +682,8 @@ class AsyncAgentDeploymentService:
         if isinstance(version_tuple, tuple) and len(version_tuple) == 3:
             major, minor, patch = version_tuple
             return f"{major}.{minor}.{patch}"
-        else:
-            # Fallback for legacy format
-            return str(version_tuple)
+        # Fallback for legacy format
+        return str(version_tuple)
 
     async def cleanup(self):
         """Clean up resources."""
@@ -706,10 +720,9 @@ def deploy_agents_async_wrapper(
         )
 
         try:
-            results = await service.deploy_agents_async(
+            return await service.deploy_agents_async(
                 target_dir=target_dir, force_rebuild=force_rebuild, config=config
             )
-            return results
         finally:
             await service.cleanup()
 
@@ -717,7 +730,7 @@ def deploy_agents_async_wrapper(
     try:
         # Check if we're already in an async context
         try:
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()
             # We're in an async context, run in thread pool to avoid blocking
             import concurrent.futures
 

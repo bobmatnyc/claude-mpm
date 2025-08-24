@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.logger import get_logger
-from claude_mpm.hooks.base_hook import BaseHook, HookContext, HookResult, HookType
+from claude_mpm.hooks.base_hook import BaseHook, HookContext, HookType
 
 logger = get_logger(__name__)
 

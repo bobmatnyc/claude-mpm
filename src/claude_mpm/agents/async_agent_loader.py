@@ -36,10 +36,8 @@ import aiofiles
 
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 
-from ..core.agent_name_normalizer import AgentNameNormalizer
 from ..core.unified_paths import get_path_manager
-from ..validation.agent_validator import AgentValidator, ValidationResult
-from .base_agent_loader import prepend_base_instructions
+from ..validation.agent_validator import AgentValidator
 from .frontmatter_validator import FrontmatterValidator
 
 # Module-level logger
@@ -184,10 +182,9 @@ class AsyncAgentLoader:
             try:
                 if file_path.suffix == ".json":
                     return await self.load_json_agent_async(file_path)
-                elif file_path.suffix == ".md":
+                if file_path.suffix == ".md":
                     return await self.load_md_agent_async(file_path)
-                else:
-                    return None
+                return None
             except Exception as e:
                 logger.error(f"Failed to load {file_path}: {e}")
                 return None
@@ -228,7 +225,7 @@ class AsyncAgentLoader:
         """
         try:
             # Non-blocking file read
-            async with aiofiles.open(file_path, "r") as f:
+            async with aiofiles.open(file_path) as f:
                 content = await f.read()
 
             # Parse JSON in thread pool (CPU-bound)
@@ -261,7 +258,7 @@ class AsyncAgentLoader:
         """
         try:
             # Non-blocking file read
-            async with aiofiles.open(file_path, "r") as f:
+            async with aiofiles.open(file_path) as f:
                 content = await f.read()
 
             # Parse frontmatter in thread pool

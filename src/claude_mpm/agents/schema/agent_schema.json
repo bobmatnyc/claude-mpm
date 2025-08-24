@@ -24,7 +24,7 @@
     "agent_type": {
       "type": "string",
       "description": "Type of agent",
-      "enum": ["base", "engineer", "qa", "documentation", "research", "security", "ops", "data_engineer", "version_control", "project_organizer"]
+      "enum": ["base", "engineer", "qa", "documentation", "research", "security", "ops", "data_engineer", "version_control", "project_organizer", "imagemagick"]
     },
     "metadata": {
       "type": "object",

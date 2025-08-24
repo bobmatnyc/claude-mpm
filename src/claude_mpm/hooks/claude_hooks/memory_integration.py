@@ -8,7 +8,7 @@ including pre and post delegation hooks.
 import os
 import sys
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Optional
 
 # Debug mode
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
@@ -21,14 +21,12 @@ try:
 
     paths.ensure_in_path()
 
-    from claude_mpm.core.config import Config
     from claude_mpm.core.shared.config_loader import ConfigLoader
     from claude_mpm.hooks.base_hook import HookContext, HookType
     from claude_mpm.hooks.memory_integration_hook import (
         MemoryPostDelegationHook,
         MemoryPreDelegationHook,
     )
-    from claude_mpm.services.hook_service import HookService
 
     MEMORY_HOOKS_AVAILABLE = True
 except Exception as e:
@@ -181,7 +179,7 @@ class MemoryHookManager:
             if output:
                 result_content = str(output)
             elif error:
-                result_content = f"Error: {str(error)}"
+                result_content = f"Error: {error!s}"
             else:
                 result_content = f"Task completed with exit code: {exit_code}"
 

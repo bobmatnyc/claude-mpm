@@ -1,6 +1,6 @@
 """Pipeline builder for creating deployment pipelines."""
 
-from typing import Any, Dict, List, Type
+from typing import Dict, List, Type
 
 from claude_mpm.core.logger import get_logger
 

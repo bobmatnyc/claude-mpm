@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Open the dashboard statically in the browser."""
 
-import os
 import webbrowser
 from pathlib import Path
 
@@ -29,9 +28,8 @@ def discover_socketio_port():
 
             # If 8765 is not available, return the first active instance port
             return instances[0].get("port", 8765)
-        else:
-            print("⚠️  No active SocketIO instances found, using default port 8765")
-            return 8765
+        print("⚠️  No active SocketIO instances found, using default port 8765")
+        return 8765
     except Exception as e:
         print(f"⚠️  Failed to discover SocketIO port: {e}")
         print("   Using default port 8765")

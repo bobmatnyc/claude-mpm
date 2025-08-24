@@ -29,11 +29,9 @@ class CommandHandlerService(BaseService, CommandHandlerInterface):
 
     async def _initialize(self) -> None:
         """Initialize the service. No special initialization needed."""
-        pass
 
     async def _cleanup(self) -> None:
         """Cleanup service resources. No cleanup needed."""
-        pass
 
     def handle_mpm_command(self, prompt: str) -> bool:
         """Handle /mpm: commands directly without going to Claude.
@@ -59,12 +57,11 @@ class CommandHandlerService(BaseService, CommandHandlerInterface):
             # Route to appropriate handler
             if command == "test":
                 return self._handle_test_command(args)
-            elif command == "agents":
+            if command == "agents":
                 return self._handle_agents_command(args)
-            else:
-                print(f"Unknown command: {command}")
-                print("Available commands: test, agents")
-                return True
+            print(f"Unknown command: {command}")
+            print("Available commands: test, agents")
+            return True
 
         except KeyboardInterrupt:
             print("\nCommand interrupted")
@@ -175,28 +172,29 @@ class CommandHandlerService(BaseService, CommandHandlerInterface):
                     "success": success,
                     "command": command,
                     "args": args,
-                    "message": "Test command executed"
-                    if success
-                    else "Test command failed",
+                    "message": (
+                        "Test command executed" if success else "Test command failed"
+                    ),
                 }
-            elif command == "agents":
+            if command == "agents":
                 success = self._handle_agents_command(args)
                 return {
                     "success": success,
                     "command": command,
                     "args": args,
-                    "message": "Agents command executed"
-                    if success
-                    else "Agents command failed",
+                    "message": (
+                        "Agents command executed"
+                        if success
+                        else "Agents command failed"
+                    ),
                 }
-            else:
-                return {
-                    "success": False,
-                    "command": command,
-                    "args": args,
-                    "error": f"Unknown command: {command}",
-                    "available_commands": self.get_available_commands(),
-                }
+            return {
+                "success": False,
+                "command": command,
+                "args": args,
+                "error": f"Unknown command: {command}",
+                "available_commands": self.get_available_commands(),
+            }
         except Exception as e:
             return {"success": False, "command": command, "args": args, "error": str(e)}
 

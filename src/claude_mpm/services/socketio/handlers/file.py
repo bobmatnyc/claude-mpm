@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from ....core.typing_utils import EventData, PathLike, SocketId
+from ....core.typing_utils import EventData
 from ....core.unified_paths import get_project_root
 from .base import BaseEventHandler
 
@@ -156,7 +156,7 @@ class FileEventHandler(BaseEventHandler):
 
             # Read file content
             try:
-                with open(real_path, "r", encoding="utf-8") as f:
+                with open(real_path, encoding="utf-8") as f:
                     content = f.read()
 
                 # Get file extension for syntax highlighting hint
@@ -203,17 +203,16 @@ class FileEventHandler(BaseEventHandler):
                         "file_path": file_path,
                         "file_size": file_size,
                     }
-                else:
-                    # Text file with different encoding
-                    ext = real_path.suffix
-                    return {
-                        "success": True,
-                        "file_path": file_path,
-                        "content": text_content,
-                        "file_size": file_size,
-                        "extension": ext.lower(),
-                        "encoding": "latin-1",
-                    }
+                # Text file with different encoding
+                ext = real_path.suffix
+                return {
+                    "success": True,
+                    "file_path": file_path,
+                    "content": text_content,
+                    "file_size": file_size,
+                    "extension": ext.lower(),
+                    "encoding": "latin-1",
+                }
             except Exception:
                 return {
                     "success": False,
@@ -223,6 +222,6 @@ class FileEventHandler(BaseEventHandler):
         except Exception as read_error:
             return {
                 "success": False,
-                "error": f"Failed to read file: {str(read_error)}",
+                "error": f"Failed to read file: {read_error!s}",
                 "file_path": file_path,
             }

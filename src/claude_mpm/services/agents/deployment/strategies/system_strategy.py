@@ -76,9 +76,8 @@ class SystemAgentDeploymentStrategy(BaseDeploymentStrategy):
         # Always deploy to project directory
         if context.working_directory:
             return context.working_directory / ".claude" / "agents"
-        else:
-            # Fallback to current working directory if not specified
-            return Path.cwd() / ".claude" / "agents"
+        # Fallback to current working directory if not specified
+        return Path.cwd() / ".claude" / "agents"
 
     def get_templates_directory(self, context: DeploymentContext) -> Path:
         """Get templates directory for system agents.

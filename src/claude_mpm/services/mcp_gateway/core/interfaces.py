@@ -8,12 +8,10 @@ establishing contracts for dependency injection and service orchestration.
 Part of ISS-0034: Infrastructure Setup - MCP Gateway Project Foundation
 """
 
-import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 
 # Tool-related data structures
@@ -70,7 +68,6 @@ class IMCPConfiguration(ABC):
         Returns:
             True if configuration loaded successfully
         """
-        pass
 
     @abstractmethod
     def get(self, key: str, default: Any = None) -> Any:
@@ -84,7 +81,6 @@ class IMCPConfiguration(ABC):
         Returns:
             Configuration value or default
         """
-        pass
 
     @abstractmethod
     def set(self, key: str, value: Any) -> None:
@@ -95,7 +91,6 @@ class IMCPConfiguration(ABC):
             key: Configuration key (supports dot notation)
             value: Configuration value
         """
-        pass
 
     @abstractmethod
     def validate(self) -> bool:
@@ -105,7 +100,6 @@ class IMCPConfiguration(ABC):
         Returns:
             True if configuration is valid
         """
-        pass
 
     @abstractmethod
     def get_server_config(self) -> Dict[str, Any]:
@@ -115,7 +109,6 @@ class IMCPConfiguration(ABC):
         Returns:
             Server configuration dictionary
         """
-        pass
 
     @abstractmethod
     def get_tools_config(self) -> Dict[str, Any]:
@@ -125,7 +118,6 @@ class IMCPConfiguration(ABC):
         Returns:
             Tools configuration dictionary
         """
-        pass
 
 
 class IMCPToolAdapter(ABC):
@@ -143,7 +135,6 @@ class IMCPToolAdapter(ABC):
         Returns:
             Tool definition with schema and metadata
         """
-        pass
 
     @abstractmethod
     async def invoke(self, invocation: MCPToolInvocation) -> MCPToolResult:
@@ -156,7 +147,6 @@ class IMCPToolAdapter(ABC):
         Returns:
             Tool execution result
         """
-        pass
 
     @abstractmethod
     def validate_parameters(self, parameters: Dict[str, Any]) -> bool:
@@ -169,7 +159,6 @@ class IMCPToolAdapter(ABC):
         Returns:
             True if parameters are valid
         """
-        pass
 
     @abstractmethod
     async def initialize(self) -> bool:
@@ -179,14 +168,12 @@ class IMCPToolAdapter(ABC):
         Returns:
             True if initialization successful
         """
-        pass
 
     @abstractmethod
     async def shutdown(self) -> None:
         """
         Shutdown the tool adapter and clean up resources.
         """
-        pass
 
 
 class IMCPToolRegistry(ABC):
@@ -207,7 +194,6 @@ class IMCPToolRegistry(ABC):
         Returns:
             True if registration successful
         """
-        pass
 
     @abstractmethod
     def unregister_tool(self, tool_name: str) -> bool:
@@ -220,7 +206,6 @@ class IMCPToolRegistry(ABC):
         Returns:
             True if unregistration successful
         """
-        pass
 
     @abstractmethod
     def get_tool(self, tool_name: str) -> Optional[IMCPToolAdapter]:
@@ -233,7 +218,6 @@ class IMCPToolRegistry(ABC):
         Returns:
             Tool adapter if found, None otherwise
         """
-        pass
 
     @abstractmethod
     def list_tools(self) -> List[MCPToolDefinition]:
@@ -243,7 +227,6 @@ class IMCPToolRegistry(ABC):
         Returns:
             List of tool definitions
         """
-        pass
 
     @abstractmethod
     async def invoke_tool(self, invocation: MCPToolInvocation) -> MCPToolResult:
@@ -256,7 +239,6 @@ class IMCPToolRegistry(ABC):
         Returns:
             Tool execution result
         """
-        pass
 
     @abstractmethod
     def search_tools(self, query: str) -> List[MCPToolDefinition]:
@@ -269,7 +251,6 @@ class IMCPToolRegistry(ABC):
         Returns:
             List of matching tool definitions
         """
-        pass
 
 
 class IMCPCommunication(ABC):
@@ -287,7 +268,6 @@ class IMCPCommunication(ABC):
         Args:
             message: Message to send
         """
-        pass
 
     @abstractmethod
     async def receive_message(self) -> Optional[Dict[str, Any]]:
@@ -297,7 +277,6 @@ class IMCPCommunication(ABC):
         Returns:
             Received message or None if no message available
         """
-        pass
 
     @abstractmethod
     async def send_response(self, request_id: str, result: Any) -> None:
@@ -308,7 +287,6 @@ class IMCPCommunication(ABC):
             request_id: ID of the request being responded to
             result: Result data
         """
-        pass
 
     @abstractmethod
     async def send_error(self, request_id: str, error: str, code: int = -1) -> None:
@@ -320,7 +298,6 @@ class IMCPCommunication(ABC):
             error: Error message
             code: Error code
         """
-        pass
 
     @abstractmethod
     def is_connected(self) -> bool:
@@ -330,7 +307,6 @@ class IMCPCommunication(ABC):
         Returns:
             True if connected
         """
-        pass
 
 
 class IMCPLifecycle(ABC):
@@ -348,7 +324,6 @@ class IMCPLifecycle(ABC):
         Returns:
             True if initialization successful
         """
-        pass
 
     @abstractmethod
     async def start(self) -> bool:
@@ -358,14 +333,12 @@ class IMCPLifecycle(ABC):
         Returns:
             True if startup successful
         """
-        pass
 
     @abstractmethod
     async def stop(self) -> None:
         """
         Stop the MCP service gracefully.
         """
-        pass
 
     @abstractmethod
     async def restart(self) -> bool:
@@ -375,7 +348,6 @@ class IMCPLifecycle(ABC):
         Returns:
             True if restart successful
         """
-        pass
 
     @abstractmethod
     def get_state(self) -> str:
@@ -385,7 +357,6 @@ class IMCPLifecycle(ABC):
         Returns:
             Service state (e.g., "initialized", "running", "stopped")
         """
-        pass
 
     @abstractmethod
     def is_healthy(self) -> bool:
@@ -395,7 +366,6 @@ class IMCPLifecycle(ABC):
         Returns:
             True if service is healthy
         """
-        pass
 
     @abstractmethod
     def get_health_status(self) -> Dict[str, Any]:
@@ -405,7 +375,6 @@ class IMCPLifecycle(ABC):
         Returns:
             Health status information
         """
-        pass
 
 
 class IMCPGateway(IMCPLifecycle):
@@ -424,7 +393,6 @@ class IMCPGateway(IMCPLifecycle):
         Args:
             registry: Tool registry to use
         """
-        pass
 
     @abstractmethod
     def set_communication(self, communication: IMCPCommunication) -> None:
@@ -434,7 +402,6 @@ class IMCPGateway(IMCPLifecycle):
         Args:
             communication: Communication handler to use
         """
-        pass
 
     @abstractmethod
     async def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
@@ -447,7 +414,6 @@ class IMCPGateway(IMCPLifecycle):
         Returns:
             Response message
         """
-        pass
 
     @abstractmethod
     async def run(self) -> None:
@@ -456,7 +422,6 @@ class IMCPGateway(IMCPLifecycle):
 
         This method should handle incoming requests and manage the gateway lifecycle.
         """
-        pass
 
     @abstractmethod
     def register_handler(self, method: str, handler: Callable) -> None:
@@ -467,7 +432,6 @@ class IMCPGateway(IMCPLifecycle):
             method: Method name to handle
             handler: Handler function
         """
-        pass
 
     @abstractmethod
     def get_capabilities(self) -> Dict[str, Any]:
@@ -477,4 +441,3 @@ class IMCPGateway(IMCPLifecycle):
         Returns:
             Dictionary of gateway capabilities
         """
-        pass

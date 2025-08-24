@@ -175,19 +175,19 @@ def validate_config(
             if expected_type == "object" and not isinstance(value, dict):
                 errors.append(f"{path}: Expected object, got {type(value).__name__}")
                 return
-            elif expected_type == "array" and not isinstance(value, list):
+            if expected_type == "array" and not isinstance(value, list):
                 errors.append(f"{path}: Expected array, got {type(value).__name__}")
                 return
-            elif expected_type == "string" and not isinstance(value, str):
+            if expected_type == "string" and not isinstance(value, str):
                 errors.append(f"{path}: Expected string, got {type(value).__name__}")
                 return
-            elif expected_type == "number" and not isinstance(value, (int, float)):
+            if expected_type == "number" and not isinstance(value, (int, float)):
                 errors.append(f"{path}: Expected number, got {type(value).__name__}")
                 return
-            elif expected_type == "integer" and not isinstance(value, int):
+            if expected_type == "integer" and not isinstance(value, int):
                 errors.append(f"{path}: Expected integer, got {type(value).__name__}")
                 return
-            elif expected_type == "boolean" and not isinstance(value, bool):
+            if expected_type == "boolean" and not isinstance(value, bool):
                 errors.append(f"{path}: Expected boolean, got {type(value).__name__}")
                 return
 

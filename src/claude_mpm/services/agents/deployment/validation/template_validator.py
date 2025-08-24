@@ -2,11 +2,11 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from claude_mpm.core.logger import get_logger
 
-from .validation_result import ValidationResult, ValidationSeverity
+from .validation_result import ValidationResult
 
 
 class TemplateValidator:

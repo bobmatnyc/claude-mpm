@@ -41,7 +41,6 @@ class VersionServiceInterface(ABC):
         Returns:
             Version string in semantic version format
         """
-        pass
 
     @abstractmethod
     def get_version_info(self) -> Dict[str, Any]:
@@ -50,7 +49,6 @@ class VersionServiceInterface(ABC):
         Returns:
             Dictionary with version details and metadata
         """
-        pass
 
     @abstractmethod
     def format_version_display(self, include_build: bool = False) -> str:
@@ -62,7 +60,6 @@ class VersionServiceInterface(ABC):
         Returns:
             Formatted version string for display
         """
-        pass
 
     @abstractmethod
     def check_for_updates(self) -> Dict[str, Any]:
@@ -71,7 +68,6 @@ class VersionServiceInterface(ABC):
         Returns:
             Dictionary with update information
         """
-        pass
 
 
 # Command handler interface
@@ -97,7 +93,6 @@ class CommandHandlerInterface(ABC):
         Returns:
             Dictionary with command execution results
         """
-        pass
 
     @abstractmethod
     def get_available_commands(self) -> List[str]:
@@ -106,7 +101,6 @@ class CommandHandlerInterface(ABC):
         Returns:
             List of available command names
         """
-        pass
 
     @abstractmethod
     def get_command_help(self, command: str) -> str:
@@ -118,7 +112,6 @@ class CommandHandlerInterface(ABC):
         Returns:
             Help text for the command
         """
-        pass
 
 
 # Memory hook interface
@@ -136,12 +129,10 @@ class MemoryHookInterface(ABC):
     @abstractmethod
     def register_memory_hooks(self):
         """Register memory-related hooks with the hook service."""
-        pass
 
     @abstractmethod
     def unregister_memory_hooks(self):
         """Unregister memory-related hooks from the hook service."""
-        pass
 
     @abstractmethod
     def get_hook_status(self) -> Dict[str, Any]:
@@ -150,7 +141,6 @@ class MemoryHookInterface(ABC):
         Returns:
             Dictionary with hook status information
         """
-        pass
 
 
 # Session management interface
@@ -175,7 +165,6 @@ class SessionManagementInterface(ABC):
         Returns:
             Session ID
         """
-        pass
 
     @abstractmethod
     def end_session(self, session_id: str) -> bool:
@@ -187,7 +176,6 @@ class SessionManagementInterface(ABC):
         Returns:
             True if session ended successfully
         """
-        pass
 
     @abstractmethod
     def get_session_status(self, session_id: str) -> Dict[str, Any]:
@@ -199,7 +187,6 @@ class SessionManagementInterface(ABC):
         Returns:
             Dictionary with session status information
         """
-        pass
 
     @abstractmethod
     def list_active_sessions(self) -> List[str]:
@@ -208,7 +195,6 @@ class SessionManagementInterface(ABC):
         Returns:
             List of active session IDs
         """
-        pass
 
     @abstractmethod
     async def cleanup_sessions(self) -> int:
@@ -217,7 +203,6 @@ class SessionManagementInterface(ABC):
         Returns:
             Number of sessions cleaned up
         """
-        pass
 
 
 # Utility service interface
@@ -242,7 +227,6 @@ class UtilityServiceInterface(ABC):
         Returns:
             Formatted size string (e.g., "1.5 MB")
         """
-        pass
 
     @abstractmethod
     def format_duration(self, seconds: float) -> str:
@@ -254,7 +238,6 @@ class UtilityServiceInterface(ABC):
         Returns:
             Formatted duration string (e.g., "2m 30s")
         """
-        pass
 
     @abstractmethod
     def sanitize_filename(self, filename: str) -> str:
@@ -266,7 +249,6 @@ class UtilityServiceInterface(ABC):
         Returns:
             Sanitized filename
         """
-        pass
 
     @abstractmethod
     def generate_unique_id(self, prefix: str = "") -> str:
@@ -278,7 +260,6 @@ class UtilityServiceInterface(ABC):
         Returns:
             Unique identifier string
         """
-        pass
 
     @abstractmethod
     def validate_path(self, path: Path) -> Tuple[bool, Optional[str]]:
@@ -290,7 +271,6 @@ class UtilityServiceInterface(ABC):
         Returns:
             Tuple of (is_valid, error_message)
         """
-        pass
 
 
 # Memory service interface
@@ -315,7 +295,6 @@ class MemoryServiceInterface(ABC):
         Returns:
             Memory content as string or None if not found
         """
-        pass
 
     @abstractmethod
     def save_memory(self, agent_id: str, content: str) -> bool:
@@ -328,7 +307,6 @@ class MemoryServiceInterface(ABC):
         Returns:
             True if save successful
         """
-        pass
 
     @abstractmethod
     def validate_memory_size(self, content: str) -> Tuple[bool, Optional[str]]:
@@ -340,7 +318,6 @@ class MemoryServiceInterface(ABC):
         Returns:
             Tuple of (is_valid, error_message)
         """
-        pass
 
     @abstractmethod
     def optimize_memory(self, agent_id: str) -> bool:
@@ -352,7 +329,6 @@ class MemoryServiceInterface(ABC):
         Returns:
             True if optimization successful
         """
-        pass
 
     @abstractmethod
     def get_memory_stats(self, agent_id: str) -> Dict[str, Any]:
@@ -364,7 +340,6 @@ class MemoryServiceInterface(ABC):
         Returns:
             Dictionary with memory statistics
         """
-        pass
 
 
 # Hook service interface
@@ -393,7 +368,6 @@ class HookServiceInterface(ABC):
         Returns:
             Hook registration ID
         """
-        pass
 
     @abstractmethod
     def unregister_hook(self, registration_id: str) -> bool:
@@ -405,7 +379,6 @@ class HookServiceInterface(ABC):
         Returns:
             True if unregistration successful
         """
-        pass
 
     @abstractmethod
     def execute_hook(self, hook_name: str, *args, **kwargs) -> List[Any]:
@@ -419,7 +392,6 @@ class HookServiceInterface(ABC):
         Returns:
             List of callback return values
         """
-        pass
 
     @abstractmethod
     def get_hook_info(self, hook_name: str) -> Dict[str, Any]:
@@ -431,4 +403,3 @@ class HookServiceInterface(ABC):
         Returns:
             Dictionary with hook information
         """
-        pass

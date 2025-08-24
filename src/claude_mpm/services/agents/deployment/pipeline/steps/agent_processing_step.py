@@ -1,7 +1,6 @@
 """Agent processing step for deployment pipeline."""
 
 import time
-
 from pathlib import Path
 
 from claude_mpm.services.agents.deployment.processors import (
@@ -57,7 +56,7 @@ class AgentProcessingStep(BaseDeploymentStep):
                         source_info = context.agent_sources[agent_name]
                     else:
                         source_info = self._determine_agent_source(template_file)
-                    
+
                     # Create agent deployment context
                     agent_context = AgentDeploymentContext.from_template_file(
                         template_file=template_file,
@@ -93,9 +92,7 @@ class AgentProcessingStep(BaseDeploymentStep):
                         failed_count += 1
 
                 except Exception as e:
-                    error_msg = (
-                        f"Failed to process agent {template_file.stem}: {str(e)}"
-                    )
+                    error_msg = f"Failed to process agent {template_file.stem}: {e!s}"
                     self.logger.error(error_msg, exc_info=True)
                     context.add_error(error_msg)
                     failed_count += 1
@@ -125,7 +122,7 @@ class AgentProcessingStep(BaseDeploymentStep):
             execution_time = time.time() - start_time
             context.step_timings[self.name] = execution_time
 
-            error_msg = f"Agent processing step failed: {str(e)}"
+            error_msg = f"Agent processing step failed: {e!s}"
             self.logger.error(error_msg, exc_info=True)
             context.add_error(error_msg)
 
@@ -207,32 +204,36 @@ class AgentProcessingStep(BaseDeploymentStep):
 
     def _determine_agent_source(self, template_path: Path) -> str:
         """Determine the source of an agent from its template path.
-        
+
         Args:
             template_path: Path to the agent template
-            
+
         Returns:
             Source string (system/project/user/unknown)
         """
         template_str = str(template_path.resolve())
-        
+
         # Check if it's a system template
-        if "/claude_mpm/agents/templates/" in template_str or "/src/claude_mpm/agents/templates/" in template_str:
+        if (
+            "/claude_mpm/agents/templates/" in template_str
+            or "/src/claude_mpm/agents/templates/" in template_str
+        ):
             return "system"
-        
+
         # Check if it's a project agent
         if "/.claude-mpm/agents/" in template_str:
             # Check if it's in the current working directory
             try:
                 from pathlib import Path
+
                 cwd = Path.cwd()
                 if str(cwd) in template_str:
                     return "project"
             except:
                 pass
-        
+
         # Check if it's a user agent
         if "/.claude/agents/" in template_str:
             return "user"
-            
+
         return "unknown"

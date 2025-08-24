@@ -9,7 +9,6 @@ DESIGN DECISION: We use subprocess to install packages in the same environment
 that's running claude-mpm, respecting virtual environments and user setups.
 """
 
-import importlib
 import subprocess
 import sys
 from typing import List, Optional, Tuple
@@ -70,7 +69,7 @@ def install_packages(packages: List[str], logger=None) -> Tuple[bool, str]:
 
     try:
         # Use the same Python executable that's running this script
-        cmd = [sys.executable, "-m", "pip", "install"] + packages
+        cmd = [sys.executable, "-m", "pip", "install", *packages]
 
         logger.info(f"Installing packages: {packages}")
         logger.debug(f"Running command: {' '.join(cmd)}")
@@ -80,18 +79,18 @@ def install_packages(packages: List[str], logger=None) -> Tuple[bool, str]:
             cmd,
             capture_output=True,
             text=True,
-            timeout=300,  # 5 minute timeout for installation
+            timeout=300,
+            check=False,  # 5 minute timeout for installation
         )
 
         if result.returncode == 0:
             logger.info(f"Successfully installed packages: {packages}")
             return True, ""
-        else:
-            error_msg = f"pip install failed with return code {result.returncode}"
-            if result.stderr:
-                error_msg += f": {result.stderr.strip()}"
-            logger.error(error_msg)
-            return False, error_msg
+        error_msg = f"pip install failed with return code {result.returncode}"
+        if result.stderr:
+            error_msg += f": {result.stderr.strip()}"
+        logger.error(error_msg)
+        return False, error_msg
 
     except subprocess.TimeoutExpired:
         error_msg = "Package installation timed out after 5 minutes"
@@ -163,8 +162,7 @@ def ensure_socketio_dependencies(logger=None) -> Tuple[bool, str]:
 
         logger.info("Socket.IO dependencies installed and verified successfully")
         return True, ""
-    else:
-        return False, error_msg
+    return False, error_msg
 
 
 def get_pip_freeze_output() -> List[str]:
@@ -183,12 +181,12 @@ def get_pip_freeze_output() -> List[str]:
             capture_output=True,
             text=True,
             timeout=30,
+            check=False,
         )
 
         if result.returncode == 0:
             return result.stdout.strip().split("\n")
-        else:
-            return [f"pip freeze failed: {result.stderr}"]
+        return [f"pip freeze failed: {result.stderr}"]
 
     except Exception as e:
         return [f"Failed to get pip freeze output: {e}"]
@@ -206,8 +204,7 @@ def check_virtual_environment() -> Tuple[bool, str]:
     """
     # Check for virtual environment indicators
     in_venv = (
-        hasattr(sys, "base_prefix")
-        and sys.base_prefix != sys.prefix
+        (hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix)
         or hasattr(sys, "real_prefix")
         or (hasattr(sys, "prefix") and "conda" in sys.prefix.lower())
     )
@@ -215,5 +212,4 @@ def check_virtual_environment() -> Tuple[bool, str]:
     if in_venv:
         venv_path = getattr(sys, "prefix", "unknown")
         return True, f"Virtual environment: {venv_path}"
-    else:
-        return False, f"System Python: {sys.prefix}"
+    return False, f"System Python: {sys.prefix}"

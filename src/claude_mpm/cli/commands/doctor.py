@@ -20,7 +20,7 @@ from ...services.diagnostics import DiagnosticRunner, DoctorReporter
 
 def add_doctor_parser(subparsers):
     """Add doctor command parser.
-    
+
     WHY: This command helps users diagnose and fix issues with their
     claude-mpm installation, providing clear actionable feedback.
     """
@@ -28,72 +28,67 @@ def add_doctor_parser(subparsers):
         "doctor",
         aliases=["diagnose", "check-health"],
         help="Run comprehensive diagnostics on claude-mpm installation",
-        description="Run comprehensive health checks on your claude-mpm installation and configuration"
+        description="Run comprehensive health checks on your claude-mpm installation and configuration",
     )
-    
+
     parser.add_argument(
         "--verbose",
         "-v",
         action="store_true",
-        help="Show detailed diagnostic information"
+        help="Show detailed diagnostic information",
     )
-    
+
     parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output results in JSON format"
+        "--json", action="store_true", help="Output results in JSON format"
     )
-    
+
     parser.add_argument(
-        "--markdown",
-        action="store_true",
-        help="Output results in Markdown format"
+        "--markdown", action="store_true", help="Output results in Markdown format"
     )
-    
+
     parser.add_argument(
         "--fix",
         action="store_true",
-        help="Attempt to fix issues automatically (experimental)"
+        help="Attempt to fix issues automatically (experimental)",
     )
-    
+
     parser.add_argument(
         "--checks",
         nargs="+",
         choices=[
-            "installation", "configuration", "filesystem",
-            "claude", "agents", "mcp", "monitor", "common"
+            "installation",
+            "configuration",
+            "filesystem",
+            "claude",
+            "agents",
+            "mcp",
+            "monitor",
+            "common",
         ],
-        help="Run only specific checks"
+        help="Run only specific checks",
     )
-    
+
     parser.add_argument(
         "--parallel",
         action="store_true",
-        help="Run checks in parallel for faster execution"
+        help="Run checks in parallel for faster execution",
     )
-    
+
     parser.add_argument(
-        "--no-color",
-        action="store_true",
-        help="Disable colored output"
+        "--no-color", action="store_true", help="Disable colored output"
     )
-    
-    parser.add_argument(
-        "--output",
-        "-o",
-        type=Path,
-        help="Save output to file"
-    )
-    
+
+    parser.add_argument("--output", "-o", type=Path, help="Save output to file")
+
     parser.set_defaults(func=doctor_command)
 
 
 def run_doctor(args):
     """Main entry point for doctor command (used by CLI).
-    
+
     Args:
         args: Parsed command-line arguments
-        
+
     Returns:
         Exit code (0 for success, 1 for warnings, 2 for errors)
     """
@@ -102,19 +97,19 @@ def run_doctor(args):
 
 def doctor_command(args):
     """Execute the doctor command.
-    
+
     WHY: Provides a single entry point for system diagnostics, helping users
     quickly identify and resolve issues with their claude-mpm setup.
-    
+
     Args:
         args: Parsed command-line arguments
-        
+
     Returns:
         Exit code (0 for success, 1 for warnings, 2 for errors)
     """
     # Configure logging
     logger = logging.getLogger(__name__)
-    
+
     # Determine output format
     if args.json:
         output_format = "json"
@@ -122,13 +117,10 @@ def doctor_command(args):
         output_format = "markdown"
     else:
         output_format = "terminal"
-    
+
     # Create diagnostic runner
-    runner = DiagnosticRunner(
-        verbose=args.verbose,
-        fix=args.fix
-    )
-    
+    runner = DiagnosticRunner(verbose=args.verbose, fix=args.fix)
+
     # Run diagnostics
     try:
         if args.checks:
@@ -143,57 +135,55 @@ def doctor_command(args):
             # Run all checks sequentially
             logger.info("Running comprehensive diagnostics")
             summary = runner.run_diagnostics()
-    
+
     except KeyboardInterrupt:
         print("\nDiagnostics interrupted by user")
         return 130
     except Exception as e:
         logger.error(f"Diagnostic failed: {e}")
-        print(f"\n❌ Diagnostic failed: {str(e)}")
+        print(f"\n❌ Diagnostic failed: {e!s}")
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         return 2
-    
+
     # Create reporter
-    reporter = DoctorReporter(
-        use_color=not args.no_color,
-        verbose=args.verbose
-    )
-    
+    reporter = DoctorReporter(use_color=not args.no_color, verbose=args.verbose)
+
     # Output results
     if args.output:
         # Save to file
         try:
             import sys
+
             original_stdout = sys.stdout
-            with open(args.output, 'w') as f:
+            with open(args.output, "w") as f:
                 sys.stdout = f
                 reporter.report(summary, format=output_format)
             sys.stdout = original_stdout
             print(f"Report saved to: {args.output}")
         except Exception as e:
             logger.error(f"Failed to save report: {e}")
-            print(f"❌ Failed to save report: {str(e)}")
+            print(f"❌ Failed to save report: {e!s}")
             # Still output to terminal
             reporter.report(summary, format=output_format)
     else:
         # Output to terminal
         reporter.report(summary, format=output_format)
-    
+
     # Determine exit code based on results
     if summary.error_count > 0:
         return 2  # Errors found
-    elif summary.warning_count > 0:
+    if summary.warning_count > 0:
         return 1  # Warnings found
-    else:
-        return 0  # All OK
+    return 0  # All OK
 
 
 # Optional: Standalone execution for testing
 if __name__ == "__main__":
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Claude MPM Doctor")
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--json", action="store_true")
@@ -201,9 +191,9 @@ if __name__ == "__main__":
     parser.add_argument("--no-color", action="store_true")
     parser.add_argument("--checks", nargs="+")
     parser.add_argument("--parallel", action="store_true")
-    
+
     args = parser.parse_args()
     args.markdown = False
     args.output = None
-    
+
     sys.exit(doctor_command(args))

@@ -15,7 +15,6 @@ Aliases are stored in ~/.claude-mpm/config_aliases.json
 
 import json
 import logging
-import os
 from typing import Dict, List, Optional, Tuple
 
 from ..utils.config_manager import ConfigurationManager
@@ -27,25 +26,17 @@ logger = logging.getLogger(__name__)
 class ConfigAliasError(Exception):
     """Base exception for configuration alias errors."""
 
-    pass
-
 
 class AliasNotFoundError(ConfigAliasError):
     """Raised when attempting to resolve a non-existent alias."""
-
-    pass
 
 
 class DuplicateAliasError(ConfigAliasError):
     """Raised when attempting to create an alias that already exists."""
 
-    pass
-
 
 class InvalidDirectoryError(ConfigAliasError):
     """Raised when a directory path is invalid or cannot be created."""
-
-    pass
 
 
 class ConfigAliasManager:

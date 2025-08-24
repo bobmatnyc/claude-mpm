@@ -16,7 +16,7 @@ DESIGN DECISIONS:
 import json
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from ...constants import TicketCommands
 from ...core.logger import get_logger
@@ -31,7 +31,7 @@ class TicketsCommand(BaseCommand):
 
     def validate_args(self, args) -> Optional[str]:
         """Validate command arguments."""
-        if not hasattr(args, 'tickets_command') or not args.tickets_command:
+        if not hasattr(args, "tickets_command") or not args.tickets_command:
             return "No tickets subcommand specified"
 
         valid_commands = [cmd.value for cmd in TicketCommands]
@@ -58,8 +58,9 @@ class TicketsCommand(BaseCommand):
 
             if args.tickets_command in command_map:
                 return command_map[args.tickets_command](args)
-            else:
-                return CommandResult.error_result(f"Unknown tickets command: {args.tickets_command}")
+            return CommandResult.error_result(
+                f"Unknown tickets command: {args.tickets_command}"
+            )
 
         except Exception as e:
             self.logger.error(f"Error executing tickets command: {e}", exc_info=True)
@@ -71,8 +72,9 @@ class TicketsCommand(BaseCommand):
             exit_code = create_ticket_legacy(args)
             if exit_code == 0:
                 return CommandResult.success_result("Ticket created successfully")
-            else:
-                return CommandResult.error_result("Failed to create ticket", exit_code=exit_code)
+            return CommandResult.error_result(
+                "Failed to create ticket", exit_code=exit_code
+            )
         except Exception as e:
             self.logger.error(f"Error creating ticket: {e}")
             return CommandResult.error_result(f"Error creating ticket: {e}")
@@ -83,8 +85,9 @@ class TicketsCommand(BaseCommand):
             exit_code = list_tickets_legacy(args)
             if exit_code == 0:
                 return CommandResult.success_result("Tickets listed successfully")
-            else:
-                return CommandResult.error_result("Failed to list tickets", exit_code=exit_code)
+            return CommandResult.error_result(
+                "Failed to list tickets", exit_code=exit_code
+            )
         except Exception as e:
             self.logger.error(f"Error listing tickets: {e}")
             return CommandResult.error_result(f"Error listing tickets: {e}")
@@ -95,8 +98,9 @@ class TicketsCommand(BaseCommand):
             exit_code = view_ticket_legacy(args)
             if exit_code == 0:
                 return CommandResult.success_result("Ticket viewed successfully")
-            else:
-                return CommandResult.error_result("Failed to view ticket", exit_code=exit_code)
+            return CommandResult.error_result(
+                "Failed to view ticket", exit_code=exit_code
+            )
         except Exception as e:
             self.logger.error(f"Error viewing ticket: {e}")
             return CommandResult.error_result(f"Error viewing ticket: {e}")
@@ -107,8 +111,9 @@ class TicketsCommand(BaseCommand):
             exit_code = update_ticket_legacy(args)
             if exit_code == 0:
                 return CommandResult.success_result("Ticket updated successfully")
-            else:
-                return CommandResult.error_result("Failed to update ticket", exit_code=exit_code)
+            return CommandResult.error_result(
+                "Failed to update ticket", exit_code=exit_code
+            )
         except Exception as e:
             self.logger.error(f"Error updating ticket: {e}")
             return CommandResult.error_result(f"Error updating ticket: {e}")
@@ -119,8 +124,9 @@ class TicketsCommand(BaseCommand):
             exit_code = close_ticket_legacy(args)
             if exit_code == 0:
                 return CommandResult.success_result("Ticket closed successfully")
-            else:
-                return CommandResult.error_result("Failed to close ticket", exit_code=exit_code)
+            return CommandResult.error_result(
+                "Failed to close ticket", exit_code=exit_code
+            )
         except Exception as e:
             self.logger.error(f"Error closing ticket: {e}")
             return CommandResult.error_result(f"Error closing ticket: {e}")
@@ -131,8 +137,9 @@ class TicketsCommand(BaseCommand):
             exit_code = delete_ticket_legacy(args)
             if exit_code == 0:
                 return CommandResult.success_result("Ticket deleted successfully")
-            else:
-                return CommandResult.error_result("Failed to delete ticket", exit_code=exit_code)
+            return CommandResult.error_result(
+                "Failed to delete ticket", exit_code=exit_code
+            )
         except Exception as e:
             self.logger.error(f"Error deleting ticket: {e}")
             return CommandResult.error_result(f"Error deleting ticket: {e}")
@@ -143,8 +150,9 @@ class TicketsCommand(BaseCommand):
             exit_code = search_tickets_legacy(args)
             if exit_code == 0:
                 return CommandResult.success_result("Tickets searched successfully")
-            else:
-                return CommandResult.error_result("Failed to search tickets", exit_code=exit_code)
+            return CommandResult.error_result(
+                "Failed to search tickets", exit_code=exit_code
+            )
         except Exception as e:
             self.logger.error(f"Error searching tickets: {e}")
             return CommandResult.error_result(f"Error searching tickets: {e}")
@@ -155,8 +163,9 @@ class TicketsCommand(BaseCommand):
             exit_code = add_comment_legacy(args)
             if exit_code == 0:
                 return CommandResult.success_result("Comment added successfully")
-            else:
-                return CommandResult.error_result("Failed to add comment", exit_code=exit_code)
+            return CommandResult.error_result(
+                "Failed to add comment", exit_code=exit_code
+            )
         except Exception as e:
             self.logger.error(f"Error adding comment: {e}")
             return CommandResult.error_result(f"Error adding comment: {e}")
@@ -167,8 +176,9 @@ class TicketsCommand(BaseCommand):
             exit_code = update_workflow_legacy(args)
             if exit_code == 0:
                 return CommandResult.success_result("Workflow updated successfully")
-            else:
-                return CommandResult.error_result("Failed to update workflow", exit_code=exit_code)
+            return CommandResult.error_result(
+                "Failed to update workflow", exit_code=exit_code
+            )
         except Exception as e:
             self.logger.error(f"Error updating workflow: {e}")
             return CommandResult.error_result(f"Error updating workflow: {e}")
@@ -184,7 +194,7 @@ def manage_tickets(args):
     result = command.execute(args)
 
     # Print result if structured output format is requested
-    if hasattr(args, 'format') and args.format in ['json', 'yaml']:
+    if hasattr(args, "format") and args.format in ["json", "yaml"]:
         command.print_result(result, args)
 
     return result.exit_code
@@ -278,7 +288,7 @@ def create_ticket_legacy(args):
     Returns:
         Exit code (0 for success, non-zero for errors)
     """
-    logger = get_logger("cli.tickets")
+    get_logger("cli.tickets")
 
     try:
         from ...services.ticket_manager import TicketManager
@@ -317,9 +327,8 @@ def create_ticket_legacy(args):
             if getattr(args, "parent_issue", None):
                 print(f"   Parent Issue: {args.parent_issue}")
         return 0
-    else:
-        print("❌ Failed to create ticket")
-        return 1
+    print("❌ Failed to create ticket")
+    return 1
 
 
 def list_tickets_legacy(args):
@@ -501,7 +510,7 @@ def view_ticket_legacy(args):
     Returns:
         Exit code (0 for success, non-zero for errors)
     """
-    logger = get_logger("cli.tickets")
+    get_logger("cli.tickets")
 
     try:
         from ...services.ticket_manager import TicketManager
@@ -510,7 +519,7 @@ def view_ticket_legacy(args):
 
     ticket_manager = TicketManager()
     # Handle both 'id' and 'ticket_id' attributes for compatibility
-    ticket_id = getattr(args, 'ticket_id', getattr(args, 'id', None))
+    ticket_id = getattr(args, "ticket_id", getattr(args, "id", None))
     if not ticket_id:
         print("❌ No ticket ID provided")
         return 1
@@ -540,7 +549,7 @@ def view_ticket_legacy(args):
     if metadata.get("parent_issue"):
         print(f"Parent Issue: {metadata['parent_issue']}")
 
-    print(f"\nDescription:")
+    print("\nDescription:")
     print("-" * 40)
     print(ticket.get("description", "No description"))
 
@@ -548,7 +557,7 @@ def view_ticket_legacy(args):
     print(f"Updated: {ticket['updated_at']}")
 
     if args.verbose and ticket.get("metadata"):
-        print(f"\nMetadata:")
+        print("\nMetadata:")
         print("-" * 40)
         for key, value in ticket["metadata"].items():
             if key not in [
@@ -587,7 +596,7 @@ def update_ticket_legacy(args):
     ticket_manager = TicketManager()
 
     # Handle both 'id' and 'ticket_id' attributes for compatibility
-    ticket_id = getattr(args, 'ticket_id', getattr(args, 'id', None))
+    ticket_id = getattr(args, "ticket_id", getattr(args, "id", None))
     if not ticket_id:
         print("❌ No ticket ID provided")
         return 1
@@ -620,36 +629,35 @@ def update_ticket_legacy(args):
     if success:
         print(f"✅ Updated ticket: {ticket_id}")
         return 0
-    else:
-        # Fallback to aitrackdown CLI for status transitions
-        if args.status:
-            logger.info("Attempting update via aitrackdown CLI")
-            cmd = ["aitrackdown", "transition", ticket_id, args.status]
+    # Fallback to aitrackdown CLI for status transitions
+    if args.status:
+        logger.info("Attempting update via aitrackdown CLI")
+        cmd = ["aitrackdown", "transition", ticket_id, args.status]
 
-            # Add comment with other updates
-            comment_parts = []
-            if args.priority:
-                comment_parts.append(f"Priority: {args.priority}")
-            if args.assign:
-                comment_parts.append(f"Assigned to: {args.assign}")
-            if args.tags:
-                comment_parts.append(f"Tags: {args.tags}")
+        # Add comment with other updates
+        comment_parts = []
+        if args.priority:
+            comment_parts.append(f"Priority: {args.priority}")
+        if args.assign:
+            comment_parts.append(f"Assigned to: {args.assign}")
+        if args.tags:
+            comment_parts.append(f"Tags: {args.tags}")
 
-            if comment_parts:
-                comment = " | ".join(comment_parts)
-                cmd.extend(["--comment", comment])
+        if comment_parts:
+            comment = " | ".join(comment_parts)
+            cmd.extend(["--comment", comment])
 
-            try:
-                subprocess.run(cmd, check=True, capture_output=True, text=True)
-                print(f"✅ Updated ticket: {ticket_id}")
-                return 0
-            except subprocess.CalledProcessError as e:
-                logger.error(f"Failed to update via CLI: {e}")
-                print(f"❌ Failed to update ticket: {ticket_id}")
-                return 1
-        else:
+        try:
+            subprocess.run(cmd, check=True, capture_output=True, text=True)
+            print(f"✅ Updated ticket: {ticket_id}")
+            return 0
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to update via CLI: {e}")
             print(f"❌ Failed to update ticket: {ticket_id}")
             return 1
+    else:
+        print(f"❌ Failed to update ticket: {ticket_id}")
+        return 1
 
 
 def close_ticket_legacy(args):
@@ -674,7 +682,7 @@ def close_ticket_legacy(args):
     ticket_manager = TicketManager()
 
     # Handle both 'id' and 'ticket_id' attributes for compatibility
-    ticket_id = getattr(args, 'ticket_id', getattr(args, 'id', None))
+    ticket_id = getattr(args, "ticket_id", getattr(args, "id", None))
     if not ticket_id:
         print("❌ No ticket ID provided")
         return 1
@@ -686,21 +694,20 @@ def close_ticket_legacy(args):
     if success:
         print(f"✅ Closed ticket: {ticket_id}")
         return 0
-    else:
-        # Fallback to aitrackdown CLI
-        logger.info("Attempting close via aitrackdown CLI")
-        cmd = ["aitrackdown", "close", ticket_id]
+    # Fallback to aitrackdown CLI
+    logger.info("Attempting close via aitrackdown CLI")
+    cmd = ["aitrackdown", "close", ticket_id]
 
-        if resolution:
-            cmd.extend(["--comment", resolution])
+    if resolution:
+        cmd.extend(["--comment", resolution])
 
-        try:
-            subprocess.run(cmd, check=True, capture_output=True, text=True)
-            print(f"✅ Closed ticket: {ticket_id}")
-            return 0
-        except subprocess.CalledProcessError:
-            print(f"❌ Failed to close ticket: {ticket_id}")
-            return 1
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        print(f"✅ Closed ticket: {ticket_id}")
+        return 0
+    except subprocess.CalledProcessError:
+        print(f"❌ Failed to close ticket: {ticket_id}")
+        return 1
 
 
 def delete_ticket_legacy(args):
@@ -719,10 +726,10 @@ def delete_ticket_legacy(args):
     Returns:
         Exit code (0 for success, non-zero for errors)
     """
-    logger = get_logger("cli.tickets")
+    get_logger("cli.tickets")
 
     # Handle both 'id' and 'ticket_id' attributes for compatibility
-    ticket_id = getattr(args, 'ticket_id', getattr(args, 'id', None))
+    ticket_id = getattr(args, "ticket_id", getattr(args, "id", None))
     if not ticket_id:
         print("❌ No ticket ID provided")
         return 1
@@ -749,7 +756,9 @@ def delete_ticket_legacy(args):
             # In TTY environment, use normal input()
             try:
                 response = (
-                    input(f"Are you sure you want to delete ticket {ticket_id}? (y/N): ")
+                    input(
+                        f"Are you sure you want to delete ticket {ticket_id}? (y/N): "
+                    )
                     .strip()
                     .lower()
                 )
@@ -789,7 +798,7 @@ def search_tickets_legacy(args):
     Returns:
         Exit code (0 for success, non-zero for errors)
     """
-    logger = get_logger("cli.tickets")
+    get_logger("cli.tickets")
 
     try:
         from ...services.ticket_manager import TicketManager
@@ -819,9 +828,8 @@ def search_tickets_legacy(args):
                     continue
 
             # Apply status filter
-            if args.status != "all":
-                if ticket.get("status") != args.status:
-                    continue
+            if args.status != "all" and ticket.get("status") != args.status:
+                continue
 
             matched_tickets.append(ticket)
             if len(matched_tickets) >= args.limit:
@@ -878,10 +886,10 @@ def add_comment_legacy(args):
     Returns:
         Exit code (0 for success, non-zero for errors)
     """
-    logger = get_logger("cli.tickets")
+    get_logger("cli.tickets")
 
     # Handle both 'id' and 'ticket_id' attributes for compatibility
-    ticket_id = getattr(args, 'ticket_id', getattr(args, 'id', None))
+    ticket_id = getattr(args, "ticket_id", getattr(args, "id", None))
     if not ticket_id:
         print("❌ No ticket ID provided")
         return 1
@@ -917,23 +925,15 @@ def update_workflow_legacy(args):
     Returns:
         Exit code (0 for success, non-zero for errors)
     """
-    logger = get_logger("cli.tickets")
+    get_logger("cli.tickets")
 
     # Handle both 'id' and 'ticket_id' attributes for compatibility
-    ticket_id = getattr(args, 'ticket_id', getattr(args, 'id', None))
+    ticket_id = getattr(args, "ticket_id", getattr(args, "id", None))
     if not ticket_id:
         print("❌ No ticket ID provided")
         return 1
 
     # Map workflow states to status if needed
-    state_mapping = {
-        "todo": "open",
-        "in_progress": "in_progress",
-        "ready": "ready",
-        "tested": "tested",
-        "done": "done",
-        "blocked": "blocked",
-    }
 
     # Use aitrackdown transition command
     cmd = ["aitrackdown", "transition", ticket_id, args.state]

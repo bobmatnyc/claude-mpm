@@ -27,20 +27,19 @@ Implements error handling and user guidance patterns from awesome-claude-code.
 
 import logging
 import sys
-from typing import Any, Dict, List, Optional
 
 import click
 
-from claude_mpm.hooks.validation_hooks import ValidationError, ValidationHooks
+from claude_mpm.hooks.validation_hooks import ValidationHooks
 from claude_mpm.utils.error_handler import (
     ErrorContext,
     MPMError,
     handle_errors,
-    suggest_setup_fix,
 )
 from claude_mpm.validation import AgentValidator, ValidationResult
 
 logger = logging.getLogger(__name__)
+
 
 class CLIContext:
     """Enhanced CLI context with validation and error handling."""
@@ -55,12 +54,14 @@ class CLIContext:
     def setup_logging(self, debug: bool = False) -> None:
         """Setup logging based on debug flag."""
         level = logging.DEBUG if debug else logging.INFO
-        format_str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s" if debug else "%(message)s"
+        format_str = (
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            if debug
+            else "%(message)s"
+        )
 
         logging.basicConfig(
-            level=level,
-            format=format_str,
-            handlers=[logging.StreamHandler(sys.stdout)]
+            level=level, format=format_str, handlers=[logging.StreamHandler(sys.stdout)]
         )
         self.debug = debug
 
@@ -78,9 +79,9 @@ class CLIContext:
 
         # Check required directories
         required_dirs = [
-            Path.home() / '.claude-mpm',
-            Path.home() / '.claude-mpm' / 'profiles',
-            Path.home() / '.claude-mpm' / 'logs',
+            Path.home() / ".claude-mpm",
+            Path.home() / ".claude-mpm" / "profiles",
+            Path.home() / ".claude-mpm" / "logs",
         ]
 
         for dir_path in required_dirs:
@@ -94,8 +95,9 @@ class CLIContext:
 
         return all_passed
 
-    def handle_validation_result(self, result: ValidationResult,
-                               operation: str = "operation") -> None:
+    def handle_validation_result(
+        self, result: ValidationResult, operation: str = "operation"
+    ) -> None:
         """Handle validation results with user-friendly output."""
         if result.is_valid:
             if result.warnings:
@@ -116,13 +118,14 @@ class CLIContext:
 
             sys.exit(1)
 
+
 def create_enhanced_cli() -> click.Group:
     """Create enhanced CLI with better error handling."""
     cli_context = CLIContext()
 
     @click.group()
-    @click.option('--debug', is_flag=True, help='Enable debug logging')
-    @click.option('--dry-run', is_flag=True, help='Run without making changes')
+    @click.option("--debug", is_flag=True, help="Enable debug logging")
+    @click.option("--dry-run", is_flag=True, help="Run without making changes")
     @click.pass_context
     def cli(ctx, debug: bool, dry_run: bool):
         """Enhanced claude-mpm CLI with validation and error handling."""
@@ -131,6 +134,7 @@ def create_enhanced_cli() -> click.Group:
         cli_context.dry_run = dry_run
 
         if debug:
+            print("🐛 Debug mode enabled")
 
         if dry_run:
             print("🏃 Dry-run mode enabled")
@@ -154,7 +158,7 @@ def create_enhanced_cli() -> click.Group:
                 sys.exit(1)
 
     @cli.command()
-    @click.argument('profile_path', type=click.Path(exists=True))
+    @click.argument("profile_path", type=click.Path(exists=True))
     @click.pass_context
     @handle_errors(MPMError)
     async def validate_profile(ctx, profile_path: str):
@@ -167,14 +171,16 @@ def create_enhanced_cli() -> click.Group:
         # Run pre-load validation
         result = await cli_ctx.validation_hooks.run_pre_load_validation(profile)
 
-        cli_ctx.handle_validation_result(result, f"Profile validation for {profile.name}")
+        cli_ctx.handle_validation_result(
+            result, f"Profile validation for {profile.name}"
+        )
 
         if result.is_valid and result.locked_fields:
             print(f"\n🔒 Locked fields: {', '.join(result.locked_fields)}")
 
     @cli.command()
-    @click.option('--profile', '-p', help='Agent profile to load')
-    @click.option('--task', '-t', help='Task to execute')
+    @click.option("--profile", "-p", help="Agent profile to load")
+    @click.option("--task", "-t", help="Task to execute")
     @click.pass_context
     @handle_errors(MPMError)
     async def run_agent(ctx, profile: str, task: str):
@@ -189,8 +195,8 @@ def create_enhanced_cli() -> click.Group:
         if not profile_path.exists():
             # Try default locations
             default_locations = [
-                Path.home() / '.claude-mpm' / 'profiles' / f"{profile}.yaml",
-                Path.cwd() / 'agents' / f"{profile}.yaml",
+                Path.home() / ".claude-mpm" / "profiles" / f"{profile}.yaml",
+                Path.cwd() / "agents" / f"{profile}.yaml",
             ]
 
             for location in default_locations:
@@ -200,24 +206,26 @@ def create_enhanced_cli() -> click.Group:
             else:
                 raise MPMError(
                     f"Profile '{profile}' not found",
-                    details={'searched_locations': [str(p) for p in default_locations]},
+                    details={"searched_locations": [str(p) for p in default_locations]},
                     suggestions=[
                         "Check the profile name",
                         "Use 'mpm list-profiles' to see available profiles",
-                        "Create a new profile with 'mpm create-profile'"
-                    ]
+                        "Create a new profile with 'mpm create-profile'",
+                    ],
                 )
 
         # Run validation
         print(f"🔍 Validating profile: {profile_path.name}")
-        validation_result = await cli_ctx.validation_hooks.run_pre_load_validation(profile_path)
+        validation_result = await cli_ctx.validation_hooks.run_pre_load_validation(
+            profile_path
+        )
 
         if not validation_result.is_valid:
             cli_ctx.handle_validation_result(validation_result, "Profile validation")
             return
 
         # Validate task
-        print(f"🔍 Validating task...")
+        print("🔍 Validating task...")
         task_result = await cli_ctx.validation_hooks.run_pre_execute_validation(
             profile_path.stem, task
         )
@@ -242,14 +250,14 @@ def create_enhanced_cli() -> click.Group:
         cli_ctx = ctx.obj
 
         profile_locations = [
-            Path.home() / '.claude-mpm' / 'profiles',
-            Path.cwd() / 'agents',
+            Path.home() / ".claude-mpm" / "profiles",
+            Path.cwd() / "agents",
         ]
 
         all_profiles = []
         for location in profile_locations:
             if location.exists():
-                profiles = list(location.glob('*.yaml')) + list(location.glob('*.yml'))
+                profiles = list(location.glob("*.yaml")) + list(location.glob("*.yml"))
                 all_profiles.extend(profiles)
 
         if not all_profiles:
@@ -265,9 +273,9 @@ def create_enhanced_cli() -> click.Group:
             print(f"  {status} {profile.stem} ({profile})")
 
     @cli.command()
-    @click.argument('name')
-    @click.option('--role', '-r', required=True, help='Agent role')
-    @click.option('--category', '-c', default='analysis', help='Agent category')
+    @click.argument("name")
+    @click.option("--role", "-r", required=True, help="Agent role")
+    @click.option("--category", "-c", default="analysis", help="Agent category")
     @click.pass_context
     def create_profile(ctx, name: str, role: str, category: str):
         """Create a new agent profile from template."""
@@ -285,34 +293,41 @@ def create_enhanced_cli() -> click.Group:
         profile_content = generator.generate_profile(config)
 
         # Save profile
-        profile_dir = Path.home() / '.claude-mpm' / 'profiles'
+        profile_dir = Path.home() / ".claude-mpm" / "profiles"
         profile_dir.mkdir(parents=True, exist_ok=True)
 
         profile_path = profile_dir / f"{name.lower().replace(' ', '_')}.yaml"
 
-        if profile_path.exists() and not click.confirm(f"Profile {profile_path} exists. Overwrite?"):
+        if profile_path.exists() and not click.confirm(
+            f"Profile {profile_path} exists. Overwrite?"
+        ):
             print("Aborted")
             return
 
         if cli_ctx.dry_run:
             print(f"\n🏃 Dry-run mode - would create {profile_path}:")
             print("---")
-            print(profile_content[:500] + "..." if len(profile_content) > 500 else profile_content)
+            print(
+                profile_content[:500] + "..."
+                if len(profile_content) > 500
+                else profile_content
+            )
             print("---")
         else:
             profile_path.write_text(profile_content)
             print(f"✅ Created profile: {profile_path}")
 
             # Generate documentation
-            doc_path = profile_path.with_suffix('.md')
+            doc_path = profile_path.with_suffix(".md")
             doc_content = generator.generate_agent_documentation(config)
             doc_path.write_text(doc_content)
             print(f"📝 Created documentation: {doc_path}")
 
     return cli
 
+
 # Export the enhanced CLI
 enhanced_cli = create_enhanced_cli()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     enhanced_cli()

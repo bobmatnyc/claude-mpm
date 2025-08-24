@@ -13,7 +13,7 @@ import socket
 import subprocess
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, NamedTuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import psutil
 
@@ -22,6 +22,7 @@ from ..core.logging_config import get_logger
 
 class ProcessInfo(NamedTuple):
     """Information about a process using a port."""
+
     pid: int
     name: str
     cmdline: str
@@ -49,18 +50,18 @@ class PortManager:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                result = sock.bind(("localhost", port))
+                sock.bind(("localhost", port))
                 return True
         except OSError:
             return False
-    
+
     def get_process_on_port(self, port: int) -> Optional[ProcessInfo]:
         """Get information about the process using a specific port.
-        
+
         WHY: We need to identify what process is using a port to make intelligent
         decisions about whether we can reclaim it (our debug scripts) or must
         avoid it (external processes or our daemons).
-        
+
         Returns:
             ProcessInfo with details about the process, or None if port is free
         """
@@ -68,32 +69,35 @@ class PortManager:
             # First try using lsof as it's more reliable for port detection
             try:
                 result = subprocess.run(
-                    ['lsof', '-i', f':{port}', '-sTCP:LISTEN', '-t'],
+                    ["lsof", "-i", f":{port}", "-sTCP:LISTEN", "-t"],
                     capture_output=True,
                     text=True,
-                    timeout=2
+                    timeout=2,
+                    check=False,
                 )
                 if result.returncode == 0 and result.stdout.strip():
                     # Get the PID from lsof output
                     pid = int(result.stdout.strip().split()[0])
                     try:
                         process = psutil.Process(pid)
-                        cmdline = ' '.join(process.cmdline())
-                        
+                        cmdline = " ".join(process.cmdline())
+
                         # Determine if this is our process and what type
                         is_ours = self._is_our_process(pid, cmdline)
                         is_debug = self._is_debug_process(cmdline) if is_ours else False
-                        is_daemon = self._is_daemon_process(cmdline) if is_ours else False
-                        
+                        is_daemon = (
+                            self._is_daemon_process(cmdline) if is_ours else False
+                        )
+
                         return ProcessInfo(
                             pid=pid,
                             name=process.name(),
                             cmdline=cmdline,
                             is_ours=is_ours,
                             is_debug=is_debug,
-                            is_daemon=is_daemon
+                            is_daemon=is_daemon,
                         )
-                    except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
                         # Process exists but we can't access it
                         return ProcessInfo(
                             pid=pid,
@@ -101,31 +105,33 @@ class PortManager:
                             cmdline="<permission denied>",
                             is_ours=False,
                             is_debug=False,
-                            is_daemon=False
+                            is_daemon=False,
                         )
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 # lsof not available or timed out, fall back to psutil
                 pass
-            
+
             # Fallback to psutil method
-            for conn in psutil.net_connections(kind='inet'):
-                if conn.laddr.port == port and conn.status == 'LISTEN':
+            for conn in psutil.net_connections(kind="inet"):
+                if conn.laddr.port == port and conn.status == "LISTEN":
                     try:
                         process = psutil.Process(conn.pid)
-                        cmdline = ' '.join(process.cmdline())
-                        
+                        cmdline = " ".join(process.cmdline())
+
                         # Determine if this is our process and what type
                         is_ours = self._is_our_process(conn.pid, cmdline)
                         is_debug = self._is_debug_process(cmdline) if is_ours else False
-                        is_daemon = self._is_daemon_process(cmdline) if is_ours else False
-                        
+                        is_daemon = (
+                            self._is_daemon_process(cmdline) if is_ours else False
+                        )
+
                         return ProcessInfo(
                             pid=conn.pid,
                             name=process.name(),
                             cmdline=cmdline,
                             is_ours=is_ours,
                             is_debug=is_debug,
-                            is_daemon=is_daemon
+                            is_daemon=is_daemon,
                         )
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         # Can't access process details, mark as unknown external
@@ -135,7 +141,7 @@ class PortManager:
                             cmdline="<permission denied>",
                             is_ours=False,
                             is_debug=False,
-                            is_daemon=False
+                            is_daemon=False,
                         )
         except psutil.AccessDenied:
             # No permission to check network connections
@@ -148,158 +154,164 @@ class PortManager:
                     cmdline="<unable to determine>",
                     is_ours=False,
                     is_debug=False,
-                    is_daemon=False
+                    is_daemon=False,
                 )
         except Exception as e:
             self.logger.debug(f"Error getting process on port {port}: {e}")
-        
+
         return None
-    
-    def _is_our_process(self, pid: int, cmdline: str = None) -> bool:
+
+    def _is_our_process(self, pid: int, cmdline: Optional[str] = None) -> bool:
         """Check if a process belongs to claude-mpm.
-        
+
         WHY: We need to distinguish our processes from external ones to know
         which ports we can potentially reclaim.
         """
         try:
             if cmdline is None:
                 process = psutil.Process(pid)
-                cmdline = ' '.join(process.cmdline())
-            
+                cmdline = " ".join(process.cmdline())
+
             cmdline_lower = cmdline.lower()
-            
+
             # Check for claude-mpm related patterns
             our_patterns = [
-                'claude-mpm',
-                'claude_mpm',
-                'socketio_debug',
-                'socketio_daemon',
-                'socketio_server',
+                "claude-mpm",
+                "claude_mpm",
+                "socketio_debug",
+                "socketio_daemon",
+                "socketio_server",
                 str(self.project_root).lower(),  # Running from our project directory
-                'scripts/test_',  # Our test scripts
-                'scripts/debug_',  # Our debug scripts
-                'scripts/demo_',  # Our demo scripts
-                'scripts/run_',  # Our run scripts
-                'scripts/validate_',  # Our validation scripts
+                "scripts/test_",  # Our test scripts
+                "scripts/debug_",  # Our debug scripts
+                "scripts/demo_",  # Our demo scripts
+                "scripts/run_",  # Our run scripts
+                "scripts/validate_",  # Our validation scripts
             ]
-            
+
             return any(pattern in cmdline_lower for pattern in our_patterns)
-            
+
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             return False
-    
+
     def _is_debug_process(self, cmdline: str) -> bool:
         """Check if a process is a debug/test script (safe to kill).
-        
+
         WHY: Debug and test scripts can be safely terminated to reclaim ports,
         unlike production daemons which should be preserved.
         """
         cmdline_lower = cmdline.lower()
-        
+
         debug_patterns = [
-            'socketio_debug.py',
-            'run_socketio_debug.py',
-            'test_',
-            'debug_',
-            'demo_',
-            'validate_',
-            'scripts/test',
-            'scripts/debug',
-            'scripts/demo',
-            'scripts/validate',
+            "socketio_debug.py",
+            "run_socketio_debug.py",
+            "test_",
+            "debug_",
+            "demo_",
+            "validate_",
+            "scripts/test",
+            "scripts/debug",
+            "scripts/demo",
+            "scripts/validate",
         ]
-        
+
         # Also check if NOT a daemon (daemons are not debug scripts)
-        is_not_daemon = 'daemon' not in cmdline_lower or 'debug' in cmdline_lower
-        
-        return any(pattern in cmdline_lower for pattern in debug_patterns) and is_not_daemon
-    
+        is_not_daemon = "daemon" not in cmdline_lower or "debug" in cmdline_lower
+
+        return (
+            any(pattern in cmdline_lower for pattern in debug_patterns)
+            and is_not_daemon
+        )
+
     def _is_daemon_process(self, cmdline: str) -> bool:
         """Check if a process is a daemon (should be preserved).
-        
+
         WHY: Daemon processes are production services that should not be
         automatically killed. Users must explicitly stop them.
         """
         cmdline_lower = cmdline.lower()
-        
+
         daemon_patterns = [
-            'socketio_daemon',
-            'claude-mpm monitor',
-            'daemon',
+            "socketio_daemon",
+            "claude-mpm monitor",
+            "daemon",
         ]
-        
+
         # Exclude debug daemons
-        if 'debug' in cmdline_lower:
+        if "debug" in cmdline_lower:
             return False
-        
+
         return any(pattern in cmdline_lower for pattern in daemon_patterns)
-    
+
     def kill_process_on_port(self, port: int, force: bool = False) -> bool:
         """Kill a process using a specific port if it's safe to do so.
-        
+
         WHY: Automatically reclaim ports from our debug scripts while preserving
         daemons and avoiding external processes.
-        
+
         Args:
             port: Port number to reclaim
             force: If True, kill even daemon processes (requires explicit user action)
-            
+
         Returns:
             True if process was killed or port is now free, False otherwise
         """
         process_info = self.get_process_on_port(port)
-        
+
         if not process_info:
             self.logger.info(f"Port {port} is already free")
             return True
-        
+
         if not process_info.is_ours:
             self.logger.warning(
                 f"Port {port} is used by external process '{process_info.name}' "
                 f"(PID: {process_info.pid}). Cannot reclaim."
             )
             return False
-        
+
         if process_info.is_daemon and not force:
             self.logger.warning(
                 f"Port {port} is used by our daemon process (PID: {process_info.pid}). "
                 f"Use --force flag or stop the daemon explicitly."
             )
             return False
-        
+
         if process_info.is_debug or force:
             try:
                 self.logger.info(
                     f"Killing {'debug' if process_info.is_debug else 'daemon'} process "
                     f"{process_info.pid} on port {port}"
                 )
-                
+
                 # Try graceful termination first
                 os.kill(process_info.pid, signal.SIGTERM)
-                
+
                 # Wait up to 2 seconds for graceful shutdown
                 for _ in range(20):
                     time.sleep(0.1)
                     if not psutil.pid_exists(process_info.pid):
-                        self.logger.info(f"Process {process_info.pid} terminated gracefully")
+                        self.logger.info(
+                            f"Process {process_info.pid} terminated gracefully"
+                        )
                         return True
-                
+
                 # Force kill if still running
-                self.logger.warning(f"Process {process_info.pid} didn't terminate, forcing kill")
+                self.logger.warning(
+                    f"Process {process_info.pid} didn't terminate, forcing kill"
+                )
                 os.kill(process_info.pid, signal.SIGKILL)
                 time.sleep(0.5)
-                
+
                 if not psutil.pid_exists(process_info.pid):
                     self.logger.info(f"Process {process_info.pid} force killed")
                     return True
-                else:
-                    self.logger.error(f"Failed to kill process {process_info.pid}")
-                    return False
-                    
+                self.logger.error(f"Failed to kill process {process_info.pid}")
+                return False
+
             except Exception as e:
                 self.logger.error(f"Error killing process {process_info.pid}: {e}")
                 return False
-        
+
         return False
 
     def is_claude_mpm_instance(self, port: int) -> Tuple[bool, Optional[Dict]]:
@@ -344,14 +356,14 @@ class PortManager:
         self, preferred_port: Optional[int] = None, reclaim: bool = True
     ) -> Optional[int]:
         """Find an available port, preferring the specified port if given.
-        
+
         WHY: Enhanced to intelligently reclaim ports from our debug processes
         while avoiding external processes and preserving daemons.
-        
+
         Args:
             preferred_port: Port to try first
             reclaim: If True, try to reclaim ports from our debug scripts
-            
+
         Returns:
             Available port number or None if no ports available
         """
@@ -359,7 +371,7 @@ class PortManager:
         if preferred_port and preferred_port in self.PORT_RANGE:
             if self.is_port_available(preferred_port):
                 return preferred_port
-            
+
             # Port is in use - check if we can reclaim it
             if reclaim:
                 process_info = self.get_process_on_port(preferred_port)
@@ -384,7 +396,7 @@ class PortManager:
         # Try default port
         if self.is_port_available(self.DEFAULT_PORT):
             return self.DEFAULT_PORT
-        
+
         # Check if we can reclaim default port
         if reclaim:
             process_info = self.get_process_on_port(self.DEFAULT_PORT)
@@ -404,7 +416,7 @@ class PortManager:
 
             if self.is_port_available(port):
                 return port
-            
+
             # Try to reclaim if it's our debug process
             if reclaim:
                 process_info = self.get_process_on_port(port)
@@ -462,7 +474,7 @@ class PortManager:
         """Load registered instances from file."""
         try:
             if self.instances_file.exists():
-                with open(self.instances_file, "r") as f:
+                with open(self.instances_file) as f:
                     return json.load(f)
         except Exception as e:
             self.logger.warning(f"Failed to load instances file: {e}")
@@ -522,13 +534,13 @@ class PortManager:
                     return instance_info
 
         return None
-    
+
     def get_port_status(self, port: int) -> Dict[str, any]:
         """Get detailed status of a port including what's using it.
-        
+
         WHY: Provides comprehensive information for users to understand
         port conflicts and make informed decisions.
-        
+
         Returns:
             Dictionary with port status details
         """
@@ -537,9 +549,9 @@ class PortManager:
             "available": self.is_port_available(port),
             "process": None,
             "instance": None,
-            "recommendation": None
+            "recommendation": None,
         }
-        
+
         # Check for process using the port
         process_info = self.get_process_on_port(port)
         if process_info:
@@ -549,27 +561,37 @@ class PortManager:
                 "is_ours": process_info.is_ours,
                 "is_debug": process_info.is_debug,
                 "is_daemon": process_info.is_daemon,
-                "cmdline": process_info.cmdline[:100] + "..." if len(process_info.cmdline) > 100 else process_info.cmdline
+                "cmdline": (
+                    process_info.cmdline[:100] + "..."
+                    if len(process_info.cmdline) > 100
+                    else process_info.cmdline
+                ),
             }
-            
+
             # Provide recommendation based on process type
             if process_info.is_ours:
                 if process_info.is_debug:
-                    status["recommendation"] = "Can be automatically reclaimed (debug process)"
+                    status["recommendation"] = (
+                        "Can be automatically reclaimed (debug process)"
+                    )
                 elif process_info.is_daemon:
-                    status["recommendation"] = "Stop daemon with 'claude-mpm monitor stop' or use --force"
+                    status["recommendation"] = (
+                        "Stop daemon with 'claude-mpm monitor stop' or use --force"
+                    )
                 else:
-                    status["recommendation"] = "Our process, consider stopping it manually"
+                    status["recommendation"] = (
+                        "Our process, consider stopping it manually"
+                    )
             else:
                 status["recommendation"] = "External process, choose a different port"
-        
+
         # Check for registered instance
         instance_info = self.get_instance_by_port(port)
         if instance_info:
             status["instance"] = {
                 "id": instance_info.get("instance_id"),
                 "pid": instance_info.get("pid"),
-                "start_time": instance_info.get("start_time")
+                "start_time": instance_info.get("start_time"),
             }
-        
+
         return status

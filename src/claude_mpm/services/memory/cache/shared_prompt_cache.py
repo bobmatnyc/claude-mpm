@@ -41,15 +41,13 @@ import asyncio
 import json
 import threading
 import time
-import weakref
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
 from functools import wraps
 from threading import RLock
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set
 
-from claude_mpm.core.base_service import BaseService, ServiceHealth, ServiceMetrics
+from claude_mpm.core.base_service import BaseService
 
 
 @dataclass
@@ -429,7 +427,7 @@ class SharedPromptCache(BaseService):
             with self._cache_lock:
                 keys_to_remove = []
 
-                for key in self._cache.keys():
+                for key in self._cache:
                     if fnmatch.fnmatch(key, pattern):
                         keys_to_remove.append(key)
 

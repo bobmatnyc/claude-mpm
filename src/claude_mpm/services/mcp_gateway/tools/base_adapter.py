@@ -7,10 +7,9 @@ Base class for MCP tool adapters and example implementations.
 Part of ISS-0035: MCP Server Implementation - Core Server and Tool Registry
 """
 
-import traceback
 from abc import ABC
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from claude_mpm.services.mcp_gateway.core.base import BaseMCPService
 from claude_mpm.services.mcp_gateway.core.interfaces import (
@@ -266,7 +265,7 @@ class EchoToolAdapter(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"Echo tool failed: {str(e)}",
+                error=f"Echo tool failed: {e!s}",
                 execution_time=execution_time,
             )
 
@@ -368,7 +367,7 @@ class CalculatorToolAdapter(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"Calculator tool failed: {str(e)}",
+                error=f"Calculator tool failed: {e!s}",
                 execution_time=execution_time,
             )
 
@@ -471,7 +470,7 @@ class SystemInfoToolAdapter(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"System info tool requires psutil: {str(e)}",
+                error=f"System info tool requires psutil: {e!s}",
                 execution_time=execution_time,
             )
         except Exception as e:
@@ -481,6 +480,6 @@ class SystemInfoToolAdapter(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"System info tool failed: {str(e)}",
+                error=f"System info tool failed: {e!s}",
                 execution_time=execution_time,
             )

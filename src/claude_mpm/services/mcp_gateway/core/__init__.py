@@ -24,21 +24,21 @@ from .interfaces import (
 )
 
 __all__ = [
-    # Interfaces
-    "IMCPGateway",
-    "IMCPToolRegistry",
-    "IMCPConfiguration",
-    "IMCPToolAdapter",
-    "IMCPLifecycle",
-    "IMCPCommunication",
     # Base classes
     "BaseMCPService",
-    "MCPServiceState",
+    "IMCPCommunication",
+    "IMCPConfiguration",
+    # Interfaces
+    "IMCPGateway",
+    "IMCPLifecycle",
+    "IMCPToolAdapter",
+    "IMCPToolRegistry",
+    "MCPCommunicationError",
+    "MCPConfigurationError",
     # Exceptions
     "MCPException",
-    "MCPConfigurationError",
-    "MCPToolNotFoundError",
     "MCPServerError",
-    "MCPCommunicationError",
+    "MCPServiceState",
+    "MCPToolNotFoundError",
     "MCPValidationError",
 ]

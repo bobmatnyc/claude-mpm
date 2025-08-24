@@ -15,4 +15,4 @@ This improves maintainability, testability, and code organization.
 from .broadcaster import SocketIOEventBroadcaster
 from .core import SocketIOServerCore
 
-__all__ = ["SocketIOServerCore", "SocketIOEventBroadcaster"]
+__all__ = ["SocketIOEventBroadcaster", "SocketIOServerCore"]

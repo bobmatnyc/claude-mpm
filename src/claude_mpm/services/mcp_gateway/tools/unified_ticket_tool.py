@@ -21,9 +21,8 @@ DESIGN DECISIONS:
 import asyncio
 import json
 import re
-import subprocess
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     MCPToolDefinition,
@@ -191,7 +190,9 @@ class UnifiedTicketTool(BaseToolAdapter):
 
         return await handler(invocation.parameters)
 
-    def _validate_parameters(self, operation: str, params: Dict[str, Any]) -> Optional[str]:
+    def _validate_parameters(
+        self, operation: str, params: Dict[str, Any]
+    ) -> Optional[str]:
         """
         Validate parameters based on the operation type.
 
@@ -209,26 +210,26 @@ class UnifiedTicketTool(BaseToolAdapter):
                 return "'title' parameter is required for create operation"
             if params["type"] not in ["task", "issue", "epic"]:
                 return f"Invalid type '{params['type']}'. Must be 'task', 'issue', or 'epic'"
-        
+
         elif operation == "update":
             if "ticket_id" not in params:
                 return "'ticket_id' parameter is required for update operation"
-        
+
         elif operation == "view":
             if "ticket_id" not in params:
                 return "'ticket_id' parameter is required for view operation"
-        
+
         elif operation == "search":
             if "query" not in params:
                 return "'query' parameter is required for search operation"
-        
+
         elif operation == "list":
             # List operation has no required parameters beyond operation itself
             pass
-        
+
         else:
             return f"Unknown operation: {operation}"
-        
+
         return None
 
     async def _handle_create(self, params: Dict[str, Any]) -> MCPToolResult:
@@ -254,7 +255,7 @@ class UnifiedTicketTool(BaseToolAdapter):
             if "priority" in params:
                 cmd.extend(["--priority", params["priority"]])
 
-            if "tags" in params and params["tags"]:
+            if params.get("tags"):
                 for tag in params["tags"]:
                     cmd.extend(["--tag", tag])
 
@@ -294,15 +295,14 @@ class UnifiedTicketTool(BaseToolAdapter):
                     execution_time=execution_time,
                     metadata={"tool": "ticket", "operation": "create"},
                 )
-            else:
-                error_msg = stderr.decode() if stderr else stdout.decode()
-                self._update_metrics(False, execution_time)
+            error_msg = stderr.decode() if stderr else stdout.decode()
+            self._update_metrics(False, execution_time)
 
-                return MCPToolResult(
-                    success=False,
-                    error=f"Failed to create ticket: {error_msg}",
-                    execution_time=execution_time,
-                )
+            return MCPToolResult(
+                success=False,
+                error=f"Failed to create ticket: {error_msg}",
+                execution_time=execution_time,
+            )
 
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
@@ -310,7 +310,7 @@ class UnifiedTicketTool(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"Ticket creation failed: {str(e)}",
+                error=f"Ticket creation failed: {e!s}",
                 execution_time=execution_time,
             )
 
@@ -365,15 +365,14 @@ class UnifiedTicketTool(BaseToolAdapter):
                         "count": len(tickets) if isinstance(tickets, list) else 1,
                     },
                 )
-            else:
-                error_msg = stderr.decode() if stderr else stdout.decode()
-                self._update_metrics(False, execution_time)
+            error_msg = stderr.decode() if stderr else stdout.decode()
+            self._update_metrics(False, execution_time)
 
-                return MCPToolResult(
-                    success=False,
-                    error=f"Failed to list tickets: {error_msg}",
-                    execution_time=execution_time,
-                )
+            return MCPToolResult(
+                success=False,
+                error=f"Failed to list tickets: {error_msg}",
+                execution_time=execution_time,
+            )
 
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
@@ -381,7 +380,7 @@ class UnifiedTicketTool(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"Ticket listing failed: {str(e)}",
+                error=f"Ticket listing failed: {e!s}",
                 execution_time=execution_time,
             )
 
@@ -444,15 +443,14 @@ class UnifiedTicketTool(BaseToolAdapter):
                     execution_time=execution_time,
                     metadata={"tool": "ticket", "operation": "update"},
                 )
-            else:
-                error_msg = stderr.decode() if stderr else stdout.decode()
-                self._update_metrics(False, execution_time)
+            error_msg = stderr.decode() if stderr else stdout.decode()
+            self._update_metrics(False, execution_time)
 
-                return MCPToolResult(
-                    success=False,
-                    error=f"Failed to update ticket: {error_msg}",
-                    execution_time=execution_time,
-                )
+            return MCPToolResult(
+                success=False,
+                error=f"Failed to update ticket: {error_msg}",
+                execution_time=execution_time,
+            )
 
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
@@ -460,7 +458,7 @@ class UnifiedTicketTool(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"Ticket update failed: {str(e)}",
+                error=f"Ticket update failed: {e!s}",
                 execution_time=execution_time,
             )
 
@@ -514,15 +512,14 @@ class UnifiedTicketTool(BaseToolAdapter):
                         "ticket_id": ticket_id,
                     },
                 )
-            else:
-                error_msg = stderr.decode() if stderr else stdout.decode()
-                self._update_metrics(False, execution_time)
+            error_msg = stderr.decode() if stderr else stdout.decode()
+            self._update_metrics(False, execution_time)
 
-                return MCPToolResult(
-                    success=False,
-                    error=f"Failed to view ticket: {error_msg}",
-                    execution_time=execution_time,
-                )
+            return MCPToolResult(
+                success=False,
+                error=f"Failed to view ticket: {error_msg}",
+                execution_time=execution_time,
+            )
 
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
@@ -530,7 +527,7 @@ class UnifiedTicketTool(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"Ticket view failed: {str(e)}",
+                error=f"Ticket view failed: {e!s}",
                 execution_time=execution_time,
             )
 
@@ -581,15 +578,14 @@ class UnifiedTicketTool(BaseToolAdapter):
                     execution_time=execution_time,
                     metadata={"tool": "ticket", "operation": "search", "query": query},
                 )
-            else:
-                error_msg = stderr.decode() if stderr else stdout.decode()
-                self._update_metrics(False, execution_time)
+            error_msg = stderr.decode() if stderr else stdout.decode()
+            self._update_metrics(False, execution_time)
 
-                return MCPToolResult(
-                    success=False,
-                    error=f"Failed to search tickets: {error_msg}",
-                    execution_time=execution_time,
-                )
+            return MCPToolResult(
+                success=False,
+                error=f"Failed to search tickets: {error_msg}",
+                execution_time=execution_time,
+            )
 
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
@@ -597,7 +593,7 @@ class UnifiedTicketTool(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"Ticket search failed: {str(e)}",
+                error=f"Ticket search failed: {e!s}",
                 execution_time=execution_time,
             )
 

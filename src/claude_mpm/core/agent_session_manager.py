@@ -5,7 +5,7 @@ import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 from ..core.logger import get_logger
 
@@ -117,7 +117,7 @@ class AgentSessionManager:
             success: Whether task completed successfully
         """
         # Find which agent this session belongs to
-        for agent_type, sessions in self.agent_sessions.items():
+        for _agent_type, sessions in self.agent_sessions.items():
             if session_id in sessions:
                 sessions[session_id]["tasks_completed"].append(
                     {
@@ -219,7 +219,7 @@ class AgentSessionManager:
         session_file = self.session_dir / "agent_sessions.json"
         if session_file.exists():
             try:
-                with open(session_file, "r") as f:
+                with open(session_file) as f:
                     data = json.load(f)
                     self.agent_sessions = defaultdict(
                         dict, data.get("agent_sessions", {})

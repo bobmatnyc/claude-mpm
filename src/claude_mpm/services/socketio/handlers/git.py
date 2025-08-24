@@ -10,9 +10,8 @@ import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
-from ....core.typing_utils import EventData, PathLike, SocketId
 from .base import BaseEventHandler
 
 
@@ -53,6 +52,7 @@ class GitEventHandler(BaseEventHandler):
                     cwd=working_dir,
                     capture_output=True,
                     text=True,
+                    check=False,
                 )
 
                 # Debug: Git command completed
@@ -125,6 +125,7 @@ class GitEventHandler(BaseEventHandler):
                     ["git", "-C", working_dir, "ls-files", "--", file_path],
                     capture_output=True,
                     text=True,
+                    check=False,
                 )
 
                 is_tracked = result.returncode == 0 and result.stdout.strip()
@@ -318,6 +319,7 @@ class GitEventHandler(BaseEventHandler):
                     ["git", "-C", working_dir, "add", file_path],
                     capture_output=True,
                     text=True,
+                    check=False,
                 )
 
                 # Debug: Git add completed
@@ -389,7 +391,7 @@ class GitEventHandler(BaseEventHandler):
         ):
             working_dir = os.getcwd()
             self.logger.info(
-                f"[{operation}] working_dir was invalid ({repr(original_working_dir)}), using cwd: {working_dir}"
+                f"[{operation}] working_dir was invalid ({original_working_dir!r}), using cwd: {working_dir}"
             )
         else:
             self.logger.info(f"[{operation}] Using provided working_dir: {working_dir}")
@@ -424,7 +426,7 @@ class GitEventHandler(BaseEventHandler):
                 response_event,
                 {
                     "success": False,
-                    "error": f"Directory not found",
+                    "error": "Directory not found",
                     "working_dir": working_dir,
                     "detail": f"Path does not exist: {working_dir}",
                 },
@@ -440,7 +442,7 @@ class GitEventHandler(BaseEventHandler):
                 response_event,
                 {
                     "success": False,
-                    "error": f"Not a directory",
+                    "error": "Not a directory",
                     "working_dir": working_dir,
                     "detail": f"Path is not a directory: {working_dir}",
                 },
@@ -529,6 +531,7 @@ class GitEventHandler(BaseEventHandler):
             ["git", "-C", working_dir, "rev-parse", "--git-dir"],
             capture_output=True,
             text=True,
+            check=False,
         )
         return git_check.returncode == 0
 
@@ -543,6 +546,7 @@ class GitEventHandler(BaseEventHandler):
             ["git", "-C", working_dir, "rev-parse", "--show-toplevel"],
             capture_output=True,
             text=True,
+            check=False,
         )
 
         if git_root_result.returncode == 0:
@@ -570,6 +574,7 @@ class GitEventHandler(BaseEventHandler):
             ["git", "-C", working_dir, "status", "--porcelain", file_path],
             capture_output=True,
             text=True,
+            check=False,
         )
 
         # Check if file is tracked by git
@@ -577,6 +582,7 @@ class GitEventHandler(BaseEventHandler):
             ["git", "-C", working_dir, "ls-files", file_path],
             capture_output=True,
             text=True,
+            check=False,
         )
 
         is_tracked = ls_files_result.returncode == 0 and ls_files_result.stdout.strip()
@@ -633,7 +639,6 @@ class GitEventHandler(BaseEventHandler):
                         )
 
             # Handle case where working_dir is None, empty string, or 'Unknown'
-            original_working_dir = working_dir
             if not working_dir or working_dir == "Unknown" or working_dir.strip() == "":
                 working_dir = os.getcwd()
                 # Debug: working_dir was invalid, using cwd
@@ -952,6 +957,6 @@ class GitEventHandler(BaseEventHandler):
             self.logger.error(f"Error in generate_git_diff: {e}")
             return {
                 "success": False,
-                "error": f"Git diff generation failed: {str(e)}",
+                "error": f"Git diff generation failed: {e!s}",
                 "file_path": file_path,
             }
