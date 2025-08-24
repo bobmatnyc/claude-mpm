@@ -14,15 +14,13 @@ WHY file system caching:
 """
 
 import asyncio
-import hashlib
 import json
 import pickle
 import threading
-import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Optional, Tuple, TypeVar, Union
+from datetime import datetime
+from typing import Any, Callable, Dict, Optional, TypeVar, Union
 
 from ..core.logger import get_logger
 
@@ -127,7 +125,7 @@ class FileSystemCache:
         """Estimate memory size of a value in bytes."""
         if isinstance(value, (str, bytes)):
             return len(value)
-        elif isinstance(value, (list, dict)):
+        if isinstance(value, (list, dict)):
             # Rough estimate using JSON serialization
             try:
                 return len(json.dumps(value))
@@ -353,7 +351,7 @@ class FileSystemCache:
 
         with self._lock:
             matching_keys = [
-                key for key in self._cache.keys() if fnmatch.fnmatch(key, pattern)
+                key for key in self._cache if fnmatch.fnmatch(key, pattern)
             ]
 
             count = 0

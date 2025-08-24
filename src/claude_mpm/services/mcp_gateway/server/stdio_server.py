@@ -13,13 +13,11 @@ use JSON-RPC protocol, and exit cleanly when stdin closes.
 """
 
 import asyncio
-import json
 import logging
 import os
 import sys
 import time
-from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 # Import MCP SDK components
 from mcp.server import NotificationOptions, Server
@@ -28,10 +26,7 @@ from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
 # Import pydantic for model patching
-from pydantic import BaseModel
-
 from claude_mpm.core.logger import get_logger
-from claude_mpm.services.mcp_gateway.core.singleton_manager import get_gateway_manager
 
 # Import unified ticket tool if available
 try:
@@ -47,70 +42,87 @@ except ImportError:
 def apply_backward_compatibility_patches():
     """
     Apply backward compatibility patches for MCP protocol differences.
-    
+
     This function patches the MCP Server to handle missing clientInfo
     in initialize requests from older Claude Code versions.
     """
     try:
         from mcp.server import Server
-        
+
         logger = get_logger("MCPPatcher")
-        logger.info("Applying MCP Server message handling patch for backward compatibility")
-        
+        logger.info(
+            "Applying MCP Server message handling patch for backward compatibility"
+        )
+
         # Store the original _handle_message method
         original_handle_message = Server._handle_message
-        
-        async def patched_handle_message(self, message, session, lifespan_context, raise_exceptions=False):
+
+        async def patched_handle_message(
+            self, message, session, lifespan_context, raise_exceptions=False
+        ):
             """Patched message handler that adds clientInfo if missing from initialize requests."""
             try:
                 # Check if this is a request responder with initialize method
-                if hasattr(message, 'request') and hasattr(message.request, 'method'):
+                if hasattr(message, "request") and hasattr(message.request, "method"):
                     request = message.request
-                    if (request.method == 'initialize' and 
-                        hasattr(request, 'params') and 
-                        request.params is not None):
-                        
+                    if (
+                        request.method == "initialize"
+                        and hasattr(request, "params")
+                        and request.params is not None
+                    ):
+
                         # Convert params to dict to check for clientInfo
                         params_dict = request.params
-                        if hasattr(params_dict, 'model_dump'):
+                        if hasattr(params_dict, "model_dump"):
                             params_dict = params_dict.model_dump()
-                        elif hasattr(params_dict, 'dict'):
+                        elif hasattr(params_dict, "dict"):
                             params_dict = params_dict.dict()
-                        
-                        if isinstance(params_dict, dict) and 'clientInfo' not in params_dict:
-                            logger.info("Adding default clientInfo for backward compatibility")
-                            
+
+                        if (
+                            isinstance(params_dict, dict)
+                            and "clientInfo" not in params_dict
+                        ):
+                            logger.info(
+                                "Adding default clientInfo for backward compatibility"
+                            )
+
                             # Add default clientInfo
-                            params_dict['clientInfo'] = {
-                                'name': 'claude-desktop',
-                                'version': 'unknown'
+                            params_dict["clientInfo"] = {
+                                "name": "claude-desktop",
+                                "version": "unknown",
                             }
-                            
+
                             # Try to update the params object
-                            if hasattr(request.params, '__dict__'):
-                                request.params.clientInfo = params_dict['clientInfo']
-                            
+                            if hasattr(request.params, "__dict__"):
+                                request.params.clientInfo = params_dict["clientInfo"]
+
                 # Call the original handler
-                return await original_handle_message(self, message, session, lifespan_context, raise_exceptions)
-                
+                return await original_handle_message(
+                    self, message, session, lifespan_context, raise_exceptions
+                )
+
             except Exception as e:
                 logger.warning(f"Error in patched message handler: {e}")
                 # Fall back to original handler
-                return await original_handle_message(self, message, session, lifespan_context, raise_exceptions)
-        
+                return await original_handle_message(
+                    self, message, session, lifespan_context, raise_exceptions
+                )
+
         # Apply the patch
         Server._handle_message = patched_handle_message
         logger.info("Applied MCP Server message handling patch")
         return True
-        
+
     except ImportError as e:
-        get_logger("MCPPatcher").warning(f"Could not import MCP Server for patching: {e}")
+        get_logger("MCPPatcher").warning(
+            f"Could not import MCP Server for patching: {e}"
+        )
         return False
     except Exception as e:
-        get_logger("MCPPatcher").error(f"Failed to apply backward compatibility patch: {e}")
+        get_logger("MCPPatcher").error(
+            f"Failed to apply backward compatibility patch: {e}"
+        )
         return False
-
-
 
 
 class SimpleMCPServer:
@@ -140,20 +152,20 @@ class SimpleMCPServer:
         self.version = version
         self.logger = get_logger("MCPStdioServer")
         self.startup_time = time.time()
-        
+
         # Log startup timing
         self.logger.info(f"Initializing MCP server {name} v{version}")
         start_time = time.time()
 
         # Apply backward compatibility patches before creating server
         apply_backward_compatibility_patches()
-        
+
         # Create MCP server instance
         self.server = Server(name)
 
         # Register default tools
         self._register_tools()
-        
+
         # Log initialization time
         init_time = time.time() - start_time
         self.logger.info(f"MCP server initialized in {init_time:.2f} seconds")
@@ -187,21 +199,20 @@ class SimpleMCPServer:
             # Brief: First and last portions with key sentences
             return self._create_brief_summary(sentences, max_length)
 
-        elif style == "detailed":
+        if style == "detailed":
             # Detailed: More comprehensive with section preservation
             return self._create_detailed_summary(sentences, content, max_length)
 
-        elif style == "bullet_points":
+        if style == "bullet_points":
             # Extract key points as bullet list
             return self._create_bullet_summary(sentences, content, max_length)
 
-        elif style == "executive":
+        if style == "executive":
             # Executive: Summary + key findings + recommendations
             return self._create_executive_summary(sentences, content, max_length)
 
-        else:
-            # Default to brief
-            return self._create_brief_summary(sentences, max_length)
+        # Default to brief
+        return self._create_brief_summary(sentences, max_length)
 
     def _create_brief_summary(self, sentences: list[str], max_length: int) -> str:
         """Create a brief summary by selecting most important sentences."""
@@ -298,7 +309,7 @@ class SimpleMCPServer:
 
         # Summarize each paragraph
         summary_parts = []
-        words_per_para = max_length // len(paragraphs)
+        max_length // len(paragraphs)
 
         for para in paragraphs:
             if not para.strip():
@@ -378,7 +389,6 @@ class SimpleMCPServer:
             sections.append(f"OVERVIEW:\n{overview}")
 
         # Key Findings
-        import re
 
         findings = []
 
@@ -402,7 +412,7 @@ class SimpleMCPServer:
                     break
 
         if findings:
-            sections.append(f"\nKEY FINDINGS:\n• " + "\n• ".join(findings[:3]))
+            sections.append("\nKEY FINDINGS:\n• " + "\n• ".join(findings[:3]))
 
         # Recommendations (look for action-oriented sentences)
         action_patterns = [
@@ -424,9 +434,7 @@ class SimpleMCPServer:
                     break
 
         if recommendations:
-            sections.append(
-                f"\nRECOMMENDATIONS:\n• " + "\n• ".join(recommendations[:3])
-            )
+            sections.append("\nRECOMMENDATIONS:\n• " + "\n• ".join(recommendations[:3]))
 
         # If no sections were created, fall back to brief summary
         if not sections:
@@ -449,14 +457,14 @@ class SimpleMCPServer:
         # NOTE: Defer initialization to avoid event loop issues
         self.unified_ticket_tool = None
         self._ticket_tool_initialized = False
-        
+
         @self.server.list_tools()
         async def handle_list_tools() -> list[Tool]:
             """List available tools."""
             # Initialize ticket tool lazily if needed
             if not self._ticket_tool_initialized and TICKET_TOOLS_AVAILABLE:
                 await self._initialize_ticket_tool()
-            
+
             tools = [
                 Tool(
                     name="status",
@@ -519,7 +527,6 @@ class SimpleMCPServer:
             self.logger.info(f"Listing {len(tools)} available tools")
             return tools
 
-
         @self.server.call_tool()
         async def handle_call_tool(
             name: str, arguments: Dict[str, Any]
@@ -544,11 +551,11 @@ class SimpleMCPServer:
 
                         result = f"Working Directory: {os.getcwd()}"
                     elif info_type == "all":
+                        import datetime
+                        import os
                         import platform
                         import sys
-                        import os
-                        import datetime
-                        
+
                         result = (
                             f"=== System Status ===\n"
                             f"Platform: {platform.system()} {platform.release()}\n"
@@ -572,7 +579,7 @@ class SimpleMCPServer:
                     # Initialize ticket tool lazily if needed
                     if not self._ticket_tool_initialized and TICKET_TOOLS_AVAILABLE:
                         await self._initialize_ticket_tool()
-                    
+
                     if self.unified_ticket_tool:
                         # Handle unified ticket tool invocations
                         from claude_mpm.services.mcp_gateway.core.interfaces import (
@@ -605,26 +612,25 @@ class SimpleMCPServer:
                 return [TextContent(type="text", text=result)]
 
             except Exception as e:
-                error_msg = f"Error executing tool {name}: {str(e)}"
+                error_msg = f"Error executing tool {name}: {e!s}"
                 self.logger.error(error_msg)
                 return [TextContent(type="text", text=error_msg)]
-
 
     async def _initialize_ticket_tool(self):
         """
         Initialize the unified ticket tool asynchronously.
-        
+
         This is called lazily when the tool is first needed,
         ensuring an event loop is available.
         """
         if self._ticket_tool_initialized or not TICKET_TOOLS_AVAILABLE:
             return
-        
+
         try:
             self.logger.info("Initializing unified ticket tool...")
             self.unified_ticket_tool = UnifiedTicketTool()
             # If the tool has an async init method, call it
-            if hasattr(self.unified_ticket_tool, 'initialize'):
+            if hasattr(self.unified_ticket_tool, "initialize"):
                 await self.unified_ticket_tool.initialize()
             self._ticket_tool_initialized = True
             self.logger.info("Unified ticket tool initialized successfully")
@@ -680,15 +686,15 @@ async def main():
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         stream=sys.stderr,
-        force=True  # Force reconfiguration even if already configured
+        force=True,  # Force reconfiguration even if already configured
     )
-    
+
     # Ensure all loggers output to stderr
     for logger_name in logging.Logger.manager.loggerDict:
         logger = logging.getLogger(logger_name)
         for handler in logger.handlers[:]:
             # Remove any handlers that might write to stdout
-            if hasattr(handler, 'stream') and handler.stream == sys.stdout:
+            if hasattr(handler, "stream") and handler.stream == sys.stdout:
                 logger.removeHandler(handler)
 
     # Create and run server
@@ -699,14 +705,16 @@ async def main():
 def main_sync():
     """Synchronous entry point for use as a console script."""
     import os
+
     # Disable telemetry by default
-    os.environ.setdefault('DISABLE_TELEMETRY', '1')
+    os.environ.setdefault("DISABLE_TELEMETRY", "1")
     asyncio.run(main())
 
 
 if __name__ == "__main__":
     import os
+
     # Disable telemetry by default
-    os.environ.setdefault('DISABLE_TELEMETRY', '1')
+    os.environ.setdefault("DISABLE_TELEMETRY", "1")
     # Run the async main function
     main_sync()

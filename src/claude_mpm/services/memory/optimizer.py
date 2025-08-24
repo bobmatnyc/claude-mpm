@@ -27,7 +27,7 @@ import re
 from datetime import datetime
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.mixins import LoggerMixin
@@ -260,8 +260,7 @@ class MemoryOptimizer(LoggerMixin):
         try:
             if agent_id:
                 return self._analyze_single_agent(agent_id)
-            else:
-                return self._analyze_all_agents()
+            return self._analyze_all_agents()
 
         except Exception as e:
             self.logger.error(f"Error analyzing optimization opportunities: {e}")
@@ -324,7 +323,7 @@ class MemoryOptimizer(LoggerMixin):
             stripped = line.strip()
             if stripped.startswith("- "):
                 bullet_points.append(line)
-            elif stripped.startswith("## ") or stripped.startswith("<!--"):
+            elif stripped.startswith(("## ", "<!--")):
                 header_lines.append(line)
             else:
                 other_lines.append(line)
@@ -533,27 +532,25 @@ class MemoryOptimizer(LoggerMixin):
         # Add ordered sections
         for section_name in section_order:
             if section_name in sections and section_name != "header":
-                if content_lines and not content_lines[-1].strip() == "":
+                if content_lines and content_lines[-1].strip() != "":
                     content_lines.append("")  # Add spacing
                 content_lines.extend(sections[section_name])
 
         # Add any remaining sections not in the order
         for section_name, section_content in sections.items():
             if section_name not in section_order and section_name != "header":
-                if content_lines and not content_lines[-1].strip() == "":
+                if content_lines and content_lines[-1].strip() != "":
                     content_lines.append("")
                 content_lines.extend(section_content)
 
         # Update timestamp
         content = "\n".join(content_lines)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        content = re.sub(
+        return re.sub(
             r"<!-- Last Updated: .+ \| Auto-updated by: .+ -->",
             f"<!-- Last Updated: {timestamp} | Auto-updated by: optimizer -->",
             content,
         )
-
-        return content
 
     def _create_backup(self, memory_file: Path) -> Path:
         """Create backup of memory file before optimization.
@@ -601,7 +598,7 @@ class MemoryOptimizer(LoggerMixin):
             "agent_id": agent_id,
             "file_size": len(content),
             "sections": len(
-                [s for s in sections if not s.lower() in ["header", "metadata"]]
+                [s for s in sections if s.lower() not in ["header", "metadata"]]
             ),
             "opportunities": [],
         }

@@ -4,8 +4,6 @@ This module provides factory functionality for creating AgentDefinition objects
 from lifecycle manager parameters. Extracted to reduce complexity.
 """
 
-from typing import Any
-
 from claude_mpm.core.enums import AgentType, ModificationTier
 from claude_mpm.models.agent_definition import (
     AgentDefinition,
@@ -64,7 +62,7 @@ class AgentDefinitionFactory:
         )
 
         # Create minimal definition
-        definition = AgentDefinition(
+        return AgentDefinition(
             name=agent_name,
             title=agent_name.replace("-", " ").title(),
             file_path="",  # Will be set by AgentManager
@@ -80,5 +78,3 @@ class AgentDefinitionFactory:
             tools_commands="",
             raw_content=agent_content,
         )
-
-        return definition

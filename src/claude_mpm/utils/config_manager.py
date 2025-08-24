@@ -6,7 +6,6 @@ configurations across different file formats (JSON, YAML, TOML).
 
 import json
 import os
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -56,7 +55,7 @@ class ConfigurationManager:
         try:
             cache_key = self._get_cache_key(file_path)
             return self._cache.get(cache_key)
-        except (OSError, IOError):
+        except OSError:
             return None
 
     def _update_cache(self, file_path: Union[str, Path], config: Dict[str, Any]):
@@ -67,7 +66,7 @@ class ConfigurationManager:
         try:
             cache_key = self._get_cache_key(file_path)
             self._cache[cache_key] = config
-        except (OSError, IOError):
+        except OSError:
             pass
 
     def clear_cache(self):
@@ -100,7 +99,7 @@ class ConfigurationManager:
 
         logger.debug(f"Loading JSON configuration from {file_path}")
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 config = json.load(f)
             self._update_cache(file_path, config)
             return config
@@ -143,7 +142,7 @@ class ConfigurationManager:
 
         logger.debug(f"Loading YAML configuration from {file_path}")
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 config = yaml.safe_load(f) or {}
             self._update_cache(file_path, config)
             return config
@@ -186,7 +185,7 @@ class ConfigurationManager:
 
         logger.debug(f"Loading TOML configuration from {file_path}")
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 config = toml.load(f)
             self._update_cache(file_path, config)
             return config
@@ -215,12 +214,11 @@ class ConfigurationManager:
 
         if suffix in [".json"]:
             return self.load_json(file_path)
-        elif suffix in [".yaml", ".yml"]:
+        if suffix in [".yaml", ".yml"]:
             return self.load_yaml(file_path)
-        elif suffix in [".toml"]:
+        if suffix in [".toml"]:
             return self.load_toml(file_path)
-        else:
-            raise ValueError(f"Unsupported configuration format: {suffix}")
+        raise ValueError(f"Unsupported configuration format: {suffix}")
 
     def save_json(
         self,
@@ -461,12 +459,11 @@ class ConfigurationManager:
                     result = result.replace(placeholder, env_value)
 
                 return result
-            elif isinstance(value, dict):
+            if isinstance(value, dict):
                 return {k: _interpolate_value(v) for k, v in value.items()}
-            elif isinstance(value, list):
+            if isinstance(value, list):
                 return [_interpolate_value(item) for item in value]
-            else:
-                return value
+            return value
 
         return _interpolate_value(config)
 

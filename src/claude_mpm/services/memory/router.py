@@ -586,9 +586,9 @@ class MemoryRouter(LoggerMixin):
                 "expected_agent": expected,
                 "actual_agent": routing_result["target_agent"],
                 "confidence": routing_result["confidence"],
-                "correct": expected == routing_result["target_agent"]
-                if expected
-                else None,
+                "correct": (
+                    expected == routing_result["target_agent"] if expected else None
+                ),
                 "reasoning": routing_result["reasoning"],
             }
 
@@ -781,17 +781,16 @@ class MemoryRouter(LoggerMixin):
         # Simple heuristics for section selection
         if "mistake" in content or "error" in content or "avoid" in content:
             return "Common Mistakes to Avoid"
-        elif "pattern" in content or "architecture" in content:
+        if "pattern" in content or "architecture" in content:
             return (
                 sections[0] if sections else "Recent Learnings"
             )  # First section is usually patterns
-        elif "guideline" in content or "standard" in content:
+        if "guideline" in content or "standard" in content:
             return "Implementation Guidelines"
-        elif "context" in content or "current" in content:
+        if "context" in content or "current" in content:
             return "Current Technical Context"
-        else:
-            # Default to first available section or Recent Learnings
-            return sections[0] if sections else "Recent Learnings"
+        # Default to first available section or Recent Learnings
+        return sections[0] if sections else "Recent Learnings"
 
     def _build_reasoning(
         self,

@@ -4,7 +4,6 @@ Pure Python daemon management for Socket.IO server.
 No external dependencies required.
 """
 
-import json
 import os
 import signal
 import subprocess
@@ -12,59 +11,63 @@ import sys
 import time
 from pathlib import Path
 
+
 # Detect and use virtual environment Python if available
 def get_python_executable():
     """
     Get the appropriate Python executable, preferring virtual environment.
-    
+
     WHY: The daemon must use the same Python environment as the parent process
     to ensure all dependencies are available. System Python won't have the
     required packages installed.
     """
     # First, check if we're already in a virtual environment
-    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+    if hasattr(sys, "real_prefix") or (
+        hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix
+    ):
         # We're in a virtual environment, use its Python
         return sys.executable
-    
+
     # Check for common virtual environment indicators
     # 1. VIRTUAL_ENV environment variable (most common)
-    venv_path = os.environ.get('VIRTUAL_ENV')
+    venv_path = os.environ.get("VIRTUAL_ENV")
     if venv_path:
-        venv_python = Path(venv_path) / 'bin' / 'python'
+        venv_python = Path(venv_path) / "bin" / "python"
         if venv_python.exists():
             return str(venv_python)
-    
+
     # 2. Check if current executable is in a venv directory structure
     exe_path = Path(sys.executable).resolve()
     for parent in exe_path.parents:
         # Check for common venv directory names
-        if parent.name in ('venv', '.venv', 'env', '.env'):
+        if parent.name in ("venv", ".venv", "env", ".env"):
             # This looks like a virtual environment
             return sys.executable
-        
+
         # Check for typical venv structure (bin/python or Scripts/python.exe)
-        if parent.name == 'bin' and (parent.parent / 'pyvenv.cfg').exists():
+        if parent.name == "bin" and (parent.parent / "pyvenv.cfg").exists():
             return sys.executable
-        if parent.name == 'Scripts' and (parent.parent / 'pyvenv.cfg').exists():
+        if parent.name == "Scripts" and (parent.parent / "pyvenv.cfg").exists():
             return sys.executable
-    
+
     # 3. Try to detect project-specific venv
     # Look for venv in the project root (going up from script location)
     script_path = Path(__file__).resolve()
     for parent in script_path.parents:
         # Stop at src or when we've gone too far up
-        if parent.name == 'src' or not (parent / 'src').exists():
+        if parent.name == "src" or not (parent / "src").exists():
             # Check for venv directories
-            for venv_name in ('venv', '.venv', 'env', '.env'):
+            for venv_name in ("venv", ".venv", "env", ".env"):
                 venv_dir = parent / venv_name
                 if venv_dir.exists():
-                    venv_python = venv_dir / 'bin' / 'python'
+                    venv_python = venv_dir / "bin" / "python"
                     if venv_python.exists():
                         return str(venv_python)
             break
-    
+
     # Fall back to current Python executable
     return sys.executable
+
 
 # Store the detected Python executable for daemon usage
 PYTHON_EXECUTABLE = get_python_executable()
@@ -242,7 +245,9 @@ def start_server():
     )
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Python executable: {sys.executable}")
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Python version: {sys.version}")
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Python path: {sys.path[:3]}...")  # Show first 3 entries
+    print(
+        f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Python path: {sys.path[:3]}..."
+    )  # Show first 3 entries
     server = SocketIOServer(host="localhost", port=selected_port)
 
     # Handle signals
@@ -281,7 +286,7 @@ def stop_server():
     """Stop the Socket.IO daemon server."""
     if not is_running():
         print("Socket.IO daemon server is not running.")
-        print(f"Check for other servers: socketio_server_manager.py status")
+        print("Check for other servers: socketio_server_manager.py status")
         return
 
     try:
@@ -351,7 +356,7 @@ def status_server():
         # Show instance information
         instance = port_manager.get_instance_by_port(current_port)
         if instance:
-            print(f"\n📊 Instance Information:")
+            print("\n📊 Instance Information:")
             print(f"   • Port: {instance.get('port')}")
             print(f"   • Started: {time.ctime(instance.get('start_time', 0))}")
             print(f"   • Instance ID: {instance.get('instance_id')}")
@@ -370,19 +375,17 @@ def status_server():
             if response.status_code == 200:
                 data = response.json()
                 if "server_id" in data and data.get("server_id") != "daemon-socketio":
-                    print(
-                        f"\n⚠️  POTENTIAL CONFLICT: HTTP-managed server also detected"
-                    )
+                    print("\n⚠️  POTENTIAL CONFLICT: HTTP-managed server also detected")
                     print(f"   Server ID: {data.get('server_id')}")
-                    print(f"   Use 'socketio_server_manager.py diagnose' to resolve")
+                    print("   Use 'socketio_server_manager.py diagnose' to resolve")
         except:
             pass
 
     else:
         print("Socket.IO daemon server is not running")
-        print(f"\n🔧 Start Commands:")
+        print("\n🔧 Start Commands:")
         print(f"   • Daemon: {__file__} start")
-        print(f"   • HTTP-managed: socketio_server_manager.py start")
+        print("   • HTTP-managed: socketio_server_manager.py start")
 
 
 def list_instances():

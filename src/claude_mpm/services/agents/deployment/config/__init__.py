@@ -8,6 +8,6 @@ from .deployment_config import DeploymentConfig
 from .deployment_config_manager import DeploymentConfigManager
 
 __all__ = [
-    "DeploymentConfigManager",
     "DeploymentConfig",
+    "DeploymentConfigManager",
 ]

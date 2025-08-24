@@ -77,11 +77,11 @@ claude-mpm run -i "TODO: Implement a REST API for user management with authentic
 
 Check the created ticket:
 ```bash
-# List recent tickets
-claude-mpm tickets
+# List recent tickets using aitrackdown directly
+aitrackdown status tasks
 
-# Or use the ticket command directly
-./ticket list
+# Show recent tickets with details
+aitrackdown status tasks --verbose
 ```
 
 ## Agent Delegation
@@ -165,7 +165,7 @@ Try these exercises to get familiar with Claude MPM:
 ### Exercise 1: Create a Ticket
 ```bash
 claude-mpm run -i "TODO: Write unit tests for the authentication module" --non-interactive
-./ticket list
+aitrackdown status tasks
 ```
 
 ### Exercise 2: Multi-Agent Task
@@ -222,8 +222,7 @@ claude-mpm
 claude-mpm run -i "prompt" --non-interactive
 
 # List tickets
-claude-mpm tickets
-./ticket list
+aitrackdown status tasks
 
 # View session info
 claude-mpm info

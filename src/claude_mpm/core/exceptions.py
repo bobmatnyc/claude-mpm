@@ -24,7 +24,7 @@ Usage:
     raise AgentDeploymentError("Failed to deploy agent to .claude/agents directory")
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 
 class MPMError(Exception):
@@ -429,7 +429,7 @@ class ProcessError(MPMError):
                 self.message = f"[Command: {context['command']}] {message}"
             if "exit_code" in context:
                 self.message += f"\nExit code: {context['exit_code']}"
-            if "stderr" in context and context["stderr"]:
+            if context.get("stderr"):
                 stderr_preview = str(context["stderr"])[:200]
                 self.message += f"\nError output: {stderr_preview}"
                 if len(str(context["stderr"])) > 200:

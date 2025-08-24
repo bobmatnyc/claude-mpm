@@ -8,11 +8,9 @@ Part of ISS-0034: Infrastructure Setup - MCP Gateway Project Foundation
 """
 
 import asyncio
-import logging
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from claude_mpm.core.logger import get_logger
 from claude_mpm.services.core.base import BaseService
 
 
@@ -223,7 +221,6 @@ class BaseMCPService(BaseService):
         Subclasses should override this method to implement custom shutdown.
         """
         # Default implementation - subclasses should override
-        pass
 
     async def restart(self) -> bool:
         """

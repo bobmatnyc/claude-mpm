@@ -26,7 +26,6 @@ import asyncio
 import hashlib
 import json
 import logging
-import os
 import shutil
 import time
 import uuid
@@ -42,8 +41,6 @@ from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.unified_agent_registry import UnifiedAgentRegistry as AgentRegistry
 from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
-from claude_mpm.utils.config_manager import ConfigurationManager
-from claude_mpm.utils.path_operations import path_ops
 
 # ============================================================================
 # Data Models
@@ -664,7 +661,7 @@ class AgentModificationTracker(BaseService):
             # Load active modifications
             active_path = self.persistence_root / "active_modifications.json"
             if active_path.exists():
-                with open(active_path, "r") as f:
+                with open(active_path) as f:
                     data = json.load(f)
                     self.active_modifications = {
                         k: AgentModification.from_dict(v) for k, v in data.items()
@@ -672,7 +669,7 @@ class AgentModificationTracker(BaseService):
 
             # Load modification history
             for history_file in self.history_root.glob("*.json"):
-                with open(history_file, "r") as f:
+                with open(history_file) as f:
                     data = json.load(f)
                     agent_name = data["agent_name"]
                     history = ModificationHistory(agent_name=agent_name)
@@ -770,7 +767,7 @@ class AgentModificationTracker(BaseService):
                 if backup_dir.is_dir():
                     metadata_path = backup_dir / "metadata.json"
                     if metadata_path.exists():
-                        with open(metadata_path, "r") as f:
+                        with open(metadata_path) as f:
                             metadata = json.load(f)
                             if metadata.get("backup_time", 0) < cutoff_time:
                                 shutil.rmtree(backup_dir)

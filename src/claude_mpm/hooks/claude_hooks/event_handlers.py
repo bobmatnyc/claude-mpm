@@ -11,7 +11,7 @@ import re
 import subprocess
 import sys
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Optional
 
 # Import tool analysis with fallback for direct execution
 try:
@@ -221,7 +221,7 @@ class EventHandlers:
             self.hook_handler._track_delegation(session_id, agent_type, request_data)
 
             if DEBUG:
-                print(f"  - Delegation tracked successfully", file=sys.stderr)
+                print("  - Delegation tracked successfully", file=sys.stderr)
                 print(
                     f"  - Request data keys: {list(request_data.keys())}",
                     file=sys.stderr,
@@ -257,7 +257,56 @@ class EventHandlers:
             "", "subagent_start", subagent_start_data
         )
 
-    def _get_git_branch(self, working_dir: str = None) -> str:
+        # Log agent prompt if LogManager is available
+        try:
+            from claude_mpm.core.log_manager import get_log_manager
+
+            log_manager = get_log_manager()
+
+            # Prepare prompt content
+            prompt_content = tool_input.get("prompt", "")
+            if not prompt_content:
+                prompt_content = tool_input.get("description", "")
+
+            if prompt_content:
+                import asyncio
+
+                # Prepare metadata
+                metadata = {
+                    "agent_type": agent_type,
+                    "agent_id": f"{agent_type}_{session_id}",
+                    "session_id": session_id,
+                    "delegation_context": {
+                        "description": tool_input.get("description", ""),
+                        "timestamp": datetime.now().isoformat(),
+                    },
+                }
+
+                # Log the agent prompt asynchronously
+                try:
+                    loop = asyncio.get_running_loop()
+                    asyncio.create_task(
+                        log_manager.log_prompt(
+                            f"agent_{agent_type}", prompt_content, metadata
+                        )
+                    )
+                except RuntimeError:
+                    # No running loop, create one
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(
+                        log_manager.log_prompt(
+                            f"agent_{agent_type}", prompt_content, metadata
+                        )
+                    )
+
+                if DEBUG:
+                    print(f"  - Agent prompt logged for {agent_type}", file=sys.stderr)
+        except Exception as e:
+            if DEBUG:
+                print(f"  - Could not log agent prompt: {e}", file=sys.stderr)
+
+    def _get_git_branch(self, working_dir: Optional[str] = None) -> str:
         """Get git branch for the given directory with caching."""
         # Use current working directory if not specified
         if not working_dir:
@@ -285,7 +334,8 @@ class EventHandlers:
                 ["git", "branch", "--show-current"],
                 capture_output=True,
                 text=True,
-                timeout=TimeoutConfig.QUICK_TIMEOUT,  # Quick timeout to avoid hanging
+                timeout=TimeoutConfig.QUICK_TIMEOUT,
+                check=False,  # Quick timeout to avoid hanging
             )
 
             # Restore original directory
@@ -297,11 +347,10 @@ class EventHandlers:
                 self.hook_handler._git_branch_cache[cache_key] = branch
                 self.hook_handler._git_branch_cache_time[cache_key] = current_time
                 return branch
-            else:
-                # Not a git repository or no branch
-                self.hook_handler._git_branch_cache[cache_key] = "Unknown"
-                self.hook_handler._git_branch_cache_time[cache_key] = current_time
-                return "Unknown"
+            # Not a git repository or no branch
+            self.hook_handler._git_branch_cache[cache_key] = "Unknown"
+            self.hook_handler._git_branch_cache_time[cache_key] = current_time
+            return "Unknown"
 
         except (
             subprocess.TimeoutExpired,
@@ -339,11 +388,11 @@ class EventHandlers:
             "tool_name": tool_name,
             "exit_code": exit_code,
             "success": exit_code == 0,
-            "status": "success"
-            if exit_code == 0
-            else "blocked"
-            if exit_code == 2
-            else "error",
+            "status": (
+                "success"
+                if exit_code == 0
+                else "blocked" if exit_code == 2 else "error"
+            ),
             "duration_ms": duration,
             "result_summary": result_data,
             "session_id": event.get("session_id", ""),
@@ -412,9 +461,7 @@ class EventHandlers:
         }
 
         # Emit normalized event
-        self.hook_handler._emit_socketio_event(
-            "", "notification", notification_data
-        )
+        self.hook_handler._emit_socketio_event("", "notification", notification_data)
 
     def handle_stop_fast(self, event):
         """Handle stop events when Claude processing stops.
@@ -448,9 +495,9 @@ class EventHandlers:
         return {
             "timestamp": datetime.now().isoformat(),
             "working_directory": working_dir,
-            "git_branch": self._get_git_branch(working_dir)
-            if working_dir
-            else "Unknown",
+            "git_branch": (
+                self._get_git_branch(working_dir) if working_dir else "Unknown"
+            ),
             "event_type": "stop",
             "reason": event.get("reason", "unknown"),
             "stop_type": event.get("stop_type", "normal"),
@@ -612,9 +659,7 @@ class EventHandlers:
             )
 
         # Emit normalized event with high priority
-        self.hook_handler._emit_socketio_event(
-            "", "subagent_stop", subagent_stop_data
-        )
+        self.hook_handler._emit_socketio_event("", "subagent_stop", subagent_stop_data)
 
     def _handle_subagent_response_tracking(
         self,
@@ -665,9 +710,9 @@ class EventHandlers:
                         )
                         # Update the key to use the current session_id for consistency
                         if request_info:
-                            self.hook_handler.delegation_requests[
-                                session_id
-                            ] = request_info
+                            self.hook_handler.delegation_requests[session_id] = (
+                                request_info
+                            )
                             # Optionally remove the old key to avoid duplicates
                             if stored_sid != session_id:
                                 del self.hook_handler.delegation_requests[stored_sid]
@@ -750,7 +795,7 @@ class EventHandlers:
 
     def handle_assistant_response(self, event):
         """Handle assistant response events for comprehensive response tracking.
-        
+
         WHY emit assistant response events:
         - Provides visibility into Claude's responses to user prompts
         - Captures response content and metadata for analysis
@@ -761,19 +806,21 @@ class EventHandlers:
         self.hook_handler.response_tracking_manager.track_assistant_response(
             event, self.hook_handler.pending_prompts
         )
-        
+
         # Get working directory and git branch
         working_dir = event.get("cwd", "")
         git_branch = self._get_git_branch(working_dir) if working_dir else "Unknown"
-        
+
         # Extract response data
         response_text = event.get("response", "")
         session_id = event.get("session_id", "")
-        
+
         # Prepare assistant response data for Socket.IO emission
         assistant_response_data = {
             "response_text": response_text,
-            "response_preview": response_text[:500] if len(response_text) > 500 else response_text,
+            "response_preview": (
+                response_text[:500] if len(response_text) > 500 else response_text
+            ),
             "response_length": len(response_text),
             "session_id": session_id,
             "working_directory": working_dir,
@@ -782,24 +829,32 @@ class EventHandlers:
             "contains_code": "```" in response_text,
             "contains_json": "```json" in response_text,
             "hook_event_name": "AssistantResponse",  # Explicitly set for dashboard
-            "has_structured_response": bool(re.search(r"```json\s*\{.*?\}\s*```", response_text, re.DOTALL)),
+            "has_structured_response": bool(
+                re.search(r"```json\s*\{.*?\}\s*```", response_text, re.DOTALL)
+            ),
         }
-        
+
         # Check if this is a response to a tracked prompt
         if session_id in self.hook_handler.pending_prompts:
             prompt_data = self.hook_handler.pending_prompts[session_id]
-            assistant_response_data["original_prompt"] = prompt_data.get("prompt", "")[:200]
-            assistant_response_data["prompt_timestamp"] = prompt_data.get("timestamp", "")
+            assistant_response_data["original_prompt"] = prompt_data.get("prompt", "")[
+                :200
+            ]
+            assistant_response_data["prompt_timestamp"] = prompt_data.get(
+                "timestamp", ""
+            )
             assistant_response_data["is_tracked_response"] = True
         else:
             assistant_response_data["is_tracked_response"] = False
-        
+
         # Debug logging
         if DEBUG:
             print(
                 f"Hook handler: Processing AssistantResponse - session: '{session_id}', response_length: {len(response_text)}",
                 file=sys.stderr,
             )
-        
+
         # Emit normalized event
-        self.hook_handler._emit_socketio_event("", "assistant_response", assistant_response_data)
+        self.hook_handler._emit_socketio_event(
+            "", "assistant_response", assistant_response_data
+        )

@@ -18,21 +18,21 @@ while maintaining backwards compatibility.
 """
 
 import functools
-import json
 import logging
 import time
 from contextlib import contextmanager
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 from claude_mpm.core.logger import (
     JsonFormatter,
-    StreamingHandler,
     finalize_streaming_logs,
 )
 from claude_mpm.core.logger import get_logger as _get_logger
-from claude_mpm.core.logger import log_async_performance, log_performance
+from claude_mpm.core.logger import (
+    log_async_performance,
+    log_performance,
+)
 from claude_mpm.core.logger import setup_logging as _setup_logging
 
 # Standard log format for consistency
@@ -454,19 +454,19 @@ def log_with_level(
 
 # Export main functions and decorators
 __all__ = [
-    "get_logger",
-    "configure_logging",
-    "log_operation",
-    "log_performance_context",
-    "log_function_call",
-    "log_async_function_call",
-    "log_with_level",
-    "LogContext",
-    "ContextualLogger",
     "LOGGING_STANDARDS",
     "LOG_LEVELS",
+    "ContextualLogger",
+    "LogContext",
+    "configure_logging",
+    "finalize_streaming_logs",
+    "get_logger",
+    "log_async_function_call",
+    "log_async_performance",
+    "log_function_call",
+    "log_operation",
     # Re-export from core.logger for backwards compatibility
     "log_performance",
-    "log_async_performance",
-    "finalize_streaming_logs",
+    "log_performance_context",
+    "log_with_level",
 ]

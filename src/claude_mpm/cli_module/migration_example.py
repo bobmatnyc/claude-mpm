@@ -6,6 +6,7 @@ from 16 to under 10 by using ArgumentRegistry and CommandRegistry.
 
 import argparse
 import sys
+from typing import Optional
 
 from claude_mpm._version import __version__
 from claude_mpm.cli import ArgumentRegistry, CommandRegistry, register_standard_commands
@@ -115,11 +116,10 @@ def _initialize_hook_service(args):
             logger.info(f"Hook service started on port {hook_manager.port}")
             print(f"Hook service started on port {hook_manager.port}")
             return hook_manager
-        else:
-            logger = get_logger("cli")
-            logger.warning("Failed to start hook service, continuing without hooks")
-            print("Failed to start hook service, continuing without hooks")
-            return None
+        logger = get_logger("cli")
+        logger.warning("Failed to start hook service, continuing without hooks")
+        print("Failed to start hook service, continuing without hooks")
+        return None
 
     except Exception as e:
         get_logger("cli").warning(

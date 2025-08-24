@@ -19,8 +19,8 @@ from .memory_guardian import MemoryGuardian
 from .monitoring import AdvancedHealthMonitor
 
 __all__ = [
-    "LoggingService",
     "AdvancedHealthMonitor",  # For SocketIO server monitoring
     "HealthMonitor",  # For Memory Guardian system monitoring
+    "LoggingService",
     "MemoryGuardian",
 ]

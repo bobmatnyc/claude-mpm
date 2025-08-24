@@ -5,9 +5,6 @@ Extracted from mcp.py to reduce complexity and improve maintainability.
 """
 
 import asyncio
-import os
-import sys
-from typing import Any
 
 from ...constants import MCPCommands
 
@@ -24,38 +21,37 @@ class MCPCommandRouter:
         if args.mcp_command == MCPCommands.START.value:
             return asyncio.run(self._start_server(args))
 
-        elif args.mcp_command == MCPCommands.STOP.value:
+        if args.mcp_command == MCPCommands.STOP.value:
             return self._stop_server(args)
 
-        elif args.mcp_command == MCPCommands.STATUS.value:
+        if args.mcp_command == MCPCommands.STATUS.value:
             return self._show_status(args)
 
-        elif args.mcp_command == MCPCommands.TOOLS.value:
+        if args.mcp_command == MCPCommands.TOOLS.value:
             return self._manage_tools(args)
 
-        elif args.mcp_command == MCPCommands.REGISTER.value:
+        if args.mcp_command == MCPCommands.REGISTER.value:
             return self._register_tool(args)
 
-        elif args.mcp_command == MCPCommands.TEST.value:
+        if args.mcp_command == MCPCommands.TEST.value:
             return self._test_tool(args)
 
-        elif args.mcp_command == MCPCommands.INSTALL.value:
+        if args.mcp_command == MCPCommands.INSTALL.value:
             return self._install_gateway(args)
 
-        elif args.mcp_command == MCPCommands.CONFIG.value:
+        if args.mcp_command == MCPCommands.CONFIG.value:
             return self._manage_config(args)
 
-        elif args.mcp_command == MCPCommands.SERVER.value:
+        if args.mcp_command == MCPCommands.SERVER.value:
             return self._run_server(args)
 
-        elif args.mcp_command == "cleanup":
+        if args.mcp_command == "cleanup":
             return self._cleanup_locks(args)
 
-        else:
-            self.logger.error(f"Unknown MCP command: {args.mcp_command}")
-            print(f"Unknown MCP command: {args.mcp_command}")
-            self._show_help()
-            return 1
+        self.logger.error(f"Unknown MCP command: {args.mcp_command}")
+        print(f"Unknown MCP command: {args.mcp_command}")
+        self._show_help()
+        return 1
 
     async def _start_server(self, args) -> int:
         """Start server command handler."""
@@ -124,7 +120,7 @@ class MCPCommandRouter:
         """Run server command handler - direct server execution."""
         # Simply delegate to the async start_server method using asyncio.run
         from .mcp_server_commands import MCPServerCommands
-        
+
         handler = MCPServerCommands(self.logger)
         return asyncio.run(handler.start_server(args))
 

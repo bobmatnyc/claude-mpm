@@ -35,7 +35,7 @@ def _get_enhanced_version(base_version: str) -> str:
 
         # If we got an enhanced version (with build number), use it
         # Remove the 'v' prefix since argparse will add the program name
-        if enhanced and enhanced.startswith('v'):
+        if enhanced and enhanced.startswith("v"):
             enhanced = enhanced[1:]  # Remove 'v' prefix
 
         if enhanced and enhanced != base_version:
@@ -47,7 +47,9 @@ def _get_enhanced_version(base_version: str) -> str:
     return base_version
 
 
-def add_common_arguments(parser: argparse.ArgumentParser, version: str = None) -> None:
+def add_common_arguments(
+    parser: argparse.ArgumentParser, version: Optional[str] = None
+) -> None:
     """
     Add common arguments that apply to all commands.
 
@@ -342,11 +344,11 @@ def create_parser(
         # MCP pipx configuration command
         if hasattr(CLICommands, "MCP_PIPX_CONFIG") or True:  # Always add for now
             from ..commands.mcp_pipx_config import add_parser as add_mcp_pipx_parser
-            
+
             add_mcp_pipx_parser(subparsers)
-        
+
         from ..commands.doctor import add_doctor_parser
-        
+
         add_doctor_parser(subparsers)
     except ImportError:
         # Commands module may not be available during testing or refactoring

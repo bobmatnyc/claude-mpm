@@ -12,9 +12,10 @@ claude-mpm [command] [options]
 
 Main commands:
 - `run` - Execute a prompt
-- `tickets` - List tickets
 - `info` - Show configuration
 - (no command) - Start interactive mode
+
+For ticket management, use the `aitrackdown` command directly.
 
 ## Running Commands
 
@@ -201,7 +202,7 @@ Add to your shell config:
 # Quick claude-mpm access
 alias cm='claude-mpm'
 alias cmr='claude-mpm run'
-alias cmt='claude-mpm tickets'
+alias at='aitrackdown'
 
 # Common patterns
 alias todo='claude-mpm run -i "TODO: $1" --non-interactive'

@@ -11,13 +11,11 @@ This module provides conflict resolution management including:
 5. Resolution validation
 """
 
-import difflib
 import logging
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional
 
 
 class ConflictType(Enum):
@@ -248,11 +246,7 @@ class ConflictResolutionManager:
 
             conflicted_files = []
             for line in result.stdout.strip().split("\n"):
-                if line.strip() and (
-                    line.startswith("UU")
-                    or line.startswith("AA")
-                    or line.startswith("DD")
-                ):
+                if line.strip() and (line.startswith(("UU", "AA", "DD"))):
                     # Extract filename
                     filename = line[3:].strip()
                     conflicted_files.append(filename)
@@ -280,7 +274,7 @@ class ConflictResolutionManager:
             )
 
         try:
-            with open(full_path, "r", encoding="utf-8") as f:
+            with open(full_path, encoding="utf-8") as f:
                 content = f.read()
 
             # Parse conflict markers
@@ -404,11 +398,7 @@ class ConflictResolutionManager:
             return False
 
         # Check if all conflicts are simple
-        for marker in markers:
-            if not self._is_simple_conflict(marker):
-                return False
-
-        return True
+        return all(self._is_simple_conflict(marker) for marker in markers)
 
     def _is_simple_conflict(self, marker: ConflictMarker) -> bool:
         """Check if a conflict marker represents a simple conflict."""
@@ -428,10 +418,7 @@ class ConflictResolutionManager:
             return True
 
         # Check if differences are only imports
-        if self._only_import_differences(ours_lines, theirs_lines):
-            return True
-
-        return False
+        return bool(self._only_import_differences(ours_lines, theirs_lines))
 
     def _only_whitespace_differences(self, ours: List[str], theirs: List[str]) -> bool:
         """Check if differences are only whitespace."""
@@ -444,7 +431,7 @@ class ConflictResolutionManager:
         # This is a simplified check
         for line in ours + theirs:
             stripped = line.strip()
-            if stripped and not (stripped.startswith("#") or stripped.startswith("//")):
+            if stripped and not (stripped.startswith(("#", "//"))):
                 return False
         return True
 
@@ -516,10 +503,9 @@ class ConflictResolutionManager:
 
         if auto_ratio > 0.8:
             return "simple"
-        elif auto_ratio > 0.5:
+        if auto_ratio > 0.5:
             return "moderate"
-        else:
-            return "complex"
+        return "complex"
 
     def _estimate_resolution_time(self, file_conflicts: List[FileConflict]) -> int:
         """Estimate resolution time in minutes."""
@@ -601,7 +587,7 @@ class ConflictResolutionManager:
 
         try:
             # Read current content
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             # Apply resolution strategy

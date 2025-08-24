@@ -8,19 +8,14 @@ Supports multiple file formats and summarization strategies.
 Part of ISS-0037: Document Summarizer Tool - Intelligent Document Processing
 """
 
-import csv
 import hashlib
-import json
 import mimetypes
 import os
 import re
 from collections import OrderedDict
 from datetime import datetime
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-
-import yaml
 
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     MCPToolDefinition,
@@ -483,8 +478,7 @@ class DocumentSummarizerTool(BaseToolAdapter):
             result = "\n".join(key_lines)
             if len(result) <= max_chars:
                 return result
-            else:
-                return self._truncate_at_sentence(result, max_chars)
+            return self._truncate_at_sentence(result, max_chars)
 
         # Fallback to brief summary if no key points found
         return self._summarize_brief(text, max_chars)
@@ -556,7 +550,7 @@ class DocumentSummarizerTool(BaseToolAdapter):
         # Add some code blocks if space allows
         if preserve_code and code_blocks:
             result_parts.append("# Code Samples")
-            for i, block in enumerate(code_blocks[:3]):  # Limit to first 3 blocks
+            for _i, block in enumerate(code_blocks[:3]):  # Limit to first 3 blocks
                 if len("\n".join(result_parts)) + len(block) < max_chars * 0.8:
                     result_parts.append(block)
 
@@ -671,20 +665,17 @@ class DocumentSummarizerTool(BaseToolAdapter):
                 summary = self._process_chunks(
                     content, mode, max_chars_per_chunk, preserve_code
                 )
+            # Process entire file
+            elif mode == "brief":
+                summary = self._summarize_brief(content, max_chars)
+            elif mode == "detailed":
+                summary = self._summarize_detailed(content, max_chars)
+            elif mode == "key_points":
+                summary = self._summarize_key_points(content, max_chars)
+            elif mode == "technical":
+                summary = self._summarize_technical(content, max_chars, preserve_code)
             else:
-                # Process entire file
-                if mode == "brief":
-                    summary = self._summarize_brief(content, max_chars)
-                elif mode == "detailed":
-                    summary = self._summarize_detailed(content, max_chars)
-                elif mode == "key_points":
-                    summary = self._summarize_key_points(content, max_chars)
-                elif mode == "technical":
-                    summary = self._summarize_technical(
-                        content, max_chars, preserve_code
-                    )
-                else:
-                    summary = self._summarize_brief(content, max_chars)
+                summary = self._summarize_brief(content, max_chars)
 
             # Calculate metrics
             summary_size = len(summary)
@@ -747,7 +738,7 @@ class DocumentSummarizerTool(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"Document summarizer failed: {str(e)}",
+                error=f"Document summarizer failed: {e!s}",
                 execution_time=execution_time,
                 metadata={
                     "tool": "document_summarizer",

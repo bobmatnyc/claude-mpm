@@ -4,12 +4,12 @@ This guide provides comprehensive documentation for the integrated ticket manage
 
 ## Overview
 
-Claude MPM includes a powerful ticket management system accessible through the `claude-mpm tickets` command. This system integrates with `ai-trackdown-pytools` to provide a complete ticketing solution that supports project management workflows, issue tracking, and task organization.
+Claude MPM includes a powerful ticket management system accessible through the `aitrackdown` command. This system uses `ai-trackdown-pytools` to provide a complete ticketing solution that supports project management workflows, issue tracking, and task organization.
 
 ## Command Structure
 
 ```bash
-claude-mpm tickets [subcommand] [options]
+aitrackdown [subcommand] [options]
 ```
 
 The ticket system supports all standard CRUD operations plus advanced features like search, workflow management, and commenting.
@@ -30,79 +30,81 @@ Create tickets with proper classification and metadata.
 
 **Syntax:**
 ```bash
-claude-mpm tickets create "title" [options]
+aitrackdown create [type] "title" [options]
 ```
 
+**Parameters:**
+- `type` - Ticket type: `task`, `issue`, `epic`
+
 **Options:**
-- `--type, -t` - Ticket type: `task` (default), `bug`, `feature`, `issue`, `epic`
-- `--priority, -p` - Priority level: `low`, `medium` (default), `high`, `critical`
-- `--description, -d` - Ticket description (can be multiple words)
-- `--tags` - Comma-separated list of tags
-- `--parent-epic` - Link to parent epic (format: EP-XXXX)
-- `--parent-issue` - Link to parent issue (format: ISS-XXXX)
+- `--priority` - Priority level: `low`, `medium` (default), `high`, `critical`
+- `--severity` - Bug severity level: `low`, `medium`, `high`, `critical`
+- `--description` - Ticket description (can be multiple words)
+- `--tag` - Tag to add (can be used multiple times)
+- `--epic EP-XXXX` - Link to parent epic
+- `--issue ISS-XXXX` - Link to parent issue
 - `--verbose, -v` - Show detailed creation information
 
 **Examples:**
 ```bash
 # Create a basic task
-claude-mpm tickets create "Fix login validation bug"
+aitrackdown create task "Fix login validation bug"
 
-# Create a high-priority bug with description
-claude-mpm tickets create "User session expires unexpectedly" \
-  --type bug \
+# Create a high-priority issue with description
+aitrackdown create issue "User session expires unexpectedly" \
   --priority high \
   --description "Users are being logged out after 5 minutes instead of 1 hour"
 
-# Create a feature linked to an epic
-claude-mpm tickets create "Implement OAuth2 authentication" \
-  --type feature \
-  --parent-epic EP-0001 \
-  --tags "auth,security,oauth"
+# Create an issue linked to an epic
+aitrackdown create issue "Implement OAuth2 authentication" \
+  --epic EP-0001 \
+  --tag auth --tag security --tag oauth
 
 # Create a task under an issue
-claude-mpm tickets create "Write unit tests for login component" \
-  --type task \
-  --parent-issue ISS-0045 \
+aitrackdown create task "Write unit tests for login component" \
+  --issue ISS-0045 \
   --priority medium
 ```
 
 **Success Output:**
 ```
 ✅ Created ticket: TSK-0123
-   Type: bug
+   Type: task
    Priority: high
    Tags: auth, security
    Parent Epic: EP-0001
 ```
 
-### `list` - List recent tickets
+### `status` - List recent tickets
 
 Display recent tickets with optional filtering and sorting.
 
 **Syntax:**
 ```bash
-claude-mpm tickets list [options]
+aitrackdown status [type] [options]
 ```
+
+**Parameters:**
+- `type` - Ticket type to show: `tasks`, `issues`, `epics` (default: tasks)
 
 **Options:**
 - `--limit, -n` - Number of tickets to show (default: 10)
-- `--type` - Filter by ticket type: `task`, `bug`, `feature`, `issue`, `epic`, `all` (default: all)
-- `--status` - Filter by status: `open`, `in_progress`, `done`, `closed`, `blocked`, `all` (default: all)
+- `--status` - Filter by status: `open`, `in-progress`, `ready`, `tested`, `done`, `closed`, `blocked`
 - `--verbose, -v` - Show detailed ticket information
 
 **Examples:**
 ```bash
-# List 10 most recent tickets
-claude-mpm tickets list
+# List 10 most recent tasks
+aitrackdown status tasks
 
-# List all open bugs
-claude-mpm tickets list --type bug --status open
+# List all open issues
+aitrackdown status issues --status open
 
-# Show detailed info for 20 recent tickets
-claude-mpm tickets list --limit 20 --verbose
+# Show detailed info for 20 recent tasks
+aitrackdown status tasks --limit 20 --verbose
 
-# List all high-priority items
-claude-mpm tickets list --verbose | grep "Priority: high"
+# List all epics
+aitrackdown status epics
 ```
 
 **Output Format:**
@@ -118,19 +120,20 @@ Recent tickets (showing 5):
 
 **Status Emoji Legend:**
 - 🔵 `open` - Ready to start
-- 🟡 `in_progress` - Currently being worked on
+- 🟡 `in-progress` - Currently being worked on
+- 🟠 `ready` - Ready for review/testing
+- 🟣 `tested` - QA approved
 - 🟢 `done` - Completed successfully
 - ⚫ `closed` - Closed (completed or cancelled)
 - 🔴 `blocked` - Cannot proceed due to dependencies
-- ⚪ `unknown` - Status not recognized
 
-### `view` - View detailed ticket information
+### `show` - View detailed ticket information
 
 Display complete information for a specific ticket.
 
 **Syntax:**
 ```bash
-claude-mpm tickets view <ticket-id> [options]
+aitrackdown show <ticket-id> [options]
 ```
 
 **Parameters:**
@@ -142,10 +145,10 @@ claude-mpm tickets view <ticket-id> [options]
 **Examples:**
 ```bash
 # View basic ticket information
-claude-mpm tickets view TSK-0123
+aitrackdown show TSK-0123
 
 # View detailed ticket with all metadata
-claude-mpm tickets view ISS-0045 --verbose
+aitrackdown show ISS-0045 --verbose
 ```
 
 **Output Example:**
@@ -179,48 +182,41 @@ Metadata:
   estimated_hours: 4
 ```
 
-### `update` - Update ticket properties
+### `transition` - Update ticket status
 
-Modify ticket attributes including status, priority, description, and assignments.
+Modify ticket status and workflow state.
 
 **Syntax:**
 ```bash
-claude-mpm tickets update <ticket-id> [options]
+aitrackdown transition <ticket-id> <new-status> [options]
 ```
 
 **Parameters:**
 - `ticket-id` - The ticket identifier to update
+- `new-status` - New status: `open`, `in-progress`, `ready`, `tested`, `done`, `closed`, `blocked`
 
 **Options:**
-- `--status` - New status: `open`, `in_progress`, `done`, `closed`, `blocked`
-- `--priority` - New priority: `low`, `medium`, `high`, `critical`
-- `--description` - Updated description (can be multiple words)
-- `--tags` - Replace tags with comma-separated list
-- `--assign` - Assign to user (email or username)
+- `--comment` - Add comment explaining the transition
 
 **Examples:**
 ```bash
 # Update ticket status
-claude-mpm tickets update TSK-0123 --status in_progress
+aitrackdown transition TSK-0123 in-progress
 
-# Change priority and add assignee
-claude-mpm tickets update ISS-0045 --priority critical --assign john.doe
-
-# Update description and tags
-claude-mpm tickets update TSK-0123 \
-  --description "Updated requirements after stakeholder feedback" \
-  --tags "frontend,urgent,customer-facing"
+# Change to ready status with comment
+aitrackdown transition ISS-0045 ready --comment "Implementation complete, ready for review"
 
 # Mark as blocked
-claude-mpm tickets update TSK-0123 --status blocked
+aitrackdown transition TSK-0123 blocked --comment "Waiting for API specification"
+
+# Mark as done
+aitrackdown transition TSK-0123 done --comment "Feature deployed successfully"
 ```
 
 **Success Output:**
 ```
-✅ Updated ticket: TSK-0123
+✅ Transitioned ticket TSK-0123 to: in-progress
 ```
-
-**Note:** Complex updates may fall back to the `aitrackdown` CLI for operations not supported by the TicketManager interface.
 
 ### `close` - Close a ticket
 
@@ -228,7 +224,7 @@ Mark a ticket as completed or no longer relevant.
 
 **Syntax:**
 ```bash
-claude-mpm tickets close <ticket-id> [options]
+aitrackdown close <ticket-id> [options]
 ```
 
 **Parameters:**
@@ -240,13 +236,13 @@ claude-mpm tickets close <ticket-id> [options]
 **Examples:**
 ```bash
 # Close ticket with default resolution
-claude-mpm tickets close TSK-0123
+aitrackdown close TSK-0123
 
 # Close with specific resolution comment
-claude-mpm tickets close BUG-0089 --resolution "Fixed in version 1.2.3"
+aitrackdown close ISS-0089 --resolution "Fixed in version 1.2.3"
 
 # Close cancelled work
-claude-mpm tickets close FEATURE-0156 --resolution "Cancelled due to scope change"
+aitrackdown close ISS-0156 --resolution "Cancelled due to scope change"
 ```
 
 **Success Output:**
@@ -260,7 +256,7 @@ Permanently remove a ticket from the system.
 
 **Syntax:**
 ```bash
-claude-mpm tickets delete <ticket-id> [options]
+aitrackdown delete <ticket-id> [options]
 ```
 
 **Parameters:**
@@ -272,10 +268,10 @@ claude-mpm tickets delete <ticket-id> [options]
 **Examples:**
 ```bash
 # Delete with confirmation prompt
-claude-mpm tickets delete TSK-0123
+aitrackdown delete TSK-0123
 
 # Force delete without confirmation
-claude-mpm tickets delete TSK-0123 --force
+aitrackdown delete TSK-0123 --force
 ```
 
 **Interactive Confirmation:**
@@ -292,27 +288,27 @@ Find tickets based on title, description, or tag content.
 
 **Syntax:**
 ```bash
-claude-mpm tickets search "query" [options]
+aitrackdown search [type] "query" [options]
 ```
 
 **Parameters:**
+- `type` - Ticket type to search: `tasks`, `issues`, `epics` (default: tasks)
 - `query` - Search term to find in ticket content
 
 **Options:**
-- `--type` - Filter by ticket type: `task`, `bug`, `feature`, `issue`, `epic`, `all` (default: all)
-- `--status` - Filter by status: `open`, `in_progress`, `done`, `closed`, `blocked`, `all` (default: all)
+- `--status` - Filter by status: `open`, `in-progress`, `ready`, `tested`, `done`, `closed`, `blocked`
 - `--limit, -n` - Maximum number of results (default: 20)
 
 **Examples:**
 ```bash
-# Basic text search
-claude-mpm tickets search "authentication"
+# Basic text search in tasks
+aitrackdown search tasks "authentication"
 
-# Search for specific bug type
-claude-mpm tickets search "login" --type bug --status open
+# Search for specific issues
+aitrackdown search issues "login" --status open
 
 # Search with result limit
-claude-mpm tickets search "database" --limit 10
+aitrackdown search tasks "database" --limit 10
 ```
 
 **Output Example:**
@@ -341,7 +337,7 @@ Add discussion, progress updates, or notes to any ticket.
 
 **Syntax:**
 ```bash
-claude-mpm tickets comment <ticket-id> "comment text"
+aitrackdown comment <ticket-id> "comment text"
 ```
 
 **Parameters:**
@@ -351,13 +347,13 @@ claude-mpm tickets comment <ticket-id> "comment text"
 **Examples:**
 ```bash
 # Add progress comment
-claude-mpm tickets comment TSK-0123 "Started working on this, initial analysis complete"
+aitrackdown comment TSK-0123 "Started working on this, initial analysis complete"
 
 # Add technical notes
-claude-mpm tickets comment ISS-0045 "May need to coordinate with security team for OAuth2 scope definitions"
+aitrackdown comment ISS-0045 "May need to coordinate with security team for OAuth2 scope definitions"
 
 # Add completion notes
-claude-mpm tickets comment TSK-0123 "Completed implementation, ready for code review"
+aitrackdown comment TSK-0123 "Completed implementation, ready for code review"
 ```
 
 **Success Output:**
@@ -365,70 +361,39 @@ claude-mpm tickets comment TSK-0123 "Completed implementation, ready for code re
 ✅ Added comment to ticket: TSK-0123
 ```
 
-**Note:** Comments are managed through the `aitrackdown` CLI system and support rich formatting and attachments when using the full aitrackdown interface.
+**Note:** Comments support rich formatting and attachments through the full aitrackdown interface.
 
-### `workflow` - Update workflow state
+### Note: Workflow Management
 
-Manage ticket workflow states with proper transition validation.
-
-**Syntax:**
-```bash
-claude-mpm tickets workflow <ticket-id> <state> [options]
-```
-
-**Parameters:**
-- `ticket-id` - The ticket to update
-- `state` - New workflow state: `todo`, `in_progress`, `ready`, `tested`, `done`, `blocked`
-
-**Options:**
-- `--comment` - Add comment explaining the state change
-
-**Examples:**
-```bash
-# Move ticket to in progress
-claude-mpm tickets workflow TSK-0123 in_progress
-
-# Mark as ready for testing with comment
-claude-mpm tickets workflow TSK-0123 ready --comment "Implementation complete, unit tests passing"
-
-# Block ticket with explanation
-claude-mpm tickets workflow ISS-0045 blocked --comment "Waiting for API specification from backend team"
-
-# Mark as done
-claude-mpm tickets workflow TSK-0123 done --comment "Feature deployed to production"
-```
+Workflow state management is handled through the `transition` command described above. The available states are:
 
 **State Mapping:**
-- `todo` → `open` status
-- `in_progress` → `in_progress` status  
-- `ready` → `ready` status (awaiting review/testing)
-- `tested` → `tested` status (QA approved)
-- `done` → `done` status (completed)
-- `blocked` → `blocked` status (cannot proceed)
-
-**Success Output:**
-```
-✅ Updated workflow state for TSK-0123 to: ready
-```
+- `open` - Ready to start (todo)
+- `in-progress` - Currently being worked on
+- `ready` - Ready for review/testing
+- `tested` - QA approved
+- `done` - Completed successfully
+- `closed` - Closed (completed or cancelled)
+- `blocked` - Cannot proceed due to dependencies
 
 ## Default Behavior
 
-When no subcommand is specified, the system defaults to `list` with standard options:
+When no subcommand is specified, the system shows help information:
 
 ```bash
-# These are equivalent
-claude-mpm tickets
-claude-mpm tickets list --limit 10
+# Show help
+aitrackdown
+aitrackdown --help
 ```
 
 ## Integration with ai-trackdown-pytools
 
-The CLI commands integrate seamlessly with the underlying `ai-trackdown-pytools` system:
+The CLI commands are provided directly by the `ai-trackdown-pytools` system:
 
-- **Primary Operations**: Create, view, and simple updates use the TicketManager interface
-- **Advanced Operations**: Complex updates, comments, and workflow transitions may use the `aitrackdown` CLI directly
-- **Fallback Mechanism**: If TicketManager operations fail, the system automatically attempts equivalent `aitrackdown` commands
+- **Direct Access**: All commands use the `aitrackdown` CLI directly
+- **Full Functionality**: Complete access to all ticketing features
 - **Data Consistency**: All operations maintain consistency with the `.ai-trackdown/` configuration and storage
+- **MCP Integration**: Claude MPM provides an MCP gateway tool for programmatic access
 
 ## Configuration
 
@@ -467,10 +432,10 @@ The CLI provides clear error messages and fallback behaviors:
 
 **Example Error Output:**
 ```bash
-$ claude-mpm tickets view TSK-9999
+$ aitrackdown show TSK-9999
 ❌ Ticket TSK-9999 not found
 
-$ claude-mpm tickets create "test" # when ai-trackdown not installed
+$ aitrackdown create task "test" # when ai-trackdown not installed
 Error: ai-trackdown-pytools not installed
 Install with: pip install ai-trackdown-pytools
 ```

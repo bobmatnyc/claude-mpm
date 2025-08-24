@@ -7,6 +7,7 @@ for common CLI operations.
 """
 
 import sys
+from pathlib import Path
 from typing import Optional
 
 from ..core.logger import get_logger
@@ -37,13 +38,11 @@ def get_user_input(input_arg: Optional[str], logger) -> str:
         if input_path.exists():
             logger.info(f"Reading input from file: {input_path}")
             return input_path.read_text()
-        else:
-            logger.info("Using command line input")
-            return input_arg
-    else:
-        # Read from stdin
-        logger.info("Reading input from stdin")
-        return sys.stdin.read()
+        logger.info("Using command line input")
+        return input_arg
+    # Read from stdin
+    logger.info("Reading input from stdin")
+    return sys.stdin.read()
 
 
 def get_agent_versions_display() -> Optional[str]:
@@ -115,7 +114,7 @@ def get_agent_versions_display() -> Optional[str]:
             output_lines.append(
                 f"\n  ⚠️  {len(verification['agents_needing_migration'])} agent(s) need migration to semantic versioning"
             )
-            output_lines.append(f"     Run 'claude-mpm agents deploy' to update")
+            output_lines.append("     Run 'claude-mpm agents deploy' to update")
 
         output_lines.append("-" * 40)
         return "\n".join(output_lines)
@@ -132,16 +131,17 @@ def list_agent_versions_at_startup() -> None:
 
     WHY: Users want to see what agents are available when they start a session.
     This provides immediate feedback about the deployed agent environment.
-    
+
     DESIGN DECISION: We suppress INFO logging during this call to avoid duplicate
     initialization messages since the deployment service will be initialized again
     later in the ClaudeRunner.
     """
     # Temporarily suppress INFO level logging to avoid duplicate initialization messages
     import logging
+
     original_level = logging.getLogger("claude_mpm").level
     logging.getLogger("claude_mpm").setLevel(logging.WARNING)
-    
+
     try:
         agent_versions = get_agent_versions_display()
         if agent_versions:
@@ -166,7 +166,6 @@ def setup_logging(args) -> object:
         Logger instance
     """
     from ..constants import LogLevel
-    from ..core.logger import get_logger
     from ..core.logger import setup_logging as core_setup_logging
 
     # Set default logging level if not specified

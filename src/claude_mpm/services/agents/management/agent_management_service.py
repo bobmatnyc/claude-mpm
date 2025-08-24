@@ -12,10 +12,9 @@ Uses python-frontmatter and mistune for markdown parsing as recommended.
 """
 
 import logging
-import os
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import frontmatter
 import mistune
@@ -371,7 +370,7 @@ class AgentManager:
         title = title_match.group(1) if title_match else name.replace("-", " ").title()
 
         # Build definition
-        definition = AgentDefinition(
+        return AgentDefinition(
             name=name,
             title=title,
             file_path=file_path,
@@ -403,8 +402,6 @@ class AgentManager:
             raw_sections=sections,
         )
 
-        return definition
-
     def _extract_sections(self, content: str) -> Dict[str, str]:
         """Extract sections from markdown content."""
         sections = {}
@@ -425,10 +422,9 @@ class AgentManager:
                 # Start new section
                 current_section = header_match.group(1).strip()
                 current_content = []
-            else:
-                # Add to current section
-                if current_section:
-                    current_content.append(line)
+            # Add to current section
+            elif current_section:
+                current_content.append(line)
 
         # Save last section
         if current_section:

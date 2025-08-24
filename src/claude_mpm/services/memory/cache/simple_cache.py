@@ -229,7 +229,7 @@ class SimpleCacheService(ICacheService):
         with self.lock:
             keys_to_delete = []
 
-            for key in self.cache.keys():
+            for key in self.cache:
                 if fnmatch.fnmatch(key, pattern):
                     keys_to_delete.append(key)
 

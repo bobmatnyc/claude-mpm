@@ -10,7 +10,7 @@ import os
 import re
 import sys
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Optional
 
 # Debug mode
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
@@ -53,7 +53,6 @@ class ResponseTrackingManager:
         try:
             # Create configuration with optional config file using ConfigLoader
             config_file = os.environ.get("CLAUDE_PM_CONFIG_FILE")
-            from claude_mpm.core.config import Config
             from claude_mpm.core.shared.config_loader import ConfigLoader, ConfigPattern
 
             config_loader = ConfigLoader()
@@ -62,9 +61,11 @@ class ResponseTrackingManager:
                 pattern = ConfigPattern(
                     filenames=[os.path.basename(config_file)],
                     search_paths=[os.path.dirname(config_file)],
-                    env_prefix="CLAUDE_MPM_"
+                    env_prefix="CLAUDE_MPM_",
                 )
-                config = config_loader.load_config(pattern, cache_key=f"response_tracking_{config_file}")
+                config = config_loader.load_config(
+                    pattern, cache_key=f"response_tracking_{config_file}"
+                )
             else:
                 config = config_loader.load_main_config()
 
@@ -101,7 +102,9 @@ class ResponseTrackingManager:
 
         except Exception as e:
             if DEBUG:
-                print(f"❌ Failed to initialize response tracking: {e}", file=sys.stderr)
+                print(
+                    f"❌ Failed to initialize response tracking: {e}", file=sys.stderr
+                )
             # Don't fail the entire handler - response tracking is optional
 
     def track_agent_response(
@@ -203,11 +206,13 @@ class ResponseTrackingManager:
                     "files_modified": structured_response.get("files_modified", []),
                     "tools_used": structured_response.get("tools_used", []),
                     "remember": structured_response.get("remember"),
-                    "MEMORIES": structured_response.get("MEMORIES"),  # Complete memory replacement
+                    "MEMORIES": structured_response.get(
+                        "MEMORIES"
+                    ),  # Complete memory replacement
                 }
-                
-                # Log if MEMORIES field is present  
-                if "MEMORIES" in structured_response and structured_response["MEMORIES"]:
+
+                # Log if MEMORIES field is present
+                if structured_response.get("MEMORIES"):
                     if DEBUG:
                         memories_count = len(structured_response["MEMORIES"])
                         print(
@@ -247,8 +252,7 @@ class ResponseTrackingManager:
                 )
 
             # Clean up the request data after successful tracking
-            if session_id in delegation_requests:
-                del delegation_requests[session_id]
+            delegation_requests.pop(session_id, None)
 
         except Exception as e:
             if DEBUG:

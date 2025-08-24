@@ -27,10 +27,10 @@ class AgentsDirectoryResolver:
     def determine_agents_directory(self, target_dir: Optional[Path]) -> Path:
         """
         Determine the correct agents directory based on input.
-        
+
         MODIFIED: Always deploy to project .claude/agents directory
         regardless of agent source (system, user, or project).
-        
+
         This ensures all agents are deployed at the project level while
         maintaining discovery from both user (~/.claude-mpm) and project
         (.claude-mpm) directories.
@@ -53,12 +53,11 @@ class AgentsDirectoryResolver:
         if target_dir.name == "agents":
             # Already an agents directory, use as-is
             return target_dir
-        elif target_dir.name == ".claude-mpm":
+        if target_dir.name == ".claude-mpm":
             # .claude-mpm directory, add agents subdirectory
             return target_dir / "agents"
-        elif target_dir.name == ".claude":
+        if target_dir.name == ".claude":
             # .claude directory, add agents subdirectory
             return target_dir / "agents"
-        else:
-            # Assume it's a project directory, add .claude/agents
-            return target_dir / ".claude" / "agents"
+        # Assume it's a project directory, add .claude/agents
+        return target_dir / ".claude" / "agents"

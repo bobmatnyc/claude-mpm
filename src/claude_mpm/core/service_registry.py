@@ -129,10 +129,14 @@ class ServiceRegistry:
 
         # Create factory wrapper if config provided
         if config and not factory:
-            factory = lambda c: service_class(name=name, config=config, container=c)
+
+            def factory(c):
+                return service_class(name=name, config=config, container=c)
+
         elif not factory:
             # Default factory with container injection
-            factory = lambda c: service_class(name=name, container=c)
+            def factory(c):
+                return service_class(name=name, container=c)
 
         # Register with DI container
         self.container.register(
@@ -216,12 +220,11 @@ class ServiceRegistry:
                     if (
                         registration
                         and registration.lifetime == ServiceLifetime.SINGLETON
-                    ):
-                        if service_class in self.container._singletons:
-                            service = self.container._singletons[service_class]
-                            if hasattr(service, "stop") and service.running:
-                                await service.stop()
-                                logger.info(f"Stopped service: {name}")
+                    ) and service_class in self.container._singletons:
+                        service = self.container._singletons[service_class]
+                        if hasattr(service, "stop") and service.running:
+                            await service.stop()
+                            logger.info(f"Stopped service: {name}")
                 except Exception as e:
                     logger.error(f"Failed to stop service {name}: {e}")
 

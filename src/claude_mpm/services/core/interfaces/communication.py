@@ -36,12 +36,10 @@ class SocketIOServiceInterface(ABC):
     @abstractmethod
     def start_sync(self) -> None:
         """Start the WebSocket server synchronously."""
-        pass
 
     @abstractmethod
     def stop_sync(self) -> None:
         """Stop the WebSocket server synchronously."""
-        pass
 
     @abstractmethod
     def broadcast_event(self, event_type: str, data: Dict[str, Any]) -> None:
@@ -51,7 +49,6 @@ class SocketIOServiceInterface(ABC):
             event_type: Type of event to broadcast
             data: Event data to send
         """
-        pass
 
     @abstractmethod
     def send_to_client(
@@ -67,7 +64,6 @@ class SocketIOServiceInterface(ABC):
         Returns:
             True if message sent successfully
         """
-        pass
 
     @abstractmethod
     def get_connection_count(self) -> int:
@@ -76,7 +72,6 @@ class SocketIOServiceInterface(ABC):
         Returns:
             Number of connected clients
         """
-        pass
 
     @abstractmethod
     def is_running(self) -> bool:
@@ -85,7 +80,6 @@ class SocketIOServiceInterface(ABC):
         Returns:
             True if server is active
         """
-        pass
 
     @abstractmethod
     def session_started(
@@ -98,12 +92,10 @@ class SocketIOServiceInterface(ABC):
             launch_method: Method used to launch the session
             working_dir: Working directory of the session
         """
-        pass
 
     @abstractmethod
     def session_ended(self) -> None:
         """Notify that a session has ended."""
-        pass
 
     @abstractmethod
     def claude_status_changed(
@@ -116,7 +108,6 @@ class SocketIOServiceInterface(ABC):
             pid: Process ID if applicable
             message: Optional status message
         """
-        pass
 
     @abstractmethod
     def agent_delegated(self, agent: str, task: str, status: str = "started") -> None:
@@ -127,7 +118,6 @@ class SocketIOServiceInterface(ABC):
             task: Task assigned to the agent
             status: Status of the delegation
         """
-        pass
 
     @abstractmethod
     def todo_updated(self, todos: List[Dict[str, Any]]) -> None:
@@ -136,7 +126,6 @@ class SocketIOServiceInterface(ABC):
         Args:
             todos: Updated list of todo items
         """
-        pass
 
 
 # Project analyzer interface
@@ -161,7 +150,6 @@ class ProjectAnalyzerInterface(ABC):
         Returns:
             Dictionary with project analysis results
         """
-        pass
 
     @abstractmethod
     def detect_technology_stack(self) -> List[str]:
@@ -170,7 +158,6 @@ class ProjectAnalyzerInterface(ABC):
         Returns:
             List of detected technologies
         """
-        pass
 
     @abstractmethod
     def analyze_code_patterns(self) -> Dict[str, Any]:
@@ -179,7 +166,6 @@ class ProjectAnalyzerInterface(ABC):
         Returns:
             Dictionary of pattern analysis results
         """
-        pass
 
     @abstractmethod
     def get_project_structure(self) -> Dict[str, Any]:
@@ -188,7 +174,6 @@ class ProjectAnalyzerInterface(ABC):
         Returns:
             Dictionary representing project structure
         """
-        pass
 
     @abstractmethod
     def identify_entry_points(self) -> List[Path]:
@@ -197,7 +182,6 @@ class ProjectAnalyzerInterface(ABC):
         Returns:
             List of entry point paths
         """
-        pass
 
     @abstractmethod
     def get_dependencies(self) -> Dict[str, List[str]]:
@@ -206,7 +190,6 @@ class ProjectAnalyzerInterface(ABC):
         Returns:
             Dictionary mapping dependency types to lists of dependencies
         """
-        pass
 
     @abstractmethod
     def analyze_test_coverage(self) -> Dict[str, Any]:
@@ -215,7 +198,6 @@ class ProjectAnalyzerInterface(ABC):
         Returns:
             Dictionary with test coverage information
         """
-        pass
 
     @abstractmethod
     def get_build_configuration(self) -> Dict[str, Any]:
@@ -224,7 +206,6 @@ class ProjectAnalyzerInterface(ABC):
         Returns:
             Dictionary with build configuration details
         """
-        pass
 
 
 # Ticket manager interface
@@ -253,7 +234,6 @@ class TicketManagerInterface(ABC):
         Returns:
             Ticket ID
         """
-        pass
 
     @abstractmethod
     def get_ticket(self, ticket_id: str) -> Optional[Dict[str, Any]]:
@@ -265,7 +245,6 @@ class TicketManagerInterface(ABC):
         Returns:
             Ticket data or None if not found
         """
-        pass
 
     @abstractmethod
     def update_ticket(self, ticket_id: str, updates: Dict[str, Any]) -> bool:
@@ -278,7 +257,6 @@ class TicketManagerInterface(ABC):
         Returns:
             True if update successful
         """
-        pass
 
     @abstractmethod
     def list_tickets(
@@ -293,7 +271,6 @@ class TicketManagerInterface(ABC):
         Returns:
             List of ticket data
         """
-        pass
 
     @abstractmethod
     def assign_ticket(self, ticket_id: str, assignee: str) -> bool:
@@ -306,7 +283,6 @@ class TicketManagerInterface(ABC):
         Returns:
             True if assignment successful
         """
-        pass
 
     @abstractmethod
     def close_ticket(self, ticket_id: str, resolution: Optional[str] = None) -> bool:
@@ -319,7 +295,6 @@ class TicketManagerInterface(ABC):
         Returns:
             True if close successful
         """
-        pass
 
     @abstractmethod
     def search_tickets(self, query: str) -> List[Dict[str, Any]]:
@@ -331,7 +306,6 @@ class TicketManagerInterface(ABC):
         Returns:
             List of matching ticket data
         """
-        pass
 
     @abstractmethod
     def get_ticket_statistics(self) -> Dict[str, Any]:
@@ -340,4 +314,3 @@ class TicketManagerInterface(ABC):
         Returns:
             Dictionary with ticket statistics
         """
-        pass

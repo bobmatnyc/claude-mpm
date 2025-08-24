@@ -58,10 +58,7 @@ class ProjectAgentDeploymentStrategy(BaseDeploymentStrategy):
                 pass
 
         # Check if deployment_mode is "project" - this should be sufficient
-        if context.deployment_mode == "project":
-            return True
-
-        return False
+        return context.deployment_mode == "project"
 
     def determine_target_directory(self, context: DeploymentContext) -> Path:
         """Determine target directory for project agents.

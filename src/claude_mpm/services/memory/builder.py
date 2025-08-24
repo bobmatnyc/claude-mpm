@@ -26,7 +26,7 @@ import os
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.mixins import LoggerMixin
@@ -410,7 +410,7 @@ class MemoryBuilder(LoggerMixin):
 
                 except Exception as e:
                     result["items_skipped"] += 1
-                    result["errors"].append(f"Error processing item: {str(e)}")
+                    result["errors"].append(f"Error processing item: {e!s}")
 
             # Convert set to list
             result["sections_updated"] = list(result["sections_updated"])
@@ -878,10 +878,7 @@ class MemoryBuilder(LoggerMixin):
             "as mentioned",
             "for more info",
         ]
-        if any(phrase in content.lower() for phrase in generic_phrases):
-            return False
-
-        return True
+        return not any(phrase in content.lower() for phrase in generic_phrases)
 
     def _deduplicate_extracted_items(
         self, items: List[Dict[str, Any]]

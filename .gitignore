@@ -15,6 +15,14 @@ ENV/
 env.bak/
 venv.bak/
 
+# Conda/Mamba environments (if created locally)
+conda-env/
+mamba-env/
+mambaforge/
+miniforge/
+miniconda/
+.conda/
+
 # Common ignores
 .DS_Store
 .vscode/

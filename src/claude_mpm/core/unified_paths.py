@@ -30,7 +30,7 @@ import sys
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ class PathContext:
     @staticmethod
     def _is_editable_install() -> bool:
         """Check if the current installation is editable (development mode).
-        
+
         This checks for various indicators of an editable/development installation:
         - Presence of pyproject.toml in parent directories
         - .pth files pointing to the source directory
@@ -76,8 +76,9 @@ class PathContext:
         """
         try:
             import claude_mpm
+
             module_path = Path(claude_mpm.__file__).parent
-            
+
             # Check if we're in a src/ directory structure with pyproject.toml
             current = module_path
             for _ in range(5):  # Check up to 5 levels up
@@ -89,18 +90,25 @@ class PathContext:
                 if current == current.parent:
                     break
                 current = current.parent
-            
+
             # Additional check: If we're running from within a claude-mpm development directory
             # This handles the case where pipx claude-mpm is invoked from within the dev directory
             cwd = Path.cwd()
             current = cwd
             for _ in range(5):  # Check up to 5 levels up from current directory
-                if (current / "pyproject.toml").exists() and (current / "src" / "claude_mpm").exists():
+                if (current / "pyproject.toml").exists() and (
+                    current / "src" / "claude_mpm"
+                ).exists():
                     # Check if this is the claude-mpm project
                     try:
                         pyproject_content = (current / "pyproject.toml").read_text()
-                        if "claude-mpm" in pyproject_content and "claude_mpm" in pyproject_content:
-                            logger.debug(f"Running from within claude-mpm development directory: {current}")
+                        if (
+                            "claude-mpm" in pyproject_content
+                            and "claude_mpm" in pyproject_content
+                        ):
+                            logger.debug(
+                                f"Running from within claude-mpm development directory: {current}"
+                            )
                             # Verify this is a development setup by checking for key files
                             if (current / "scripts" / "claude-mpm").exists():
                                 return True
@@ -109,10 +117,11 @@ class PathContext:
                 if current == current.parent:
                     break
                 current = current.parent
-            
+
             # Check for .pth files indicating editable install
             try:
                 import site
+
                 for site_dir in site.getsitepackages():
                     site_path = Path(site_dir)
                     if site_path.exists():
@@ -121,35 +130,45 @@ class PathContext:
                             try:
                                 content = pth_file.read_text()
                                 # Check if the .pth file points to our module's parent
-                                if str(module_path.parent) in content or str(module_path) in content:
-                                    logger.debug(f"Found editable install via .pth file: {pth_file}")
+                                if (
+                                    str(module_path.parent) in content
+                                    or str(module_path) in content
+                                ):
+                                    logger.debug(
+                                        f"Found editable install via .pth file: {pth_file}"
+                                    )
                                     return True
                             except Exception:
                                 continue
-                        
+
                         # Check for egg-link files
                         for egg_link in site_path.glob("*egg-link"):
                             if "claude" in egg_link.name.lower():
                                 try:
                                     content = egg_link.read_text()
-                                    if str(module_path.parent) in content or str(module_path) in content:
-                                        logger.debug(f"Found editable install via egg-link: {egg_link}")
+                                    if (
+                                        str(module_path.parent) in content
+                                        or str(module_path) in content
+                                    ):
+                                        logger.debug(
+                                            f"Found editable install via egg-link: {egg_link}"
+                                        )
                                         return True
                                 except Exception:
                                     continue
             except ImportError:
                 pass
-            
+
         except Exception as e:
             logger.debug(f"Error checking for editable install: {e}")
-        
+
         return False
 
     @staticmethod
     @lru_cache(maxsize=1)
     def detect_deployment_context() -> DeploymentContext:
         """Detect the current deployment context.
-        
+
         Priority order:
         1. Environment variable override (CLAUDE_MPM_DEV_MODE)
         2. Current working directory is a claude-mpm development project
@@ -158,61 +177,80 @@ class PathContext:
         """
         # Check for environment variable override
         if os.environ.get("CLAUDE_MPM_DEV_MODE", "").lower() in ("1", "true", "yes"):
-            logger.info("Development mode forced via CLAUDE_MPM_DEV_MODE environment variable")
+            logger.info(
+                "Development mode forced via CLAUDE_MPM_DEV_MODE environment variable"
+            )
             return DeploymentContext.DEVELOPMENT
-        
+
         # Check if current working directory is a claude-mpm development project
         # This handles the case where pipx claude-mpm is run from within the dev directory
         cwd = Path.cwd()
         current = cwd
         for _ in range(5):  # Check up to 5 levels up from current directory
-            if (current / "pyproject.toml").exists() and (current / "src" / "claude_mpm").exists():
+            if (current / "pyproject.toml").exists() and (
+                current / "src" / "claude_mpm"
+            ).exists():
                 # Check if this is the claude-mpm project
                 try:
                     pyproject_content = (current / "pyproject.toml").read_text()
-                    if 'name = "claude-mpm"' in pyproject_content or '"claude-mpm"' in pyproject_content:
-                        logger.info(f"Detected claude-mpm development directory at {current}")
-                        logger.info("Using development mode for local source preference")
+                    if (
+                        'name = "claude-mpm"' in pyproject_content
+                        or '"claude-mpm"' in pyproject_content
+                    ):
+                        logger.info(
+                            f"Detected claude-mpm development directory at {current}"
+                        )
+                        logger.info(
+                            "Using development mode for local source preference"
+                        )
                         return DeploymentContext.DEVELOPMENT
                 except Exception:
                     pass
             if current == current.parent:
                 break
             current = current.parent
-        
+
         try:
             import claude_mpm
+
             module_path = Path(claude_mpm.__file__).parent
-            
+
             # First check if this is an editable install, regardless of path
             # This is important for cases where pipx points to a development installation
             if PathContext._is_editable_install():
-                logger.info(f"Detected editable/development installation")
+                logger.info("Detected editable/development installation")
                 # Check if we should use development paths
                 # This could be because we're in a src/ directory or running from dev directory
                 if module_path.parent.name == "src":
                     return DeploymentContext.DEVELOPMENT
-                elif "pipx" in str(module_path):
+                if "pipx" in str(module_path):
                     # Running via pipx but from within a development directory
                     # Use development mode to prefer local source over pipx installation
                     cwd = Path.cwd()
                     current = cwd
                     for _ in range(5):
-                        if (current / "src" / "claude_mpm").exists() and (current / "pyproject.toml").exists():
-                            logger.info(f"Running pipx from development directory, using development mode")
+                        if (current / "src" / "claude_mpm").exists() and (
+                            current / "pyproject.toml"
+                        ).exists():
+                            logger.info(
+                                "Running pipx from development directory, using development mode"
+                            )
                             return DeploymentContext.DEVELOPMENT
                         if current == current.parent:
                             break
                         current = current.parent
                     return DeploymentContext.EDITABLE_INSTALL
-                else:
-                    return DeploymentContext.EDITABLE_INSTALL
-            
+                return DeploymentContext.EDITABLE_INSTALL
+
             # Check for development mode based on directory structure
             # module_path is typically /path/to/project/src/claude_mpm
-            if (module_path.parent.name == "src" and
-                (module_path.parent.parent / "src" / "claude_mpm").exists()):
-                logger.info(f"Detected development mode via directory structure at {module_path}")
+            if (
+                module_path.parent.name == "src"
+                and (module_path.parent.parent / "src" / "claude_mpm").exists()
+            ):
+                logger.info(
+                    f"Detected development mode via directory structure at {module_path}"
+                )
                 return DeploymentContext.DEVELOPMENT
 
             # Check for pipx install
@@ -224,7 +262,7 @@ class PathContext:
             if "dist-packages" in str(module_path):
                 logger.info(f"Detected system package installation at {module_path}")
                 return DeploymentContext.SYSTEM_PACKAGE
-            
+
             # Check for site-packages (could be pip or editable)
             if "site-packages" in str(module_path):
                 # Already checked for editable above, so this is a regular pip install
@@ -236,7 +274,9 @@ class PathContext:
             return DeploymentContext.PIP_INSTALL
 
         except ImportError:
-            logger.info("ImportError during context detection, defaulting to development")
+            logger.info(
+                "ImportError during context detection, defaulting to development"
+            )
             return DeploymentContext.DEVELOPMENT
 
 
@@ -297,33 +337,42 @@ class UnifiedPathManager:
 
             module_path = Path(claude_mpm.__file__).parent
 
-            if self._deployment_context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
+            if self._deployment_context in (
+                DeploymentContext.DEVELOPMENT,
+                DeploymentContext.EDITABLE_INSTALL,
+            ):
                 # For development mode, first check if we're running from within a dev directory
                 # This handles the case where pipx is invoked from a development directory
                 cwd = Path.cwd()
                 current = cwd
                 for _ in range(5):
-                    if (current / "src" / "claude_mpm").exists() and (current / "pyproject.toml").exists():
+                    if (current / "src" / "claude_mpm").exists() and (
+                        current / "pyproject.toml"
+                    ).exists():
                         # Verify this is the claude-mpm project
                         try:
                             pyproject_content = (current / "pyproject.toml").read_text()
                             if "claude-mpm" in pyproject_content:
-                                logger.debug(f"Found framework root via cwd at {current}")
+                                logger.debug(
+                                    f"Found framework root via cwd at {current}"
+                                )
                                 return current
                         except Exception:
                             pass
                     if current == current.parent:
                         break
                     current = current.parent
-                
+
                 # Development or editable install: go up to project root from module
                 current = module_path
                 while current != current.parent:
-                    if (current / "src" / "claude_mpm").exists() and (current / "pyproject.toml").exists():
+                    if (current / "src" / "claude_mpm").exists() and (
+                        current / "pyproject.toml"
+                    ).exists():
                         logger.debug(f"Found framework root at {current}")
                         return current
                     current = current.parent
-                
+
                 # Secondary check: Look for pyproject.toml without src structure
                 current = module_path
                 while current != current.parent:
@@ -366,14 +415,18 @@ class UnifiedPathManager:
     @property
     def package_root(self) -> Path:
         """Get the claude_mpm package root directory."""
-        if self._deployment_context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
+        if self._deployment_context in (
+            DeploymentContext.DEVELOPMENT,
+            DeploymentContext.EDITABLE_INSTALL,
+        ):
             # In development mode, always use the source directory
             package_path = self.framework_root / "src" / "claude_mpm"
             if package_path.exists():
                 return package_path
-        
+
         try:
             import claude_mpm
+
             return Path(claude_mpm.__file__).parent
         except ImportError:
             return self.framework_root / "src" / "claude_mpm"
@@ -386,14 +439,13 @@ class UnifiedPathManager:
         """Get configuration directory for specified scope."""
         if scope == "user":
             return Path.home() / self.CONFIG_DIR_NAME
-        elif scope == "project":
+        if scope == "project":
             return self.project_root / self.CONFIG_DIR_NAME
-        elif scope == "framework":
+        if scope == "framework":
             return self.framework_root / self.CONFIG_DIR_NAME
-        else:
-            raise ValueError(
-                f"Invalid scope: {scope}. Must be 'user', 'project', or 'framework'"
-            )
+        raise ValueError(
+            f"Invalid scope: {scope}. Must be 'user', 'project', or 'framework'"
+        )
 
     def get_user_config_dir(self) -> Path:
         """Get the user-level configuration directory."""
@@ -412,17 +464,18 @@ class UnifiedPathManager:
         """Get agents directory for specified scope."""
         if scope == "user":
             return self.get_user_config_dir() / "agents"
-        elif scope == "project":
+        if scope == "project":
             return self.get_project_config_dir() / "agents"
-        elif scope == "framework":
-            if self._deployment_context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
+        if scope == "framework":
+            if self._deployment_context in (
+                DeploymentContext.DEVELOPMENT,
+                DeploymentContext.EDITABLE_INSTALL,
+            ):
                 return self.framework_root / "src" / "claude_mpm" / "agents"
-            else:
-                return self.package_root / "agents"
-        else:
-            raise ValueError(
-                f"Invalid scope: {scope}. Must be 'user', 'project', or 'framework'"
-            )
+            return self.package_root / "agents"
+        raise ValueError(
+            f"Invalid scope: {scope}. Must be 'user', 'project', or 'framework'"
+        )
 
     def get_user_agents_dir(self) -> Path:
         """Get the user-level agents directory."""
@@ -446,10 +499,12 @@ class UnifiedPathManager:
 
     def get_scripts_dir(self) -> Path:
         """Get the scripts directory."""
-        if self._deployment_context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
+        if self._deployment_context in (
+            DeploymentContext.DEVELOPMENT,
+            DeploymentContext.EDITABLE_INSTALL,
+        ):
             return self.framework_root / "scripts"
-        else:
-            return self.package_root / "scripts"
+        return self.package_root / "scripts"
 
     def get_static_dir(self) -> Path:
         """Get the static files directory."""
@@ -643,124 +698,157 @@ class UnifiedPathManager:
 
     def get_executable_path(self) -> Optional[Path]:
         """Get the path to the claude-mpm executable for the current deployment context.
-        
+
         This method provides deployment-context-aware executable path detection,
         particularly useful for MCP server configuration.
-        
+
         Returns:
             Path to executable or None if not found
         """
         import shutil
-        
+
         # Try standard which first
         which_result = shutil.which("claude-mpm")
         if which_result:
             return Path(which_result)
-        
+
         # Enhanced detection based on deployment context
         if self._deployment_context == DeploymentContext.PIPX_INSTALL:
             return self._find_pipx_executable()
-        elif self._deployment_context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
+        if self._deployment_context in (
+            DeploymentContext.DEVELOPMENT,
+            DeploymentContext.EDITABLE_INSTALL,
+        ):
             return self._find_development_executable()
-        elif self._deployment_context == DeploymentContext.PIP_INSTALL:
+        if self._deployment_context == DeploymentContext.PIP_INSTALL:
             return self._find_pip_executable()
-        
+
         return None
-    
+
     def _find_pipx_executable(self) -> Optional[Path]:
         """Find claude-mpm executable in pipx installation."""
         try:
             import claude_mpm
+
             module_path = Path(claude_mpm.__file__).parent
-            
+
             if "pipx" not in str(module_path):
                 return None
-            
+
             # Common pipx executable locations
             home = Path.home()
             pipx_paths = [
                 home / ".local" / "bin" / "claude-mpm",
-                home / ".local" / "share" / "pipx" / "venvs" / "claude-mpm" / "bin" / "claude-mpm",
+                home
+                / ".local"
+                / "share"
+                / "pipx"
+                / "venvs"
+                / "claude-mpm"
+                / "bin"
+                / "claude-mpm",
             ]
-            
+
             # Windows paths
             if sys.platform == "win32":
-                pipx_paths.extend([
-                    home / "AppData" / "Local" / "pipx" / "bin" / "claude-mpm.exe",
-                    home / ".local" / "bin" / "claude-mpm.exe",
-                ])
-            
+                pipx_paths.extend(
+                    [
+                        home / "AppData" / "Local" / "pipx" / "bin" / "claude-mpm.exe",
+                        home / ".local" / "bin" / "claude-mpm.exe",
+                    ]
+                )
+
             for path in pipx_paths:
                 if path.exists():
                     logger.debug(f"Found pipx executable: {path}")
                     return path
-            
+
             # Try to derive from module path
             # Navigate up from module to find venv, then to bin
             venv_path = module_path
             for _ in range(5):  # Prevent infinite loops
-                if venv_path.name == "claude-mpm" and (venv_path / "pyvenv.cfg").exists():
+                if (
+                    venv_path.name == "claude-mpm"
+                    and (venv_path / "pyvenv.cfg").exists()
+                ):
                     # Found the venv directory
-                    bin_dir = venv_path / ("Scripts" if sys.platform == "win32" else "bin")
-                    exe_name = "claude-mpm.exe" if sys.platform == "win32" else "claude-mpm"
+                    bin_dir = venv_path / (
+                        "Scripts" if sys.platform == "win32" else "bin"
+                    )
+                    exe_name = (
+                        "claude-mpm.exe" if sys.platform == "win32" else "claude-mpm"
+                    )
                     exe_path = bin_dir / exe_name
-                    
+
                     if exe_path.exists():
-                        logger.debug(f"Found pipx executable via module path: {exe_path}")
+                        logger.debug(
+                            f"Found pipx executable via module path: {exe_path}"
+                        )
                         return exe_path
                     break
-                
+
                 if venv_path == venv_path.parent:
                     break
                 venv_path = venv_path.parent
-                
+
         except Exception as e:
             logger.debug(f"Error finding pipx executable: {e}")
-        
+
         return None
-    
+
     def _find_development_executable(self) -> Optional[Path]:
         """Find claude-mpm executable in development installation."""
         # For development, prefer the script in the project
         scripts_dir = self.get_scripts_dir()
         dev_executable = scripts_dir / "claude-mpm"
-        
+
         if dev_executable.exists():
             return dev_executable
-        
+
         # Check if we're in a development venv
-        if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
-            venv_bin = Path(sys.prefix) / ("Scripts" if sys.platform == "win32" else "bin")
+        if hasattr(sys, "real_prefix") or (
+            hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix
+        ):
+            venv_bin = Path(sys.prefix) / (
+                "Scripts" if sys.platform == "win32" else "bin"
+            )
             venv_executable = venv_bin / "claude-mpm"
             if venv_executable.exists():
                 return venv_executable
-        
+
         return None
-    
+
     def _find_pip_executable(self) -> Optional[Path]:
         """Find claude-mpm executable in pip installation."""
         # For pip installs, check the current Python environment
-        if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+        if hasattr(sys, "real_prefix") or (
+            hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix
+        ):
             # In a virtual environment
-            venv_bin = Path(sys.prefix) / ("Scripts" if sys.platform == "win32" else "bin")
+            venv_bin = Path(sys.prefix) / (
+                "Scripts" if sys.platform == "win32" else "bin"
+            )
             venv_executable = venv_bin / "claude-mpm"
             if venv_executable.exists():
                 return venv_executable
-        
+
         # Check system-wide installation
         try:
             import site
+
             for site_dir in site.getsitepackages():
                 # Look for installed scripts
                 site_path = Path(site_dir)
-                scripts_dir = site_path.parent / ("Scripts" if sys.platform == "win32" else "bin")
+                scripts_dir = site_path.parent / (
+                    "Scripts" if sys.platform == "win32" else "bin"
+                )
                 if scripts_dir.exists():
                     exe_path = scripts_dir / "claude-mpm"
                     if exe_path.exists():
                         return exe_path
         except Exception as e:
             logger.debug(f"Error finding pip executable: {e}")
-        
+
         return None
 
 
@@ -833,18 +921,18 @@ def get_executable_path() -> Optional[Path]:
 # ============================================================================
 
 __all__ = [
-    "UnifiedPathManager",
-    "PathType",
     "DeploymentContext",
     "PathContext",
-    "get_path_manager",
-    "get_project_root",
-    "get_framework_root",
-    "get_package_root",
-    "get_scripts_dir",
+    "PathType",
+    "UnifiedPathManager",
+    "find_file_upwards",
     "get_agents_dir",
     "get_config_dir",
-    "find_file_upwards",
-    "get_package_resource_path",
     "get_executable_path",
+    "get_framework_root",
+    "get_package_resource_path",
+    "get_package_root",
+    "get_path_manager",
+    "get_project_root",
+    "get_scripts_dir",
 ]

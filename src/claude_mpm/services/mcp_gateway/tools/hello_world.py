@@ -395,7 +395,7 @@ class HelloWorldTool(BaseToolAdapter):
 
             return MCPToolResult(
                 success=False,
-                error=f"Hello World tool failed: {str(e)}",
+                error=f"Hello World tool failed: {e!s}",
                 execution_time=execution_time,
             )
 
@@ -426,8 +426,7 @@ class HelloWorldTool(BaseToolAdapter):
         if name:
             # Add name if provided (works for most languages)
             return f"{greeting_word}, {name}!"
-        else:
-            return f"{greeting_word}, World!"
+        return f"{greeting_word}, World!"
 
     async def _system_info_greeting(self) -> str:
         """Generate a greeting with system information."""
@@ -458,21 +457,20 @@ class HelloWorldTool(BaseToolAdapter):
                 error="Simulated validation error: Invalid input parameters",
                 execution_time=0.001,
             )
-        elif error_type == "runtime":
+        if error_type == "runtime":
             # Simulate a runtime error
             raise RuntimeError("Simulated runtime error during greeting generation")
-        elif error_type == "timeout":
+        if error_type == "timeout":
             # Simulate a timeout by sleeping longer than reasonable
             await asyncio.sleep(10)  # This would typically trigger a timeout
             return MCPToolResult(
                 success=False, error="Operation timed out", execution_time=10.0
             )
-        else:
-            return MCPToolResult(
-                success=False,
-                error=f"Unknown error type: {error_type}",
-                execution_time=0.001,
-            )
+        return MCPToolResult(
+            success=False,
+            error=f"Unknown error type: {error_type}",
+            execution_time=0.001,
+        )
 
     def _add_to_history(self, mode: str, greeting: str, execution_time: float) -> None:
         """
@@ -524,9 +522,9 @@ class HelloWorldTool(BaseToolAdapter):
             "total_greetings": len(self.greeting_history),
             "modes_used": modes_used,
             "average_execution_time": total_time / len(self.greeting_history),
-            "last_greeting": self.greeting_history[-1]
-            if self.greeting_history
-            else None,
+            "last_greeting": (
+                self.greeting_history[-1] if self.greeting_history else None
+            ),
             "metrics": self.get_metrics(),
         }
 

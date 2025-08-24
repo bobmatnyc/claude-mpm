@@ -5,15 +5,15 @@ logging, error handling, and access to the server instance. All handler
 classes inherit from this to ensure consistent behavior.
 """
 
-import logging
 from datetime import datetime
-from logging import Logger
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from ....core.logger import get_logger
 from ....core.typing_utils import EventData, EventName, SocketId
 
 if TYPE_CHECKING:
+    from logging import Logger
+
     import socketio
 
     from ..server import SocketIOServer
@@ -33,8 +33,8 @@ class BaseEventHandler:
         Args:
             server: The SocketIOServer instance that owns this handler
         """
-        self.server: "SocketIOServer" = server
-        self.sio: "socketio.AsyncServer" = server.sio
+        self.server: SocketIOServer = server
+        self.sio: socketio.AsyncServer = server.sio
         self.logger: Logger = get_logger(self.__class__.__name__)
         self.clients: Dict[SocketId, Dict[str, Any]] = server.clients
         self.event_history: List[Dict[str, Any]] = server.event_history
@@ -92,6 +92,7 @@ class BaseEventHandler:
         except Exception as e:
             self.logger.error(f"Failed to broadcast {event}: {e}")
             import traceback
+
             self.logger.error(f"Stack trace: {traceback.format_exc()}")
 
     def add_to_history(self, event_type: str, data: EventData) -> None:

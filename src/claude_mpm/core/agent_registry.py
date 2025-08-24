@@ -11,8 +11,8 @@ This module provides:
 - Legacy function names for backwards compatibility
 """
 
-import os
-import sys
+import contextlib
+import warnings
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -20,13 +20,16 @@ from typing import Any, Dict, List, Optional, Set
 
 # Import from the unified agent registry system
 from .unified_agent_registry import AgentMetadata as UnifiedAgentMetadata
-from .unified_agent_registry import AgentTier, AgentType
+from .unified_agent_registry import (
+    AgentTier,
+    AgentType,
+)
 from .unified_agent_registry import discover_agents as unified_discover_agents
 from .unified_agent_registry import get_agent as unified_get_agent
-from .unified_agent_registry import get_agent_names as unified_get_agent_names
-from .unified_agent_registry import get_agent_registry
+from .unified_agent_registry import (
+    get_agent_registry,
+)
 from .unified_agent_registry import get_core_agents as unified_get_core_agents
-from .unified_agent_registry import get_project_agents as unified_get_project_agents
 from .unified_agent_registry import get_registry_stats as unified_get_registry_stats
 from .unified_agent_registry import (
     get_specialized_agents as unified_get_specialized_agents,
@@ -118,10 +121,9 @@ class SimpleAgentRegistry:
             or ".claude/agents" in str(agent_path)
         ):
             return "project"
-        elif "user" in str(agent_path) or str(Path.home()) in str(agent_path):
+        if "user" in str(agent_path) or str(Path.home()) in str(agent_path):
             return "user"
-        else:
-            return "system"
+        return "system"
 
     def _extract_specializations(self, agent_id: str) -> List[str]:
         """Extract specializations based on agent type (compatibility method)."""
@@ -236,7 +238,7 @@ class SimpleAgentRegistry:
     @property
     def specialized_agent_types(self) -> Set[str]:
         """Get specialized agent types beyond core (compatibility property)."""
-        all_types = set(metadata["type"] for metadata in self.agents.values())
+        all_types = {metadata["type"] for metadata in self.agents.values()}
         return all_types - self.core_agent_types
 
 
@@ -268,7 +270,6 @@ class AgentRegistryAdapter:
     def _initialize_registry(self):
         """Initialize the agent registry (compatibility method)."""
         # Registry is already initialized in __init__
-        pass
 
     def list_agents(self, **kwargs) -> Dict[str, Any]:
         """List available agents (compatibility method)."""
@@ -465,16 +466,12 @@ def list_agents(
     unified_agent_type = None
 
     if tier:
-        try:
+        with contextlib.suppress(ValueError):
             unified_tier = AgentTier(tier)
-        except ValueError:
-            pass
 
     if agent_type:
-        try:
+        with contextlib.suppress(ValueError):
             unified_agent_type = AgentType(agent_type)
-        except ValueError:
-            pass
 
     unified_agents = unified_list_agents(
         tier=unified_tier, agent_type=unified_agent_type
@@ -510,18 +507,18 @@ def get_registry_stats() -> Dict[str, Any]:
 
 # Export all public symbols
 __all__ = [
+    "AgentMetadata",
     "AgentRegistry",
     "AgentRegistryAdapter",
-    "AgentMetadata",
     "SimpleAgentRegistry",
     "create_agent_registry",
     "discover_agents",
-    "get_core_agent_types",
-    "get_specialized_agent_types",
-    "list_agents_all",
-    "list_agents",
-    "listAgents",  # Deprecated
     "discover_agents_sync",
     "get_agent",
+    "get_core_agent_types",
     "get_registry_stats",
+    "get_specialized_agent_types",
+    "listAgents",  # Deprecated
+    "list_agents",
+    "list_agents_all",
 ]

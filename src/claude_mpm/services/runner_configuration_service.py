@@ -17,9 +17,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.config import Config
-from claude_mpm.core.container import ServiceLifetime, get_container
+from claude_mpm.core.container import ServiceLifetime
 from claude_mpm.core.logger import get_project_logger
-from claude_mpm.core.logging_config import get_logger
 from claude_mpm.core.shared.config_loader import ConfigLoader
 from claude_mpm.services.core.interfaces import RunnerConfigurationInterface
 
@@ -33,11 +32,9 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
 
     async def _initialize(self) -> None:
         """Initialize the service. No special initialization needed."""
-        pass
 
     async def _cleanup(self) -> None:
         """Cleanup service resources. No cleanup needed."""
-        pass
 
     # Implementation of abstract methods from RunnerConfigurationInterface
 
@@ -61,7 +58,6 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         """
         # This method can delegate to existing service registration methods
         # For now, this is a no-op as service registration is handled elsewhere
-        pass
 
     def load_configuration(self, config_path: Optional[Path] = None) -> Dict[str, Any]:
         """Load configuration from file or defaults.
@@ -78,12 +74,15 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             if config_path:
                 # Use specific config file with ConfigLoader
                 from claude_mpm.core.shared.config_loader import ConfigPattern
+
                 pattern = ConfigPattern(
                     filenames=[Path(config_path).name],
                     search_paths=[str(Path(config_path).parent)],
-                    env_prefix="CLAUDE_MPM_"
+                    env_prefix="CLAUDE_MPM_",
                 )
-                config = config_loader.load_config(pattern, cache_key=f"runner_{config_path}")
+                config = config_loader.load_config(
+                    pattern, cache_key=f"runner_{config_path}"
+                )
             else:
                 # Use main config
                 config = config_loader.load_main_config()
@@ -198,7 +197,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         try:
             project_logger = get_project_logger(log_level)
             project_logger.log_system(
-                f"Initializing ClaudeRunner", level="INFO", component="runner"
+                "Initializing ClaudeRunner", level="INFO", component="runner"
             )
             return project_logger
         except ImportError as e:
@@ -231,7 +230,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
                     "Response logging initialized", level="INFO", component="logging"
                 )
             return response_logger
-        except Exception as e:
+        except Exception:
             self.logger.warning("Failed to initialize response logger", exc_info=True)
             return None
 
@@ -244,7 +243,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         if "CLAUDE_MPM_USER_PWD" in os.environ:
             user_working_dir = Path(os.environ["CLAUDE_MPM_USER_PWD"])
             self.logger.info(
-                f"Using user working directory from CLAUDE_MPM_USER_PWD",
+                "Using user working directory from CLAUDE_MPM_USER_PWD",
                 extra={"directory": str(user_working_dir)},
             )
             return user_working_dir
@@ -310,7 +309,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
 
         try:
             return container.get(HookServiceInterface)
-        except Exception as e:
+        except Exception:
             self.logger.warning("Failed to initialize hook service", exc_info=True)
             return None
 
@@ -336,7 +335,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
 
         try:
             return container.get(AgentCapabilitiesInterface)
-        except Exception as e:
+        except Exception:
             self.logger.warning(
                 "Failed to initialize agent capabilities service", exc_info=True
             )
@@ -371,7 +370,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
 
         try:
             return container.get(SystemInstructionsInterface)
-        except Exception as e:
+        except Exception:
             self.logger.warning(
                 "Failed to initialize system instructions service", exc_info=True
             )
@@ -407,7 +406,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
 
         try:
             return container.get(SubprocessLauncherInterface)
-        except Exception as e:
+        except Exception:
             self.logger.warning(
                 "Failed to initialize subprocess launcher service", exc_info=True
             )
@@ -431,7 +430,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
 
         try:
             return container.get(VersionServiceInterface)
-        except Exception as e:
+        except Exception:
             self.logger.warning("Failed to initialize version service", exc_info=True)
             return None
 
@@ -460,7 +459,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
 
         try:
             return container.get(CommandHandlerInterface)
-        except Exception as e:
+        except Exception:
             self.logger.warning(
                 "Failed to initialize command handler service", exc_info=True
             )
@@ -489,7 +488,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
 
         try:
             return container.get(MemoryHookInterface)
-        except Exception as e:
+        except Exception:
             self.logger.warning(
                 "Failed to initialize memory hook service", exc_info=True
             )
@@ -520,7 +519,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
 
         try:
             return container.get(SessionManagementInterface)
-        except Exception as e:
+        except Exception:
             self.logger.warning(
                 "Failed to initialize session management service", exc_info=True
             )
@@ -544,7 +543,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
 
         try:
             return container.get(UtilityServiceInterface)
-        except Exception as e:
+        except Exception:
             self.logger.warning("Failed to initialize utility service", exc_info=True)
             return None
 
@@ -569,7 +568,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             session_log_file = project_logger.session_dir / "system.jsonl"
 
             # Log session start event
-            session_event = {
+            {
                 "event": "session_start",
                 "runner": "ClaudeRunner",
                 "enable_tickets": config_data.get("enable_tickets"),

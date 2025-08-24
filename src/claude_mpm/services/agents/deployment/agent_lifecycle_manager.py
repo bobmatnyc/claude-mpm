@@ -29,13 +29,13 @@ Created for ISS-0118: Agent Registry and Hierarchical Discovery System
 import asyncio
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.unified_paths import get_path_manager
-from claude_mpm.models.agent_definition import AgentDefinition, AgentType
+from claude_mpm.models.agent_definition import AgentDefinition
 from claude_mpm.services.agents.management import AgentManager
 from claude_mpm.services.agents.memory import (
     AgentPersistenceService,
@@ -43,7 +43,7 @@ from claude_mpm.services.agents.memory import (
     PersistenceRecord,
     PersistenceStrategy,
 )
-from claude_mpm.services.agents.registry import AgentMetadata, AgentRegistry
+from claude_mpm.services.agents.registry import AgentRegistry
 from claude_mpm.services.agents.registry.modification_tracker import (
     AgentModification,
     AgentModificationTracker,
@@ -841,7 +841,7 @@ class AgentLifecycleManager(BaseService):
             patterns = [
                 f"agent_profile:{agent_name}:*",
                 f"task_prompt:{agent_name}:*",
-                f"agent_registry_discovery",
+                "agent_registry_discovery",
                 f"agent_profile_enhanced:{agent_name}:*",
             ]
 

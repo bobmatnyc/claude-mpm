@@ -11,9 +11,9 @@ from .configuration_step import ConfigurationLoadStep
 from .target_directory_step import TargetDirectorySetupStep
 
 __all__ = [
-    "BaseDeploymentStep",
-    "StepResult",
-    "ConfigurationLoadStep",
-    "TargetDirectorySetupStep",
     "AgentProcessingStep",
+    "BaseDeploymentStep",
+    "ConfigurationLoadStep",
+    "StepResult",
+    "TargetDirectorySetupStep",
 ]

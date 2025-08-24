@@ -25,14 +25,12 @@ Phase 1 Refactoring: Interface extraction and dependency injection foundation
 These interfaces reduce cyclomatic complexity and establish clean separation of concerns.
 """
 
-import asyncio
-
 # Keep original imports to prevent any parsing issues
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Generic, List, Optional, Set, Tuple, TypeVar, Union
+from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
 
 # Re-export everything from the new location for backward compatibility
 from claude_mpm.services.core.interfaces import *
@@ -51,27 +49,22 @@ class IServiceContainer(ABC):
         self, service_type: type, implementation: type, singleton: bool = True
     ) -> None:
         """Register a service implementation"""
-        pass
 
     @abstractmethod
     def register_instance(self, service_type: type, instance: Any) -> None:
         """Register a service instance"""
-        pass
 
     @abstractmethod
     def resolve(self, service_type: type) -> Any:
         """Resolve a service by type"""
-        pass
 
     @abstractmethod
     def resolve_all(self, service_type: type) -> List[Any]:
         """Resolve all implementations of a service type"""
-        pass
 
     @abstractmethod
     def is_registered(self, service_type: type) -> bool:
         """Check if a service type is registered"""
-        pass
 
 
 # Configuration management interfaces
@@ -81,22 +74,18 @@ class IConfigurationService(ABC):
     @abstractmethod
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value by key"""
-        pass
 
     @abstractmethod
     def set(self, key: str, value: Any) -> None:
         """Set configuration value"""
-        pass
 
     @abstractmethod
     def initialize(self) -> bool:
         """Initialize configuration service"""
-        pass
 
     @abstractmethod
     def shutdown(self) -> None:
         """Shutdown configuration service"""
-        pass
 
 
 class IConfigurationManager(ABC):
@@ -105,32 +94,26 @@ class IConfigurationManager(ABC):
     @abstractmethod
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value by key"""
-        pass
 
     @abstractmethod
     def set(self, key: str, value: Any) -> None:
         """Set configuration value"""
-        pass
 
     @abstractmethod
     def get_section(self, section: str) -> Dict[str, Any]:
         """Get entire configuration section"""
-        pass
 
     @abstractmethod
     def validate_schema(self, schema: Dict[str, Any]) -> bool:
         """Validate configuration against schema"""
-        pass
 
     @abstractmethod
     def reload(self) -> None:
         """Reload configuration from sources"""
-        pass
 
     @abstractmethod
     def watch_changes(self, callback: callable) -> None:
         """Watch for configuration changes"""
-        pass
 
 
 # Cache service interface
@@ -140,32 +123,26 @@ class ICacheService(ABC):
     @abstractmethod
     def get(self, key: str) -> Any:
         """Get value from cache"""
-        pass
 
     @abstractmethod
     def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
         """Set value in cache with optional TTL"""
-        pass
 
     @abstractmethod
     def delete(self, key: str) -> bool:
         """Delete key from cache"""
-        pass
 
     @abstractmethod
     def invalidate(self, pattern: str) -> int:
         """Invalidate keys matching pattern"""
-        pass
 
     @abstractmethod
     def clear(self) -> None:
         """Clear all cache entries"""
-        pass
 
     @abstractmethod
     def get_cache_metrics(self) -> Dict[str, Any]:
         """Get cache performance metrics"""
-        pass
 
 
 # Health monitoring interface
@@ -186,27 +163,22 @@ class IHealthMonitor(ABC):
     @abstractmethod
     async def check_health(self, service_name: str) -> HealthStatus:
         """Check health of a specific service"""
-        pass
 
     @abstractmethod
     async def get_system_health(self) -> HealthStatus:
         """Get overall system health"""
-        pass
 
     @abstractmethod
     def register_health_check(self, service_name: str, check_func: callable) -> None:
         """Register a health check function"""
-        pass
 
     @abstractmethod
     async def start_monitoring(self) -> None:
         """Start health monitoring"""
-        pass
 
     @abstractmethod
     async def stop_monitoring(self) -> None:
         """Stop health monitoring"""
-        pass
 
 
 # Agent registry interface
@@ -256,34 +228,28 @@ class IAgentRegistry(ABC):
         self, force_refresh: bool = False
     ) -> Dict[str, AgentMetadata]:
         """Discover all available agents"""
-        pass
 
     @abstractmethod
     async def get_agent(self, agent_name: str) -> Optional[AgentMetadata]:
         """Get specific agent metadata"""
-        pass
 
     @abstractmethod
     async def list_agents(
         self, agent_type: Optional[str] = None, tier: Optional[str] = None
     ) -> List[AgentMetadata]:
         """List agents with optional filtering"""
-        pass
 
     @abstractmethod
     async def get_specialized_agents(self, agent_type: str) -> List[AgentMetadata]:
         """Get agents of a specific specialized type"""
-        pass
 
     @abstractmethod
     async def search_by_capability(self, capability: str) -> List[AgentMetadata]:
         """Search agents by capability"""
-        pass
 
     @abstractmethod
     async def get_registry_stats(self) -> Dict[str, Any]:
         """Get registry statistics"""
-        pass
 
 
 # Prompt cache interface
@@ -311,7 +277,6 @@ class IPromptCache(ABC):
     @abstractmethod
     def get(self, key: str) -> Optional[Any]:
         """Get cached value by key"""
-        pass
 
     @abstractmethod
     def set(
@@ -322,27 +287,22 @@ class IPromptCache(ABC):
         metadata: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Set cached value with optional TTL"""
-        pass
 
     @abstractmethod
     def delete(self, key: str) -> bool:
         """Delete cached value"""
-        pass
 
     @abstractmethod
     def invalidate(self, pattern: str) -> int:
         """Invalidate cached values matching pattern"""
-        pass
 
     @abstractmethod
     def clear(self) -> None:
         """Clear all cached values"""
-        pass
 
     @abstractmethod
     def get_metrics(self) -> Dict[str, Any]:
         """Get cache performance metrics"""
-        pass
 
 
 # Template management interface
@@ -364,22 +324,18 @@ class ITemplateManager(ABC):
         self, template_content: str, context: TemplateRenderContext
     ) -> str:
         """Render template with given context"""
-        pass
 
     @abstractmethod
     async def load_template(self, template_id: str) -> Optional[str]:
         """Load template by ID"""
-        pass
 
     @abstractmethod
     async def validate_template(self, template_content: str) -> Tuple[bool, List[str]]:
         """Validate template syntax and variables"""
-        pass
 
     @abstractmethod
     def register_template_function(self, name: str, func: callable) -> None:
         """Register custom template function"""
-        pass
 
 
 # Service factory interface
@@ -389,17 +345,14 @@ class IServiceFactory(Generic[ServiceType], ABC):
     @abstractmethod
     def create(self, **kwargs) -> ServiceType:
         """Create service instance"""
-        pass
 
     @abstractmethod
     def create_with_config(self, config: Dict[str, Any]) -> ServiceType:
         """Create service instance with configuration"""
-        pass
 
     @abstractmethod
     def supports_type(self, service_type: type) -> bool:
         """Check if factory supports service type"""
-        pass
 
 
 # Logging interface
@@ -409,32 +362,26 @@ class IStructuredLogger(ABC):
     @abstractmethod
     def debug(self, message: str, **kwargs) -> None:
         """Log debug message with structured data"""
-        pass
 
     @abstractmethod
     def info(self, message: str, **kwargs) -> None:
         """Log info message with structured data"""
-        pass
 
     @abstractmethod
     def warning(self, message: str, **kwargs) -> None:
         """Log warning message with structured data"""
-        pass
 
     @abstractmethod
     def error(self, message: str, **kwargs) -> None:
         """Log error message with structured data"""
-        pass
 
     @abstractmethod
     def critical(self, message: str, **kwargs) -> None:
         """Log critical message with structured data"""
-        pass
 
     @abstractmethod
     def set_context(self, **kwargs) -> None:
         """Set logging context for all subsequent messages"""
-        pass
 
 
 # Service lifecycle interface
@@ -444,27 +391,22 @@ class IServiceLifecycle(ABC):
     @abstractmethod
     async def initialize(self) -> None:
         """Initialize the service"""
-        pass
 
     @abstractmethod
     async def start(self) -> None:
         """Start the service"""
-        pass
 
     @abstractmethod
     async def stop(self) -> None:
         """Stop the service"""
-        pass
 
     @abstractmethod
     async def restart(self) -> None:
         """Restart the service"""
-        pass
 
     @abstractmethod
     def is_running(self) -> bool:
         """Check if service is running"""
-        pass
 
 
 # Error handling interface
@@ -474,17 +416,14 @@ class IErrorHandler(ABC):
     @abstractmethod
     def handle_error(self, error: Exception, context: Dict[str, Any]) -> None:
         """Handle error with context"""
-        pass
 
     @abstractmethod
     def register_error_handler(self, error_type: type, handler: callable) -> None:
         """Register error handler for specific error type"""
-        pass
 
     @abstractmethod
     def get_error_stats(self) -> Dict[str, Any]:
         """Get error statistics"""
-        pass
 
 
 # Performance monitoring interface
@@ -494,24 +433,20 @@ class IPerformanceMonitor(ABC):
     @abstractmethod
     def start_timer(self, operation: str) -> str:
         """Start timing an operation"""
-        pass
 
     @abstractmethod
     def stop_timer(self, timer_id: str) -> float:
         """Stop timing and return duration"""
-        pass
 
     @abstractmethod
     def record_metric(
         self, name: str, value: float, tags: Optional[Dict[str, str]] = None
     ) -> None:
         """Record a performance metric"""
-        pass
 
     @abstractmethod
     def get_metrics(self) -> Dict[str, Any]:
         """Get performance metrics"""
-        pass
 
 
 # Event system interface
@@ -521,22 +456,18 @@ class IEventBus(ABC):
     @abstractmethod
     def publish(self, event_type: str, data: Any) -> None:
         """Publish an event"""
-        pass
 
     @abstractmethod
     def subscribe(self, event_type: str, handler: callable) -> str:
         """Subscribe to events"""
-        pass
 
     @abstractmethod
     def unsubscribe(self, subscription_id: str) -> None:
         """Unsubscribe from events"""
-        pass
 
     @abstractmethod
     async def publish_async(self, event_type: str, data: Any) -> None:
         """Publish an event asynchronously"""
-        pass
 
 
 # Agent deployment interface
@@ -564,7 +495,6 @@ class AgentDeploymentInterface(ABC):
         Returns:
             Dictionary with deployment results and status
         """
-        pass
 
     @abstractmethod
     def validate_agent(self, agent_path: Path) -> Tuple[bool, List[str]]:
@@ -576,7 +506,6 @@ class AgentDeploymentInterface(ABC):
         Returns:
             Tuple of (is_valid, list_of_errors)
         """
-        pass
 
     @abstractmethod
     def clean_deployment(self, preserve_user_agents: bool = True) -> bool:
@@ -588,7 +517,6 @@ class AgentDeploymentInterface(ABC):
         Returns:
             True if cleanup successful
         """
-        pass
 
     @abstractmethod
     def get_deployment_status(self) -> Dict[str, Any]:
@@ -597,7 +525,6 @@ class AgentDeploymentInterface(ABC):
         Returns:
             Dictionary with deployment status information
         """
-        pass
 
 
 # Memory service interface
@@ -622,7 +549,6 @@ class MemoryServiceInterface(ABC):
         Returns:
             Memory content as string or None if not found
         """
-        pass
 
     @abstractmethod
     def save_memory(self, agent_id: str, content: str) -> bool:
@@ -635,7 +561,6 @@ class MemoryServiceInterface(ABC):
         Returns:
             True if save successful
         """
-        pass
 
     @abstractmethod
     def validate_memory_size(self, content: str) -> Tuple[bool, Optional[str]]:
@@ -647,7 +572,6 @@ class MemoryServiceInterface(ABC):
         Returns:
             Tuple of (is_valid, error_message)
         """
-        pass
 
     @abstractmethod
     def optimize_memory(self, agent_id: str) -> bool:
@@ -659,7 +583,6 @@ class MemoryServiceInterface(ABC):
         Returns:
             True if optimization successful
         """
-        pass
 
     @abstractmethod
     def get_memory_metrics(self, agent_id: Optional[str] = None) -> Dict[str, Any]:
@@ -671,7 +594,6 @@ class MemoryServiceInterface(ABC):
         Returns:
             Dictionary with memory metrics
         """
-        pass
 
 
 # Hook service interface
@@ -696,7 +618,6 @@ class HookServiceInterface(ABC):
         Returns:
             True if registration successful
         """
-        pass
 
     @abstractmethod
     def execute_pre_delegation_hooks(self, context: Any) -> Any:
@@ -708,7 +629,6 @@ class HookServiceInterface(ABC):
         Returns:
             Hook execution result
         """
-        pass
 
     @abstractmethod
     def execute_post_delegation_hooks(self, context: Any) -> Any:
@@ -720,7 +640,6 @@ class HookServiceInterface(ABC):
         Returns:
             Hook execution result
         """
-        pass
 
     @abstractmethod
     def get_registered_hooks(self) -> Dict[str, List[Any]]:
@@ -729,7 +648,6 @@ class HookServiceInterface(ABC):
         Returns:
             Dictionary mapping hook types to lists of hooks
         """
-        pass
 
     @abstractmethod
     def clear_hooks(self, hook_type: Optional[str] = None) -> None:
@@ -738,7 +656,6 @@ class HookServiceInterface(ABC):
         Args:
             hook_type: Optional specific hook type to clear, or None for all
         """
-        pass
 
 
 # WebSocket/SocketIO service interface
@@ -761,12 +678,10 @@ class SocketIOServiceInterface(ABC):
             host: Host to bind to
             port: Port to listen on
         """
-        pass
 
     @abstractmethod
     async def stop(self) -> None:
         """Stop the WebSocket server."""
-        pass
 
     @abstractmethod
     async def emit(self, event: str, data: Any, room: Optional[str] = None) -> None:
@@ -777,7 +692,6 @@ class SocketIOServiceInterface(ABC):
             data: Event data
             room: Optional room to target
         """
-        pass
 
     @abstractmethod
     async def broadcast(self, event: str, data: Any) -> None:
@@ -787,7 +701,6 @@ class SocketIOServiceInterface(ABC):
             event: Event name
             data: Event data
         """
-        pass
 
     @abstractmethod
     def get_connection_count(self) -> int:
@@ -796,7 +709,6 @@ class SocketIOServiceInterface(ABC):
         Returns:
             Number of active connections
         """
-        pass
 
     @abstractmethod
     def is_running(self) -> bool:
@@ -805,7 +717,6 @@ class SocketIOServiceInterface(ABC):
         Returns:
             True if server is active
         """
-        pass
 
 
 # Project analyzer interface
@@ -830,7 +741,6 @@ class ProjectAnalyzerInterface(ABC):
         Returns:
             ProjectCharacteristics or similar structured data
         """
-        pass
 
     @abstractmethod
     def detect_technology_stack(self) -> List[str]:
@@ -839,7 +749,6 @@ class ProjectAnalyzerInterface(ABC):
         Returns:
             List of detected technologies
         """
-        pass
 
     @abstractmethod
     def analyze_code_patterns(self) -> Dict[str, Any]:
@@ -848,7 +757,6 @@ class ProjectAnalyzerInterface(ABC):
         Returns:
             Dictionary of pattern analysis results
         """
-        pass
 
     @abstractmethod
     def get_project_structure(self) -> Dict[str, Any]:
@@ -857,7 +765,6 @@ class ProjectAnalyzerInterface(ABC):
         Returns:
             Dictionary representing project structure
         """
-        pass
 
     @abstractmethod
     def identify_entry_points(self) -> List[Path]:
@@ -866,7 +773,6 @@ class ProjectAnalyzerInterface(ABC):
         Returns:
             List of entry point paths
         """
-        pass
 
 
 # Ticket manager interface
@@ -893,7 +799,6 @@ class TicketManagerInterface(ABC):
         Returns:
             Task ID if created successfully, None otherwise
         """
-        pass
 
     @abstractmethod
     def update_task(self, task_id: str, **updates) -> bool:
@@ -906,7 +811,6 @@ class TicketManagerInterface(ABC):
         Returns:
             True if update successful
         """
-        pass
 
     @abstractmethod
     def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
@@ -918,7 +822,6 @@ class TicketManagerInterface(ABC):
         Returns:
             Task data dictionary or None if not found
         """
-        pass
 
     @abstractmethod
     def list_tasks(
@@ -933,7 +836,6 @@ class TicketManagerInterface(ABC):
         Returns:
             List of task dictionaries
         """
-        pass
 
     @abstractmethod
     def close_task(self, task_id: str, resolution: Optional[str] = None) -> bool:
@@ -946,7 +848,6 @@ class TicketManagerInterface(ABC):
         Returns:
             True if close successful
         """
-        pass
 
 
 # Interface registry for dependency injection discovery

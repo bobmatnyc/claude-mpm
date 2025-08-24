@@ -26,17 +26,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import jsonschema
 from jsonschema import Draft7Validator, ValidationError, validate
 
 from claude_mpm.config.paths import paths
 from claude_mpm.core.constants import (
-    ComplexityMetrics,
     ErrorMessages,
     ResourceLimits,
     SystemLimits,
     TimeoutConfig,
-    ValidationRules,
 )
 
 logger = logging.getLogger(__name__)
@@ -105,7 +102,7 @@ class AgentValidator:
             if not self.schema_path.is_file():
                 raise ValueError(f"Schema path is not a file: {self.schema_path}")
 
-            with open(self.schema_path, "r") as f:
+            with open(self.schema_path) as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Failed to load schema from {self.schema_path}: {e}")
@@ -130,7 +127,7 @@ class AgentValidator:
 
         # Check if model contains tier name
         model_lower = model.lower()
-        for tier in {"opus", "sonnet", "haiku"}:
+        for tier in ("opus", "sonnet", "haiku"):
             if tier in model_lower:
                 return tier
 
@@ -395,7 +392,7 @@ class AgentValidator:
             max_size = SystemLimits.MAX_AGENT_CONFIG_SIZE
             if file_size > max_size:
                 raise ValueError(ErrorMessages.FILE_TOO_LARGE.format(limit=max_size))
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 agent_data = json.load(f)
 
             result = self.validate_agent(agent_data)

@@ -25,10 +25,10 @@ This service analyzes:
 import json
 import logging
 import re
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.interfaces import ProjectAnalyzerInterface
@@ -304,7 +304,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
     ) -> None:
         """Parse package.json for Node.js project details."""
         try:
-            with open(package_path, "r") as f:
+            with open(package_path) as f:
                 package_data = json.load(f)
 
             # Extract dependencies
@@ -313,7 +313,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
             all_deps.update(package_data.get("devDependencies", {}))
 
             # Identify frameworks and tools
-            for dep_name in all_deps.keys():
+            for dep_name in all_deps:
                 dep_lower = dep_name.lower()
 
                 # Web frameworks
@@ -327,12 +327,14 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
                     db in dep_lower for db in ["mysql", "postgres", "mongodb", "redis"]
                 ):
                     characteristics.databases.append(dep_name)
-                elif any(
-                    test in dep_lower
-                    for test in ["jest", "mocha", "cypress", "playwright"]
+                elif (
+                    any(
+                        test in dep_lower
+                        for test in ["jest", "mocha", "cypress", "playwright"]
+                    )
+                    and not characteristics.testing_framework
                 ):
-                    if not characteristics.testing_framework:
-                        characteristics.testing_framework = dep_name
+                    characteristics.testing_framework = dep_name
 
                 characteristics.key_dependencies.append(dep_name)
 
@@ -423,7 +425,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
                 cargo_data = tomllib.load(f)
 
             deps = cargo_data.get("dependencies", {})
-            for dep_name in deps.keys():
+            for dep_name in deps:
                 characteristics.key_dependencies.append(dep_name)
 
                 # Identify common Rust frameworks

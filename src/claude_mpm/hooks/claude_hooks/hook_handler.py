@@ -12,7 +12,6 @@ WHY connection pooling approach:
 - Falls back gracefully when Socket.IO unavailable
 """
 
-import atexit
 import json
 import os
 import select
@@ -23,21 +22,34 @@ import threading
 import time
 from collections import deque
 from datetime import datetime
+from typing import Optional
 
 # Import extracted modules with fallback for direct execution
 try:
     # Try relative imports first (when imported as module)
-    from .connection_pool import SocketIOConnectionPool
+    # Use the modern SocketIOConnectionPool instead of the deprecated local one
+    from claude_mpm.core.socketio_pool import get_connection_pool
+
     from .event_handlers import EventHandlers
     from .memory_integration import MemoryHookManager
     from .response_tracking import ResponseTrackingManager
 except ImportError:
     # Fall back to absolute imports (when run directly)
-    import sys
     from pathlib import Path
+
     # Add parent directory to path
     sys.path.insert(0, str(Path(__file__).parent))
-    from connection_pool import SocketIOConnectionPool
+
+    # Try to import get_connection_pool from deprecated location
+    try:
+        from connection_pool import SocketIOConnectionPool
+
+        def get_connection_pool():
+            return SocketIOConnectionPool()
+
+    except ImportError:
+        get_connection_pool = None
+
     from event_handlers import EventHandlers
     from memory_integration import MemoryHookManager
     from response_tracking import ResponseTrackingManager
@@ -50,19 +62,27 @@ except ImportError:
     class EventNormalizer:
         def normalize(self, event_data):
             """Simple fallback normalizer that returns event as-is."""
-            return type('NormalizedEvent', (), {
-                'to_dict': lambda: {
-                    'event': 'claude_event',
-                    'type': event_data.get('type', 'unknown'),
-                    'subtype': event_data.get('subtype', 'generic'),
-                    'timestamp': event_data.get('timestamp', datetime.now().isoformat()),
-                    'data': event_data.get('data', event_data)
-                }
-            })
+            return type(
+                "NormalizedEvent",
+                (),
+                {
+                    "to_dict": lambda: {
+                        "event": "claude_event",
+                        "type": event_data.get("type", "unknown"),
+                        "subtype": event_data.get("subtype", "generic"),
+                        "timestamp": event_data.get(
+                            "timestamp", datetime.now().isoformat()
+                        ),
+                        "data": event_data.get("data", event_data),
+                    }
+                },
+            )
+
 
 # Import EventBus for decoupled event distribution
 try:
     from claude_mpm.services.event_bus import EventBus
+
     EVENTBUS_AVAILABLE = True
 except ImportError:
     EVENTBUS_AVAILABLE = False
@@ -124,8 +144,23 @@ class ClaudeHookHandler:
         self.last_cleanup = time.time()
         # Event normalizer for consistent event schema
         self.event_normalizer = EventNormalizer()
-        
-        # Initialize EventBus for decoupled event distribution
+
+        # Initialize SocketIO connection pool for inter-process communication
+        # This sends events directly to the Socket.IO server in the daemon process
+        self.connection_pool = None
+        try:
+            self.connection_pool = get_connection_pool()
+            if DEBUG:
+                print("✅ Modern SocketIO connection pool initialized", file=sys.stderr)
+        except Exception as e:
+            if DEBUG:
+                print(
+                    f"⚠️ Failed to initialize SocketIO connection pool: {e}",
+                    file=sys.stderr,
+                )
+            self.connection_pool = None
+
+        # Initialize EventBus for in-process event distribution (optional)
         self.event_bus = None
         if EVENTBUS_AVAILABLE:
             try:
@@ -164,7 +199,7 @@ class ClaudeHookHandler:
         self.pending_prompts = {}  # session_id -> prompt data
 
     def _track_delegation(
-        self, session_id: str, agent_type: str, request_data: dict = None
+        self, session_id: str, agent_type: str, request_data: Optional[dict] = None
     ):
         """Track a new agent delegation with optional request data for response correlation."""
         if DEBUG:
@@ -224,7 +259,7 @@ class ClaudeHookHandler:
 
     def _cleanup_old_entries(self):
         """Clean up old entries to prevent memory growth."""
-        cutoff_time = datetime.now().timestamp() - self.MAX_CACHE_AGE_SECONDS
+        datetime.now().timestamp() - self.MAX_CACHE_AGE_SECONDS
 
         # Clean up delegation tracking dictionaries
         for storage in [self.active_delegations, self.delegation_requests]:
@@ -266,7 +301,7 @@ class ClaudeHookHandler:
 
         return "unknown"
 
-    def _get_git_branch(self, working_dir: str = None) -> str:
+    def _get_git_branch(self, working_dir: Optional[str] = None) -> str:
         """Get git branch for the given directory with caching.
 
         WHY caching approach:
@@ -301,7 +336,8 @@ class ClaudeHookHandler:
                 ["git", "branch", "--show-current"],
                 capture_output=True,
                 text=True,
-                timeout=TimeoutConfig.QUICK_TIMEOUT,  # Quick timeout to avoid hanging
+                timeout=TimeoutConfig.QUICK_TIMEOUT,
+                check=False,  # Quick timeout to avoid hanging
             )
 
             # Restore original directory
@@ -313,11 +349,10 @@ class ClaudeHookHandler:
                 self._git_branch_cache[cache_key] = branch
                 self._git_branch_cache_time[cache_key] = current_time
                 return branch
-            else:
-                # Not a git repository or no branch
-                self._git_branch_cache[cache_key] = "Unknown"
-                self._git_branch_cache_time[cache_key] = current_time
-                return "Unknown"
+            # Not a git repository or no branch
+            self._git_branch_cache[cache_key] = "Unknown"
+            self._git_branch_cache_time[cache_key] = current_time
+            return "Unknown"
 
         except (
             subprocess.TimeoutExpired,
@@ -366,31 +401,37 @@ class ClaudeHookHandler:
                     self._continue_execution()
                     _continue_sent = True
                 return
-            
+
             # Check for duplicate events (same event within 100ms)
             global _recent_events, _events_lock
             event_key = self._get_event_key(event)
             current_time = time.time()
-            
+
             with _events_lock:
                 # Check if we've seen this event recently
                 for recent_key, recent_time in _recent_events:
                     if recent_key == event_key and (current_time - recent_time) < 0.1:
                         if DEBUG:
-                            print(f"[{datetime.now().isoformat()}] Skipping duplicate event: {event.get('hook_event_name', 'unknown')} (PID: {os.getpid()})", file=sys.stderr)
+                            print(
+                                f"[{datetime.now().isoformat()}] Skipping duplicate event: {event.get('hook_event_name', 'unknown')} (PID: {os.getpid()})",
+                                file=sys.stderr,
+                            )
                         # Still need to output continue for this invocation
                         if not _continue_sent:
                             self._continue_execution()
                             _continue_sent = True
                         return
-                
+
                 # Not a duplicate, record it
                 _recent_events.append((event_key, current_time))
-            
+
             # Debug: Log that we're processing an event
             if DEBUG:
                 hook_type = event.get("hook_event_name", "unknown")
-                print(f"\n[{datetime.now().isoformat()}] Processing hook event: {hook_type} (PID: {os.getpid()})", file=sys.stderr)
+                print(
+                    f"\n[{datetime.now().isoformat()}] Processing hook event: {hook_type} (PID: {os.getpid()})",
+                    file=sys.stderr,
+                )
 
             # Increment event counter and perform periodic cleanup
             self.events_processed += 1
@@ -493,7 +534,7 @@ class ClaudeHookHandler:
 
     def _get_event_key(self, event: dict) -> str:
         """Generate a unique key for an event to detect duplicates.
-        
+
         WHY: Claude Code may call the hook multiple times for the same event
         because the hook is registered for multiple event types. We need to
         detect and skip duplicate processing while still returning continue.
@@ -501,7 +542,7 @@ class ClaudeHookHandler:
         # Create a key from event type, session_id, and key data
         hook_type = event.get("hook_event_name", "unknown")
         session_id = event.get("session_id", "")
-        
+
         # Add type-specific data to make the key unique
         if hook_type == "PreToolUse":
             tool_name = event.get("tool_name", "")
@@ -509,17 +550,17 @@ class ClaudeHookHandler:
             if tool_name == "Task":
                 tool_input = event.get("tool_input", {})
                 agent = tool_input.get("subagent_type", "")
-                prompt_preview = (tool_input.get("prompt", "") or tool_input.get("description", ""))[:50]
+                prompt_preview = (
+                    tool_input.get("prompt", "") or tool_input.get("description", "")
+                )[:50]
                 return f"{hook_type}:{session_id}:{tool_name}:{agent}:{prompt_preview}"
-            else:
-                return f"{hook_type}:{session_id}:{tool_name}"
-        elif hook_type == "UserPromptSubmit":
+            return f"{hook_type}:{session_id}:{tool_name}"
+        if hook_type == "UserPromptSubmit":
             prompt_preview = event.get("prompt", "")[:50]
             return f"{hook_type}:{session_id}:{prompt_preview}"
-        else:
-            # For other events, just use type and session
-            return f"{hook_type}:{session_id}"
-    
+        # For other events, just use type and session
+        return f"{hook_type}:{session_id}"
+
     def _continue_execution(self) -> None:
         """
         Send continue action to Claude.
@@ -529,16 +570,13 @@ class ClaudeHookHandler:
         """
         print(json.dumps({"action": "continue"}))
 
-
     def _emit_socketio_event(self, namespace: str, event: str, data: dict):
-        """Emit event through EventBus for Socket.IO relay.
+        """Emit event through both connection pool and EventBus.
 
-        WHY EventBus-only approach:
-        - Single event path prevents duplicates
-        - EventBus relay handles Socket.IO connection management
-        - Better separation of concerns
-        - More resilient with centralized failure handling
-        - Cleaner architecture and easier testing
+        WHY dual approach:
+        - Connection pool: Direct Socket.IO connection for inter-process communication
+        - EventBus: For in-process subscribers (if any)
+        - Ensures events reach the dashboard regardless of process boundaries
         """
         # Create event data for normalization
         raw_event = {
@@ -549,7 +587,7 @@ class ClaudeHookHandler:
             "source": "claude_hooks",  # Identify the source
             "session_id": data.get("sessionId"),  # Include session if available
         }
-        
+
         # Normalize the event using EventNormalizer for consistent schema
         normalized_event = self.event_normalizer.normalize(raw_event, source="hook")
         claude_event_data = normalized_event.to_dict()
@@ -569,8 +607,20 @@ class ClaudeHookHandler:
                     f"Hook handler: Publishing Task delegation to agent '{agent_type}'",
                     file=sys.stderr,
                 )
-        
-        # Publish to EventBus for distribution through relay
+
+        # First, try to emit through direct Socket.IO connection pool
+        # This is the primary path for inter-process communication
+        if self.connection_pool:
+            try:
+                # Emit to Socket.IO server directly
+                self.connection_pool.emit("claude_event", claude_event_data)
+                if DEBUG:
+                    print(f"✅ Emitted via connection pool: {event}", file=sys.stderr)
+            except Exception as e:
+                if DEBUG:
+                    print(f"⚠️ Failed to emit via connection pool: {e}", file=sys.stderr)
+
+        # Also publish to EventBus for any in-process subscribers
         if self.event_bus and EVENTBUS_AVAILABLE:
             try:
                 # Publish to EventBus with topic format: hook.{event}
@@ -581,9 +631,10 @@ class ClaudeHookHandler:
             except Exception as e:
                 if DEBUG:
                     print(f"⚠️ Failed to publish to EventBus: {e}", file=sys.stderr)
-        else:
-            if DEBUG:
-                print(f"⚠️ EventBus not available for event: hook.{event}", file=sys.stderr)
+
+        # Warn if neither method is available
+        if not self.connection_pool and not self.event_bus and DEBUG:
+            print(f"⚠️ No event emission method available for: {event}", file=sys.stderr)
 
     def handle_subagent_stop(self, event: dict):
         """Handle subagent stop events with improved agent type detection.
@@ -609,16 +660,14 @@ class ClaudeHookHandler:
             # Show all stored session IDs for comparison
             all_sessions = list(self.delegation_requests.keys())
             if all_sessions:
-                print(f"  - Stored sessions (first 16 chars):", file=sys.stderr)
+                print("  - Stored sessions (first 16 chars):", file=sys.stderr)
                 for sid in all_sessions[:10]:  # Show up to 10
                     print(
                         f"    - {sid[:16]}... (agent: {self.delegation_requests[sid].get('agent_type', 'unknown')})",
                         file=sys.stderr,
                     )
             else:
-                print(
-                    f"  - No stored sessions in delegation_requests!", file=sys.stderr
-                )
+                print("  - No stored sessions in delegation_requests!", file=sys.stderr)
 
         # First try to get agent type from our tracking
         agent_type = (
@@ -691,16 +740,16 @@ class ClaudeHookHandler:
             print(f"  - reason: {reason}", file=sys.stderr)
             # Check if session exists in our storage
             if session_id in self.delegation_requests:
-                print(f"  - ✅ Session found in delegation_requests", file=sys.stderr)
+                print("  - ✅ Session found in delegation_requests", file=sys.stderr)
                 print(
                     f"  - Stored agent: {self.delegation_requests[session_id].get('agent_type')}",
                     file=sys.stderr,
                 )
             else:
                 print(
-                    f"  - ❌ Session NOT found in delegation_requests!", file=sys.stderr
+                    "  - ❌ Session NOT found in delegation_requests!", file=sys.stderr
                 )
-                print(f"  - Looking for partial match...", file=sys.stderr)
+                print("  - Looking for partial match...", file=sys.stderr)
                 # Try to find partial matches
                 for stored_sid in list(self.delegation_requests.keys())[:10]:
                     if stored_sid.startswith(session_id[:8]) or session_id.startswith(
@@ -758,7 +807,7 @@ class ClaudeHookHandler:
                     )
                     if request_info:
                         print(
-                            f"  - ✅ Found request data for response tracking",
+                            "  - ✅ Found request data for response tracking",
                             file=sys.stderr,
                         )
                         print(
@@ -820,9 +869,9 @@ class ClaudeHookHandler:
                         metadata["task_completed"] = structured_response.get(
                             "task_completed", False
                         )
-                        
+
                         # Check for MEMORIES field and process if present
-                        if "MEMORIES" in structured_response and structured_response["MEMORIES"]:
+                        if structured_response.get("MEMORIES"):
                             memories = structured_response["MEMORIES"]
                             if DEBUG:
                                 print(
@@ -892,11 +941,13 @@ class ClaudeHookHandler:
                 "files_modified": structured_response.get("files_modified", []),
                 "tools_used": structured_response.get("tools_used", []),
                 "remember": structured_response.get("remember"),
-                "MEMORIES": structured_response.get("MEMORIES"),  # Complete memory replacement
+                "MEMORIES": structured_response.get(
+                    "MEMORIES"
+                ),  # Complete memory replacement
             }
-            
+
             # Log if MEMORIES field is present
-            if "MEMORIES" in structured_response and structured_response["MEMORIES"]:
+            if structured_response.get("MEMORIES"):
                 if DEBUG:
                     memories_count = len(structured_response["MEMORIES"])
                     print(
@@ -916,8 +967,12 @@ class ClaudeHookHandler:
 
     def __del__(self):
         """Cleanup on handler destruction."""
-        # Connection pool no longer used - EventBus handles cleanup
-        pass
+        # Clean up connection pool if it exists
+        if hasattr(self, "connection_pool") and self.connection_pool:
+            try:
+                self.connection_pool.cleanup()
+            except:
+                pass  # Ignore cleanup errors during destruction
 
 
 def main():
@@ -954,12 +1009,11 @@ def main():
                         f"✅ Created new ClaudeHookHandler singleton (pid: {os.getpid()})",
                         file=sys.stderr,
                     )
-            else:
-                if DEBUG:
-                    print(
-                        f"♻️ Reusing existing ClaudeHookHandler singleton (pid: {os.getpid()})",
-                        file=sys.stderr,
-                    )
+            elif DEBUG:
+                print(
+                    f"♻️ Reusing existing ClaudeHookHandler singleton (pid: {os.getpid()})",
+                    file=sys.stderr,
+                )
 
             handler = _global_handler
 

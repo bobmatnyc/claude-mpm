@@ -12,7 +12,7 @@ from typing import Any, Dict, Optional
 
 from ..models.agent_definition import AgentDefinition
 from ..services import AgentManager
-from .agent_loader import get_agent_prompt, load_agent_prompt_from_md
+from .agent_loader import get_agent_prompt
 
 logger = logging.getLogger(__name__)
 

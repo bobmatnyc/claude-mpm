@@ -135,7 +135,7 @@ class PathOperations:
                 logger.warning(f"File not readable: {path}")
                 return default
 
-            with open(path_obj, "r", encoding=encoding) as f:
+            with open(path_obj, encoding=encoding) as f:
                 return f.read()
         except Exception as e:
             logger.error(f"Error reading file {path}: {e}")
@@ -307,13 +307,12 @@ class PathOperations:
 
             if path_obj.is_file():
                 return path_obj.stat().st_size
-            else:
-                # Calculate total size for directory
-                total = 0
-                for item in path_obj.rglob("*"):
-                    if item.is_file():
-                        total += item.stat().st_size
-                return total
+            # Calculate total size for directory
+            total = 0
+            for item in path_obj.rglob("*"):
+                if item.is_file():
+                    total += item.stat().st_size
+            return total
 
         except Exception as e:
             logger.error(f"Error getting size of {path}: {e}")
@@ -343,10 +342,7 @@ class PathOperations:
                 logger.error(f"Not a directory: {path}")
                 return []
 
-            if recursive:
-                items = path_obj.rglob(pattern)
-            else:
-                items = path_obj.glob(pattern)
+            items = path_obj.rglob(pattern) if recursive else path_obj.glob(pattern)
 
             results = []
             for item in items:

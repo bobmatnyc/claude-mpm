@@ -42,7 +42,9 @@ class PipelineContext:
     template_files: List[Path] = field(default_factory=list)
     base_agent_data: Optional[Dict[str, Any]] = None
     base_agent_version: Optional[tuple] = None
-    agent_sources: Dict[str, str] = field(default_factory=dict)  # Maps agent names to sources
+    agent_sources: Dict[str, str] = field(
+        default_factory=dict
+    )  # Maps agent names to sources
 
     # Deployment results
     results: Dict[str, Any] = field(default_factory=dict)
@@ -110,9 +112,9 @@ class PipelineContext:
         """Initialize the results dictionary with default structure."""
         if not self.results:
             self.results = {
-                "target_dir": str(self.actual_target_dir)
-                if self.actual_target_dir
-                else "",
+                "target_dir": (
+                    str(self.actual_target_dir) if self.actual_target_dir else ""
+                ),
                 "deployed": [],
                 "updated": [],
                 "migrated": [],

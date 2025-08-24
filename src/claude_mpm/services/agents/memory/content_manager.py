@@ -67,7 +67,7 @@ class MemoryContentManager:
                 item_indices.append(i)
                 existing_item = line.strip()[2:]  # Remove "- " prefix
                 similarity = self._calculate_similarity(existing_item, new_item)
-                
+
                 # If highly similar (>80%), mark for removal
                 if similarity > 0.8:
                     items_to_remove.append(i)
@@ -99,7 +99,7 @@ class MemoryContentManager:
             if lines[i].strip():
                 insert_point = i + 1
                 break
-        
+
         lines.insert(insert_point, f"- {new_item}")
 
         # Update timestamp
@@ -108,12 +108,12 @@ class MemoryContentManager:
 
     def add_item_to_section(self, content: str, section: str, new_item: str) -> str:
         """Legacy method for backward compatibility - delegates to add_item_to_list.
-        
+
         Args:
             content: Current memory file content
             section: Section name (ignored in simple list format)
             new_item: Item to add
-            
+
         Returns:
             str: Updated content with new item added
         """
@@ -172,12 +172,12 @@ class MemoryContentManager:
         # Also check max_items limit
         max_items = limits.get("max_items", 100)
         item_count = sum(1 for line in lines if line.strip().startswith("- "))
-        
+
         if item_count > max_items:
             # Remove oldest items to fit within max_items
             items_removed = 0
             target_removals = item_count - max_items
-            
+
             i = 0
             while i < len(lines) and items_removed < target_removals:
                 if lines[i].strip().startswith("- "):
@@ -187,7 +187,7 @@ class MemoryContentManager:
                     i += 1
 
         return "\n".join(lines)
-    
+
     def truncate_to_limits(
         self, content: str, agent_limits: Optional[Dict[str, Any]] = None
     ) -> str:
@@ -211,12 +211,11 @@ class MemoryContentManager:
             content,
         )
         # Also handle legacy format
-        content = re.sub(
+        return re.sub(
             r"<!-- Last Updated: .+ \| Auto-updated by: .+ -->",
             f"<!-- Last Updated: {timestamp} -->",
             content,
         )
-        return content
 
     def validate_and_repair(self, content: str, agent_id: str) -> str:
         """Validate memory file and repair if needed.
@@ -232,22 +231,23 @@ class MemoryContentManager:
             str: Validated and repaired content
         """
         lines = content.split("\n")
-        
+
         # Ensure proper header format
         has_header = False
         has_timestamp = False
-        
-        for i, line in enumerate(lines[:5]):  # Check first 5 lines
+
+        for _i, line in enumerate(lines[:5]):  # Check first 5 lines
             if line.startswith("# Agent Memory:"):
                 has_header = True
             elif line.startswith("<!-- Last Updated:"):
                 has_timestamp = True
-        
+
         # Add missing header or timestamp
         if not has_header or not has_timestamp:
             from datetime import datetime
+
             new_lines = []
-            
+
             if not has_header:
                 new_lines.append(f"# Agent Memory: {agent_id}")
             else:
@@ -257,9 +257,11 @@ class MemoryContentManager:
                         new_lines.append(line)
                         lines.remove(line)
                         break
-            
+
             if not has_timestamp:
-                new_lines.append(f"<!-- Last Updated: {datetime.now().isoformat()}Z -->")
+                new_lines.append(
+                    f"<!-- Last Updated: {datetime.now().isoformat()}Z -->"
+                )
                 new_lines.append("")
             else:
                 # Keep existing timestamp
@@ -268,14 +270,16 @@ class MemoryContentManager:
                         new_lines.append(line)
                         lines.remove(line)
                         break
-            
+
             # Add remaining content
             for line in lines:
-                if not line.startswith("# ") and not line.startswith("<!-- Last Updated:"):
+                if not line.startswith("# ") and not line.startswith(
+                    "<!-- Last Updated:"
+                ):
                     new_lines.append(line)
-            
+
             return "\n".join(new_lines)
-        
+
         return "\n".join(lines)
 
     def parse_memory_content_to_list(self, content: str) -> List[str]:
@@ -296,7 +300,7 @@ class MemoryContentManager:
             line = line.strip()
 
             # Skip empty lines, headers, and metadata
-            if not line or line.startswith("#") or line.startswith("<!--"):
+            if not line or line.startswith(("#", "<!--")):
                 continue
 
             if line.startswith("- "):
@@ -306,15 +310,15 @@ class MemoryContentManager:
                     items.append(item)
 
         return items
-    
+
     def parse_memory_content_to_dict(self, content: str) -> Dict[str, List[str]]:
         """Legacy method for backward compatibility.
-        
+
         Returns a dict with single key 'memories' containing all items.
-        
+
         Args:
             content: Raw memory file content
-            
+
         Returns:
             Dict with 'memories' key mapping to list of items
         """
@@ -344,23 +348,23 @@ class MemoryContentManager:
         # Normalize strings for comparison
         str1_normalized = str1.lower().strip()
         str2_normalized = str2.lower().strip()
-        
+
         # Handle exact matches quickly
         if str1_normalized == str2_normalized:
             return 1.0
-        
+
         # Use SequenceMatcher for fuzzy matching
         # None as first param tells it to use automatic junk heuristic
         matcher = SequenceMatcher(None, str1_normalized, str2_normalized)
         similarity = matcher.ratio()
-        
+
         # Additional check: if one string contains the other (substring match)
         # This catches cases where one item is a more detailed version of another
         if len(str1_normalized) > 20 and len(str2_normalized) > 20:
             if str1_normalized in str2_normalized or str2_normalized in str1_normalized:
                 # Boost similarity for substring matches
                 similarity = max(similarity, 0.85)
-        
+
         return similarity
 
     def deduplicate_list(self, content: str) -> Tuple[str, int]:
@@ -377,7 +381,7 @@ class MemoryContentManager:
             Tuple of (updated content, number of items removed)
         """
         lines = content.split("\n")
-        
+
         # Collect all items in the list
         items = []
         item_indices = []
@@ -385,7 +389,7 @@ class MemoryContentManager:
             if line.strip().startswith("- "):
                 items.append(line.strip()[2:])  # Remove "- " prefix
                 item_indices.append(i)
-        
+
         # Find duplicates using pairwise comparison
         duplicates_to_remove = set()
         for i in range(len(items)):
@@ -403,21 +407,21 @@ class MemoryContentManager:
                         f"(keeping newer: '{items[j][:50]}...')"
                     )
                     break  # Move to next item
-        
+
         # Remove duplicates (in reverse order to maintain indices)
         removed_count = len(duplicates_to_remove)
         for idx in sorted(duplicates_to_remove, reverse=True):
             lines.pop(item_indices[idx])
-        
+
         return "\n".join(lines), removed_count
-    
+
     def deduplicate_section(self, content: str, section: str) -> Tuple[str, int]:
         """Legacy method for backward compatibility - delegates to deduplicate_list.
-        
+
         Args:
             content: Current memory file content
             section: Section name (ignored in simple list format)
-            
+
         Returns:
             Tuple of (updated content, number of items removed)
         """
@@ -444,7 +448,9 @@ class MemoryContentManager:
                 )
 
             # Check item count
-            items = sum(1 for line in content.split("\n") if line.strip().startswith("- "))
+            items = sum(
+                1 for line in content.split("\n") if line.strip().startswith("- ")
+            )
             max_items = self.memory_limits.get("max_items", 100)
 
             if items > max_items:
@@ -453,4 +459,4 @@ class MemoryContentManager:
             return True, None
 
         except Exception as e:
-            return False, f"Validation error: {str(e)}"
+            return False, f"Validation error: {e!s}"

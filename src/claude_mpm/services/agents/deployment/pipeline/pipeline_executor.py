@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 from claude_mpm.core.logger import get_logger
 
 from .pipeline_context import PipelineContext
-from .steps.base_step import BaseDeploymentStep, StepResult, StepStatus
+from .steps.base_step import BaseDeploymentStep
 
 
 class DeploymentPipelineExecutor:
@@ -93,7 +93,7 @@ class DeploymentPipelineExecutor:
                 step_execution_time = time.time() - step_start_time
                 context.step_timings[step.name] = step_execution_time
 
-                error_msg = f"Unexpected error in step {step.name}: {str(e)}"
+                error_msg = f"Unexpected error in step {step.name}: {e!s}"
                 self.logger.error(error_msg, exc_info=True)
                 context.add_error(error_msg)
                 failed_steps.append(step.name)
@@ -152,7 +152,7 @@ class DeploymentPipelineExecutor:
 
         # Check for duplicate step names
         step_names = [step.name for step in steps]
-        duplicates = set([name for name in step_names if step_names.count(name) > 1])
+        duplicates = {name for name in step_names if step_names.count(name) > 1}
         if duplicates:
             errors.append(f"Duplicate step names found: {duplicates}")
 

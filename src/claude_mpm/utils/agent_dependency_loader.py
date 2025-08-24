@@ -94,7 +94,7 @@ class AgentDependencyLoader:
                 config_file = config_dir / f"{agent_id}.json"
                 if config_file.exists():
                     try:
-                        with open(config_file, "r") as f:
+                        with open(config_file) as f:
                             config = json.load(f)
                             if "dependencies" in config:
                                 agent_dependencies[agent_id] = config["dependencies"]
@@ -141,11 +141,10 @@ class AgentDependencyLoader:
                     # Check if version satisfies requirement
                     if req.specifier.contains(version):
                         return True, version
-                    else:
-                        logger.debug(
-                            f"{package_name} {version} does not satisfy {req.specifier}"
-                        )
-                        return False, version
+                    logger.debug(
+                        f"{package_name} {version} does not satisfy {req.specifier}"
+                    )
+                    return False, version
 
                 except importlib.metadata.PackageNotFoundError:
                     return False, None
@@ -160,8 +159,7 @@ class AgentDependencyLoader:
 
                     if req.specifier.contains(version):
                         return True, version
-                    else:
-                        return False, version
+                    return False, version
 
                 except pkg_resources.DistributionNotFound:
                     return False, None
@@ -277,8 +275,6 @@ class AgentDependencyLoader:
             "re",
             "difflib",
             "textwrap",
-            "unicodedata",
-            "stringprep",
             "calendar",
             "locale",
             "gettext",
@@ -335,7 +331,11 @@ class AgentDependencyLoader:
         """
         try:
             result = subprocess.run(
-                ["which", command], capture_output=True, text=True, timeout=5
+                ["which", command],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
             )
             return result.returncode == 0
         except Exception:
@@ -374,15 +374,14 @@ class AgentDependencyLoader:
                         agent_result["python"]["satisfied"].append(dep_spec)
                         if dep_spec not in results["summary"]["satisfied_python"]:
                             results["summary"]["satisfied_python"].append(dep_spec)
-                    else:
-                        if version:  # Installed but wrong version
-                            agent_result["python"]["outdated"].append(
-                                f"{dep_spec} (have {version})"
-                            )
-                        else:  # Not installed
-                            agent_result["python"]["missing"].append(dep_spec)
-                            if dep_spec not in results["summary"]["missing_python"]:
-                                results["summary"]["missing_python"].append(dep_spec)
+                    elif version:  # Installed but wrong version
+                        agent_result["python"]["outdated"].append(
+                            f"{dep_spec} (have {version})"
+                        )
+                    else:  # Not installed
+                        agent_result["python"]["missing"].append(dep_spec)
+                        if dep_spec not in results["summary"]["missing_python"]:
+                            results["summary"]["missing_python"].append(dep_spec)
 
             # Check system dependencies
             if "system" in deps:
@@ -416,7 +415,6 @@ class AgentDependencyLoader:
         """
         import sys
 
-        current_version = f"{sys.version_info.major}.{sys.version_info.minor}"
         compatible = []
         incompatible = []
 
@@ -428,10 +426,10 @@ class AgentDependencyLoader:
 
                 # Known Python 3.13 incompatibilities
                 if sys.version_info >= (3, 13):
-                    if package_name in ["ydata-profiling", "pandas-profiling"]:
-                        incompatible.append(f"{dep} (requires Python <3.13)")
-                        continue
-                    elif package_name == "apache-airflow":
+                    if (
+                        package_name in ["ydata-profiling", "pandas-profiling"]
+                        or package_name == "apache-airflow"
+                    ):
                         incompatible.append(f"{dep} (requires Python <3.13)")
                         continue
 
@@ -532,10 +530,27 @@ class AgentDependencyLoader:
                 "Robust installer not available, falling back to simple installation"
             )
             try:
-                cmd = [sys.executable, "-m", "pip", "install"] + compatible
+                cmd = [sys.executable, "-m", "pip", "install"]
+
+                # Check for PEP 668 managed environment
+                import sysconfig
+
+                stdlib_path = sysconfig.get_path("stdlib")
+                marker_file = Path(stdlib_path) / "EXTERNALLY-MANAGED"
+                parent_marker = marker_file.parent.parent / "EXTERNALLY-MANAGED"
+
+                if marker_file.exists() or parent_marker.exists():
+                    logger.warning(
+                        "PEP 668 managed environment detected. "
+                        "Installing with --break-system-packages --user flags. "
+                        "Consider using a virtual environment instead."
+                    )
+                    cmd.extend(["--break-system-packages", "--user"])
+
+                cmd.extend(compatible)
 
                 result = subprocess.run(
-                    cmd, capture_output=True, text=True, timeout=300
+                    cmd, capture_output=True, text=True, timeout=300, check=False
                 )
 
                 if result.returncode == 0:
@@ -546,10 +561,9 @@ class AgentDependencyLoader:
                             f"Installed {len(compatible)} packages, skipped {len(incompatible)} incompatible",
                         )
                     return True, ""
-                else:
-                    error_msg = f"Installation failed: {result.stderr}"
-                    logger.error(error_msg)
-                    return False, error_msg
+                error_msg = f"Installation failed: {result.stderr}"
+                logger.error(error_msg)
+                return False, error_msg
 
             except Exception as e:
                 error_msg = f"Failed to install dependencies: {e}"
@@ -765,7 +779,7 @@ class AgentDependencyLoader:
             except Exception as e:
                 logger.debug(f"Could not hash agent file {agent_path}: {e}")
                 # Include error in hash to force recheck on next run
-                hash_obj.update(f"error:{agent_id}:{e}".encode("utf-8"))
+                hash_obj.update(f"error:{agent_id}:{e}".encode())
 
         return hash_obj.hexdigest()
 
@@ -780,7 +794,7 @@ class AgentDependencyLoader:
             return {}
 
         try:
-            with open(self.deployment_state_file, "r") as f:
+            with open(self.deployment_state_file) as f:
                 return json.load(f)
         except Exception as e:
             logger.debug(f"Could not load deployment state: {e}")

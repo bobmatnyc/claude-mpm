@@ -26,7 +26,7 @@ import logging
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 
@@ -39,7 +39,7 @@ BASE_AGENT_CACHE_KEY = "base_agent:instructions"
 
 def _get_base_agent_file() -> Path:
     """Get the base agent file path with priority-based search.
-    
+
     Priority order:
     1. Environment variable override (CLAUDE_MPM_BASE_AGENT_PATH)
     2. Current working directory (for local development)
@@ -54,53 +54,66 @@ def _get_base_agent_file() -> Path:
         if env_base_agent.exists():
             logger.info(f"Using environment variable base_agent: {env_base_agent}")
             return env_base_agent
-        else:
-            logger.warning(f"CLAUDE_MPM_BASE_AGENT_PATH set but file doesn't exist: {env_base_agent}")
-    
+        logger.warning(
+            f"CLAUDE_MPM_BASE_AGENT_PATH set but file doesn't exist: {env_base_agent}"
+        )
+
     # Priority 1: Check current working directory for local development
     cwd = Path.cwd()
     cwd_base_agent = cwd / "src" / "claude_mpm" / "agents" / "base_agent.json"
     if cwd_base_agent.exists():
         logger.info(f"Using local development base_agent from cwd: {cwd_base_agent}")
         return cwd_base_agent
-    
+
     # Priority 2: Check known development locations
     known_dev_paths = [
         Path("/Users/masa/Projects/claude-mpm/src/claude_mpm/agents/base_agent.json"),
-        Path.home() / "Projects" / "claude-mpm" / "src" / "claude_mpm" / "agents" / "base_agent.json",
-        Path.home() / "projects" / "claude-mpm" / "src" / "claude_mpm" / "agents" / "base_agent.json",
+        Path.home()
+        / "Projects"
+        / "claude-mpm"
+        / "src"
+        / "claude_mpm"
+        / "agents"
+        / "base_agent.json",
+        Path.home()
+        / "projects"
+        / "claude-mpm"
+        / "src"
+        / "claude_mpm"
+        / "agents"
+        / "base_agent.json",
     ]
-    
+
     for dev_path in known_dev_paths:
         if dev_path.exists():
             logger.info(f"Using development base_agent: {dev_path}")
             return dev_path
-    
+
     # Priority 3: Check user override location
     user_base_agent = Path.home() / ".claude" / "agents" / "base_agent.json"
     if user_base_agent.exists():
         logger.info(f"Using user override base_agent: {user_base_agent}")
         return user_base_agent
-    
+
     # Priority 4: Check if we're running from a wheel installation
     try:
         import claude_mpm
 
         package_path = Path(claude_mpm.__file__).parent
         path_str = str(package_path.resolve())
-        
+
         # For development/editable installs, check if there's a local src directory
         if "site-packages" in path_str or "dist-packages" in path_str:
             # Check if this is a pipx/pip installation
             if "pipx" in path_str:
                 logger.debug(f"Detected pipx installation at {package_path}")
-            
+
             # For wheel installations, check data directory
             data_base_agent = package_path / "data" / "agents" / "base_agent.json"
             if data_base_agent.exists():
                 logger.info(f"Using wheel installation base_agent: {data_base_agent}")
                 return data_base_agent
-            
+
             # Also check direct agents directory in package
             pkg_base_agent = package_path / "agents" / "base_agent.json"
             if pkg_base_agent.exists():
@@ -108,7 +121,7 @@ def _get_base_agent_file() -> Path:
                 return pkg_base_agent
     except Exception as e:
         logger.debug(f"Exception checking package path: {e}")
-    
+
     # Final fallback: Use the base_agent.json relative to this file
     base_agent_path = Path(__file__).parent / "base_agent.json"
     if base_agent_path.exists():
@@ -117,7 +130,7 @@ def _get_base_agent_file() -> Path:
 
     # Error if no base agent found
     logger.error("Base agent template file not found in any location")
-    logger.error(f"Searched locations:")
+    logger.error("Searched locations:")
     logger.error(f"  1. CWD: {cwd_base_agent}")
     logger.error(f"  2. Dev paths: {known_dev_paths}")
     logger.error(f"  3. User: {user_base_agent}")
@@ -244,7 +257,7 @@ def load_base_agent_instructions(force_reload: bool = False) -> Optional[str]:
         logger.debug(f"Loading base agent instructions from: {base_agent_file}")
 
         # Load JSON and extract instructions
-        with open(base_agent_file, "r", encoding="utf-8") as f:
+        with open(base_agent_file, encoding="utf-8") as f:
             base_agent_data = json.load(f)
 
         # Extract instructions from the JSON structure
@@ -366,7 +379,7 @@ def _build_dynamic_prompt(content: str, template: PromptTemplate) -> str:
 
     # Add sections based on template
     template_name = template.value
-    for section_key, section_config in TEMPLATE_SECTIONS.items():
+    for _section_key, section_config in TEMPLATE_SECTIONS.items():
         if template_name in section_config["templates"]:
             section_name = section_config["content"]
             assert isinstance(section_name, str), "Section name must be string"
@@ -543,9 +556,7 @@ def prepend_base_instructions(
         )
 
     # Combine base instructions with agent prompt
-    combined_prompt = f"{base_instructions}{separator}{agent_prompt}"
-
-    return combined_prompt
+    return f"{base_instructions}{separator}{agent_prompt}"
 
 
 def clear_base_agent_cache() -> None:
@@ -603,11 +614,11 @@ if not validate_base_agent_file():
 
 # Export key components
 __all__ = [
-    "prepend_base_instructions",
-    "load_base_agent_instructions",
+    "TEMPLATE_SECTIONS",
+    "PromptTemplate",
     "clear_base_agent_cache",
     "get_base_agent_path",
+    "load_base_agent_instructions",
+    "prepend_base_instructions",
     "validate_base_agent_file",
-    "PromptTemplate",
-    "TEMPLATE_SECTIONS",
 ]

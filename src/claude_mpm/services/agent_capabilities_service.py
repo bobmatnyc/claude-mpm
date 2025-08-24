@@ -11,11 +11,8 @@ This service handles:
 Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
-import logging
-from typing import Dict, Optional
 
 from claude_mpm.core.base_service import BaseService
-from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.core.interfaces import AgentCapabilitiesInterface
 
 
@@ -28,11 +25,9 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
 
     async def _initialize(self) -> None:
         """Initialize the service. No special initialization needed."""
-        pass
 
     async def _cleanup(self) -> None:
         """Cleanup service resources. No cleanup needed."""
-        pass
 
     def generate_agent_capabilities(self, agent_type: str = "general") -> str:
         """Generate formatted agent capabilities for Claude.
@@ -108,7 +103,7 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
 
             # Group agents by category
             agents_by_category = {}
-            for agent_id, agent_info in discovered_agents.items():
+            for _agent_id, agent_info in discovered_agents.items():
                 category = agent_info["category"]
                 if category not in agents_by_category:
                     agents_by_category[category] = []
@@ -155,9 +150,9 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
 
             self.logger.info(
                 f"Generated capabilities for {len(discovered_agents)} agents "
-                + f"(project: {tier_counts.get('project', 0)}, "
-                + f"user: {tier_counts.get('user', 0)}, "
-                + f"system: {tier_counts.get('system', 0)})"
+                f"(project: {tier_counts.get('project', 0)}, "
+                f"user: {tier_counts.get('user', 0)}, "
+                f"system: {tier_counts.get('system', 0)})"
             )
             return section
 
@@ -227,30 +222,29 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
 
         if "engineer" in agent_id_lower or "engineering" in content_lower:
             return "Development"
-        elif "research" in agent_id_lower or "research" in content_lower:
+        if "research" in agent_id_lower or "research" in content_lower:
             return "Research"
-        elif (
+        if (
             "qa" in agent_id_lower
             or "test" in agent_id_lower
             or "quality" in content_lower
         ):
             return "Quality Assurance"
-        elif "doc" in agent_id_lower or "documentation" in content_lower:
+        if "doc" in agent_id_lower or "documentation" in content_lower:
             return "Documentation"
-        elif "security" in agent_id_lower or "security" in content_lower:
+        if "security" in agent_id_lower or "security" in content_lower:
             return "Security"
-        elif "data" in agent_id_lower or "database" in content_lower:
+        if "data" in agent_id_lower or "database" in content_lower:
             return "Data"
-        elif (
+        if (
             "ops" in agent_id_lower
             or "deploy" in agent_id_lower
             or "operations" in content_lower
         ):
             return "Operations"
-        elif "git" in agent_id_lower or "version" in content_lower:
+        if "git" in agent_id_lower or "version" in content_lower:
             return "Version Control"
-        else:
-            return "General"
+        return "General"
 
     def _get_fallback_capabilities(self) -> str:
         """Return fallback agent capabilities when deployed agents can't be read."""

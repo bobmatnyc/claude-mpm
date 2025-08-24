@@ -31,24 +31,24 @@ from .agents_metadata import (
 
 # Available system agents
 __all__ = [
+    "ALL_AGENT_CONFIGS",
+    "DATA_ENGINEER_CONFIG",
+    # Agent configs
+    "DOCUMENTATION_CONFIG",
+    "ENGINEER_CONFIG",
+    "OPS_CONFIG",
+    "QA_CONFIG",
+    "RESEARCH_CONFIG",
+    "SECURITY_CONFIG",
+    # System registry
+    "SYSTEM_AGENTS",
+    "VERSION_CONTROL_CONFIG",
+    "clear_agent_cache",
     # Generic agent interface
     "get_agent_prompt",
     # Agent utility functions
     "list_available_agents",
-    "clear_agent_cache",
     "validate_agent_files",
-    # Agent configs
-    "DOCUMENTATION_CONFIG",
-    "VERSION_CONTROL_CONFIG",
-    "QA_CONFIG",
-    "RESEARCH_CONFIG",
-    "OPS_CONFIG",
-    "SECURITY_CONFIG",
-    "ENGINEER_CONFIG",
-    "DATA_ENGINEER_CONFIG",
-    "ALL_AGENT_CONFIGS",
-    # System registry
-    "SYSTEM_AGENTS",
 ]
 
 # System agent registry - using generic agent loading

@@ -20,7 +20,7 @@ import os
 import sys
 
 # Disable telemetry by default
-os.environ['DISABLE_TELEMETRY'] = '1'
+os.environ["DISABLE_TELEMETRY"] = "1"
 
 from . import main
 

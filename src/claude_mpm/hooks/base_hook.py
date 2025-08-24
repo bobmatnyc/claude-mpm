@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,6 @@ class BaseHook(ABC):
         Returns:
             HookResult with execution results
         """
-        pass
 
     async def async_execute(self, context: HookContext) -> HookResult:
         """Async version of execute. Override for async hooks."""

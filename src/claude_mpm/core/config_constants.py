@@ -18,7 +18,7 @@ Usage:
     cache_size = ConfigConstants.get_cache_setting('max_size_mb')
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from .unified_config import ConfigurationService
 
@@ -79,6 +79,11 @@ class ConfigConstants:
             "max_file_size_mb": 10,
             "max_memory_usage_mb": 1024,
         },
+        # Logging configuration
+        "logging": {
+            "startup_logs_retention_count": 10,
+            "mpm_logs_retention_count": 10,
+        },
     }
 
     @classmethod
@@ -109,18 +114,17 @@ class ConfigConstants:
 
             if timeout_type == "hook_execution":
                 return config.performance.hook_timeout_seconds
-            elif timeout_type == "session_default":
+            if timeout_type == "session_default":
                 return config.performance.session_timeout_seconds
-            elif timeout_type == "session_extended":
+            if timeout_type == "session_extended":
                 return config.sessions.session_timeout_minutes * 60
-            elif timeout_type == "agent_loading":
+            if timeout_type == "agent_loading":
                 return config.performance.agent_load_timeout_seconds
-            elif timeout_type == "startup":
+            if timeout_type == "startup":
                 return config.performance.startup_timeout
-            elif timeout_type == "graceful_shutdown":
+            if timeout_type == "graceful_shutdown":
                 return config.performance.graceful_shutdown_timeout
-            else:
-                return cls.DEFAULT_VALUES["timeouts"].get(timeout_type, 30)
+            return cls.DEFAULT_VALUES["timeouts"].get(timeout_type, 30)
         except Exception:
             return cls.DEFAULT_VALUES["timeouts"].get(timeout_type, 30)
 
@@ -140,12 +144,11 @@ class ConfigConstants:
 
             if port_type == "socketio_default":
                 return config.network.socketio_port
-            elif port_type == "socketio_range_start":
+            if port_type == "socketio_range_start":
                 return config.network.socketio_port_range[0]
-            elif port_type == "socketio_range_end":
+            if port_type == "socketio_range_end":
                 return config.network.socketio_port_range[1]
-            else:
-                return cls.DEFAULT_VALUES["ports"].get(port_type, 8765)
+            return cls.DEFAULT_VALUES["ports"].get(port_type, 8765)
         except Exception:
             return cls.DEFAULT_VALUES["ports"].get(port_type, 8765)
 
@@ -165,14 +168,37 @@ class ConfigConstants:
 
             if setting_name == "max_size_mb":
                 return config.performance.cache_max_size_mb
-            elif setting_name == "max_entries":
+            if setting_name == "max_entries":
                 return config.performance.cache_max_entries
-            elif setting_name == "default_ttl_seconds":
+            if setting_name == "default_ttl_seconds":
                 return config.performance.cache_default_ttl_seconds
-            else:
-                return cls.DEFAULT_VALUES["cache"].get(setting_name)
+            return cls.DEFAULT_VALUES["cache"].get(setting_name)
         except Exception:
             return cls.DEFAULT_VALUES["cache"].get(setting_name)
+
+    @classmethod
+    def get_logging_setting(cls, setting_name: str) -> Any:
+        """
+        Get logging setting by name.
+
+        Args:
+            setting_name: Name of logging setting
+
+        Returns:
+            Logging setting value
+        """
+        try:
+            # For now, just return from DEFAULT_VALUES
+            # Can be extended to read from unified config later
+            return cls.DEFAULT_VALUES["logging"].get(setting_name)
+        except Exception:
+            # Fallback to default values
+            if setting_name in {
+                "startup_logs_retention_count",
+                "mpm_logs_retention_count",
+            }:
+                return 10
+            return None
 
     @classmethod
     def get_session_setting(cls, setting_name: str) -> Any:
@@ -190,12 +216,11 @@ class ConfigConstants:
 
             if setting_name == "max_age_minutes":
                 return config.sessions.max_age_minutes
-            elif setting_name == "cleanup_max_age_hours":
+            if setting_name == "cleanup_max_age_hours":
                 return config.sessions.cleanup_max_age_hours
-            elif setting_name == "timeout_minutes":
+            if setting_name == "timeout_minutes":
                 return config.sessions.session_timeout_minutes
-            else:
-                return cls.DEFAULT_VALUES["sessions"].get(setting_name)
+            return cls.DEFAULT_VALUES["sessions"].get(setting_name)
         except Exception:
             return cls.DEFAULT_VALUES["sessions"].get(setting_name)
 
@@ -215,10 +240,9 @@ class ConfigConstants:
 
             if setting_name == "max_restarts":
                 return config.performance.max_restarts
-            elif setting_name == "max_recovery_attempts":
+            if setting_name == "max_recovery_attempts":
                 return config.performance.max_recovery_attempts
-            else:
-                return cls.DEFAULT_VALUES["recovery"].get(setting_name, 3)
+            return cls.DEFAULT_VALUES["recovery"].get(setting_name, 3)
         except Exception:
             return cls.DEFAULT_VALUES["recovery"].get(setting_name, 3)
 
@@ -238,12 +262,11 @@ class ConfigConstants:
 
             if interval_type == "health_check":
                 return config.performance.health_check_interval_seconds
-            elif interval_type == "polling":
+            if interval_type == "polling":
                 return config.performance.polling_interval_seconds
-            elif interval_type == "batch_window_ms":
+            if interval_type == "batch_window_ms":
                 return config.performance.batch_window_ms / 1000.0
-            else:
-                return cls.DEFAULT_VALUES["intervals"].get(interval_type, 1.0)
+            return cls.DEFAULT_VALUES["intervals"].get(interval_type, 1.0)
         except Exception:
             return cls.DEFAULT_VALUES["intervals"].get(interval_type, 1.0)
 
@@ -263,10 +286,9 @@ class ConfigConstants:
 
             if limit_type == "max_file_size_mb":
                 return config.security.max_file_size_mb
-            elif limit_type == "max_memory_usage_mb":
+            if limit_type == "max_memory_usage_mb":
                 return config.performance.max_memory_usage_mb
-            else:
-                return cls.DEFAULT_VALUES["limits"].get(limit_type, 100)
+            return cls.DEFAULT_VALUES["limits"].get(limit_type, 100)
         except Exception:
             return cls.DEFAULT_VALUES["limits"].get(limit_type, 100)
 

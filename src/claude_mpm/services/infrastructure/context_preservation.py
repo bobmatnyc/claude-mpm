@@ -14,14 +14,12 @@ Design Principles:
 
 import gzip
 import json
-import os
 import shutil
-import tempfile
-from datetime import datetime, timedelta
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 import ijson  # For streaming JSON parsing
-from dataclasses import dataclass, field
 
 from claude_mpm.services.core.base import BaseService
 
@@ -136,8 +134,7 @@ class ContextPreservationService(BaseService):
             if file_size_mb > self.large_file_threshold_mb:
                 self.log_info("Using streaming parser for large file")
                 return await self._parse_large_claude_json(extract_full)
-            else:
-                return await self._parse_standard_claude_json(extract_full)
+            return await self._parse_standard_claude_json(extract_full)
 
         except Exception as e:
             self.log_error(f"Failed to parse Claude JSON: {e}")
@@ -158,7 +155,6 @@ class ContextPreservationService(BaseService):
                 parser = ijson.parse(f)
 
                 active_conv_id = None
-                in_conversations = False
                 current_conv = {}
 
                 for prefix, event, value in parser:
@@ -169,7 +165,7 @@ class ContextPreservationService(BaseService):
                     # Parse conversations array
                     elif prefix.startswith("conversations.item"):
                         if event == "map_key":
-                            current_key = value
+                            pass
                         elif (
                             active_conv_id and current_conv.get("id") == active_conv_id
                         ):
@@ -204,12 +200,12 @@ class ContextPreservationService(BaseService):
             self.log_info(f"Compressing conversation history: {file_size_mb:.2f}MB")
 
             # Create backup first
-            backup_path = await self._create_backup()
+            await self._create_backup()
 
             # Load and filter conversations
             cutoff_time = datetime.now().timestamp() - (keep_recent_days * 86400)
 
-            with open(self.claude_json_path, "r") as f:
+            with open(self.claude_json_path) as f:
                 data = json.load(f)
 
             original_count = len(data.get("conversations", []))
@@ -341,7 +337,7 @@ class ContextPreservationService(BaseService):
     ) -> ConversationState:
         """Parse Claude JSON using standard JSON parser."""
         try:
-            with open(self.claude_json_path, "r") as f:
+            with open(self.claude_json_path) as f:
                 data = json.load(f)
 
             return await self._extract_conversation_state(data, extract_full)

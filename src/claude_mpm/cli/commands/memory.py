@@ -15,16 +15,12 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict
 
-import click
-
-from ...core.config import Config
 from ...core.logger import get_logger
 from ...core.shared.config_loader import ConfigLoader
 from ...services.agents.memory import AgentMemoryManager
-from ..shared.base_command import MemoryCommand, CommandResult
-from ..shared.argument_patterns import add_memory_arguments, add_output_arguments
+from ..shared.base_command import CommandResult, MemoryCommand
 
 
 class MemoryManagementCommand(MemoryCommand):
@@ -49,8 +45,17 @@ class MemoryManagementCommand(MemoryCommand):
     def validate_args(self, args) -> str:
         """Validate command arguments."""
         # Check if memory command is valid
-        if hasattr(args, 'memory_command') and args.memory_command:
-            valid_commands = ['init', 'view', 'add', 'clean', 'optimize', 'build', 'cross-ref', 'route']
+        if hasattr(args, "memory_command") and args.memory_command:
+            valid_commands = [
+                "init",
+                "view",
+                "add",
+                "clean",
+                "optimize",
+                "build",
+                "cross-ref",
+                "route",
+            ]
             if args.memory_command not in valid_commands:
                 return f"Unknown memory command: {args.memory_command}. Valid commands: {', '.join(valid_commands)}"
         return None
@@ -59,7 +64,7 @@ class MemoryManagementCommand(MemoryCommand):
         """Execute the memory command."""
         try:
             # Handle default case (no subcommand)
-            if not hasattr(args, 'memory_command') or not args.memory_command:
+            if not hasattr(args, "memory_command") or not args.memory_command:
                 return self._show_status(args)
 
             # Route to specific subcommand handlers
@@ -78,20 +83,17 @@ class MemoryManagementCommand(MemoryCommand):
 
             if args.memory_command in command_map:
                 return command_map[args.memory_command](args)
-            else:
-                available_commands = list(command_map.keys())
-                error_msg = f"Unknown memory command: {args.memory_command}"
+            available_commands = list(command_map.keys())
+            error_msg = f"Unknown memory command: {args.memory_command}"
 
-                output_format = getattr(args, 'format', 'text')
-                if output_format in ['json', 'yaml']:
-                    return CommandResult.error_result(
-                        error_msg,
-                        data={"available_commands": available_commands}
-                    )
-                else:
-                    print(f"❌ {error_msg}")
-                    print(f"Available commands: {', '.join(available_commands)}")
-                    return CommandResult.error_result(error_msg)
+            output_format = getattr(args, "format", "text")
+            if output_format in ["json", "yaml"]:
+                return CommandResult.error_result(
+                    error_msg, data={"available_commands": available_commands}
+                )
+            print(f"❌ {error_msg}")
+            print(f"Available commands: {', '.join(available_commands)}")
+            return CommandResult.error_result(error_msg)
 
         except Exception as e:
             self.logger.error(f"Error managing memory: {e}", exc_info=True)
@@ -100,16 +102,17 @@ class MemoryManagementCommand(MemoryCommand):
     def _show_status(self, args) -> CommandResult:
         """Show memory system status."""
         try:
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
-            if output_format in ['json', 'yaml']:
+            if output_format in ["json", "yaml"]:
                 # Structured output
                 status_data = self._get_status_data()
-                return CommandResult.success_result("Memory status retrieved", data=status_data)
-            else:
-                # Text output using existing function
-                _show_status(self.memory_manager)
-                return CommandResult.success_result("Memory status displayed")
+                return CommandResult.success_result(
+                    "Memory status retrieved", data=status_data
+                )
+            # Text output using existing function
+            _show_status(self.memory_manager)
+            return CommandResult.success_result("Memory status displayed")
 
         except Exception as e:
             self.logger.error(f"Error showing memory status: {e}", exc_info=True)
@@ -125,7 +128,7 @@ class MemoryManagementCommand(MemoryCommand):
                 "exists": False,
                 "agents": [],
                 "total_size_kb": 0,
-                "total_files": 0
+                "total_files": 0,
             }
 
         agents = []
@@ -136,34 +139,37 @@ class MemoryManagementCommand(MemoryCommand):
                 size = memory_file.stat().st_size
                 total_size += size
 
-                agents.append({
-                    "agent_id": memory_file.stem,
-                    "file": memory_file.name,
-                    "size_kb": size / 1024,
-                    "path": str(memory_file)
-                })
+                agents.append(
+                    {
+                        "agent_id": memory_file.stem,
+                        "file": memory_file.name,
+                        "size_kb": size / 1024,
+                        "path": str(memory_file),
+                    }
+                )
 
         return {
             "memory_directory": str(memory_dir),
             "exists": True,
             "agents": agents,
             "total_size_kb": total_size / 1024,
-            "total_files": len(agents)
+            "total_files": len(agents),
         }
 
     def _show_memories(self, args) -> CommandResult:
         """Show agent memories."""
         try:
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
-            if output_format in ['json', 'yaml']:
+            if output_format in ["json", "yaml"]:
                 # Structured output
                 memories_data = self._get_memories_data(args)
-                return CommandResult.success_result("Memories retrieved", data=memories_data)
-            else:
-                # Text output using existing function
-                _show_memories(args, self.memory_manager)
-                return CommandResult.success_result("Memories displayed")
+                return CommandResult.success_result(
+                    "Memories retrieved", data=memories_data
+                )
+            # Text output using existing function
+            _show_memories(args, self.memory_manager)
+            return CommandResult.success_result("Memories displayed")
 
         except Exception as e:
             self.logger.error(f"Error showing memories: {e}", exc_info=True)
@@ -171,7 +177,7 @@ class MemoryManagementCommand(MemoryCommand):
 
     def _get_memories_data(self, args) -> Dict[str, Any]:
         """Get memories as structured data."""
-        agent_id = getattr(args, 'agent', None)
+        agent_id = getattr(args, "agent", None)
 
         if agent_id:
             # Single agent memory
@@ -179,48 +185,48 @@ class MemoryManagementCommand(MemoryCommand):
             return {
                 "agent_id": agent_id,
                 "memory_content": memory_content,
-                "has_memory": bool(memory_content)
+                "has_memory": bool(memory_content),
             }
-        else:
-            # All agent memories
-            memory_dir = self.memory_manager.memories_dir
-            if not memory_dir.exists():
-                return {"agents": [], "memory_directory": str(memory_dir), "exists": False}
+        # All agent memories
+        memory_dir = self.memory_manager.memories_dir
+        if not memory_dir.exists():
+            return {"agents": [], "memory_directory": str(memory_dir), "exists": False}
 
-            agents = {}
-            for memory_file in memory_dir.glob("*.md"):
-                if memory_file.is_file():
-                    agent_id = memory_file.stem
-                    memory_content = self.memory_manager.load_agent_memory(agent_id)
-                    agents[agent_id] = {
-                        "memory_content": memory_content,
-                        "file_path": str(memory_file)
-                    }
+        agents = {}
+        for memory_file in memory_dir.glob("*.md"):
+            if memory_file.is_file():
+                agent_id = memory_file.stem
+                memory_content = self.memory_manager.load_agent_memory(agent_id)
+                agents[agent_id] = {
+                    "memory_content": memory_content,
+                    "file_path": str(memory_file),
+                }
 
-            return {
-                "agents": agents,
-                "memory_directory": str(memory_dir),
-                "exists": True,
-                "agent_count": len(agents)
-            }
+        return {
+            "agents": agents,
+            "memory_directory": str(memory_dir),
+            "exists": True,
+            "agent_count": len(agents),
+        }
 
     def _init_memory(self, args) -> CommandResult:
         """Initialize project-specific memories."""
         try:
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
-            if output_format in ['json', 'yaml']:
+            if output_format in ["json", "yaml"]:
                 # For structured output, return the initialization task
                 task_data = {
                     "task": "Initialize project-specific agent memories",
                     "description": "Analyze project structure and create targeted memories for agents",
-                    "suggested_command": "claude-mpm memory add --agent <agent_name> --learning '<insight>'"
+                    "suggested_command": "claude-mpm memory add --agent <agent_name> --learning '<insight>'",
                 }
-                return CommandResult.success_result("Memory initialization task created", data=task_data)
-            else:
-                # Text output using existing function
-                _init_memory(args, self.memory_manager)
-                return CommandResult.success_result("Memory initialization task displayed")
+                return CommandResult.success_result(
+                    "Memory initialization task created", data=task_data
+                )
+            # Text output using existing function
+            _init_memory(args, self.memory_manager)
+            return CommandResult.success_result("Memory initialization task displayed")
 
         except Exception as e:
             self.logger.error(f"Error initializing memory: {e}", exc_info=True)
@@ -229,17 +235,16 @@ class MemoryManagementCommand(MemoryCommand):
     def _add_learning(self, args) -> CommandResult:
         """Add learning to agent memory."""
         try:
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
-            if output_format in ['json', 'yaml']:
+            if output_format in ["json", "yaml"]:
                 # For structured output, we'd need to implement the actual learning addition
                 # For now, delegate to existing function and return success
                 _add_learning(args, self.memory_manager)
                 return CommandResult.success_result("Learning added to agent memory")
-            else:
-                # Text output using existing function
-                _add_learning(args, self.memory_manager)
-                return CommandResult.success_result("Learning added")
+            # Text output using existing function
+            _add_learning(args, self.memory_manager)
+            return CommandResult.success_result("Learning added")
 
         except Exception as e:
             self.logger.error(f"Error adding learning: {e}", exc_info=True)
@@ -248,16 +253,21 @@ class MemoryManagementCommand(MemoryCommand):
     def _clean_memory(self, args) -> CommandResult:
         """Clean up old/unused memory files."""
         try:
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
-            if output_format in ['json', 'yaml']:
+            if output_format in ["json", "yaml"]:
                 # For structured output, return cleanup results
-                cleanup_data = {"cleaned_files": [], "errors": [], "summary": "Memory cleanup completed"}
-                return CommandResult.success_result("Memory cleanup completed", data=cleanup_data)
-            else:
-                # Text output using existing function
-                _clean_memory(args, self.memory_manager)
-                return CommandResult.success_result("Memory cleanup completed")
+                cleanup_data = {
+                    "cleaned_files": [],
+                    "errors": [],
+                    "summary": "Memory cleanup completed",
+                }
+                return CommandResult.success_result(
+                    "Memory cleanup completed", data=cleanup_data
+                )
+            # Text output using existing function
+            _clean_memory(args, self.memory_manager)
+            return CommandResult.success_result("Memory cleanup completed")
 
         except Exception as e:
             self.logger.error(f"Error cleaning memory: {e}", exc_info=True)
@@ -266,16 +276,21 @@ class MemoryManagementCommand(MemoryCommand):
     def _optimize_memory(self, args) -> CommandResult:
         """Optimize memory files."""
         try:
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
-            if output_format in ['json', 'yaml']:
+            if output_format in ["json", "yaml"]:
                 # For structured output, return optimization results
-                optimization_data = {"optimized_agents": [], "size_reduction": 0, "summary": "Memory optimization completed"}
-                return CommandResult.success_result("Memory optimization completed", data=optimization_data)
-            else:
-                # Text output using existing function
-                _optimize_memory(args, self.memory_manager)
-                return CommandResult.success_result("Memory optimization completed")
+                optimization_data = {
+                    "optimized_agents": [],
+                    "size_reduction": 0,
+                    "summary": "Memory optimization completed",
+                }
+                return CommandResult.success_result(
+                    "Memory optimization completed", data=optimization_data
+                )
+            # Text output using existing function
+            _optimize_memory(args, self.memory_manager)
+            return CommandResult.success_result("Memory optimization completed")
 
         except Exception as e:
             self.logger.error(f"Error optimizing memory: {e}", exc_info=True)
@@ -284,16 +299,21 @@ class MemoryManagementCommand(MemoryCommand):
     def _build_memory(self, args) -> CommandResult:
         """Build agent memories from project documentation."""
         try:
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
-            if output_format in ['json', 'yaml']:
+            if output_format in ["json", "yaml"]:
                 # For structured output, return build results
-                build_data = {"built_memories": [], "processed_files": [], "summary": "Memory build completed"}
-                return CommandResult.success_result("Memory build completed", data=build_data)
-            else:
-                # Text output using existing function
-                _build_memory(args, self.memory_manager)
-                return CommandResult.success_result("Memory build completed")
+                build_data = {
+                    "built_memories": [],
+                    "processed_files": [],
+                    "summary": "Memory build completed",
+                }
+                return CommandResult.success_result(
+                    "Memory build completed", data=build_data
+                )
+            # Text output using existing function
+            _build_memory(args, self.memory_manager)
+            return CommandResult.success_result("Memory build completed")
 
         except Exception as e:
             self.logger.error(f"Error building memory: {e}", exc_info=True)
@@ -302,16 +322,21 @@ class MemoryManagementCommand(MemoryCommand):
     def _cross_reference_memory(self, args) -> CommandResult:
         """Find cross-references and common patterns."""
         try:
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
-            if output_format in ['json', 'yaml']:
+            if output_format in ["json", "yaml"]:
                 # For structured output, return cross-reference results
-                crossref_data = {"common_patterns": [], "agent_similarities": [], "summary": "Cross-reference analysis completed"}
-                return CommandResult.success_result("Cross-reference analysis completed", data=crossref_data)
-            else:
-                # Text output using existing function
-                _cross_reference_memory(args, self.memory_manager)
-                return CommandResult.success_result("Cross-reference analysis completed")
+                crossref_data = {
+                    "common_patterns": [],
+                    "agent_similarities": [],
+                    "summary": "Cross-reference analysis completed",
+                }
+                return CommandResult.success_result(
+                    "Cross-reference analysis completed", data=crossref_data
+                )
+            # Text output using existing function
+            _cross_reference_memory(args, self.memory_manager)
+            return CommandResult.success_result("Cross-reference analysis completed")
 
         except Exception as e:
             self.logger.error(f"Error cross-referencing memory: {e}", exc_info=True)
@@ -320,16 +345,21 @@ class MemoryManagementCommand(MemoryCommand):
     def _route_memory_command(self, args) -> CommandResult:
         """Route memory command to appropriate agent."""
         try:
-            output_format = getattr(args, 'format', 'text')
+            output_format = getattr(args, "format", "text")
 
-            if output_format in ['json', 'yaml']:
+            if output_format in ["json", "yaml"]:
                 # For structured output, return routing results
-                routing_data = {"routed_to": "memory_agent", "command": getattr(args, 'command', ''), "summary": "Command routed successfully"}
-                return CommandResult.success_result("Command routed successfully", data=routing_data)
-            else:
-                # Text output using existing function
-                _route_memory_command(args, self.memory_manager)
-                return CommandResult.success_result("Command routed successfully")
+                routing_data = {
+                    "routed_to": "memory_agent",
+                    "command": getattr(args, "command", ""),
+                    "summary": "Command routed successfully",
+                }
+                return CommandResult.success_result(
+                    "Command routed successfully", data=routing_data
+                )
+            # Text output using existing function
+            _route_memory_command(args, self.memory_manager)
+            return CommandResult.success_result("Command routed successfully")
 
         except Exception as e:
             self.logger.error(f"Error routing memory command: {e}", exc_info=True)
@@ -346,7 +376,7 @@ def manage_memory(args):
     result = command.execute(args)
 
     # Print result if structured output format is requested
-    if hasattr(args, 'format') and args.format in ['json', 'yaml']:
+    if hasattr(args, "format") and args.format in ["json", "yaml"]:
         command.print_result(result, args)
 
     return result.exit_code
@@ -361,7 +391,7 @@ def manage_memory(args) -> int:
     result = command.execute(args)
 
     # Print result if structured output format is requested
-    if hasattr(args, 'format') and args.format in ['json', 'yaml']:
+    if hasattr(args, "format") and args.format in ["json", "yaml"]:
         command.print_result(result, args)
 
     return result.exit_code
@@ -379,7 +409,7 @@ def _init_memory(args, memory_manager):
         args: Command line arguments (unused but kept for consistency)
         memory_manager: AgentMemoryManager instance
     """
-    logger = get_logger("cli")
+    get_logger("cli")
 
     print("🚀 Initializing project-specific memories...")
     print("=" * 80)
@@ -493,7 +523,7 @@ def _show_status(memory_manager):
         # Show per-agent details
         agents = status.get("agents", {})
         if agents:
-            print(f"📋 Agent Memory Details:")
+            print("📋 Agent Memory Details:")
             for agent_id, agent_info in sorted(agents.items()):
                 if "error" in agent_info:
                     print(f"   ❌ {agent_id}: Error - {agent_info['error']}")
@@ -554,8 +584,15 @@ def _show_basic_status(memory_manager):
     memory_files = list(memory_dir.glob("*_memories.md"))
     # Also check for old formats for backward compatibility
     memory_files.extend(memory_dir.glob("*_agent.md"))
-    memory_files.extend([f for f in memory_dir.glob("*.md") 
-                        if f.name != "README.md" and not f.name.endswith("_memories.md") and not f.name.endswith("_agent.md")])
+    memory_files.extend(
+        [
+            f
+            for f in memory_dir.glob("*.md")
+            if f.name != "README.md"
+            and not f.name.endswith("_memories.md")
+            and not f.name.endswith("_agent.md")
+        ]
+    )
 
     if not memory_files:
         print("📭 No memory files found")
@@ -680,8 +717,15 @@ def _clean_memory(args, memory_manager):
     memory_files = list(memory_dir.glob("*_memories.md"))
     # Also check for old formats for backward compatibility
     memory_files.extend(memory_dir.glob("*_agent.md"))
-    memory_files.extend([f for f in memory_dir.glob("*.md") 
-                        if f.name != "README.md" and not f.name.endswith("_memories.md") and not f.name.endswith("_agent.md")])
+    memory_files.extend(
+        [
+            f
+            for f in memory_dir.glob("*.md")
+            if f.name != "README.md"
+            and not f.name.endswith("_memories.md")
+            and not f.name.endswith("_agent.md")
+        ]
+    )
     if not memory_files:
         print("📭 No memory files found - nothing to clean")
         return
@@ -756,7 +800,7 @@ def _build_memory(args, memory_manager):
         result = memory_manager.build_memories_from_docs(force_rebuild)
 
         if result.get("success"):
-            print(f"✅ Successfully processed documentation")
+            print("✅ Successfully processed documentation")
             print(f"   Files processed: {result.get('files_processed', 0)}")
             print(f"   Memories created: {result.get('memories_created', 0)}")
             print(f"   Memories updated: {result.get('memories_updated', 0)}")
@@ -839,7 +883,7 @@ def _cross_reference_memory(args, memory_manager):
         # Display agent correlations
         correlations = result.get("agent_correlations", {})
         if correlations:
-            print(f"\n🤝 Agent knowledge correlations:")
+            print("\n🤝 Agent knowledge correlations:")
             sorted_correlations = sorted(
                 correlations.items(), key=lambda x: x[1], reverse=True
             )
@@ -941,8 +985,15 @@ def _show_all_agent_memories(format_type, memory_manager):
     memory_files = list(memory_dir.glob("*_memories.md"))
     # Also check for old formats for backward compatibility
     memory_files.extend(memory_dir.glob("*_agent.md"))
-    memory_files.extend([f for f in memory_dir.glob("*.md") 
-                        if f.name != "README.md" and not f.name.endswith("_memories.md") and not f.name.endswith("_agent.md")])
+    memory_files.extend(
+        [
+            f
+            for f in memory_dir.glob("*.md")
+            if f.name != "README.md"
+            and not f.name.endswith("_memories.md")
+            and not f.name.endswith("_agent.md")
+        ]
+    )
     if not memory_files:
         print("📭 No agent memories found")
         return
@@ -1042,7 +1093,7 @@ def _find_common_patterns(agent_memories):
     for agent_id, sections in agent_memories.items():
         agent_patterns[agent_id] = set()
 
-        for section_name, items in sections.items():
+        for _section_name, items in sections.items():
             for item in items:
                 # Normalize item for comparison (lowercase, basic cleanup)
                 normalized = item.lower().strip()
@@ -1123,7 +1174,7 @@ def _route_memory_command(args, memory_manager):
         confidence = result.get("confidence", 0.0)
         reasoning = result.get("reasoning", "No reasoning provided")
 
-        print(f"\n🎯 Routing Decision:")
+        print("\n🎯 Routing Decision:")
         print(f"   Target Agent: {target_agent}")
         print(f"   Section: {section}")
         print(f"   Confidence: {confidence:.2f}")
@@ -1132,7 +1183,7 @@ def _route_memory_command(args, memory_manager):
         # Show agent scores if available
         agent_scores = result.get("agent_scores", {})
         if agent_scores:
-            print(f"\n📊 Agent Relevance Scores:")
+            print("\n📊 Agent Relevance Scores:")
             sorted_scores = sorted(
                 [(agent, data["score"]) for agent, data in agent_scores.items()],
                 key=lambda x: x[1],
@@ -1184,7 +1235,7 @@ def _display_bulk_optimization_results(result):
     """Display optimization results for all agents."""
     summary = result.get("summary", {})
 
-    print(f"✅ Bulk optimization completed")
+    print("✅ Bulk optimization completed")
     print(f"   Agents processed: {summary.get('agents_processed', 0)}")
     print(f"   Agents optimized: {summary.get('agents_optimized', 0)}")
     print(f"   Total size before: {summary.get('total_size_before', 0):,} bytes")
@@ -1198,7 +1249,7 @@ def _display_bulk_optimization_results(result):
     # Show per-agent summary
     agents_results = result.get("agents", {})
     if agents_results:
-        print(f"\n📊 Per-agent results:")
+        print("\n📊 Per-agent results:")
         for agent_id, agent_result in agents_results.items():
             if agent_result.get("success"):
                 reduction = agent_result.get("size_reduction_percent", 0)
@@ -1234,7 +1285,7 @@ def _output_all_memories_raw(memory_manager):
     except Exception as e:
         error_output = {
             "success": False,
-            "error": f"Failed to retrieve all memories: {str(e)}",
+            "error": f"Failed to retrieve all memories: {e!s}",
             "timestamp": datetime.now().isoformat(),
         }
         print(json.dumps(error_output, indent=2))
@@ -1287,7 +1338,7 @@ def _output_single_agent_raw(agent_id, memory_manager):
     except Exception as e:
         error_output = {
             "success": False,
-            "error": f"Failed to retrieve memory for agent {agent_id}: {str(e)}",
+            "error": f"Failed to retrieve memory for agent {agent_id}: {e!s}",
             "timestamp": datetime.now().isoformat(),
         }
         print(json.dumps(error_output, indent=2))

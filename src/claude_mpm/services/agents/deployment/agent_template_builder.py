@@ -8,7 +8,6 @@ maintainability and testability.
 """
 
 import json
-import logging
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -31,7 +30,11 @@ class AgentTemplateBuilder:
         self.logger = get_logger(__name__)
 
     def build_agent_markdown(
-        self, agent_name: str, template_path: Path, base_agent_data: dict, source_info: str = "unknown"
+        self,
+        agent_name: str,
+        template_path: Path,
+        base_agent_data: dict,
+        source_info: str = "unknown",
     ) -> str:
         """
         Build a complete agent markdown file with YAML frontmatter.
@@ -62,8 +65,10 @@ class AgentTemplateBuilder:
         # Extract tools from template with fallback
         # Handle both dict and list formats for capabilities (backward compatibility)
         capabilities = template_data.get("capabilities", {})
-        capabilities_tools = capabilities.get("tools") if isinstance(capabilities, dict) else None
-        
+        capabilities_tools = (
+            capabilities.get("tools") if isinstance(capabilities, dict) else None
+        )
+
         tools = (
             template_data.get("tools")
             or capabilities_tools
@@ -72,8 +77,10 @@ class AgentTemplateBuilder:
         )
 
         # Extract model from template with fallback
-        capabilities_model = capabilities.get("model") if isinstance(capabilities, dict) else None
-        
+        capabilities_model = (
+            capabilities.get("model") if isinstance(capabilities, dict) else None
+        )
+
         model = (
             template_data.get("model")
             or capabilities_model
@@ -82,10 +89,7 @@ class AgentTemplateBuilder:
         )
 
         # Convert tools list to comma-separated string (no spaces!)
-        if isinstance(tools, list):
-            tools_str = ",".join(tools)
-        else:
-            tools_str = str(tools)
+        tools_str = ",".join(tools) if isinstance(tools, list) else str(tools)
 
         # Validate tools format - CRITICAL: No spaces allowed!
         if ", " in tools_str:
@@ -110,7 +114,7 @@ class AgentTemplateBuilder:
             model = model_map[model]
 
         # Get response format from template or use base agent default
-        response_format = template_data.get("response", {}).get("format", "structured")
+        template_data.get("response", {}).get("format", "structured")
 
         # Create Claude Code compatible name (lowercase, hyphens only)
         claude_code_name = agent_name.lower().replace("_", "-")
@@ -137,7 +141,11 @@ class AgentTemplateBuilder:
 
         # Extract custom metadata fields
         metadata = template_data.get("metadata", {})
-        agent_version = template_data.get("agent_version") or template_data.get("version") or metadata.get("version", "1.0.0")
+        agent_version = (
+            template_data.get("agent_version")
+            or template_data.get("version")
+            or metadata.get("version", "1.0.0")
+        )
         agent_type = template_data.get("agent_type", "general")
         # Use the capabilities_model we already extracted earlier
         model_type = capabilities_model or "sonnet"
@@ -145,14 +153,14 @@ class AgentTemplateBuilder:
         # Map our model types to Claude Code format
         if model_type in ["opus", "sonnet", "haiku"]:
             # Use inherit for now - Claude Code seems to prefer this
-            claude_model = "inherit"
+            pass
         else:
-            claude_model = "inherit"
+            pass
 
         # Determine color - prefer template's color, fallback to type-based defaults
         template_metadata = template_data.get("metadata", {})
         template_color = template_metadata.get("color")
-        
+
         if template_color:
             # Use the color specified in the template
             color = template_color
@@ -170,21 +178,6 @@ class AgentTemplateBuilder:
 
         # Check if we should include tools field (only if significantly restricting)
         # Claude Code approach: omit tools field unless specifically restricting
-        all_available_tools = {
-            "Read",
-            "Write",
-            "Edit",
-            "MultiEdit",
-            "Bash",
-            "Grep",
-            "Glob",
-            "LS",
-            "WebSearch",
-            "WebFetch",
-            "TodoWrite",
-            "Task",
-            "Memory",
-        }
 
         # Convert tools to set for comparison
         agent_tools = set(tools) if isinstance(tools, list) else set(tools.split(","))
@@ -230,7 +223,7 @@ class AgentTemplateBuilder:
             or base_agent_data.get("instructions")
             or "# Agent Instructions\n\nThis agent provides specialized assistance."
         )
-        
+
         # Add memory update instructions if not already present
         if "memory-update" not in content and "Remember" not in content:
             memory_instructions = """
@@ -296,7 +289,7 @@ Only include memories that are:
             raise
 
         # Merge narrative and configuration fields
-        merged_narrative = self.merge_narrative_fields(base_agent_data, template_data)
+        self.merge_narrative_fields(base_agent_data, template_data)
         merged_config = self.merge_configuration_fields(base_agent_data, template_data)
 
         # Extract essential fields for Claude Code
@@ -313,14 +306,12 @@ Only include memories that are:
         tools_yaml = self.format_yaml_list(tools, 2)
 
         # Build YAML content with only essential fields
-        yaml_content = f"""name: {name}
+        return f"""name: {name}
 description: {description}
 model: {model}
 tools:
 {tools_yaml}
 """
-
-        return yaml_content
 
     def merge_narrative_fields(self, base_data: dict, template_data: dict) -> dict:
         """

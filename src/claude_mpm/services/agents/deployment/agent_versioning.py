@@ -16,10 +16,10 @@ class AgentVersionManager:
 
         if change_type == "major":
             return f"{major + 1}.0.0"
-        elif change_type == "minor":
+        if change_type == "minor":
             return f"{major}.{minor + 1}.0"
-        else:  # patch
-            return f"{major}.{minor}.{patch + 1}"
+        # patch
+        return f"{major}.{minor}.{patch + 1}"
 
     def validate_version(self, version: str) -> bool:
         """Validate version format."""

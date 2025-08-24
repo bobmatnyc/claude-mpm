@@ -95,7 +95,7 @@ class DeploymentManager:
 
         # Check if file exists and compare versions
         if target_file.exists() and not force:
-            with open(target_file, "r") as f:
+            with open(target_file) as f:
                 existing_content = f.read()
                 existing_fw_ver = self.version_manager.parse_current_version(
                     existing_content
@@ -119,7 +119,7 @@ class DeploymentManager:
 
             return True, f"Successfully deployed version {version_str}"
         except Exception as e:
-            return False, f"Deployment failed: {str(e)}"
+            return False, f"Deployment failed: {e!s}"
 
     def check_deployment_needed(self, parent_path: Path) -> Tuple[bool, str]:
         """
@@ -137,7 +137,7 @@ class DeploymentManager:
             return True, f"{self.target_filename} does not exist"
 
         try:
-            with open(target_file, "r") as f:
+            with open(target_file) as f:
                 existing_content = f.read()
                 existing_fw_ver = self.version_manager.parse_current_version(
                     existing_content
@@ -151,7 +151,7 @@ class DeploymentManager:
 
             return False, "Already up to date"
         except Exception as e:
-            return True, f"Error checking existing file: {str(e)}"
+            return True, f"Error checking existing file: {e!s}"
 
     def backup_existing(self, parent_path: Path) -> Optional[Path]:
         """

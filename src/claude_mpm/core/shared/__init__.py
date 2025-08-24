@@ -11,7 +11,7 @@ from .singleton_manager import SingletonManager
 
 __all__ = [
     "ConfigLoader",
-    "ConfigPattern", 
+    "ConfigPattern",
     "PathResolver",
     "SingletonManager",
 ]

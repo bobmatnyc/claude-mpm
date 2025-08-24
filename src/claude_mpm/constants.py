@@ -4,7 +4,6 @@ Build number tracking is now enabled for all builds.
 """
 
 from enum import Enum
-from pathlib import Path
 
 
 class CLIPrefix(str, Enum):
@@ -20,7 +19,7 @@ class CLIPrefix(str, Enum):
         """Wrap a flag with the prefix."""
         if flag.startswith("--"):
             return f"--mpm:{flag[2:]}"
-        elif flag.startswith("-"):
+        if flag.startswith("-"):
             return f"-mpm:{flag[1:]}"
         return self.value + flag
 

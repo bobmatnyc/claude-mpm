@@ -11,8 +11,8 @@ from .metrics import MetricsConsumer
 from .socketio import SocketIOConsumer
 
 __all__ = [
-    "SocketIOConsumer",
+    "DeadLetterConsumer",
     "LoggingConsumer",
     "MetricsConsumer",
-    "DeadLetterConsumer",
+    "SocketIOConsumer",
 ]

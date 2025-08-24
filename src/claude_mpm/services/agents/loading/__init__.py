@@ -5,7 +5,7 @@ from .base_agent_manager import BaseAgentManager
 from .framework_agent_loader import FrameworkAgentLoader
 
 __all__ = [
-    "FrameworkAgentLoader",
     "AgentProfileLoader",
     "BaseAgentManager",
+    "FrameworkAgentLoader",
 ]

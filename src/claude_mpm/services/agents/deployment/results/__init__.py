@@ -8,6 +8,6 @@ from .deployment_metrics import DeploymentMetrics
 from .deployment_result_builder import DeploymentResultBuilder
 
 __all__ = [
-    "DeploymentResultBuilder",
     "DeploymentMetrics",
+    "DeploymentResultBuilder",
 ]

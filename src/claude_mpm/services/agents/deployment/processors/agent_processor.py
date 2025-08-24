@@ -6,7 +6,7 @@ from claude_mpm.core.exceptions import AgentDeploymentError
 from claude_mpm.core.logger import get_logger
 
 from .agent_deployment_context import AgentDeploymentContext
-from .agent_deployment_result import AgentDeploymentResult, AgentDeploymentStatus
+from .agent_deployment_result import AgentDeploymentResult
 
 
 class AgentProcessor:
@@ -77,7 +77,7 @@ class AgentProcessor:
                     deployment_time_ms,
                     reason,
                 )
-            elif context.is_update():
+            if context.is_update():
                 self.logger.debug(f"Updated agent: {context.agent_name}")
                 return AgentDeploymentResult.updated(
                     context.agent_name,
@@ -86,21 +86,18 @@ class AgentProcessor:
                     deployment_time_ms,
                     reason,
                 )
-            else:
-                self.logger.debug(f"Deployed new agent: {context.agent_name}")
-                return AgentDeploymentResult.deployed(
-                    context.agent_name,
-                    context.template_file,
-                    context.target_file,
-                    deployment_time_ms,
-                )
+            self.logger.debug(f"Deployed new agent: {context.agent_name}")
+            return AgentDeploymentResult.deployed(
+                context.agent_name,
+                context.template_file,
+                context.target_file,
+                deployment_time_ms,
+            )
 
         except AgentDeploymentError as e:
             # Re-raise our custom exceptions
             deployment_time_ms = (time.time() - start_time) * 1000
-            self.logger.error(
-                f"Agent deployment error for {context.agent_name}: {str(e)}"
-            )
+            self.logger.error(f"Agent deployment error for {context.agent_name}: {e!s}")
             return AgentDeploymentResult.failed(
                 context.agent_name,
                 context.template_file,
@@ -151,11 +148,15 @@ class AgentProcessor:
                 # File doesn't exist, needs to be deployed
                 needs_update = True
                 reason = "New agent deployment"
-                self.logger.debug(f"Agent {context.agent_name} doesn't exist, will deploy")
+                self.logger.debug(
+                    f"Agent {context.agent_name} doesn't exist, will deploy"
+                )
             else:
                 # File exists, check version compatibility
                 needs_update, reason = self.version_manager.check_agent_needs_update(
-                    context.target_file, context.template_file, context.base_agent_version
+                    context.target_file,
+                    context.template_file,
+                    context.base_agent_version,
                 )
                 if needs_update:
                     # Check if this is a migration from old format
@@ -185,7 +186,10 @@ class AgentProcessor:
         """
         try:
             return self.template_builder.build_agent_markdown(
-                context.agent_name, context.template_file, context.base_agent_data, context.source_info
+                context.agent_name,
+                context.template_file,
+                context.base_agent_data,
+                context.source_info,
             )
         except Exception as e:
             raise AgentDeploymentError(

@@ -67,7 +67,9 @@ class BaseAgentStructure:
 class BaseAgentManager(ConfigServiceBase):
     """Manages base_agent.md with structured updates and validation."""
 
-    def __init__(self, agents_dir: Optional[Path] = None, config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, agents_dir: Optional[Path] = None, config: Optional[Dict[str, Any]] = None
+    ):
         """Initialize BaseAgentManager."""
         super().__init__("base_agent_manager", config=config)
 
@@ -75,7 +77,7 @@ class BaseAgentManager(ConfigServiceBase):
         self.agents_dir = self.get_config_value(
             "agents_dir",
             default=agents_dir or Path(__file__).parent.parent / "agents",
-            config_type=Path
+            config_type=Path,
         )
         self.base_agent_path = self.agents_dir / "BASE_AGENT_TEMPLATE.md"
         self.cache = SharedPromptCache.get_instance()
@@ -347,9 +349,7 @@ class BaseAgentManager(ConfigServiceBase):
         items = []
         for line in content.split("\n"):
             line = line.strip()
-            if line.startswith("- "):
-                items.append(line[2:].strip())
-            elif line.startswith("* "):
+            if line.startswith(("- ", "* ")):
                 items.append(line[2:].strip())
             elif line.startswith("**") and line.endswith("**"):
                 # Skip bold headers

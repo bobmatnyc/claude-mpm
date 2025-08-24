@@ -1,6 +1,16 @@
 # Ticket CLI Known Issues and Limitations
 
-This document outlines known issues, limitations, and workarounds for the claude-mpm ticket CLI system based on QA testing and user feedback.
+> **⚠️ OUTDATED DOCUMENT WARNING** 
+> 
+> This document references the old `claude-mpm tickets` command system which has been replaced with direct `aitrackdown` usage. The issues described below may no longer be relevant.
+>
+> **For current ticket management:** Use `aitrackdown` commands directly as documented in [Ticket CLI Reference](ticket-cli-reference.md).
+>
+> This document is kept for historical reference and will be updated in a future release.
+
+---
+
+This document outlines known issues, limitations, and workarounds for the **legacy** claude-mpm ticket CLI system based on QA testing and user feedback.
 
 ## Status Alignment Issues
 

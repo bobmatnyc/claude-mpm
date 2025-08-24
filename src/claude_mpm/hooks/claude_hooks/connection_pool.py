@@ -59,8 +59,7 @@ class SocketIOConnectionPool:
                 client = conn["client"]
                 if self._is_connection_alive(client):
                     return client
-                else:
-                    self.connections.remove(conn)
+                self.connections.remove(conn)
 
         if len(self.connections) < self.max_connections:
             client = self._create_connection(port)
@@ -82,7 +81,7 @@ class SocketIOConnectionPool:
 
     def _create_connection(self, port: int) -> Optional[Any]:
         """Create a new Socket.IO connection with persistent keep-alive.
-        
+
         WHY persistent connections:
         - Maintains connection throughout handler lifecycle
         - Automatic reconnection on disconnect
@@ -100,32 +99,38 @@ class SocketIOConnectionPool:
                 logger=False,
                 engineio_logger=False,
             )
-            
+
             # Set up event handlers for connection lifecycle
-            @client.on('connect')
+            @client.on("connect")
             def on_connect():
                 pass  # Connection established
-            
-            @client.on('disconnect')
+
+            @client.on("disconnect")
             def on_disconnect():
                 pass  # Will automatically try to reconnect
-            
+
             client.connect(
                 f"http://localhost:{port}",
                 wait=True,  # Wait for connection to establish
                 wait_timeout=NetworkConfig.SOCKET_WAIT_TIMEOUT,
-                transports=['websocket', 'polling'],  # Try WebSocket first, fall back to polling
+                transports=[
+                    "websocket",
+                    "polling",
+                ],  # Try WebSocket first, fall back to polling
             )
-            
+
             if client.connected:
                 # Send a keep-alive ping to establish the connection
                 try:
-                    client.emit('ping', {
-                        'type': 'system',
-                        'subtype': 'ping',
-                        'timestamp': time.time(),
-                        'source': 'connection_pool'
-                    })
+                    client.emit(
+                        "ping",
+                        {
+                            "type": "system",
+                            "subtype": "ping",
+                            "timestamp": time.time(),
+                            "source": "connection_pool",
+                        },
+                    )
                 except:
                     pass  # Ignore ping errors
                 return client
@@ -135,7 +140,7 @@ class SocketIOConnectionPool:
 
     def _is_connection_alive(self, client: Any) -> bool:
         """Check if a connection is still alive.
-        
+
         WHY enhanced check:
         - Verifies actual connection state
         - Attempts to ping server for liveness check
@@ -144,21 +149,24 @@ class SocketIOConnectionPool:
         try:
             if not client:
                 return False
-            
+
             # Check basic connection state
             if not client.connected:
                 return False
-            
+
             # Try a quick ping to verify connection is truly alive
             # This helps detect zombie connections
             try:
                 # Just emit a ping, don't wait for response (faster)
-                client.emit('ping', {
-                    'type': 'system',
-                    'subtype': 'ping',
-                    'timestamp': time.time(),
-                    'source': 'connection_pool'
-                })
+                client.emit(
+                    "ping",
+                    {
+                        "type": "system",
+                        "subtype": "ping",
+                        "timestamp": time.time(),
+                        "source": "connection_pool",
+                    },
+                )
                 return True
             except:
                 # If ping fails, connection might be dead
@@ -176,7 +184,7 @@ class SocketIOConnectionPool:
 
     def _cleanup_dead_connections(self) -> None:
         """Remove dead connections from the pool and attempt reconnection.
-        
+
         WHY proactive reconnection:
         - Maintains pool health
         - Ensures connections are ready when needed
@@ -202,3 +210,41 @@ class SocketIOConnectionPool:
         for conn in self.connections:
             self._close_connection(conn.get("client"))
         self.connections.clear()
+
+    def emit(self, event: str, data: Dict[str, Any]) -> bool:
+        """Emit an event through the connection pool.
+
+        This method provides backward compatibility for the deprecated
+        connection pool. It attempts to send events directly to the
+        Socket.IO server.
+
+        Args:
+            event: Event name (e.g., "claude_event")
+            data: Event data dictionary
+
+        Returns:
+            bool: True if event was sent successfully
+        """
+        if not SOCKETIO_AVAILABLE:
+            return False
+
+        # Try multiple ports in the range
+        for port in range(
+            NetworkConfig.SOCKETIO_PORT_RANGE[0],
+            NetworkConfig.SOCKETIO_PORT_RANGE[1] + 1,
+        ):
+            client = self.get_connection(port)
+            if client:
+                try:
+                    # Emit the event
+                    client.emit(event, data)
+                    return True
+                except Exception:
+                    # Try next port
+                    continue
+
+        return False
+
+    def cleanup(self) -> None:
+        """Cleanup all connections (alias for close_all)."""
+        self.close_all()

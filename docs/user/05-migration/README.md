@@ -163,7 +163,7 @@ tickets:
 |------|---------------------|------------|
 | Start session | `claude` (with CLAUDE.md) | `claude-mpm` |
 | Run command | N/A | `claude-mpm run -i "..."` |
-| List tickets | Manual tracking | `claude-mpm tickets` |
+| List tickets | Manual tracking | `aitrackdown status tasks` |
 
 ## Troubleshooting Migration
 

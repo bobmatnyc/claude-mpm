@@ -38,18 +38,18 @@ class AgentConfigProvider:
 
         # Agent-specific tools
         agent_tools = {
-            "engineer": base_tools + ["Bash", "WebSearch", "WebFetch"],
-            "qa": base_tools + ["Bash", "WebSearch"],
-            "documentation": base_tools + ["WebSearch", "WebFetch"],
-            "research": base_tools + ["WebSearch", "WebFetch", "Bash"],
-            "security": base_tools + ["Bash", "WebSearch", "Grep"],
-            "ops": base_tools + ["Bash", "WebSearch"],
-            "data_engineer": base_tools + ["Bash", "WebSearch"],
-            "version_control": base_tools + ["Bash"],
+            "engineer": [*base_tools, "Bash", "WebSearch", "WebFetch"],
+            "qa": [*base_tools, "Bash", "WebSearch"],
+            "documentation": [*base_tools, "WebSearch", "WebFetch"],
+            "research": [*base_tools, "WebSearch", "WebFetch", "Bash"],
+            "security": [*base_tools, "Bash", "WebSearch", "Grep"],
+            "ops": [*base_tools, "Bash", "WebSearch"],
+            "data_engineer": [*base_tools, "Bash", "WebSearch"],
+            "version_control": [*base_tools, "Bash"],
         }
 
         # Return specific tools or default set
-        return agent_tools.get(agent_name, base_tools + ["Bash", "WebSearch"])
+        return agent_tools.get(agent_name, [*base_tools, "Bash", "WebSearch"])
 
     @staticmethod
     def get_agent_specific_config(agent_name: str) -> Dict[str, Any]:

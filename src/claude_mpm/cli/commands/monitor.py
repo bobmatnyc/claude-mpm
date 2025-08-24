@@ -29,7 +29,7 @@ class MonitorCommand(BaseCommand):
     def validate_args(self, args) -> Optional[str]:
         """Validate command arguments."""
         # Monitor command allows no subcommand (defaults to status)
-        if hasattr(args, 'monitor_command') and args.monitor_command:
+        if hasattr(args, "monitor_command") and args.monitor_command:
             valid_commands = [cmd.value for cmd in MonitorCommands]
             if args.monitor_command not in valid_commands:
                 return f"Unknown monitor command: {args.monitor_command}. Valid commands: {', '.join(valid_commands)}"
@@ -41,16 +41,18 @@ class MonitorCommand(BaseCommand):
         try:
             # Import ServerManager
             from ...scripts.socketio_server_manager import ServerManager
+
             server_manager = ServerManager()
 
             # Handle default case (no subcommand)
-            if not hasattr(args, 'monitor_command') or not args.monitor_command:
+            if not hasattr(args, "monitor_command") or not args.monitor_command:
                 # Default to status
                 success = self._status_server(args, server_manager)
                 if success:
-                    return CommandResult.success_result("Monitor status retrieved successfully")
-                else:
-                    return CommandResult.error_result("Failed to retrieve monitor status")
+                    return CommandResult.success_result(
+                        "Monitor status retrieved successfully"
+                    )
+                return CommandResult.error_result("Failed to retrieve monitor status")
 
             # Route to specific subcommand handlers
             command_map = {
@@ -64,11 +66,15 @@ class MonitorCommand(BaseCommand):
             if args.monitor_command in command_map:
                 success = command_map[args.monitor_command](args, server_manager)
                 if success:
-                    return CommandResult.success_result(f"Monitor {args.monitor_command} completed successfully")
-                else:
-                    return CommandResult.error_result(f"Monitor {args.monitor_command} failed")
-            else:
-                return CommandResult.error_result(f"Unknown monitor command: {args.monitor_command}")
+                    return CommandResult.success_result(
+                        f"Monitor {args.monitor_command} completed successfully"
+                    )
+                return CommandResult.error_result(
+                    f"Monitor {args.monitor_command} failed"
+                )
+            return CommandResult.error_result(
+                f"Unknown monitor command: {args.monitor_command}"
+            )
 
         except Exception as e:
             self.logger.error(f"Error executing monitor command: {e}", exc_info=True)
@@ -105,7 +111,7 @@ def manage_monitor(args):
     result = command.execute(args)
 
     # Print result if structured output format is requested
-    if hasattr(args, 'format') and args.format in ['json', 'yaml']:
+    if hasattr(args, "format") and args.format in ["json", "yaml"]:
         command.print_result(result, args)
 
     return result.exit_code
@@ -143,27 +149,26 @@ def manage_monitor_legacy(args):
             success = _start_server(args, server_manager)
             return 0 if success else 1
 
-        elif args.monitor_command == MonitorCommands.STOP.value:
+        if args.monitor_command == MonitorCommands.STOP.value:
             success = _stop_server(args, server_manager)
             return 0 if success else 1
 
-        elif args.monitor_command == MonitorCommands.RESTART.value:
+        if args.monitor_command == MonitorCommands.RESTART.value:
             success = _restart_server(args, server_manager)
             return 0 if success else 1
 
-        elif args.monitor_command == MonitorCommands.STATUS.value:
+        if args.monitor_command == MonitorCommands.STATUS.value:
             success = _status_server(args, server_manager)
             return 0 if success else 1
 
-        elif args.monitor_command == MonitorCommands.PORT.value:
+        if args.monitor_command == MonitorCommands.PORT.value:
             success = _port_server(args, server_manager)
             return 0 if success else 1
 
-        else:
-            logger.error(f"Unknown monitor command: {args.monitor_command}")
-            print(f"Unknown monitor command: {args.monitor_command}")
-            print("Available commands: start, stop, restart, status, port")
-            return 1
+        logger.error(f"Unknown monitor command: {args.monitor_command}")
+        print(f"Unknown monitor command: {args.monitor_command}")
+        print("Available commands: start, stop, restart, status, port")
+        return 1
 
     except ImportError as e:
         logger.error(f"Server manager not available: {e}")
@@ -206,47 +211,50 @@ def _port_server(args, server_manager):
     try:
         # Import PortManager to check port status
         from ...services.port_manager import PortManager
+
         port_manager = PortManager()
-        
+
         # Get detailed port status
         port_status = port_manager.get_port_status(port)
-        
+
         # Check if port is in use
         if not port_status["available"]:
             process_info = port_status.get("process")
             if process_info:
                 print(f"⚠️ Port {port} is in use:")
                 print(f"  Process: {process_info['name']} (PID: {process_info['pid']})")
-                
-                if process_info['is_ours']:
-                    if process_info['is_debug']:
-                        print(f"  Type: Debug/Test script (can be reclaimed)")
+
+                if process_info["is_ours"]:
+                    if process_info["is_debug"]:
+                        print("  Type: Debug/Test script (can be reclaimed)")
                         if reclaim:
-                            print(f"  Action: Attempting to reclaim port...")
+                            print("  Action: Attempting to reclaim port...")
                             if port_manager.kill_process_on_port(port, force=force):
                                 print(f"  ✅ Successfully reclaimed port {port}")
                             else:
                                 print(f"  ❌ Failed to reclaim port {port}")
                                 return False
-                    elif process_info['is_daemon']:
-                        print(f"  Type: Daemon process")
+                    elif process_info["is_daemon"]:
+                        print("  Type: Daemon process")
                         if force:
-                            print(f"  Action: Force killing daemon (--force flag used)...")
+                            print(
+                                "  Action: Force killing daemon (--force flag used)..."
+                            )
                             if port_manager.kill_process_on_port(port, force=True):
                                 print(f"  ✅ Successfully killed daemon on port {port}")
                             else:
                                 print(f"  ❌ Failed to kill daemon on port {port}")
                                 return False
                         else:
-                            print(f"  ❌ Cannot start: Daemon already running")
+                            print("  ❌ Cannot start: Daemon already running")
                             print(f"  Recommendation: {port_status['recommendation']}")
                             return False
                 else:
-                    print(f"  Type: External process")
+                    print("  Type: External process")
                     print(f"  ❌ Cannot start: {port_status['recommendation']}")
                     return False
                 print()
-        
+
         # Check if there are any running servers
         running_servers = server_manager.list_running_servers()
 
@@ -280,7 +288,7 @@ def _port_server(args, server_manager):
             print(f"Monitor server {action} successfully on port {port}")
             print()
             print("Server management commands:")
-            print(f"  Status:  ps aux | grep socketio")
+            print("  Status:  ps aux | grep socketio")
             print(f"  Stop:    claude-mpm monitor stop --port {port}")
             print(f"  Restart: claude-mpm monitor restart --port {port}")
             print()
@@ -325,19 +333,22 @@ def _start_server(args, server_manager):
     force = getattr(args, "force", False)
     reclaim = getattr(args, "reclaim", True)
 
-    print(f"Starting Socket.IO monitoring server...")
-    
+    print("Starting Socket.IO monitoring server...")
+
     try:
         # Import PortManager for smart port selection
         from ...services.port_manager import PortManager
+
         port_manager = PortManager()
-        
+
         # If no port specified, find an available one with smart reclaim
         if port is None:
             port = port_manager.find_available_port(reclaim=reclaim)
             if port is None:
                 print("❌ No available ports found")
-                print("Try specifying a port with --port or use --force to reclaim daemon ports")
+                print(
+                    "Try specifying a port with --port or use --force to reclaim daemon ports"
+                )
                 return False
             print(f"Selected port: {port}")
         else:
@@ -346,9 +357,11 @@ def _start_server(args, server_manager):
             if not port_status["available"]:
                 process_info = port_status.get("process")
                 if process_info:
-                    print(f"⚠️ Port {port} is in use by {process_info['name']} (PID: {process_info['pid']})")
-                    
-                    if process_info['is_ours'] and (process_info['is_debug'] or force):
+                    print(
+                        f"⚠️ Port {port} is in use by {process_info['name']} (PID: {process_info['pid']})"
+                    )
+
+                    if process_info["is_ours"] and (process_info["is_debug"] or force):
                         if reclaim:
                             print(f"Attempting to reclaim port {port}...")
                             if not port_manager.kill_process_on_port(port, force=force):
@@ -356,15 +369,19 @@ def _start_server(args, server_manager):
                                 return False
                             print(f"✅ Successfully reclaimed port {port}")
                         else:
-                            print(f"❌ Port {port} unavailable and --no-reclaim specified")
+                            print(
+                                f"❌ Port {port} unavailable and --no-reclaim specified"
+                            )
                             return False
                     else:
-                        print(f"❌ Cannot reclaim port: {port_status['recommendation']}")
+                        print(
+                            f"❌ Cannot reclaim port: {port_status['recommendation']}"
+                        )
                         return False
-        
+
         print(f"Target: {host}:{port}")
         print()
-        
+
         success = server_manager.start_server(
             port=port, host=host, server_id="monitor-server"
         )
@@ -372,9 +389,9 @@ def _start_server(args, server_manager):
         if success:
             print()
             print("Monitor server management commands:")
-            print(f"  Status: claude-mpm monitor status")
-            print(f"  Stop:   claude-mpm monitor stop")
-            print(f"  Restart: claude-mpm monitor restart")
+            print("  Status: claude-mpm monitor status")
+            print("  Stop:   claude-mpm monitor stop")
+            print("  Restart: claude-mpm monitor restart")
             print()
             print(f"WebSocket URL: ws://{host}:{port}")
 
@@ -428,20 +445,19 @@ def _stop_server(args, server_manager):
                     success = False
 
             return success
+        # Stop specific server on given port
+        success = server_manager.stop_server(port=port)
+
+        if success:
+            print(f"Monitor server stopped on port {port}")
         else:
-            # Stop specific server on given port
-            success = server_manager.stop_server(port=port)
+            print(f"Failed to stop server on port {port}")
+            print()
+            print("Troubleshooting:")
+            print("  • Check if server is running: claude-mpm monitor status")
+            print(f"  • Try force kill: kill $(lsof -ti :{port})")
 
-            if success:
-                print(f"Monitor server stopped on port {port}")
-            else:
-                print(f"Failed to stop server on port {port}")
-                print()
-                print("Troubleshooting:")
-                print(f"  • Check if server is running: claude-mpm monitor status")
-                print(f"  • Try force kill: kill $(lsof -ti :{port})")
-
-            return success
+        return success
 
     except Exception as e:
         print(f"Error stopping server: {e}")
@@ -465,10 +481,10 @@ def _status_server(args, server_manager):
     """
     verbose = getattr(args, "verbose", False)
     show_ports = getattr(args, "show_ports", False)
-    
+
     print("Checking Socket.IO monitoring server status...")
     print()
-    
+
     try:
         # Check for daemon server using socketio_daemon.py
         daemon_script = server_manager.daemon_script
@@ -477,18 +493,19 @@ def _status_server(args, server_manager):
             result = subprocess.run(
                 [sys.executable, str(daemon_script), "status"],
                 capture_output=True,
-                text=True
+                text=True,
+                check=False,
             )
-            
+
             if result.returncode == 0 and result.stdout:
                 # Daemon provided status information
                 print(result.stdout)
-                
+
                 if verbose:
                     # Show additional information
                     print("\nAdditional Details:")
                     print("─" * 40)
-                    
+
                     # List all running servers from ServerManager
                     running_servers = server_manager.list_running_servers()
                     if running_servers:
@@ -502,12 +519,12 @@ def _status_server(args, server_manager):
                             print(f"    PID: {server_pid}")
                     else:
                         print("No additional servers found via ServerManager")
-                
+
                 return True
-        
+
         # Fall back to ServerManager's list_running_servers
         running_servers = server_manager.list_running_servers()
-        
+
         if not running_servers:
             print("❌ No Socket.IO monitoring servers are currently running")
             print()
@@ -515,50 +532,54 @@ def _status_server(args, server_manager):
             print("  claude-mpm monitor start")
             print("  claude-mpm monitor start --port 8765")
             return True
-        
+
         # Import PortManager for enhanced status
         from ...services.port_manager import PortManager
+
         port_manager = PortManager()
-        
+
         # Display server information
         print(f"✅ Found {len(running_servers)} running server(s):")
         print()
-        
+
         for server in running_servers:
             server_port = server.get("port", "unknown")
             server_id = server.get("server_id", "unknown")
             server_pid = server.get("pid", "unknown")
             server_host = server.get("host", "localhost")
-            
+
             print(f"Server: {server_id}")
             print(f"  • PID: {server_pid}")
             print(f"  • Port: {server_port}")
             print(f"  • Host: {server_host}")
             print(f"  • WebSocket URL: ws://{server_host}:{server_port}")
-            
+
             # Show port status if verbose
             if verbose and server_port != "unknown":
                 port_status = port_manager.get_port_status(int(server_port))
                 if port_status.get("process"):
                     process = port_status["process"]
-                    print(f"  • Process Type: {'Debug' if process['is_debug'] else 'Daemon' if process['is_daemon'] else 'Regular'}")
-            
+                    print(
+                        f"  • Process Type: {'Debug' if process['is_debug'] else 'Daemon' if process['is_daemon'] else 'Regular'}"
+                    )
+
             if verbose:
                 # Check if port is actually listening
                 try:
                     import socket
+
                     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     result = sock.connect_ex((server_host, server_port))
                     sock.close()
                     if result == 0:
-                        print(f"  • Status: ✅ Listening")
+                        print("  • Status: ✅ Listening")
                     else:
-                        print(f"  • Status: ⚠️ Not responding on port")
+                        print("  • Status: ⚠️ Not responding on port")
                 except Exception as e:
                     print(f"  • Status: ❌ Error checking: {e}")
-            
+
             print()
-        
+
         # Show port range status if requested
         if show_ports or verbose:
             print("\nPort Range Status (8765-8785):")
@@ -572,17 +593,25 @@ def _status_server(args, server_manager):
                     if process:
                         if process["is_ours"]:
                             if process["is_debug"]:
-                                print(f"  Port {check_port}: 🔧 Debug script (PID: {process['pid']})")
+                                print(
+                                    f"  Port {check_port}: 🔧 Debug script (PID: {process['pid']})"
+                                )
                             elif process["is_daemon"]:
-                                print(f"  Port {check_port}: 🚀 Daemon (PID: {process['pid']})")
+                                print(
+                                    f"  Port {check_port}: 🚀 Daemon (PID: {process['pid']})"
+                                )
                             else:
-                                print(f"  Port {check_port}: 📦 Our process (PID: {process['pid']})")
+                                print(
+                                    f"  Port {check_port}: 📦 Our process (PID: {process['pid']})"
+                                )
                         else:
-                            print(f"  Port {check_port}: ⛔ External ({process['name']})")
+                            print(
+                                f"  Port {check_port}: ⛔ External ({process['name']})"
+                            )
                     else:
                         print(f"  Port {check_port}: ❓ In use (unknown process)")
             print()
-        
+
         print("Server management commands:")
         print("  Stop all:    claude-mpm monitor stop")
         print("  Restart:     claude-mpm monitor restart")
@@ -590,9 +619,9 @@ def _status_server(args, server_manager):
         if len(running_servers) == 1:
             port = running_servers[0].get("port", 8765)
             print(f"  Stop this:   claude-mpm monitor stop --port {port}")
-        
+
         return True
-        
+
     except Exception as e:
         print(f"Error checking server status: {e}")
         print()
@@ -643,7 +672,7 @@ def _restart_server(args, server_manager):
             print(f"Monitor server restarted successfully on port {port}")
             print()
             print("Server management commands:")
-            print(f"  Status: claude-mpm monitor status")
+            print("  Status: claude-mpm monitor status")
             print(f"  Stop:   claude-mpm monitor stop --port {port}")
             print(f"  Start:  claude-mpm monitor start --port {port}")
         else:

@@ -30,11 +30,9 @@ class UtilityService(BaseService, UtilityServiceInterface):
 
     async def _initialize(self) -> None:
         """Initialize the service. No special initialization needed."""
-        pass
 
     async def _cleanup(self) -> None:
         """Cleanup service resources. No cleanup needed."""
-        pass
 
     def contains_delegation(self, text: str) -> bool:
         """Check if text contains signs of agent delegation.
@@ -112,7 +110,7 @@ class UtilityService(BaseService, UtilityServiceInterface):
             with open(log_file, "a") as f:
                 f.write(json.dumps(log_entry) + "\n")
 
-        except (OSError, IOError) as e:
+        except OSError as e:
             self.logger.debug(f"IO error logging session event: {e}")
         except Exception as e:
             self.logger.debug(f"Failed to log session event: {e}")
@@ -130,10 +128,7 @@ class UtilityService(BaseService, UtilityServiceInterface):
             return False
 
         # Check for minimum length
-        if len(prompt.strip()) < 3:
-            return False
-
-        return True
+        return not len(prompt.strip()) < 3
 
     def sanitize_filename(self, filename: str) -> str:
         """Sanitize a filename by removing invalid characters.
@@ -174,8 +169,7 @@ class UtilityService(BaseService, UtilityServiceInterface):
 
         if context:
             return f"{context}: {error_type}: {error_msg}"
-        else:
-            return f"{error_type}: {error_msg}"
+        return f"{error_type}: {error_msg}"
 
     def truncate_text(
         self, text: str, max_length: int = 100, suffix: str = "..."
@@ -210,7 +204,7 @@ class UtilityService(BaseService, UtilityServiceInterface):
         pattern = r'(\w+)=(["\']?)([^"\'\s]*)\2'
         matches = re.findall(pattern, text)
 
-        for key, quote, value in matches:
+        for key, _quote, value in matches:
             pairs[key] = value
 
         return pairs
@@ -280,6 +274,4 @@ class UtilityService(BaseService, UtilityServiceInterface):
                 return False, "Path cannot be empty"
             return True, None
         except Exception as e:
-            return False, f"Path validation error: {str(e)}"
-
-
+            return False, f"Path validation error: {e!s}"

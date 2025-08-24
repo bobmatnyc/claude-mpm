@@ -106,9 +106,7 @@ class FrameworkClaudeMdGenerator:
             sections["header"] = (generator_func, metadata)
 
         # Assemble content
-        content = self.assembler.assemble_content(sections, template_variables)
-
-        return content
+        return self.assembler.assemble_content(sections, template_variables)
 
     def validate_content(self, content: str) -> Tuple[bool, List[str]]:
         """
@@ -143,7 +141,7 @@ class FrameworkClaudeMdGenerator:
         current_content = None
 
         if target_file.exists():
-            with open(target_file, "r") as f:
+            with open(target_file) as f:
                 current_content = f.read()
 
         # Generate new content

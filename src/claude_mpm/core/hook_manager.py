@@ -12,6 +12,7 @@ WHY this is needed:
 - Ensures consistent event streaming to Socket.IO dashboard
 """
 
+import contextlib
 import json
 import os
 import queue
@@ -22,7 +23,6 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from ..core.logger import get_logger
-from .config_constants import ConfigConstants
 from .hook_performance_config import get_hook_performance_config
 from .unified_paths import get_package_root
 
@@ -45,14 +45,16 @@ class HookManager:
         # Initialize background hook processing for async execution
         self.performance_config = get_hook_performance_config()
         queue_config = self.performance_config.get_queue_config()
-        self.hook_queue = queue.Queue(maxsize=queue_config['maxsize'])
+        self.hook_queue = queue.Queue(maxsize=queue_config["maxsize"])
         self.background_thread = None
         self.shutdown_event = threading.Event()
 
         # Start background processing if hook handler is available
         if self.hook_handler_path:
             self._start_background_processor()
-            self.logger.debug(f"Hook handler found with async processing: {self.hook_handler_path}")
+            self.logger.debug(
+                f"Hook handler found with async processing: {self.hook_handler_path}"
+            )
         else:
             self.logger.debug("Hook handler not found - hooks will be skipped")
 
@@ -68,6 +70,7 @@ class HookManager:
 
     def _start_background_processor(self):
         """Start background thread to process hooks asynchronously."""
+
         def process_hooks():
             """Background thread function to process hook queue."""
             while not self.shutdown_event.is_set():
@@ -88,9 +91,7 @@ class HookManager:
                     self.logger.error(f"Hook processing error: {e}")
 
         self.background_thread = threading.Thread(
-            target=process_hooks,
-            name="hook-processor",
-            daemon=True
+            target=process_hooks, name="hook-processor", daemon=True
         )
         self.background_thread.start()
         self.logger.debug("Started background hook processor thread")
@@ -98,14 +99,14 @@ class HookManager:
     def _execute_hook_sync(self, hook_data: Dict[str, Any]):
         """Execute a single hook synchronously in the background thread."""
         try:
-            hook_type = hook_data['hook_type']
-            event_data = hook_data['event_data']
+            hook_type = hook_data["hook_type"]
+            event_data = hook_data["event_data"]
 
             # Create the hook event
             hook_event = {
                 "hook_event_name": hook_type,
                 "session_id": self.session_id,
-                "timestamp": hook_data.get('timestamp', datetime.utcnow().isoformat()),
+                "timestamp": hook_data.get("timestamp", datetime.utcnow().isoformat()),
                 **event_data,
             }
 
@@ -121,6 +122,7 @@ class HookManager:
                 capture_output=True,
                 env=env,
                 timeout=self.performance_config.background_timeout,
+                check=False,
             )
 
             if result.returncode != 0:
@@ -129,7 +131,9 @@ class HookManager:
                     self.logger.debug(f"Hook stderr: {result.stderr}")
 
         except subprocess.TimeoutExpired:
-            self.logger.debug(f"Hook {hook_data.get('hook_type', 'unknown')} timed out in background")
+            self.logger.debug(
+                f"Hook {hook_data.get('hook_type', 'unknown')} timed out in background"
+            )
         except Exception as e:
             self.logger.debug(f"Background hook execution error: {e}")
 
@@ -138,10 +142,8 @@ class HookManager:
         if self.background_thread and self.background_thread.is_alive():
             self.shutdown_event.set()
             # Signal shutdown by putting None in queue
-            try:
+            with contextlib.suppress(queue.Full):
                 self.hook_queue.put_nowait(None)
-            except queue.Full:
-                pass
 
             # Wait for thread to finish
             self.background_thread.join(timeout=2.0)
@@ -157,15 +159,14 @@ class HookManager:
 
             if hook_handler.exists():
                 return hook_handler
-            else:
-                self.logger.warning(f"Hook handler not found at: {hook_handler}")
-                return None
+            self.logger.warning(f"Hook handler not found at: {hook_handler}")
+            return None
         except Exception as e:
             self.logger.error(f"Error finding hook handler: {e}")
             return None
 
     def trigger_pre_tool_hook(
-        self, tool_name: str, tool_args: Dict[str, Any] = None
+        self, tool_name: str, tool_args: Optional[Dict[str, Any]] = None
     ) -> bool:
         """Trigger PreToolUse hook event.
 
@@ -247,14 +248,16 @@ class HookManager:
         try:
             # Queue hook for background processing
             hook_data = {
-                'hook_type': hook_type,
-                'event_data': event_data,
-                'timestamp': datetime.utcnow().isoformat()
+                "hook_type": hook_type,
+                "event_data": event_data,
+                "timestamp": datetime.utcnow().isoformat(),
             }
 
             # Try to queue without blocking
             self.hook_queue.put_nowait(hook_data)
-            self.logger.debug(f"Successfully queued {hook_type} hook for background processing")
+            self.logger.debug(
+                f"Successfully queued {hook_type} hook for background processing"
+            )
             return True
 
         except queue.Full:
@@ -276,6 +279,7 @@ def get_hook_manager() -> HookManager:
         _hook_manager = HookManager()
         # Register cleanup on exit
         import atexit
+
         atexit.register(_cleanup_hook_manager)
     return _hook_manager
 
@@ -290,7 +294,7 @@ def _cleanup_hook_manager():
 
 def trigger_tool_hooks(
     tool_name: str,
-    tool_args: Dict[str, Any] = None,
+    tool_args: Optional[Dict[str, Any]] = None,
     result: Any = None,
     exit_code: int = 0,
 ):

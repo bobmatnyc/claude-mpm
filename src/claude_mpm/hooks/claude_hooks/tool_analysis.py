@@ -5,8 +5,6 @@ This module provides utilities for analyzing tool usage, extracting parameters,
 and assessing security risks.
 """
 
-from typing import Any, Dict, List
-
 
 def extract_tool_parameters(tool_name: str, tool_input: dict) -> dict:
     """Extract relevant parameters based on tool type.
@@ -99,7 +97,7 @@ def extract_tool_parameters(tool_name: str, tool_input: dict) -> dict:
                 "has_in_progress": any(t.get("status") == "in_progress" for t in todos),
                 "has_pending": any(t.get("status") == "pending" for t in todos),
                 "has_completed": any(t.get("status") == "completed" for t in todos),
-                "priorities": list(set(t.get("priority", "medium") for t in todos)),
+                "priorities": list({t.get("priority", "medium") for t in todos}),
             }
         )
 
@@ -144,18 +142,17 @@ def classify_tool_operation(tool_name: str, tool_input: dict) -> str:
     """Classify the type of operation being performed."""
     if tool_name in ["Read", "LS", "Glob", "Grep", "NotebookRead"]:
         return "read"
-    elif tool_name in ["Write", "Edit", "MultiEdit", "NotebookEdit"]:
+    if tool_name in ["Write", "Edit", "MultiEdit", "NotebookEdit"]:
         return "write"
-    elif tool_name == "Bash":
+    if tool_name == "Bash":
         return "execute"
-    elif tool_name in ["WebFetch", "WebSearch"]:
+    if tool_name in ["WebFetch", "WebSearch"]:
         return "network"
-    elif tool_name == "TodoWrite":
+    if tool_name == "TodoWrite":
         return "task_management"
-    elif tool_name == "Task":
+    if tool_name == "Task":
         return "delegation"
-    else:
-        return "other"
+    return "other"
 
 
 def assess_security_risk(tool_name: str, tool_input: dict) -> str:
@@ -174,21 +171,18 @@ def assess_security_risk(tool_name: str, tool_input: dict) -> str:
         ]
         if any(pattern in command for pattern in dangerous_patterns):
             return "high"
-        elif any(word in command for word in ["install", "delete", "format", "kill"]):
+        if any(word in command for word in ["install", "delete", "format", "kill"]):
             return "medium"
-        else:
-            return "low"
-    elif tool_name in ["Write", "Edit", "MultiEdit"]:
+        return "low"
+    if tool_name in ["Write", "Edit", "MultiEdit"]:
         file_path = tool_input.get("file_path", "")
         # Check for system file modifications
         if any(path in file_path for path in ["/etc/", "/usr/", "/var/", "/sys/"]):
             return "high"
-        elif file_path.startswith("/"):
+        if file_path.startswith("/"):
             return "medium"
-        else:
-            return "low"
-    else:
         return "low"
+    return "low"
 
 
 def extract_tool_results(event: dict) -> dict:

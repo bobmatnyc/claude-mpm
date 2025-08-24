@@ -13,32 +13,32 @@ Key Components:
 - Various consumer implementations
 """
 
-from .core import Event, EventBus, EventMetadata, EventPriority
-from .interfaces import IEventConsumer, IEventProducer, ConsumerConfig
 from .consumers import (
-    SocketIOConsumer,
+    DeadLetterConsumer,
     LoggingConsumer,
     MetricsConsumer,
-    DeadLetterConsumer,
+    SocketIOConsumer,
 )
+from .core import Event, EventBus, EventMetadata, EventPriority
+from .interfaces import ConsumerConfig, IEventConsumer, IEventProducer
 from .producers import HookEventProducer, SystemEventProducer
 
 __all__ = [
+    "ConsumerConfig",
+    "DeadLetterConsumer",
     # Core
     "Event",
     "EventBus",
     "EventMetadata",
     "EventPriority",
+    # Producers
+    "HookEventProducer",
     # Interfaces
     "IEventConsumer",
     "IEventProducer",
-    "ConsumerConfig",
-    # Consumers
-    "SocketIOConsumer",
     "LoggingConsumer",
     "MetricsConsumer",
-    "DeadLetterConsumer",
-    # Producers
-    "HookEventProducer",
+    # Consumers
+    "SocketIOConsumer",
     "SystemEventProducer",
 ]

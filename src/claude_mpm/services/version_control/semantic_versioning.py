@@ -39,13 +39,12 @@ Change Analysis:
 - Confidence scoring for version bump suggestions
 """
 
-import json
 import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 from ...utils.config_manager import ConfigurationManager
 
@@ -167,13 +166,13 @@ class SemanticVersion:
         if bump_type == VersionBumpType.MAJOR:
             # Breaking changes - reset minor and patch
             return SemanticVersion(self.major + 1, 0, 0)
-        elif bump_type == VersionBumpType.MINOR:
+        if bump_type == VersionBumpType.MINOR:
             # New features - reset patch only
             return SemanticVersion(self.major, self.minor + 1, 0)
-        elif bump_type == VersionBumpType.PATCH:
+        if bump_type == VersionBumpType.PATCH:
             # Bug fixes - increment patch only
             return SemanticVersion(self.major, self.minor, self.patch + 1)
-        elif bump_type == VersionBumpType.PRERELEASE:
+        if bump_type == VersionBumpType.PRERELEASE:
             if self.prerelease:
                 # Increment existing prerelease number
                 match = re.match(r"(.+?)(\d+)$", self.prerelease)
@@ -423,7 +422,7 @@ class SemanticVersionManager:
             # Try different locations for version
             if "project" in data and "version" in data["project"]:
                 return data["project"]["version"]
-            elif (
+            if (
                 "tool" in data
                 and "poetry" in data["tool"]
                 and "version" in data["tool"]["poetry"]
@@ -438,7 +437,7 @@ class SemanticVersionManager:
     def _parse_toml_version_regex(self, file_path: Path) -> Optional[str]:
         """Parse version from TOML file using regex."""
         try:
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 content = f.read()
 
             # Look for version = "x.y.z" pattern
@@ -464,7 +463,7 @@ class SemanticVersionManager:
     def _parse_version_file(self, file_path: Path) -> Optional[str]:
         """Parse version from simple version file."""
         try:
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 return f.read().strip()
         except Exception:
             return None
@@ -472,7 +471,7 @@ class SemanticVersionManager:
     def _parse_pom_xml_version(self, file_path: Path) -> Optional[str]:
         """Parse version from Maven pom.xml."""
         try:
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 content = f.read()
 
             # Simple regex to find version in pom.xml
@@ -645,11 +644,11 @@ class SemanticVersionManager:
         try:
             if filename == "package.json":
                 return self._update_package_json_version(file_path, new_version)
-            elif filename in ["pyproject.toml", "Cargo.toml"]:
+            if filename in ["pyproject.toml", "Cargo.toml"]:
                 return self._update_toml_version(file_path, new_version)
-            elif filename in ["VERSION", "version.txt"]:
+            if filename in ["VERSION", "version.txt"]:
                 return self._update_simple_version_file(file_path, new_version)
-            elif filename == "pom.xml":
+            if filename == "pom.xml":
                 return self._update_pom_xml_version(file_path, new_version)
 
             return False
@@ -674,7 +673,7 @@ class SemanticVersionManager:
     def _update_toml_version(self, file_path: Path, new_version: str) -> bool:
         """Update version in TOML file."""
         try:
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 content = f.read()
 
             # Replace version field
@@ -713,7 +712,7 @@ class SemanticVersionManager:
     def _update_pom_xml_version(self, file_path: Path, new_version: str) -> bool:
         """Update version in Maven pom.xml."""
         try:
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 content = f.read()
 
             # Replace first version tag (project version)
@@ -842,7 +841,7 @@ class SemanticVersionManager:
 
             # Read existing changelog or create new one
             if changelog_path.exists():
-                with open(changelog_path, "r") as f:
+                with open(changelog_path) as f:
                     existing_content = f.read()
 
                 # Insert new entry after title
@@ -851,7 +850,7 @@ class SemanticVersionManager:
 
                 # Find insertion point (after # Changelog title)
                 for i, line in enumerate(lines):
-                    if line.startswith("# ") or line.startswith("## [Unreleased]"):
+                    if line.startswith(("# ", "## [Unreleased]")):
                         insert_index = i + 1
                         break
 
@@ -946,7 +945,7 @@ class SemanticVersionManager:
         versions = []
 
         try:
-            with open(changelog_path, "r") as f:
+            with open(changelog_path) as f:
                 content = f.read()
 
             # Find version entries

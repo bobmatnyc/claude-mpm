@@ -17,14 +17,14 @@ from .monitor_check import MonitorCheck
 from .startup_log_check import StartupLogCheck
 
 __all__ = [
-    "BaseDiagnosticCheck",
-    "InstallationCheck",
-    "ConfigurationCheck",
-    "ClaudeDesktopCheck",
     "AgentCheck",
+    "BaseDiagnosticCheck",
+    "ClaudeDesktopCheck",
+    "CommonIssuesCheck",
+    "ConfigurationCheck",
+    "FilesystemCheck",
+    "InstallationCheck",
     "MCPCheck",
     "MonitorCheck",
-    "FilesystemCheck",
-    "CommonIssuesCheck",
     "StartupLogCheck",
 ]

@@ -32,7 +32,6 @@ class BaseSectionGenerator(ABC):
         Returns:
             str: Generated section content
         """
-        pass
 
     def get_timestamp(self) -> str:
         """Get current UTC timestamp."""

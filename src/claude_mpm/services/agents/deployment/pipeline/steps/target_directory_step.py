@@ -32,14 +32,13 @@ class TargetDirectorySetupStep(BaseDeploymentStep):
                 context.actual_target_dir = context.strategy.determine_target_directory(
                     context  # Pass the context which has the DeploymentContext interface
                 )
+            # Fallback logic if no strategy is set
+            elif context.target_dir:
+                context.actual_target_dir = context.target_dir
             else:
-                # Fallback logic if no strategy is set
-                if context.target_dir:
-                    context.actual_target_dir = context.target_dir
-                else:
-                    # MODIFIED: Default to project .claude/agents directory
-                    # All agents now deploy to the project level
-                    context.actual_target_dir = Path.cwd() / ".claude" / "agents"
+                # MODIFIED: Default to project .claude/agents directory
+                # All agents now deploy to the project level
+                context.actual_target_dir = Path.cwd() / ".claude" / "agents"
 
             # Create target directory if it doesn't exist
             context.actual_target_dir.mkdir(parents=True, exist_ok=True)
@@ -49,7 +48,7 @@ class TargetDirectorySetupStep(BaseDeploymentStep):
             try:
                 test_file.write_text("test")
                 test_file.unlink()
-            except Exception as e:
+            except Exception:
                 raise PermissionError(
                     f"Target directory is not writable: {context.actual_target_dir}"
                 )
@@ -69,7 +68,7 @@ class TargetDirectorySetupStep(BaseDeploymentStep):
             execution_time = time.time() - start_time
             context.step_timings[self.name] = execution_time
 
-            error_msg = f"Failed to set up target directory: {str(e)}"
+            error_msg = f"Failed to set up target directory: {e!s}"
             self.logger.error(error_msg)
             context.add_error(error_msg)
 

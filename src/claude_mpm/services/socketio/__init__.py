@@ -17,9 +17,9 @@ from .handlers import (
 __all__ = [
     "BaseEventHandler",
     "ConnectionEventHandler",
-    "ProjectEventHandler",
-    "MemoryEventHandler",
+    "EventHandlerRegistry",
     "FileEventHandler",
     "GitEventHandler",
-    "EventHandlerRegistry",
+    "MemoryEventHandler",
+    "ProjectEventHandler",
 ]
