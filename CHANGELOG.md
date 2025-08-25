@@ -16,6 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [4.1.4] - 2025-08-25
+
+### Changed
+- **Agent Template Optimizations**: Achieved 75% average size reduction across all agent templates (140KB saved)
+- **Code Analyzer Agent**: Reduced from 20KB to 4.6KB (77% reduction) through memory pattern optimization
+- **Web QA Agent**: Reduced from 31KB to 5.9KB (81% reduction) with improved memory management
+- **Memory Safety**: Implemented clear Read→Extract→Summarize→Discard pattern across all templates
+- **Template Versioning**: All agent templates now versioned for automatic redeployment
+- **Token Efficiency**: All optimized agents now under 8KB for efficient token usage
+
 ## [4.1.3] - 2025-08-25
 
 ### Changed

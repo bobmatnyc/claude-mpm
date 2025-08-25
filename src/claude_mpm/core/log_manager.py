@@ -351,26 +351,26 @@ class LogManager:
     async def _migrate_mpm_logs(self):
         """
         One-time migration to move existing MPM logs to new subdirectory.
-        
+
         Moves mpm_*.log files from .claude-mpm/logs/ to .claude-mpm/logs/mpm/
         """
         try:
             old_location = self.base_log_dir
             new_location = self.base_log_dir / "mpm"
-            
+
             # Only proceed if old location exists and has MPM logs
             if not old_location.exists():
                 return
-            
+
             # Find all MPM log files in the old location
             mpm_logs = list(old_location.glob("mpm_*.log"))
-            
+
             if not mpm_logs:
                 return  # No logs to migrate
-            
+
             # Ensure new directory exists
             new_location.mkdir(parents=True, exist_ok=True)
-            
+
             migrated_count = 0
             for log_file in mpm_logs:
                 try:
@@ -381,10 +381,12 @@ class LogManager:
                         migrated_count += 1
                 except Exception as e:
                     logger.debug(f"Could not migrate {log_file}: {e}")
-            
+
             if migrated_count > 0:
-                logger.info(f"Migrated {migrated_count} MPM log files to {new_location}")
-                
+                logger.info(
+                    f"Migrated {migrated_count} MPM log files to {new_location}"
+                )
+
         except Exception as e:
             # Migration is best-effort, don't fail if something goes wrong
             logger.debug(f"MPM log migration skipped: {e}")

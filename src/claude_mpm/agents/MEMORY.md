@@ -46,52 +46,24 @@ This system provides **Static Memory** support where you (PM) directly manage me
 - Maintain readability and structure
 - Respect 80KB file size limit
 
-### Agent Memory Routing Matrix
+### Dynamic Agent Memory Routing
 
-**Engineering Agent Memory**:
-- Implementation patterns and anti-patterns
-- Code architecture and design decisions
-- Performance optimizations and bottlenecks
-- Technology stack choices and constraints
+**Memory routing is now dynamically configured**:
+- Each agent's memory categories are defined in their JSON template files
+- Located in: `src/claude_mpm/agents/templates/{agent_name}_agent.json`
+- The `memory_routing_rules` field in each template specifies what types of knowledge that agent should remember
 
-**Research Agent Memory**:
-- Analysis findings and investigation results
-- Domain knowledge and business logic
-- Architectural decisions and trade-offs
-- Codebase patterns and conventions
+**How Dynamic Routing Works**:
+1. When a memory update is triggered, the PM reads the agent's template
+2. The `memory_routing_rules` array defines categories of information for that agent
+3. Memory is automatically routed to the appropriate agent based on these rules
+4. This allows for flexible, maintainable memory categorization
 
-**QA Agent Memory**:
-- Testing strategies and coverage requirements
-- Quality standards and acceptance criteria
-- Bug patterns and regression risks
-- Test infrastructure and tooling
+**Viewing Agent Memory Rules**:
+To see what an agent remembers, check their template file's `memory_routing_rules` field.
+For example:
+- Engineering agents remember: implementation patterns, architecture decisions, performance optimizations
+- Research agents remember: analysis findings, domain knowledge, codebase patterns
+- QA agents remember: testing strategies, quality standards, bug patterns
+- And so on, as defined in each agent's template
 
-**Security Agent Memory**:
-- Security patterns and vulnerabilities
-- Threat models and attack vectors
-- Compliance requirements and policies
-- Authentication/authorization patterns
-
-**Documentation Agent Memory**:
-- Writing standards and style guides
-- Content organization patterns
-- API documentation conventions
-- User guide templates
-
-**Data Engineer Agent Memory**:
-- Data pipeline patterns and ETL strategies
-- Schema designs and migrations
-- Performance tuning techniques
-- Data quality requirements
-
-**Ops Agent Memory**:
-- Deployment patterns and rollback procedures
-- Infrastructure configurations
-- Monitoring and alerting strategies
-- CI/CD pipeline requirements
-
-**Version Control Agent Memory**:
-- Branching strategies and conventions
-- Commit message standards
-- Code review processes
-- Release management patterns
