@@ -10,7 +10,6 @@ Line count reduction: From 1,020 lines to ~600 lines (40% reduction)
 """
 
 import asyncio
-import time
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService
@@ -54,13 +53,13 @@ __all__ = [
 class AgentLifecycleManager(BaseService):
     """
     Agent Lifecycle Manager - Orchestrates agent lifecycle through specialized services.
-    
+
     Refactored Architecture:
     - AgentStateService: Manages agent states and transitions
     - AgentOperationService: Handles CRUD operations
     - AgentRecordService: Manages persistence and history
     - LifecycleHealthChecker: Monitors system health
-    
+
     This manager now acts as a facade/orchestrator, delegating specific
     responsibilities to appropriate services while maintaining backward
     compatibility with existing interfaces.
@@ -266,11 +265,11 @@ class AgentLifecycleManager(BaseService):
         agent_content: str,
         tier: ModificationTier = ModificationTier.USER,
         agent_type: str = "custom",
-        **kwargs
+        **kwargs,
     ) -> LifecycleOperationResult:
         """
         Create a new agent through orchestrated services.
-        
+
         Orchestration flow:
         1. Check state service for existing agent
         2. Execute creation through operation service
@@ -294,7 +293,7 @@ class AgentLifecycleManager(BaseService):
             agent_content=agent_content,
             tier=tier,
             agent_type=agent_type,
-            **kwargs
+            **kwargs,
         )
 
         # Update state if successful
@@ -307,7 +306,7 @@ class AgentLifecycleManager(BaseService):
                 initial_state=LifecycleState.ACTIVE,
                 version="1.0.0",
                 agent_type=agent_type,
-                **kwargs
+                **kwargs,
             )
 
             # Track modification
@@ -328,7 +327,7 @@ class AgentLifecycleManager(BaseService):
     ) -> LifecycleOperationResult:
         """
         Update an existing agent through orchestrated services.
-        
+
         Orchestration flow:
         1. Verify agent exists in state service
         2. Execute update through operation service
@@ -353,7 +352,7 @@ class AgentLifecycleManager(BaseService):
             agent_content=agent_content,
             file_path=record.file_path,
             tier=record.tier,
-            **kwargs
+            **kwargs,
         )
 
         # Update state if successful
@@ -380,12 +379,10 @@ class AgentLifecycleManager(BaseService):
 
         return result
 
-    async def delete_agent(
-        self, agent_name: str, **kwargs
-    ) -> LifecycleOperationResult:
+    async def delete_agent(self, agent_name: str, **kwargs) -> LifecycleOperationResult:
         """
         Delete an agent through orchestrated services.
-        
+
         Orchestration flow:
         1. Verify agent exists in state service
         2. Create backup if enabled
@@ -411,7 +408,7 @@ class AgentLifecycleManager(BaseService):
             file_path=record.file_path,
             tier=record.tier,
             create_backup=self.enable_auto_backup,
-            **kwargs
+            **kwargs,
         )
 
         # Update state if successful
@@ -451,9 +448,7 @@ class AgentLifecycleManager(BaseService):
 
     # Query methods (delegated to services)
 
-    async def get_agent_status(
-        self, agent_name: str
-    ) -> Optional[AgentLifecycleRecord]:
+    async def get_agent_status(self, agent_name: str) -> Optional[AgentLifecycleRecord]:
         """Get current status of an agent."""
         return self.state_service.get_record(agent_name)
 
@@ -526,7 +521,9 @@ class AgentLifecycleManager(BaseService):
             self.logger.warning(f"Failed to update registry for {agent_name}: {e}")
             return False
 
-    async def _update_performance_metrics(self, result: LifecycleOperationResult) -> None:
+    async def _update_performance_metrics(
+        self, result: LifecycleOperationResult
+    ) -> None:
         """Update performance metrics with operation result."""
         from .lifecycle_performance_tracker import LifecyclePerformanceTracker
 
@@ -548,11 +545,15 @@ class AgentLifecycleManager(BaseService):
                 ModificationType.MODIFY,
             ]:
                 self.state_service.update_state(
-                    agent_name, LifecycleState.MODIFIED, "External modification detected"
+                    agent_name,
+                    LifecycleState.MODIFIED,
+                    "External modification detected",
                 )
 
             # Track modification
-            self.state_service.add_modification(agent_name, modification.modification_id)
+            self.state_service.add_modification(
+                agent_name, modification.modification_id
+            )
 
             self.logger.debug(
                 f"Handled {modification.modification_type.value} event for {agent_name}"
