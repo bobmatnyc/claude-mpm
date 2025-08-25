@@ -22,476 +22,415 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-# Re-export infrastructure interfaces for convenience
-from .interfaces.infrastructure import (
-    IServiceContainer,
-    IConfigurationService,
-    IConfigurationManager,
-    ICacheService,
-    IHealthMonitor,
-    HealthStatus,
-    IPromptCache,
-    CacheEntry,
-    ITemplateManager,
-    TemplateRenderContext,
-    IServiceFactory,
-    IStructuredLogger,
-    IServiceLifecycle,
-    IErrorHandler,
-    IPerformanceMonitor,
-    IEventBus,
-)
-
 # Import CLI service interfaces
-from ..cli.startup_checker import IStartupChecker, StartupWarning
-from ..cli.session_manager import ISessionManager, SessionInfo, SessionValidation
-from ..cli.dashboard_launcher import IDashboardLauncher
-from ..cli.socketio_manager import ISocketIOManager, ServerInfo
-from ..cli.agent_output_formatter import IAgentOutputFormatter
-from ..cli.agent_cleanup_service import IAgentCleanupService
-from ..cli.agent_listing_service import IAgentListingService, AgentInfo, AgentTierInfo
-from ..cli.agent_validation_service import IAgentValidationService
-from ..cli.agent_dependency_service import IAgentDependencyService
-from ..cli.memory_output_formatter import IMemoryOutputFormatter
-from ..cli.memory_crud_service import IMemoryCRUDService
+
+# Re-export infrastructure interfaces for convenience
 
 
 # Cache Manager Interface (moved from cache_manager.py)
 class ICacheManager(ABC):
     """Interface for framework-specific cache management service."""
-    
+
     @abstractmethod
     def get_capabilities(self) -> Optional[str]:
         """Get cached agent capabilities."""
-        pass
-    
+
     @abstractmethod
     def set_capabilities(self, value: str) -> None:
         """Set agent capabilities cache."""
-        pass
-    
+
     @abstractmethod
     def get_deployed_agents(self) -> Optional[Set[str]]:
         """Get cached deployed agents set."""
-        pass
-    
+
     @abstractmethod
     def set_deployed_agents(self, agents: Set[str]) -> None:
         """Set deployed agents cache."""
-        pass
-    
+
     @abstractmethod
-    def get_agent_metadata(self, agent_file: str) -> Optional[Tuple[Optional[Dict[str, Any]], float]]:
+    def get_agent_metadata(
+        self, agent_file: str
+    ) -> Optional[Tuple[Optional[Dict[str, Any]], float]]:
         """Get cached agent metadata for a specific file."""
-        pass
-    
+
     @abstractmethod
-    def set_agent_metadata(self, agent_file: str, metadata: Optional[Dict[str, Any]], mtime: float) -> None:
+    def set_agent_metadata(
+        self, agent_file: str, metadata: Optional[Dict[str, Any]], mtime: float
+    ) -> None:
         """Set agent metadata cache for a specific file."""
-        pass
-    
+
     @abstractmethod
     def get_memories(self) -> Optional[Dict[str, Any]]:
         """Get cached memories."""
-        pass
-    
+
     @abstractmethod
     def set_memories(self, memories: Dict[str, Any]) -> None:
         """Set memories cache."""
-        pass
-    
+
     @abstractmethod
     def clear_all(self) -> None:
         """Clear all caches."""
-        pass
-    
+
     @abstractmethod
     def clear_agent_caches(self) -> None:
         """Clear agent-related caches only."""
-        pass
-    
+
     @abstractmethod
     def clear_memory_caches(self) -> None:
         """Clear memory-related caches only."""
-        pass
-    
+
     @abstractmethod
     def is_cache_valid(self, cache_time: float, ttl: float) -> bool:
         """Check if a cache entry is still valid based on its timestamp and TTL."""
-        pass
 
 
 # Path Resolution Interface
 class IPathResolver(ABC):
     """Interface for path resolution and validation service."""
-    
+
     @abstractmethod
     def resolve_path(self, path: str, base_dir: Optional[Path] = None) -> Path:
         """
         Resolve a path relative to a base directory.
-        
+
         Args:
             path: The path to resolve (can be relative or absolute)
             base_dir: Base directory for relative paths (defaults to cwd)
-        
+
         Returns:
             The resolved absolute path
         """
-        pass
-    
+
     @abstractmethod
     def validate_path(self, path: Path, must_exist: bool = False) -> bool:
         """
         Validate a path for security and existence.
-        
+
         Args:
             path: The path to validate
             must_exist: Whether the path must exist
-        
+
         Returns:
             True if path is valid, False otherwise
         """
-        pass
-    
+
     @abstractmethod
     def ensure_directory(self, path: Path) -> Path:
         """
         Ensure a directory exists, creating it if necessary.
-        
+
         Args:
             path: The directory path
-        
+
         Returns:
             The directory path
         """
-        pass
-    
+
     @abstractmethod
     def find_project_root(self, start_path: Optional[Path] = None) -> Optional[Path]:
         """
         Find the project root directory.
-        
+
         Args:
             start_path: Starting path for search (defaults to cwd)
-        
+
         Returns:
             Project root path or None if not found
         """
-        pass
 
 
 # Memory Management Interface
 class IMemoryManager(ABC):
     """Interface for agent memory management service."""
-    
+
     @abstractmethod
     def load_memories(self, agent_name: Optional[str] = None) -> Dict[str, Any]:
         """
         Load memories for an agent or all agents.
-        
+
         Args:
             agent_name: Specific agent name or None for all
-        
+
         Returns:
             Dictionary of memories
         """
-        pass
-    
+
     @abstractmethod
-    def save_memory(self, key: str, value: Any, agent_name: Optional[str] = None) -> None:
+    def save_memory(
+        self, key: str, value: Any, agent_name: Optional[str] = None
+    ) -> None:
         """
         Save a memory entry.
-        
+
         Args:
             key: Memory key
             value: Memory value
             agent_name: Agent name or None for global
         """
-        pass
-    
+
     @abstractmethod
-    def search_memories(self, query: str, agent_name: Optional[str] = None) -> List[Dict[str, Any]]:
+    def search_memories(
+        self, query: str, agent_name: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         Search memories by query.
-        
+
         Args:
             query: Search query
             agent_name: Specific agent or None for all
-        
+
         Returns:
             List of matching memory entries
         """
-        pass
-    
+
     @abstractmethod
     def clear_memories(self, agent_name: Optional[str] = None) -> None:
         """
         Clear memories for an agent or all agents.
-        
+
         Args:
             agent_name: Specific agent or None for all
         """
-        pass
-    
+
     @abstractmethod
     def get_memory_stats(self) -> Dict[str, Any]:
         """
         Get memory system statistics.
-        
+
         Returns:
             Dictionary with memory statistics
         """
-        pass
 
 
 # Framework Loader Interface
 class IFrameworkLoader(ABC):
     """Interface for framework loading and instruction management."""
-    
+
     @abstractmethod
     def load_instructions(self) -> str:
         """
         Load and format framework instructions.
-        
+
         Returns:
             Formatted instructions for injection
         """
-        pass
-    
+
     @abstractmethod
     def get_agent_capabilities(self) -> str:
         """
         Get formatted agent capabilities.
-        
+
         Returns:
             Agent capabilities text
         """
-        pass
-    
+
     @abstractmethod
     def get_deployed_agents(self) -> Set[str]:
         """
         Get set of deployed agent names.
-        
+
         Returns:
             Set of agent names
         """
-        pass
-    
+
     @abstractmethod
     def reload(self) -> None:
         """Reload framework instructions and clear caches."""
-        pass
-    
+
     @abstractmethod
     def get_version(self) -> Optional[str]:
         """
         Get framework version.
-        
+
         Returns:
             Version string or None
         """
-        pass
 
 
 # File System Service Interface
 class IFileSystemService(ABC):
     """Interface for file system operations."""
-    
+
     @abstractmethod
     def read_file(self, path: Path, encoding: str = "utf-8") -> str:
         """
         Read file contents.
-        
+
         Args:
             path: File path
             encoding: File encoding
-        
+
         Returns:
             File contents
         """
-        pass
-    
+
     @abstractmethod
     def write_file(self, path: Path, content: str, encoding: str = "utf-8") -> None:
         """
         Write content to file.
-        
+
         Args:
             path: File path
             content: Content to write
             encoding: File encoding
         """
-        pass
-    
+
     @abstractmethod
     def copy_file(self, source: Path, destination: Path) -> None:
         """
         Copy file from source to destination.
-        
+
         Args:
             source: Source file path
             destination: Destination file path
         """
-        pass
-    
+
     @abstractmethod
     def delete_file(self, path: Path) -> bool:
         """
         Delete a file.
-        
+
         Args:
             path: File path
-        
+
         Returns:
             True if deleted, False if not found
         """
-        pass
-    
+
     @abstractmethod
     def list_directory(self, path: Path, pattern: Optional[str] = None) -> List[Path]:
         """
         List directory contents.
-        
+
         Args:
             path: Directory path
             pattern: Optional glob pattern
-        
+
         Returns:
             List of paths
         """
-        pass
 
 
 # Environment Service Interface
 class IEnvironmentService(ABC):
     """Interface for environment and configuration management."""
-    
+
     @abstractmethod
     def get_env(self, key: str, default: Optional[str] = None) -> Optional[str]:
         """
         Get environment variable.
-        
+
         Args:
             key: Environment variable key
             default: Default value if not found
-        
+
         Returns:
             Environment value or default
         """
-        pass
-    
+
     @abstractmethod
     def set_env(self, key: str, value: str) -> None:
         """
         Set environment variable.
-        
+
         Args:
             key: Environment variable key
             value: Value to set
         """
-        pass
-    
+
     @abstractmethod
     def get_config_dir(self) -> Path:
         """
         Get configuration directory.
-        
+
         Returns:
             Configuration directory path
         """
-        pass
-    
+
     @abstractmethod
     def get_data_dir(self) -> Path:
         """
         Get data directory.
-        
+
         Returns:
             Data directory path
         """
-        pass
-    
+
     @abstractmethod
     def get_cache_dir(self) -> Path:
         """
         Get cache directory.
-        
+
         Returns:
             Cache directory path
         """
-        pass
 
 
 # Process Management Interface
 class IProcessManager(ABC):
     """Interface for process and subprocess management."""
-    
+
     @abstractmethod
     def run_command(
         self,
         command: List[str],
         cwd: Optional[Path] = None,
         env: Optional[Dict[str, str]] = None,
-        timeout: Optional[float] = None
+        timeout: Optional[float] = None,
     ) -> Tuple[int, str, str]:
         """
         Run a command and return result.
-        
+
         Args:
             command: Command and arguments
             cwd: Working directory
             env: Environment variables
             timeout: Command timeout in seconds
-        
+
         Returns:
             Tuple of (return_code, stdout, stderr)
         """
-        pass
-    
+
     @abstractmethod
     def start_process(
         self,
         command: List[str],
         cwd: Optional[Path] = None,
-        env: Optional[Dict[str, str]] = None
+        env: Optional[Dict[str, str]] = None,
     ) -> int:
         """
         Start a background process.
-        
+
         Args:
             command: Command and arguments
             cwd: Working directory
             env: Environment variables
-        
+
         Returns:
             Process ID
         """
-        pass
-    
+
     @abstractmethod
     def stop_process(self, pid: int, timeout: float = 5.0) -> bool:
         """
         Stop a process.
-        
+
         Args:
             pid: Process ID
             timeout: Timeout for graceful shutdown
-        
+
         Returns:
             True if stopped successfully
         """
-        pass
-    
+
     @abstractmethod
     def is_process_running(self, pid: int) -> bool:
         """
         Check if process is running.
-        
+
         Args:
             pid: Process ID
-        
+
         Returns:
             True if process is running
         """
-        pass

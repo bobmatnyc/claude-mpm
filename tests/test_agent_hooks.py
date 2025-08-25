@@ -76,7 +76,8 @@ if __name__ == "__main__":
             ],
             cwd=Path(__file__).parent.parent,
             capture_output=True,
-            text=True, check=False,
+            text=True,
+            check=False,
         )
 
         if result.returncode != 0:

@@ -7,10 +7,9 @@ This test suite ensures safe refactoring by testing all methods and edge cases
 in the AgentMemoryManager class.
 """
 
-import json
-from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch, PropertyMock, mock_open, call
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 
@@ -39,7 +38,9 @@ class TestAgentMemoryManager:
     @pytest.fixture
     def mock_path_manager(self):
         """Create a mock PathManager."""
-        with patch("claude_mpm.services.agents.memory.agent_memory_manager.get_path_manager") as mock:
+        with patch(
+            "claude_mpm.services.agents.memory.agent_memory_manager.get_path_manager"
+        ) as mock:
             mock_pm = MagicMock()
             mock_pm.project_root = Path("/project/root")
             mock.return_value = mock_pm
@@ -48,7 +49,9 @@ class TestAgentMemoryManager:
     @pytest.fixture
     def mock_content_manager(self):
         """Create a mock MemoryContentManager."""
-        with patch("claude_mpm.services.agents.memory.agent_memory_manager.MemoryContentManager") as mock:
+        with patch(
+            "claude_mpm.services.agents.memory.agent_memory_manager.MemoryContentManager"
+        ) as mock:
             instance = MagicMock()
             instance.exceeds_limits.return_value = False
             instance.validate_and_repair.side_effect = lambda content, agent_id: content
@@ -60,17 +63,27 @@ class TestAgentMemoryManager:
     @pytest.fixture
     def mock_template_generator(self):
         """Create a mock MemoryTemplateGenerator."""
-        with patch("claude_mpm.services.agents.memory.agent_memory_manager.MemoryTemplateGenerator") as mock:
+        with patch(
+            "claude_mpm.services.agents.memory.agent_memory_manager.MemoryTemplateGenerator"
+        ) as mock:
             instance = MagicMock()
             instance.create_default_memory.return_value = "# Default Memory Template"
             mock.return_value = instance
             yield instance
 
     @pytest.fixture
-    def manager(self, mock_config, mock_path_manager, mock_content_manager, mock_template_generator):
+    def manager(
+        self,
+        mock_config,
+        mock_path_manager,
+        mock_content_manager,
+        mock_template_generator,
+    ):
         """Create an AgentMemoryManager instance with mocked dependencies."""
-        from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
-        
+        from claude_mpm.services.agents.memory.agent_memory_manager import (
+            AgentMemoryManager,
+        )
+
         working_dir = Path("/test/working")
         manager = AgentMemoryManager(config=mock_config, working_directory=working_dir)
         return manager
@@ -83,10 +96,10 @@ class TestAgentMemoryManager:
         """Test getting memory file path when no files exist."""
         directory = Path("/test/memories")
         agent_id = "test_agent"
-        
+
         with patch.object(Path, "exists", return_value=False):
             result = manager._get_memory_file_with_migration(directory, agent_id)
-        
+
         assert result == directory / "test_agent_memories.md"
 
     def test_get_memory_file_with_migration_from_old_agent_format(self, manager):
@@ -94,10 +107,10 @@ class TestAgentMemoryManager:
         directory = Path("/test/memories")
         agent_id = "test_agent"
         old_content = "Old memory content"
-        
+
         new_file = directory / f"{agent_id}_memories.md"
         old_file = directory / f"{agent_id}_agent.md"
-        
+
         # Create mock for file operations
         with patch("pathlib.Path.exists") as mock_exists:
             with patch("pathlib.Path.read_text", return_value=old_content) as mock_read:
@@ -107,13 +120,15 @@ class TestAgentMemoryManager:
                         def exists_logic(self):
                             if str(self).endswith("_memories.md"):
                                 return False
-                            elif str(self).endswith("_agent.md"):
+                            if str(self).endswith("_agent.md"):
                                 return True
                             return False
-                        
+
                         mock_exists.side_effect = exists_logic
-                        result = manager._get_memory_file_with_migration(directory, agent_id)
-        
+                        result = manager._get_memory_file_with_migration(
+                            directory, agent_id
+                        )
+
         mock_write.assert_called_once_with(old_content, encoding="utf-8")
         mock_unlink.assert_called_once()
         assert result == new_file
@@ -123,11 +138,11 @@ class TestAgentMemoryManager:
         directory = Path("/test/memories")
         agent_id = "test_agent"
         old_content = "Old simple format content"
-        
+
         new_file = directory / f"{agent_id}_memories.md"
         old_file_agent = directory / f"{agent_id}_agent.md"
         old_file_simple = directory / f"{agent_id}.md"
-        
+
         # Create mock for file operations
         with patch("pathlib.Path.exists") as mock_exists:
             with patch("pathlib.Path.read_text", return_value=old_content) as mock_read:
@@ -136,17 +151,17 @@ class TestAgentMemoryManager:
                         # Setup exists behavior
                         def exists_logic(self):
                             path_str = str(self)
-                            if path_str.endswith("_memories.md"):
+                            if path_str.endswith("_memories.md") or path_str.endswith("_agent.md"):
                                 return False
-                            elif path_str.endswith("_agent.md"):
-                                return False
-                            elif path_str.endswith(f"{agent_id}.md"):
+                            if path_str.endswith(f"{agent_id}.md"):
                                 return True
                             return False
-                        
+
                         mock_exists.side_effect = exists_logic
-                        result = manager._get_memory_file_with_migration(directory, agent_id)
-        
+                        result = manager._get_memory_file_with_migration(
+                            directory, agent_id
+                        )
+
         mock_write.assert_called_once_with(old_content, encoding="utf-8")
         mock_unlink.assert_called_once()
         assert result == new_file
@@ -155,33 +170,33 @@ class TestAgentMemoryManager:
         """Test error handling during migration."""
         directory = Path("/test/memories")
         agent_id = "test_agent"
-        
+
         old_file = directory / f"{agent_id}_agent.md"
-        
+
         with patch("pathlib.Path.exists") as mock_exists:
-            with patch("pathlib.Path.read_text", side_effect=IOError("Read error")):
+            with patch("pathlib.Path.read_text", side_effect=OSError("Read error")):
                 # Setup exists behavior
                 def exists_logic(self):
                     if str(self).endswith("_memories.md"):
                         return False
-                    elif str(self).endswith("_agent.md"):
+                    if str(self).endswith("_agent.md"):
                         return True
                     return False
-                
+
                 mock_exists.side_effect = exists_logic
                 result = manager._get_memory_file_with_migration(directory, agent_id)
-        
+
         assert result == old_file  # Returns old file on error
 
     def test_save_memory_file_success(self, manager):
         """Test successful memory file save."""
         agent_id = "test_agent"
         content = "Test memory content"
-        
+
         with patch.object(Path, "mkdir") as mock_mkdir:
             with patch.object(Path, "write_text") as mock_write:
                 result = manager._save_memory_file(agent_id, content)
-        
+
         mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
         mock_write.assert_called_once_with(content, encoding="utf-8")
         assert result is True
@@ -190,11 +205,11 @@ class TestAgentMemoryManager:
         """Test error handling during save."""
         agent_id = "test_agent"
         content = "Test memory content"
-        
+
         with patch.object(Path, "mkdir"):
-            with patch.object(Path, "write_text", side_effect=IOError("Write error")):
+            with patch.object(Path, "write_text", side_effect=OSError("Write error")):
                 result = manager._save_memory_file(agent_id, content)
-        
+
         assert result is False
 
     def test_ensure_memories_directory_creates_readme(self, manager):
@@ -203,10 +218,10 @@ class TestAgentMemoryManager:
             with patch.object(Path, "exists", return_value=False):
                 with patch.object(Path, "write_text") as mock_write:
                     manager._ensure_memories_directory()
-        
+
         mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
         mock_write.assert_called_once()
-        
+
         # Check README content
         call_args = mock_write.call_args[0][0]
         assert "# Agent Memory System" in call_args
@@ -218,7 +233,7 @@ class TestAgentMemoryManager:
             with patch.object(Path, "exists", return_value=True):
                 with patch.object(Path, "write_text") as mock_write:
                     manager._ensure_memories_directory()
-        
+
         mock_write.assert_not_called()
 
     # ================================================================================
@@ -236,11 +251,15 @@ class TestAgentMemoryManager:
         }
         ```
         """
-        
-        with patch.object(manager, "_add_learnings_to_memory", return_value=True) as mock_add:
+
+        with patch.object(
+            manager, "_add_learnings_to_memory", return_value=True
+        ) as mock_add:
             result = manager.extract_and_update_memory(agent_id, response)
-        
-        mock_add.assert_called_once_with(agent_id, ["Learning 1", "Learning 2", "Learning 3"])
+
+        mock_add.assert_called_once_with(
+            agent_id, ["Learning 1", "Learning 2", "Learning 3"]
+        )
         assert result is True
 
     def test_extract_and_update_memory_with_Remember_field(self, manager):
@@ -253,10 +272,12 @@ class TestAgentMemoryManager:
         }
         ```
         """
-        
-        with patch.object(manager, "_add_learnings_to_memory", return_value=True) as mock_add:
+
+        with patch.object(
+            manager, "_add_learnings_to_memory", return_value=True
+        ) as mock_add:
             result = manager.extract_and_update_memory(agent_id, response)
-        
+
         mock_add.assert_called_once_with(agent_id, ["Memory A", "Memory B"])
         assert result is True
 
@@ -270,10 +291,12 @@ class TestAgentMemoryManager:
         }
         ```
         """
-        
-        with patch.object(manager, "replace_agent_memory", return_value=True) as mock_replace:
+
+        with patch.object(
+            manager, "replace_agent_memory", return_value=True
+        ) as mock_replace:
             result = manager.extract_and_update_memory(agent_id, response)
-        
+
         expected_memories = ["- New memory 1", "- New memory 2", "- New memory 3"]
         mock_replace.assert_called_once_with(agent_id, expected_memories)
         assert result is True
@@ -289,10 +312,10 @@ class TestAgentMemoryManager:
         }
         ```
         """
-        
+
         with patch.object(manager, "_add_learnings_to_memory") as mock_add:
             result = manager.extract_and_update_memory(agent_id, response)
-        
+
         mock_add.assert_not_called()
         assert result is False
 
@@ -300,7 +323,7 @@ class TestAgentMemoryManager:
         """Test when response has no JSON block."""
         agent_id = "test_agent"
         response = "Just plain text response without JSON"
-        
+
         result = manager.extract_and_update_memory(agent_id, response)
         assert result is False
 
@@ -314,10 +337,10 @@ class TestAgentMemoryManager:
         }
         ```
         """
-        
+
         with patch.object(manager, "_add_learnings_to_memory") as mock_add:
             result = manager.extract_and_update_memory(agent_id, response)
-        
+
         mock_add.assert_not_called()
         assert result is False
 
@@ -331,10 +354,10 @@ class TestAgentMemoryManager:
         }
         ```
         """
-        
+
         with patch.object(manager, "_add_learnings_to_memory") as mock_add:
             result = manager.extract_and_update_memory(agent_id, response)
-        
+
         mock_add.assert_not_called()
         assert result is False
 
@@ -348,10 +371,12 @@ class TestAgentMemoryManager:
         }
         ```
         """
-        
-        with patch.object(manager, "_add_learnings_to_memory", return_value=True) as mock_add:
+
+        with patch.object(
+            manager, "_add_learnings_to_memory", return_value=True
+        ) as mock_add:
             result = manager.extract_and_update_memory(agent_id, response)
-        
+
         mock_add.assert_called_once_with(agent_id, ["Valid memory", "Another valid"])
         assert result is True
 
@@ -366,7 +391,7 @@ class TestAgentMemoryManager:
             "Module structure follows MVC pattern",
             "Service-oriented design is implemented",
         ]
-        
+
         for learning in learnings:
             category = manager._categorize_learning(learning)
             assert category == "Project Architecture"
@@ -378,7 +403,7 @@ class TestAgentMemoryManager:
             "API interface requires authentication",
             "Integration via REST endpoints",
         ]
-        
+
         for learning in learnings:
             category = manager._categorize_learning(learning)
             assert category == "Integration Points"
@@ -391,7 +416,7 @@ class TestAgentMemoryManager:
             "Avoid hardcoding credentials",
             "Don't repeat code unnecessarily",
         ]
-        
+
         for learning in learnings:
             category = manager._categorize_learning(learning)
             assert category == "Common Mistakes to Avoid"
@@ -403,7 +428,7 @@ class TestAgentMemoryManager:
             "Follow PEP8 coding standards",
             "Documentation should be comprehensive",
         ]
-        
+
         for learning in learnings:
             category = manager._categorize_learning(learning)
             assert category == "Implementation Guidelines"
@@ -432,7 +457,7 @@ class TestAgentMemoryManager:
         limits = manager._get_agent_limits("research")
         assert limits["max_file_size_kb"] == 160  # Override applied
         assert limits["max_items"] == 100  # Default retained
-        
+
         # Test agent without overrides
         limits = manager._get_agent_limits("engineer")
         assert limits["max_file_size_kb"] == 80  # Default
@@ -442,10 +467,10 @@ class TestAgentMemoryManager:
         """Test getting agent-specific auto-learning settings."""
         # Agent with auto_learning disabled
         assert manager._get_agent_auto_learning("research") is False
-        
+
         # Agent with auto_learning enabled (explicit)
         assert manager._get_agent_auto_learning("pm") is True
-        
+
         # Agent without override (uses global)
         assert manager._get_agent_auto_learning("engineer") is True
 
@@ -456,12 +481,18 @@ class TestAgentMemoryManager:
     def test_build_simple_memory_content(self, manager):
         """Test building simple memory content."""
         agent_id = "test_agent"
-        items = ["- Learning 1", "- Learning 2", "Learning 3"]  # Mix with and without bullet
-        
-        with patch("claude_mpm.services.agents.memory.agent_memory_manager.datetime") as mock_dt:
+        items = [
+            "- Learning 1",
+            "- Learning 2",
+            "Learning 3",
+        ]  # Mix with and without bullet
+
+        with patch(
+            "claude_mpm.services.agents.memory.agent_memory_manager.datetime"
+        ) as mock_dt:
             mock_dt.now.return_value.isoformat.return_value = "2024-01-01T10:00:00"
             content = manager._build_simple_memory_content(agent_id, items)
-        
+
         assert "# Agent Memory: test_agent" in content
         assert "<!-- Last Updated: 2024-01-01T10:00:00Z -->" in content
         assert "- Learning 1" in content
@@ -480,7 +511,7 @@ class TestAgentMemoryManager:
         ## Some Section
         - Item 4
         """
-        
+
         items = manager._parse_memory_list(memory_content)
         assert "- Item 1" in items
         assert "- Item 2" in items
@@ -502,16 +533,16 @@ class TestAgentMemoryManager:
 
 ## Recent Learnings
 - Recent item 1"""
-        
+
         sections = manager._parse_memory_sections(memory_content)
-        
+
         assert "Project Architecture" in sections
         assert len(sections["Project Architecture"]) == 2
         assert "- Architecture item 1" in sections["Project Architecture"]
-        
+
         assert "Implementation Guidelines" in sections
         assert len(sections["Implementation Guidelines"]) == 2
-        
+
         assert "Recent Learnings" in sections
         assert len(sections["Recent Learnings"]) == 1
 
@@ -523,9 +554,9 @@ class TestAgentMemoryManager:
             "- Real learning 2",
             "- Project analysis pending - gather context during tasks",
         ]
-        
+
         cleaned = manager._clean_template_placeholders_list(items)
-        
+
         assert len(cleaned) == 2
         assert "- Real learning 1" in cleaned
         assert "- Real learning 2" in cleaned
@@ -538,40 +569,42 @@ class TestAgentMemoryManager:
         """Test loading existing memory file."""
         agent_id = "test_agent"
         memory_content = "# Existing memory content"
-        
+
         with patch.object(manager, "_get_memory_file_with_migration") as mock_get_file:
             mock_file = MagicMock()
             mock_file.exists.return_value = True
             mock_file.read_text.return_value = memory_content
             mock_get_file.return_value = mock_file
-            
+
             result = manager.load_agent_memory(agent_id)
-        
+
         assert result == memory_content
 
     def test_load_memory_create_default(self, manager):
         """Test creating default memory when file doesn't exist."""
         agent_id = "test_agent"
         default_content = "# Default Memory Template"
-        
+
         with patch.object(manager, "_get_memory_file_with_migration") as mock_get_file:
             mock_file = MagicMock()
             mock_file.exists.return_value = False
             mock_get_file.return_value = mock_file
-            
-            with patch.object(manager, "_create_default_memory", return_value=default_content):
+
+            with patch.object(
+                manager, "_create_default_memory", return_value=default_content
+            ):
                 result = manager.load_agent_memory(agent_id)
-        
+
         assert result == default_content
 
     def test_save_memory_interface_method(self, manager):
         """Test save_memory interface adapter method."""
         agent_id = "test_agent"
         content = "Test content"
-        
+
         with patch.object(Path, "write_text") as mock_write:
             result = manager.save_memory(agent_id, content)
-        
+
         mock_write.assert_called_once_with(content, encoding="utf-8")
         assert result is True
 
@@ -585,16 +618,18 @@ class TestAgentMemoryManager:
         - Existing learning 1
         - Existing learning 2
         """
-        
+
         with patch.object(manager, "load_agent_memory", return_value=existing_memory):
-            with patch.object(manager, "_save_memory_file", return_value=True) as mock_save:
+            with patch.object(
+                manager, "_save_memory_file", return_value=True
+            ) as mock_save:
                 # Try to add duplicate (case-insensitive)
                 result = manager.add_learning(agent_id, "EXISTING LEARNING 1")
-                
+
                 # Should not save since it's a duplicate
                 mock_save.assert_not_called()
                 assert result is True  # Not an error, just nothing to add
-                
+
                 # Add new learning
                 result = manager.add_learning(agent_id, "New learning")
                 mock_save.assert_called_once()
@@ -603,10 +638,10 @@ class TestAgentMemoryManager:
     def test_clear_memory(self, manager):
         """Test clearing memory (through replace with empty list)."""
         agent_id = "test_agent"
-        
+
         with patch.object(manager, "_save_memory_file", return_value=True) as mock_save:
             result = manager.replace_agent_memory(agent_id, [])
-        
+
         mock_save.assert_called_once()
         # Check that empty list generates minimal content
         saved_content = mock_save.call_args[0][1]
@@ -624,14 +659,14 @@ class TestAgentMemoryManager:
             MagicMock(name="pm_memories.md", stem="pm_memories"),
             MagicMock(name="research_memories.md", stem="research_memories"),
         ]
-        
+
         for i, mock_file in enumerate(mock_files):
             mock_file.stat.return_value.st_size = (i + 1) * 1024  # 1KB, 2KB
-        
+
         with patch.object(Path, "exists", return_value=True):
             with patch.object(Path, "glob", return_value=mock_files):
                 status = manager.get_memory_status()
-        
+
         assert status["system_enabled"] is True
         assert status["auto_learning"] is True
         assert status["total_agents"] == 2
@@ -645,36 +680,38 @@ class TestAgentMemoryManager:
             MagicMock(name="pm_memories.md", stem="pm_memories"),
             MagicMock(name="research_memories.md", stem="research_memories"),
         ]
-        
+
         mock_files[0].stat.return_value.st_size = 40 * 1024  # 40KB
         mock_files[1].stat.return_value.st_size = 80 * 1024  # 80KB
-        
+
         with patch.object(Path, "exists", return_value=True):
             with patch.object(Path, "glob", return_value=mock_files):
                 metrics = manager.get_memory_metrics()
-        
+
         assert metrics["agent_count"] == 2
         assert metrics["total_memory_kb"] == 120.0
         assert metrics["agents"]["pm"]["size_kb"] == 40.0
         assert metrics["agents"]["pm"]["usage_percent"] == 50.0  # 40KB of 80KB limit
         assert metrics["agents"]["research"]["size_kb"] == 80.0
-        assert metrics["agents"]["research"]["usage_percent"] == 50.0  # 80KB of 160KB limit
+        assert (
+            metrics["agents"]["research"]["usage_percent"] == 50.0
+        )  # 80KB of 160KB limit
 
     def test_get_memory_metrics_specific_agent(self, manager):
         """Test getting metrics for specific agent."""
         agent_id = "pm"
-        
+
         # Create a mock file
         mock_file = MagicMock()
         mock_file.stat.return_value.st_size = 40 * 1024  # 40KB
         mock_file.exists.return_value = True
         mock_file.name = "pm_memories.md"
-        
+
         # Mock the path operations properly
         with patch.object(manager.memories_dir, "__truediv__") as mock_truediv:
             mock_truediv.return_value = mock_file
             metrics = manager.get_memory_metrics(agent_id)
-        
+
         assert metrics["agent_count"] == 1
         assert metrics["total_memory_kb"] == 40.0
         assert metrics["agents"]["pm"]["size_kb"] == 40.0
@@ -688,16 +725,18 @@ class TestAgentMemoryManager:
     def test_load_memory_read_error(self, manager):
         """Test error handling when reading memory file fails."""
         agent_id = "test_agent"
-        
+
         with patch.object(manager, "_get_memory_file_with_migration") as mock_get_file:
             mock_file = MagicMock()
             mock_file.exists.return_value = True
-            mock_file.read_text.side_effect = IOError("Read error")
+            mock_file.read_text.side_effect = OSError("Read error")
             mock_get_file.return_value = mock_file
-            
-            with patch.object(manager, "_create_default_memory", return_value="Default") as mock_create:
+
+            with patch.object(
+                manager, "_create_default_memory", return_value="Default"
+            ) as mock_create:
                 result = manager.load_agent_memory(agent_id)
-        
+
         mock_create.assert_called_once()
         assert result == "Default"
 
@@ -705,41 +744,46 @@ class TestAgentMemoryManager:
         """Test handling permission errors during save."""
         agent_id = "test_agent"
         content = "Test content"
-        
+
         with patch.object(Path, "mkdir"):
-            with patch.object(Path, "write_text", side_effect=PermissionError("No permission")):
+            with patch.object(
+                Path, "write_text", side_effect=PermissionError("No permission")
+            ):
                 result = manager._save_memory_file(agent_id, content)
-        
+
         assert result is False
 
     def test_extract_memory_exception_handling(self, manager):
         """Test exception handling in extract_and_update_memory."""
         agent_id = "test_agent"
         response = "Some response"
-        
+
         # Patch re module at the import level
         import re
+
         with patch.object(re, "findall", side_effect=Exception("Regex error")):
             result = manager.extract_and_update_memory(agent_id, response)
-        
+
         assert result is False
 
     def test_ensure_directory_error_handling(self, manager):
         """Test error handling in ensure_memories_directory."""
-        with patch.object(Path, "mkdir", side_effect=OSError("Cannot create directory")):
+        with patch.object(
+            Path, "mkdir", side_effect=OSError("Cannot create directory")
+        ):
             # Should not raise, just log error
             manager._ensure_memories_directory()
 
     def test_invalid_json_in_response(self, manager):
         """Test handling various invalid JSON formats."""
         agent_id = "test_agent"
-        
+
         invalid_responses = [
             '```json\n{"remember": }\n```',  # Invalid syntax
             '```json\n{"remember": [1, 2, 3]}\n```',  # Non-string items
             '```json\n{"remember": "not a list"}\n```',  # Wrong type
         ]
-        
+
         for response in invalid_responses:
             with patch.object(manager, "_add_learnings_to_memory") as mock_add:
                 result = manager.extract_and_update_memory(agent_id, response)
@@ -752,15 +796,25 @@ class TestAgentMemoryManager:
     def test_config_missing_values(self):
         """Test handling missing configuration values."""
         mock_config = MagicMock()
-        mock_config.get.side_effect = lambda key, default=None: default  # Return default for all config keys
-        
-        with patch("claude_mpm.services.agents.memory.agent_memory_manager.get_path_manager"):
-            with patch("claude_mpm.services.agents.memory.agent_memory_manager.MemoryContentManager"):
-                with patch("claude_mpm.services.agents.memory.agent_memory_manager.MemoryTemplateGenerator"):
-                    from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
-                    
+        mock_config.get.side_effect = (
+            lambda key, default=None: default
+        )  # Return default for all config keys
+
+        with patch(
+            "claude_mpm.services.agents.memory.agent_memory_manager.get_path_manager"
+        ):
+            with patch(
+                "claude_mpm.services.agents.memory.agent_memory_manager.MemoryContentManager"
+            ):
+                with patch(
+                    "claude_mpm.services.agents.memory.agent_memory_manager.MemoryTemplateGenerator"
+                ):
+                    from claude_mpm.services.agents.memory.agent_memory_manager import (
+                        AgentMemoryManager,
+                    )
+
                     manager = AgentMemoryManager(config=mock_config)
-                    
+
                     # Should use defaults
                     assert manager.memory_limits["max_file_size_kb"] == 80
                     assert manager.memory_limits["max_items"] == 100
@@ -774,14 +828,16 @@ class TestAgentMemoryManager:
         """Test that memory is truncated when it exceeds limits."""
         agent_id = "test_agent"
         truncated_content = "truncated content"
-        
+
         # Mock content manager to trigger truncation
         manager.content_manager.exceeds_limits.return_value = True
-        manager.content_manager.truncate_simple_list.side_effect = lambda content, limits: truncated_content
-        
+        manager.content_manager.truncate_simple_list.side_effect = (
+            lambda content, limits: truncated_content
+        )
+
         with patch.object(manager, "_save_memory_file", return_value=True) as mock_save:
             result = manager.replace_agent_memory(agent_id, ["Item 1", "Item 2"])
-        
+
         # Should save truncated content
         saved_content = mock_save.call_args[0][1]
         assert saved_content == truncated_content
@@ -791,19 +847,23 @@ class TestAgentMemoryManager:
         agent_id = "test_agent"
         corrupted_memory = "Corrupted memory content"
         repaired_memory = "Repaired memory content"
-        
+
         # Configure the mock to return repaired memory
-        manager.content_manager.validate_and_repair.side_effect = lambda content, agent: repaired_memory
-        
+        manager.content_manager.validate_and_repair.side_effect = (
+            lambda content, agent: repaired_memory
+        )
+
         with patch.object(manager, "_get_memory_file_with_migration") as mock_get_file:
             mock_file = MagicMock()
             mock_file.exists.return_value = True
             mock_file.read_text.return_value = corrupted_memory
             mock_get_file.return_value = mock_file
-            
+
             result = manager.load_agent_memory(agent_id)
-        
-        manager.content_manager.validate_and_repair.assert_called_once_with(corrupted_memory, agent_id)
+
+        manager.content_manager.validate_and_repair.assert_called_once_with(
+            corrupted_memory, agent_id
+        )
         assert result == repaired_memory
 
     # ================================================================================
@@ -814,11 +874,13 @@ class TestAgentMemoryManager:
         """Test handling None values in memory items."""
         agent_id = "test_agent"
         items = ["Valid item", None, "", "Another valid"]
-        
+
         with patch.object(manager, "load_agent_memory", return_value="# Memory"):
-            with patch.object(manager, "_save_memory_file", return_value=True) as mock_save:
+            with patch.object(
+                manager, "_save_memory_file", return_value=True
+            ) as mock_save:
                 result = manager.update_agent_memory(agent_id, items)
-        
+
         # Check that only valid items are saved
         saved_content = mock_save.call_args[0][1]
         assert "Valid item" in saved_content
@@ -830,7 +892,7 @@ class TestAgentMemoryManager:
         # First access should create logger
         logger1 = manager.logger
         assert logger1 is not None
-        
+
         # Second access should return same instance
         logger2 = manager.logger
         assert logger1 is logger2
@@ -838,21 +900,25 @@ class TestAgentMemoryManager:
     @staticmethod
     def test_singleton_get_memory_manager():
         """Test that get_memory_manager returns singleton."""
-        from claude_mpm.services.agents.memory.agent_memory_manager import get_memory_manager
-        
+        from claude_mpm.services.agents.memory.agent_memory_manager import (
+            get_memory_manager,
+        )
+
         # Clear any existing instance
         if hasattr(get_memory_manager, "_instance"):
             delattr(get_memory_manager, "_instance")
-        
-        with patch("claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager") as MockManager:
+
+        with patch(
+            "claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager"
+        ) as MockManager:
             mock_instance = MagicMock()
             MockManager.return_value = mock_instance
-            
+
             # First call creates instance
             manager1 = get_memory_manager()
             assert manager1 == mock_instance
             MockManager.assert_called_once()
-            
+
             # Second call returns same instance
             manager2 = get_memory_manager()
             assert manager2 == mock_instance

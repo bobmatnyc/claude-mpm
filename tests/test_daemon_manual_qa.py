@@ -68,7 +68,8 @@ class DaemonTestManager:
                 [sys.executable, str(DAEMON_SCRIPT), "stop"],
                 capture_output=True,
                 text=True,
-                timeout=15, check=False,
+                timeout=15,
+                check=False,
             )
             time.sleep(2)
             return result.returncode == 0
@@ -161,7 +162,10 @@ class DaemonTestManager:
         # Kill any remaining processes
         try:
             result = subprocess.run(
-                ["pgrep", "-f", "socketio_daemon"], capture_output=True, text=True, check=False
+                ["pgrep", "-f", "socketio_daemon"],
+                capture_output=True,
+                text=True,
+                check=False,
             )
             if result.stdout.strip():
                 pids = result.stdout.strip().split("\n")
@@ -226,7 +230,8 @@ def test_basic_functionality():
                 [sys.executable, str(DAEMON_SCRIPT), "status"],
                 capture_output=True,
                 text=True,
-                timeout=10, check=False,
+                timeout=10,
+                check=False,
             )
             if result.returncode == 0 and "RUNNING" in result.stdout:
                 log_test("Status command", True, "Status shows running state")
@@ -347,7 +352,8 @@ def test_configuration():
                 [sys.executable, str(DAEMON_SCRIPT), "status"],
                 capture_output=True,
                 text=True,
-                timeout=10, check=False,
+                timeout=10,
+                check=False,
             )
             if "Max Retries: 8" in result.stdout:
                 log_test(

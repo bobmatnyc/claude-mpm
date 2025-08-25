@@ -57,7 +57,8 @@ print(f"Is development paths: {'/Users/masa/Projects/claude-mpm' in str(pm.frame
         [str(pipx_python), "-c", test_script],
         cwd="/Users/masa/Projects/claude-mpm",
         capture_output=True,
-        text=True, check=False,
+        text=True,
+        check=False,
     )
 
     if result.returncode == 0:
@@ -77,7 +78,8 @@ print(f"Is development paths: {'/Users/masa/Projects/claude-mpm' in str(pm.frame
         cwd="/Users/masa/Projects/claude-mpm",
         env=env,
         capture_output=True,
-        text=True, check=False,
+        text=True,
+        check=False,
     )
 
     if result.returncode == 0:
@@ -104,7 +106,8 @@ print(f"Is pipx paths: {'pipx' in str(pm.framework_root)}")
         [str(pipx_python), "-c", test_script_outside],
         cwd="/tmp",
         capture_output=True,
-        text=True, check=False,
+        text=True,
+        check=False,
     )
 
     if result.returncode == 0:

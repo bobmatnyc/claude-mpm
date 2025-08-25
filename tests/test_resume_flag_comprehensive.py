@@ -72,7 +72,8 @@ class ResumeTestRunner:
                 capture_output=True,
                 text=True,
                 timeout=timeout,
-                cwd=self.project_root, check=False,
+                cwd=self.project_root,
+                check=False,
             )
             return result.returncode, result.stdout, result.stderr
         except subprocess.TimeoutExpired:

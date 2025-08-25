@@ -72,30 +72,30 @@ import warnings
 from contextlib import closing
 
 import psutil
-from psutil import BSD
-from psutil import POSIX
-from psutil import WINDOWS
-from psutil.tests import ASCII_FS
-from psutil.tests import CI_TESTING
-from psutil.tests import HAS_ENVIRON
-from psutil.tests import HAS_MEMORY_MAPS
-from psutil.tests import HAS_NET_CONNECTIONS_UNIX
-from psutil.tests import INVALID_UNICODE_SUFFIX
-from psutil.tests import PYPY
-from psutil.tests import TESTFN_PREFIX
-from psutil.tests import UNICODE_SUFFIX
-from psutil.tests import PsutilTestCase
-from psutil.tests import bind_unix_socket
-from psutil.tests import chdir
-from psutil.tests import copyload_shared_lib
-from psutil.tests import create_py_exe
-from psutil.tests import get_testfn
-from psutil.tests import pytest
-from psutil.tests import safe_mkdir
-from psutil.tests import safe_rmpath
-from psutil.tests import skip_on_access_denied
-from psutil.tests import spawn_testproc
-from psutil.tests import terminate
+from psutil import BSD, POSIX, WINDOWS
+from psutil.tests import (
+    ASCII_FS,
+    CI_TESTING,
+    HAS_ENVIRON,
+    HAS_MEMORY_MAPS,
+    HAS_NET_CONNECTIONS_UNIX,
+    INVALID_UNICODE_SUFFIX,
+    PYPY,
+    TESTFN_PREFIX,
+    UNICODE_SUFFIX,
+    PsutilTestCase,
+    bind_unix_socket,
+    chdir,
+    copyload_shared_lib,
+    create_py_exe,
+    get_testfn,
+    pytest,
+    safe_mkdir,
+    safe_rmpath,
+    skip_on_access_denied,
+    spawn_testproc,
+    terminate,
+)
 
 
 def try_unicode(suffix):
@@ -108,8 +108,8 @@ def try_unicode(suffix):
         safe_rmpath(testfn)
         create_py_exe(testfn)
         sproc = spawn_testproc(cmd=[testfn])
-        shutil.copyfile(testfn, testfn + '-2')
-        safe_rmpath(testfn + '-2')
+        shutil.copyfile(testfn, testfn + "-2")
+        safe_rmpath(testfn + "-2")
     except (UnicodeEncodeError, OSError):
         return False
     else:
@@ -214,7 +214,7 @@ class TestFSAPIs(BaseUnicodeTest):
     def test_proc_open_files(self):
         p = psutil.Process()
         start = set(p.open_files())
-        with open(self.funky_name, 'rb'):
+        with open(self.funky_name, "rb"):
             new = set(p.open_files())
         path = (new - start).pop().path
         assert isinstance(path, str)
@@ -229,14 +229,12 @@ class TestFSAPIs(BaseUnicodeTest):
         name = self.get_testfn(suffix=self.funky_suffix)
         sock = bind_unix_socket(name)
         with closing(sock):
-            conn = psutil.Process().net_connections('unix')[0]
+            conn = psutil.Process().net_connections("unix")[0]
             assert isinstance(conn.laddr, str)
             assert conn.laddr == name
 
     @pytest.mark.skipif(not POSIX, reason="POSIX only")
-    @pytest.mark.skipif(
-        not HAS_NET_CONNECTIONS_UNIX, reason="can't list UNIX sockets"
-    )
+    @pytest.mark.skipif(not HAS_NET_CONNECTIONS_UNIX, reason="can't list UNIX sockets")
     @skip_on_access_denied()
     def test_net_connections(self):
         def find_sock(cons):
@@ -248,7 +246,7 @@ class TestFSAPIs(BaseUnicodeTest):
         name = self.get_testfn(suffix=self.funky_suffix)
         sock = bind_unix_socket(name)
         with closing(sock):
-            cons = psutil.net_connections(kind='unix')
+            cons = psutil.net_connections(kind="unix")
             conn = find_sock(cons)
             assert isinstance(conn.laddr, str)
             assert conn.laddr == name
@@ -267,9 +265,7 @@ class TestFSAPIs(BaseUnicodeTest):
             def normpath(p):
                 return os.path.realpath(os.path.normcase(p))
 
-            libpaths = [
-                normpath(x.path) for x in psutil.Process().memory_maps()
-            ]
+            libpaths = [normpath(x.path) for x in psutil.Process().memory_maps()]
             # ...just to have a clearer msg in case of failure
             libpaths = [x for x in libpaths if TESTFN_PREFIX in x]
             assert normpath(funky_path) in libpaths
@@ -303,11 +299,11 @@ class TestNonFSAPIS(BaseUnicodeTest):
         # Note: differently from others, this test does not deal
         # with fs paths.
         env = os.environ.copy()
-        env['FUNNY_ARG'] = self.funky_suffix
+        env["FUNNY_ARG"] = self.funky_suffix
         sproc = self.spawn_testproc(env=env)
         p = psutil.Process(sproc.pid)
         env = p.environ()
         for k, v in env.items():
             assert isinstance(k, str)
             assert isinstance(v, str)
-        assert env['FUNNY_ARG'] == self.funky_suffix
+        assert env["FUNNY_ARG"] == self.funky_suffix

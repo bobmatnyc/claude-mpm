@@ -84,9 +84,7 @@ def test_disabled_tracking():
         if len(response_files) == 0:
             print("✅ No response files created when tracking is disabled")
             return True
-        print(
-            f"❌ {len(response_files)} files created despite tracking being disabled"
-        )
+        print(f"❌ {len(response_files)} files created despite tracking being disabled")
         for file_path in response_files:
             print(f"  - {file_path.name}")
         return False

@@ -25,12 +25,8 @@ from claude_mpm.cli.commands.memory import (
     MemoryManagementCommand,
     _build_memory,
     _cross_reference_memory,
-    _route_memory_command,
-    _display_single_optimization_result,
-    _display_bulk_optimization_results,
     manage_memory,
 )
-from claude_mpm.services.cli.memory_crud_service import MemoryCRUDService
 from claude_mpm.cli.shared.base_command import CommandResult
 from claude_mpm.services.agents.memory import AgentMemoryManager
 

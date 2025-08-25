@@ -51,7 +51,8 @@ def test_registration_script():
                 str(tmp_path),
             ],
             capture_output=True,
-            text=True, check=False,
+            text=True,
+            check=False,
         )
 
         if result.returncode != 0:
@@ -67,7 +68,8 @@ def test_registration_script():
                 str(tmp_path),
             ],
             capture_output=True,
-            text=True, check=False,
+            text=True,
+            check=False,
         )
 
         if result.returncode != 0:
@@ -108,7 +110,8 @@ def test_restore_script():
     result = subprocess.run(
         [sys.executable, "scripts/restore_mcp_config.py", "--list"],
         capture_output=True,
-        text=True, check=False,
+        text=True,
+        check=False,
     )
 
     if result.returncode != 0:
@@ -119,7 +122,8 @@ def test_restore_script():
     result = subprocess.run(
         [sys.executable, "scripts/restore_mcp_config.py", "--compare"],
         capture_output=True,
-        text=True, check=False,
+        text=True,
+        check=False,
     )
 
     if result.returncode != 0:

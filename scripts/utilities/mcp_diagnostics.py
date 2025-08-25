@@ -28,7 +28,9 @@ def print_section(title):
 def check_command(cmd, name):
     """Check if a command exists and get its version."""
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5, check=False)
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=5, check=False
+        )
         output = result.stdout + result.stderr
         # Get first line of output
         version = output.split("\n")[0] if output else "Unknown version"

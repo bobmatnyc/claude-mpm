@@ -23,7 +23,6 @@ following the naming convention: {agent_id}_memories.md
 
 import logging
 import os
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.config import Config
@@ -31,11 +30,11 @@ from claude_mpm.core.interfaces import MemoryServiceInterface
 from claude_mpm.core.unified_paths import get_path_manager
 
 from .content_manager import MemoryContentManager
-from .template_generator import MemoryTemplateGenerator
-from .memory_file_service import MemoryFileService
-from .memory_limits_service import MemoryLimitsService
-from .memory_format_service import MemoryFormatService
 from .memory_categorization_service import MemoryCategorizationService
+from .memory_file_service import MemoryFileService
+from .memory_format_service import MemoryFormatService
+from .memory_limits_service import MemoryLimitsService
+from .template_generator import MemoryTemplateGenerator
 
 
 class AgentMemoryManager(MemoryServiceInterface):
@@ -450,7 +449,9 @@ class AgentMemoryManager(MemoryServiceInterface):
             existing_items = self.format_service.parse_memory_list(current_memory)
 
             # Clean template placeholders if this is a fresh memory
-            existing_items = self.format_service.clean_template_placeholders_list(existing_items)
+            existing_items = self.format_service.clean_template_placeholders_list(
+                existing_items
+            )
 
             # Add new learnings, avoiding duplicates
             updated = False
@@ -489,7 +490,9 @@ class AgentMemoryManager(MemoryServiceInterface):
                 return True  # Not an error, just nothing new to add
 
             # Rebuild memory content as simple list with updated timestamp
-            new_content = self.format_service.build_simple_memory_content(agent_id, existing_items)
+            new_content = self.format_service.build_simple_memory_content(
+                agent_id, existing_items
+            )
 
             # Validate and save
             agent_limits = self.limits_service.get_agent_limits(agent_id)
@@ -522,7 +525,9 @@ class AgentMemoryManager(MemoryServiceInterface):
         """
         try:
             # Build new memory content as simple list with updated timestamp
-            new_content = self.format_service.build_simple_memory_content(agent_id, memory_items)
+            new_content = self.format_service.build_simple_memory_content(
+                agent_id, memory_items
+            )
 
             # Validate and save
             agent_limits = self.limits_service.get_agent_limits(agent_id)
@@ -615,11 +620,11 @@ class AgentMemoryManager(MemoryServiceInterface):
 
     def _save_memory_file_wrapper(self, agent_id: str, content: str) -> bool:
         """Wrapper for save_memory_file that handles agent_id.
-        
+
         Args:
             agent_id: Agent identifier
             content: Content to save
-            
+
         Returns:
             True if saved successfully
         """
@@ -722,7 +727,9 @@ class AgentMemoryManager(MemoryServiceInterface):
                         "usage_percent": round(
                             (
                                 size_kb
-                                / self.limits_service.get_agent_limits(agent_id)["max_file_size_kb"]
+                                / self.limits_service.get_agent_limits(agent_id)[
+                                    "max_file_size_kb"
+                                ]
                             )
                             * 100,
                             1,

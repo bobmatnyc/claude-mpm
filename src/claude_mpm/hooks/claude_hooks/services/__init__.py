@@ -6,8 +6,8 @@ from .state_manager import StateManagerService
 from .subagent_processor import SubagentResponseProcessor
 
 __all__ = [
-    "StateManagerService",
     "ConnectionManagerService",
-    "SubagentResponseProcessor",
     "DuplicateEventDetector",
+    "StateManagerService",
+    "SubagentResponseProcessor",
 ]

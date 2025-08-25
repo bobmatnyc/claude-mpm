@@ -54,7 +54,8 @@ def test_hook_handler_improvements():
             text=True,
             capture_output=True,
             env=env,
-            timeout=10, check=False,
+            timeout=10,
+            check=False,
         )
 
         print(f"📤 Exit code: {result.returncode}")

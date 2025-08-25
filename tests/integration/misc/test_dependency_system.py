@@ -115,7 +115,10 @@ def test_aggregation_script():
 
     # Run the script in dry-run mode
     result = subprocess.run(
-        [sys.executable, str(script_path), "--dry-run"], capture_output=True, text=True, check=False
+        [sys.executable, str(script_path), "--dry-run"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
     assert result.returncode == 0, f"Aggregation script failed: {result.stderr}"

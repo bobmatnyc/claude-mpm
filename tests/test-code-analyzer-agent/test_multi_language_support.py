@@ -164,7 +164,8 @@ if __name__ == "__main__":
             [sys.executable, str(test_file)],
             capture_output=True,
             text=True,
-            cwd=test_file.parent, check=False,
+            cwd=test_file.parent,
+            check=False,
         )
 
         print(result.stdout)
@@ -428,7 +429,8 @@ if __name__ == "__main__":
             [sys.executable, str(feature_file)],
             capture_output=True,
             text=True,
-            cwd=feature_file.parent, check=False,
+            cwd=feature_file.parent,
+            check=False,
         )
 
         print(result.stdout)

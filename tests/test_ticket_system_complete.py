@@ -36,7 +36,9 @@ def test_cli_commands():
     for cmd in test_commands:
         print(f"\nTesting: {' '.join(cmd)}")
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5, check=False)
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=5, check=False
+            )
 
             # Check for AttributeError in output
             if "AttributeError" in result.stderr or "'id'" in result.stderr:

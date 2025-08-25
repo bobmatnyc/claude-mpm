@@ -25,7 +25,11 @@ def test_claude_mpm_run():
 
     print(f"\nRunning: {' '.join(cmd)}")
     result = subprocess.run(
-        cmd, capture_output=True, text=True, cwd=Path(__file__).parent.parent, check=False
+        cmd,
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).parent.parent,
+        check=False,
     )
 
     # Combine stdout and stderr for analysis
@@ -68,7 +72,11 @@ def test_claude_mpm_agents():
 
     print(f"\nRunning: {' '.join(cmd)}")
     result = subprocess.run(
-        cmd, capture_output=True, text=True, cwd=Path(__file__).parent.parent, check=False
+        cmd,
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).parent.parent,
+        check=False,
     )
 
     # Combine stdout and stderr for analysis

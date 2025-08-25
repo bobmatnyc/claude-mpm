@@ -257,9 +257,7 @@ class MemoryV3_9_0_Tester:
             )
 
         except Exception as e:
-            self.log_result(
-                "80KB limit enforcement test", False, f"Exception: {e!s}"
-            )
+            self.log_result("80KB limit enforcement test", False, f"Exception: {e!s}")
 
     def test_project_vs_system_memory_precedence():
         """Test project-specific memory takes precedence over system memory."""

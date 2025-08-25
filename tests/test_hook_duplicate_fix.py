@@ -50,7 +50,8 @@ def test_hook_handler():
             env={
                 **subprocess.os.environ,
                 "PYTHONPATH": str(Path(__file__).parent.parent / "src"),
-            }, check=False,
+            },
+            check=False,
         )
 
         stdout = result.stdout.strip()

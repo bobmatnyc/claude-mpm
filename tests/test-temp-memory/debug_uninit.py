@@ -33,7 +33,9 @@ try:
     # Run memory add without initialization
     print("\n=== Running memory add without init ===")
     add_cmd = [mpm_cmd, "memory", "add", "qa", "pattern", "test"]
-    add_result = subprocess.run(add_cmd, capture_output=True, text=True, timeout=60, check=False)
+    add_result = subprocess.run(
+        add_cmd, capture_output=True, text=True, timeout=60, check=False
+    )
     print(f"Add return code: {add_result.returncode}")
     print(f"Add STDOUT: {add_result.stdout}")
     if add_result.stderr:

@@ -23,7 +23,8 @@ def test_python_module():
             ],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent, check=False,
+            cwd=Path(__file__).parent.parent,
+            check=False,
         )
         output = result.stdout.strip()
         return output == "1"
@@ -42,7 +43,8 @@ def test_bash_script(script_path):
             capture_output=True,
             text=True,
             shell=True,
-            cwd=Path(__file__).parent.parent, check=False,
+            cwd=Path(__file__).parent.parent,
+            check=False,
         )
         output = result.stdout.strip()
         return output == "1"

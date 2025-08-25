@@ -42,7 +42,8 @@ def test_hook_handler():
         input=json.dumps(test_event),
         capture_output=True,
         text=True,
-        env=env, check=False,
+        env=env,
+        check=False,
     )
 
     # Check output
@@ -94,7 +95,8 @@ def test_hook_wrapper():
         ["bash", str(hook_wrapper_path)],
         input=json.dumps(test_event),
         capture_output=True,
-        text=True, check=False,
+        text=True,
+        check=False,
     )
 
     # Check output

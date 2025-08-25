@@ -25,7 +25,9 @@ def test_resume_flag():
     cmd = [sys.executable, "-m", "claude_mpm.cli", "--resume", "last", "--dry-run"]
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5, check=False)
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=5, check=False
+        )
 
         # Check if mpm_resume is being accessed (no AttributeError)
         if "AttributeError" in result.stderr and "mpm_resume" in result.stderr:
@@ -51,7 +53,9 @@ def test_duplicate_messages():
     cmd = [sys.executable, "-m", "claude_mpm.cli", "--logging", "DEBUG", "--help"]
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5, check=False)
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=5, check=False
+        )
 
         # Count occurrences of the initialization message
         init_message = "Working directory for deployment:"
@@ -95,7 +99,8 @@ print(f"Scripts dir: {pm.get_scripts_dir()}")
             [sys.executable, "-c", test_script],
             capture_output=True,
             text=True,
-            cwd=Path.cwd(), check=False,  # Run from current directory
+            cwd=Path.cwd(),
+            check=False,  # Run from current directory
         )
 
         output = result.stdout + result.stderr

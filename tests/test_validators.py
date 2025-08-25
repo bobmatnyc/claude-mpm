@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import json
+import os
+import sys
+import tempfile
+import warnings
 from collections import deque, namedtuple
 from contextlib import contextmanager
 from decimal import Decimal
@@ -7,16 +12,9 @@ from io import BytesIO
 from typing import Any
 from unittest import TestCase, mock
 from urllib.request import pathname2url
-import json
-import os
-import sys
-import tempfile
-import warnings
 
-from attrs import define, field
-from referencing.jsonschema import DRAFT202012
 import referencing.exceptions
-
+from attrs import define, field
 from jsonschema import (
     FormatChecker,
     TypeChecker,
@@ -24,6 +22,7 @@ from jsonschema import (
     protocols,
     validators,
 )
+from referencing.jsonschema import DRAFT202012
 
 
 def fail(validator, errors, instance, schema):
@@ -60,7 +59,8 @@ class TestCreateAndExtend(TestCase):
                 self.Validator.VALIDATORS,
                 self.Validator.META_SCHEMA,
                 self.Validator.TYPE_CHECKER,
-            ), (
+            ),
+            (
                 self.validators,
                 self.meta_schema,
                 self.type_checker,
@@ -138,7 +138,8 @@ class TestCreateAndExtend(TestCase):
         self.addCleanup(validators._META_SCHEMAS.pop, "something")
         self.addCleanup(validators._VALIDATORS.pop, "my version")
         self.assertEqual(
-            repr(Validator({"a": list(range(1000))})), (
+            repr(Validator({"a": list(range(1000))})),
+            (
                 "MyVersionValidator(schema={'a': [0, 1, 2, 3, 4, 5, ...]}, "
                 "format_checker=None)"
             ),
@@ -255,7 +256,8 @@ class TestCreateAndExtend(TestCase):
                 Extended.META_SCHEMA,
                 Extended.TYPE_CHECKER,
                 self.Validator.VALIDATORS,
-            ), (
+            ),
+            (
                 dict(original, new=new),
                 self.Validator.META_SCHEMA,
                 self.Validator.TYPE_CHECKER,
@@ -267,8 +269,10 @@ class TestCreateAndExtend(TestCase):
         """
         Extending a validator preserves its notion of schema IDs.
         """
+
         def id_of(schema):
             return schema.get("__test__", self.Validator.ID_OF(schema))
+
         correct_id = "the://correct/id/"
         meta_schema = {
             "$id": "the://wrong/id/",
@@ -458,12 +462,14 @@ class TestValidationErrorMessages(TestCase):
         self.assertIn("is not a", message)
 
     def test_additionalProperties_false_patternProperties(self):
-        schema = {"type": "object",
-                  "additionalProperties": False,
-                  "patternProperties": {
-                      "^abc$": {"type": "string"},
-                      "^def$": {"type": "string"},
-                  }}
+        schema = {
+            "type": "object",
+            "additionalProperties": False,
+            "patternProperties": {
+                "^abc$": {"type": "string"},
+                "^def$": {"type": "string"},
+            },
+        }
         message = self.message_for(
             instance={"zebra": 123},
             schema=schema,
@@ -472,7 +478,9 @@ class TestValidationErrorMessages(TestCase):
         self.assertEqual(
             message,
             "{} does not match any of the regexes: {}, {}".format(
-                repr("zebra"), repr("^abc$"), repr("^def$"),
+                repr("zebra"),
+                repr("^abc$"),
+                repr("^def$"),
             ),
         )
         message = self.message_for(
@@ -483,7 +491,10 @@ class TestValidationErrorMessages(TestCase):
         self.assertEqual(
             message,
             "{}, {} do not match any of the regexes: {}, {}".format(
-                repr("fish"), repr("zebra"), repr("^abc$"), repr("^def$"),
+                repr("fish"),
+                repr("zebra"),
+                repr("^abc$"),
+                repr("^def$"),
             ),
         )
 
@@ -733,8 +744,7 @@ class TestValidationErrorMessages(TestCase):
         )
         self.assertEqual(
             message,
-            "Unevaluated properties are not allowed "
-            "('bar', 'foo' were unexpected)",
+            "Unevaluated properties are not allowed ('bar', 'foo' were unexpected)",
         )
 
     def test_unevaluated_properties_on_invalid_type(self):
@@ -866,7 +876,8 @@ class TestValidationErrorDetails(TestCase):
         self.assertEqual(e1.schema_path, deque([0, "minimum"]))
         self.assertEqual(e1.relative_schema_path, deque([0, "minimum"]))
         self.assertEqual(
-            e1.absolute_schema_path, deque(["anyOf", 0, "minimum"]),
+            e1.absolute_schema_path,
+            deque(["anyOf", 0, "minimum"]),
         )
 
         self.assertFalse(e1.context)
@@ -953,10 +964,12 @@ class TestValidationErrorDetails(TestCase):
         self.assertEqual(e2.json_path, "$.foo")
 
         self.assertEqual(
-            e2.schema_path, deque([1, "properties", "foo", "enum"]),
+            e2.schema_path,
+            deque([1, "properties", "foo", "enum"]),
         )
         self.assertEqual(
-            e2.relative_schema_path, deque([1, "properties", "foo", "enum"]),
+            e2.relative_schema_path,
+            deque([1, "properties", "foo", "enum"]),
         )
         self.assertEqual(
             e2.absolute_schema_path,
@@ -1044,7 +1057,8 @@ class TestValidationErrorDetails(TestCase):
         self.assertEqual(e1.schema_path, deque(["type"]))
         self.assertEqual(e2.schema_path, deque(["items", "type"]))
         self.assertEqual(
-            list(e3.schema_path), ["items", "properties", "bar", "type"],
+            list(e3.schema_path),
+            ["items", "properties", "bar", "type"],
         )
         self.assertEqual(
             list(e4.schema_path),
@@ -1055,7 +1069,8 @@ class TestValidationErrorDetails(TestCase):
             ["items", "properties", "bar", "properties", "baz", "minItems"],
         )
         self.assertEqual(
-            list(e6.schema_path), ["items", "properties", "foo", "enum"],
+            list(e6.schema_path),
+            ["items", "properties", "foo", "enum"],
         )
 
         self.assertEqual(e1.validator, "type")
@@ -1069,23 +1084,25 @@ class TestValidationErrorDetails(TestCase):
         schema = {
             "definitions": {
                 "node": {
-                    "anyOf": [{
-                        "type": "object",
-                        "required": ["name", "children"],
-                        "properties": {
-                            "name": {
-                                "type": "string",
-                            },
-                            "children": {
-                                "type": "object",
-                                "patternProperties": {
-                                    "^.*$": {
-                                        "$ref": "#/definitions/node",
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "required": ["name", "children"],
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                },
+                                "children": {
+                                    "type": "object",
+                                    "patternProperties": {
+                                        "^.*$": {
+                                            "$ref": "#/definitions/node",
+                                        },
                                     },
                                 },
                             },
-                        },
-                    }],
+                        }
+                    ],
                 },
             },
             "type": "object",
@@ -1111,17 +1128,19 @@ class TestValidationErrorDetails(TestCase):
         }
         validator = validators.Draft4Validator(schema)
 
-        e, = validator.iter_errors(instance)
+        (e,) = validator.iter_errors(instance)
         self.assertEqual(e.absolute_path, deque(["root"]))
         self.assertEqual(
-            e.absolute_schema_path, deque(["properties", "root", "anyOf"]),
+            e.absolute_schema_path,
+            deque(["properties", "root", "anyOf"]),
         )
         self.assertEqual(e.json_path, "$.root")
 
-        e1, = e.context
+        (e1,) = e.context
         self.assertEqual(e1.absolute_path, deque(["root", "children", "a"]))
         self.assertEqual(
-            e1.absolute_schema_path, deque(
+            e1.absolute_schema_path,
+            deque(
                 [
                     "properties",
                     "root",
@@ -1137,14 +1156,16 @@ class TestValidationErrorDetails(TestCase):
         )
         self.assertEqual(e1.json_path, "$.root.children.a")
 
-        e2, = e1.context
+        (e2,) = e1.context
         self.assertEqual(
-            e2.absolute_path, deque(
+            e2.absolute_path,
+            deque(
                 ["root", "children", "a", "children", "ab"],
             ),
         )
         self.assertEqual(
-            e2.absolute_schema_path, deque(
+            e2.absolute_schema_path,
+            deque(
                 [
                     "properties",
                     "root",
@@ -1250,7 +1271,7 @@ class TestValidationErrorDetails(TestCase):
         schema = {"propertyNames": {"not": {"const": "foo"}}}
 
         validator = validators.Draft7Validator(schema)
-        error, = validator.iter_errors(instance)
+        (error,) = validator.iter_errors(instance)
 
         self.assertEqual(error.validator, "not")
         self.assertEqual(
@@ -1268,7 +1289,7 @@ class TestValidationErrorDetails(TestCase):
         }
 
         validator = validators.Draft7Validator(schema)
-        error, = validator.iter_errors(12)
+        (error,) = validator.iter_errors(12)
 
         self.assertEqual(error.validator, "const")
         self.assertEqual(error.message, "13 was expected")
@@ -1283,7 +1304,7 @@ class TestValidationErrorDetails(TestCase):
         }
 
         validator = validators.Draft7Validator(schema)
-        error, = validator.iter_errors(15)
+        (error,) = validator.iter_errors(15)
 
         self.assertEqual(error.validator, "const")
         self.assertEqual(error.message, "13 was expected")
@@ -1293,7 +1314,7 @@ class TestValidationErrorDetails(TestCase):
 
     def test_boolean_schema_False(self):
         validator = validators.Draft7Validator(False)
-        error, = validator.iter_errors(12)
+        (error,) = validator.iter_errors(12)
 
         self.assertEqual(
             (
@@ -1322,7 +1343,7 @@ class TestValidationErrorDetails(TestCase):
             {"$ref": ref},
             resolver=validators._RefResolver("", {}, store={ref: schema}),
         )
-        error, = validator.iter_errors({"foo": "notAnInteger"})
+        (error,) = validator.iter_errors({"foo": "notAnInteger"})
 
         self.assertEqual(
             (
@@ -1455,7 +1476,7 @@ class TestValidationErrorDetails(TestCase):
         """
         schema = {"contains": {"type": "string"}, "maxContains": 2}
         validator = validators.Draft202012Validator(schema)
-        error, = validator.iter_errors(["foo", 2, "bar", 4, "baz", "quux"])
+        (error,) = validator.iter_errors(["foo", 2, "bar", 4, "baz", "quux"])
         self.assertEqual(
             (
                 error.message,
@@ -1482,7 +1503,7 @@ class TestValidationErrorDetails(TestCase):
     def test_contains_too_few(self):
         schema = {"contains": {"type": "string"}, "minContains": 2}
         validator = validators.Draft202012Validator(schema)
-        error, = validator.iter_errors(["foo", 2, 4])
+        (error,) = validator.iter_errors(["foo", 2, 4])
         self.assertEqual(
             (
                 error.message,
@@ -1512,7 +1533,7 @@ class TestValidationErrorDetails(TestCase):
     def test_contains_none(self):
         schema = {"contains": {"type": "string"}, "minContains": 2}
         validator = validators.Draft202012Validator(schema)
-        error, = validator.iter_errors([2, 4])
+        (error,) = validator.iter_errors([2, 4])
         self.assertEqual(
             (
                 error.message,
@@ -1701,6 +1722,7 @@ class ValidatorTestMixin(MetaSchemaTestsMixin):
         """
 
         with self.assertWarns(DeprecationWarning):
+
             @define
             class OhNo(self.Validator):
                 foo = field(factory=lambda: [1, 2, 3])
@@ -1730,8 +1752,10 @@ class ValidatorTestMixin(MetaSchemaTestsMixin):
             type_checker=self.Validator.TYPE_CHECKER.redefine(
                 "number",
                 lambda checker, thing: isinstance(
-                    thing, (int, float, Decimal),
-                ) and not isinstance(thing, bool),
+                    thing,
+                    (int, float, Decimal),
+                )
+                and not isinstance(thing, bool),
             ),
         )
 
@@ -1746,7 +1770,8 @@ class ValidatorTestMixin(MetaSchemaTestsMixin):
 
     def test_it_returns_true_for_formats_it_does_not_know_about(self):
         validator = self.Validator(
-            {"format": "carrot"}, format_checker=FormatChecker(),
+            {"format": "carrot"},
+            format_checker=FormatChecker(),
         )
         validator.validate("bugs")
 
@@ -1762,13 +1787,14 @@ class ValidatorTestMixin(MetaSchemaTestsMixin):
         def check(value):
             if value == "good":
                 return True
-            elif value == "bad":
+            if value == "bad":
                 raise bad
-            else:  # pragma: no cover
-                self.fail(f"What is {value}? [Baby Don't Hurt Me]")
+            # pragma: no cover
+            self.fail(f"What is {value}? [Baby Don't Hurt Me]")
 
         validator = self.Validator(
-            {"format": "foo"}, format_checker=checker,
+            {"format": "foo"},
+            format_checker=checker,
         )
 
         validator.validate("good")
@@ -1818,10 +1844,12 @@ class ValidatorTestMixin(MetaSchemaTestsMixin):
             type_checker=self.Validator.TYPE_CHECKER.redefine_many(
                 {
                     "array": lambda checker, thing: isinstance(
-                        thing, (list, deque),
+                        thing,
+                        (list, deque),
                     ),
                     "object": lambda checker, thing: isinstance(
-                        thing, (dict, MyMapping),
+                        thing,
+                        (dict, MyMapping),
                     ),
                 },
             ),
@@ -1947,7 +1975,8 @@ class TestDraft3Validator(AntiDraft6LeakMixin, ValidatorTestMixin, TestCase):
         Crazy = validators.extend(
             self.Validator,
             type_checker=self.Validator.TYPE_CHECKER.redefine(
-                "any", lambda checker, thing: isinstance(thing, int),
+                "any",
+                lambda checker, thing: isinstance(thing, int),
             ),
         )
         validator = Crazy({"type": "any"})
@@ -2273,6 +2302,7 @@ class TestThreading(TestCase):
         validate()  # just verify it succeeds
 
         from threading import Thread
+
         thread = Thread(target=validate)
         thread.start()
         thread.join()
@@ -2315,12 +2345,16 @@ class TestRefResolver(TestCase):
         self.referrer = {}
         self.store = {self.stored_uri: self.stored_schema}
         self.resolver = validators._RefResolver(
-            self.base_uri, self.referrer, self.store,
+            self.base_uri,
+            self.referrer,
+            self.store,
         )
 
     def test_it_does_not_retrieve_schema_urls_from_the_network(self):
         ref = validators.Draft3Validator.META_SCHEMA["id"]
-        with mock.patch.object(self.resolver, "resolve_remote") as patched:  # noqa: SIM117
+        with mock.patch.object(
+            self.resolver, "resolve_remote"
+        ) as patched:
             with self.resolver.resolving(ref) as resolved:
                 pass
         self.assertEqual(resolved, validators.Draft3Validator.META_SCHEMA)
@@ -2357,7 +2391,9 @@ class TestRefResolver(TestCase):
 
         if "requests" in sys.modules:  # pragma: no cover
             self.addCleanup(
-                sys.modules.__setitem__, "requests", sys.modules["requests"],
+                sys.modules.__setitem__,
+                "requests",
+                sys.modules["requests"],
             )
         sys.modules["requests"] = ReallyFakeRequests({"http://bar": schema})
 
@@ -2370,7 +2406,9 @@ class TestRefResolver(TestCase):
 
         if "requests" in sys.modules:  # pragma: no cover
             self.addCleanup(
-                sys.modules.__setitem__, "requests", sys.modules["requests"],
+                sys.modules.__setitem__,
+                "requests",
+                sys.modules["requests"],
             )
         sys.modules["requests"] = None
 
@@ -2444,7 +2482,10 @@ class TestRefResolver(TestCase):
 
         ref = "foo://bar"
         resolver = validators._RefResolver(
-            "", {}, cache_remote=True, handlers={"foo": handler},
+            "",
+            {},
+            cache_remote=True,
+            handlers={"foo": handler},
         )
         with resolver.resolving(ref):
             pass
@@ -2462,7 +2503,10 @@ class TestRefResolver(TestCase):
 
         ref = "foo://bar"
         resolver = validators._RefResolver(
-            "", {}, cache_remote=False, handlers={"foo": handler},
+            "",
+            {},
+            cache_remote=False,
+            handlers={"foo": handler},
         )
         with resolver.resolving(ref):
             pass
@@ -2544,13 +2588,13 @@ class TestRefResolver(TestCase):
         )
 
 
-
 def sorted_errors(errors):
     def key(error):
         return (
             [str(e) for e in error.path],
             [str(e) for e in error.schema_path],
         )
+
     return sorted(errors, key=key)
 
 

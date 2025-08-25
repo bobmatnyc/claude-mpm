@@ -16,24 +16,19 @@ import time
 from unittest import mock
 
 import psutil
-from psutil import AIX
-from psutil import BSD
-from psutil import LINUX
-from psutil import MACOS
-from psutil import OPENBSD
-from psutil import POSIX
-from psutil import SUNOS
-from psutil.tests import AARCH64
-from psutil.tests import HAS_NET_IO_COUNTERS
-from psutil.tests import PYTHON_EXE
-from psutil.tests import PsutilTestCase
-from psutil.tests import pytest
-from psutil.tests import retry_on_failure
-from psutil.tests import sh
-from psutil.tests import skip_on_access_denied
-from psutil.tests import spawn_testproc
-from psutil.tests import terminate
-
+from psutil import AIX, BSD, LINUX, MACOS, OPENBSD, POSIX, SUNOS
+from psutil.tests import (
+    AARCH64,
+    HAS_NET_IO_COUNTERS,
+    PYTHON_EXE,
+    PsutilTestCase,
+    pytest,
+    retry_on_failure,
+    sh,
+    skip_on_access_denied,
+    spawn_testproc,
+    terminate,
+)
 
 if POSIX:
     import mmap
@@ -47,22 +42,22 @@ def ps(fmt, pid=None):
     support for a narrow range of features.
     """
 
-    cmd = ['ps']
+    cmd = ["ps"]
 
     if LINUX:
-        cmd.append('--no-headers')
+        cmd.append("--no-headers")
 
     if pid is not None:
-        cmd.extend(['-p', str(pid)])
+        cmd.extend(["-p", str(pid)])
     elif SUNOS or AIX:
-        cmd.append('-A')
+        cmd.append("-A")
     else:
-        cmd.append('ax')
+        cmd.append("ax")
 
     if SUNOS:
         fmt = fmt.replace("start", "stime")
 
-    cmd.extend(['-o', fmt])
+    cmd.extend(["-o", fmt])
 
     output = sh(cmd)
 
@@ -81,8 +76,7 @@ def ps(fmt, pid=None):
 
     if pid is None:
         return all_output
-    else:
-        return all_output[0]
+    return all_output[0]
 
 
 # ps "-o" field names differ wildly between platforms.
@@ -136,12 +130,12 @@ def df(device):
         if "device busy" in str(err).lower():
             raise pytest.skip("df returned EBUSY")
         raise
-    line = out.split('\n')[1]
+    line = out.split("\n")[1]
     fields = line.split()
     sys_total = int(fields[1]) * 1024
     sys_used = int(fields[2]) * 1024
     sys_free = int(fields[3]) * 1024
-    sys_percent = float(fields[4].replace('%', ''))
+    sys_percent = float(fields[4].replace("%", ""))
     return (sys_total, sys_used, sys_free, sys_percent)
 
 
@@ -151,31 +145,29 @@ class TestProcess(PsutilTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.pid = spawn_testproc(
-            [PYTHON_EXE, "-E", "-O"], stdin=subprocess.PIPE
-        ).pid
+        cls.pid = spawn_testproc([PYTHON_EXE, "-E", "-O"], stdin=subprocess.PIPE).pid
 
     @classmethod
     def tearDownClass(cls):
         terminate(cls.pid)
 
     def test_ppid(self):
-        ppid_ps = ps('ppid', self.pid)
+        ppid_ps = ps("ppid", self.pid)
         ppid_psutil = psutil.Process(self.pid).ppid()
         assert ppid_ps == ppid_psutil
 
     def test_uid(self):
-        uid_ps = ps('uid', self.pid)
+        uid_ps = ps("uid", self.pid)
         uid_psutil = psutil.Process(self.pid).uids().real
         assert uid_ps == uid_psutil
 
     def test_gid(self):
-        gid_ps = ps('rgid', self.pid)
+        gid_ps = ps("rgid", self.pid)
         gid_psutil = psutil.Process(self.pid).gids().real
         assert gid_ps == gid_psutil
 
     def test_username(self):
-        username_ps = ps('user', self.pid)
+        username_ps = ps("user", self.pid)
         username_psutil = psutil.Process(self.pid).username()
         assert username_ps == username_psutil
 
@@ -229,9 +221,7 @@ class TestProcess(PsutilTestCase):
         name = "long-program-name"
         cmdline = ["long-program-name-extended", "foo", "bar"]
         with mock.patch("psutil._psplatform.Process.name", return_value=name):
-            with mock.patch(
-                "psutil._psplatform.Process.cmdline", return_value=cmdline
-            ):
+            with mock.patch("psutil._psplatform.Process.cmdline", return_value=cmdline):
                 p = psutil.Process()
                 assert p.name() == "long-program-name-extended"
 
@@ -263,11 +253,11 @@ class TestProcess(PsutilTestCase):
 
     @pytest.mark.skipif(MACOS or BSD, reason="ps -o start not available")
     def test_create_time(self):
-        time_ps = ps('start', self.pid)
+        time_ps = ps("start", self.pid)
         time_psutil = psutil.Process(self.pid).create_time()
-        time_psutil_tstamp = datetime.datetime.fromtimestamp(
-            time_psutil
-        ).strftime("%H:%M:%S")
+        time_psutil_tstamp = datetime.datetime.fromtimestamp(time_psutil).strftime(
+            "%H:%M:%S"
+        )
         # sometimes ps shows the time rounded up instead of down, so we check
         # for both possible values
         round_time_psutil = round(time_psutil)
@@ -313,7 +303,7 @@ class TestProcess(PsutilTestCase):
     @pytest.mark.skipif(SUNOS, reason="not reliable on SUNOS")
     @pytest.mark.skipif(AIX, reason="not reliable on AIX")
     def test_nice(self):
-        ps_nice = ps('nice', self.pid)
+        ps_nice = ps("nice", self.pid)
         psutil_nice = psutil.Process().nice()
         assert ps_nice == psutil_nice
 
@@ -353,8 +343,7 @@ class TestSystemAPIs(PsutilTestCase):
                     break
             else:
                 raise self.fail(
-                    f"couldn't find {nic} nic in 'ifconfig -a'"
-                    f" output\n{output}"
+                    f"couldn't find {nic} nic in 'ifconfig -a' output\n{output}"
                 )
 
     # @pytest.mark.skipif(CI_TESTING and not psutil.users(),
@@ -364,7 +353,7 @@ class TestSystemAPIs(PsutilTestCase):
         out = sh("who -u")
         if not out.strip():
             raise pytest.skip("no users on this system")
-        lines = out.split('\n')
+        lines = out.split("\n")
         users = [x.split()[0] for x in lines]
         terminals = [x.split()[1] for x in lines]
         assert len(users) == len(psutil.users())
@@ -407,9 +396,9 @@ class TestSystemAPIs(PsutilTestCase):
 
         with self.subTest(psutil=psutil.users(), who=out):
             for idx, u in enumerate(psutil.users()):
-                psutil_value = datetime.datetime.fromtimestamp(
-                    u.started
-                ).strftime(tstamp)
+                psutil_value = datetime.datetime.fromtimestamp(u.started).strftime(
+                    tstamp
+                )
                 assert psutil_value == started[idx]
 
     def test_pid_exists_let_raise(self):
@@ -444,9 +433,7 @@ class TestSystemAPIs(PsutilTestCase):
 
     def test_os_waitpid_bad_ret_status(self):
         # Simulate os.waitpid() returning a bad status.
-        with mock.patch(
-            "psutil._psposix.os.waitpid", return_value=(1, -1)
-        ) as m:
+        with mock.patch("psutil._psposix.os.waitpid", return_value=(1, -1)) as m:
             with pytest.raises(ValueError):
                 psutil._psposix.wait_pid(os.getpid())
             assert m.called

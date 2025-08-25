@@ -170,7 +170,7 @@ class TestRunCommand:
         mock_port_manager.return_value.get_available_port.return_value = 8080
         mock_ensure_deps.return_value = True
         mock_subprocess.return_value = Mock(returncode=0)
-        
+
         # Mock DashboardLauncher
         mock_dashboard_launcher = Mock()
         mock_dashboard_launcher.launch_dashboard.return_value = (True, True)
@@ -201,8 +201,7 @@ class TestRunCommand:
         assert isinstance(result, CommandResult)
         mock_ensure_deps.assert_called_once()
         mock_dashboard_launcher.launch_dashboard.assert_called_once_with(
-            port=8080,
-            monitor_mode=True
+            port=8080, monitor_mode=True
         )
 
     @patch("claude_mpm.cli.commands.run.subprocess.run")

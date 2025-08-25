@@ -13,24 +13,18 @@ DESIGN DECISIONS:
 - Support multiple output formats (json, yaml, table, text)
 """
 
-import logging
-import os
 import subprocess
 import sys
-import time
 from datetime import datetime
 from typing import Optional
 
 from ...constants import LogLevel
 from ...core.logger import get_logger
-from ...core.shared.config_loader import ConfigLoader
-from ...core.unified_paths import get_package_root, get_scripts_dir
-from ...services.cli.session_manager import SessionManager, ManagedSession
-from ...services.cli.startup_checker import StartupCheckerService
+from ...core.unified_paths import get_scripts_dir
 from ...services.cli.dashboard_launcher import DashboardLauncher
+from ...services.cli.session_manager import SessionManager
 from ...services.cli.socketio_manager import SocketIOManager
-from ...services.port_manager import PortManager
-from ...utils.dependency_manager import ensure_socketio_dependencies
+from ...services.cli.startup_checker import StartupCheckerService
 from ..shared import BaseCommand, CommandResult
 from ..startup_logging import (
     cleanup_old_startup_logs,
@@ -211,8 +205,9 @@ class RunCommand(BaseCommand):
 
             # Log memory stats at session completion
             from ..startup_logging import log_memory_stats
+
             log_memory_stats(self.logger, "Session End Memory")
-            
+
             if success:
                 return CommandResult.success_result(
                     "Claude session completed successfully"
@@ -286,6 +281,7 @@ class RunCommand(BaseCommand):
         """Check configuration health at startup."""
         # Use new StartupCheckerService
         from ...core.config import Config
+
         config_service = Config()
         checker = StartupCheckerService(config_service)
         warnings = checker.check_configuration()
@@ -295,9 +291,10 @@ class RunCommand(BaseCommand):
         """Check .claude.json file size and warn about memory issues."""
         # Use new StartupCheckerService
         from ...core.config import Config
+
         config_service = Config()
         checker = StartupCheckerService(config_service)
-        resume_enabled = getattr(args, 'mpm_resume', False)
+        resume_enabled = getattr(args, "mpm_resume", False)
         warning = checker.check_memory(resume_enabled)
         if warning:
             checker.display_warnings([warning])
@@ -433,7 +430,7 @@ class RunCommand(BaseCommand):
         if monitor_mode:
             # Use SocketIOManager for server management
             socketio_manager = SocketIOManager(self.logger)
-            
+
             # Check dependencies
             deps_ok, error_msg = socketio_manager.ensure_dependencies()
             if not deps_ok:
@@ -444,8 +441,10 @@ class RunCommand(BaseCommand):
             else:
                 # Find available port and start server
                 websocket_port = socketio_manager.find_available_port(8765)
-                success, server_info = socketio_manager.start_server(port=websocket_port)
-                
+                success, server_info = socketio_manager.start_server(
+                    port=websocket_port
+                )
+
                 if not success:
                     self.logger.warning(
                         "Failed to start Socket.IO server, disabling monitor mode"
@@ -455,11 +454,11 @@ class RunCommand(BaseCommand):
                     # Use DashboardLauncher for browser opening only
                     dashboard_launcher = DashboardLauncher(self.logger)
                     monitor_url = dashboard_launcher.get_dashboard_url(websocket_port)
-                    
+
                     # Try to open browser
                     browser_opened = dashboard_launcher._open_browser(monitor_url)
                     args._browser_opened_by_cli = browser_opened
-                    
+
                     if not browser_opened:
                         print(f"💡 Monitor interface available at: {monitor_url}")
 
@@ -566,7 +565,6 @@ class RunCommand(BaseCommand):
         except Exception as e:
             self.logger.error(f"Session execution failed: {e}")
             return False
-
 
 
 def run_session(args):
@@ -859,11 +857,11 @@ def run_session_legacy(args):
     if enable_websocket:
         # Use SocketIOManager for server management
         socketio_manager = SocketIOManager(logger)
-        
+
         # Check dependencies
         print("🔧 Checking Socket.IO dependencies...")
         deps_ok, error_msg = socketio_manager.ensure_dependencies()
-        
+
         if not deps_ok:
             print(f"❌ Failed to install Socket.IO dependencies: {error_msg}")
             print(
@@ -873,25 +871,27 @@ def run_session_legacy(args):
             # Continue anyway - some functionality might still work
         else:
             print("✓ Socket.IO dependencies ready")
-            
+
             # Find available port and start server if in monitor mode
             if monitor_mode:
                 websocket_port = socketio_manager.find_available_port(websocket_port)
-                success, server_info = socketio_manager.start_server(port=websocket_port)
-                
+                success, server_info = socketio_manager.start_server(
+                    port=websocket_port
+                )
+
                 if success:
                     print(f"✓ Socket.IO server enabled at {server_info.url}")
                     if launch_method == "exec":
                         print(
                             "  Note: Socket.IO monitoring using exec mode with Claude Code hooks"
                         )
-                    
+
                     # Use DashboardLauncher for browser opening
                     dashboard_launcher = DashboardLauncher(logger)
                     monitor_url = dashboard_launcher.get_dashboard_url(websocket_port)
                     browser_opened = dashboard_launcher._open_browser(monitor_url)
                     args._browser_opened_by_cli = browser_opened
-                    
+
                     if not browser_opened:
                         print(f"💡 Monitor interface available at: {monitor_url}")
                 else:
@@ -971,13 +971,13 @@ def launch_socketio_monitor(port, logger):
     """Launch the Socket.IO monitoring dashboard (legacy compatibility)."""
     socketio_manager = SocketIOManager(logger)
     success, server_info = socketio_manager.start_server(port=port)
-    
+
     if success:
         # Open browser using DashboardLauncher
         launcher = DashboardLauncher(logger)
         browser_opened = launcher._open_browser(server_info.url)
         return success, browser_opened
-    
+
     return False, False
 
 
@@ -1004,9 +1004,10 @@ def _check_claude_json_memory(args, logger):
     """Check .claude.json file size and warn about memory issues."""
     # Use new StartupCheckerService
     from ...core.config import Config
+
     config_service = Config()
     checker = StartupCheckerService(config_service)
-    resume_enabled = getattr(args, 'mpm_resume', False)
+    resume_enabled = getattr(args, "mpm_resume", False)
     warning = checker.check_memory(resume_enabled)
     if warning:
         checker.display_warnings([warning])
@@ -1016,6 +1017,7 @@ def _check_configuration_health(logger):
     """Check configuration health at startup and warn about issues."""
     # Use new StartupCheckerService
     from ...core.config import Config
+
     config_service = Config()
     checker = StartupCheckerService(config_service)
     warnings = checker.check_configuration()

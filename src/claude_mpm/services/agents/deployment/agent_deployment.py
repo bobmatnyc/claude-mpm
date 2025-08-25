@@ -27,7 +27,6 @@ ROLLBACK PROCEDURES:
 - Version tracking allows targeted rollbacks
 """
 
-import os
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -123,13 +122,13 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
 
         # Initialize validator service
         self.validator = AgentValidator()
-        
+
         # Initialize base agent locator service
         self.base_agent_locator = BaseAgentLocator(self.logger)
-        
+
         # Initialize deployment results manager
         self.results_manager = DeploymentResultsManager(self.logger)
-        
+
         # Initialize single agent deployer
         self.single_agent_deployer = SingleAgentDeployer(
             self.template_builder,
@@ -140,7 +139,6 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
 
         # Initialize filesystem manager service
         self.filesystem_manager = AgentFileSystemManager()
-
 
         # Determine the actual working directory using configuration
         # Priority: param > config > environment > current directory
@@ -176,7 +174,9 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             self.base_agent_path = configured_base_agent
         else:
             # Priority-based search for base_agent.json
-            self.base_agent_path = self.base_agent_locator.find_base_agent_file(paths.agents_dir)
+            self.base_agent_path = self.base_agent_locator.find_base_agent_file(
+                paths.agents_dir
+            )
 
         # Initialize configuration manager (after base_agent_path is set)
         self.configuration_manager = AgentConfigurationManager(self.base_agent_path)
@@ -186,7 +186,6 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
 
         self.logger.info(f"Templates directory: {self.templates_dir}")
         self.logger.info(f"Base agent path: {self.base_agent_path}")
-
 
     def deploy_agents(
         self,
@@ -289,7 +288,9 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         agents_dir = self._determine_agents_directory(target_dir)
 
         # Initialize results dictionary
-        results = self.results_manager.initialize_deployment_results(agents_dir, deployment_start_time)
+        results = self.results_manager.initialize_deployment_results(
+            agents_dir, deployment_start_time
+        )
 
         try:
             # Create agents directory if needed
@@ -299,7 +300,9 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             self._repair_existing_agents(agents_dir, results)
 
             # Log deployment source tier
-            source_tier = self.base_agent_locator.determine_source_tier(self.templates_dir)
+            source_tier = self.base_agent_locator.determine_source_tier(
+                self.templates_dir
+            )
             self.logger.info(
                 f"Building and deploying {source_tier} agents to: {agents_dir}"
             )
@@ -652,7 +655,6 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         resolver = AgentsDirectoryResolver(self.working_directory)
         return resolver.determine_agents_directory(target_dir)
 
-
     def _repair_existing_agents(
         self, agents_dir: Path, results: Dict[str, Any]
     ) -> None:
@@ -675,7 +677,6 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             for agent_name in repair_results["repaired"]:
                 self.logger.debug(f"  - Repaired: {agent_name}")
 
-
     def _load_base_agent(self) -> tuple:
         """Load base agent content and version."""
         return self.configuration_manager.load_base_agent()
@@ -684,16 +685,12 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         """Get and filter template files based on exclusion rules."""
         return self.discovery_service.get_filtered_templates(excluded_agents, config)
 
-
-
-
     def _validate_and_repair_existing_agents(self, agents_dir: Path) -> Dict[str, Any]:
         """Validate and repair broken frontmatter in existing agent files."""
         from .agent_frontmatter_validator import AgentFrontmatterValidator
 
         validator = AgentFrontmatterValidator(self.logger)
         return validator.validate_and_repair_existing_agents(agents_dir)
-
 
     def _should_use_multi_source_deployment(self, deployment_mode: str) -> bool:
         """Determine if multi-source deployment should be used.

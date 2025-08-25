@@ -272,9 +272,7 @@ This is a project-specific workflow override.
                 )
 
         except Exception as e:
-            self.log_result(
-                "PM memory instructions test", False, f"Exception: {e!s}"
-            )
+            self.log_result("PM memory instructions test", False, f"Exception: {e!s}")
 
     def test_memory_file_operations(self):
         """Test memory file read/write operations."""
@@ -349,9 +347,7 @@ This is a project-specific workflow override.
                 )
 
         except Exception as e:
-            self.log_result(
-                "Memory file operations test", False, f"Exception: {e!s}"
-            )
+            self.log_result("Memory file operations test", False, f"Exception: {e!s}")
 
     def test_fallback_to_system_memory(self):
         """Test fallback to system MEMORY.md when project-specific doesn't exist."""
@@ -392,9 +388,7 @@ This is a project-specific workflow override.
                 os.chdir(original_cwd)
 
         except Exception as e:
-            self.log_result(
-                "System memory fallback test", False, f"Exception: {e!s}"
-            )
+            self.log_result("System memory fallback test", False, f"Exception: {e!s}")
 
     def cleanup(self):
         """Clean up temporary directories."""

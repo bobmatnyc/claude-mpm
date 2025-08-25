@@ -12,15 +12,13 @@ import re
 
 import psutil
 from psutil import AIX
-from psutil.tests import PsutilTestCase
-from psutil.tests import pytest
-from psutil.tests import sh
+from psutil.tests import PsutilTestCase, pytest, sh
 
 
 @pytest.mark.skipif(not AIX, reason="AIX only")
 class AIXSpecificTestCase(PsutilTestCase):
     def test_virtual_memory(self):
-        out = sh('/usr/bin/svmon -O unit=KB')
+        out = sh("/usr/bin/svmon -O unit=KB")
         re_pattern = r"memory\s*"
         for field in [
             "size",
@@ -54,7 +52,7 @@ class AIXSpecificTestCase(PsutilTestCase):
         assert abs(psutil_result.free - free) < TOLERANCE_SYS_MEM
 
     def test_swap_memory(self):
-        out = sh('/usr/sbin/lsps -a')
+        out = sh("/usr/sbin/lsps -a")
         # From the man page, "The size is given in megabytes" so we assume
         # we'll always have 'MB' in the result
         # TODO maybe try to use "swap -l" to check "used" too, but its units
@@ -77,7 +75,7 @@ class AIXSpecificTestCase(PsutilTestCase):
         assert int(psutil_result.total / MB) == total_mb
 
     def test_cpu_stats(self):
-        out = sh('/usr/bin/mpstat -a')
+        out = sh("/usr/bin/mpstat -a")
 
         re_pattern = r"ALL\s*"
         for field in [
@@ -130,13 +128,13 @@ class AIXSpecificTestCase(PsutilTestCase):
         )
 
     def test_cpu_count_logical(self):
-        out = sh('/usr/bin/mpstat -a')
+        out = sh("/usr/bin/mpstat -a")
         mpstat_lcpu = int(re.search(r"lcpu=(\d+)", out).group(1))
         psutil_lcpu = psutil.cpu_count(logical=True)
         assert mpstat_lcpu == psutil_lcpu
 
     def test_net_if_addrs_names(self):
-        out = sh('/etc/ifconfig -l')
+        out = sh("/etc/ifconfig -l")
         ifconfig_names = set(out.split())
         psutil_names = set(psutil.net_if_addrs().keys())
         assert ifconfig_names == psutil_names

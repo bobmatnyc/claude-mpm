@@ -140,7 +140,8 @@ def test_daemon_subprocess():
             [sys.executable, str(daemon_script), "status"],
             capture_output=True,
             text=True,
-            timeout=5, check=False,
+            timeout=5,
+            check=False,
         )
 
         print(f"Status command exit code: {result.returncode}")

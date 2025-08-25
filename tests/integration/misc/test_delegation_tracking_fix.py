@@ -46,7 +46,8 @@ def test_delegation_with_response_tracking():
         env=env,
         capture_output=True,
         text=True,
-        timeout=60, check=False,
+        timeout=60,
+        check=False,
     )
 
     print("=== STDERR Output (Debug Logs) ===")

@@ -30,7 +30,9 @@ try:
     # Run memory view
     print("=== Running memory view ===")
     view_cmd = [mpm_cmd, "memory", "view", "qa"]
-    view_result = subprocess.run(view_cmd, capture_output=True, text=True, timeout=60, check=False)
+    view_result = subprocess.run(
+        view_cmd, capture_output=True, text=True, timeout=60, check=False
+    )
     print(f"View return code: {view_result.returncode}")
     print(f"View STDOUT: {view_result.stdout}")
     if view_result.stderr:

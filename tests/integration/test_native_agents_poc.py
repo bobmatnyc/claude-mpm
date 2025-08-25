@@ -17,7 +17,11 @@ def run_test(test_name, command):
     # Split command string into a list to avoid shell=True
     command_parts = shlex.split(command)
     result = subprocess.run(
-        command_parts, capture_output=True, text=True, cwd=Path(__file__).parent.parent, check=False
+        command_parts,
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).parent.parent,
+        check=False,
     )
 
     print("Output:")
@@ -48,7 +52,8 @@ def main():
             "list agents",
         ],
         capture_output=True,
-        text=True, check=False,
+        text=True,
+        check=False,
     )
 
     if "Deployed" in deploy_result.stdout:

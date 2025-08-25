@@ -7,54 +7,58 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from rope.base.project import Project
-from rope.refactor.extract import ExtractMethod
-from rope.refactor.move import MoveModule, MoveMethod
-from rope.base import libutils
 import subprocess
-import json
+
+from rope.base.project import Project
 
 
 class AgentDeploymentRefactorer:
     """Safely refactor agent_deployment.py into smaller services."""
-    
+
     def __init__(self):
         """Initialize the refactorer with rope project."""
         self.project_root = Path(__file__).parent.parent
         self.project = Project(str(self.project_root))
         self.src_path = self.project_root / "src"
-        self.deployment_path = self.src_path / "claude_mpm" / "services" / "agents" / "deployment"
+        self.deployment_path = (
+            self.src_path / "claude_mpm" / "services" / "agents" / "deployment"
+        )
         self.main_file = self.deployment_path / "agent_deployment.py"
-        
+
     def run_tests(self, description=""):
         """Run tests to ensure nothing is broken."""
         print(f"\n🧪 Running tests {description}...")
         result = subprocess.run(
-            ["python", "-m", "pytest", 
-             "tests/services/agents/deployment/test_agent_deployment_comprehensive.py",
-             "-xvs", "--tb=short"],
+            [
+                "python",
+                "-m",
+                "pytest",
+                "tests/services/agents/deployment/test_agent_deployment_comprehensive.py",
+                "-xvs",
+                "--tb=short",
+            ],
             capture_output=True,
             text=True,
-            cwd=str(self.project_root)
+            cwd=str(self.project_root), check=False,
         )
-        
+
         if result.returncode != 0:
             print(f"❌ Tests failed {description}")
             print(result.stdout[-2000:])  # Last 2000 chars of output
             return False
-        
+
         print(f"✅ Tests passed {description}")
         return True
-    
+
     def get_file_lines(self):
         """Get current line count of main file."""
         with open(self.main_file) as f:
             return len(f.readlines())
-    
+
     def phase1_extract_base_agent_locator(self):
         """Extract BaseAgentLocator class for finding base agent files."""
         print("\n📦 Phase 1: Extracting BaseAgentLocator...")
-        
+
         # Create the new file
         locator_file = self.deployment_path / "base_agent_locator.py"
         locator_content = '''"""Base agent locator service for finding base agent configuration files."""
@@ -190,79 +194,81 @@ class BaseAgentLocator:
         # Default to framework
         return "framework"
 '''
-        
+
         locator_file.write_text(locator_content)
         print(f"✅ Created {locator_file}")
-        
+
         # Now update agent_deployment.py to use the new service
         deployment_content = self.main_file.read_text()
-        
+
         # Add import
         import_line = "from .base_agent_locator import BaseAgentLocator"
         if "from .agent_validator import AgentValidator" in deployment_content:
             deployment_content = deployment_content.replace(
                 "from .agent_validator import AgentValidator",
-                f"from .agent_validator import AgentValidator\n{import_line}"
+                f"from .agent_validator import AgentValidator\n{import_line}",
             )
-        
+
         # Initialize in __init__
         init_line = "        self.base_agent_locator = BaseAgentLocator(self.logger)"
         deployment_content = deployment_content.replace(
             "        # Initialize validator service",
-            f"        # Initialize validator service\n{init_line}\n"
+            f"        # Initialize validator service\n{init_line}\n",
         )
-        
+
         # Replace _find_base_agent_file call
         deployment_content = deployment_content.replace(
             "self.base_agent_path = self._find_base_agent_file()",
-            "self.base_agent_path = self.base_agent_locator.find_base_agent_file(paths.agents_dir)"
+            "self.base_agent_path = self.base_agent_locator.find_base_agent_file(paths.agents_dir)",
         )
-        
+
         # Remove the old method
         start_marker = "    def _find_base_agent_file(self) -> Path:"
         end_marker = "        return framework_base_agent\n"
-        
+
         if start_marker in deployment_content and end_marker in deployment_content:
             start_idx = deployment_content.index(start_marker)
             end_idx = deployment_content.index(end_marker, start_idx) + len(end_marker)
-            deployment_content = deployment_content[:start_idx] + deployment_content[end_idx:]
-        
+            deployment_content = (
+                deployment_content[:start_idx] + deployment_content[end_idx:]
+            )
+
         # Also replace _determine_source_tier
         deployment_content = deployment_content.replace(
             "source_tier = self._determine_source_tier()",
-            "source_tier = self.base_agent_locator.determine_source_tier(self.templates_dir)"
+            "source_tier = self.base_agent_locator.determine_source_tier(self.templates_dir)",
         )
-        
+
         # Remove old _determine_source_tier method
         start_marker = '    def _determine_source_tier(self) -> str:\n        """Determine the source tier for logging."""'
-        end_marker = '        return DeploymentTypeDetector.determine_source_tier(self.templates_dir)'
-        
+        end_marker = "        return DeploymentTypeDetector.determine_source_tier(self.templates_dir)"
+
         if start_marker in deployment_content:
             start_idx = deployment_content.index(start_marker)
             # Find the end of the method
-            lines = deployment_content[start_idx:].split('\n')
+            lines = deployment_content[start_idx:].split("\n")
             method_lines = []
             for i, line in enumerate(lines):
                 method_lines.append(line)
-                if i > 0 and line and not line.startswith(' '):
+                if i > 0 and line and not line.startswith(" "):
                     break
                 if "return DeploymentTypeDetector" in line:
                     break
-            
+
             # Remove the method
-            method_text = '\n'.join(method_lines[:-1]) + '\n'
-            deployment_content = deployment_content.replace(method_text, '')
-        
+            method_text = "\n".join(method_lines[:-1]) + "\n"
+            deployment_content = deployment_content.replace(method_text, "")
+
         # Write back
         self.main_file.write_text(deployment_content)
         print(f"✅ Updated {self.main_file}")
-        
+
         return True
-    
+
     def phase2_extract_deployment_results_manager(self):
         """Extract DeploymentResultsManager class."""
         print("\n📦 Phase 2: Extracting DeploymentResultsManager...")
-        
+
         # Create the new file
         manager_file = self.deployment_path / "deployment_results_manager.py"
         manager_content = '''"""Deployment results manager for tracking deployment outcomes."""
@@ -451,45 +457,47 @@ class DeploymentResultsManager:
             "deployment_errors": {},
         }
 '''
-        
+
         manager_file.write_text(manager_content)
         print(f"✅ Created {manager_file}")
-        
+
         # Update agent_deployment.py
         deployment_content = self.main_file.read_text()
-        
+
         # Add import
         import_line = "from .deployment_results_manager import DeploymentResultsManager"
         deployment_content = deployment_content.replace(
             "from .base_agent_locator import BaseAgentLocator",
-            f"from .base_agent_locator import BaseAgentLocator\n{import_line}"
+            f"from .base_agent_locator import BaseAgentLocator\n{import_line}",
         )
-        
+
         # Initialize in __init__
-        init_line = "        self.results_manager = DeploymentResultsManager(self.logger)"
+        init_line = (
+            "        self.results_manager = DeploymentResultsManager(self.logger)"
+        )
         deployment_content = deployment_content.replace(
             "        self.base_agent_locator = BaseAgentLocator(self.logger)",
-            f"        self.base_agent_locator = BaseAgentLocator(self.logger)\n{init_line}"
+            f"        self.base_agent_locator = BaseAgentLocator(self.logger)\n{init_line}",
         )
-        
+
         # Replace _initialize_deployment_results call
         deployment_content = deployment_content.replace(
             "results = self._initialize_deployment_results(agents_dir, deployment_start_time)",
-            "results = self.results_manager.initialize_deployment_results(agents_dir, deployment_start_time)"
+            "results = self.results_manager.initialize_deployment_results(agents_dir, deployment_start_time)",
         )
-        
-        # Replace _record_agent_deployment call  
+
+        # Replace _record_agent_deployment call
         deployment_content = deployment_content.replace(
             "self._record_agent_deployment(",
-            "self.results_manager.record_agent_deployment("
+            "self.results_manager.record_agent_deployment(",
         )
-        
+
         # Add logger parameter to record_agent_deployment calls
         deployment_content = deployment_content.replace(
             "                    results,\n                )",
-            "                    results,\n                    self.logger,\n                )"
+            "                    results,\n                    self.logger,\n                )",
         )
-        
+
         # Update finalize results section
         old_finalize = """        # METRICS: Calculate final deployment metrics
         deployment_end_time = time.time()
@@ -497,12 +505,12 @@ class DeploymentResultsManager:
 
         results["metrics"]["end_time"] = deployment_end_time
         results["metrics"]["duration_ms"] = deployment_duration"""
-        
+
         new_finalize = """        # METRICS: Calculate final deployment metrics
         self.results_manager.finalize_results(results, deployment_start_time)"""
-        
+
         deployment_content = deployment_content.replace(old_finalize, new_finalize)
-        
+
         # Update metrics tracking in error handling
         old_metrics = """            # METRICS: Track deployment failure
             self._deployment_metrics["failed_deployments"] += 1
@@ -510,12 +518,12 @@ class DeploymentResultsManager:
             self._deployment_metrics["deployment_errors"][error_type] = (
                 self._deployment_metrics["deployment_errors"].get(error_type, 0) + 1
             )"""
-        
+
         new_metrics = """            # METRICS: Track deployment failure
             self.results_manager.update_deployment_metrics(False, type(e).__name__)"""
-        
+
         deployment_content = deployment_content.replace(old_metrics, new_metrics)
-        
+
         # Remove old methods
         # Remove _initialize_deployment_results
         start_marker = "    def _initialize_deployment_results("
@@ -523,31 +531,39 @@ class DeploymentResultsManager:
             start_idx = deployment_content.index(start_marker)
             # Find the end of the method (next def or class)
             remaining = deployment_content[start_idx:]
-            lines = remaining.split('\n')
+            lines = remaining.split("\n")
             end_idx = 0
             for i, line in enumerate(lines[1:], 1):
-                if line and not line.startswith(' ') or (line.startswith('    def ') and i > 1):
+                if (
+                    (line
+                    and not line.startswith(" "))
+                    or (line.startswith("    def ") and i > 1)
+                ):
                     end_idx = i
                     break
-            
-            method_text = '\n'.join(lines[:end_idx])
-            deployment_content = deployment_content.replace(method_text, '')
-        
+
+            method_text = "\n".join(lines[:end_idx])
+            deployment_content = deployment_content.replace(method_text, "")
+
         # Remove _record_agent_deployment
         start_marker = "    def _record_agent_deployment("
         if start_marker in deployment_content:
             start_idx = deployment_content.index(start_marker)
             remaining = deployment_content[start_idx:]
-            lines = remaining.split('\n')
+            lines = remaining.split("\n")
             end_idx = 0
             for i, line in enumerate(lines[1:], 1):
-                if line and not line.startswith(' ') or (line.startswith('    def ') and i > 1):
+                if (
+                    (line
+                    and not line.startswith(" "))
+                    or (line.startswith("    def ") and i > 1)
+                ):
                     end_idx = i
                     break
-            
-            method_text = '\n'.join(lines[:end_idx])
-            deployment_content = deployment_content.replace(method_text, '')
-        
+
+            method_text = "\n".join(lines[:end_idx])
+            deployment_content = deployment_content.replace(method_text, "")
+
         # Remove old _deployment_metrics initialization
         old_init = """        # Initialize deployment metrics tracking
         self._deployment_metrics = {
@@ -559,31 +575,31 @@ class DeploymentResultsManager:
             "agent_type_counts": {},
             "deployment_errors": {},
         }"""
-        
+
         deployment_content = deployment_content.replace(old_init + "\n", "")
-        
+
         # Update get_deployment_metrics to use results_manager
         deployment_content = deployment_content.replace(
             "return self.metrics_collector.get_deployment_metrics()",
-            "return self.results_manager.get_deployment_metrics()"
+            "return self.results_manager.get_deployment_metrics()",
         )
-        
+
         # Update reset_metrics to use results_manager
         deployment_content = deployment_content.replace(
             "return self.metrics_collector.reset_metrics()",
-            "return self.results_manager.reset_metrics()"
+            "return self.results_manager.reset_metrics()",
         )
-        
+
         # Write back
         self.main_file.write_text(deployment_content)
         print(f"✅ Updated {self.main_file}")
-        
+
         return True
-    
+
     def phase3_extract_single_agent_deployer(self):
         """Extract SingleAgentDeployer class."""
         print("\n📦 Phase 3: Extracting SingleAgentDeployer...")
-        
+
         # Create the new file
         deployer_file = self.deployment_path / "single_agent_deployer.py"
         deployer_content = '''"""Single agent deployer for deploying individual agents."""
@@ -897,20 +913,20 @@ class SingleAgentDeployer:
         
         return "unknown"
 '''
-        
+
         deployer_file.write_text(deployer_content)
         print(f"✅ Created {deployer_file}")
-        
+
         # Update agent_deployment.py
         deployment_content = self.main_file.read_text()
-        
+
         # Add import
         import_line = "from .single_agent_deployer import SingleAgentDeployer"
         deployment_content = deployment_content.replace(
             "from .deployment_results_manager import DeploymentResultsManager",
-            f"from .deployment_results_manager import DeploymentResultsManager\n{import_line}"
+            f"from .deployment_results_manager import DeploymentResultsManager\n{import_line}",
         )
-        
+
         # Initialize in __init__
         init_line = """        self.single_agent_deployer = SingleAgentDeployer(
             self.template_builder,
@@ -920,15 +936,15 @@ class SingleAgentDeployer:
         )"""
         deployment_content = deployment_content.replace(
             "        self.results_manager = DeploymentResultsManager(self.logger)",
-            f"        self.results_manager = DeploymentResultsManager(self.logger)\n{init_line}"
+            f"        self.results_manager = DeploymentResultsManager(self.logger)\n{init_line}",
         )
-        
+
         # Replace _deploy_single_agent call
         deployment_content = deployment_content.replace(
             "                self._deploy_single_agent(",
-            "                self.single_agent_deployer.deploy_single_agent("
+            "                self.single_agent_deployer.deploy_single_agent(",
         )
-        
+
         # Update deploy_agent method to use single_agent_deployer
         # Find and replace the deploy_agent method body
         old_deploy_agent_body = """            # Find the template file
@@ -998,7 +1014,7 @@ class SingleAgentDeployer:
             )
 
             return True"""
-        
+
         new_deploy_agent_body = """            return self.single_agent_deployer.deploy_agent(
                 agent_name,
                 self.templates_dir,
@@ -1006,88 +1022,104 @@ class SingleAgentDeployer:
                 self.base_agent_path,
                 force_rebuild,
             )"""
-        
-        deployment_content = deployment_content.replace(old_deploy_agent_body, new_deploy_agent_body)
-        
+
+        deployment_content = deployment_content.replace(
+            old_deploy_agent_body, new_deploy_agent_body
+        )
+
         # Remove old methods
         # Remove _deploy_single_agent
         start_marker = "    def _deploy_single_agent("
         if start_marker in deployment_content:
             start_idx = deployment_content.index(start_marker)
             remaining = deployment_content[start_idx:]
-            lines = remaining.split('\n')
+            lines = remaining.split("\n")
             end_idx = 0
             for i, line in enumerate(lines[1:], 1):
-                if line and not line.startswith(' ') or (line.startswith('    def ') and i > 1):
+                if (
+                    (line
+                    and not line.startswith(" "))
+                    or (line.startswith("    def ") and i > 1)
+                ):
                     end_idx = i
                     break
-            
-            method_text = '\n'.join(lines[:end_idx])
-            deployment_content = deployment_content.replace(method_text, '')
-        
+
+            method_text = "\n".join(lines[:end_idx])
+            deployment_content = deployment_content.replace(method_text, "")
+
         # Remove _check_update_status
         start_marker = "    def _check_update_status("
         if start_marker in deployment_content:
             start_idx = deployment_content.index(start_marker)
             remaining = deployment_content[start_idx:]
-            lines = remaining.split('\n')
+            lines = remaining.split("\n")
             end_idx = 0
             for i, line in enumerate(lines[1:], 1):
-                if line and not line.startswith(' ') or (line.startswith('    def ') and i > 1):
+                if (
+                    (line
+                    and not line.startswith(" "))
+                    or (line.startswith("    def ") and i > 1)
+                ):
                     end_idx = i
                     break
-            
-            method_text = '\n'.join(lines[:end_idx])
-            deployment_content = deployment_content.replace(method_text, '')
-        
+
+            method_text = "\n".join(lines[:end_idx])
+            deployment_content = deployment_content.replace(method_text, "")
+
         # Remove _determine_agent_source
-        start_marker = "    def _determine_agent_source(self, template_path: Path) -> str:"
+        start_marker = (
+            "    def _determine_agent_source(self, template_path: Path) -> str:"
+        )
         if start_marker in deployment_content:
             start_idx = deployment_content.index(start_marker)
             remaining = deployment_content[start_idx:]
-            lines = remaining.split('\n')
+            lines = remaining.split("\n")
             end_idx = 0
             for i, line in enumerate(lines[1:], 1):
-                if line and not line.startswith(' ') or (line.startswith('    def ') and i > 1):
+                if (
+                    (line
+                    and not line.startswith(" "))
+                    or (line.startswith("    def ") and i > 1)
+                ):
                     end_idx = i
                     break
-            
-            method_text = '\n'.join(lines[:end_idx])
-            deployment_content = deployment_content.replace(method_text, '')
-        
+
+            method_text = "\n".join(lines[:end_idx])
+            deployment_content = deployment_content.replace(method_text, "")
+
         # Write back
         self.main_file.write_text(deployment_content)
         print(f"✅ Updated {self.main_file}")
-        
+
         return True
-    
+
     def commit_changes(self, phase_name: str):
         """Commit the changes for a phase."""
         print(f"\n💾 Committing changes for {phase_name}...")
-        
+
         # Stage all changes
-        subprocess.run(["git", "add", "-A"], cwd=str(self.project_root))
-        
+        subprocess.run(["git", "add", "-A"], cwd=str(self.project_root), check=False)
+
         # Commit
         commit_msg = f"refactor: {phase_name} - reduce agent_deployment.py complexity"
         subprocess.run(
             ["git", "commit", "-m", commit_msg],
             cwd=str(self.project_root),
-            capture_output=True
+            capture_output=True, check=False,
         )
-        
+
         print(f"✅ Committed: {commit_msg}")
-    
+
     def run(self):
         """Run the complete refactoring process."""
         print("🚀 Starting agent_deployment.py refactoring...")
         print(f"📏 Initial file size: {self.get_file_lines()} lines")
-        
+
         # Run initial tests
         if not self.run_tests("(before refactoring)"):
             print("❌ Tests must pass before refactoring")
             return False
-        
+
         # Phase 1: Extract BaseAgentLocator
         if self.phase1_extract_base_agent_locator():
             if self.run_tests("(after Phase 1)"):
@@ -1095,7 +1127,7 @@ class SingleAgentDeployer:
             else:
                 print("❌ Phase 1 broke tests, stopping")
                 return False
-        
+
         # Phase 2: Extract DeploymentResultsManager
         if self.phase2_extract_deployment_results_manager():
             if self.run_tests("(after Phase 2)"):
@@ -1103,7 +1135,7 @@ class SingleAgentDeployer:
             else:
                 print("❌ Phase 2 broke tests, stopping")
                 return False
-        
+
         # Phase 3: Extract SingleAgentDeployer
         if self.phase3_extract_single_agent_deployer():
             if self.run_tests("(after Phase 3)"):
@@ -1111,11 +1143,11 @@ class SingleAgentDeployer:
             else:
                 print("❌ Phase 3 broke tests, stopping")
                 return False
-        
-        print(f"\n✅ Refactoring complete!")
+
+        print("\n✅ Refactoring complete!")
         print(f"📏 Final file size: {self.get_file_lines()} lines")
         print(f"📉 Reduced by: {1280 - self.get_file_lines()} lines")
-        
+
         return True
 
 
