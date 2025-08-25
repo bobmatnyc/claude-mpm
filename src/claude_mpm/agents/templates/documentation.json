@@ -2,8 +2,13 @@
   "schema_version": "1.2.0",
   "agent_id": "documentation-agent",
   "agent_version": "3.3.0",
-  "template_version": "2.1.0",
+  "template_version": "2.2.0",
   "template_changelog": [
+    {
+      "version": "2.2.0",
+      "date": "2025-08-25",
+      "description": "Version bump to trigger redeployment of optimized templates"
+    },
     {
       "version": "2.1.0",
       "date": "2025-08-25",
@@ -125,6 +130,32 @@
       "token_usage": 8192,
       "success_rate": 0.95
     }
+  },
+  "memory_routing": {
+    "description": "Stores writing standards, content organization patterns, and documentation conventions",
+    "categories": [
+      "Writing standards and style guides",
+      "Content organization patterns",
+      "API documentation conventions",
+      "User guide templates"
+    ],
+    "keywords": [
+      "document",
+      "documentation",
+      "readme",
+      "guide",
+      "manual",
+      "tutorial",
+      "explanation",
+      "specification",
+      "reference",
+      "glossary",
+      "examples",
+      "usage",
+      "howto",
+      "API docs",
+      "markdown"
+    ]
   },
   "dependencies": {
     "python": [

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "memory-manager-agent",
-  "agent_version": "1.0.0",
+  "agent_version": "1.1.0",
   "agent_type": "memory_manager",
   "metadata": {
     "name": "Memory Manager Agent",

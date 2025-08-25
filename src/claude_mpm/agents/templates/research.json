@@ -2,8 +2,13 @@
   "schema_version": "1.2.0",
   "agent_id": "research-agent",
   "agent_version": "4.3.1",
-  "template_version": "1.0.1",
+  "template_version": "2.1.0",
   "template_changelog": [
+    {
+      "version": "2.1.0",
+      "date": "2025-08-25",
+      "description": "Version bump to trigger redeployment of optimized templates"
+    },
     {
       "version": "1.0.1",
       "date": "2025-08-22",
@@ -128,6 +133,5 @@
       "git"
     ],
     "optional": false
-  },
-  "template_version": "2.0.0"
+  }
 }

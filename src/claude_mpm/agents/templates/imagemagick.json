@@ -4,8 +4,13 @@
   "schema_version": "1.1.0",
   "agent_id": "imagemagick",
   "agent_version": "1.0.0",
-  "template_version": "1.0.0",
+  "template_version": "1.1.0",
   "template_changelog": [
+    {
+      "version": "1.1.0",
+      "date": "2025-08-25",
+      "description": "Version bump to trigger redeployment of optimized templates"
+    },
     {
       "version": "1.0.0",
       "date": "2025-08-23",

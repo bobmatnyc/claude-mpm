@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "code-analyzer",
-  "agent_version": "2.4.0",
+  "agent_version": "2.5.0",
   "agent_type": "research",
   "metadata": {
     "name": "Code Analysis Agent",
