@@ -105,7 +105,7 @@ class BaseMonitoringService(ABC):
 
     def __init__(self, name: str):
         """Initialize base monitoring service.
-        
+
         Args:
             name: Service name for logging and identification
         """
@@ -117,6 +117,7 @@ class BaseMonitoringService(ABC):
         """Lazy-load logger to avoid circular imports."""
         if self._logger is None:
             import logging
+
             self._logger = logging.getLogger(f"claude_mpm.monitoring.{self.name}")
         return self._logger
 
