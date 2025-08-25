@@ -127,7 +127,8 @@ for agent in agents:
             ["python", str(test_script)],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent.parent, check=False,
+            cwd=Path(__file__).parent.parent.parent,
+            check=False,
         )
 
         assert result.returncode == 0

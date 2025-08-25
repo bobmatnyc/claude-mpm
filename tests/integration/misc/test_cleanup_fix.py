@@ -17,7 +17,8 @@ def test_cleanup_with_echo():
         'echo "n" | claude-mpm cleanup-memory',
         shell=True,
         capture_output=True,
-        text=True, check=False,
+        text=True,
+        check=False,
     )
 
     if "Cleanup cancelled" in result.stdout:
@@ -33,7 +34,8 @@ def test_cleanup_with_echo():
         "claude-mpm cleanup-memory --dry-run",
         shell=True,
         capture_output=True,
-        text=True, check=False,
+        text=True,
+        check=False,
     )
 
     if "Continue?" not in result.stdout and "DRY RUN MODE" in result.stdout:
@@ -51,7 +53,8 @@ def test_cleanup_with_force():
         "claude-mpm cleanup-memory --dry-run --force",
         shell=True,
         capture_output=True,
-        text=True, check=False,
+        text=True,
+        check=False,
     )
 
     if "Continue?" not in result.stdout and "DRY RUN MODE" in result.stdout:

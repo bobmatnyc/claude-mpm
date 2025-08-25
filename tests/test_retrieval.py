@@ -1,8 +1,7 @@
-from functools import lru_cache
 import json
+from functools import lru_cache
 
 import pytest
-
 from referencing import Registry, Resource, exceptions
 from referencing.jsonschema import DRAFT202012
 from referencing.retrieval import to_cached_resource
@@ -75,8 +74,7 @@ class TestToCachedResource:
         }
 
         resources = {
-            uri: Resource.from_contents(contents)
-            for uri, contents in mapping.items()
+            uri: Resource.from_contents(contents) for uri, contents in mapping.items()
         }
 
         @to_cached_resource(cache=lru_cache(maxsize=2))

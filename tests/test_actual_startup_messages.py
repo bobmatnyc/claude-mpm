@@ -45,7 +45,8 @@ def test_actual_startup():
             capture_output=True,
             text=True,
             timeout=30,
-            env={**subprocess.os.environ, "LOG_LEVEL": "DEBUG"}, check=False,
+            env={**subprocess.os.environ, "LOG_LEVEL": "DEBUG"},
+            check=False,
         )
 
         # Check output for duplicate messages
@@ -109,7 +110,9 @@ def test_with_hooks():
 
     print(f"Running: {' '.join(cmd)}")
 
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10, env=env, check=False)
+    result = subprocess.run(
+        cmd, capture_output=True, text=True, timeout=10, env=env, check=False
+    )
 
     full_output = result.stdout + result.stderr
 

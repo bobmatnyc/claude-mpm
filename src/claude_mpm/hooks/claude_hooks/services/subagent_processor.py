@@ -23,10 +23,10 @@ class SubagentResponseProcessor:
 
     def __init__(self, state_manager, response_tracking_manager, connection_manager):
         """Initialize the subagent response processor.
-        
+
         Args:
             state_manager: StateManagerService instance
-            response_tracking_manager: ResponseTrackingManager instance  
+            response_tracking_manager: ResponseTrackingManager instance
             connection_manager: ConnectionManagerService instance
         """
         self.state_manager = state_manager
@@ -78,7 +78,9 @@ class SubagentResponseProcessor:
 
         # Get working directory and git branch
         working_dir = event.get("cwd", "")
-        git_branch = self.state_manager.get_git_branch(working_dir) if working_dir else "Unknown"
+        git_branch = (
+            self.state_manager.get_git_branch(working_dir) if working_dir else "Unknown"
+        )
 
         # Try to extract structured response from output if available
         output = event.get("output", "")
@@ -86,14 +88,26 @@ class SubagentResponseProcessor:
 
         # Track agent response
         self._track_response(
-            event, session_id, agent_type, reason, working_dir, git_branch, 
-            output, structured_response
+            event,
+            session_id,
+            agent_type,
+            reason,
+            working_dir,
+            git_branch,
+            output,
+            structured_response,
         )
 
         # Build subagent stop data for event emission
         subagent_stop_data = self._build_subagent_stop_data(
-            event, session_id, agent_type, agent_id, reason, 
-            working_dir, git_branch, structured_response
+            event,
+            session_id,
+            agent_type,
+            agent_id,
+            reason,
+            working_dir,
+            git_branch,
+            structured_response,
         )
 
         # Debug log the processed data
@@ -110,7 +124,9 @@ class SubagentResponseProcessor:
         """Extract basic info from the event."""
         # First try to get agent type from our tracking
         agent_type = (
-            self.state_manager.get_delegation_agent_type(session_id) if session_id else "unknown"
+            self.state_manager.get_delegation_agent_type(session_id)
+            if session_id
+            else "unknown"
         )
 
         # Fall back to event data if tracking didn't have it
@@ -132,15 +148,15 @@ class SubagentResponseProcessor:
 
         return agent_type, agent_id, reason
 
-    def _extract_structured_response(self, output: str, agent_type: str) -> Optional[dict]:
+    def _extract_structured_response(
+        self, output: str, agent_type: str
+    ) -> Optional[dict]:
         """Extract structured JSON response from output."""
         if not output:
             return None
-            
+
         try:
-            json_match = re.search(
-                r"```json\s*(\{.*?\})\s*```", str(output), re.DOTALL
-            )
+            json_match = re.search(r"```json\s*(\{.*?\})\s*```", str(output), re.DOTALL)
             if json_match:
                 structured_response = json.loads(json_match.group(1))
                 if DEBUG:
@@ -148,7 +164,7 @@ class SubagentResponseProcessor:
                         f"Extracted structured response from {agent_type} agent in SubagentStop",
                         file=sys.stderr,
                     )
-                
+
                 # Log if MEMORIES field is present
                 if structured_response.get("MEMORIES") and DEBUG:
                     memories_count = len(structured_response["MEMORIES"])
@@ -156,16 +172,23 @@ class SubagentResponseProcessor:
                         f"Agent {agent_type} returned MEMORIES field with {memories_count} items",
                         file=sys.stderr,
                     )
-                
+
                 return structured_response
         except (json.JSONDecodeError, AttributeError):
             pass  # No structured response, that's okay
-        
+
         return None
 
     def _track_response(
-        self, event: dict, session_id: str, agent_type: str, reason: str,
-        working_dir: str, git_branch: str, output: str, structured_response: Optional[dict]
+        self,
+        event: dict,
+        session_id: str,
+        agent_type: str,
+        reason: str,
+        working_dir: str,
+        git_branch: str,
+        output: str,
+        structured_response: Optional[dict],
     ):
         """Track the agent response if response tracking is enabled."""
         if DEBUG:
@@ -244,7 +267,8 @@ class SubagentResponseProcessor:
                     metadata = {
                         "exit_code": event.get("exit_code", 0),
                         "success": reason in ["completed", "finished", "done"],
-                        "has_error": reason in ["error", "timeout", "failed", "blocked"],
+                        "has_error": reason
+                        in ["error", "timeout", "failed", "blocked"],
                         "duration_ms": event.get("duration_ms"),
                         "working_directory": working_dir,
                         "git_branch": git_branch,
@@ -305,8 +329,15 @@ class SubagentResponseProcessor:
                     )
 
     def _build_subagent_stop_data(
-        self, event: dict, session_id: str, agent_type: str, agent_id: str,
-        reason: str, working_dir: str, git_branch: str, structured_response: Optional[dict]
+        self,
+        event: dict,
+        session_id: str,
+        agent_type: str,
+        agent_id: str,
+        reason: str,
+        working_dir: str,
+        git_branch: str,
+        structured_response: Optional[dict],
     ) -> dict:
         """Build the subagent stop data for event emission."""
         subagent_stop_data = {
@@ -335,7 +366,9 @@ class SubagentResponseProcessor:
                 "files_modified": structured_response.get("files_modified", []),
                 "tools_used": structured_response.get("tools_used", []),
                 "remember": structured_response.get("remember"),
-                "MEMORIES": structured_response.get("MEMORIES"),  # Complete memory replacement
+                "MEMORIES": structured_response.get(
+                    "MEMORIES"
+                ),  # Complete memory replacement
             }
 
         return subagent_stop_data

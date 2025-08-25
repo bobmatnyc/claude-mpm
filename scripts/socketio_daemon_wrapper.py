@@ -32,7 +32,9 @@ else:
 
 # Pass through all arguments to the selected daemon
 if daemon_script.exists():
-    result = subprocess.run([sys.executable, str(daemon_script)] + sys.argv[1:], check=False)
+    result = subprocess.run(
+        [sys.executable, str(daemon_script)] + sys.argv[1:], check=False
+    )
     sys.exit(result.returncode)
 else:
     print(f"Error: Daemon script not found at {daemon_script}")

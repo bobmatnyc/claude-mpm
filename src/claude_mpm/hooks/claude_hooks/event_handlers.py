@@ -5,7 +5,6 @@ This module provides individual event handlers for different types of
 Claude Code hook events.
 """
 
-import json
 import os
 import re
 import subprocess
@@ -546,7 +545,7 @@ class EventHandlers:
     def handle_subagent_stop_fast(self, event):
         """Handle subagent stop events by delegating to the specialized processor."""
         # Delegate to the specialized subagent processor
-        if hasattr(self.hook_handler, 'subagent_processor'):
+        if hasattr(self.hook_handler, "subagent_processor"):
             self.hook_handler.subagent_processor.process_subagent_stop(event)
         else:
             # Fallback to handle_subagent_stop if processor not available

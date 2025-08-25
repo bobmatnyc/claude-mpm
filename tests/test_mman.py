@@ -1,17 +1,13 @@
-from .lib import TestBase, FileCreator
-
-from smmap.mman import (
-    WindowCursor,
-    SlidingWindowMapManager,
-    StaticWindowMapManager
-)
-from smmap.util import align_to_mmap
-
-from random import randint
-from time import time
 import os
 import sys
 from copy import copy
+from random import randint
+from time import time
+
+from smmap.mman import SlidingWindowMapManager, StaticWindowMapManager, WindowCursor
+from smmap.util import align_to_mmap
+
+from .lib import FileCreator, TestBase
 
 
 class TestMMan(TestBase):
@@ -22,10 +18,10 @@ class TestMMan(TestBase):
             ci = WindowCursor(man)  # invalid cursor
             assert not ci.is_valid()
             assert not ci.is_associated()
-            assert ci.size() == 0       # this is cached, so we can query it in invalid state
+            assert ci.size() == 0  # this is cached, so we can query it in invalid state
 
             cv = man.make_cursor(fc.path)
-            assert not cv.is_valid()    # no region mapped yet
+            assert not cv.is_valid()  # no region mapped yet
             assert cv.is_associated()  # but it know where to map it from
             assert cv.file_size() == fc.size
             assert cv.path() == fc.path
@@ -80,7 +76,7 @@ class TestMMan(TestBase):
                         assert c.use_region(10, 10).is_valid()
                         assert c.ofs_begin() == 10
                         assert c.size() == 10
-                        with open(fc.path, 'rb') as fp:
+                        with open(fc.path, "rb") as fp:
                             assert c.buffer()[:] == fp.read(20)[10:]
 
                     if isinstance(item, int):
@@ -96,19 +92,28 @@ class TestMMan(TestBase):
     def test_memman_operation(self):
         # test more access, force it to actually unmap regions
         with FileCreator(self.k_window_test_size, "manager_operation_test") as fc:
-            with open(fc.path, 'rb') as fp:
+            with open(fc.path, "rb") as fp:
                 data = fp.read()
             fd = os.open(fc.path, os.O_RDONLY)
             try:
                 max_num_handles = 15
                 # small_size =
-                for mtype, args in ((StaticWindowMapManager, (0, fc.size // 3, max_num_handles)),
-                                    (SlidingWindowMapManager, (fc.size // 100, fc.size // 3, max_num_handles)),):
+                for mtype, args in (
+                    (StaticWindowMapManager, (0, fc.size // 3, max_num_handles)),
+                    (
+                        SlidingWindowMapManager,
+                        (fc.size // 100, fc.size // 3, max_num_handles),
+                    ),
+                ):
                     for item in (fc.path, fd):
                         assert len(data) == fc.size
 
                         # small windows, a reasonable max memory. Not too many regions at once
-                        man = mtype(window_size=args[0], max_memory_size=args[1], max_open_handles=args[2])
+                        man = mtype(
+                            window_size=args[0],
+                            max_memory_size=args[1],
+                            max_open_handles=args[2],
+                        )
                         c = man.make_cursor(item)
 
                         # still empty (more about that is tested in test_memory_manager()
@@ -120,7 +125,9 @@ class TestMMan(TestBase):
                         size = man.window_size() // 2
                         assert c.use_region(base_offset, size).is_valid()
                         rr = c.region()
-                        assert rr.client_count() == 2  # the manager and the cursor and us
+                        assert (
+                            rr.client_count() == 2
+                        )  # the manager and the cursor and us
 
                         assert man.num_open_files() == 1
                         assert man.num_file_handles() == 1
@@ -128,7 +135,7 @@ class TestMMan(TestBase):
 
                         # assert c.size() == size        # the cursor may overallocate in its static version
                         assert c.ofs_begin() == base_offset
-                        assert rr.ofs_begin() == 0        # it was aligned and expanded
+                        assert rr.ofs_begin() == 0  # it was aligned and expanded
                         if man.window_size():
                             # but isn't larger than the max window (aligned)
                             assert rr.size() == align_to_mmap(man.window_size(), True)
@@ -136,7 +143,10 @@ class TestMMan(TestBase):
                             assert rr.size() == fc.size
                         # END ignore static managers which dont use windows and are aligned to file boundaries
 
-                        assert c.buffer()[:] == data[base_offset:base_offset + (size or c.size())]
+                        assert (
+                            c.buffer()[:]
+                            == data[base_offset : base_offset + (size or c.size())]
+                        )
 
                         # obtain second window, which spans the first part of the file - it is a still the same window
                         nsize = (size or fc.size) - 10
@@ -154,16 +164,25 @@ class TestMMan(TestBase):
                         if man.window_size():
                             assert man.num_file_handles() == 2
                             assert c.size() < size
-                            assert c.region() is not rr  # old region is still available, but has not cursor ref anymore
+                            assert (
+                                c.region() is not rr
+                            )  # old region is still available, but has not cursor ref anymore
                             assert rr.client_count() == 1  # only held by manager
                         else:
                             assert c.size() < fc.size
                         # END ignore static managers which only have one handle per file
                         rr = c.region()
                         assert rr.client_count() == 2  # manager + cursor
-                        assert rr.ofs_begin() < c.ofs_begin()  # it should have extended itself to the left
-                        assert rr.ofs_end() <= fc.size  # it cannot be larger than the file
-                        assert c.buffer()[:] == data[base_offset:base_offset + (size or c.size())]
+                        assert (
+                            rr.ofs_begin() < c.ofs_begin()
+                        )  # it should have extended itself to the left
+                        assert (
+                            rr.ofs_end() <= fc.size
+                        )  # it cannot be larger than the file
+                        assert (
+                            c.buffer()[:]
+                            == data[base_offset : base_offset + (size or c.size())]
+                        )
 
                         # unising a region makes the cursor invalid
                         c.unuse_region()
@@ -196,20 +215,35 @@ class TestMMan(TestBase):
                                 assert max_mapped_memory_size >= mapped_memory_size()
                             # END statistics will overshoot, which is fine
                             assert max_file_handles >= num_file_handles()
-                            assert c.use_region(base_offset, (size or c.size())).is_valid()
+                            assert c.use_region(
+                                base_offset, (size or c.size())
+                            ).is_valid()
                             csize = c.size()
-                            assert c.buffer()[:] == data[base_offset:base_offset + csize]
+                            assert (
+                                c.buffer()[:] == data[base_offset : base_offset + csize]
+                            )
                             memory_read += csize
 
                             assert includes_ofs(base_offset)
                             assert includes_ofs(base_offset + csize - 1)
                             assert not includes_ofs(base_offset + csize)
                         # END while we should do an access
-                        elapsed = max(time() - st, 0.001)  # prevent zero division errors on windows
+                        elapsed = max(
+                            time() - st, 0.001
+                        )  # prevent zero division errors on windows
                         mb = float(1000 * 1000)
-                        print("%s: Read %i mb of memory with %i random on cursor initialized with %s accesses in %fs (%f mb/s)\n"
-                              % (mtype, memory_read / mb, max_random_accesses, type(item), elapsed, (memory_read / mb) / elapsed),
-                              file=sys.stderr)
+                        print(
+                            "%s: Read %i mb of memory with %i random on cursor initialized with %s accesses in %fs (%f mb/s)\n"
+                            % (
+                                mtype,
+                                memory_read / mb,
+                                max_random_accesses,
+                                type(item),
+                                elapsed,
+                                (memory_read / mb) / elapsed,
+                            ),
+                            file=sys.stderr,
+                        )
 
                         # an offset as large as the size doesn't work !
                         assert not c.use_region(fc.size, size).is_valid()

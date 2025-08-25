@@ -71,7 +71,8 @@ print(f'Deployment result: {result}')
             ],
             capture_output=True,
             text=True,
-            timeout=30, check=False,
+            timeout=30,
+            check=False,
         )
 
         # Check for warning messages
@@ -110,7 +111,8 @@ print(f'Deployment result: {result}')
             ["claude-mpm", "agents", "--help"],
             capture_output=True,
             text=True,
-            timeout=5, check=False,
+            timeout=5,
+            check=False,
         )
 
         if "cleanup-orphaned" in result.stdout:

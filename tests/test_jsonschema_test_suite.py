@@ -6,9 +6,8 @@ Tests comprehensive correctness of each draft's validator.
 See https://github.com/json-schema-org/JSON-Schema-Test-Suite for details.
 """
 
-
-from jsonschema.tests._suite import Suite
 import jsonschema
+from jsonschema.tests._suite import Suite
 
 SUITE = Suite()
 DRAFT3 = SUITE.version(name="draft3")
@@ -23,6 +22,7 @@ def skip(message, **kwargs):
     def skipper(test):
         if all(value == getattr(test, attr) for attr, value in kwargs.items()):
             return message
+
     return skipper
 
 
@@ -41,78 +41,96 @@ def missing_format(Validator):
             or schema["format"] in Validator.FORMAT_CHECKER.checkers
             or test.valid
         ):
-            return
+            return None
 
         return f"Format checker {schema['format']!r} not found."
+
     return missing_format
 
 
 def complex_email_validation(test):
     if test.subject != "email":
-        return
+        return None
 
     message = "Complex email validation is (intentionally) unsupported."
-    return skip(
-        message=message,
-        description="an invalid domain",
-    )(test) or skip(
-        message=message,
-        description="an invalid IPv4-address-literal",
-    )(test) or skip(
-        message=message,
-        description="dot after local part is not valid",
-    )(test) or skip(
-        message=message,
-        description="dot before local part is not valid",
-    )(test) or skip(
-        message=message,
-        description="two subsequent dots inside local part are not valid",
-    )(test)
+    return (
+        skip(
+            message=message,
+            description="an invalid domain",
+        )(test)
+        or skip(
+            message=message,
+            description="an invalid IPv4-address-literal",
+        )(test)
+        or skip(
+            message=message,
+            description="dot after local part is not valid",
+        )(test)
+        or skip(
+            message=message,
+            description="dot before local part is not valid",
+        )(test)
+        or skip(
+            message=message,
+            description="two subsequent dots inside local part are not valid",
+        )(test)
+    )
 
 
 def leap_second(test):
     message = "Leap seconds are unsupported."
-    return skip(
-        message=message,
-        subject="time",
-        description="a valid time string with leap second",
-    )(test) or skip(
-        message=message,
-        subject="time",
-        description="a valid time string with leap second, Zulu",
-    )(test) or skip(
-        message=message,
-        subject="time",
-        description="a valid time string with leap second with offset",
-    )(test) or skip(
-        message=message,
-        subject="time",
-        description="valid leap second, positive time-offset",
-    )(test) or skip(
-        message=message,
-        subject="time",
-        description="valid leap second, negative time-offset",
-    )(test) or skip(
-        message=message,
-        subject="time",
-        description="valid leap second, large positive time-offset",
-    )(test) or skip(
-        message=message,
-        subject="time",
-        description="valid leap second, large negative time-offset",
-    )(test) or skip(
-        message=message,
-        subject="time",
-        description="valid leap second, zero time-offset",
-    )(test) or skip(
-        message=message,
-        subject="date-time",
-        description="a valid date-time with a leap second, UTC",
-    )(test) or skip(
-        message=message,
-        subject="date-time",
-        description="a valid date-time with a leap second, with minus offset",
-    )(test)
+    return (
+        skip(
+            message=message,
+            subject="time",
+            description="a valid time string with leap second",
+        )(test)
+        or skip(
+            message=message,
+            subject="time",
+            description="a valid time string with leap second, Zulu",
+        )(test)
+        or skip(
+            message=message,
+            subject="time",
+            description="a valid time string with leap second with offset",
+        )(test)
+        or skip(
+            message=message,
+            subject="time",
+            description="valid leap second, positive time-offset",
+        )(test)
+        or skip(
+            message=message,
+            subject="time",
+            description="valid leap second, negative time-offset",
+        )(test)
+        or skip(
+            message=message,
+            subject="time",
+            description="valid leap second, large positive time-offset",
+        )(test)
+        or skip(
+            message=message,
+            subject="time",
+            description="valid leap second, large negative time-offset",
+        )(test)
+        or skip(
+            message=message,
+            subject="time",
+            description="valid leap second, zero time-offset",
+        )(test)
+        or skip(
+            message=message,
+            subject="date-time",
+            description="a valid date-time with a leap second, UTC",
+        )(test)
+        or skip(
+            message=message,
+            subject="date-time",
+            description="a valid date-time with a leap second, with minus offset",
+        )(test)
+    )
 
 
 TestDraft3 = DRAFT3.to_unittest_testcase(
@@ -203,9 +221,7 @@ TestDraft201909 = DRAFT201909.to_unittest_testcase(
     skip=skip(
         message="Vocabulary support is still in-progress.",
         subject="vocabulary",
-        description=(
-            "no validation: invalid number, but it still validates"
-        ),
+        description=("no validation: invalid number, but it still validates"),
     ),
 )
 
@@ -240,9 +256,7 @@ TestDraft202012 = DRAFT202012.to_unittest_testcase(
     skip=skip(
         message="Vocabulary support is still in-progress.",
         subject="vocabulary",
-        description=(
-            "no validation: invalid number, but it still validates"
-        ),
+        description=("no validation: invalid number, but it still validates"),
     ),
 )
 

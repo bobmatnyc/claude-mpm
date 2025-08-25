@@ -93,7 +93,9 @@ def test_cli_command():
         cmd = [mpm_cmd, "memory", "init"]
         print(f"Running: {' '.join(cmd)}")
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=60, check=False
+        )
         print(f"Return code: {result.returncode}")
         print(f"STDOUT:\n{result.stdout}")
         if result.stderr:

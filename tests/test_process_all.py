@@ -17,27 +17,19 @@ import time
 import traceback
 
 import psutil
-from psutil import AIX
-from psutil import BSD
-from psutil import FREEBSD
-from psutil import LINUX
-from psutil import MACOS
-from psutil import NETBSD
-from psutil import OPENBSD
-from psutil import OSX
-from psutil import POSIX
-from psutil import WINDOWS
-from psutil.tests import CI_TESTING
-from psutil.tests import PYTEST_PARALLEL
-from psutil.tests import VALID_PROC_STATUSES
-from psutil.tests import PsutilTestCase
-from psutil.tests import check_connection_ntuple
-from psutil.tests import create_sockets
-from psutil.tests import is_namedtuple
-from psutil.tests import is_win_secure_system_proc
-from psutil.tests import process_namespace
-from psutil.tests import pytest
-
+from psutil import AIX, BSD, FREEBSD, LINUX, MACOS, NETBSD, OPENBSD, OSX, POSIX, WINDOWS
+from psutil.tests import (
+    CI_TESTING,
+    PYTEST_PARALLEL,
+    VALID_PROC_STATUSES,
+    PsutilTestCase,
+    check_connection_ntuple,
+    create_sockets,
+    is_namedtuple,
+    is_win_secure_system_proc,
+    process_namespace,
+    pytest,
+)
 
 # Cuts the time in half, but (e.g.) on macOS the process pool stays
 # alive after join() (multiprocessing bug?), messing up other tests.
@@ -74,12 +66,12 @@ def proc_info(pid):
         tcase.assertPidGone(pid)
         return {}
     try:
-        d = proc.as_dict(['ppid', 'name'])
+        d = proc.as_dict(["ppid", "name"])
     except psutil.NoSuchProcess:
         tcase.assertProcessGone(proc)
     else:
-        name, ppid = d['name'], d['ppid']
-        info = {'pid': proc.pid}
+        name, ppid = d["name"], d["ppid"]
+        info = {"pid": proc.pid}
         ns = process_namespace(proc)
         # We don't use oneshot() because in order not to fool
         # check_exception() in case of NSP.
@@ -119,9 +111,8 @@ class TestFetchAllProcesses(PsutilTestCase):
 
         if USE_PROC_POOL:
             return self.pool.imap_unordered(proc_info, psutil.pids())
-        else:
-            ls = [proc_info(pid) for pid in psutil.pids()]
-            return ls
+        ls = [proc_info(pid) for pid in psutil.pids()]
+        return ls
 
     def test_all(self):
         failures = []
@@ -130,25 +121,23 @@ class TestFetchAllProcesses(PsutilTestCase):
                 meth = getattr(self, name)
                 try:
                     meth(value, info)
-                except Exception:  # noqa: BLE001
-                    s = '\n' + '=' * 70 + '\n'
-                    s += (
-                        "FAIL: name=test_{}, pid={}, ret={}\ninfo={}\n".format(
-                            name,
-                            info['pid'],
-                            repr(value),
-                            info,
-                        )
+                except Exception:
+                    s = "\n" + "=" * 70 + "\n"
+                    s += "FAIL: name=test_{}, pid={}, ret={}\ninfo={}\n".format(
+                        name,
+                        info["pid"],
+                        repr(value),
+                        info,
                     )
-                    s += '-' * 70
+                    s += "-" * 70
                     s += f"\n{traceback.format_exc()}"
                     s = "\n".join((" " * 4) + i for i in s.splitlines()) + "\n"
                     failures.append(s)
                 else:
-                    if value not in (0, 0.0, [], None, '', {}):
+                    if value not in (0, 0.0, [], None, "", {}):
                         assert value, value
         if failures:
-            raise self.fail(''.join(failures))
+            raise self.fail("".join(failures))
 
     def cmdline(self, ret, info):
         assert isinstance(ret, list)
@@ -159,14 +148,14 @@ class TestFetchAllProcesses(PsutilTestCase):
         assert isinstance(ret, str)
         assert ret.strip() == ret
         if ret:
-            if WINDOWS and not ret.endswith('.exe'):
+            if WINDOWS and not ret.endswith(".exe"):
                 return  # May be "Registry", "MemCompression", ...
             assert os.path.isabs(ret), ret
             # Note: os.stat() may return False even if the file is there
             # hence we skip the test, see:
             # http://stackoverflow.com/questions/3112546/os-path-exists-lies
             if POSIX and os.path.isfile(ret):
-                if hasattr(os, 'access') and hasattr(os, "X_OK"):
+                if hasattr(os, "access") and hasattr(os, "X_OK"):
                     # XXX: may fail on MACOS
                     try:
                         assert os.access(ret, os.X_OK)
@@ -185,7 +174,7 @@ class TestFetchAllProcesses(PsutilTestCase):
 
     def name(self, ret, info):
         assert isinstance(ret, str)
-        if WINDOWS and not ret and is_win_secure_system_proc(info['pid']):
+        if WINDOWS and not ret and is_win_secure_system_proc(info["pid"]):
             # https://github.com/giampaolo/psutil/issues/2338
             return
         # on AIX, "<exiting>" processes don't have names
@@ -198,7 +187,7 @@ class TestFetchAllProcesses(PsutilTestCase):
             assert ret >= 0
         except AssertionError:
             # XXX
-            if OPENBSD and info['status'] == psutil.STATUS_ZOMBIE:
+            if OPENBSD and info["status"] == psutil.STATUS_ZOMBIE:
                 pass
             else:
                 raise
@@ -231,7 +220,7 @@ class TestFetchAllProcesses(PsutilTestCase):
     def status(self, ret, info):
         assert isinstance(ret, str)
         assert ret, ret
-        assert ret != '?'  # XXX
+        assert ret != "?"  # XXX
         assert ret in VALID_PROC_STATUSES
 
     def io_counters(self, ret, info):
@@ -260,7 +249,7 @@ class TestFetchAllProcesses(PsutilTestCase):
 
     def num_threads(self, ret, info):
         assert isinstance(ret, int)
-        if WINDOWS and ret == 0 and is_win_secure_system_proc(info['pid']):
+        if WINDOWS and ret == 0 and is_win_secure_system_proc(info["pid"]):
             # https://github.com/giampaolo/psutil/issues/2338
             return
         assert ret >= 1
@@ -313,7 +302,7 @@ class TestFetchAllProcesses(PsutilTestCase):
             value = getattr(ret, name)
             assert isinstance(value, int)
             assert value >= 0
-            if LINUX or (OSX and name in {'vms', 'data'}):
+            if LINUX or (OSX and name in {"vms", "data"}):
                 # On Linux there are processes (e.g. 'goa-daemon') whose
                 # VMS is incredibly high for some reason.
                 continue
@@ -335,7 +324,7 @@ class TestFetchAllProcesses(PsutilTestCase):
                 assert isinstance(f.mode, str)
                 assert isinstance(f.flags, int)
                 assert f.position >= 0
-                assert f.mode in {'r', 'w', 'a', 'r+', 'a+'}
+                assert f.mode in {"r", "w", "a", "r+", "a+"}
                 assert f.flags > 0
             elif BSD and not f.path:
                 # XXX see: https://github.com/giampaolo/psutil/issues/595
@@ -403,7 +392,7 @@ class TestFetchAllProcesses(PsutilTestCase):
             assert isinstance(nt.path, str)
             for fname in nt._fields:
                 value = getattr(nt, fname)
-                if fname == 'path':
+                if fname == "path":
                     if value.startswith(("[", "anon_inode:")):  # linux
                         continue
                     if BSD and value == "pvclock":  # seen on FreeBSD
@@ -412,9 +401,9 @@ class TestFetchAllProcesses(PsutilTestCase):
                     # commented as on Linux we might get
                     # '/foo/bar (deleted)'
                     # assert os.path.exists(nt.path), nt.path
-                elif fname == 'addr':
+                elif fname == "addr":
                     assert value, repr(value)
-                elif fname == 'perms':
+                elif fname == "perms":
                     if not WINDOWS:
                         assert value, repr(value)
                 else:
@@ -431,9 +420,7 @@ class TestFetchAllProcesses(PsutilTestCase):
             assert -20 <= ret <= 20, ret
         else:
             priorities = [
-                getattr(psutil, x)
-                for x in dir(psutil)
-                if x.endswith('_PRIORITY_CLASS')
+                getattr(psutil, x) for x in dir(psutil) if x.endswith("_PRIORITY_CLASS")
             ]
             assert ret in priorities
             assert isinstance(ret, enum.IntEnum)

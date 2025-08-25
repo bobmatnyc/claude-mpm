@@ -30,7 +30,9 @@ def run_command(
 ) -> Tuple[int, str, str]:
     """Run a shell command and return (returncode, stdout, stderr)."""
     print(f"Running: {cmd}")
-    result = subprocess.run(cmd, shell=True, cwd=cwd, capture_output=True, text=True, check=False)
+    result = subprocess.run(
+        cmd, shell=True, cwd=cwd, capture_output=True, text=True, check=False
+    )
 
     if check and result.returncode != 0:
         print(f"Command failed with return code {result.returncode}")

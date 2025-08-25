@@ -13,28 +13,21 @@ import platform
 import signal
 
 import psutil
-from psutil import AIX
-from psutil import FREEBSD
-from psutil import LINUX
-from psutil import MACOS
-from psutil import NETBSD
-from psutil import OPENBSD
-from psutil import POSIX
-from psutil import SUNOS
-from psutil import WINDOWS
-from psutil.tests import GITHUB_ACTIONS
-from psutil.tests import HAS_CPU_FREQ
-from psutil.tests import HAS_NET_IO_COUNTERS
-from psutil.tests import HAS_SENSORS_FANS
-from psutil.tests import HAS_SENSORS_TEMPERATURES
-from psutil.tests import SKIP_SYSCONS
-from psutil.tests import PsutilTestCase
-from psutil.tests import create_sockets
-from psutil.tests import enum
-from psutil.tests import is_namedtuple
-from psutil.tests import kernel_version
-from psutil.tests import pytest
-
+from psutil import AIX, FREEBSD, LINUX, MACOS, NETBSD, OPENBSD, POSIX, SUNOS, WINDOWS
+from psutil.tests import (
+    GITHUB_ACTIONS,
+    HAS_CPU_FREQ,
+    HAS_NET_IO_COUNTERS,
+    HAS_SENSORS_FANS,
+    HAS_SENSORS_TEMPERATURES,
+    SKIP_SYSCONS,
+    PsutilTestCase,
+    create_sockets,
+    enum,
+    is_namedtuple,
+    kernel_version,
+    pytest,
+)
 
 # ===================================================================
 # --- APIs availability
@@ -134,14 +127,7 @@ class TestAvailSystemAPIs(PsutilTestCase):
 class TestAvailProcessAPIs(PsutilTestCase):
     def test_environ(self):
         assert hasattr(psutil.Process, "environ") == (
-            LINUX
-            or MACOS
-            or WINDOWS
-            or AIX
-            or SUNOS
-            or FREEBSD
-            or OPENBSD
-            or NETBSD
+            LINUX or MACOS or WINDOWS or AIX or SUNOS or FREEBSD or OPENBSD or NETBSD
         )
 
     def test_uids(self):
@@ -174,14 +160,10 @@ class TestAvailProcessAPIs(PsutilTestCase):
         assert hasattr(psutil.Process, "num_handles") == WINDOWS
 
     def test_cpu_affinity(self):
-        assert hasattr(psutil.Process, "cpu_affinity") == (
-            LINUX or WINDOWS or FREEBSD
-        )
+        assert hasattr(psutil.Process, "cpu_affinity") == (LINUX or WINDOWS or FREEBSD)
 
     def test_cpu_num(self):
-        assert hasattr(psutil.Process, "cpu_num") == (
-            LINUX or FREEBSD or SUNOS
-        )
+        assert hasattr(psutil.Process, "cpu_num") == (LINUX or FREEBSD or SUNOS)
 
     def test_memory_maps(self):
         hasit = hasattr(psutil.Process, "memory_maps")
@@ -227,7 +209,7 @@ class TestSystemAPITypes(PsutilTestCase):
 
     # TODO: remove this once 1892 is fixed
     @pytest.mark.skipif(
-        MACOS and platform.machine() == 'arm64', reason="skipped due to #1892"
+        MACOS and platform.machine() == "arm64", reason="skipped due to #1892"
     )
     @pytest.mark.skipif(not HAS_CPU_FREQ, reason="not supported")
     def test_cpu_freq(self):
@@ -252,7 +234,7 @@ class TestSystemAPITypes(PsutilTestCase):
     @pytest.mark.skipif(SKIP_SYSCONS, reason="requires root")
     def test_net_connections(self):
         with create_sockets():
-            ret = psutil.net_connections('all')
+            ret = psutil.net_connections("all")
             assert len(ret) == len(set(ret))
             for conn in ret:
                 assert is_namedtuple(conn)

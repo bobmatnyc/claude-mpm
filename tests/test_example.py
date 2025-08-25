@@ -4,17 +4,17 @@
 # the New BSD License: https://opensource.org/license/bsd-3-clause/
 """Module with examples from the tutorial section of the docs"""
 import os
-from gitdb.test.lib import TestBase
+from io import BytesIO
+
 from gitdb import IStream
 from gitdb.db import LooseObjectDB
-
-from io import BytesIO
+from gitdb.test.lib import TestBase
 
 
 class TestExamples(TestBase):
 
     def test_base(self):
-        ldb = LooseObjectDB(os.path.join(self.gitrepopath, 'objects'))
+        ldb = LooseObjectDB(os.path.join(self.gitrepopath, "objects"))
 
         for sha1 in ldb.sha_iter():
             oinfo = ldb.info(sha1)
@@ -26,8 +26,8 @@ class TestExamples(TestBase):
         # END for each sha in database
         # assure we close all files
         try:
-            del(ostream)
-            del(oinfo)
+            del ostream
+            del oinfo
         except UnboundLocalError:
             pass
         # END ignore exception if there are no loose objects

@@ -93,7 +93,9 @@ def test_actual_command():
     print("(Using --dry-run to prevent actual Claude launch)")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5, check=False)
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=5, check=False
+        )
 
         print(f"\nReturn code: {result.returncode}")
 

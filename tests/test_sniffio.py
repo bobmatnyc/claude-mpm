@@ -1,11 +1,12 @@
-import os
 import sys
 
 import pytest
 
 from .. import (
-    current_async_library, AsyncLibraryNotFoundError,
-    current_async_library_cvar, thread_local
+    AsyncLibraryNotFoundError,
+    current_async_library,
+    current_async_library_cvar,
+    thread_local,
 )
 
 
@@ -60,8 +61,7 @@ def test_asyncio():
 
 @pytest.mark.skipif(
     sys.version_info >= (3, 12),
-    reason=
-    "curio broken on 3.12 (https://github.com/python-trio/sniffio/pull/42)",
+    reason="curio broken on 3.12 (https://github.com/python-trio/sniffio/pull/42)",
 )
 def test_curio():
     import curio

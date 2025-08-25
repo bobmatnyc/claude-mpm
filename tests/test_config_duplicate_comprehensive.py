@@ -92,7 +92,6 @@ def test_parallel_initialization():
     """Test if parallel service initialization might cause issues."""
     import threading
 
-
     print("\n=== Testing parallel initialization ===\n")
 
     # Reset for clean test

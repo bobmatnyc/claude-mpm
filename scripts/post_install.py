@@ -49,7 +49,8 @@ def build_dashboard_assets():
                 ["bash", str(build_script)],
                 capture_output=True,
                 text=True,
-                cwd=Path(__file__).parent.parent, check=False,
+                cwd=Path(__file__).parent.parent,
+                check=False,
             )
             if result.returncode != 0:
                 print(f"Warning: Dashboard build failed: {result.stderr}")
@@ -109,7 +110,8 @@ def aggregate_agent_dependencies():
                 [sys.executable, str(script_path)],
                 capture_output=True,
                 text=True,
-                cwd=Path(__file__).parent.parent, check=False,
+                cwd=Path(__file__).parent.parent,
+                check=False,
             )
             if result.returncode != 0:
                 print(f"Warning: Agent dependency aggregation failed: {result.stderr}")

@@ -53,7 +53,8 @@ def run_hook_handler_test(
             env=env,
             capture_output=True,
             text=True,
-            timeout=10, check=False,  # 10 second timeout
+            timeout=10,
+            check=False,  # 10 second timeout
         )
 
         return process.returncode == 0, process.stdout, process.stderr

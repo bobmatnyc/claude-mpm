@@ -305,7 +305,8 @@ def test_backward_compatibility(results):
             ],
             capture_output=True,
             text=True,
-            timeout=10, check=False,
+            timeout=10,
+            check=False,
         )
 
         if (

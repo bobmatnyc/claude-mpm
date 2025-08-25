@@ -1,8 +1,7 @@
-from rpds import HashTrieMap
 import pytest
-
 from referencing import Anchor, Registry, Resource, Specification, exceptions
 from referencing.jsonschema import DRAFT202012
+from rpds import HashTrieMap
 
 ID_AND_CHILDREN = Specification(
     name="id-and-children",
@@ -17,8 +16,7 @@ ID_AND_CHILDREN = Specification(
     ],
     maybe_in_subresource=lambda segments, resolver, subresource: (
         resolver.in_subresource(subresource)
-        if not len(segments) % 2
-        and all(each == "children" for each in segments[::2])
+        if not len(segments) % 2 and all(each == "children" for each in segments[::2])
         else resolver
     ),
 )
@@ -183,9 +181,7 @@ class TestRegistry:
         resource = ID_AND_CHILDREN.create_resource({"ID": uri + "#"})
         registry = resource @ Registry()
         assert (
-            registry.contents(uri)
-            == registry.contents(uri + "#")
-            == {"ID": uri + "#"}
+            registry.contents(uri) == registry.contents(uri + "#") == {"ID": uri + "#"}
         )
 
     def test_contents_nonexistent_resource(self):
@@ -633,9 +629,7 @@ class TestResource:
             id_of=lambda contents: "urn:fixedID",
             subresources_of=lambda contents: [],
             anchors_in=lambda specification, contents: [],
-            maybe_in_subresource=(
-                lambda segments, resolver, subresource: resolver
-            ),
+            maybe_in_subresource=(lambda segments, resolver, subresource: resolver),
         )
         resource = Resource(
             contents={"foo": "baz"},
@@ -967,9 +961,7 @@ class TestSpecification:
             id_of=lambda contents: "urn:fixedID",
             subresources_of=lambda contents: [],
             anchors_in=lambda specification, contents: [],
-            maybe_in_subresource=(
-                lambda segments, resolver, subresource: resolver
-            ),
+            maybe_in_subresource=(lambda segments, resolver, subresource: resolver),
         )
         resource = specification.create_resource(contents={"foo": "baz"})
         assert resource == Resource(
@@ -1013,9 +1005,7 @@ class TestSpecification:
         assert specification is Specification.OPAQUE
 
     def test_repr(self):
-        assert (
-            repr(ID_AND_CHILDREN) == "<Specification name='id-and-children'>"
-        )
+        assert repr(ID_AND_CHILDREN) == "<Specification name='id-and-children'>"
 
 
 class TestOpaqueSpecification:

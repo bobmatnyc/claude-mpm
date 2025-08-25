@@ -12,16 +12,11 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from rope.base.project import Project
-from rope.base import libutils
-from rope.refactor.extract import ExtractMethod
-from rope.refactor.move import MoveModule, MoveGlobal
-from rope.base.change import ChangeSet
-import rope.base.oi.soi
+
 
 def create_memory_file_service():
     """Phase 1.1: Extract MemoryFileService class."""
-    
+
     # Create the new service file first
     service_content = '''#!/usr/bin/env python3
 """Memory File Service - Handles file operations for agent memories."""
@@ -127,9 +122,12 @@ Manual edits should be done carefully to preserve the format.
         except Exception as e:
             self.logger.error(f"Failed to ensure memories directory: {e}")
 '''
-    
+
     # Write the new service file
-    service_path = Path(project_root) / "src/claude_mpm/services/agents/memory/memory_file_service.py"
+    service_path = (
+        Path(project_root)
+        / "src/claude_mpm/services/agents/memory/memory_file_service.py"
+    )
     service_path.write_text(service_content)
     print(f"✓ Created MemoryFileService at {service_path}")
     return service_path
@@ -137,7 +135,7 @@ Manual edits should be done carefully to preserve the format.
 
 def create_memory_limits_service():
     """Phase 1.2: Extract MemoryLimitsService class."""
-    
+
     service_content = '''#!/usr/bin/env python3
 """Memory Limits Service - Manages memory size limits and configuration."""
 
@@ -237,9 +235,12 @@ class MemoryLimitsService:
         # Default to True (auto-learning enabled)
         return True
 '''
-    
+
     # Write the new service file
-    service_path = Path(project_root) / "src/claude_mpm/services/agents/memory/memory_limits_service.py"
+    service_path = (
+        Path(project_root)
+        / "src/claude_mpm/services/agents/memory/memory_limits_service.py"
+    )
     service_path.write_text(service_content)
     print(f"✓ Created MemoryLimitsService at {service_path}")
     return service_path
@@ -247,47 +248,50 @@ class MemoryLimitsService:
 
 def update_agent_memory_manager():
     """Update agent_memory_manager.py to use the new services."""
-    
-    manager_path = Path(project_root) / "src/claude_mpm/services/agents/memory/agent_memory_manager.py"
+
+    manager_path = (
+        Path(project_root)
+        / "src/claude_mpm/services/agents/memory/agent_memory_manager.py"
+    )
     content = manager_path.read_text()
-    
+
     # Read the full file to understand the structure better
     lines = content.splitlines()
-    
+
     # Find where to add imports (after existing imports)
     import_line = -1
     for i, line in enumerate(lines):
         if line.startswith("from .template_generator"):
             import_line = i
             break
-    
+
     if import_line == -1:
         print("Could not find import location")
         return
-    
+
     # Add new imports
     new_imports = [
         "from .memory_file_service import MemoryFileService",
         "from .memory_limits_service import MemoryLimitsService",
     ]
-    
+
     # Insert imports
     for imp in reversed(new_imports):
         lines.insert(import_line + 1, imp)
-    
+
     # Now we need to update the __init__ method to use the services
     # and replace method calls
-    
+
     # Find __init__ method
     init_start = -1
     init_end = -1
     indent_level = 0
-    
+
     for i, line in enumerate(lines):
         if "def __init__" in line and "self" in line:
             init_start = i
             # Find the end of __init__
-            for j in range(i+1, len(lines)):
+            for j in range(i + 1, len(lines)):
                 if lines[j].strip() and not lines[j].startswith(" "):
                     init_end = j
                     break
@@ -295,7 +299,7 @@ def update_agent_memory_manager():
                     init_end = j
                     break
             break
-    
+
     # Modify __init__ to instantiate services
     if init_start != -1:
         # Find where to add service initialization (after self.memories_dir)
@@ -304,35 +308,56 @@ def update_agent_memory_manager():
                 # Add service initialization after this line
                 lines.insert(i + 1, "")
                 lines.insert(i + 2, "        # Initialize services")
-                lines.insert(i + 3, "        self.file_service = MemoryFileService(self.memories_dir)")
-                lines.insert(i + 4, "        self.limits_service = MemoryLimitsService(self.config)")
-                lines.insert(i + 5, "        self.memory_limits = self.limits_service.memory_limits")
+                lines.insert(
+                    i + 3,
+                    "        self.file_service = MemoryFileService(self.memories_dir)",
+                )
+                lines.insert(
+                    i + 4,
+                    "        self.limits_service = MemoryLimitsService(self.config)",
+                )
+                lines.insert(
+                    i + 5,
+                    "        self.memory_limits = self.limits_service.memory_limits",
+                )
                 break
-    
+
     # Replace method calls throughout the file
     replacements = [
-        ("self._get_memory_file_with_migration", "self.file_service.get_memory_file_with_migration"),
-        ("self._save_memory_file(", "self._save_memory_file_wrapper("),  # We'll keep a wrapper
-        ("self._ensure_memories_directory()", "self.file_service.ensure_memories_directory()"),
+        (
+            "self._get_memory_file_with_migration",
+            "self.file_service.get_memory_file_with_migration",
+        ),
+        (
+            "self._save_memory_file(",
+            "self._save_memory_file_wrapper(",
+        ),  # We'll keep a wrapper
+        (
+            "self._ensure_memories_directory()",
+            "self.file_service.ensure_memories_directory()",
+        ),
         ("self._init_memory_limits()", "self.limits_service._init_memory_limits()"),
         ("self._get_agent_limits", "self.limits_service.get_agent_limits"),
-        ("self._get_agent_auto_learning", "self.limits_service.get_agent_auto_learning"),
+        (
+            "self._get_agent_auto_learning",
+            "self.limits_service.get_agent_auto_learning",
+        ),
     ]
-    
+
     for old, new in replacements:
         for i, line in enumerate(lines):
             if old in line and "def " not in line:  # Don't replace method definitions
                 lines[i] = line.replace(old, new)
-    
+
     # Now remove the extracted methods
     methods_to_remove = [
         "_get_memory_file_with_migration",
         "_ensure_memories_directory",
         "_init_memory_limits",
-        "_get_agent_limits", 
+        "_get_agent_limits",
         "_get_agent_auto_learning",
     ]
-    
+
     i = 0
     while i < len(lines):
         for method in methods_to_remove:
@@ -340,14 +365,16 @@ def update_agent_memory_manager():
                 # Find the end of this method
                 indent = len(lines[i]) - len(lines[i].lstrip())
                 j = i + 1
-                while j < len(lines) and (not lines[j].strip() or lines[j].startswith(" " * (indent + 1))):
+                while j < len(lines) and (
+                    not lines[j].strip() or lines[j].startswith(" " * (indent + 1))
+                ):
                     j += 1
                 # Remove the method
                 del lines[i:j]
                 i -= 1  # Adjust index after deletion
                 break
         i += 1
-    
+
     # Add a wrapper for _save_memory_file since it needs agent_id
     wrapper_code = '''
     def _save_memory_file_wrapper(self, agent_id: str, content: str) -> bool:
@@ -365,7 +392,7 @@ def update_agent_memory_manager():
         )
         return self.file_service.save_memory_file(file_path, content)
 '''
-    
+
     # Find a good place to add the wrapper (after __init__)
     for i, line in enumerate(lines):
         if "def __init__" in line:
@@ -374,10 +401,10 @@ def update_agent_memory_manager():
             while j < len(lines) and (not lines[j].strip() or lines[j].startswith(" ")):
                 j += 1
             # Insert wrapper
-            for wrapper_line in reversed(wrapper_code.strip().split('\n')):
+            for wrapper_line in reversed(wrapper_code.strip().split("\n")):
                 lines.insert(j, wrapper_line)
             break
-    
+
     # Remove the old _save_memory_file method
     i = 0
     while i < len(lines):
@@ -385,37 +412,39 @@ def update_agent_memory_manager():
             # Find the end of this method
             indent = len(lines[i]) - len(lines[i].lstrip())
             j = i + 1
-            while j < len(lines) and (not lines[j].strip() or lines[j].startswith(" " * (indent + 1))):
+            while j < len(lines) and (
+                not lines[j].strip() or lines[j].startswith(" " * (indent + 1))
+            ):
                 j += 1
             # Remove the method
             del lines[i:j]
             break
         i += 1
-    
+
     # Write the updated file
-    updated_content = '\n'.join(lines)
+    updated_content = "\n".join(lines)
     manager_path.write_text(updated_content)
-    print(f"✓ Updated agent_memory_manager.py to use new services")
+    print("✓ Updated agent_memory_manager.py to use new services")
 
 
 def main():
     """Main refactoring process."""
     print("Starting memory manager refactoring...")
     print("=" * 60)
-    
+
     # Phase 1: Extract utility services
     print("\nPhase 1: Extracting Utility Services")
     print("-" * 40)
-    
+
     # Create MemoryFileService
     create_memory_file_service()
-    
-    # Create MemoryLimitsService  
+
+    # Create MemoryLimitsService
     create_memory_limits_service()
-    
+
     # Update agent_memory_manager.py
     update_agent_memory_manager()
-    
+
     print("\n" + "=" * 60)
     print("Phase 1 Complete! Next steps:")
     print("1. Run tests to verify no regressions")

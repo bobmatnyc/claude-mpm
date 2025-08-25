@@ -19,7 +19,8 @@ def run_subcommand(cmd, capture_output=True):
             shell=True,
             capture_output=capture_output,
             text=True,
-            cwd=Path(__file__).parent.parent, check=False,
+            cwd=Path(__file__).parent.parent,
+            check=False,
         )
         return result.returncode == 0, result.stdout, result.stderr
     except Exception as e:

@@ -26,8 +26,7 @@ import urllib.error
 import urllib.request
 import webbrowser
 from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Optional, Tuple
+from typing import Tuple
 
 from ...core.logger import get_logger
 from ...core.unified_paths import get_package_root
@@ -37,100 +36,99 @@ from ...services.port_manager import PortManager
 # Interface
 class IDashboardLauncher(ABC):
     """Interface for dashboard launching service."""
-    
+
     @abstractmethod
-    def launch_dashboard(self, port: int = 8765, monitor_mode: bool = True) -> Tuple[bool, bool]:
+    def launch_dashboard(
+        self, port: int = 8765, monitor_mode: bool = True
+    ) -> Tuple[bool, bool]:
         """
         Launch the web dashboard.
-        
+
         Args:
             port: Port number for the dashboard server
             monitor_mode: Whether to open in monitor mode
-            
+
         Returns:
             Tuple of (success, browser_opened)
         """
-        pass
-    
+
     @abstractmethod
     def is_dashboard_running(self, port: int = 8765) -> bool:
         """
         Check if dashboard server is running.
-        
+
         Args:
             port: Port to check
-            
+
         Returns:
             True if dashboard is running on the specified port
         """
-        pass
-    
+
     @abstractmethod
     def get_dashboard_url(self, port: int = 8765) -> str:
         """
         Get the dashboard URL.
-        
+
         Args:
             port: Port number
-            
+
         Returns:
             Dashboard URL string
         """
-        pass
-    
+
     @abstractmethod
     def stop_dashboard(self, port: int = 8765) -> bool:
         """
         Stop the dashboard server.
-        
+
         Args:
             port: Port of the server to stop
-            
+
         Returns:
             True if successfully stopped
         """
-        pass
-    
+
     @abstractmethod
     def wait_for_dashboard(self, port: int = 8765, timeout: int = 30) -> bool:
         """
         Wait for dashboard to be ready.
-        
+
         Args:
             port: Port to check
             timeout: Maximum time to wait in seconds
-            
+
         Returns:
             True if dashboard became ready within timeout
         """
-        pass
 
 
 # Implementation
 class DashboardLauncher(IDashboardLauncher):
     """Dashboard launcher service implementation."""
-    
+
     def __init__(self, logger=None):
         """
         Initialize the dashboard launcher.
-        
+
         Args:
             logger: Optional logger instance
         """
         self.logger = logger or get_logger("DashboardLauncher")
         self.port_manager = PortManager()
-        
-    def launch_dashboard(self, port: int = 8765, monitor_mode: bool = True) -> Tuple[bool, bool]:
+
+    def launch_dashboard(
+        self, port: int = 8765, monitor_mode: bool = True
+    ) -> Tuple[bool, bool]:
         """
         Launch the web dashboard.
-        
+
         WHY: Provides a unified way to launch dashboards with proper error handling,
         browser management, and server lifecycle control.
-        
+
         Args:
             port: Port number for the dashboard server
             monitor_mode: Whether to open in monitor mode
-            
+
         Returns:
             Tuple of (success, browser_opened)
         """
@@ -139,22 +137,26 @@ class DashboardLauncher(IDashboardLauncher):
             if monitor_mode:
                 if not self._verify_socketio_dependencies():
                     return False, False
-                    
-            self.logger.info(f"Launching dashboard (port: {port}, monitor: {monitor_mode})")
-            
+
+            self.logger.info(
+                f"Launching dashboard (port: {port}, monitor: {monitor_mode})"
+            )
+
             # Clean up dead instances and check for existing servers
             self.port_manager.cleanup_dead_instances()
             active_instances = self.port_manager.list_active_instances()
-            
+
             # Determine the port to use
             server_port = self._determine_server_port(port, active_instances)
             server_running = self.is_dashboard_running(server_port)
-            
+
             # Get dashboard URL
             dashboard_url = self.get_dashboard_url(server_port)
-            
+
             if server_running:
-                self.logger.info(f"Dashboard server already running on port {server_port}")
+                self.logger.info(
+                    f"Dashboard server already running on port {server_port}"
+                )
                 print(f"✅ Dashboard server already running on port {server_port}")
                 print(f"📊 Dashboard: {dashboard_url}")
             else:
@@ -164,10 +166,10 @@ class DashboardLauncher(IDashboardLauncher):
                     print("❌ Failed to start dashboard server")
                     self._print_troubleshooting_tips(server_port)
                     return False, False
-                    
+
                 print("✅ Dashboard server started successfully")
                 print(f"📊 Dashboard: {dashboard_url}")
-            
+
             # Open browser unless suppressed
             browser_opened = False
             if not self._is_browser_suppressed():
@@ -179,24 +181,24 @@ class DashboardLauncher(IDashboardLauncher):
             else:
                 print("🌐 Browser opening suppressed (CLAUDE_MPM_NO_BROWSER=1)")
                 self.logger.info("Browser opening suppressed by environment variable")
-                
+
             return True, browser_opened
-            
+
         except Exception as e:
             self.logger.error(f"Failed to launch dashboard: {e}")
             print(f"❌ Failed to launch dashboard: {e}")
             return False, False
-            
+
     def is_dashboard_running(self, port: int = 8765) -> bool:
         """
         Check if dashboard server is running.
-        
+
         WHY: Prevents duplicate server launches and helps determine if we need
         to start a new server or connect to an existing one.
-        
+
         Args:
             port: Port to check
-            
+
         Returns:
             True if dashboard is running on the specified port
         """
@@ -208,12 +210,11 @@ class DashboardLauncher(IDashboardLauncher):
                 if result != 0:
                     self.logger.debug(f"TCP connection to port {port} failed")
                     return False
-                    
+
             # If TCP connection succeeds, try HTTP health check
             try:
                 response = urllib.request.urlopen(
-                    f"http://localhost:{port}/status", 
-                    timeout=5
+                    f"http://localhost:{port}/status", timeout=5
                 )
                 if response.getcode() == 200:
                     self.logger.debug(f"Dashboard health check passed on port {port}")
@@ -222,34 +223,34 @@ class DashboardLauncher(IDashboardLauncher):
                 self.logger.debug(f"HTTP health check failed for port {port}: {e}")
                 # Server is listening but may not be fully ready yet
                 return True  # Still consider it running if TCP works
-                
+
         except Exception as e:
             self.logger.debug(f"Error checking dashboard on port {port}: {e}")
-            
+
         return False
-        
+
     def get_dashboard_url(self, port: int = 8765) -> str:
         """
         Get the dashboard URL.
-        
+
         Args:
             port: Port number
-            
+
         Returns:
             Dashboard URL string
         """
         return f"http://localhost:{port}"
-        
+
     def stop_dashboard(self, port: int = 8765) -> bool:
         """
         Stop the dashboard server.
-        
+
         WHY: Provides clean shutdown of dashboard servers to free up ports
         and resources.
-        
+
         Args:
             port: Port of the server to stop
-            
+
         Returns:
             True if successfully stopped
         """
@@ -258,7 +259,7 @@ class DashboardLauncher(IDashboardLauncher):
             if not daemon_script.exists():
                 self.logger.error(f"Daemon script not found: {daemon_script}")
                 return False
-                
+
             # Stop the daemon
             result = subprocess.run(
                 [sys.executable, str(daemon_script), "stop", "--port", str(port)],
@@ -267,29 +268,29 @@ class DashboardLauncher(IDashboardLauncher):
                 timeout=10,
                 check=False,
             )
-            
+
             if result.returncode == 0:
                 self.logger.info(f"Dashboard server stopped on port {port}")
                 return True
-                
+
             self.logger.warning(f"Failed to stop dashboard server: {result.stderr}")
             return False
-            
+
         except Exception as e:
             self.logger.error(f"Error stopping dashboard server: {e}")
             return False
-            
+
     def wait_for_dashboard(self, port: int = 8765, timeout: int = 30) -> bool:
         """
         Wait for dashboard to be ready.
-        
+
         WHY: Ensures the dashboard is fully operational before attempting to
         open it in a browser, preventing "connection refused" errors.
-        
+
         Args:
             port: Port to check
             timeout: Maximum time to wait in seconds
-            
+
         Returns:
             True if dashboard became ready within timeout
         """
@@ -299,7 +300,7 @@ class DashboardLauncher(IDashboardLauncher):
                 return True
             time.sleep(0.5)
         return False
-        
+
     # Private helper methods
     def _verify_socketio_dependencies(self) -> bool:
         """Verify Socket.IO dependencies are available."""
@@ -307,6 +308,7 @@ class DashboardLauncher(IDashboardLauncher):
             import aiohttp
             import engineio
             import socketio
+
             self.logger.debug("Socket.IO dependencies verified")
             return True
         except ImportError as e:
@@ -314,8 +316,10 @@ class DashboardLauncher(IDashboardLauncher):
             print(f"❌ Socket.IO dependencies missing: {e}")
             print("  Install with: pip install python-socketio aiohttp python-engineio")
             return False
-            
-    def _determine_server_port(self, requested_port: int, active_instances: list) -> int:
+
+    def _determine_server_port(
+        self, requested_port: int, active_instances: list
+    ) -> int:
         """Determine which port to use for the server."""
         if active_instances:
             # Prefer port 8765 if available
@@ -325,7 +329,7 @@ class DashboardLauncher(IDashboardLauncher):
             # Otherwise use first active instance
             return active_instances[0].get("port", requested_port)
         return requested_port
-        
+
     def _start_dashboard_server(self, port: int) -> bool:
         """Start the dashboard server."""
         try:
@@ -333,7 +337,7 @@ class DashboardLauncher(IDashboardLauncher):
             if not daemon_script.exists():
                 self.logger.error(f"Daemon script not found: {daemon_script}")
                 return False
-                
+
             # Start the daemon
             result = subprocess.run(
                 [sys.executable, str(daemon_script), "start", "--port", str(port)],
@@ -342,34 +346,34 @@ class DashboardLauncher(IDashboardLauncher):
                 timeout=30,
                 check=False,
             )
-            
+
             if result.returncode == 0:
                 self.logger.info(f"Dashboard server started on port {port}")
                 # Wait for server to be ready
                 return self.wait_for_dashboard(port, timeout=10)
-                
+
             self.logger.error(f"Failed to start dashboard server: {result.stderr}")
             return False
-            
+
         except Exception as e:
             self.logger.error(f"Error starting dashboard server: {e}")
             return False
-            
+
     def _is_browser_suppressed(self) -> bool:
         """Check if browser opening is suppressed."""
         return os.environ.get("CLAUDE_MPM_NO_BROWSER") == "1"
-        
+
     def _open_browser(self, url: str) -> bool:
         """
         Open URL in browser with platform-specific optimizations.
-        
+
         WHY: Different platforms have different ways to reuse browser tabs.
         This method tries platform-specific approaches before falling back
         to the standard webbrowser module.
         """
         try:
             system = platform.system().lower()
-            
+
             if system == "darwin":  # macOS
                 try:
                     # Try to open in existing tab with -g flag (background)
@@ -378,7 +382,7 @@ class DashboardLauncher(IDashboardLauncher):
                     return True
                 except Exception:
                     pass
-                    
+
             elif system == "linux":
                 try:
                     # Try xdg-open for Linux
@@ -387,7 +391,7 @@ class DashboardLauncher(IDashboardLauncher):
                     return True
                 except Exception:
                     pass
-                    
+
             elif system == "windows":
                 try:
                     # Try to use existing browser window
@@ -396,12 +400,12 @@ class DashboardLauncher(IDashboardLauncher):
                     return True
                 except Exception:
                     pass
-                    
+
             # Fallback to standard webbrowser module
             webbrowser.open(url, new=0, autoraise=True)
             self.logger.info("Opened browser using webbrowser module")
             return True
-            
+
         except Exception as e:
             self.logger.warning(f"Browser opening failed: {e}")
             try:
@@ -410,7 +414,7 @@ class DashboardLauncher(IDashboardLauncher):
                 return True
             except Exception:
                 return False
-                
+
     def _print_troubleshooting_tips(self, port: int):
         """Print troubleshooting tips for dashboard launch failures."""
         print("💡 Troubleshooting tips:")

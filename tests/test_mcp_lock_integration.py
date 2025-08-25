@@ -28,7 +28,10 @@ def test_stale_lock_recovery():
 
     print("\n1. Cleaning up any existing locks...")
     result = subprocess.run(
-        [sys.executable, str(cleanup_script), "--force"], capture_output=True, text=True, check=False
+        [sys.executable, str(cleanup_script), "--force"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
     print(
         f"   Cleanup result: {'✅ Success' if result.returncode == 0 else '❌ Failed'}"
@@ -63,7 +66,8 @@ def test_stale_lock_recovery():
     result = subprocess.run(
         [sys.executable, str(cleanup_script), "--check-only"],
         capture_output=True,
-        text=True, check=False,
+        text=True,
+        check=False,
     )
 
     if "stale" in result.stdout.lower():
@@ -153,7 +157,10 @@ def test_stale_lock_recovery():
     # Final cleanup
     print("\n7. Final cleanup...")
     result = subprocess.run(
-        [sys.executable, str(cleanup_script), "--force"], capture_output=True, text=True, check=False
+        [sys.executable, str(cleanup_script), "--force"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
     print(
         f"   Cleanup result: {'✅ Success' if result.returncode == 0 else '❌ Failed'}"
@@ -177,7 +184,10 @@ def test_cleanup_script_cli():
     # Test help output
     print("\n1. Testing help output...")
     result = subprocess.run(
-        [sys.executable, str(cleanup_script), "--help"], capture_output=True, text=True, check=False
+        [sys.executable, str(cleanup_script), "--help"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
     if "cleanup" in result.stdout.lower() and result.returncode == 0:
@@ -191,7 +201,8 @@ def test_cleanup_script_cli():
     result = subprocess.run(
         [sys.executable, str(cleanup_script), "--check-only"],
         capture_output=True,
-        text=True, check=False,
+        text=True,
+        check=False,
     )
 
     if "MCP Lock Status Check" in result.stdout and result.returncode == 0:
@@ -205,7 +216,8 @@ def test_cleanup_script_cli():
     result = subprocess.run(
         [sys.executable, str(cleanup_script), "--check-only", "--verbose"],
         capture_output=True,
-        text=True, check=False,
+        text=True,
+        check=False,
     )
 
     if result.returncode == 0:

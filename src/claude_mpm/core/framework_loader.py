@@ -4,7 +4,7 @@ import logging
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional, Set, Tuple
+from typing import Any, Dict, Optional
 
 # Import resource handling for packaged installations
 try:
@@ -28,18 +28,29 @@ AgentRegistryAdapter = safe_import(
 
 # Import the service container and interfaces
 try:
-    from claude_mpm.services.core.service_container import ServiceContainer, get_global_container
-    from claude_mpm.services.core.service_interfaces import ICacheManager, IPathResolver, IMemoryManager
     from claude_mpm.services.core.cache_manager import CacheManager
-    from claude_mpm.services.core.path_resolver import PathResolver
     from claude_mpm.services.core.memory_manager import MemoryManager
+    from claude_mpm.services.core.path_resolver import PathResolver
+    from claude_mpm.services.core.service_container import (
+        ServiceContainer,
+        get_global_container,
+    )
+    from claude_mpm.services.core.service_interfaces import (
+        ICacheManager,
+        IMemoryManager,
+        IPathResolver,
+    )
 except ImportError:
     # Fallback for development environments
-    from ..services.core.service_container import ServiceContainer, get_global_container
-    from ..services.core.service_interfaces import ICacheManager, IPathResolver, IMemoryManager
     from ..services.core.cache_manager import CacheManager
-    from ..services.core.path_resolver import PathResolver
     from ..services.core.memory_manager import MemoryManager
+    from ..services.core.path_resolver import PathResolver
+    from ..services.core.service_container import ServiceContainer, get_global_container
+    from ..services.core.service_interfaces import (
+        ICacheManager,
+        IMemoryManager,
+        IPathResolver,
+    )
 
 
 class FrameworkLoader:
@@ -86,8 +97,10 @@ class FrameworkLoader:
     """
 
     def __init__(
-        self, framework_path: Optional[Path] = None, agents_dir: Optional[Path] = None,
-        service_container: Optional[ServiceContainer] = None
+        self,
+        framework_path: Optional[Path] = None,
+        agents_dir: Optional[Path] = None,
+        service_container: Optional[ServiceContainer] = None,
     ):
         """
         Initialize framework loader.
@@ -104,35 +117,39 @@ class FrameworkLoader:
 
         # Use provided container or get global container
         self.container = service_container or get_global_container()
-        
+
         # Register services if not already registered
         if not self.container.is_registered(ICacheManager):
             self.container.register(ICacheManager, CacheManager, True)  # singleton=True
-        
+
         if not self.container.is_registered(IPathResolver):
             # PathResolver depends on CacheManager, so resolve it first
             cache_manager = self.container.resolve(ICacheManager)
             path_resolver = PathResolver(cache_manager=cache_manager)
             self.container.register_instance(IPathResolver, path_resolver)
-        
+
         if not self.container.is_registered(IMemoryManager):
             # MemoryManager depends on both CacheManager and PathResolver
             cache_manager = self.container.resolve(ICacheManager)
             path_resolver = self.container.resolve(IPathResolver)
-            memory_manager = MemoryManager(cache_manager=cache_manager, path_resolver=path_resolver)
+            memory_manager = MemoryManager(
+                cache_manager=cache_manager, path_resolver=path_resolver
+            )
             self.container.register_instance(IMemoryManager, memory_manager)
-        
+
         # Resolve services from container
         self._cache_manager = self.container.resolve(ICacheManager)
         self._path_resolver = self.container.resolve(IPathResolver)
         self._memory_manager = self.container.resolve(IMemoryManager)
-        
+
         # Initialize framework path using PathResolver
-        self.framework_path = framework_path or self._path_resolver.detect_framework_path()
-        
+        self.framework_path = (
+            framework_path or self._path_resolver.detect_framework_path()
+        )
+
         # Keep TTL constants for backward compatibility
         # These are implementation-specific, so we use defaults if not available
-        if hasattr(self._cache_manager, 'capabilities_ttl'):
+        if hasattr(self._cache_manager, "capabilities_ttl"):
             self.CAPABILITIES_CACHE_TTL = self._cache_manager.capabilities_ttl
             self.DEPLOYED_AGENTS_CACHE_TTL = self._cache_manager.deployed_agents_ttl
             self.METADATA_CACHE_TTL = self._cache_manager.metadata_ttl
@@ -236,9 +253,6 @@ class FrameworkLoader:
             self.logger.info(
                 "📝 Output style content will be injected into framework instructions as fallback"
             )
-
-
-
 
     def _try_load_file(self, file_path: Path, file_type: str) -> Optional[str]:
         """
@@ -481,16 +495,16 @@ class FrameworkLoader:
     def _load_actual_memories(self, content: Dict[str, Any]) -> None:
         """
         Load actual memories using the MemoryManager service.
-        
+
         This method delegates all memory loading operations to the MemoryManager,
         which handles caching, aggregation, deduplication, and legacy format migration.
-        
+
         Args:
             content: Dictionary to update with actual memories
         """
         # Use MemoryManager to load all memories
         memories = self._memory_manager.load_memories()
-        
+
         # Apply loaded memories to content
         if "actual_memories" in memories:
             content["actual_memories"] = memories["actual_memories"]
@@ -648,8 +662,7 @@ class FrameworkLoader:
 
         # Discover agent directories using PathResolver
         agents_dir, templates_dir, main_dir = self._path_resolver.discover_agent_paths(
-            agents_dir=self.agents_dir,
-            framework_path=self.framework_path
+            agents_dir=self.agents_dir, framework_path=self.framework_path
         )
 
         # Load agents from discovered directory
@@ -1135,7 +1148,7 @@ Extract tickets from these patterns:
         cached_capabilities = self._cache_manager.get_capabilities()
         if cached_capabilities is not None:
             return cached_capabilities
-        
+
         # Will be used for updating cache later
         current_time = time.time()
 

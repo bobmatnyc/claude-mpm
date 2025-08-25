@@ -77,7 +77,8 @@ def test_direct_execution():
         input=json.dumps(test_event),
         capture_output=True,
         text=True,
-        timeout=3, check=False,
+        timeout=3,
+        check=False,
     )
 
     # Check for import errors

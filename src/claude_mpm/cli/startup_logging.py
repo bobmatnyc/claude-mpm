@@ -24,6 +24,7 @@ from typing import Any, Dict, Optional
 
 try:
     import psutil
+
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
@@ -34,28 +35,28 @@ from ..core.logger import get_logger
 def log_memory_stats(logger=None, prefix="Memory Usage"):
     """
     Log current memory statistics.
-    
+
     Args:
         logger: Logger to use (defaults to 'cli' logger)
         prefix: Prefix for the log message
-        
+
     Returns:
         Dict with memory stats or None if psutil unavailable
     """
     if not PSUTIL_AVAILABLE:
         return None
-        
+
     if logger is None:
         logger = get_logger("cli")
-        
+
     try:
         process = psutil.Process()
         memory_info = process.memory_info()
-        
+
         # Convert to MB for readability
         rss_mb = memory_info.rss / (1024 * 1024)
         vms_mb = memory_info.vms / (1024 * 1024)
-        
+
         # Get percentage of system memory if available
         try:
             memory_percent = process.memory_percent()
@@ -63,21 +64,11 @@ def log_memory_stats(logger=None, prefix="Memory Usage"):
                 f"{prefix}: RSS={rss_mb:.1f}MB, VMS={vms_mb:.1f}MB, "
                 f"System={memory_percent:.1f}%"
             )
-            return {
-                "rss_mb": rss_mb,
-                "vms_mb": vms_mb,
-                "percent": memory_percent
-            }
+            return {"rss_mb": rss_mb, "vms_mb": vms_mb, "percent": memory_percent}
         except:
-            logger.info(
-                f"{prefix}: RSS={rss_mb:.1f}MB, VMS={vms_mb:.1f}MB"
-            )
-            return {
-                "rss_mb": rss_mb,
-                "vms_mb": vms_mb,
-                "percent": None
-            }
-            
+            logger.info(f"{prefix}: RSS={rss_mb:.1f}MB, VMS={vms_mb:.1f}MB")
+            return {"rss_mb": rss_mb, "vms_mb": vms_mb, "percent": None}
+
     except Exception as e:
         logger.debug(f"Failed to get memory info: {e}")
         return None
@@ -151,18 +142,16 @@ class StartupStatusLogger:
     def log_memory_status(self) -> None:
         """
         Log current process memory usage.
-        
+
         Logs both RSS (Resident Set Size) and VMS (Virtual Memory Size)
         to help track memory consumption and potential leaks.
         """
         stats = log_memory_stats(self.logger, "Memory Usage")
-        
+
         # Log warning if memory usage is high
         if stats and stats.get("rss_mb", 0) > 500:  # Warn if using more than 500MB
-            self.logger.warning(
-                f"High memory usage detected: {stats['rss_mb']:.1f}MB"
-            )
-    
+            self.logger.warning(f"High memory usage detected: {stats['rss_mb']:.1f}MB")
+
     def log_monitor_setup_status(
         self, monitor_mode: bool = False, websocket_port: int = 8765
     ) -> None:
@@ -519,7 +508,7 @@ def setup_startup_logging(project_root: Optional[Path] = None) -> Path:
     logger.info(f"Platform: {sys.platform}")
     logger.info(f"CWD: {Path.cwd()}")
     logger.info(f"Project root: {project_root}")
-    
+
     # Log initial memory usage
     if PSUTIL_AVAILABLE:
         try:
@@ -644,7 +633,7 @@ def log_startup_status(monitor_mode: bool = False, websocket_port: int = 8765) -
 
         # Log memory status at startup
         status_logger.log_memory_status()
-        
+
         # Log MCP server status
         status_logger.log_mcp_server_status()
 

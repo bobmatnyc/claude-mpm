@@ -27,7 +27,8 @@ def install_package(package_name):
         result = subprocess.run(
             [sys.executable, "-m", "pip", "install", package_name],
             capture_output=True,
-            text=True, check=False,
+            text=True,
+            check=False,
         )
         return result.returncode == 0
     except Exception as e:
@@ -236,7 +237,8 @@ if __name__ == "__main__":
             [sys.executable, str(test_file)],
             capture_output=True,
             text=True,
-            cwd=test_file.parent, check=False,
+            cwd=test_file.parent,
+            check=False,
         )
 
         print("Individual package test output:")

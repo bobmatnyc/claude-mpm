@@ -16,11 +16,10 @@ import os
 from pathlib import Path
 from typing import Any, Dict
 
-from ...core.logger import get_logger
 from ...core.shared.config_loader import ConfigLoader
 from ...services.agents.memory import AgentMemoryManager
-from ...services.cli.memory_output_formatter import MemoryOutputFormatter
 from ...services.cli.memory_crud_service import MemoryCRUDService
+from ...services.cli.memory_output_formatter import MemoryOutputFormatter
 from ..shared.base_command import CommandResult, MemoryCommand
 
 
@@ -44,7 +43,7 @@ class MemoryManagementCommand(MemoryCommand):
             current_dir = Path(user_pwd)
             self._memory_manager = AgentMemoryManager(config, current_dir)
         return self._memory_manager
-    
+
     @property
     def formatter(self):
         """Get formatter instance (lazy loaded)."""
@@ -53,7 +52,7 @@ class MemoryManagementCommand(MemoryCommand):
             quiet = os.environ.get("CLAUDE_MPM_QUIET", "false").lower() == "true"
             self._formatter = MemoryOutputFormatter(quiet=quiet)
         return self._formatter
-    
+
     @property
     def crud_service(self):
         """Get CRUD service instance (lazy loaded)."""
@@ -143,7 +142,7 @@ class MemoryManagementCommand(MemoryCommand):
         """Get memory status as structured data."""
         # Use CRUD service to list memories with stats
         result = self.crud_service.list_memories(include_stats=True)
-        
+
         if not result.get("success"):
             return {
                 "error": result.get("error", "Failed to get status"),
@@ -152,7 +151,7 @@ class MemoryManagementCommand(MemoryCommand):
                 "total_size_kb": 0,
                 "total_files": 0,
             }
-        
+
         # Transform CRUD service result to expected format
         memories = result.get("memories", [])
         agents = [
@@ -164,7 +163,7 @@ class MemoryManagementCommand(MemoryCommand):
             }
             for mem in memories
         ]
-        
+
         return {
             "memory_directory": result.get("memory_directory", ""),
             "exists": result.get("exists", False),
@@ -183,31 +182,29 @@ class MemoryManagementCommand(MemoryCommand):
             if output_format in ["json", "yaml"] or raw_output:
                 # Use CRUD service for structured output
                 result = self.crud_service.read_memory(agent_id)
-                
+
                 if not result.get("success"):
                     return CommandResult.error_result(
                         result.get("error", "Failed to read memories")
                     )
-                
+
                 if raw_output:
                     # Output raw JSON for external tools
                     print(json.dumps(result, indent=2, ensure_ascii=False))
                     return CommandResult.success_result("Raw memory data output")
-                
-                return CommandResult.success_result(
-                    "Memories retrieved", data=result
-                )
-            
+
+                return CommandResult.success_result("Memories retrieved", data=result)
+
             # Text output
             result = self.crud_service.read_memory(agent_id)
-            
+
             if not result.get("success"):
                 print(f"❌ {result.get('error', 'Failed to read memories')}")
                 return CommandResult.error_result(result.get("error"))
-            
+
             print("🧠 Agent Memories Display")
             print("-" * 80)
-            
+
             if agent_id:
                 # Single agent memory
                 content = result.get("content", "")
@@ -229,14 +226,14 @@ class MemoryManagementCommand(MemoryCommand):
                             data.get("content", "")
                         )
                         agent_memories[aid] = sections
-                    
+
                     output = self.formatter.format_agent_memories_summary(
                         agent_memories, getattr(args, "format", "detailed")
                     )
                     print(output)
                 else:
                     print("📭 No agent memories found")
-            
+
             return CommandResult.success_result("Memories displayed")
 
         except Exception as e:
@@ -252,7 +249,7 @@ class MemoryManagementCommand(MemoryCommand):
 
             # Use CRUD service for initialization task
             result = self.crud_service.init_project_memories()
-            
+
             if not result.get("success"):
                 return CommandResult.error_result(
                     result.get("error", "Failed to create initialization task")
@@ -261,10 +258,9 @@ class MemoryManagementCommand(MemoryCommand):
             if output_format in ["json", "yaml"]:
                 # Return structured task data
                 return CommandResult.success_result(
-                    "Memory initialization task created", 
-                    data=result.get("task_data")
+                    "Memory initialization task created", data=result.get("task_data")
                 )
-            
+
             # Text output - display the task
             task = result.get("task_data", {})
             print("🚀 Initializing project-specific memories...")
@@ -284,8 +280,10 @@ class MemoryManagementCommand(MemoryCommand):
             print()
             print("=" * 80)
             print()
-            print("📝 Note: Copy the task above to execute the memory initialization process.")
-            
+            print(
+                "📝 Note: Copy the task above to execute the memory initialization process."
+            )
+
             return CommandResult.success_result("Memory initialization task displayed")
 
         except Exception as e:
@@ -296,20 +294,20 @@ class MemoryManagementCommand(MemoryCommand):
         """Add learning to agent memory."""
         try:
             output_format = getattr(args, "format", "text")
-            
+
             # Extract arguments
             agent_id = getattr(args, "agent_id", None)
             learning_type = getattr(args, "learning_type", "context")
             content = getattr(args, "content", "")
-            
+
             if not agent_id or not content:
                 return CommandResult.error_result(
                     "Agent ID and content are required for adding learning"
                 )
-            
+
             # Use CRUD service to add learning
             result = self.crud_service.update_memory(agent_id, learning_type, content)
-            
+
             if not result.get("success"):
                 return CommandResult.error_result(
                     result.get("error", "Failed to add learning")
@@ -318,15 +316,14 @@ class MemoryManagementCommand(MemoryCommand):
             if output_format in ["json", "yaml"]:
                 # Return structured result
                 return CommandResult.success_result(
-                    "Learning added to agent memory", 
-                    data=result
+                    "Learning added to agent memory", data=result
                 )
-            
+
             # Text output
             print(f"✅ Added {learning_type} to {agent_id} memory")
             print(f"   Section: {result.get('section', 'Unknown')}")
             print(f"   Content: {result.get('content_preview', content[:100])}")
-            
+
             return CommandResult.success_result("Learning added")
 
         except Exception as e:
@@ -339,33 +336,32 @@ class MemoryManagementCommand(MemoryCommand):
             output_format = getattr(args, "format", "text")
             agent_id = getattr(args, "agent_id", None)
             dry_run = getattr(args, "dry_run", True)
-            
+
             # Use CRUD service for cleanup
             result = self.crud_service.clean_memory(agent_id=agent_id, dry_run=dry_run)
-            
+
             if not result.get("success"):
-                return CommandResult.error_result(
-                    result.get("error", "Cleanup failed")
-                )
+                return CommandResult.error_result(result.get("error", "Cleanup failed"))
 
             if output_format in ["json", "yaml"]:
                 # Return structured cleanup results
                 return CommandResult.success_result(
-                    result.get("message", "Memory cleanup completed"), 
-                    data=result
+                    result.get("message", "Memory cleanup completed"), data=result
                 )
-            
+
             # Text output
             print("🧹 Memory cleanup")
             print("-" * 80)
-            
+
             if dry_run:
                 print("📊 Cleanup preview (dry run)")
                 candidates = result.get("cleanup_candidates", [])
                 if candidates:
                     print(f"Found {len(candidates)} files eligible for cleanup:")
                     for candidate in candidates:
-                        print(f"  • {candidate['agent_id']}: {candidate['size_kb']:.1f} KB, {candidate['age_days']} days old")
+                        print(
+                            f"  • {candidate['agent_id']}: {candidate['size_kb']:.1f} KB, {candidate['age_days']} days old"
+                        )
                         print(f"    Reason: {candidate['reason']}")
                 else:
                     print("No files eligible for cleanup")
@@ -375,10 +371,10 @@ class MemoryManagementCommand(MemoryCommand):
                     print(f"Cleaned {len(cleaned)} files")
                 else:
                     print(result.get("message", "No files cleaned"))
-            
+
             if result.get("note"):
                 print(f"\n⚠️  {result['note']}")
-            
+
             return CommandResult.success_result("Memory cleanup completed")
 
         except Exception as e:
@@ -404,11 +400,15 @@ class MemoryManagementCommand(MemoryCommand):
             if agent_id:
                 print(f"📊 Optimizing memory for agent: {agent_id}")
                 result = self.memory_manager.optimize_memory(agent_id)
-                output = self.formatter.format_optimization_results(result, is_single_agent=True)
+                output = self.formatter.format_optimization_results(
+                    result, is_single_agent=True
+                )
             else:
                 print("📊 Optimizing all agent memories...")
                 result = self.memory_manager.optimize_memory()
-                output = self.formatter.format_optimization_results(result, is_single_agent=False)
+                output = self.formatter.format_optimization_results(
+                    result, is_single_agent=False
+                )
             print(output)
             return CommandResult.success_result("Memory optimization completed")
 
@@ -568,7 +568,7 @@ def _cross_reference_memory(args, memory_manager):
 
     try:
         result = memory_manager.cross_reference_memories(query)
-        
+
         # Use formatter to display cross-reference results
         quiet = os.environ.get("CLAUDE_MPM_QUIET", "false").lower() == "true"
         formatter = MemoryOutputFormatter(quiet=quiet)

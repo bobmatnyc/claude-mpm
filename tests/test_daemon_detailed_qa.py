@@ -68,7 +68,8 @@ class DaemonTestManager:
                 [sys.executable, str(DAEMON_SCRIPT), "stop"],
                 capture_output=True,
                 text=True,
-                timeout=15, check=False,
+                timeout=15,
+                check=False,
             )
             time.sleep(2)
             return result.returncode == 0
@@ -150,7 +151,10 @@ class DaemonTestManager:
         # Kill any remaining processes
         try:
             result = subprocess.run(
-                ["pgrep", "-f", "socketio_daemon"], capture_output=True, text=True, check=False
+                ["pgrep", "-f", "socketio_daemon"],
+                capture_output=True,
+                text=True,
+                check=False,
             )
             if result.stdout.strip():
                 pids = result.stdout.strip().split("\n")
@@ -362,7 +366,8 @@ def investigate_config_issue():
                     result = subprocess.run(
                         [sys.executable, str(DAEMON_SCRIPT), "status"],
                         capture_output=True,
-                        text=True, check=False,
+                        text=True,
+                        check=False,
                     )
                     if "Port Range:" in result.stdout:
                         port_line = [
@@ -623,7 +628,8 @@ def test_integration():
                 [sys.executable, str(DAEMON_SCRIPT), "restart"],
                 capture_output=True,
                 text=True,
-                timeout=20, check=False,
+                timeout=20,
+                check=False,
             )
 
             time.sleep(5)  # Wait for restart

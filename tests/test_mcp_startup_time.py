@@ -33,14 +33,17 @@ def measure_cold_start():
     subprocess.run(
         [sys.executable, "scripts/cleanup_mcp_processes.py"],
         capture_output=True,
-        cwd=project_root, check=False,
+        cwd=project_root,
+        check=False,
     )
 
     start_time = time.time()
 
     # Simulate agent invocation that triggers MCP
     cmd = [sys.executable, "-m", "claude_mpm", "run", "engineer", "--help"]
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=project_root, check=False)
+    result = subprocess.run(
+        cmd, capture_output=True, text=True, cwd=project_root, check=False
+    )
 
     cold_start_time = time.time() - start_time
 
@@ -57,7 +60,8 @@ def measure_warm_start():
     subprocess.run(
         [sys.executable, "scripts/cleanup_mcp_processes.py"],
         capture_output=True,
-        cwd=project_root, check=False,
+        cwd=project_root,
+        check=False,
     )
 
     # Pre-warm MCP services
@@ -76,7 +80,9 @@ def measure_warm_start():
 
     # Simulate agent invocation
     cmd = [sys.executable, "-m", "claude_mpm", "run", "engineer", "--help"]
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=project_root, check=False)
+    result = subprocess.run(
+        cmd, capture_output=True, text=True, cwd=project_root, check=False
+    )
 
     warm_start_time = time.time() - start_time
 
@@ -99,7 +105,9 @@ def measure_process_pool_efficiency():
 
         # Simulate agent invocation
         cmd = [sys.executable, "-m", "claude_mpm", "run", "engineer", "--help"]
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=project_root, check=False)
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, cwd=project_root, check=False
+        )
 
         invocation_time = time.time() - start_time
         times.append(invocation_time)

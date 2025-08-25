@@ -142,7 +142,6 @@ def check_log_messages():
     """Check that singleton log messages are correct."""
     import io
 
-
     print("\n=== Checking Log Messages ===\n")
 
     # Reset singleton

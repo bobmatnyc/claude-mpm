@@ -3,28 +3,22 @@
 # This module is part of GitDB and is released under
 # the New BSD License: https://opensource.org/license/bsd-3-clause/
 """Test for object db"""
-from gitdb.test.lib import (
-    TestBase,
-    DummyStream,
-    DeriveTest,
-)
-
 from gitdb import (
+    IStream,
+    ODeltaPackInfo,
+    ODeltaPackStream,
     OInfo,
     OPackInfo,
-    ODeltaPackInfo,
-    OStream,
     OPackStream,
-    ODeltaPackStream,
-    IStream
+    OStream,
 )
-from gitdb.util import (
-    NULL_BIN_SHA
+from gitdb.test.lib import (
+    DeriveTest,
+    DummyStream,
+    TestBase,
 )
-
-from gitdb.typ import (
-    str_blob_type
-)
+from gitdb.typ import str_blob_type
+from gitdb.util import NULL_BIN_SHA
 
 
 class TestBaseTypes(TestBase):
@@ -56,7 +50,7 @@ class TestBaseTypes(TestBase):
 
         # test ostream
         stream = DummyStream()
-        ostream = OStream(*(info + (stream, )))
+        ostream = OStream(*(info + (stream,)))
         assert ostream.stream is stream
         ostream.read(15)
         stream._assert()
@@ -65,21 +59,21 @@ class TestBaseTypes(TestBase):
         assert stream.bytes == 20
 
         # test packstream
-        postream = OPackStream(*(pinfo + (stream, )))
+        postream = OPackStream(*(pinfo + (stream,)))
         assert postream.stream is stream
         postream.read(10)
         stream._assert()
         assert stream.bytes == 10
 
         # test deltapackstream
-        dpostream = ODeltaPackStream(*(dpinfo + (stream, )))
+        dpostream = ODeltaPackStream(*(dpinfo + (stream,)))
         assert dpostream.stream is stream
         dpostream.read(5)
         stream._assert()
         assert stream.bytes == 5
 
         # derive with own args
-        DeriveTest(sha, str_blob_type, s, stream, 'mine', myarg=3)._assert()
+        DeriveTest(sha, str_blob_type, s, stream, "mine", myarg=3)._assert()
 
         # test istream
         istream = IStream(str_blob_type, s, stream)

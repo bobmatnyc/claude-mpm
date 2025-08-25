@@ -110,7 +110,8 @@ print("\\n✅ Agent invocation test completed")
             [sys.executable, str(invocation_file)],
             capture_output=True,
             text=True,
-            cwd=test_dir, check=False,
+            cwd=test_dir,
+            check=False,
         )
 
         print(result.stdout)
@@ -147,7 +148,8 @@ def test_claude_mpm_integration():
             capture_output=True,
             text=True,
             cwd="/Users/masa/Projects/claude-mpm",
-            timeout=10, check=False,
+            timeout=10,
+            check=False,
         )
 
         if result.returncode == 0:
@@ -163,7 +165,8 @@ def test_claude_mpm_integration():
             capture_output=True,
             text=True,
             cwd="/Users/masa/Projects/claude-mpm",
-            timeout=15, check=False,
+            timeout=15,
+            check=False,
         )
 
         if result.returncode == 0 and "code_analyzer" in result.stdout:
@@ -408,7 +411,8 @@ if __name__ == "__main__":
             [sys.executable, str(workflow_file)],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent, check=False,
+            cwd=Path(__file__).parent,
+            check=False,
         )
 
         print(result.stdout)

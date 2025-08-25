@@ -23,9 +23,9 @@ from claude_mpm.services.socketio.server.main import SocketIOServer
 def test_event_flow():
     """Test that events flow from hooks through EventBus to Socket.IO."""
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing Event Flow from Hooks to Dashboard")
-    print("="*60)
+    print("=" * 60)
 
     # Start Socket.IO server with EventBus integration
     print("\n1. Starting Socket.IO server...")
@@ -48,8 +48,8 @@ def test_event_flow():
                 "timestamp": datetime.now().isoformat(),
                 "working_directory": "/test/dir",
                 "git_branch": "main",
-                "hook_event_name": "PreToolUse"
-            }
+                "hook_event_name": "PreToolUse",
+            },
         },
         {
             "event_type": "hook.subagent_start",
@@ -58,8 +58,8 @@ def test_event_flow():
                 "session_id": "test-session-123",
                 "timestamp": datetime.now().isoformat(),
                 "prompt": "Test research task",
-                "hook_event_name": "SubagentStart"
-            }
+                "hook_event_name": "SubagentStart",
+            },
         },
         {
             "event_type": "hook.subagent_stop",
@@ -68,8 +68,8 @@ def test_event_flow():
                 "session_id": "test-session-123",
                 "reason": "completed",
                 "timestamp": datetime.now().isoformat(),
-                "hook_event_name": "SubagentStop"
-            }
+                "hook_event_name": "SubagentStop",
+            },
         },
         {
             "event_type": "hook.post_tool",
@@ -78,9 +78,9 @@ def test_event_flow():
                 "exit_code": 0,
                 "session_id": "test-session-123",
                 "timestamp": datetime.now().isoformat(),
-                "hook_event_name": "PostToolUse"
-            }
-        }
+                "hook_event_name": "PostToolUse",
+            },
+        },
     ]
 
     print("\n3. Publishing test events to EventBus...")
@@ -102,18 +102,22 @@ def test_event_flow():
     print(f"   Events failed: {stats.get('events_failed', 0)}")
 
     # Check relay stats if available
-    if hasattr(server, 'eventbus_integration') and server.eventbus_integration:
+    if hasattr(server, "eventbus_integration") and server.eventbus_integration:
         print("\n5. Relay Statistics:")
         relay_stats = server.eventbus_integration.get_stats()
-        if 'relay' in relay_stats:
+        if "relay" in relay_stats:
             print(f"   Events relayed: {relay_stats['relay'].get('events_relayed', 0)}")
             print(f"   Events failed: {relay_stats['relay'].get('events_failed', 0)}")
-            print(f"   Connection failures: {relay_stats['relay'].get('connection_failures', 0)}")
+            print(
+                f"   Connection failures: {relay_stats['relay'].get('connection_failures', 0)}"
+            )
 
     # Check server event history
     print(f"\n6. Server Event History: {len(server.event_history)} events")
     for event in list(server.event_history)[-5:]:  # Show last 5 events
-        print(f"   - {event.get('type', 'unknown')}.{event.get('subtype', 'unknown')} at {event.get('timestamp', 'unknown')}")
+        print(
+            f"   - {event.get('type', 'unknown')}.{event.get('subtype', 'unknown')} at {event.get('timestamp', 'unknown')}"
+        )
 
     print("\n7. Test Complete!")
     print("   Check the dashboard at http://localhost:8765/dashboard")

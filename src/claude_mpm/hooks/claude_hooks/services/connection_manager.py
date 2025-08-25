@@ -10,7 +10,6 @@ This service manages:
 import os
 import sys
 from datetime import datetime
-from typing import Optional
 
 # Debug mode is enabled by default for better visibility into hook processing
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"

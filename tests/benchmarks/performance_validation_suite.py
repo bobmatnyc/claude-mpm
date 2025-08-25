@@ -204,7 +204,8 @@ class PerformanceBenchmarks:
                     capture_output=True,
                     text=True,
                     timeout=10,
-                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")}, check=False,
+                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")},
+                    check=False,
                 )
 
                 if result.returncode == 0:
@@ -242,7 +243,8 @@ class PerformanceBenchmarks:
                     capture_output=True,
                     text=True,
                     timeout=15,
-                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")}, check=False,
+                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")},
+                    check=False,
                 )
 
                 end_time = time.time()
@@ -314,7 +316,8 @@ class PerformanceBenchmarks:
                     capture_output=True,
                     text=True,
                     timeout=30,
-                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")}, check=False,
+                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")},
+                    check=False,
                 )
 
                 end_time = time.time()
@@ -394,7 +397,8 @@ class PerformanceBenchmarks:
                     capture_output=True,
                     text=True,
                     timeout=10,
-                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")}, check=False,
+                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")},
+                    check=False,
                 )
 
                 end_time = time.time()

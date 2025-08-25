@@ -1,12 +1,11 @@
-from pathlib import Path
 import json
 import os
+from pathlib import Path
 
 import pytest
-
+import referencing.jsonschema
 from referencing import Registry
 from referencing.exceptions import Unresolvable
-import referencing.jsonschema
 
 
 class SuiteNotFound(Exception):

@@ -24,13 +24,17 @@ try:
     # Run memory init
     print("\n=== Running memory init ===")
     init_cmd = [mpm_cmd, "memory", "init"]
-    init_result = subprocess.run(init_cmd, capture_output=True, text=True, timeout=60, check=False)
+    init_result = subprocess.run(
+        init_cmd, capture_output=True, text=True, timeout=60, check=False
+    )
     print(f"Init return code: {init_result.returncode}")
 
     # Run memory add
     print("\n=== Running memory add ===")
     add_cmd = [mpm_cmd, "memory", "add", "qa", "pattern", "This is a test memory entry"]
-    add_result = subprocess.run(add_cmd, capture_output=True, text=True, timeout=60, check=False)
+    add_result = subprocess.run(
+        add_cmd, capture_output=True, text=True, timeout=60, check=False
+    )
     print(f"Add return code: {add_result.returncode}")
     print(f"Add STDOUT: {add_result.stdout}")
     if add_result.stderr:
