@@ -93,7 +93,8 @@ class MultiSourceAgentDeploymentService:
                     f"Discovering agents from {source_name} source: {source_dir}"
                 )
                 discovery_service = AgentDiscoveryService(source_dir)
-                agents = discovery_service.list_available_agents()
+                # Pass log_discovery=False to avoid duplicate logging
+                agents = discovery_service.list_available_agents(log_discovery=False)
 
                 for agent_info in agents:
                     agent_name = agent_info.get("name")
@@ -110,8 +111,9 @@ class MultiSourceAgentDeploymentService:
 
                     agents_by_name[agent_name].append(agent_info)
 
+                # Use more specific log message
                 self.logger.info(
-                    f"Discovered {len(agents)} agents from {source_name} source"
+                    f"Discovered {len(agents)} {source_name} agent templates from {source_dir.name}"
                 )
 
         return agents_by_name

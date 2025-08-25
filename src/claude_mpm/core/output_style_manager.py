@@ -21,6 +21,10 @@ from ..utils.imports import safe_import
 # Import with fallback support
 get_logger = safe_import("claude_mpm.core.logger", "core.logger", ["get_logger"])
 
+# Global cache for Claude version to avoid duplicate detection/logging
+_CACHED_CLAUDE_VERSION: Optional[str] = None
+_VERSION_DETECTED: bool = False
+
 
 class OutputStyleManager:
     """Manages output style deployment and version-based handling."""
@@ -41,10 +45,17 @@ class OutputStyleManager:
     def _detect_claude_version(self) -> Optional[str]:
         """
         Detect Claude Code version by running 'claude --version'.
+        Uses global cache to avoid duplicate detection and logging.
 
         Returns:
             Version string (e.g., "1.0.82") or None if Claude not found
         """
+        global _CACHED_CLAUDE_VERSION, _VERSION_DETECTED
+        
+        # Return cached version if already detected
+        if _VERSION_DETECTED:
+            return _CACHED_CLAUDE_VERSION
+        
         try:
             # Run claude --version command
             result = subprocess.run(
@@ -57,6 +68,8 @@ class OutputStyleManager:
 
             if result.returncode != 0:
                 self.logger.warning(f"Claude command failed: {result.stderr}")
+                _VERSION_DETECTED = True
+                _CACHED_CLAUDE_VERSION = None
                 return None
 
             # Parse version from output
@@ -66,19 +79,30 @@ class OutputStyleManager:
 
             if version_match:
                 version = version_match.group(1)
+                # Only log on first detection
                 self.logger.info(f"Detected Claude version: {version}")
+                _CACHED_CLAUDE_VERSION = version
+                _VERSION_DETECTED = True
                 return version
             self.logger.warning(f"Could not parse version from: {version_output}")
+            _VERSION_DETECTED = True
+            _CACHED_CLAUDE_VERSION = None
             return None
 
         except FileNotFoundError:
             self.logger.info("Claude Code not found in PATH")
+            _VERSION_DETECTED = True
+            _CACHED_CLAUDE_VERSION = None
             return None
         except subprocess.TimeoutExpired:
             self.logger.warning("Claude version check timed out")
+            _VERSION_DETECTED = True
+            _CACHED_CLAUDE_VERSION = None
             return None
         except Exception as e:
             self.logger.warning(f"Error detecting Claude version: {e}")
+            _VERSION_DETECTED = True
+            _CACHED_CLAUDE_VERSION = None
             return None
 
     def _compare_versions(self, version1: str, version2: str) -> int:

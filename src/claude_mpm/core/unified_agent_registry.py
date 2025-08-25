@@ -256,7 +256,10 @@ class UnifiedAgentRegistry:
             try:
                 metadata = self._create_agent_metadata(file_path, agent_name, tier)
                 if metadata:
-                    self.registry[agent_name] = metadata
+                    # Store all discovered agents temporarily for tier precedence
+                    # Use a unique key that includes tier to prevent overwrites
+                    registry_key = f"{agent_name}_{tier.value}"
+                    self.registry[registry_key] = metadata
                     self.discovered_files.add(file_path)
                     logger.debug(
                         f"Discovered agent: {agent_name} ({tier.value}) at {file_path}"
@@ -424,12 +427,14 @@ class UnifiedAgentRegistry:
 
     def _apply_tier_precedence(self) -> None:
         """Apply tier precedence rules to resolve conflicts."""
-        # Group agents by name
+        # Group agents by their actual name (without tier suffix)
         agent_groups = {}
-        for name, metadata in self.registry.items():
-            if name not in agent_groups:
-                agent_groups[name] = []
-            agent_groups[name].append(metadata)
+        for registry_key, metadata in self.registry.items():
+            # Extract the actual agent name (registry_key is "name_tier")
+            agent_name = metadata.name  # Use the actual name from metadata
+            if agent_name not in agent_groups:
+                agent_groups[agent_name] = []
+            agent_groups[agent_name].append(metadata)
 
         # Resolve conflicts using tier precedence
         resolved_registry = {}
