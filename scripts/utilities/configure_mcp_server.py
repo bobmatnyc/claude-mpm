@@ -17,7 +17,7 @@ import json
 import platform
 import shutil
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -86,7 +86,7 @@ def backup_config(config_path):
     if not config_path.exists():
         return None
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     backup_path = (
         config_path.parent
         / f"{config_path.stem}_backup_{timestamp}{config_path.suffix}"
@@ -110,7 +110,7 @@ def load_or_create_config(config_path):
     """
     if config_path.exists():
         try:
-            with open(config_path) as f:
+            with config_path.open() as f:
                 config = json.load(f)
                 print(f"✅ Loaded existing configuration from {config_path}")
                 return config
@@ -203,7 +203,7 @@ def save_config(config, config_path):
     config_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Write configuration with nice formatting
-    with open(config_path, "w") as f:
+    with config_path.open(, "w") as f:
         json.dump(config, f, indent=2)
 
     print(f"\n✅ Configuration saved to {config_path}")

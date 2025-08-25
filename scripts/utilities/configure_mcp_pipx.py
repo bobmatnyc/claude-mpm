@@ -28,7 +28,7 @@ def find_pipx_claude_mpm():
             venv_info = venvs["claude-mpm"]
             # Get the main package location
             main_package = venv_info.get("metadata", {}).get("main_package", {})
-            package_location = main_package.get("package_or_url")
+            main_package.get("package_or_url")
 
             # Try to find the actual installation path
             pipx_home = Path(
@@ -157,7 +157,7 @@ def main():
     if config_exists:
         print("✅ Config file exists")
         try:
-            with open(config_path) as f:
+            with config_path.open() as f:
                 existing_config = json.load(f)
         except json.JSONDecodeError:
             print("⚠️  Config file exists but is not valid JSON")
@@ -199,7 +199,7 @@ def main():
 
     # Write configuration
     try:
-        with open(config_path, "w") as f:
+        with config_path.open(, "w") as f:
             json.dump(existing_config, f, indent=2)
         print(f"\n✅ Configuration written to: {config_path}")
         print("\n6. Next steps:")
@@ -233,7 +233,7 @@ def main():
                     print(f"⚠️  Could not test command: {e}")
             else:
                 # Test the wrapper script
-                test_cmd = [cmd] + args
+                [cmd, *args]
                 wrapper_path = args[0] if args else None
                 if wrapper_path and Path(wrapper_path).exists():
                     print(f"✅ Wrapper script exists: {wrapper_path}")

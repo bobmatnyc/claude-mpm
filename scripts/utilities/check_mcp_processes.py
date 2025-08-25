@@ -19,7 +19,7 @@ import json
 import os
 import sys
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List
 
@@ -53,7 +53,7 @@ def format_duration(start_time: float) -> str:
     Returns:
         str: Formatted duration (e.g., "2h 15m")
     """
-    duration = datetime.now().timestamp() - start_time
+    duration = datetime.now(timezone.utc).timestamp() - start_time
 
     if duration < 60:
         return f"{int(duration)}s"
@@ -160,7 +160,7 @@ class MCPProcessChecker:
         print("=" * 80)
         print("🔍 MCP Process Status Report")
         print("=" * 80)
-        print(f"Report generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Report generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}")
         print()
 
         # Check PID files

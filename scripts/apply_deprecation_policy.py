@@ -96,11 +96,11 @@ class DeprecationPolicyApplier:
     def add_deprecation_warnings(self, files: List[Path]) -> None:
         """Add deprecation warnings to experimental files."""
         for file_path in files:
-            if not file_path.suffix == ".py":
+            if file_path.suffix != ".py":
                 continue
 
             try:
-                with open(file_path, encoding="utf-8") as f:
+                with file_path.open(encoding="utf-8") as f:
                     content = f.read()
 
                 # Check if deprecation warning already exists
@@ -143,7 +143,7 @@ class DeprecationPolicyApplier:
                 lines[insert_index:insert_index] = warning_code
 
                 if not self.dry_run:
-                    with open(file_path, "w", encoding="utf-8") as f:
+                    with file_path.open("w", encoding="utf-8") as f:
                         f.write("\n".join(lines))
 
                 self.warnings_added.append(file_path)
@@ -189,7 +189,7 @@ class DeprecationPolicyApplier:
         ]
 
         if gitignore_path.exists():
-            with open(gitignore_path, encoding="utf-8") as f:
+            with gitignore_path.open(encoding="utf-8") as f:
                 content = f.read()
 
             # Check if patterns already exist
@@ -200,7 +200,7 @@ class DeprecationPolicyApplier:
                     break
 
             if needs_update and not self.dry_run:
-                with open(gitignore_path, "a", encoding="utf-8") as f:
+                with gitignore_path.open("a", encoding="utf-8") as f:
                     f.write("\n".join(additional_patterns))
 
                 self.updated_files.append(gitignore_path)

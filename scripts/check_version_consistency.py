@@ -63,7 +63,7 @@ def read_package_json_version(path: Path) -> Optional[str]:
         return None
 
     try:
-        with open(path) as f:
+        with path.open() as f:
             data = json.load(f)
             return data.get("version")
     except (json.JSONDecodeError, KeyError):

@@ -82,7 +82,7 @@ def prune_template(content: str, agent_name: str) -> Tuple[str, int, int]:
 
 def update_agent_json(file_path: Path, reduction_stats: Dict) -> None:
     """Update agent JSON file with pruned instructions and new version."""
-    with open(file_path) as f:
+    with file_path.open() as f:
         agent_data = json.load(f)
 
     agent_name = agent_data["metadata"]["name"]
@@ -112,7 +112,7 @@ def update_agent_json(file_path: Path, reduction_stats: Dict) -> None:
         ] = f"Optimized template - reduced from {orig_lines} to {new_lines} lines"
 
     # Save the updated agent
-    with open(file_path, "w") as f:
+    with file_path.open("w") as f:
         json.dump(agent_data, f, indent=2)
 
     # Track statistics

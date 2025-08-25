@@ -7,7 +7,7 @@ decoupled event handling in your application.
 
 import asyncio
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add parent directory to path
@@ -30,7 +30,7 @@ def example_1_basic_publishing():
         {
             "action": "clicked_button",
             "button_id": "submit",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         },
     )
 

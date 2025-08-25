@@ -13,7 +13,7 @@ Run this to identify where hook events are failing to reach the dashboard.
 import asyncio
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add project root to path
@@ -147,7 +147,7 @@ class HookEventDiagnostic:
             test_event = {
                 "type": "hook",
                 "subtype": "diagnostic_test",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {"test": "connection_pool"},
             }
 
@@ -203,7 +203,7 @@ class HookEventDiagnostic:
                 "hook",
                 {
                     "subtype": "direct_test",
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "data": {"source": "direct_broadcast"},
                 },
             )
@@ -215,7 +215,7 @@ class HookEventDiagnostic:
             event_bus.publish(
                 "hook.eventbus_test",
                 {
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "data": {"source": "eventbus"},
                 },
             )
@@ -229,7 +229,7 @@ class HookEventDiagnostic:
                 {
                     "type": "hook",
                     "subtype": "pool_test",
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "data": {"source": "connection_pool"},
                 },
             )

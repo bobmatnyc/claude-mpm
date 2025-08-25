@@ -14,8 +14,8 @@ import asyncio
 import json
 import logging
 import sys
-from datetime import datetime
-from typing import Any, Dict, List
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 # Socket.IO client import
 try:
@@ -139,7 +139,7 @@ class SocketIOMonitor:
         # Store in history
         event_record = {
             "index": self.event_count,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "event_name": event_name,
             "data": data,
         }
@@ -226,7 +226,7 @@ class SocketIOMonitor:
         if self.connected:
             await self.sio.disconnect()
 
-    async def run(self, duration: int = None):
+    async def run(self, duration: Optional[int] = None):
         """Run the monitor for a specified duration or until interrupted.
 
         Args:

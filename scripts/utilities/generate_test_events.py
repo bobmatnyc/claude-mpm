@@ -269,12 +269,12 @@ Open: http://localhost:{args.port}
 If events appeared in the dashboard:
     ✅ Socket.IO connectivity is working
     ✅ Dashboard can receive and display events
-    
+
 If events did NOT appear:
     ❌ Check browser console for JavaScript errors
     ❌ Check Network tab for WebSocket 'claude_event' frames
     ❌ Verify EventViewer is processing events correctly
-    
+
 Next: Open browser dev tools and run the debug commands!
 """
     )
