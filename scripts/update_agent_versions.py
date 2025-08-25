@@ -2,6 +2,7 @@
 """Update version numbers in agent template JSON files by incrementing minor version."""
 
 import json
+import sys
 from pathlib import Path
 
 
@@ -53,7 +54,7 @@ def update_template_version(filepath: Path) -> bool:
     """
     try:
         # Read the JSON file
-        with open(filepath, encoding="utf-8") as f:
+        with filepath.open(encoding="utf-8") as f:
             data = json.load(f)
 
         # Check for version fields in order of preference
@@ -82,11 +83,11 @@ def update_template_version(filepath: Path) -> bool:
 
         # Also update template_changelog if it exists and we're updating template_version
         if version_field == "template_version" and "template_changelog" in data:
-            from datetime import datetime
+            from datetime import datetime, timezone
 
             new_changelog_entry = {
                 "version": new_version,
-                "date": datetime.now().strftime("%Y-%m-%d"),
+                "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
                 "description": "Version bump to trigger redeployment of optimized templates",
             }
             # Insert at the beginning of the changelog
@@ -94,7 +95,7 @@ def update_template_version(filepath: Path) -> bool:
                 data["template_changelog"].insert(0, new_changelog_entry)
 
         # Write back to file with proper formatting
-        with open(filepath, "w", encoding="utf-8") as f:
+        with filepath.open("w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
             f.write("\n")  # Add trailing newline
 
@@ -140,17 +141,15 @@ def main():
     print("Updating main templates:")
     main_updated = 0
     for filepath in sorted(json_files):
-        if "backup" not in str(filepath):
-            if update_template_version(filepath):
-                main_updated += 1
+        if "backup" not in str(filepath) and update_template_version(filepath):
+            main_updated += 1
 
     # Update backup templates
     print("\nUpdating backup templates:")
     backup_updated = 0
     for filepath in sorted(json_files):
-        if "backup" in str(filepath):
-            if update_template_version(filepath):
-                backup_updated += 1
+        if "backup" in str(filepath) and update_template_version(filepath):
+            backup_updated += 1
 
     print("\nSummary:")
     print(f"  Main templates updated: {main_updated}")
@@ -161,4 +160,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

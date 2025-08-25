@@ -384,7 +384,7 @@ Press Ctrl+C to stop monitoring early.
 
             async def generate_periodic_test_events():
                 await asyncio.sleep(5)  # Wait for server to start
-                for i in range(5):
+                for _i in range(5):
                     await monitor.generate_test_event()
                     await asyncio.sleep(3)
 

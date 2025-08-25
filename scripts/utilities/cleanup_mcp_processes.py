@@ -39,14 +39,14 @@ def find_mcp_processes():
                         pid = int(parts[1])
                         cpu = parts[2]
                         mem = parts[3]
-                        vsz = parts[4]
+                        parts[4]
                         rss = parts[5]
                         cmd = parts[10]
 
                         # Parse memory usage (RSS in KB)
                         try:
                             rss_mb = int(rss) / 1024
-                        except:
+                        except Exception:
                             rss_mb = 0
 
                         processes.append(

@@ -26,7 +26,7 @@ def main():
     )
 
     # Load template
-    with open(template_path) as f:
+    with template_path.open() as f:
         template_data = json.load(f)
 
     print("\n1. MCP TOOL NAME FIX")
@@ -110,4 +110,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

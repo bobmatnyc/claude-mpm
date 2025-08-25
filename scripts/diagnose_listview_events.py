@@ -23,15 +23,15 @@ class DiagnosticApp(App):
         height: 100%;
         border: solid blue;
     }
-    
+
     #nav-list > ListItem {
         padding: 1;
     }
-    
+
     #nav-list > ListItem.--highlight {
         background: yellow;
     }
-    
+
     #log {
         width: 100%;
         height: 100%;
@@ -148,7 +148,7 @@ class DiagnosticApp(App):
                 self.log_event(f"  - Current index: {nav_list.index}")
                 if nav_list.highlighted:
                     self.log_event(f"  - Highlighted: {nav_list.highlighted}")
-            except:
+            except Exception:
                 pass
 
     def on_click(self, event: events.Click):
@@ -166,7 +166,7 @@ class DiagnosticApp(App):
         try:
             log_widget = self.query_one("#log", Static)
             log_widget.update("\n".join(self.log_messages))
-        except:
+        except Exception:
             pass
 
 

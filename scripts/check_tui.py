@@ -21,7 +21,7 @@ class TestNavApp(App):
         background: $panel;
         border-right: solid $primary;
     }
-    
+
     #content {
         padding: 2;
     }

@@ -10,6 +10,7 @@ WHY: We need to ensure the MCP server works regardless of how it's started,
 including as a script, module, or through the Claude Code configuration.
 """
 
+import contextlib
 import json
 import subprocess
 import sys
@@ -113,10 +114,8 @@ def test_method(name, command, cwd=None):
         print(f"  ✗ FAILED - Exception: {e}")
         return False
     finally:
-        try:
+        with contextlib.suppress(Exception):
             proc.terminate()
-        except:
-            pass
 
 
 def main():
@@ -214,7 +213,7 @@ def main():
         / "claude_desktop_config.json"
     )
     if config_path.exists():
-        with open(config_path) as f:
+        with config_path.open() as f:
             config = json.load(f)
 
         if "mcpServers" in config and "claude-mpm-gateway" in config["mcpServers"]:

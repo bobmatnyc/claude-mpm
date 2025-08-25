@@ -9,13 +9,13 @@ import signal
 import sys
 import time
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 
 import socketio
 
 # Statistics tracking
 stats = defaultdict(int)
-start_time = datetime.now()
+start_time = datetime.now(timezone.utc)
 last_event_time = None
 
 
@@ -25,7 +25,7 @@ def signal_handler(signum, frame):
     print("=" * 60)
 
     total_events = sum(stats.values())
-    duration = (datetime.now() - start_time).total_seconds()
+    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
 
     print(f"Total events: {total_events}")
     print(f"Duration: {duration:.1f} seconds")
@@ -59,19 +59,19 @@ def monitor_dashboard_events(server_url="http://localhost:8765"):
 
     @client.on("connect")
     def on_connect():
-        print(f"✅ Connected to server at {datetime.now().isoformat()}")
+        print(f"✅ Connected to server at {datetime.now(timezone.utc).isoformat()}")
         print("Monitoring events...\n")
 
     @client.on("disconnect")
     def on_disconnect():
-        print(f"\n⚠️ Disconnected from server at {datetime.now().isoformat()}")
+        print(f"\n⚠️ Disconnected from server at {datetime.now(timezone.utc).isoformat()}")
 
     @client.on("claude_event")
     def on_claude_event(data):
         """Handle claude_event from server."""
         global last_event_time
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         last_event_time = now
 
         # Extract event details
@@ -121,7 +121,7 @@ def monitor_dashboard_events(server_url="http://localhost:8765"):
         """Handle system events (like heartbeats)."""
         global last_event_time
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         last_event_time = now
 
         event_type = data.get("subtype", "system")
@@ -155,7 +155,7 @@ def monitor_dashboard_events(server_url="http://localhost:8765"):
 
             # Show periodic status
             if last_event_time:
-                seconds_since_last = (datetime.now() - last_event_time).total_seconds()
+                seconds_since_last = (datetime.now(timezone.utc) - last_event_time).total_seconds()
                 if seconds_since_last > 30:
                     print(f"\n⏳ No events for {seconds_since_last:.0f} seconds...")
 

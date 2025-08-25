@@ -25,7 +25,7 @@ import logging
 import signal
 import tempfile
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -52,7 +52,7 @@ class ProcessMonitor:
         """Initialize the process monitor."""
         self.logger = logger
         self.pid = os.getpid()
-        self.start_time = datetime.now()
+        self.start_time = datetime.now(timezone.utc)
         self.pid_file = None
         self.setup_pid_tracking()
         self.setup_signal_handlers()
@@ -241,11 +241,6 @@ def verify_environment(logger, project_root):
         logger.info(f"  {key}: {value}")
 
     # Check Python version
-    if sys.version_info < (3, 8):
-        raise RuntimeError(
-            f"Python 3.8+ required, but got {env_info['python_version']}. "
-            f"Executable: {sys.executable}"
-        )
 
     # Check project structure
     src_dir = project_root / "src"
@@ -410,7 +405,7 @@ def main():
 
         # Verify environment
         logger.info("Step 2: Verifying environment...")
-        env_info = verify_environment(logger, project_root)
+        verify_environment(logger, project_root)
 
         # Setup Python path
         logger.info("Step 3: Setting up Python path...")
@@ -443,7 +438,7 @@ def main():
         sys.exit(1)
 
 
-if __name__ == "__main__" or __name__ == "__main__":
+if __name__ in {"__main__"}:
     main()
 else:
     # If imported as a module, provide a callable entry point
