@@ -25,7 +25,6 @@ from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.models.agent_definition import AgentDefinition
 from claude_mpm.services.agents.management import AgentManager
 from claude_mpm.services.agents.registry.modification_tracker import (
-    AgentModification,
     AgentModificationTracker,
     ModificationTier,
     ModificationType,
@@ -64,29 +63,29 @@ class LifecycleOperationResult:
 class AgentOperationService(BaseService):
     """
     Service for executing agent lifecycle operations.
-    
+
     Responsibilities:
     - Create, update, delete agents
     - Coordinate with AgentManager for file operations
     - Track operation history
     - Handle concurrency and locking
     """
-    
+
     def __init__(self, agent_manager: Optional[AgentManager] = None):
         """Initialize the operation service."""
         super().__init__("agent_operation_service")
-        
+
         # Dependencies
         self.agent_manager = agent_manager
         self.modification_tracker: Optional[AgentModificationTracker] = None
-        
+
         # Operation tracking
         self.operation_history: List[LifecycleOperationResult] = []
         self.active_operations: Dict[str, LifecycleOperation] = {}
-        
+
         # Operation lock for thread safety
         self._operation_lock = asyncio.Lock()
-        
+
         # Performance metrics
         self.metrics = {
             "total_operations": 0,
@@ -94,53 +93,55 @@ class AgentOperationService(BaseService):
             "failed_operations": 0,
             "average_duration_ms": 0.0,
         }
-        
+
         self.logger.info("AgentOperationService initialized")
-    
+
     def set_modification_tracker(self, tracker: AgentModificationTracker):
         """Set the modification tracker dependency."""
         self.modification_tracker = tracker
-    
+
     async def create_agent(
         self,
         agent_name: str,
         agent_content: str,
         tier: ModificationTier = ModificationTier.USER,
         agent_type: str = "custom",
-        **kwargs
+        **kwargs,
     ) -> LifecycleOperationResult:
         """
         Create a new agent.
-        
+
         Args:
             agent_name: Name of the agent
             agent_content: Content of the agent file
             tier: Target tier for creation
             agent_type: Type of agent
             **kwargs: Additional metadata
-            
+
         Returns:
             LifecycleOperationResult with operation details
         """
         start_time = time.time()
-        
+
         async with self._operation_lock:
             self.active_operations[agent_name] = LifecycleOperation.CREATE
-            
+
             try:
                 # Create agent definition
                 agent_def = await self._create_agent_definition(
                     agent_name, agent_content, tier, agent_type, **kwargs
                 )
-                
+
                 # Determine location
-                location = "project" if tier == ModificationTier.PROJECT else "framework"
-                
+                location = (
+                    "project" if tier == ModificationTier.PROJECT else "framework"
+                )
+
                 # Create agent using AgentManager
                 file_path = await self._execute_agent_creation(
                     agent_name, agent_def, location, tier, agent_content
                 )
-                
+
                 # Track modification if tracker available
                 modification_id = None
                 if self.modification_tracker:
@@ -153,7 +154,7 @@ class AgentOperationService(BaseService):
                         **kwargs,
                     )
                     modification_id = modification.modification_id
-                
+
                 # Create result
                 result = LifecycleOperationResult(
                     operation=LifecycleOperation.CREATE,
@@ -163,16 +164,16 @@ class AgentOperationService(BaseService):
                     modification_id=modification_id,
                     metadata={"file_path": str(file_path), "tier": tier.value},
                 )
-                
+
                 self._update_metrics(result)
                 self.operation_history.append(result)
-                
+
                 self.logger.info(
                     f"Created agent '{agent_name}' in {result.duration_ms:.1f}ms"
                 )
-                
+
                 return result
-                
+
             except Exception as e:
                 result = LifecycleOperationResult(
                     operation=LifecycleOperation.CREATE,
@@ -181,48 +182,48 @@ class AgentOperationService(BaseService):
                     duration_ms=(time.time() - start_time) * 1000,
                     error_message=str(e),
                 )
-                
+
                 self._update_metrics(result)
                 self.operation_history.append(result)
-                
+
                 self.logger.error(f"Failed to create agent '{agent_name}': {e}")
                 return result
-                
+
             finally:
                 self.active_operations.pop(agent_name, None)
-    
+
     async def update_agent(
         self,
         agent_name: str,
         agent_content: str,
         file_path: str,
         tier: ModificationTier,
-        **kwargs
+        **kwargs,
     ) -> LifecycleOperationResult:
         """
         Update an existing agent.
-        
+
         Args:
             agent_name: Name of the agent
             agent_content: New content for the agent
             file_path: Current file path
             tier: Agent tier
             **kwargs: Additional metadata
-            
+
         Returns:
             LifecycleOperationResult with operation details
         """
         start_time = time.time()
-        
+
         async with self._operation_lock:
             self.active_operations[agent_name] = LifecycleOperation.UPDATE
-            
+
             try:
                 # Update agent using AgentManager
                 await self._execute_agent_update(
                     agent_name, agent_content, file_path, **kwargs
                 )
-                
+
                 # Track modification if tracker available
                 modification_id = None
                 if self.modification_tracker:
@@ -234,7 +235,7 @@ class AgentOperationService(BaseService):
                         **kwargs,
                     )
                     modification_id = modification.modification_id
-                
+
                 # Create result
                 result = LifecycleOperationResult(
                     operation=LifecycleOperation.UPDATE,
@@ -244,16 +245,16 @@ class AgentOperationService(BaseService):
                     modification_id=modification_id,
                     metadata={"file_path": file_path},
                 )
-                
+
                 self._update_metrics(result)
                 self.operation_history.append(result)
-                
+
                 self.logger.info(
                     f"Updated agent '{agent_name}' in {result.duration_ms:.1f}ms"
                 )
-                
+
                 return result
-                
+
             except Exception as e:
                 result = LifecycleOperationResult(
                     operation=LifecycleOperation.UPDATE,
@@ -262,42 +263,42 @@ class AgentOperationService(BaseService):
                     duration_ms=(time.time() - start_time) * 1000,
                     error_message=str(e),
                 )
-                
+
                 self._update_metrics(result)
                 self.operation_history.append(result)
-                
+
                 self.logger.error(f"Failed to update agent '{agent_name}': {e}")
                 return result
-                
+
             finally:
                 self.active_operations.pop(agent_name, None)
-    
+
     async def delete_agent(
         self,
         agent_name: str,
         file_path: str,
         tier: ModificationTier,
         create_backup: bool = True,
-        **kwargs
+        **kwargs,
     ) -> LifecycleOperationResult:
         """
         Delete an agent.
-        
+
         Args:
             agent_name: Name of the agent
             file_path: Path to agent file
             tier: Agent tier
             create_backup: Whether to create backup before deletion
             **kwargs: Additional metadata
-            
+
         Returns:
             LifecycleOperationResult with operation details
         """
         start_time = time.time()
-        
+
         async with self._operation_lock:
             self.active_operations[agent_name] = LifecycleOperation.DELETE
-            
+
             try:
                 # Create backup if requested
                 backup_path = None
@@ -305,7 +306,7 @@ class AgentOperationService(BaseService):
                     backup_path = await self._create_deletion_backup(
                         agent_name, file_path
                     )
-                
+
                 # Track modification if tracker available
                 modification_id = None
                 if self.modification_tracker:
@@ -318,10 +319,10 @@ class AgentOperationService(BaseService):
                         **kwargs,
                     )
                     modification_id = modification.modification_id
-                
+
                 # Delete agent
                 await self._execute_agent_deletion(agent_name, file_path)
-                
+
                 # Create result
                 result = LifecycleOperationResult(
                     operation=LifecycleOperation.DELETE,
@@ -331,16 +332,16 @@ class AgentOperationService(BaseService):
                     modification_id=modification_id,
                     metadata={"backup_path": backup_path},
                 )
-                
+
                 self._update_metrics(result)
                 self.operation_history.append(result)
-                
+
                 self.logger.info(
                     f"Deleted agent '{agent_name}' in {result.duration_ms:.1f}ms"
                 )
-                
+
                 return result
-                
+
             except Exception as e:
                 result = LifecycleOperationResult(
                     operation=LifecycleOperation.DELETE,
@@ -349,16 +350,16 @@ class AgentOperationService(BaseService):
                     duration_ms=(time.time() - start_time) * 1000,
                     error_message=str(e),
                 )
-                
+
                 self._update_metrics(result)
                 self.operation_history.append(result)
-                
+
                 self.logger.error(f"Failed to delete agent '{agent_name}': {e}")
                 return result
-                
+
             finally:
                 self.active_operations.pop(agent_name, None)
-    
+
     async def _execute_agent_creation(
         self,
         agent_name: str,
@@ -377,12 +378,11 @@ class AgentOperationService(BaseService):
                     location,
                 )
                 return Path(file_path)
-            else:
-                # Fallback to direct file creation
-                file_path = await self._determine_agent_file_path(agent_name, tier)
-                path_ops.ensure_dir(file_path.parent)
-                path_ops.safe_write(file_path, agent_content)
-                return file_path
+            # Fallback to direct file creation
+            file_path = await self._determine_agent_file_path(agent_name, tier)
+            path_ops.ensure_dir(file_path.parent)
+            path_ops.safe_write(file_path, agent_content)
+            return file_path
         except Exception as e:
             self.logger.error(f"AgentManager failed to create agent: {e}")
             # Fallback to direct file creation
@@ -390,13 +390,9 @@ class AgentOperationService(BaseService):
             path_ops.ensure_dir(file_path.parent)
             path_ops.safe_write(file_path, agent_content)
             return file_path
-    
+
     async def _execute_agent_update(
-        self,
-        agent_name: str,
-        agent_content: str,
-        file_path: str,
-        **kwargs
+        self, agent_name: str, agent_content: str, file_path: str, **kwargs
     ):
         """Execute agent update through AgentManager or fallback."""
         try:
@@ -405,16 +401,16 @@ class AgentOperationService(BaseService):
                 current_def = await self._run_sync_in_executor(
                     self.agent_manager.read_agent, agent_name
                 )
-                
+
                 if current_def:
                     # Update raw content
                     current_def.raw_content = agent_content
-                    
+
                     # Apply metadata updates
                     for key, value in kwargs.items():
                         if hasattr(current_def.metadata, key):
                             setattr(current_def.metadata, key, value)
-                    
+
                     # Update via AgentManager
                     await self._run_sync_in_executor(
                         self.agent_manager.update_agent,
@@ -435,7 +431,7 @@ class AgentOperationService(BaseService):
             path = Path(file_path)
             if path_ops.validate_exists(path):
                 path_ops.safe_write(path, agent_content)
-    
+
     async def _execute_agent_deletion(self, agent_name: str, file_path: str):
         """Execute agent deletion through AgentManager or fallback."""
         try:
@@ -456,7 +452,7 @@ class AgentOperationService(BaseService):
             path = Path(file_path)
             if path_ops.validate_exists(path):
                 path_ops.safe_delete(path)
-    
+
     async def _determine_agent_file_path(
         self, agent_name: str, tier: ModificationTier
     ) -> Path:
@@ -467,10 +463,10 @@ class AgentOperationService(BaseService):
             base_path = get_path_manager().get_project_agents_dir()
         else:  # SYSTEM
             base_path = Path.cwd() / "claude_pm" / "agents"
-        
+
         path_ops.ensure_dir(base_path)
         return base_path / f"{agent_name}_agent.py"
-    
+
     async def _create_deletion_backup(
         self, agent_name: str, file_path: str
     ) -> Optional[str]:
@@ -479,95 +475,96 @@ class AgentOperationService(BaseService):
             source_path = Path(file_path)
             if not path_ops.validate_exists(source_path):
                 return None
-            
+
             backup_dir = get_path_manager().get_tracking_dir() / "backups"
             path_ops.ensure_dir(backup_dir)
-            
+
             from datetime import datetime
+
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             backup_filename = f"{agent_name}_deleted_{timestamp}{source_path.suffix}"
             backup_path = backup_dir / backup_filename
-            
+
             path_ops.safe_copy(source_path, backup_path)
             return str(backup_path)
-            
+
         except Exception as e:
             self.logger.warning(
                 f"Failed to create deletion backup for {agent_name}: {e}"
             )
             return None
-    
+
     async def _create_agent_definition(
         self,
         agent_name: str,
         agent_content: str,
         tier: ModificationTier,
         agent_type: str,
-        **kwargs
+        **kwargs,
     ) -> AgentDefinition:
         """Create an AgentDefinition from parameters."""
         # Import here to avoid circular dependency
         from claude_mpm.services.agents.deployment.agent_definition_factory import (
             AgentDefinitionFactory,
         )
-        
+
         factory = AgentDefinitionFactory()
         return factory.create_agent_definition(
             agent_name, agent_content, tier, agent_type, **kwargs
         )
-    
+
     async def _run_sync_in_executor(self, func, *args, **kwargs):
         """Run a synchronous function in an executor."""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, func, *args, **kwargs)
-    
+
     def _update_metrics(self, result: LifecycleOperationResult):
         """Update performance metrics."""
         self.metrics["total_operations"] += 1
-        
+
         if result.success:
             self.metrics["successful_operations"] += 1
         else:
             self.metrics["failed_operations"] += 1
-        
+
         # Update average duration
         current_avg = self.metrics["average_duration_ms"]
         total_ops = self.metrics["total_operations"]
         self.metrics["average_duration_ms"] = (
-            (current_avg * (total_ops - 1) + result.duration_ms) / total_ops
-        )
-    
+            current_avg * (total_ops - 1) + result.duration_ms
+        ) / total_ops
+
     def get_operation_history(
         self, agent_name: Optional[str] = None, limit: int = 100
     ) -> List[LifecycleOperationResult]:
         """Get operation history with optional filtering."""
         history = self.operation_history
-        
+
         if agent_name:
             history = [op for op in history if op.agent_name == agent_name]
-        
+
         return sorted(history, key=lambda x: x.duration_ms, reverse=True)[:limit]
-    
+
     def get_active_operations(self) -> Dict[str, LifecycleOperation]:
         """Get currently active operations."""
         return self.active_operations.copy()
-    
+
     def get_metrics(self) -> Dict[str, Any]:
         """Get performance metrics."""
         return self.metrics.copy()
-    
+
     async def _initialize(self) -> None:
         """Initialize the operation service."""
         self.logger.info("AgentOperationService initialized")
-    
+
     async def _cleanup(self) -> None:
         """Cleanup the operation service."""
         # Wait for active operations to complete
         while self.active_operations:
             await asyncio.sleep(0.1)
-        
+
         self.logger.info("AgentOperationService cleaned up")
-    
+
     async def _health_check(self) -> Dict[str, bool]:
         """Perform health check."""
         return {

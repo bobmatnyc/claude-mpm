@@ -19,7 +19,7 @@ import asyncio
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
@@ -55,46 +55,53 @@ class TestAgentLifecycleManager:
     @pytest.fixture
     def mock_dependencies(self):
         """Mock all external dependencies."""
-        with patch("claude_mpm.services.agents.deployment.agent_lifecycle_manager.SharedPromptCache") as mock_cache, \
-             patch("claude_mpm.services.agents.deployment.agent_lifecycle_manager.AgentRegistry") as mock_registry, \
-             patch("claude_mpm.services.agents.deployment.agent_lifecycle_manager.AgentModificationTracker") as mock_tracker, \
-             patch("claude_mpm.services.agents.deployment.agent_lifecycle_manager.AgentPersistenceService") as mock_persistence, \
-             patch("claude_mpm.services.agents.deployment.agent_lifecycle_manager.AgentManager") as mock_manager, \
-             patch("claude_mpm.services.agents.deployment.agent_lifecycle_manager.ConfigurationManager") as mock_config_mgr:
-            
+        with patch(
+            "claude_mpm.services.agents.deployment.agent_lifecycle_manager.SharedPromptCache"
+        ) as mock_cache, patch(
+            "claude_mpm.services.agents.deployment.agent_lifecycle_manager.AgentRegistry"
+        ) as mock_registry, patch(
+            "claude_mpm.services.agents.deployment.agent_lifecycle_manager.AgentModificationTracker"
+        ) as mock_tracker, patch(
+            "claude_mpm.services.agents.deployment.agent_lifecycle_manager.AgentPersistenceService"
+        ) as mock_persistence, patch(
+            "claude_mpm.services.agents.deployment.agent_lifecycle_manager.AgentManager"
+        ) as mock_manager, patch(
+            "claude_mpm.services.agents.deployment.agent_lifecycle_manager.ConfigurationManager"
+        ) as mock_config_mgr:
+
             # Setup mock cache
             mock_cache_instance = Mock()
             mock_cache_instance.invalidate = Mock(return_value=True)
             mock_cache.get_instance.return_value = mock_cache_instance
-            
+
             # Setup mock registry
             mock_registry_instance = Mock()
             mock_registry_instance.discover_agents = Mock()
             mock_registry_instance.list_agents = Mock(return_value=[])
-            
+
             # Setup mock tracker
             mock_tracker_instance = Mock()
             mock_tracker_instance.start = AsyncMock()
             mock_tracker_instance.stop = AsyncMock()
             mock_tracker_instance.track_modification = AsyncMock()
             mock_tracker_instance.register_modification_callback = Mock()
-            
+
             # Setup mock persistence
             mock_persistence_instance = Mock()
             mock_persistence_instance.start = AsyncMock()
             mock_persistence_instance.stop = AsyncMock()
-            
+
             # Setup mock manager
             mock_manager_instance = Mock()
             mock_manager_instance.create_agent = Mock(return_value="/path/to/agent.py")
             mock_manager_instance.read_agent = Mock(return_value=None)
             mock_manager_instance.update_agent = Mock(return_value=None)
             mock_manager_instance.delete_agent = Mock(return_value=True)
-            
+
             # Setup mock config manager
             mock_config_mgr_instance = Mock()
             mock_config_mgr_instance.load_json = Mock(return_value={})
-            
+
             yield {
                 "cache": mock_cache_instance,
                 "cache_class": mock_cache,
@@ -114,7 +121,7 @@ class TestAgentLifecycleManager:
     async def lifecycle_manager(self, mock_config, mock_dependencies):
         """Create a lifecycle manager instance for testing."""
         manager = AgentLifecycleManager(mock_config)
-        
+
         # Inject mocked dependencies
         manager.shared_cache = mock_dependencies["cache"]
         manager.agent_registry = mock_dependencies["registry"]()
@@ -122,7 +129,7 @@ class TestAgentLifecycleManager:
         manager.persistence_service = mock_dependencies["persistence"]()
         manager.agent_manager = mock_dependencies["manager"]()
         manager.config_mgr = mock_dependencies["config_mgr"]()
-        
+
         return manager
 
     # Test 1: Agent Creation
@@ -139,7 +146,7 @@ class TestAgentLifecycleManager:
             timestamp=time.time(),
         )
         mock_dependencies["tracker"].track_modification.return_value = mock_modification
-        
+
         # Execute creation
         result = await lifecycle_manager.create_agent(
             agent_name="test_agent",
@@ -147,14 +154,14 @@ class TestAgentLifecycleManager:
             tier=ModificationTier.USER,
             agent_type="custom",
         )
-        
+
         # Verify result
         assert result.success is True
         assert result.operation == LifecycleOperation.CREATE
         assert result.agent_name == "test_agent"
         assert result.modification_id == "mod_123"
         assert result.duration_ms > 0
-        
+
         # Verify lifecycle record created
         assert "test_agent" in lifecycle_manager.agent_records
         record = lifecycle_manager.agent_records["test_agent"]
@@ -175,13 +182,13 @@ class TestAgentLifecycleManager:
             last_modified=time.time(),
             version="1.0.0",
         )
-        
+
         # Attempt to create duplicate
         result = await lifecycle_manager.create_agent(
             agent_name="existing_agent",
             agent_content="# Duplicate Content",
         )
-        
+
         # Verify failure
         assert result.success is False
         assert result.error_message == "Agent already exists"
@@ -200,7 +207,7 @@ class TestAgentLifecycleManager:
             last_modified=time.time(),
             version="1.0.0",
         )
-        
+
         # Setup mock modification
         mock_modification = AgentModification(
             modification_id="mod_456",
@@ -211,18 +218,18 @@ class TestAgentLifecycleManager:
             timestamp=time.time(),
         )
         mock_dependencies["tracker"].track_modification.return_value = mock_modification
-        
+
         # Execute update
         result = await lifecycle_manager.update_agent(
             agent_name="update_agent",
             agent_content="# Updated Content",
         )
-        
+
         # Verify result
         assert result.success is True
         assert result.operation == LifecycleOperation.UPDATE
         assert result.modification_id == "mod_456"
-        
+
         # Verify record updated
         record = lifecycle_manager.agent_records["update_agent"]
         assert record.current_state == LifecycleState.MODIFIED
@@ -236,7 +243,7 @@ class TestAgentLifecycleManager:
             agent_name="nonexistent_agent",
             agent_content="# Content",
         )
-        
+
         assert result.success is False
         assert result.error_message == "Agent not found"
 
@@ -254,7 +261,7 @@ class TestAgentLifecycleManager:
             last_modified=time.time(),
             version="1.0.0",
         )
-        
+
         # Setup mock modification
         mock_modification = AgentModification(
             modification_id="mod_789",
@@ -265,15 +272,15 @@ class TestAgentLifecycleManager:
             timestamp=time.time(),
         )
         mock_dependencies["tracker"].track_modification.return_value = mock_modification
-        
+
         # Execute deletion
         result = await lifecycle_manager.delete_agent(agent_name="delete_agent")
-        
+
         # Verify result
         assert result.success is True
         assert result.operation == LifecycleOperation.DELETE
         assert result.modification_id == "mod_789"
-        
+
         # Verify record updated
         record = lifecycle_manager.agent_records["delete_agent"]
         assert record.current_state == LifecycleState.DELETED
@@ -283,7 +290,7 @@ class TestAgentLifecycleManager:
     async def test_delete_agent_not_found(self, lifecycle_manager):
         """Test agent deletion when agent doesn't exist."""
         result = await lifecycle_manager.delete_agent(agent_name="nonexistent_agent")
-        
+
         assert result.success is False
         assert result.error_message == "Agent not found"
 
@@ -301,7 +308,7 @@ class TestAgentLifecycleManager:
             timestamp=time.time(),
         )
         mock_dependencies["tracker"].track_modification.return_value = mock_modification
-        
+
         # Create agent (ACTIVE state)
         await lifecycle_manager.create_agent(
             agent_name="state_agent",
@@ -309,7 +316,7 @@ class TestAgentLifecycleManager:
         )
         record = lifecycle_manager.agent_records["state_agent"]
         assert record.current_state == LifecycleState.ACTIVE
-        
+
         # Update agent (MODIFIED state)
         mock_modification.modification_type = ModificationType.MODIFY
         await lifecycle_manager.update_agent(
@@ -317,7 +324,7 @@ class TestAgentLifecycleManager:
             agent_content="# Modified",
         )
         assert record.current_state == LifecycleState.MODIFIED
-        
+
         # Delete agent (DELETED state)
         mock_modification.modification_type = ModificationType.DELETE
         await lifecycle_manager.delete_agent(agent_name="state_agent")
@@ -328,11 +335,11 @@ class TestAgentLifecycleManager:
     async def test_cache_invalidation(self, lifecycle_manager):
         """Test cache invalidation during operations."""
         lifecycle_manager.enable_cache_invalidation = True
-        
+
         # Test cache invalidation
         result = await lifecycle_manager._invalidate_agent_cache("test_agent")
         assert result is True
-        
+
         # Verify cache invalidate was called
         lifecycle_manager.shared_cache.invalidate.assert_called()
 
@@ -341,11 +348,11 @@ class TestAgentLifecycleManager:
     async def test_registry_sync(self, lifecycle_manager):
         """Test registry synchronization."""
         lifecycle_manager.enable_registry_sync = True
-        
+
         # Test registry update
         result = await lifecycle_manager._update_registry("test_agent")
         assert result is True
-        
+
         # Verify registry discover was called
         lifecycle_manager.agent_registry.discover_agents.assert_called()
 
@@ -360,10 +367,10 @@ class TestAgentLifecycleManager:
             success=True,
             duration_ms=100.5,
         )
-        
+
         # Update metrics
         await lifecycle_manager._update_performance_metrics(result)
-        
+
         # Verify metrics updated
         metrics = lifecycle_manager.performance_metrics
         assert metrics["total_operations"] > 0
@@ -371,7 +378,9 @@ class TestAgentLifecycleManager:
 
     # Test 11: Concurrent Operations
     @pytest.mark.asyncio
-    async def test_concurrent_operations_locking(self, lifecycle_manager, mock_dependencies):
+    async def test_concurrent_operations_locking(
+        self, lifecycle_manager, mock_dependencies
+    ):
         """Test that concurrent operations are properly serialized."""
         # Setup mock
         mock_modification = AgentModification(
@@ -383,16 +392,16 @@ class TestAgentLifecycleManager:
             timestamp=time.time(),
         )
         mock_dependencies["tracker"].track_modification.return_value = mock_modification
-        
+
         # Create multiple concurrent operations
         tasks = [
             lifecycle_manager.create_agent(f"agent_{i}", f"# Content {i}")
             for i in range(5)
         ]
-        
+
         # Execute concurrently
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         # Verify all completed without exceptions
         for result in results:
             assert not isinstance(result, Exception)
@@ -412,11 +421,11 @@ class TestAgentLifecycleManager:
             version="1.0.0",
         )
         lifecycle_manager.agent_records["status_agent"] = test_record
-        
+
         # Get status
         status = await lifecycle_manager.get_agent_status("status_agent")
         assert status == test_record
-        
+
         # Get non-existent status
         status = await lifecycle_manager.get_agent_status("nonexistent")
         assert status is None
@@ -455,16 +464,16 @@ class TestAgentLifecycleManager:
                 version="1.0.0",
             ),
         }
-        
+
         # List all agents
         all_agents = await lifecycle_manager.list_agents()
         assert len(all_agents) == 3
-        
+
         # List only active agents
         active_agents = await lifecycle_manager.list_agents(LifecycleState.ACTIVE)
         assert len(active_agents) == 1
         assert active_agents[0].agent_name == "active1"
-        
+
         # List only deleted agents
         deleted_agents = await lifecycle_manager.list_agents(LifecycleState.DELETED)
         assert len(deleted_agents) == 1
@@ -496,15 +505,15 @@ class TestAgentLifecycleManager:
                 error_message="Failed",
             ),
         ]
-        
+
         # Get all history
         history = await lifecycle_manager.get_operation_history()
         assert len(history) == 3
-        
+
         # Get history for specific agent
         agent1_history = await lifecycle_manager.get_operation_history("agent1")
         assert len(agent1_history) == 2
-        
+
         # Get limited history
         limited = await lifecycle_manager.get_operation_history(limit=2)
         assert len(limited) == 2
@@ -534,7 +543,7 @@ class TestAgentLifecycleManager:
                 version="1.0.1",
             ),
         }
-        
+
         lifecycle_manager.operation_history = [
             LifecycleOperationResult(
                 operation=LifecycleOperation.CREATE,
@@ -543,10 +552,10 @@ class TestAgentLifecycleManager:
                 duration_ms=50.0,
             ),
         ]
-        
+
         # Get statistics
         stats = await lifecycle_manager.get_lifecycle_stats()
-        
+
         # Verify statistics
         assert stats["total_agents"] == 2
         assert stats["agents_by_state"]["active"] == 1
@@ -561,9 +570,9 @@ class TestAgentLifecycleManager:
         with patch("claude_mpm.utils.path_operations.path_ops") as mock_path_ops:
             mock_path_ops.validate_exists.return_value = True
             mock_path_ops.safe_copy.return_value = None
-            
+
             lifecycle_manager.enable_auto_backup = True
-            
+
             # Add agent record
             lifecycle_manager.agent_records["backup_agent"] = AgentLifecycleRecord(
                 agent_name="backup_agent",
@@ -574,7 +583,7 @@ class TestAgentLifecycleManager:
                 last_modified=time.time(),
                 version="1.0.0",
             )
-            
+
             # Setup mock modification
             mock_modification = AgentModification(
                 modification_id="mod_backup",
@@ -584,11 +593,13 @@ class TestAgentLifecycleManager:
                 tier=ModificationTier.USER,
                 timestamp=time.time(),
             )
-            mock_dependencies["tracker"].track_modification.return_value = mock_modification
-            
+            mock_dependencies["tracker"].track_modification.return_value = (
+                mock_modification
+            )
+
             # Delete agent
             result = await lifecycle_manager.delete_agent("backup_agent")
-            
+
             # Verify backup was attempted
             mock_path_ops.safe_copy.assert_called()
 
@@ -596,11 +607,13 @@ class TestAgentLifecycleManager:
     @pytest.mark.asyncio
     async def test_error_handling_service_init(self, mock_config):
         """Test error handling during service initialization."""
-        with patch("claude_mpm.services.agents.deployment.agent_lifecycle_manager.SharedPromptCache") as mock_cache:
+        with patch(
+            "claude_mpm.services.agents.deployment.agent_lifecycle_manager.SharedPromptCache"
+        ) as mock_cache:
             mock_cache.get_instance.side_effect = Exception("Cache init failed")
-            
+
             manager = AgentLifecycleManager(mock_config)
-            
+
             # Initialize should handle the error gracefully
             with pytest.raises(Exception, match="Cache init failed"):
                 await manager._initialize_core_services()
@@ -619,7 +632,7 @@ class TestAgentLifecycleManager:
             last_modified=time.time(),
             version="1.0.0",
         )
-        
+
         # Create modification event
         modification = AgentModification(
             modification_id="mod_event",
@@ -629,10 +642,10 @@ class TestAgentLifecycleManager:
             tier=ModificationTier.USER,
             timestamp=time.time() + 100,
         )
-        
+
         # Handle event
         await lifecycle_manager._handle_modification_event(modification)
-        
+
         # Verify record updated
         record = lifecycle_manager.agent_records["event_agent"]
         assert record.current_state == LifecycleState.MODIFIED
@@ -645,22 +658,26 @@ class TestAgentLifecycleManager:
         """Test file path determination based on tier."""
         with patch("claude_mpm.core.unified_paths.get_path_manager") as mock_path_mgr:
             mock_manager_instance = Mock()
-            mock_manager_instance.get_user_agents_dir.return_value = Path("/user/agents")
-            mock_manager_instance.get_project_agents_dir.return_value = Path("/project/agents")
+            mock_manager_instance.get_user_agents_dir.return_value = Path(
+                "/user/agents"
+            )
+            mock_manager_instance.get_project_agents_dir.return_value = Path(
+                "/project/agents"
+            )
             mock_path_mgr.return_value = mock_manager_instance
-            
+
             # Test USER tier
             user_path = await lifecycle_manager._determine_agent_file_path(
                 "test_agent", ModificationTier.USER
             )
             assert str(user_path) == "/user/agents/test_agent_agent.py"
-            
+
             # Test PROJECT tier
             project_path = await lifecycle_manager._determine_agent_file_path(
                 "test_agent", ModificationTier.PROJECT
             )
             assert str(project_path) == "/project/agents/test_agent_agent.py"
-            
+
             # Test SYSTEM tier
             system_path = await lifecycle_manager._determine_agent_file_path(
                 "test_agent", ModificationTier.SYSTEM
@@ -677,7 +694,7 @@ class TestAgentLifecycleManager:
             mock_tracking_dir = Path("/tracking")
             mock_manager_instance.get_tracking_dir.return_value = mock_tracking_dir
             mock_path_mgr.return_value = mock_manager_instance
-            
+
             # Add test records
             lifecycle_manager.agent_records = {
                 "persist_agent": AgentLifecycleRecord(
@@ -690,18 +707,18 @@ class TestAgentLifecycleManager:
                     version="1.0.0",
                 )
             }
-            
+
             # Mock file operations
             with patch("builtins.open", create=True) as mock_open:
                 mock_file = MagicMock()
                 mock_open.return_value.__enter__.return_value = mock_file
-                
+
                 # Save records
                 await lifecycle_manager._save_agent_records()
-                
+
                 # Verify write was called
                 mock_file.write.assert_called()
-                
+
                 # Verify JSON format
                 written_data = mock_file.write.call_args[0][0]
                 parsed = json.loads(written_data)
@@ -721,14 +738,18 @@ class TestAgentLifecycleManager:
     @pytest.mark.asyncio
     async def test_health_check_integration(self, lifecycle_manager):
         """Test health check functionality."""
-        with patch("claude_mpm.services.agents.deployment.agent_lifecycle_manager.LifecycleHealthChecker") as mock_checker:
+        with patch(
+            "claude_mpm.services.agents.deployment.agent_lifecycle_manager.LifecycleHealthChecker"
+        ) as mock_checker:
             mock_checker_instance = Mock()
-            mock_checker_instance.perform_health_check = AsyncMock(return_value={"status": "healthy"})
+            mock_checker_instance.perform_health_check = AsyncMock(
+                return_value={"status": "healthy"}
+            )
             mock_checker.return_value = mock_checker_instance
-            
+
             # Perform health check
             health = await lifecycle_manager._health_check()
-            
+
             # Verify health check called
             assert health == {"status": "healthy"}
             mock_checker_instance.perform_health_check.assert_called_once()
@@ -737,7 +758,9 @@ class TestAgentLifecycleManager:
     @pytest.mark.asyncio
     async def test_agent_restoration(self, lifecycle_manager):
         """Test agent restoration from backup."""
-        with patch("claude_mpm.services.agents.deployment.agent_lifecycle_manager.AgentRestoreHandler") as mock_handler:
+        with patch(
+            "claude_mpm.services.agents.deployment.agent_lifecycle_manager.AgentRestoreHandler"
+        ) as mock_handler:
             mock_handler_instance = Mock()
             mock_handler_instance.restore_agent = AsyncMock(
                 return_value=LifecycleOperationResult(
@@ -748,12 +771,12 @@ class TestAgentLifecycleManager:
                 )
             )
             mock_handler.return_value = mock_handler_instance
-            
+
             # Restore agent
             result = await lifecycle_manager.restore_agent(
                 "restored_agent", "/backup/path.py"
             )
-            
+
             # Verify restoration
             assert result.success is True
             assert result.operation == LifecycleOperation.RESTORE
@@ -775,7 +798,7 @@ class TestAgentLifecycleManager:
             last_modified=time.time(),
             version="1.2.3",
         )
-        
+
         # Setup mock modification
         mock_modification = AgentModification(
             modification_id="mod_version",
@@ -786,14 +809,14 @@ class TestAgentLifecycleManager:
             timestamp=time.time(),
         )
         mock_dependencies["tracker"].track_modification.return_value = mock_modification
-        
+
         # Update agent multiple times
         for i in range(3):
             await lifecycle_manager.update_agent(
                 agent_name="version_agent",
                 agent_content=f"# Version {i}",
             )
-        
+
         # Verify version incremented correctly
         record = lifecycle_manager.agent_records["version_agent"]
         assert record.version == "1.2.6"  # Incremented 3 times
@@ -805,17 +828,17 @@ class TestAgentLifecycleManager:
         # Add some test data
         lifecycle_manager.agent_records = {"test": Mock()}
         lifecycle_manager.operation_history = [Mock()]
-        
+
         # Mock save method
         lifecycle_manager._save_agent_records = AsyncMock()
-        
+
         # Perform cleanup
         await lifecycle_manager._cleanup()
-        
+
         # Verify services stopped
         lifecycle_manager.modification_tracker.stop.assert_called_once()
         lifecycle_manager.persistence_service.stop.assert_called_once()
-        
+
         # Verify records saved
         lifecycle_manager._save_agent_records.assert_called_once()
 
@@ -835,7 +858,7 @@ class TestLifecycleRecordDataClass:
             last_modified=time.time(),
             version="1.0.0",
         )
-        
+
         assert 2.9 < record.age_days < 3.1  # Allow for small time differences
 
     def test_lifecycle_record_datetime_conversion(self):
@@ -850,7 +873,7 @@ class TestLifecycleRecordDataClass:
             last_modified=current_time,
             version="1.0.0",
         )
-        
+
         dt = record.last_modified_datetime
         assert dt.timestamp() == pytest.approx(current_time, rel=1e-3)
 
@@ -870,7 +893,7 @@ class TestLifecycleOperationResult:
             cache_invalidated=True,
             registry_updated=True,
         )
-        
+
         assert result.success is True
         assert result.error_message is None
         assert result.duration_ms == 50.5
@@ -884,7 +907,7 @@ class TestLifecycleOperationResult:
             duration_ms=10.0,
             error_message="Permission denied",
         )
-        
+
         assert result.success is False
         assert result.error_message == "Permission denied"
         assert result.modification_id is None

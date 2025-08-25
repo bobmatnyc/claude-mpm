@@ -79,7 +79,9 @@ class AgentDiscoveryService:
 
         # Only log if requested (to avoid duplicate logging from multi-source discovery)
         if log_discovery:
-            self.logger.info(f"Discovered {len(agents)} available agent templates from {self.templates_dir.name}")
+            self.logger.info(
+                f"Discovered {len(agents)} available agent templates from {self.templates_dir.name}"
+            )
         return agents
 
     def get_filtered_templates(
