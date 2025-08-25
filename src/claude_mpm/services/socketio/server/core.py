@@ -172,6 +172,9 @@ class SocketIOServerCore:
             self.app = web.Application()
             self.sio.attach(self.app)
 
+            # Setup HTTP API endpoints for receiving events from hook handlers
+            self._setup_http_api()
+
             # Find and serve static files
             self._setup_static_files()
 
@@ -229,6 +232,48 @@ class SocketIOServerCore:
         except Exception as e:
             self.logger.error(f"Error stopping Socket.IO server: {e}")
 
+    def _setup_http_api(self):
+        """Setup HTTP API endpoints for receiving events from hook handlers.
+
+        WHY: Hook handlers are ephemeral processes that spawn and die quickly.
+        Using HTTP POST allows them to send events without managing persistent
+        connections, eliminating disconnection issues.
+        """
+
+        async def api_events_handler(request):
+            """Handle POST /api/events from hook handlers."""
+            try:
+                # Parse JSON payload
+                event_data = await request.json()
+
+                # Log receipt if debugging
+                event_type = event_data.get("subtype", "unknown")
+                self.logger.debug(f"Received HTTP event: {event_type}")
+
+                # Broadcast to all connected dashboard clients via SocketIO
+                if self.sio:
+                    # The event is already in claude_event format from the hook handler
+                    await self.sio.emit("claude_event", event_data)
+
+                    # Update stats
+                    self.stats["events_sent"] = self.stats.get("events_sent", 0) + 1
+
+                    # Add to event buffer for late-joining clients
+                    with self.buffer_lock:
+                        self.event_buffer.append(event_data)
+                        self.stats["events_buffered"] = len(self.event_buffer)
+
+                # Return 204 No Content for success
+                return web.Response(status=204)
+
+            except Exception as e:
+                self.logger.error(f"Error handling HTTP event: {e}")
+                return web.Response(status=500, text=str(e))
+
+        # Register the HTTP POST endpoint
+        self.app.router.add_post("/api/events", api_events_handler)
+        self.logger.info("✅ HTTP API endpoint registered at /api/events")
+
     def _setup_static_files(self):
         """Setup static file serving for the dashboard."""
         try:
@@ -260,6 +305,24 @@ class SocketIOServerCore:
                     return web.Response(text="Dashboard not available", status=404)
 
                 self.app.router.add_get("/", index_handler)
+
+                # Serve the actual dashboard template at /dashboard
+                async def dashboard_handler(request):
+                    dashboard_template = (
+                        self.dashboard_path.parent / "templates" / "index.html"
+                    )
+                    if dashboard_template.exists():
+                        self.logger.debug(
+                            f"Serving dashboard template from: {dashboard_template}"
+                        )
+                        return web.FileResponse(dashboard_template)
+                    # Fallback to the main index if template doesn't exist
+                    self.logger.warning(
+                        f"Dashboard template not found at: {dashboard_template}, falling back to index"
+                    )
+                    return await index_handler(request)
+
+                self.app.router.add_get("/dashboard", dashboard_handler)
 
                 # Serve version.json from dashboard directory
                 async def version_handler(request):

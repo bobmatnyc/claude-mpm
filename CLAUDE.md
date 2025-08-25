@@ -4,7 +4,7 @@ This document provides development guidelines for the claude-mpm project codebas
 
 ## Project Overview
 
-Claude MPM (Multi-Agent Project Manager) is a framework that extends Claude Code with multi-agent orchestration capabilities, featuring a modern service-oriented architecture with interface-based contracts and dependency injection.
+Claude MPM (Multi-Agent Project Manager) is a framework that extends Claude Code with orchestration capabilities for multiple specialized agents, featuring a modern service-oriented architecture with interface-based contracts and dependency injection.
 
 ## Architecture (v4.0.25+)
 

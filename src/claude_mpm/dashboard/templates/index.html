@@ -25,6 +25,7 @@
 
     <!-- Stylesheets -->
     <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="stylesheet" href="/static/css/connection-status.css">
 
     <!-- Additional styles for file operations -->
     <style>
@@ -131,6 +132,9 @@
     </style>
 </head>
 <body>
+    <!-- Connection Notifications Area -->
+    <div id="connection-notifications" class="connection-notifications"></div>
+    
     <div class="container">
         <!-- Header Section -->
         <div class="header">
@@ -141,6 +145,13 @@
                     <div id="connection-status" class="status-badge status-disconnected">
                         <span>●</span> Disconnected
                     </div>
+                    <div id="connection-quality" class="connection-quality" style="display: none;">
+                        <div class="quality-bar">
+                            <div class="quality-fill"></div>
+                        </div>
+                        <span class="quality-text">--</span>
+                    </div>
+                    <span id="connection-latency" class="connection-latency" style="display: none;">--ms</span>
                     <!-- Version display will be inserted here by BuildTracker component -->
                 </div>
                 <div class="metrics-widget">

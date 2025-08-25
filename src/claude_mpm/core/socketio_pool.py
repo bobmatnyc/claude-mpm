@@ -592,7 +592,7 @@ class SocketIOConnectionPool:
 
             # 2-second timeout for connection
             await asyncio.wait_for(
-                client.connect(self.server_url, auth={"token": "dev-token"}, wait=True),
+                client.connect(self.server_url, wait=True),
                 timeout=2.0,
             )
 
@@ -734,8 +734,8 @@ class SocketIOConnectionPool:
     def emit(self, event: str, data: Dict[str, Any]) -> bool:
         """Emit an event through the connection pool.
 
-        This method provides compatibility for the legacy emit() interface
-        by mapping to the modern emit_event() method with appropriate defaults.
+        This method provides compatibility for the legacy emit() interface.
+        For critical hook events, we use direct emission to avoid batching delays.
 
         Args:
             event: Event name (e.g., "claude_event")
@@ -747,9 +747,41 @@ class SocketIOConnectionPool:
         if not SOCKETIO_AVAILABLE or not self._running:
             return False
 
+        # For critical claude_event, use direct emission to avoid batching delays
+        if event == "claude_event":
+            return self._emit_direct(event, data)
+
         # Map to the modern emit_event method using default namespace
         self.emit_event("/", event, data)
         return True
+
+    def _emit_direct(self, event: str, data: Dict[str, Any]) -> bool:
+        """Emit an event directly without batching.
+
+        This is used for critical events that need immediate delivery.
+        """
+        try:
+            # Create a synchronous client for direct emission
+            import socketio
+
+            client = socketio.Client(logger=False, engineio_logger=False)
+
+            # Quick connect, emit, and disconnect
+            client.connect(self.server_url, wait=True, wait_timeout=1.0)
+            client.emit(event, data)
+            client.disconnect()
+
+            # Update stats
+            for stats in self.connection_stats.values():
+                stats.events_sent += 1
+                break
+
+            return True
+        except Exception as e:
+            self.logger.debug(f"Direct emit failed: {e}")
+            # Fall back to batched emission
+            self.emit_event("/", event, data)
+            return True
 
     def get_stats(self) -> Dict[str, Any]:
         """Get connection pool statistics."""

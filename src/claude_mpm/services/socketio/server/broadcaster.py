@@ -153,6 +153,7 @@ class SocketIOEventBroadcaster:
         stats: Dict[str, Any],
         logger,
         server=None,  # Add server reference for event history access
+        connection_manager=None,  # Add connection manager for robust delivery
     ):
         self.sio = sio
         self.connected_clients = connected_clients
@@ -162,6 +163,7 @@ class SocketIOEventBroadcaster:
         self.logger = logger
         self.loop = None  # Will be set by main server
         self.server = server  # Reference to main server for event history
+        self.connection_manager = connection_manager  # For connection tracking
 
         # Initialize retry queue for resilient delivery
         self.retry_queue = RetryQueue(max_size=1000)
@@ -313,7 +315,7 @@ class SocketIOEventBroadcaster:
 
         WHY: Enhanced with retry queue to ensure reliable delivery
         even during transient network issues. Now uses EventNormalizer
-        to ensure consistent event schema.
+        to ensure consistent event schema and ConnectionManager for tracking.
         """
         if not self.sio:
             return
@@ -342,6 +344,18 @@ class SocketIOEventBroadcaster:
                     f"Added {event['type']}/{event['subtype']} to history (total: {len(self.server.event_history)})"
                 )
 
+        # If we have a connection manager, buffer event for all connected clients
+        if self.connection_manager and self.loop:
+            # Buffer for each connected client asynchronously
+            async def buffer_for_clients():
+                for sid in list(self.connected_clients):
+                    await self.connection_manager.buffer_event(sid, event)
+
+            try:
+                asyncio.run_coroutine_threadsafe(buffer_for_clients(), self.loop)
+            except Exception as e:
+                self.logger.warning(f"Failed to buffer event for clients: {e}")
+
         # Broadcast to all connected clients
         broadcast_success = False
         try:
@@ -360,6 +374,23 @@ class SocketIOEventBroadcaster:
                     future.result(timeout=0.5)  # 500ms timeout
                     broadcast_success = True
                     self.stats["events_sent"] += 1
+
+                    # Update activity for all connected clients
+                    if self.connection_manager:
+
+                        async def update_activities():
+                            for sid in list(self.connected_clients):
+                                await self.connection_manager.update_activity(
+                                    sid, "event"
+                                )
+
+                        try:
+                            asyncio.run_coroutine_threadsafe(
+                                update_activities(), self.loop
+                            )
+                        except:
+                            pass  # Non-critical
+
                     self.logger.debug(f"Broadcasted event: {event_type}")
                 except:
                     # Will be added to retry queue below
