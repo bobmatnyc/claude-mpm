@@ -27,7 +27,9 @@ def test_memory_routing():
     for agent in test_agents:
         memory_routing = framework_loader._load_memory_routing_from_template(agent)
         if memory_routing:
-            print(f"  ✓ {agent}: Found memory routing - {memory_routing.get('description', 'No description')[:60]}...")
+            print(
+                f"  ✓ {agent}: Found memory routing - {memory_routing.get('description', 'No description')[:60]}..."
+            )
         else:
             print(f"  ✗ {agent}: No memory routing found")
 
@@ -48,24 +50,24 @@ def test_memory_routing():
     test_cases = [
         {
             "content": "Remember to use dependency injection and SOLID principles in all implementations",
-            "expected": "engineer"
+            "expected": "engineer",
         },
         {
             "content": "Remember the analysis findings about the authentication architecture",
-            "expected": "research"
+            "expected": "research",
         },
         {
             "content": "Remember to always run pytest with coverage before committing",
-            "expected": "qa"
+            "expected": "qa",
         },
         {
             "content": "Remember to check for OWASP vulnerabilities and use encryption",
-            "expected": "security"
+            "expected": "security",
         },
         {
             "content": "Remember to update the API documentation and user guide",
-            "expected": "documentation"
-        }
+            "expected": "documentation",
+        },
     ]
 
     for test in test_cases:
@@ -76,7 +78,9 @@ def test_memory_routing():
         if target == test["expected"]:
             print(f"  ✓ Routed to {target} (confidence: {confidence:.2f}) - CORRECT")
         else:
-            print(f"  ✗ Routed to {target} instead of {test['expected']} (confidence: {confidence:.2f})")
+            print(
+                f"  ✗ Routed to {target} instead of {test['expected']} (confidence: {confidence:.2f})"
+            )
             print(f"    Reasoning: {result['reasoning']}")
 
     # Test 4: Check if memory routing info would appear in capabilities

@@ -18,7 +18,6 @@ import sys
 from typing import Optional
 
 from ...constants import TicketCommands
-from ...core.logger import get_logger
 from ...services.ticket_services import (
     TicketCRUDService,
     TicketFormatterService,
@@ -35,7 +34,7 @@ class TicketsCommand(BaseCommand):
     def __init__(self):
         """Initialize the tickets command with services."""
         super().__init__("tickets")
-        
+
         # Initialize services using dependency injection
         self.crud_service = TicketCRUDService()
         self.formatter = TicketFormatterService()
@@ -86,18 +85,14 @@ class TicketsCommand(BaseCommand):
             # Prepare parameters
             description = self.validator.sanitize_description(args.description)
             tags = self.validator.sanitize_tags(args.tags)
-            
+
             # Validate creation parameters
-            params = {
-                "title": args.title,
-                "type": args.type,
-                "priority": args.priority
-            }
+            params = {"title": args.title, "type": args.type, "priority": args.priority}
             valid, error = self.validator.validate_create_params(params)
             if not valid:
                 print(self.formatter.format_error(error))
                 return CommandResult.error_result(error)
-            
+
             # Create ticket via service
             result = self.crud_service.create_ticket(
                 title=args.title,
@@ -106,9 +101,9 @@ class TicketsCommand(BaseCommand):
                 description=description,
                 tags=tags,
                 parent_epic=getattr(args, "parent_epic", None),
-                parent_issue=getattr(args, "parent_issue", None)
+                parent_issue=getattr(args, "parent_issue", None),
             )
-            
+
             if result["success"]:
                 # Format and display output
                 output_lines = self.formatter.format_ticket_created(
@@ -118,15 +113,14 @@ class TicketsCommand(BaseCommand):
                     priority=args.priority,
                     tags=tags,
                     parent_epic=getattr(args, "parent_epic", None),
-                    parent_issue=getattr(args, "parent_issue", None)
+                    parent_issue=getattr(args, "parent_issue", None),
                 )
                 for line in output_lines:
                     print(line)
                 return CommandResult.success_result(result["message"])
-            else:
-                print(self.formatter.format_error(result["error"]))
-                return CommandResult.error_result(result["error"])
-                
+            print(self.formatter.format_error(result["error"]))
+            return CommandResult.error_result(result["error"])
+
         except Exception as e:
             self.logger.error(f"Error creating ticket: {e}")
             return CommandResult.error_result(f"Error creating ticket: {e}")
@@ -138,41 +132,40 @@ class TicketsCommand(BaseCommand):
             page = getattr(args, "page", 1)
             page_size = getattr(args, "page_size", 20)
             limit = getattr(args, "limit", page_size)
-            
+
             # Validate pagination
             valid, error = self.validator.validate_pagination(page, page_size)
             if not valid:
                 print(self.formatter.format_error(error))
                 return CommandResult.error_result(error)
-            
+
             # Get filters
             type_filter = getattr(args, "type", None) or "all"
             status_filter = getattr(args, "status", None) or "all"
-            
+
             # List tickets via service
             result = self.crud_service.list_tickets(
                 limit=limit,
                 page=page,
                 page_size=page_size,
                 type_filter=type_filter,
-                status_filter=status_filter
+                status_filter=status_filter,
             )
-            
+
             if result["success"]:
                 # Format and display output
                 output_lines = self.formatter.format_ticket_list(
                     result["tickets"],
                     page=page,
                     page_size=page_size,
-                    verbose=getattr(args, "verbose", False)
+                    verbose=getattr(args, "verbose", False),
                 )
                 for line in output_lines:
                     print(line)
                 return CommandResult.success_result("Tickets listed successfully")
-            else:
-                print(self.formatter.format_error(result["error"]))
-                return CommandResult.error_result(result["error"])
-                
+            print(self.formatter.format_error(result["error"]))
+            return CommandResult.error_result(result["error"])
+
         except Exception as e:
             self.logger.error(f"Error listing tickets: {e}")
             return CommandResult.error_result(f"Error listing tickets: {e}")
@@ -182,30 +175,28 @@ class TicketsCommand(BaseCommand):
         try:
             # Get ticket ID
             ticket_id = getattr(args, "ticket_id", getattr(args, "id", None))
-            
+
             # Validate ticket ID
             valid, error = self.validator.validate_ticket_id(ticket_id)
             if not valid:
                 print(self.formatter.format_error(error))
                 return CommandResult.error_result(error)
-            
+
             # Get ticket via service
             ticket = self.crud_service.get_ticket(ticket_id)
-            
+
             if ticket:
                 # Format and display output
                 output_lines = self.formatter.format_ticket_detail(
-                    ticket,
-                    verbose=getattr(args, "verbose", False)
+                    ticket, verbose=getattr(args, "verbose", False)
                 )
                 for line in output_lines:
                     print(line)
                 return CommandResult.success_result("Ticket viewed successfully")
-            else:
-                error_msg = f"Ticket {ticket_id} not found"
-                print(self.formatter.format_error(error_msg))
-                return CommandResult.error_result(error_msg)
-                
+            error_msg = f"Ticket {ticket_id} not found"
+            print(self.formatter.format_error(error_msg))
+            return CommandResult.error_result(error_msg)
+
         except Exception as e:
             self.logger.error(f"Error viewing ticket: {e}")
             return CommandResult.error_result(f"Error viewing ticket: {e}")
@@ -215,38 +206,38 @@ class TicketsCommand(BaseCommand):
         try:
             # Get ticket ID
             ticket_id = getattr(args, "ticket_id", getattr(args, "id", None))
-            
+
             # Validate ticket ID
             valid, error = self.validator.validate_ticket_id(ticket_id)
             if not valid:
                 print(self.formatter.format_error(error))
                 return CommandResult.error_result(error)
-            
+
             # Prepare update parameters
             description = None
             if args.description:
                 description = self.validator.sanitize_description(args.description)
-            
+
             tags = None
             if args.tags:
                 tags = self.validator.sanitize_tags(args.tags)
-            
+
             assignees = None
             if args.assign:
                 assignees = [args.assign]
-            
+
             # Validate update parameters
             update_params = {}
             if args.status:
                 update_params["status"] = args.status
             if args.priority:
                 update_params["priority"] = args.priority
-            
+
             valid, error = self.validator.validate_update_params(update_params)
             if not valid:
                 print(self.formatter.format_error(error))
                 return CommandResult.error_result(error)
-            
+
             # Update ticket via service
             result = self.crud_service.update_ticket(
                 ticket_id=ticket_id,
@@ -254,16 +245,17 @@ class TicketsCommand(BaseCommand):
                 priority=args.priority,
                 description=description,
                 tags=tags,
-                assignees=assignees
+                assignees=assignees,
             )
-            
+
             if result["success"]:
                 print(self.formatter.format_operation_result("update", ticket_id, True))
                 return CommandResult.success_result(result["message"])
-            else:
-                print(self.formatter.format_operation_result("update", ticket_id, False))
-                return CommandResult.error_result(result["error"])
-                
+            print(
+                self.formatter.format_operation_result("update", ticket_id, False)
+            )
+            return CommandResult.error_result(result["error"])
+
         except Exception as e:
             self.logger.error(f"Error updating ticket: {e}")
             return CommandResult.error_result(f"Error updating ticket: {e}")
@@ -273,26 +265,25 @@ class TicketsCommand(BaseCommand):
         try:
             # Get ticket ID
             ticket_id = getattr(args, "ticket_id", getattr(args, "id", None))
-            
+
             # Validate ticket ID
             valid, error = self.validator.validate_ticket_id(ticket_id)
             if not valid:
                 print(self.formatter.format_error(error))
                 return CommandResult.error_result(error)
-            
+
             # Get resolution
             resolution = getattr(args, "resolution", getattr(args, "comment", None))
-            
+
             # Close ticket via service
             result = self.crud_service.close_ticket(ticket_id, resolution)
-            
+
             if result["success"]:
                 print(self.formatter.format_operation_result("close", ticket_id, True))
                 return CommandResult.success_result(result["message"])
-            else:
-                print(self.formatter.format_operation_result("close", ticket_id, False))
-                return CommandResult.error_result(result["error"])
-                
+            print(self.formatter.format_operation_result("close", ticket_id, False))
+            return CommandResult.error_result(result["error"])
+
         except Exception as e:
             self.logger.error(f"Error closing ticket: {e}")
             return CommandResult.error_result(f"Error closing ticket: {e}")
@@ -302,17 +293,17 @@ class TicketsCommand(BaseCommand):
         try:
             # Get ticket ID
             ticket_id = getattr(args, "ticket_id", getattr(args, "id", None))
-            
+
             # Validate ticket ID
             valid, error = self.validator.validate_ticket_id(ticket_id)
             if not valid:
                 print(self.formatter.format_error(error))
                 return CommandResult.error_result(error)
-            
+
             # Confirm deletion unless forced
             if not args.force:
                 sys.stdout.flush()
-                
+
                 # Check if we're in a TTY environment
                 if not sys.stdin.isatty():
                     print(
@@ -336,21 +327,22 @@ class TicketsCommand(BaseCommand):
                         )
                     except (EOFError, KeyboardInterrupt):
                         response = "n"
-                
+
                 if response != "y":
                     print("Deletion cancelled")
                     return CommandResult.success_result("Deletion cancelled")
-            
+
             # Delete ticket via service
             result = self.crud_service.delete_ticket(ticket_id, args.force)
-            
+
             if result["success"]:
                 print(self.formatter.format_operation_result("delete", ticket_id, True))
                 return CommandResult.success_result(result["message"])
-            else:
-                print(self.formatter.format_operation_result("delete", ticket_id, False))
-                return CommandResult.error_result(result["error"])
-                
+            print(
+                self.formatter.format_operation_result("delete", ticket_id, False)
+            )
+            return CommandResult.error_result(result["error"])
+
         except Exception as e:
             self.logger.error(f"Error deleting ticket: {e}")
             return CommandResult.error_result(f"Error deleting ticket: {e}")
@@ -363,26 +355,24 @@ class TicketsCommand(BaseCommand):
             if not valid:
                 print(self.formatter.format_error(error))
                 return CommandResult.error_result(error)
-            
+
             # Search tickets via service
             tickets = self.search_service.search_tickets(
                 query=args.query,
                 type_filter=args.type if args.type else "all",
                 status_filter=args.status if args.status else "all",
-                limit=args.limit
+                limit=args.limit,
             )
-            
+
             # Format and display results
             output_lines = self.formatter.format_search_results(
-                tickets,
-                args.query,
-                show_snippets=True
+                tickets, args.query, show_snippets=True
             )
             for line in output_lines:
                 print(line)
-            
+
             return CommandResult.success_result("Tickets searched successfully")
-            
+
         except Exception as e:
             self.logger.error(f"Error searching tickets: {e}")
             return CommandResult.error_result(f"Error searching tickets: {e}")
@@ -392,32 +382,35 @@ class TicketsCommand(BaseCommand):
         try:
             # Get ticket ID
             ticket_id = getattr(args, "ticket_id", getattr(args, "id", None))
-            
+
             # Validate ticket ID
             valid, error = self.validator.validate_ticket_id(ticket_id)
             if not valid:
                 print(self.formatter.format_error(error))
                 return CommandResult.error_result(error)
-            
+
             # Prepare comment
             comment = self.validator.sanitize_description(args.comment)
-            
+
             # Validate comment
             valid, error = self.validator.validate_comment(comment)
             if not valid:
                 print(self.formatter.format_error(error))
                 return CommandResult.error_result(error)
-            
+
             # Add comment via service
             result = self.workflow_service.add_comment(ticket_id, comment)
-            
+
             if result["success"]:
-                print(self.formatter.format_operation_result("comment", ticket_id, True))
+                print(
+                    self.formatter.format_operation_result("comment", ticket_id, True)
+                )
                 return CommandResult.success_result(result["message"])
-            else:
-                print(self.formatter.format_operation_result("comment", ticket_id, False))
-                return CommandResult.error_result(result["error"])
-                
+            print(
+                self.formatter.format_operation_result("comment", ticket_id, False)
+            )
+            return CommandResult.error_result(result["error"])
+
         except Exception as e:
             self.logger.error(f"Error adding comment: {e}")
             return CommandResult.error_result(f"Error adding comment: {e}")
@@ -427,36 +420,39 @@ class TicketsCommand(BaseCommand):
         try:
             # Get ticket ID
             ticket_id = getattr(args, "ticket_id", getattr(args, "id", None))
-            
+
             # Validate ticket ID
             valid, error = self.validator.validate_ticket_id(ticket_id)
             if not valid:
                 print(self.formatter.format_error(error))
                 return CommandResult.error_result(error)
-            
+
             # Validate workflow state
             valid, error = self.validator.validate_workflow_state(args.state)
             if not valid:
                 print(self.formatter.format_error(error))
                 return CommandResult.error_result(error)
-            
+
             # Get optional comment
             comment = getattr(args, "comment", None)
-            
+
             # Update workflow via service
             result = self.workflow_service.transition_ticket(
-                ticket_id,
-                args.state,
-                comment
+                ticket_id, args.state, comment
             )
-            
+
             if result["success"]:
-                print(self.formatter.format_operation_result("workflow", ticket_id, True, result["message"]))
+                print(
+                    self.formatter.format_operation_result(
+                        "workflow", ticket_id, True, result["message"]
+                    )
+                )
                 return CommandResult.success_result(result["message"])
-            else:
-                print(self.formatter.format_operation_result("workflow", ticket_id, False))
-                return CommandResult.error_result(result["error"])
-                
+            print(
+                self.formatter.format_operation_result("workflow", ticket_id, False)
+            )
+            return CommandResult.error_result(result["error"])
+
         except Exception as e:
             self.logger.error(f"Error updating workflow: {e}")
             return CommandResult.error_result(f"Error updating workflow: {e}")
@@ -465,6 +461,7 @@ class TicketsCommand(BaseCommand):
 # ========================================
 # Backward compatibility functions
 # ========================================
+
 
 def manage_tickets(args):
     """
@@ -496,6 +493,7 @@ def list_tickets(args):
 # ========================================
 # Legacy function stubs for compatibility
 # ========================================
+
 
 def manage_tickets_legacy(args):
     """Legacy wrapper - redirects to new implementation."""
