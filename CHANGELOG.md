@@ -16,6 +16,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [4.1.6] - 2025-08-25
+
+### Added
+- **Instructions Check for mpm-doctor**: New diagnostic check to detect duplicate CLAUDE.md files and conflicting instructions
+  - Detects misplaced CLAUDE.md files (should only be in project root)
+  - Identifies duplicate content blocks between instruction files
+  - Finds conflicting PM directives and agent definitions
+  - Validates separation of concerns between CLAUDE.md and INSTRUCTIONS.md
+  - Provides clear remediation guidance for each issue type
+
+### Fixed
+- **Instruction File Cleanup**: Removed duplicate and conflicting instruction files
+  - Deleted misplaced test CLAUDE.md from tests/isolated-test/
+  - Removed conflicting global INSTRUCTIONS.md from ~/.claude/
+  - Cleaned up backup directories with duplicate instructions
+  - Consolidated OUTPUT_STYLE.md to single location in docs/developer/
+
 ## [4.1.5] - 2025-08-25
 
 ### Changed

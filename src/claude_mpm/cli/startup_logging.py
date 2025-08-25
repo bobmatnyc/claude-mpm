@@ -57,17 +57,34 @@ def log_memory_stats(logger=None, prefix="Memory Usage"):
         rss_mb = memory_info.rss / (1024 * 1024)
         vms_mb = memory_info.vms / (1024 * 1024)
 
-        # Get percentage of system memory if available
-        try:
-            memory_percent = process.memory_percent()
-            logger.info(
-                f"{prefix}: RSS={rss_mb:.1f}MB, VMS={vms_mb:.1f}MB, "
-                f"System={memory_percent:.1f}%"
-            )
-            return {"rss_mb": rss_mb, "vms_mb": vms_mb, "percent": memory_percent}
-        except:
-            logger.info(f"{prefix}: RSS={rss_mb:.1f}MB, VMS={vms_mb:.1f}MB")
-            return {"rss_mb": rss_mb, "vms_mb": vms_mb, "percent": None}
+        # On macOS, VMS can report misleading values (400+ TB)
+        # Skip VMS reporting if it's unreasonably large
+        import platform
+
+        if platform.system() == "Darwin" and vms_mb > 100000:  # > 100GB is suspicious
+            # Get percentage of system memory if available
+            try:
+                memory_percent = process.memory_percent()
+                logger.info(
+                    f"{prefix}: RSS={rss_mb:.1f}MB, System={memory_percent:.1f}%"
+                )
+                return {"rss_mb": rss_mb, "vms_mb": None, "percent": memory_percent}
+            except:
+                logger.info(f"{prefix}: RSS={rss_mb:.1f}MB")
+                return {"rss_mb": rss_mb, "vms_mb": None, "percent": None}
+        else:
+            # Normal VMS reporting for non-macOS or reasonable values
+            # Get percentage of system memory if available
+            try:
+                memory_percent = process.memory_percent()
+                logger.info(
+                    f"{prefix}: RSS={rss_mb:.1f}MB, VMS={vms_mb:.1f}MB, "
+                    f"System={memory_percent:.1f}%"
+                )
+                return {"rss_mb": rss_mb, "vms_mb": vms_mb, "percent": memory_percent}
+            except:
+                logger.info(f"{prefix}: RSS={rss_mb:.1f}MB, VMS={vms_mb:.1f}MB")
+                return {"rss_mb": rss_mb, "vms_mb": vms_mb, "percent": None}
 
     except Exception as e:
         logger.debug(f"Failed to get memory info: {e}")
@@ -512,11 +529,21 @@ def setup_startup_logging(project_root: Optional[Path] = None) -> Path:
     # Log initial memory usage
     if PSUTIL_AVAILABLE:
         try:
+            import platform
+
             process = psutil.Process()
             memory_info = process.memory_info()
             rss_mb = memory_info.rss / (1024 * 1024)
             vms_mb = memory_info.vms / (1024 * 1024)
-            logger.info(f"Initial Memory: RSS={rss_mb:.1f}MB, VMS={vms_mb:.1f}MB")
+
+            # On macOS, VMS can report misleading values (400+ TB)
+            # Skip VMS reporting if it's unreasonably large
+            if (
+                platform.system() == "Darwin" and vms_mb > 100000
+            ):  # > 100GB is suspicious
+                logger.info(f"Initial Memory: RSS={rss_mb:.1f}MB")
+            else:
+                logger.info(f"Initial Memory: RSS={rss_mb:.1f}MB, VMS={vms_mb:.1f}MB")
         except Exception as e:
             logger.debug(f"Failed to get initial memory info: {e}")
 

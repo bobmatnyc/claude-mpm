@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-mpm"
-version = "4.1.5"
+version = "4.1.6"
 description = "Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation and ticket tracking"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -65,6 +65,10 @@ dependencies = [
     "packaging>=21.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
+    
+    # TUI dependencies
+    "textual>=0.47.0",
+    "rich>=13.0.0",
     
     # Event bus for decoupled event handling
     "pyee>=13.0.0",
@@ -240,7 +244,7 @@ ignore-imports = false
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "4.1.5"
+version = "4.1.6"
 version_files = [
     "VERSION",
     "src/claude_mpm/VERSION",

@@ -35,6 +35,7 @@ from ....core.logging_config import get_logger
 from ...core.interfaces.communication import SocketIOServiceInterface
 from ..handlers import EventHandlerRegistry, FileEventHandler, GitEventHandler
 from .broadcaster import SocketIOEventBroadcaster
+from .connection_manager import ConnectionManager
 from .core import SocketIOServerCore
 from .eventbus_integration import EventBusIntegration
 
@@ -91,6 +92,9 @@ class SocketIOServer(SocketIOServiceInterface):
         # EventBus integration
         self.eventbus_integration = None
 
+        # Connection manager for robust connection tracking
+        self.connection_manager = None
+
     def start_sync(self):
         """Start the Socket.IO server in a background thread (synchronous version)."""
         if not SOCKETIO_AVAILABLE:
@@ -110,7 +114,13 @@ class SocketIOServer(SocketIOServiceInterface):
         # Start the core server
         self.core.start_sync()
 
-        # Initialize broadcaster with core server components
+        # Initialize connection manager for robust connection tracking
+        self.connection_manager = ConnectionManager(
+            max_buffer_size=getattr(SystemLimits, "MAX_EVENTS_BUFFER", 1000),
+            event_ttl=300,  # 5 minutes TTL for buffered events
+        )
+
+        # Initialize broadcaster with core server components and connection manager
         self.broadcaster = SocketIOEventBroadcaster(
             sio=self.core.sio,
             connected_clients=self.connected_clients,
@@ -119,6 +129,7 @@ class SocketIOServer(SocketIOServiceInterface):
             stats=self.stats,
             logger=self.logger,
             server=self,  # Pass server reference for event history access
+            connection_manager=self.connection_manager,  # Pass connection manager
         )
 
         # Wait for the event loop to be initialized in the background thread
@@ -145,6 +156,12 @@ class SocketIOServer(SocketIOServiceInterface):
 
             # Start the retry processor for resilient event delivery
             self.broadcaster.start_retry_processor()
+
+            # Start connection health monitoring
+            if self.connection_manager:
+                asyncio.run_coroutine_threadsafe(
+                    self.connection_manager.start_health_monitoring(), self.core.loop
+                )
 
         # Register events
         self._register_events()
@@ -199,6 +216,15 @@ class SocketIOServer(SocketIOServiceInterface):
         # Stop the retry processor if running
         if self.broadcaster:
             self.broadcaster.stop_retry_processor()
+
+        # Stop connection health monitoring
+        if self.connection_manager and self.core.loop:
+            try:
+                asyncio.run_coroutine_threadsafe(
+                    self.connection_manager.stop_health_monitoring(), self.core.loop
+                ).result(timeout=2)
+            except Exception as e:
+                self.logger.warning(f"Error stopping health monitoring: {e}")
 
         # Teardown EventBus integration
         if self.eventbus_integration:
