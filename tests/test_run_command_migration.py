@@ -5,9 +5,10 @@ WHY: Verify that the migration to BaseCommand pattern works correctly
 and maintains backward compatibility.
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
 from argparse import Namespace
+from unittest.mock import Mock, patch
+
+import pytest
 
 from claude_mpm.cli.commands.run import RunCommand
 from claude_mpm.cli.shared.base_command import CommandResult
@@ -31,77 +32,77 @@ class TestRunCommandMigration:
         result = self.command.validate_args(args)
         assert result is None  # No validation errors
 
-    @patch('claude_mpm.cli.commands.run.RunCommand._execute_run_session')
+    @patch("claude_mpm.cli.commands.run.RunCommand._execute_run_session")
     def test_run_success(mock_execute):
         """Test successful run execution."""
         mock_execute.return_value = True
-        args = Namespace(logging='OFF')
-        
+        args = Namespace(logging="OFF")
+
         result = self.command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is True
         assert result.exit_code == 0
         assert "successfully" in result.message
 
-    @patch('claude_mpm.cli.commands.run.RunCommand._execute_run_session')
+    @patch("claude_mpm.cli.commands.run.RunCommand._execute_run_session")
     def test_run_failure(mock_execute):
         """Test failed run execution."""
         mock_execute.return_value = False
-        args = Namespace(logging='OFF')
-        
+        args = Namespace(logging="OFF")
+
         result = self.command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is False
         assert result.exit_code == 1
         assert "failed" in result.message
 
-    @patch('claude_mpm.cli.commands.run.RunCommand._execute_run_session')
+    @patch("claude_mpm.cli.commands.run.RunCommand._execute_run_session")
     def test_run_keyboard_interrupt(mock_execute):
         """Test handling of keyboard interrupt."""
         mock_execute.side_effect = KeyboardInterrupt()
-        args = Namespace(logging='OFF')
-        
+        args = Namespace(logging="OFF")
+
         result = self.command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is False
         assert result.exit_code == 130
         assert "cancelled" in result.message
 
-    @patch('claude_mpm.cli.commands.run.run_session_legacy')
+    @patch("claude_mpm.cli.commands.run.run_session_legacy")
     def test_execute_run_session_delegates_to_legacy(mock_legacy):
         """Test that _execute_run_session delegates to legacy function."""
-        args = Namespace(logging='OFF')
+        args = Namespace(logging="OFF")
         mock_legacy.return_value = None
-        
+
         result = self.command._execute_run_session(args)
-        
+
         assert result is True
         mock_legacy.assert_called_once_with(args)
 
-    @patch('claude_mpm.cli.commands.run.run_session_legacy')
+    @patch("claude_mpm.cli.commands.run.run_session_legacy")
     def test_execute_run_session_handles_legacy_exception(mock_legacy):
         """Test that _execute_run_session handles legacy function exceptions."""
-        args = Namespace(logging='OFF')
+        args = Namespace(logging="OFF")
         mock_legacy.side_effect = Exception("Legacy error")
-        
+
         result = self.command._execute_run_session(args)
-        
+
         assert result is False
 
     def test_backward_compatibility_function():
         """Test that the run_session function maintains backward compatibility."""
         from claude_mpm.cli.commands.run import run_session
-        
-        with patch.object(RunCommand, 'execute') as mock_execute:
+
+        with patch.object(RunCommand, "execute") as mock_execute:
             mock_result = CommandResult.success_result("Test success")
             mock_execute.return_value = mock_result
-            
-            args = Namespace(logging='OFF')
+
+            args = Namespace(logging="OFF")
             exit_code = run_session(args)
-            
+
             assert exit_code == 0
             mock_execute.assert_called_once_with(args)
 
@@ -113,7 +114,7 @@ class TestRunCommandHelperMethods:
         """Setup test fixtures."""
         self.command = RunCommand()
 
-    @patch('claude_mpm.cli.commands.run_config_checker.RunConfigChecker')
+    @patch("claude_mpm.cli.commands.run_config_checker.RunConfigChecker")
     def test_check_configuration_health(mock_checker_class):
         """Test configuration health check."""
         mock_checker = Mock()
@@ -124,7 +125,7 @@ class TestRunCommandHelperMethods:
         mock_checker_class.assert_called_once_with(self.command.logger)
         mock_checker.check_configuration_health.assert_called_once()
 
-    @patch('claude_mpm.cli.commands.run_config_checker.RunConfigChecker')
+    @patch("claude_mpm.cli.commands.run_config_checker.RunConfigChecker")
     def test_check_claude_json_memory(mock_checker_class):
         """Test Claude JSON memory check."""
         mock_checker = Mock()
@@ -136,7 +137,7 @@ class TestRunCommandHelperMethods:
         mock_checker_class.assert_called_once_with(self.command.logger)
         mock_checker.check_claude_json_memory.assert_called_once_with(args)
 
-    @patch('claude_mpm.core.session_manager.SessionManager')
+    @patch("claude_mpm.core.session_manager.SessionManager")
     def test_setup_session_management_no_resume(mock_session_manager_class):
         """Test session management setup without resume."""
         mock_session_manager = Mock()
@@ -153,18 +154,18 @@ class TestRunCommandHelperMethods:
     def test_setup_monitoring_disabled():
         """Test monitoring setup when disabled."""
         args = Namespace()
-        
+
         monitor_mode, websocket_port = self.command._setup_monitoring(args)
-        
+
         assert monitor_mode is False
         assert websocket_port == 8765
 
-    @patch('claude_mpm.core.claude_runner.ClaudeRunner')
+    @patch("claude_mpm.core.claude_runner.ClaudeRunner")
     def test_setup_claude_runner(mock_claude_runner_class):
         """Test Claude runner setup."""
         mock_runner = Mock()
         mock_claude_runner_class.return_value = mock_runner
-        args = Namespace(logging='OFF')
+        args = Namespace(logging="OFF")
 
         result = self.command._setup_claude_runner(args, False, 8765)
 

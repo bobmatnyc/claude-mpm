@@ -11,9 +11,7 @@ This test suite validates all three factorial implementations (iterative, recurs
 including edge cases, boundary conditions, type validation, and error handling.
 """
 
-import sys
 
-import pytest
 
 # from .factorial import factorial, factorial_iterative, factorial_recursive
 

@@ -1,28 +1,21 @@
 #!/usr/bin/env python3
 """Simple test to check if Claude recognizes subagent Markdown files."""
 
-import os
-import shutil
-from datetime import datetime
 from pathlib import Path
-
-import yaml
 
 
 def create_simple_agent(agent_dir: Path):
     """Create a simple test agent."""
 
-    agent_content = """---
+    agent_content = f"""---
 name: test-agent
 description: "Simple test agent for POC validation"
 ---
 
 You are a test agent created to validate Claude's subagent loading.
 
-When called, always respond with: "Test Agent Active - Loaded from {}"
-""".format(
-        agent_dir
-    )
+When called, always respond with: "Test Agent Active - Loaded from {agent_dir}"
+"""
 
     agent_file = agent_dir / "test-agent.md"
     agent_file.write_text(agent_content)

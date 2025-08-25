@@ -15,7 +15,6 @@ os.environ["CLAUDE_MPM_HOOK_DEBUG"] = "true"
 # Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "src"))
 
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 from claude_mpm.services.response_tracker import ResponseTracker
 
@@ -107,7 +106,7 @@ The architecture follows a clean separation of concerns with services, utils, an
 
         for file_path in response_files:
             print(f"\nResponse file: {file_path.name}")
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 data = json.load(f)
                 print(f"  Agent: {data.get('agent_name')}")
                 print(f"  Session: {data.get('session_id', '')[:20]}...")
@@ -161,7 +160,7 @@ The architecture follows a clean separation of concerns with services, utils, an
             f"✓ Delegation tracking: {'PASS' if session_id in handler.delegation_requests or len(response_files) > 0 else 'FAIL'}"
         )
         print(f"✓ Response logging: {'PASS' if len(response_files) > 0 else 'FAIL'}")
-        print(f"✓ Debug output visible: PASS (check stderr output above)")
+        print("✓ Debug output visible: PASS (check stderr output above)")
 
     finally:
         # Clean up
@@ -181,11 +180,11 @@ def test_configuration_loading():
 
         import yaml
 
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             config = yaml.safe_load(f)
 
         response_config = config.get("response_logging", {})
-        print(f"\nResponse Logging Configuration:")
+        print("\nResponse Logging Configuration:")
         print(f"  enabled: {response_config.get('enabled', False)}")
         print(f"  format: {response_config.get('format', 'json')}")
         print(f"  debug: {response_config.get('debug', False)}")

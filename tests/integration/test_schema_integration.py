@@ -2,15 +2,12 @@
 """Integration tests for agent schema standardization."""
 
 import json
-import os
 import subprocess
-import tempfile
 from pathlib import Path
 
 import pytest
 
 from claude_mpm.agents.agent_loader import AgentLoader
-from claude_mpm.services.agents.registry import AgentRegistry
 
 
 class TestSchemaIntegration:
@@ -130,7 +127,7 @@ for agent in agents:
             ["python", str(test_script)],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent.parent,
+            cwd=Path(__file__).parent.parent.parent, check=False,
         )
 
         assert result.returncode == 0

@@ -8,16 +8,13 @@ WHY: Ensure that the ticket tools correctly interface with aitrackdown CLI
 and handle various scenarios including success, errors, and edge cases.
 """
 
-import asyncio
 import json
-from datetime import datetime
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     MCPToolInvocation,
-    MCPToolResult,
 )
 from claude_mpm.services.mcp_gateway.tools.ticket_tools import (
     TicketCreateTool,

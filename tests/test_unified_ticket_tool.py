@@ -1,5 +1,5 @@
 import pytest
-import pytest
+
 #!/usr/bin/env python3
 """
 Test script to verify that only the unified ticket tool is registered.
@@ -68,9 +68,8 @@ async def test_unified_tool():
     if len(ticket_tools) == 1:
         print("\n✓ SUCCESS: Only one unified ticket tool found!")
         return True
-    else:
-        print(f"\n✗ FAILURE: Found {len(ticket_tools)} ticket tools, expected 1")
-        return False
+    print(f"\n✗ FAILURE: Found {len(ticket_tools)} ticket tools, expected 1")
+    return False
 
 
 @pytest.mark.asyncio
@@ -124,12 +123,11 @@ async def main():
         print("The unified ticket tool is properly configured!")
         print("=" * 50)
         return 0
-    else:
-        print("\n" + "=" * 50)
-        print("✗ TESTS FAILED")
-        print("Please check the configuration")
-        print("=" * 50)
-        return 1
+    print("\n" + "=" * 50)
+    print("✗ TESTS FAILED")
+    print("Please check the configuration")
+    print("=" * 50)
+    return 1
 
 
 if __name__ == "__main__":

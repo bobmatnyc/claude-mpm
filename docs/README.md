@@ -1,82 +1,146 @@
-# Documentation
+# Claude MPM Documentation
 
-Welcome to the Claude MPM documentation. This directory contains comprehensive guides for users, developers, and administrators.
+Welcome to Claude MPM (Multi-Agent Project Manager) - a framework that extends Claude Code with multi-agent orchestration capabilities. This documentation hub provides comprehensive guides for all users, from beginners to advanced developers.
 
-## Quick Navigation
+## 🚀 Quick Start
 
-### For Users
-- **[User Guide](./user/)** - Complete user documentation
-- **[Quick Start](../QUICKSTART.md)** - Get started in 5 minutes
-- **[Memory System](./MEMORY.md)** - Agent memory and learning
-- **[Project Agents](./PROJECT_AGENTS.md)** - Local agent deployment
-- **[MCP Setup](./MCP_SETUP.md)** - Complete MCP Gateway configuration guide
+**New to Claude MPM?** Start here:
+- **[Installation Guide](user/01-getting-started/installation.md)** - Get up and running in minutes
+- **[First Run Guide](user/01-getting-started/first-run.md)** - Your first interaction with Claude MPM
+- **[Basic Usage](user/02-guides/basic-usage.md)** - Essential commands and workflows
 
-### For Developers
-- **[Developer Guide](./developer/)** - Architecture, APIs, and development
-- **[Agent Development](./developer/agents/AGENT_DEVELOPMENT.md)** - Creating custom agents
-- **[Memory System](./developer/memory/MEMORY_SYSTEM.md)** - Technical memory documentation
-- **[Security Guide](./developer/security/SECURITY.md)** - Security architecture
-- **[Schema Reference](./developer/schemas/SCHEMA_REFERENCE.md)** - JSON schemas
+## 📖 Documentation by Audience
 
-### For Contributors
-- **[Development Setup](./DEVELOPMENT_SETUP.md)** - Mamba and venv environment setup
-- **[Project Structure](./STRUCTURE.md)** - Codebase organization
-- **[Quality Assurance](./QA.md)** - Testing and validation
-- **[Deployment Guide](./DEPLOY.md)** - Release and publishing
-- **[Versioning](./VERSIONING.md)** - Version management
+### 👤 **For Users** - Using Claude MPM
+> **Start here:** [User Documentation Hub](user/README.md)
 
-## Documentation Structure
+- **Getting Started**
+  - [Installation & Setup](user/01-getting-started/)
+  - [Core Concepts](user/01-getting-started/concepts.md)
+  - [First Run Experience](user/01-getting-started/first-run.md)
+
+- **Using Claude MPM**
+  - [Interactive Mode Guide](user/02-guides/interactive-mode.md)
+  - [CLI Commands Reference](user/02-guides/cli-commands-reference.md)
+  - [Basic Usage Patterns](user/02-guides/basic-usage.md)
+
+- **Features & Capabilities**
+  - [Memory System](user/03-features/memory-system.md)
+  - [Agent Delegation](user/03-features/agent-delegation.md)
+  - [Session Logging](user/03-features/session-logging.md)
+  - [File Security](user/03-features/file-security.md)
+
+- **Reference & Help**
+  - [Configuration Guide](user/04-reference/configuration.md)
+  - [Troubleshooting](user/04-reference/troubleshooting.md)
+  - [Security Settings](user/04-reference/security-configuration.md)
+
+### 👨‍💻 **For Developers** - Building with Claude MPM
+> **Start here:** [Developer Documentation Hub](developer/README.md)
+
+- **Architecture & Design**
+  - [System Architecture](developer/ARCHITECTURE.md)
+  - [Service Layer Guide](developer/SERVICES.md)
+  - [Project Structure](developer/STRUCTURE.md)
+
+- **Development**
+  - [Testing Strategies](developer/TESTING.md)
+  - [Performance Optimization](developer/PERFORMANCE.md)
+  - [Code Quality & Linting](developer/LINTING.md)
+
+- **Agent Development**
+  - [Agent System Overview](developer/07-agent-system/)
+  - [Creating Custom Agents](developer/07-agent-system/creation-guide.md)
+  - [Agent Schema Reference](developer/10-schemas/agent_schema_documentation.md)
+
+- **Advanced Topics**
+  - [Hook System](developer/02-core-components/hook-system.md)
+  - [Memory System Architecture](developer/08-memory-system/)
+  - [Security Framework](developer/09-security/SECURITY.md)
+  - [Dashboard Development](developer/11-dashboard/)
+
+### 🛠️ **For Agents** - Agent Development
+> **Start here:** [Agent Documentation Hub](agents/README.md)
+
+- **Agent Creation**
+  - [Agent Overview](agents/AGENTS.md)
+  - [Agent Templates & Examples](agents/)
+
+- **Specialized Agents**
+  - [ImageMagick Web Optimization](agents/IMAGEMAGICK_WEB_OPTIMIZATION.md)
+  - [Vercel Operations Agent](agents/VERCEL_OPS_AGENT.md)
+
+### 📚 **Reference Documentation** - Technical References
+> **Start here:** [Reference Documentation Hub](reference/README.md)
+
+- **Deployment & Operations**
+  - [Deployment Guide](reference/DEPLOY.md)
+  - [Version Management](reference/VERSIONING.md)
+  - [Security Configuration](reference/SECURITY.md)
+
+- **Integration & Setup**
+  - [MCP Gateway Setup](reference/MCP_SETUP.md)
+  - [MCP Gateway Configuration](reference/MCP_GATEWAY.md)
+  - [MCP Usage Guide](reference/MCP_USAGE.md)
+
+## 🗂️ Documentation Organization
+
+The documentation is organized into four main sections:
 
 ```
 docs/
-├── README.md                    # This file
-├── user/                        # User-facing documentation
-│   ├── 01-getting-started/     # Installation and setup
-│   ├── 02-usage/               # Using Claude MPM
-│   ├── 03-features/            # Feature guides
-│   └── 04-reference/           # Command reference
-├── developer/                   # Developer documentation
-│   ├── agents/                 # Agent system
-│   ├── memory/                 # Memory system
-│   ├── security/               # Security system
-│   ├── schemas/                # JSON schemas
-│   ├── dashboard/              # Monitoring dashboard
-│   ├── responses/              # Response system
-│   └── 01-architecture/        # System architecture
-└── archive/                     # Archived documentation
+├── user/           # End-user guides and tutorials
+├── developer/      # Development documentation
+├── agents/         # Agent-specific documentation  
+├── reference/      # Technical references and operations
+├── api/           # Auto-generated API documentation
+├── _archive/      # Historical documentation (reorganized 2025-08)
+└── _internal/     # Internal maintenance docs
 ```
 
-## Critical Pathways
+## 🆘 Getting Help
 
-### Agent Development Workflow
-1. [Developer Guide](./developer/) → [Agent System](./developer/agents/) → [Agent Development Guide](./developer/agents/AGENT_DEVELOPMENT.md)
-2. [Schema Reference](./developer/schemas/SCHEMA_REFERENCE.md) → [Agent Schema Documentation](./developer/schemas/agent_schema_documentation.md)
-3. [Security Guide](./developer/security/SECURITY.md) → [Agent Security](./developer/security/agent_schema_security_notes.md)
+**Can't find what you're looking for?**
 
-### Memory System Workflow
-1. [Memory Guide](./MEMORY.md) → [Memory System Technical](./developer/memory/MEMORY_SYSTEM.md)
-2. [Response System](./developer/responses/README.md) → [Response Logging](./developer/memory/response-logging.md)
-3. [Memory Builder](./developer/memory/builder.md) → [Memory Optimizer](./developer/memory/optimizer.md)
+1. **Browse by section above** - Most topics are covered in the organized sections
+2. **Check archived content** - Some documentation may be in [`_archive/`](_archive/) following reorganization
+3. **Search GitHub Issues** - Known issues and solutions
+4. **API Documentation** - Auto-generated docs in [`api/`](api/)
 
-### Dashboard & Monitoring
-1. [User Dashboard Guide](./user/03-features/dashboard-enhancements.md) → [Developer Dashboard](./developer/dashboard/README.md)
-2. [Config Window](./developer/dashboard/CONFIG_WINDOW_V2.md)
+## 📋 Common Tasks
 
-### Security Workflow
-1. [User Security](./user/03-features/file-security.md) → [Developer Security](./developer/security/SECURITY.md)
-2. [Security Extensions](./developer/05-extending/file-security-hook.md)
+### For New Users
+1. **[Install Claude MPM](user/01-getting-started/installation.md)**
+2. **[Run your first command](user/01-getting-started/first-run.md)**
+3. **[Learn basic usage](user/02-guides/basic-usage.md)**
 
-## Getting Help
+### For Developers  
+1. **[Understand the architecture](developer/ARCHITECTURE.md)**
+2. **[Set up development environment](developer/03-development/setup.md)**
+3. **[Quality workflow](developer/LINTING.md)** - `make lint-fix` → `make quality` → `make pre-publish`
+4. **[Learn testing practices](developer/TESTING.md)**
 
-- Check relevant user or developer guides above
-- Search existing documentation with your browser
-- Review [archived documentation](./archive/) for historical context
-- Check [GitHub Issues](https://github.com/your-org/claude-mpm/issues) for known issues
+### For Agent Creation
+1. **[Learn agent concepts](agents/AGENTS.md)**
+2. **[Follow creation guide](developer/07-agent-system/creation-guide.md)**
+3. **[Study agent schema](developer/10-schemas/agent_schema_documentation.md)**
 
-## Contributing to Documentation
+## 🗃️ Archive Notice
 
-See [Developer Guide](./developer/README.md) for guidelines on:
-- Documentation standards
-- File organization
-- Cross-referencing
-- Review process
+**Documentation Reorganized (August 2025)**: Historical documentation has been moved to [`_archive/`](_archive/) to improve navigation. If you're looking for:
+
+- **Old test reports** → [`_archive/test-reports/`](_archive/test-reports/)
+- **Legacy features** → [`_archive/temporary/`](_archive/temporary/) 
+- **Previous release notes** → [`_archive/old-versions/`](_archive/old-versions/)
+- **Implementation summaries** → [`_archive/qa-reports/`](_archive/qa-reports/)
+
+## 🤝 Contributing to Documentation
+
+Documentation improvements are welcome! See:
+- [Developer Documentation Standards](developer/README.md#documentation-standards)
+- [Project Structure Guide](developer/STRUCTURE.md)
+- [Contributing Guidelines](developer/03-development/README.md)
+
+---
+
+**💡 Tip**: This documentation is structured to scale with your expertise. Start with user guides and progress to developer documentation as you become more familiar with Claude MPM.

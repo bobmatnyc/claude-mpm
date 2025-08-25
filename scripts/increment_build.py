@@ -24,11 +24,10 @@ USAGE:
 """
 
 import argparse
-import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 
 def get_project_root() -> Path:
@@ -56,7 +55,7 @@ def get_current_build_number(build_file: Path) -> int:
     try:
         content = build_file.read_text().strip()
         return int(content)
-    except (ValueError, IOError) as e:
+    except (OSError, ValueError) as e:
         print(
             f"Warning: Could not read build number from {build_file}: {e}",
             file=sys.stderr,
@@ -74,7 +73,7 @@ def write_build_number(build_file: Path, build_number: int) -> None:
     try:
         build_file.write_text(str(build_number))
         print(f"Build number updated to: {build_number}")
-    except IOError as e:
+    except OSError as e:
         print(
             f"Error: Could not write build number to {build_file}: {e}", file=sys.stderr
         )

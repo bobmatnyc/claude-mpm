@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Test agent loader with new schema format."""
 
-import json
 import sys
 import time
 from pathlib import Path
@@ -11,10 +10,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.agents.agent_loader import (
     AgentLoader,
-    get_agent_prompt,
     list_available_agents,
 )
-from claude_mpm.services.agents.registry import AgentRegistry
 
 
 def main():
@@ -115,10 +112,10 @@ def main():
     # Get specific agent via registry
     eng_agent = registry.get_agent("engineer")
     if eng_agent:
-        print(f"   ✓ Registry can load agents")
-        print(f"     - Engineer agent loaded successfully")
+        print("   ✓ Registry can load agents")
+        print("     - Engineer agent loaded successfully")
     else:
-        print(f"   ✗ Registry failed to load agent")
+        print("   ✗ Registry failed to load agent")
 
     # Test 8: Test list_available_agents utility
     print("\n8. Testing list_available_agents()...")

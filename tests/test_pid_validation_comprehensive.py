@@ -4,10 +4,7 @@
 import json
 import os
 import sys
-import tempfile
-import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 # Add src to path for testing
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -205,9 +202,8 @@ def run_comprehensive_tests():
     if passed == total:
         print("🎉 All comprehensive tests passed!")
         return True
-    else:
-        print("❌ Some comprehensive tests failed")
-        return False
+    print("❌ Some comprehensive tests failed")
+    return False
 
 
 if __name__ == "__main__":

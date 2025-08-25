@@ -1,5 +1,5 @@
 import pytest
-import pytest
+
 #!/usr/bin/env python3
 """
 Test script to verify MCP gateway reconnection fix.
@@ -45,9 +45,8 @@ def test_mock_removed():
     if mock_path.exists():
         print(f"✗ Mock MCP directory still exists at: {mock_path}")
         return False
-    else:
-        print("✓ Mock MCP directory successfully removed")
-        return True
+    print("✓ Mock MCP directory successfully removed")
+    return True
 
 
 @pytest.mark.asyncio
@@ -59,7 +58,7 @@ async def test_gateway_creation():
 
         gateway = MCPGateway(gateway_name="test-gateway", version="1.0.0")
 
-        print(f"✓ MCPGateway created successfully")
+        print("✓ MCPGateway created successfully")
         print(f"  - Gateway name: {gateway.gateway_name}")
         print(f"  - Version: {gateway.version}")
         print(f"  - MCP Server type: {type(gateway.mcp_server).__name__}")
@@ -130,9 +129,8 @@ async def main():
     if failed == 0:
         print("\n✓ All tests passed! MCP gateway reconnection fix is successful.")
         return 0
-    else:
-        print(f"\n✗ {failed} test(s) failed. Please review the errors above.")
-        return 1
+    print(f"\n✗ {failed} test(s) failed. Please review the errors above.")
+    return 1
 
 
 if __name__ == "__main__":

@@ -9,9 +9,8 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 # Add project root to path so we can import from the project
 project_root = Path(__file__).parent.parent
@@ -54,7 +53,7 @@ def run_hook_handler_test(
             env=env,
             capture_output=True,
             text=True,
-            timeout=10,  # 10 second timeout
+            timeout=10, check=False,  # 10 second timeout
         )
 
         return process.returncode == 0, process.stdout, process.stderr
@@ -142,14 +141,14 @@ def test_debug_mode_scenarios() -> Dict[str, Dict]:
 
     for test_name, env_value, expected_debug, description in test_scenarios:
         print(f"\n📋 Test: {test_name}")
-        print(f"   Environment: CLAUDE_MPM_HOOK_DEBUG={repr(env_value)}")
+        print(f"   Environment: CLAUDE_MPM_HOOK_DEBUG={env_value!r}")
         print(f"   Expected: Debug {'ON' if expected_debug else 'OFF'}")
         print(f"   Description: {description}")
 
         success, stdout, stderr = run_hook_handler_test(env_value, test_name)
 
         if not success:
-            print(f"   ❌ FAILED: Hook handler execution failed")
+            print("   ❌ FAILED: Hook handler execution failed")
             print(f"      Error: {stderr}")
             results[test_name] = {
                 "success": False,
@@ -216,7 +215,7 @@ def print_summary(results: Dict[str, Dict]):
     print(f"Success rate: {(passed_tests/total_tests)*100:.1f}%")
 
     if failed_tests > 0:
-        print(f"\n❌ FAILED TESTS:")
+        print("\n❌ FAILED TESTS:")
         for test_name, result in results.items():
             if not result["success"]:
                 expected = "ON" if result["expected_debug"] else "OFF"
@@ -224,14 +223,14 @@ def print_summary(results: Dict[str, Dict]):
                 print(f"   • {test_name}: Expected debug {expected}, got {actual}")
                 print(f"     {result['description']}")
 
-    print(f"\n🎯 KEY FINDINGS:")
+    print("\n🎯 KEY FINDINGS:")
 
     # Check default behavior
     default_result = results.get("default", {})
     if default_result.get("success") and default_result.get("actual_debug"):
-        print(f"   ✅ Debug is enabled BY DEFAULT (no env var needed)")
+        print("   ✅ Debug is enabled BY DEFAULT (no env var needed)")
     else:
-        print(f"   ❌ Debug is NOT enabled by default")
+        print("   ❌ Debug is NOT enabled by default")
 
     # Check false disabling
     false_tests = [name for name in results if "false" in name]
@@ -240,10 +239,10 @@ def print_summary(results: Dict[str, Dict]):
     )
     if false_working:
         print(
-            f"   ✅ Debug can be disabled with CLAUDE_MPM_HOOK_DEBUG=false (case-insensitive)"
+            "   ✅ Debug can be disabled with CLAUDE_MPM_HOOK_DEBUG=false (case-insensitive)"
         )
     else:
-        print(f"   ❌ Debug disabling with 'false' is not working correctly")
+        print("   ❌ Debug disabling with 'false' is not working correctly")
 
     # Check backward compatibility
     true_tests = [name for name in results if "true" in name]
@@ -251,9 +250,9 @@ def print_summary(results: Dict[str, Dict]):
         results[name]["success"] for name in true_tests if name in results
     )
     if true_working:
-        print(f"   ✅ Backward compatible: CLAUDE_MPM_HOOK_DEBUG=true still works")
+        print("   ✅ Backward compatible: CLAUDE_MPM_HOOK_DEBUG=true still works")
     else:
-        print(f"   ❌ Backward compatibility issue with CLAUDE_MPM_HOOK_DEBUG=true")
+        print("   ❌ Backward compatibility issue with CLAUDE_MPM_HOOK_DEBUG=true")
 
     # Check edge cases
     edge_cases = ["no", "0", "disabled", "random"]
@@ -261,9 +260,9 @@ def print_summary(results: Dict[str, Dict]):
         results[name]["success"] for name in edge_cases if name in results
     )
     if edge_working:
-        print(f"   ✅ Edge cases handled correctly (only 'false' disables debug)")
+        print("   ✅ Edge cases handled correctly (only 'false' disables debug)")
     else:
-        print(f"   ❌ Some edge cases not handled correctly")
+        print("   ❌ Some edge cases not handled correctly")
 
 
 def main():

@@ -20,10 +20,10 @@ def test_json_validity(config_path: Path) -> bool:
         True if valid JSON, False otherwise
     """
     try:
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             json.load(f)
         return True
-    except (json.JSONDecodeError, IOError) as e:
+    except (OSError, json.JSONDecodeError) as e:
         print(f"❌ Invalid JSON: {e}")
         return False
 
@@ -51,7 +51,7 @@ def test_registration_script():
                 str(tmp_path),
             ],
             capture_output=True,
-            text=True,
+            text=True, check=False,
         )
 
         if result.returncode != 0:
@@ -67,7 +67,7 @@ def test_registration_script():
                 str(tmp_path),
             ],
             capture_output=True,
-            text=True,
+            text=True, check=False,
         )
 
         if result.returncode != 0:
@@ -80,7 +80,7 @@ def test_registration_script():
             return False
 
         # Verify the gateway was added
-        with open(tmp_path, "r") as f:
+        with open(tmp_path) as f:
             config = json.load(f)
             if "claude-mpm-gateway" not in config.get("mcpServers", {}):
                 print("❌ Gateway not added to config")
@@ -108,7 +108,7 @@ def test_restore_script():
     result = subprocess.run(
         [sys.executable, "scripts/restore_mcp_config.py", "--list"],
         capture_output=True,
-        text=True,
+        text=True, check=False,
     )
 
     if result.returncode != 0:
@@ -119,7 +119,7 @@ def test_restore_script():
     result = subprocess.run(
         [sys.executable, "scripts/restore_mcp_config.py", "--compare"],
         capture_output=True,
-        text=True,
+        text=True, check=False,
     )
 
     if result.returncode != 0:
@@ -150,9 +150,8 @@ def main():
     if all_passed:
         print("✅ All tests passed!")
         return 0
-    else:
-        print("❌ Some tests failed")
-        return 1
+    print("❌ Some tests failed")
+    return 1
 
 
 if __name__ == "__main__":

@@ -9,8 +9,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pkg_resources
-
 
 def check_python_version():
     """Check that we're running on Python 3.13."""
@@ -25,11 +23,10 @@ def check_python_version():
     if version_info.major == 3 and version_info.minor >= 13:
         print("✅ Running on Python 3.13+ (compatible)")
         return True
-    else:
-        print(
-            f"⚠️  Running on Python {version_info.major}.{version_info.minor} (test may not be conclusive)"
-        )
-        return True  # Still run tests, but note the version
+    print(
+        f"⚠️  Running on Python {version_info.major}.{version_info.minor} (test may not be conclusive)"
+    )
+    return True  # Still run tests, but note the version
 
 
 def check_no_language_pack_dependency():
@@ -52,13 +49,12 @@ def check_no_language_pack_dependency():
     # Check pip list for the package
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "pip", "list"], capture_output=True, text=True
+            [sys.executable, "-m", "pip", "list"], capture_output=True, text=True, check=False
         )
         if "tree-sitter-language-pack" in result.stdout:
             print("❌ FAIL: tree-sitter-language-pack found in pip list")
             return False
-        else:
-            print("✅ PASS: tree-sitter-language-pack not in pip list")
+        print("✅ PASS: tree-sitter-language-pack not in pip list")
     except Exception as e:
         print(f"⚠️  Could not check pip list: {e}")
 
@@ -186,7 +182,7 @@ if __name__ == "__main__":
             [sys.executable, str(compat_file)],
             capture_output=True,
             text=True,
-            cwd=compat_file.parent,
+            cwd=compat_file.parent, check=False,
         )
 
         print(result.stdout)
@@ -255,19 +251,17 @@ def test_import_performance():
 
     if successful_imports > 0:
         avg_time = total_time / successful_imports
-        print(f"\n📊 Performance Summary:")
+        print("\n📊 Performance Summary:")
         print(f"   Average import time: {avg_time:.3f}s")
         print(f"   Successful imports: {successful_imports}/{len(packages_to_test)}")
 
         if avg_time < 1.0:  # Imports should be under 1 second
             print("✅ Import performance acceptable")
             return True
-        else:
-            print("⚠️  Import performance slower than expected")
-            return False
-    else:
-        print("❌ No successful imports to test performance")
+        print("⚠️  Import performance slower than expected")
         return False
+    print("❌ No successful imports to test performance")
+    return False
 
 
 def main():
@@ -294,7 +288,9 @@ def main():
 
     print(f"🐍 Python Version: {'✅ PASS' if version_ok else '❌ FAIL'}")
     print(f"📦 No Language Pack: {'✅ PASS' if no_language_pack else '❌ FAIL'}")
-    print(f"🔗 Individual Packages: {'✅ PASS' if individual_packages_ok else '❌ FAIL'}")
+    print(
+        f"🔗 Individual Packages: {'✅ PASS' if individual_packages_ok else '❌ FAIL'}"
+    )
     print(f"⚡ Import Performance: {'✅ PASS' if performance_ok else '❌ FAIL'}")
 
     # Overall compatibility assessment

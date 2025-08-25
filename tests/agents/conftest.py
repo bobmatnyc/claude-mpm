@@ -1,7 +1,6 @@
 """Shared fixtures for agent tests."""
 
 import json
-from pathlib import Path
 from typing import Any, Dict
 
 import pytest
@@ -71,9 +70,9 @@ def temp_agent_dir(tmp_path, mock_agent_data):
     research_data["capabilities"].update(
         {"model": "claude-opus-4-20250514", "resource_tier": "intensive"}
     )
-    research_data[
-        "instructions"
-    ] = "# Research Agent\n\nSpecialized for research and analysis tasks.\n\n## Core Functionality\n\nThe Research Agent is optimized for:\n- Deep codebase analysis using tree-sitter AST\n- Pattern recognition and identification\n- Security vulnerability assessment\n- Performance optimization opportunities\n- Architecture documentation\n\n## Research Capabilities\n\n1. **Code Analysis**: Leverages tree-sitter for syntactic and semantic analysis\n2. **Pattern Detection**: Identifies common patterns and anti-patterns\n3. **Documentation**: Generates comprehensive technical documentation\n4. **Metrics Collection**: Gathers code quality and complexity metrics\n\n## Best Practices\n\nWhen conducting research:\n- Start with high-level architecture overview\n- Drill down into specific components as needed\n- Document findings with clear examples\n- Provide actionable recommendations\n- Include confidence levels in assessments\n\n## Integration\n\nThis agent integrates with other system components to provide comprehensive analysis capabilities for the Claude MPM system."
+    research_data["instructions"] = (
+        "# Research Agent\n\nSpecialized for research and analysis tasks.\n\n## Core Functionality\n\nThe Research Agent is optimized for:\n- Deep codebase analysis using tree-sitter AST\n- Pattern recognition and identification\n- Security vulnerability assessment\n- Performance optimization opportunities\n- Architecture documentation\n\n## Research Capabilities\n\n1. **Code Analysis**: Leverages tree-sitter for syntactic and semantic analysis\n2. **Pattern Detection**: Identifies common patterns and anti-patterns\n3. **Documentation**: Generates comprehensive technical documentation\n4. **Metrics Collection**: Gathers code quality and complexity metrics\n\n## Best Practices\n\nWhen conducting research:\n- Start with high-level architecture overview\n- Drill down into specific components as needed\n- Document findings with clear examples\n- Provide actionable recommendations\n- Include confidence levels in assessments\n\n## Integration\n\nThis agent integrates with other system components to provide comprehensive analysis capabilities for the Claude MPM system."
+    )
     research_file = templates_dir / "research_agent.json"
     research_file.write_text(json.dumps(research_data, indent=2))
 

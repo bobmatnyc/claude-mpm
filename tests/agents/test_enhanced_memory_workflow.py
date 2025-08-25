@@ -9,8 +9,6 @@ Demonstrates the complete enhanced memory integration system:
 4. Agent capabilities loader indicating memory-enhanced agents
 """
 
-import tempfile
-from pathlib import Path
 
 import yaml
 
@@ -228,7 +226,7 @@ INSTRUCTIONS: Review your project memory above before proceeding. Apply learned 
             f"---\n{updated_frontmatter_yaml}---\n\n{agent_data['instructions']}"
         )
 
-        print(f"   ✓ Agent file ready for deployment")
+        print("   ✓ Agent file ready for deployment")
         print(f"   ✓ File size: {len(file_content.encode('utf-8'))} bytes")
         print(f"   ✓ Contains ## Memories section: {'## Memories' in file_content}")
         print(
@@ -261,7 +259,7 @@ INSTRUCTIONS: Review your project memory above before proceeding. Apply learned 
         "tier": "project",
     }
 
-    print(f"   ✓ Agent summary includes memory info")
+    print("   ✓ Agent summary includes memory info")
     print(f"   ✓ Memory lines in summary: {agent_summary['memory_lines']}")
     print(f"   ✓ Tier: {agent_summary['tier']}")
 

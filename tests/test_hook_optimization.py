@@ -11,24 +11,12 @@ Validates hook loading, caching, and performance improvements.
 """
 
 import sys
-import tempfile
-import time
-from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
-from claude_mpm.hooks.base_hook import (
-    BaseHook,
-    HookContext,
-    HookResult,
-    HookType,
-    PostDelegationHook,
-    PreDelegationHook,
-)
+
 # from claude_mpm.services.optimized_hook_service import HookConfig, OptimizedHookService
 
 

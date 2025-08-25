@@ -15,13 +15,11 @@ WHY this focused diagnostic:
 - Connection state issues can cause intermittent problems
 """
 
-import asyncio
 import json
 import sys
-import threading
 import time
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 try:
     import socketio
@@ -43,7 +41,7 @@ class ConnectionAuthDiagnostic:
         self.test_results = []
         self.errors = []
 
-        print(f"🔐 CONNECTION & AUTHENTICATION DIAGNOSTIC")
+        print("🔐 CONNECTION & AUTHENTICATION DIAGNOSTIC")
         print(f"🌐 Server URL: {server_url}")
         print(f"📅 Start time: {self.test_start.isoformat()}")
         print("=" * 80)
@@ -579,7 +577,7 @@ class ConnectionAuthDiagnostic:
         failed = [r for r in self.test_results if r["status"] == "FAIL"]
         warnings = [r for r in self.test_results if r["status"] == "WARN"]
 
-        print(f"📈 TEST RESULTS:")
+        print("📈 TEST RESULTS:")
         print(f"   ✅ Passed: {len(passed)}")
         print(f"   ❌ Failed: {len(failed)}")
         print(f"   ⚠️  Warnings: {len(warnings)}")
@@ -587,18 +585,18 @@ class ConnectionAuthDiagnostic:
 
         # Show failed tests
         if failed:
-            print(f"\n❌ FAILED TESTS:")
+            print("\n❌ FAILED TESTS:")
             for test in failed:
                 print(f"   • {test['test_name']}: {test['details']}")
 
         # Show warnings
         if warnings:
-            print(f"\n⚠️  WARNINGS:")
+            print("\n⚠️  WARNINGS:")
             for test in warnings:
                 print(f"   • {test['test_name']}: {test['details']}")
 
         # Overall assessment
-        print(f"\n🔍 DIAGNOSTIC ASSESSMENT:")
+        print("\n🔍 DIAGNOSTIC ASSESSMENT:")
 
         if len(failed) == 0:
             print("   ✅ All connection tests passed")
@@ -610,7 +608,9 @@ class ConnectionAuthDiagnostic:
             (r for r in self.test_results if "Basic Connection" in r["test_name"]), None
         )
         if basic_conn and basic_conn["status"] == "FAIL":
-            print("   🚨 CRITICAL: Basic connection failing - server may not be running")
+            print(
+                "   🚨 CRITICAL: Basic connection failing - server may not be running"
+            )
 
         valid_auth = next(
             (r for r in self.test_results if "Valid Auth" in r["test_name"]), None
@@ -625,9 +625,7 @@ class ConnectionAuthDiagnostic:
         ]
         failed_namespaces = [r for r in namespace_tests if r["status"] == "FAIL"]
         if failed_namespaces:
-            print(
-                f"   ⚠️  {len(failed_namespaces)} namespace(s) have connection issues"
-            )
+            print(f"   ⚠️  {len(failed_namespaces)} namespace(s) have connection issues")
 
         print(f"\n⏰ Diagnostic completed at: {datetime.now().isoformat()}")
         test_duration = (datetime.now() - self.test_start).total_seconds()

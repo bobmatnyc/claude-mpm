@@ -28,7 +28,7 @@ def test_agent_capabilities_discovery():
         return False
 
     # List deployed agents
-    print(f"\n✅ Found .claude/agents directory")
+    print("\n✅ Found .claude/agents directory")
     print("\nDeployed agents (these should be the agent IDs):")
     deployed_ids = []
     for agent_file in sorted(agents_dir.glob("*.md")):
@@ -71,17 +71,16 @@ def test_agent_capabilities_discovery():
         if f"`{agent_id}`" in capabilities_section:
             successes.append(agent_id)
             print(f"  ✅ {agent_id} - Found with correct format")
+        # Check if it appears with wrong format
+        elif f"{agent_id}_agent" in capabilities_section:
+            issues.append(f"{agent_id} appears as {agent_id}_agent (wrong format)")
+            print(f"  ❌ {agent_id} - Found but with '_agent' suffix (wrong)")
+        elif agent_id.replace("_", " ").title() in capabilities_section:
+            issues.append(f"{agent_id} appears only as title case (missing ID)")
+            print(f"  ⚠️  {agent_id} - Found as name only, missing backtick ID")
         else:
-            # Check if it appears with wrong format
-            if f"{agent_id}_agent" in capabilities_section:
-                issues.append(f"{agent_id} appears as {agent_id}_agent (wrong format)")
-                print(f"  ❌ {agent_id} - Found but with '_agent' suffix (wrong)")
-            elif agent_id.replace("_", " ").title() in capabilities_section:
-                issues.append(f"{agent_id} appears only as title case (missing ID)")
-                print(f"  ⚠️  {agent_id} - Found as name only, missing backtick ID")
-            else:
-                issues.append(f"{agent_id} not found at all")
-                print(f"  ❌ {agent_id} - Not found in capabilities")
+            issues.append(f"{agent_id} not found at all")
+            print(f"  ❌ {agent_id} - Not found in capabilities")
 
     # Check for important usage instructions
     print("\n" + "=" * 50)
@@ -110,13 +109,14 @@ def test_agent_capabilities_discovery():
         for issue in issues:
             print(f"  - {issue}")
         return False
-    else:
-        print("\n✅ All tests passed! Agent IDs are correctly discovered and formatted.")
-        print("\nThe PM context will now show agent IDs that work with the Task tool:")
-        print("  - Use `research` not `research_agent`")
-        print("  - Use `engineer` not `engineer_agent`")
-        print("  - etc.")
-        return True
+    print(
+        "\n✅ All tests passed! Agent IDs are correctly discovered and formatted."
+    )
+    print("\nThe PM context will now show agent IDs that work with the Task tool:")
+    print("  - Use `research` not `research_agent`")
+    print("  - Use `engineer` not `engineer_agent`")
+    print("  - etc.")
+    return True
 
 
 if __name__ == "__main__":

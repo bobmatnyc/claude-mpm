@@ -10,7 +10,6 @@ from pathlib import Path
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.models.agent_session import AgentSession
 from claude_mpm.services.event_aggregator import EventAggregator
 

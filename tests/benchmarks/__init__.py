@@ -27,8 +27,8 @@ from .performance_validation_suite import (
 )
 
 __all__ = [
-    "PerformanceBenchmarks",
-    "PerformanceTarget",
     "BenchmarkResult",
     "BenchmarkSuite",
+    "PerformanceBenchmarks",
+    "PerformanceTarget",
 ]

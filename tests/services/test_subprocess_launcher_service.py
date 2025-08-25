@@ -4,10 +4,9 @@ Tests the extracted subprocess launcher service to ensure it maintains
 the same behavior as the original ClaudeRunner methods.
 """
 
-import os
 import subprocess
 import sys
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 

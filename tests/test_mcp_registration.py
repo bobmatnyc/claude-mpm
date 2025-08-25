@@ -1,5 +1,5 @@
 import pytest
-import pytest
+
 #!/usr/bin/env python3
 """
 Test script to verify MCP server tool registration.
@@ -19,7 +19,6 @@ sys.path.insert(0, str(project_root))
 from src.claude_mpm.services.mcp_gateway.registry.tool_registry import ToolRegistry
 
 # Import the same components as the MCP server scripts
-from src.claude_mpm.services.mcp_gateway.server.mcp_gateway import MCPGateway
 from src.claude_mpm.services.mcp_gateway.tools.base_adapter import (
     CalculatorToolAdapter,
     EchoToolAdapter,
@@ -79,11 +78,10 @@ async def test_bin_claude_mpm_mcp():
     if len(ticket_tools) == 1 and ticket_tools[0].name == "ticket":
         print("✓ Only unified ticket tool registered (correct!)")
         return True
-    else:
-        print("✗ Wrong ticket tool configuration!")
-        for t in ticket_tools:
-            print(f"  - {t.name}: {t.description}")
-        return False
+    print("✗ Wrong ticket tool configuration!")
+    for t in ticket_tools:
+        print(f"  - {t.name}: {t.description}")
+    return False
 
 
 @pytest.mark.asyncio
@@ -118,15 +116,12 @@ async def test_main_py():
             if len(ticket_tools) == 1 and ticket_tools[0].name == "ticket":
                 print("✓ Only unified ticket tool registered (correct!)")
                 return True
-            else:
-                print("✗ Wrong ticket tool configuration!")
-                return False
-        else:
-            print("✗ No registry available")
+            print("✗ Wrong ticket tool configuration!")
             return False
-    else:
-        print("✗ Failed to initialize orchestrator")
+        print("✗ No registry available")
         return False
+    print("✗ Failed to initialize orchestrator")
+    return False
 
 
 async def main():
@@ -150,11 +145,10 @@ async def main():
         print("No more 5 separate ticket tools!")
         print("=" * 50)
         return 0
-    else:
-        print("\n" + "=" * 50)
-        print("✗ FAILURE: Some servers still have wrong configuration")
-        print("=" * 50)
-        return 1
+    print("\n" + "=" * 50)
+    print("✗ FAILURE: Some servers still have wrong configuration")
+    print("=" * 50)
+    return 1
 
 
 if __name__ == "__main__":

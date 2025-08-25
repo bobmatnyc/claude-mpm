@@ -9,8 +9,7 @@ import os
 import subprocess
 import time
 import uuid
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import Mock, patch
 
 import pytest
 

@@ -6,7 +6,6 @@ Comprehensive unit tests for the MCP server implementation.
 Tests individual components in isolation with proper mocking.
 """
 
-import asyncio
 import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
@@ -18,10 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     IMCPCommunication,
-    IMCPGateway,
     IMCPToolRegistry,
-    MCPToolInvocation,
-    MCPToolResult,
 )
 from claude_mpm.services.mcp_gateway.server.mcp_gateway import MCPGateway
 

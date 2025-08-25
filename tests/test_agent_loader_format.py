@@ -2,10 +2,6 @@
 """Test agent_loader handles both old and new JSON formats."""
 
 import json
-import tempfile
-from pathlib import Path
-
-import pytest
 
 from claude_mpm.agents.agent_loader import load_agent_prompt_from_md
 

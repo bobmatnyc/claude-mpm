@@ -20,10 +20,7 @@ Test Categories:
 """
 
 import json
-import os
-import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -38,7 +35,7 @@ class TestResearchAgentRegressions:
             Path(__file__).parent.parent
             / "src/claude_mpm/agents/templates/research.json"
         )
-        with open(template_path, "r") as f:
+        with open(template_path) as f:
             return json.load(f)
 
     def test_anti_pattern_detection_head_tail_forbidden(self, research_agent_template):

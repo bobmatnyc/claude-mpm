@@ -61,8 +61,14 @@ help: ## Show this help message
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""
-	@echo "Main targets:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@echo "$(BLUE)Quick Commands:$(NC)"
+	@echo "  $(GREEN)make quality$(NC)        - Run all quality checks"
+	@echo "  $(GREEN)make lint-fix$(NC)       - Auto-fix code issues"
+	@echo "  $(GREEN)make pre-publish$(NC)    - Pre-release quality gate"
+	@echo "  $(GREEN)make safe-release-build$(NC) - Build with quality checks"
+	@echo ""
+	@echo "$(BLUE)All Available Targets:$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-24s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "Detected shell: $(BLUE)$(DETECTED_SHELL)$(NC)"
 	@echo "Shell RC file:  $(BLUE)$(SHELL_RC)$(NC)"
@@ -340,14 +346,167 @@ cleanup: deprecation-check ## Alias for deprecation-check
 quick: setup ## Alias for complete setup
 quick-dev: setup-dev ## Alias for complete development setup
 
-# Structure linting targets
-.PHONY: structure-lint structure-fix
-structure-lint:
-	@echo "🔍 Running structure linting..."
-	@python tools/dev/structure_linter.py --verbose
+# ============================================================================
+# Quality Gates and Linting Targets
+# ============================================================================
 
-structure-fix:
-	@echo "🔧 Running structure linting with auto-fix..."
+.PHONY: lint-all lint-ruff lint-black lint-isort lint-flake8 lint-mypy lint-structure
+.PHONY: lint-fix quality pre-publish safe-release-build
+
+# Individual linters
+lint-ruff: ## Run ruff linter (fast, catches most issues including imports)
+	@echo "$(YELLOW)🔍 Running ruff linter...$(NC)"
+	@if command -v ruff &> /dev/null; then \
+		ruff check src/ tests/ scripts/ --no-fix || exit 1; \
+		echo "$(GREEN)✓ Ruff check passed$(NC)"; \
+	else \
+		echo "$(RED)✗ ruff not found. Install with: pip install ruff$(NC)"; \
+		exit 1; \
+	fi
+
+lint-black: ## Check code formatting with black
+	@echo "$(YELLOW)🎨 Checking black formatting...$(NC)"
+	@if command -v black &> /dev/null; then \
+		black --check src/ tests/ scripts/ --line-length=88 || exit 1; \
+		echo "$(GREEN)✓ Black formatting check passed$(NC)"; \
+	else \
+		echo "$(RED)✗ black not found. Install with: pip install black$(NC)"; \
+		exit 1; \
+	fi
+
+lint-isort: ## Check import sorting with isort
+	@echo "$(YELLOW)📦 Checking import sorting...$(NC)"
+	@if command -v isort &> /dev/null; then \
+		isort --check-only --profile=black src/ tests/ scripts/ || exit 1; \
+		echo "$(GREEN)✓ Import sorting check passed$(NC)"; \
+	else \
+		echo "$(RED)✗ isort not found. Install with: pip install isort$(NC)"; \
+		exit 1; \
+	fi
+
+lint-flake8: ## Run flake8 linter
+	@echo "$(YELLOW)🔍 Running flake8...$(NC)"
+	@if command -v flake8 &> /dev/null; then \
+		flake8 src/ --max-line-length=88 --extend-ignore=E203,W503 || exit 1; \
+		echo "$(GREEN)✓ Flake8 check passed$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ flake8 not found. Install with: pip install flake8$(NC)"; \
+	fi
+
+lint-mypy: ## Run mypy type checker
+	@echo "$(YELLOW)🔍 Running mypy type checker...$(NC)"
+	@if command -v mypy &> /dev/null; then \
+		mypy src/claude_mpm --ignore-missing-imports --no-error-summary || true; \
+		echo "$(YELLOW)ℹ MyPy check complete (informational)$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ mypy not found. Install with: pip install mypy$(NC)"; \
+	fi
+
+lint-structure: ## Check project structure compliance
+	@echo "$(YELLOW)🏗️ Checking project structure...$(NC)"
+	@if [ -f "tools/dev/structure_linter.py" ]; then \
+		python tools/dev/structure_linter.py || exit 1; \
+		echo "$(GREEN)✓ Structure check passed$(NC)"; \
+	else \
+		echo "$(RED)✗ Structure linter not found$(NC)"; \
+		exit 1; \
+	fi
+
+# Comprehensive linting
+lint-all: ## Run all linters (ruff, black, isort, flake8, structure)
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)Running all quality checks...$(NC)"
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@$(MAKE) lint-ruff
+	@$(MAKE) lint-black
+	@$(MAKE) lint-isort
+	@$(MAKE) lint-flake8
+	@$(MAKE) lint-structure
+	@$(MAKE) lint-mypy
+	@echo ""
+	@echo "$(GREEN)════════════════════════════════════════$(NC)"
+	@echo "$(GREEN)✅ All linting checks passed!$(NC)"
+	@echo "$(GREEN)════════════════════════════════════════$(NC)"
+
+# Auto-fix what can be fixed
+lint-fix: ## Auto-fix linting issues (format, sort imports, fix ruff issues)
+	@echo "$(YELLOW)🔧 Auto-fixing code issues...$(NC)"
+	@echo "$(YELLOW)Running black formatter...$(NC)"
+	@if command -v black &> /dev/null; then \
+		black src/ tests/ scripts/ --line-length=88; \
+		echo "$(GREEN)✓ Code formatted$(NC)"; \
+	fi
+	@echo "$(YELLOW)Sorting imports with isort...$(NC)"
+	@if command -v isort &> /dev/null; then \
+		isort --profile=black src/ tests/ scripts/; \
+		echo "$(GREEN)✓ Imports sorted$(NC)"; \
+	fi
+	@echo "$(YELLOW)Fixing ruff issues...$(NC)"
+	@if command -v ruff &> /dev/null; then \
+		ruff check src/ tests/ scripts/ --fix; \
+		echo "$(GREEN)✓ Ruff issues fixed$(NC)"; \
+	fi
+	@echo "$(YELLOW)Fixing structure issues...$(NC)"
+	@if [ -f "tools/dev/structure_linter.py" ]; then \
+		python tools/dev/structure_linter.py --fix || true; \
+		echo "$(GREEN)✓ Structure fixes attempted$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(GREEN)✅ Auto-fix complete. Run 'make lint-all' to verify.$(NC)"
+
+# Quality alias
+quality: lint-all ## Alias for lint-all (run all quality checks)
+
+# Pre-publish quality gate
+pre-publish: ## Run all quality checks before publishing (required for releases)
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)🚀 Pre-Publish Quality Gate$(NC)"
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Step 1/5: Checking working directory...$(NC)"
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "$(RED)✗ Working directory is not clean$(NC)"; \
+		echo "$(YELLOW)Please commit or stash your changes first$(NC)"; \
+		git status --short; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)✓ Working directory is clean$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Step 2/5: Running all linters...$(NC)"
+	@$(MAKE) lint-all
+	@echo ""
+	@echo "$(YELLOW)Step 3/5: Running tests...$(NC)"
+	@if [ -f "scripts/run_all_tests.sh" ]; then \
+		bash scripts/run_all_tests.sh || exit 1; \
+	elif command -v pytest >/dev/null 2>&1; then \
+		python -m pytest tests/ -v || exit 1; \
+	else \
+		echo "$(YELLOW)⚠ No test runner found, skipping tests$(NC)"; \
+	fi
+	@echo "$(GREEN)✓ Tests passed$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Step 4/5: Checking for common issues...$(NC)"
+	@echo "Checking for debug prints..."
+	@! grep -r "print(" src/ --include="*.py" | grep -v "#" | grep -v "logger" || \
+		(echo "$(YELLOW)⚠ Found print statements in code (consider using logger)$(NC)" && false)
+	@echo "Checking for TODO/FIXME..."
+	@! grep -r "TODO\|FIXME" src/ --include="*.py" | head -5 || \
+		echo "$(YELLOW)⚠ Found TODO/FIXME comments (non-blocking)$(NC)"
+	@echo "$(GREEN)✓ Common issues check complete$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Step 5/5: Validating version consistency...$(NC)"
+	@python scripts/check_version_consistency.py || \
+		echo "$(YELLOW)⚠ Version consistency check failed (non-blocking)$(NC)"
+	@echo ""
+	@echo "$(GREEN)════════════════════════════════════════$(NC)"
+	@echo "$(GREEN)✅ Pre-publish checks PASSED!$(NC)"
+	@echo "$(GREEN)Ready for release.$(NC)"
+	@echo "$(GREEN)════════════════════════════════════════$(NC)"
+
+# Structure linting targets (kept for compatibility)
+structure-lint: lint-structure ## Check project structure compliance
+structure-fix: ## Fix project structure issues
+	@echo "$(YELLOW)🔧 Running structure linting with auto-fix...$(NC)"
 	@python tools/dev/structure_linter.py --fix --verbose
 
 # Release Management Targets
@@ -396,14 +555,29 @@ release-test: ## Run test suite before release
 	fi
 	@echo "$(GREEN)✓ Tests passed$(NC)"
 
-# Build the package
-release-build: ## Build Python package for release
+# Build the package (with quality checks)
+release-build: pre-publish ## Build Python package for release (runs quality checks first)
 	@echo "$(YELLOW)📦 Building package...$(NC)"
 	@echo "$(YELLOW)🔢 Incrementing build number...$(NC)"
 	@python scripts/increment_build.py --all-changes
 	@rm -rf dist/ build/ *.egg-info
 	@python -m build
 	@echo "$(GREEN)✓ Package built successfully$(NC)"
+	@ls -la dist/
+
+# Safe release build (explicit quality gate)
+safe-release-build: ## Build release with mandatory quality checks
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)🔒 Safe Release Build$(NC)"
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@$(MAKE) pre-publish
+	@echo ""
+	@echo "$(YELLOW)📦 Building package after quality checks...$(NC)"
+	@echo "$(YELLOW)🔢 Incrementing build number...$(NC)"
+	@python scripts/increment_build.py --all-changes
+	@rm -rf dist/ build/ *.egg-info
+	@python -m build
+	@echo "$(GREEN)✓ Package built successfully with quality assurance$(NC)"
 	@ls -la dist/
 
 

@@ -13,17 +13,12 @@ functionality including:
 """
 
 import asyncio
-import json
-import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 import pytest_asyncio
-
-from claude_mpm.models.agent_definition import AgentDefinition, AgentType
 
 # Import the classes we're testing
 from claude_mpm.services.agents.deployment.agent_lifecycle_manager import (
@@ -35,7 +30,6 @@ from claude_mpm.services.agents.deployment.agent_lifecycle_manager import (
 )
 from claude_mpm.services.agents.registry.modification_tracker import (
     ModificationTier,
-    ModificationType,
 )
 
 

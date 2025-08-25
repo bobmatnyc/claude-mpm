@@ -6,9 +6,6 @@ executes them in priority order, and handles errors gracefully.
 
 from datetime import datetime
 
-import pytest
-
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.hooks.base_hook import (
     HookContext,
     HookResult,

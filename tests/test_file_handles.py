@@ -2,17 +2,20 @@
 """Test if file handles are being kept open."""
 
 import gc
-import psutil
 import sys
 from pathlib import Path
 
+import psutil
+
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
 
 def count_open_files():
     """Count open file descriptors."""
     process = psutil.Process()
     return len(process.open_files())
+
 
 print(f"Initial open files: {count_open_files()}")
 

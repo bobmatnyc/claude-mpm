@@ -16,18 +16,16 @@ import argparse
 import asyncio
 import json
 import logging
-import os
 import random
 import socket
 import statistics
 import sys
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 # Add claude-mpm to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
@@ -193,7 +191,7 @@ class ConnectionBenchmark:
                     except ConnectionRefusedError:
                         return False, 0, "connection_refused"
                     except Exception as e:
-                        return False, 0, f"error: {str(e)}"
+                        return False, 0, f"error: {e!s}"
 
             # Run connection tests
             tasks = [test_connection() for _ in range(attempts)]
@@ -280,12 +278,11 @@ class ConnectionBenchmark:
             async with pool_lock:
                 if connection_pool:
                     return connection_pool.pop(), True  # Reused connection
-                elif len(connection_pool) < pool_size:
+                if len(connection_pool) < pool_size:
                     # Create new connection (simulated)
                     await asyncio.sleep(0.01)  # Connection establishment delay
                     return f"conn_{len(connection_pool)}", False  # New connection
-                else:
-                    return None, False  # Pool exhausted
+                return None, False  # Pool exhausted
 
         async def return_pooled_connection(conn):
             """Return a connection to the pool."""
@@ -317,7 +314,7 @@ class ConnectionBenchmark:
             except asyncio.TimeoutError:
                 return False, 0, "timeout"
             except Exception as e:
-                return False, 0, f"error: {str(e)}"
+                return False, 0, f"error: {e!s}"
 
         # Run pooled requests with concurrency control
         semaphore = asyncio.Semaphore(concurrent_requests)
@@ -436,14 +433,13 @@ class ConnectionBenchmark:
 
                     conn_time = (time.time() - conn_start) * 1000
                     return True, conn_time, None
-                else:
-                    # Connection failed due to capacity
-                    return False, 0, "capacity_exceeded"
+                # Connection failed due to capacity
+                return False, 0, "capacity_exceeded"
 
             except asyncio.TimeoutError:
                 return False, 0, "timeout"
             except Exception as e:
-                return False, 0, f"error: {str(e)}"
+                return False, 0, f"error: {e!s}"
 
         # Start connections with staggered timing
         connection_tasks = []
@@ -780,7 +776,7 @@ class ConnectionBenchmark:
         print(f"Execution Time: {metadata.get('execution_time', 0):.2f}s")
         print(f"Baseline Failure Rate: {metadata.get('baseline_failure_rate', 0):.1f}%")
 
-        print(f"\n📊 AGGREGATE METRICS:")
+        print("\n📊 AGGREGATE METRICS:")
         print(f"{'='*60}")
         print(
             f"Average Success Rate:    {metrics.get('average_success_rate_percent', 0):.1f}%"
@@ -803,7 +799,7 @@ class ConnectionBenchmark:
 
         target_reduction = metadata.get("target_error_reduction", 40.0)
         meets_target = metadata.get("meets_target", False)
-        print(f"\n🎯 TARGET VALIDATION:")
+        print("\n🎯 TARGET VALIDATION:")
         print(f"{'='*60}")
         print(f"Target Error Reduction:  {target_reduction:.1f}%")
         print(
@@ -812,7 +808,7 @@ class ConnectionBenchmark:
         print(f"Target Met:              {'✅ YES' if meets_target else '❌ NO'}")
 
         # Individual test results
-        print(f"\n📋 INDIVIDUAL TEST RESULTS:")
+        print("\n📋 INDIVIDUAL TEST RESULTS:")
         print(f"{'='*60}")
         for result in results.get("test_results", []):
             success_rate = result["success_rate_percent"]

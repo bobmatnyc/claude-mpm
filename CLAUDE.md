@@ -23,21 +23,21 @@ Following the TSK-0053 refactoring, Claude MPM features:
 - **[Documentation Index](docs/README.md)** - Start here! Complete navigation guide to all documentation
 
 ### Architecture and Development
-- 🏗️ **Architecture Overview**: See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for service-oriented architecture
-- 📁 **Project Structure**: See [docs/STRUCTURE.md](docs/STRUCTURE.md) for file organization
+- 🏗️ **Architecture Overview**: See [docs/developer/ARCHITECTURE.md](docs/developer/ARCHITECTURE.md) for service-oriented architecture
+- 📁 **Project Structure**: See [docs/developer/STRUCTURE.md](docs/developer/STRUCTURE.md) for file organization
 - 🔧 **Service Layer Guide**: See [docs/developer/SERVICES.md](docs/developer/SERVICES.md) for service development
-- ⚡ **Performance Guide**: See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for optimization patterns
-- 🔒 **Security Guide**: See [docs/SECURITY.md](docs/SECURITY.md) for security framework
-- 🧪 **Testing Guide**: See [docs/TESTING.md](docs/TESTING.md) for testing strategies
-- 📚 **Migration Guide**: See [docs/MIGRATION.md](docs/MIGRATION.md) for upgrade instructions
+- ⚡ **Performance Guide**: See [docs/developer/PERFORMANCE.md](docs/developer/PERFORMANCE.md) for optimization patterns
+- 🔒 **Security Guide**: See [docs/reference/SECURITY.md](docs/reference/SECURITY.md) for security framework
+- 🧪 **Testing Guide**: See [docs/developer/TESTING.md](docs/developer/TESTING.md) for testing strategies
+- 📚 **Migration Guide**: See [docs/user/MIGRATION.md](docs/user/MIGRATION.md) for upgrade instructions
 
 ### Operations and Quality
-- 🧪 **Quality Assurance**: See [docs/QA.md](docs/QA.md) for testing guidelines
-- 🚀 **Deployment**: See [docs/DEPLOY.md](docs/DEPLOY.md) for versioning and deployment
-- 📊 **Response Logging**: See [docs/archive/RESPONSE_LOGGING_CONFIG.md](docs/archive/RESPONSE_LOGGING_CONFIG.md) for response logging configuration
-- 🔢 **Versioning**: See [docs/VERSIONING.md](docs/VERSIONING.md) for version management
-- 🧠 **Memory System**: See [docs/MEMORY.md](docs/MEMORY.md) for agent memory management
-- 🎨 **Output Style**: See [docs/OUTPUT_STYLE.md](docs/OUTPUT_STYLE.md) for agent response formatting standards
+- 🧪 **Quality Assurance**: See [docs/developer/QA.md](docs/developer/QA.md) for testing guidelines
+- 🚀 **Deployment**: See [docs/reference/DEPLOY.md](docs/reference/DEPLOY.md) for versioning and deployment
+- 📊 **Response Logging**: See [docs/_archive/RESPONSE_LOGGING_CONFIG.md](docs/_archive/RESPONSE_LOGGING_CONFIG.md) for response logging configuration
+- 🔢 **Versioning**: See [docs/reference/VERSIONING.md](docs/reference/VERSIONING.md) for version management
+- 🧠 **Memory System**: See [docs/user/03-features/memory-system.md](docs/user/03-features/memory-system.md) for agent memory management
+- 🎨 **Output Style**: See [docs/developer/OUTPUT_STYLE.md](docs/developer/OUTPUT_STYLE.md) for agent response formatting standards
 
 ## Development Guidelines
 
@@ -46,7 +46,7 @@ Following the TSK-0053 refactoring, Claude MPM features:
 Claude MPM now supports both Mamba (recommended) and traditional Python venv environments:
 
 - **Automatic detection**: `./scripts/claude-mpm` auto-detects and uses the best available environment
-- **Mamba setup**: See [docs/DEVELOPMENT_SETUP.md](docs/DEVELOPMENT_SETUP.md) for Mamba installation and benefits
+- **Mamba setup**: See [docs/user/getting-started/DEVELOPMENT_SETUP.md](docs/user/getting-started/DEVELOPMENT_SETUP.md) for Mamba installation and benefits
 - **Force venv**: Use `./scripts/claude-mpm --use-venv` to use traditional venv even if Mamba is available
 - **Benefits of Mamba**: 50-80% faster dependency resolution, optimized binaries, better reproducibility
 
@@ -61,7 +61,7 @@ Claude MPM now supports both Mamba (recommended) and traditional Python venv env
 
 ### Project Structure Requirements
 
-1. **File Organization**: Always refer to `docs/STRUCTURE.md` when creating new files
+1. **File Organization**: Always refer to `docs/developer/STRUCTURE.md` when creating new files
    - **Scripts**: ALL scripts go in `/scripts/`, NEVER in project root
    - **Tests**: ALL tests go in `/tests/`, NEVER in project root
    - **Python modules**: Always under `/src/claude_mpm/`
@@ -73,7 +73,19 @@ Claude MPM now supports both Mamba (recommended) and traditional Python venv env
 
 ### Testing Requirements
 
-**After significant changes, always run:**
+**Modern Quality Commands (Recommended):**
+```bash
+# Auto-fix formatting and import issues
+make lint-fix
+
+# Run all quality checks before commits
+make quality
+
+# Complete pre-release quality gate
+make pre-publish
+```
+
+**Legacy Commands (Still Supported):**
 ```bash
 # Quick E2E tests
 ./scripts/run_e2e_tests.sh
@@ -85,8 +97,39 @@ Claude MPM now supports both Mamba (recommended) and traditional Python venv env
 ./scripts/run_lint.sh
 ```
 
-See [docs/QA.md](docs/QA.md) for detailed testing procedures.
-See [docs/LINTING.md](docs/LINTING.md) for linting configuration and duplicate import detection.
+See [docs/developer/QA.md](docs/developer/QA.md) for detailed testing procedures.
+See [docs/developer/LINTING.md](docs/developer/LINTING.md) for linting configuration and duplicate import detection.
+
+### Development Workflow
+
+**Quality-First Development** - Use these three key commands for a smooth development experience:
+
+#### Daily Development Commands
+
+1. **`make lint-fix`** - Auto-fix formatting and import issues
+   - Runs Black formatter, isort import sorting, and fixable Ruff issues
+   - Use this frequently during development to maintain code quality
+   - Safe to run anytime - only fixes issues, doesn't break code
+
+2. **`make quality`** - Run all quality checks before commits
+   - Comprehensive linting with Ruff, Black, isort, Flake8, mypy
+   - Structure validation and code quality checks
+   - **Run this before every commit** to catch issues early
+
+3. **`make safe-release-build`** - Build with mandatory quality checks
+   - Complete pre-publish quality gate plus build process
+   - Ensures releases meet all quality standards
+   - Required for all release builds
+
+#### Quick Reference
+
+| Command | When to Use | What It Does |
+|---------|-------------|--------------|
+| `make lint-fix` | During development | Auto-fixes formatting, imports, and simple issues |
+| `make quality` | Before commits | Runs all quality checks and validations |
+| `make safe-release-build` | For releases | Complete quality gate + safe build process |
+
+For detailed quality gate documentation, see [docs/reference/DEPLOY.md#quality-gates](docs/reference/DEPLOY.md#quality-gates).
 
 ### Key System Components
 
@@ -202,11 +245,11 @@ def test_service_implements_interface():
 
 ### Code Quality Standards
 1. **Follow Architecture**: Use service-oriented patterns and interface-based design
-2. **Structure Compliance**: Follow the structure in `docs/STRUCTURE.md`
+2. **Structure Compliance**: Follow the structure in `docs/developer/STRUCTURE.md`
 3. **Interface Design**: Define clear contracts for all services
 4. **Dependency Injection**: Use service container for loose coupling
 5. **Performance**: Implement caching and lazy loading where appropriate
-6. **Security**: Follow security guidelines in `docs/SECURITY.md`
+6. **Security**: Follow security guidelines in `docs/reference/SECURITY.md`
 
 ### Testing Requirements
 1. **Unit Tests**: Test individual services and components (85%+ coverage)
@@ -243,7 +286,7 @@ Build numbers increment automatically with every substantial code change via git
 
 ## Deployment Process
 
-See [docs/DEPLOY.md](docs/DEPLOY.md) for the complete deployment process:
+See [docs/reference/DEPLOY.md](docs/reference/DEPLOY.md) for the complete deployment process:
 - Version management with `./scripts/manage_version.py`
 - Building and publishing to PyPI
 - Creating GitHub releases

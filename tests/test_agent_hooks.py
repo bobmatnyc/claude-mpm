@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Test script to verify agent information is captured in hooks."""
 
-import json
 import subprocess
 import sys
 import time
@@ -77,13 +76,13 @@ if __name__ == "__main__":
             ],
             cwd=Path(__file__).parent.parent,
             capture_output=True,
-            text=True,
+            text=True, check=False,
         )
 
         if result.returncode != 0:
             print(f"   ❌ Error: {result.stderr}")
         else:
-            print(f"   ✅ Success")
+            print("   ✅ Success")
 
         # Give time for events to be processed
         time.sleep(1)

@@ -6,12 +6,11 @@ This module tests that subprocess utilities properly prevent shell injection
 vulnerabilities and handle malicious input safely.
 """
 
-import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_mpm.utils.subprocess_utils import SubprocessError, run_command
+from claude_mpm.utils.subprocess_utils import SubprocessError
 
 
 class TestSubprocessSecurity:

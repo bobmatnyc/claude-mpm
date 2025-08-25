@@ -19,7 +19,6 @@ os.environ["CLAUDE_MPM_HOOK_DEBUG"] = "true"
 # Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "src"))
 
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 from claude_mpm.services.response_tracker import ResponseTracker
 
@@ -85,13 +84,12 @@ def test_disabled_tracking():
         if len(response_files) == 0:
             print("✅ No response files created when tracking is disabled")
             return True
-        else:
-            print(
-                f"❌ {len(response_files)} files created despite tracking being disabled"
-            )
-            for file_path in response_files:
-                print(f"  - {file_path.name}")
-            return False
+        print(
+            f"❌ {len(response_files)} files created despite tracking being disabled"
+        )
+        for file_path in response_files:
+            print(f"  - {file_path.name}")
+        return False
 
     finally:
         # Clean up
@@ -176,7 +174,7 @@ def test_missing_session_id():
                         print(f"  ✅ Created {len(session_files)} response file(s)")
                         results.append(True)
                     else:
-                        print(f"  ❌ No response files created")
+                        print("  ❌ No response files created")
                         results.append(False)
                 else:
                     # For invalid session IDs, we expect no files or handled gracefully
@@ -275,7 +273,7 @@ def test_large_responses():
 
             # Verify file content
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
+                with open(file_path, encoding="utf-8") as f:
                     data = json.load(f)
 
                 response_length = len(data["response"])
@@ -284,9 +282,8 @@ def test_large_responses():
                 if response_length == len(large_content):
                     print("✅ Large response content preserved correctly")
                     return True
-                else:
-                    print(f"❌ Response content truncated or modified")
-                    return False
+                print("❌ Response content truncated or modified")
+                return False
 
             except json.JSONDecodeError:
                 print("❌ Response file contains invalid JSON")
@@ -315,11 +312,11 @@ def test_configuration_override():
     if config_path.exists():
         print(f"✅ Found configuration file: {config_path}")
 
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             config = yaml.safe_load(f)
 
         response_config = config.get("response_logging", {})
-        print(f"Current configuration:")
+        print("Current configuration:")
         print(f"  enabled: {response_config.get('enabled', False)}")
         print(f"  debug: {response_config.get('debug', False)}")
         print(f"  format: {response_config.get('format', 'json')}")
@@ -333,16 +330,15 @@ def test_configuration_override():
         test_config.set("response_logging.format", "json")
 
         # Verify overrides work
-        print(f"\nAfter override:")
+        print("\nAfter override:")
         print(f"  enabled: {test_config.get('response_logging.enabled')}")
         print(f"  debug: {test_config.get('response_logging.debug')}")
         print(f"  format: {test_config.get('response_logging.format')}")
 
         print("✅ Configuration override test passed")
         return True
-    else:
-        print(f"❌ Configuration file not found: {config_path}")
-        return False
+    print(f"❌ Configuration file not found: {config_path}")
+    return False
 
 
 if __name__ == "__main__":

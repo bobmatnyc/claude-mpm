@@ -11,13 +11,10 @@ efficiently, and combined properly with base instructions. This is critical
 for agent behavior consistency and performance.
 """
 
-import json
 import os
-import tempfile
 import unittest
 from pathlib import Path
-from typing import Any, Dict
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
 
 # Test imports
 from claude_mpm.agents.agent_loader import (
@@ -29,13 +26,11 @@ from claude_mpm.agents.agent_loader import (
     _get_model_config,
     clear_agent_cache,
     get_agent_prompt,
-    load_agent_prompt_from_md,
 )
 from claude_mpm.agents.base_agent_loader import (
     PromptTemplate,
     _remove_test_mode_instructions,
     clear_base_agent_cache,
-    load_base_agent_instructions,
     prepend_base_instructions,
 )
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
@@ -325,11 +320,11 @@ Keep this."""
         """Test backward compatibility functions."""
         # NOTE: Legacy functions were removed, using get_agent_prompt instead
         from claude_mpm.agents.agent_loader import get_agent_prompt
-        
+
         # Mock the missing legacy functions
         def get_documentation_agent_prompt(*args, **kwargs):
             return get_agent_prompt("documentation", *args, **kwargs)
-        
+
         def get_qa_agent_prompt(*args, **kwargs):
             return get_agent_prompt("qa", *args, **kwargs)
 

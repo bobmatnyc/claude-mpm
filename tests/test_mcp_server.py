@@ -9,7 +9,6 @@ import json
 import subprocess
 import sys
 import time
-from pathlib import Path
 
 
 def test_mcp_server():
@@ -64,7 +63,7 @@ def test_mcp_server():
             if line and line.strip().startswith("{"):
                 response = line
                 break
-            elif line:
+            if line:
                 print(f"  Server output: {line.strip()}")
 
         if response:

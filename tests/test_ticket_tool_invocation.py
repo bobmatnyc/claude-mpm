@@ -1,11 +1,11 @@
 import pytest
+
 #!/usr/bin/env python3
 """
 Test script to verify ticket tools can be invoked through the MCP server.
 """
 
 import asyncio
-import json
 import sys
 from pathlib import Path
 
@@ -54,7 +54,7 @@ async def test_ticket_tool_invocation():
             result = await tool_adapter.invoke(invocation)
 
             if result.success:
-                print(f"✅ Tool invocation successful!")
+                print("✅ Tool invocation successful!")
                 print(f"Execution time: {result.execution_time:.2f}s")
                 print(f"Result type: {type(result.data)}")
 

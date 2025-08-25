@@ -9,7 +9,6 @@ Part of ISS-0036: Hello World Tool - Testing and Validation Tool
 """
 
 import asyncio
-import json
 import platform
 import sys
 from datetime import datetime
@@ -22,7 +21,6 @@ sys.path.insert(0, "/Users/masa/Projects/claude-mpm/src")
 
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     MCPToolInvocation,
-    MCPToolResult,
 )
 from claude_mpm.services.mcp_gateway.tools.hello_world import HelloWorldTool
 

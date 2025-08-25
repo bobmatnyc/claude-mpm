@@ -13,20 +13,17 @@ USAGE:
     python scripts/test_smart_port_detection.py
 """
 
-import os
+import subprocess
 import sys
 import time
-import socket
-import signal
-import subprocess
 from pathlib import Path
 
 # Add parent directory to path to import claude_mpm modules
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from claude_mpm.services.port_manager import PortManager
 from claude_mpm.core.logging_config import get_logger
+from claude_mpm.services.port_manager import PortManager
 
 logger = get_logger(__name__)
 
@@ -61,15 +58,15 @@ except KeyboardInterrupt:
 finally:
     sock.close()
 """
-    
+
     # Start the debug process
     process = subprocess.Popen(
         [sys.executable, "-c", script],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True
+        text=True,
     )
-    
+
     # Give it time to bind to the port
     time.sleep(1)
     return process
@@ -81,10 +78,10 @@ def test_port_detection():
     print("Testing Smart Port Detection and Reclaim")
     print("=" * 60)
     print()
-    
+
     port_manager = PortManager()
     test_port = 8765
-    
+
     # Test 1: Check free port
     print("Test 1: Checking free port...")
     status = port_manager.get_port_status(test_port)
@@ -93,15 +90,17 @@ def test_port_detection():
     else:
         print(f"⚠️ Port {test_port} is already in use")
         if status["process"]:
-            print(f"   Process: {status['process']['name']} (PID: {status['process']['pid']})")
+            print(
+                f"   Process: {status['process']['name']} (PID: {status['process']['pid']})"
+            )
             print(f"   Recommendation: {status['recommendation']}")
     print()
-    
+
     # Test 2: Start a debug process and detect it
     print("Test 2: Starting debug process on port 8765...")
     debug_process = start_debug_process(test_port)
     print(f"   Started debug process with PID: {debug_process.pid}")
-    
+
     # Check port status
     status = port_manager.get_port_status(test_port)
     if not status["available"]:
@@ -115,22 +114,24 @@ def test_port_detection():
             print(f"   - Is daemon: {process['is_daemon']}")
             print(f"   - Recommendation: {status['recommendation']}")
     print()
-    
+
     # Test 3: Try to find available port with reclaim
     print("Test 3: Finding available port with auto-reclaim...")
-    available_port = port_manager.find_available_port(preferred_port=test_port, reclaim=True)
-    
+    available_port = port_manager.find_available_port(
+        preferred_port=test_port, reclaim=True
+    )
+
     if available_port == test_port:
         print(f"✅ Successfully reclaimed port {test_port} from debug process")
     elif available_port:
         print(f"⚠️ Got different port {available_port} (couldn't reclaim {test_port})")
     else:
-        print(f"❌ No available ports found")
-    
+        print("❌ No available ports found")
+
     # Wait for debug process to terminate
     debug_process.wait(timeout=2)
     print()
-    
+
     # Test 4: Test port range status
     print("Test 4: Checking port range status...")
     print("Port range 8765-8770:")
@@ -153,13 +154,13 @@ def test_port_detection():
             else:
                 print(f"  Port {port}: ❓ In use (unknown process)")
     print()
-    
+
     # Test 5: Test force flag for daemon processes
     print("Test 5: Testing force flag (simulated)...")
     print("   Note: In real usage, --force flag would kill daemon processes")
     print("   This is a destructive operation and should be used with caution")
     print()
-    
+
     print("=" * 60)
     print("Smart Port Detection Tests Complete!")
     print("=" * 60)

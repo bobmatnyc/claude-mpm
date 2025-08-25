@@ -6,7 +6,6 @@ This script displays helpful information after pipx installation of claude-mpm.
 """
 
 import sys
-import subprocess
 from pathlib import Path
 
 
@@ -18,39 +17,53 @@ def check_pipx_installation():
 def check_mcp_configured():
     """Check if MCP is already configured."""
     import platform
-    
+
     system = platform.system()
     if system == "Darwin":
-        config_path = Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+        config_path = (
+            Path.home()
+            / "Library"
+            / "Application Support"
+            / "Claude"
+            / "claude_desktop_config.json"
+        )
     elif system == "Windows":
         import os
+
         appdata = os.environ.get("APPDATA", "")
         if appdata:
             config_path = Path(appdata) / "Claude" / "claude_desktop_config.json"
         else:
-            config_path = Path.home() / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json"
+            config_path = (
+                Path.home()
+                / "AppData"
+                / "Roaming"
+                / "Claude"
+                / "claude_desktop_config.json"
+            )
     else:
         config_path = Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
-    
+
     if config_path.exists():
         try:
             import json
-            with open(config_path, 'r') as f:
+
+            with open(config_path) as f:
                 config = json.load(f)
             return "claude-mpm-gateway" in config.get("mcpServers", {})
         except:
             pass
-    
+
     return False
 
 
 def main():
     """Display post-installation message."""
     print()
-    print("="*60)
+    print("=" * 60)
     print("✨ Claude MPM successfully installed via pipx!")
-    print("="*60)
-    
+    print("=" * 60)
+
     # Check if this is a pipx installation
     if check_pipx_installation():
         # Check if MCP is configured
@@ -65,12 +78,14 @@ def main():
             print("This will set up the MCP server for Claude Code integration.")
             print()
             print("Or for manual setup, see:")
-            print("  https://github.com/Shredmetal/claude-mpm/blob/main/docs/MCP_PIPX_SETUP.md")
+            print(
+                "  https://github.com/Shredmetal/claude-mpm/blob/main/docs/MCP_PIPX_SETUP.md"
+            )
             print()
         else:
             print("✅ MCP Gateway appears to be configured")
             print()
-    
+
     print("🚀 Quick Start:")
     print("-" * 40)
     print("  claude-mpm              # Start interactive mode")
@@ -81,7 +96,7 @@ def main():
     print("  https://github.com/Shredmetal/claude-mpm")
     print()
     print("Enjoy using Claude MPM! 🎉")
-    print("="*60)
+    print("=" * 60)
     print()
 
 

@@ -29,16 +29,12 @@ METRICS TRACKED:
 
 import json
 import logging
-import multiprocessing
 import os
-import shutil
 import sys
-import tempfile
-import threading
 import time
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import pytest
 import yaml
@@ -50,13 +46,9 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 from claude_mpm.agents.agent_loader import (
     AgentLoader,
     clear_agent_cache,
-    get_agent_prompt,
     get_agent_prompt_with_model_info,
-    list_available_agents,
-    reload_agents,
     validate_agent_files,
 )
-from claude_mpm.core.logger import get_logger, setup_logging
 from claude_mpm.services.agents.deployment import AgentDeploymentService
 from claude_mpm.services.agents.registry import DeployedAgentDiscovery
 
@@ -213,7 +205,7 @@ class TestAgentSystemE2E:
                         continue
 
                     try:
-                        with open(json_file, "r") as f:
+                        with open(json_file) as f:
                             agent_data = json.load(f)
 
                         # Validate against schema to ensure consistency
@@ -391,7 +383,7 @@ class TestAgentSystemE2E:
             assert md_path.exists(), f"Agent {agent_id} Markdown should exist"
 
             # Validate Markdown structure
-            with open(md_path, "r") as f:
+            with open(md_path) as f:
                 yaml_data = yaml.safe_load(f)
                 assert "name" in yaml_data
                 assert "instructions" in yaml_data
@@ -945,7 +937,7 @@ def test_hook_system_integration():
         assert len(md_files) == 1
 
         # Verify agent Markdown is readable by hook system
-        with open(md_files[0], "r") as f:
+        with open(md_files[0]) as f:
             yaml_content = yaml.safe_load(f)
             assert yaml_content["name"] == "Hook Test Agent"
             assert "instructions" in yaml_content

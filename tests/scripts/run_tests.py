@@ -27,7 +27,7 @@ def main():
     print(f"Command: {' '.join(cmd)}")
     print("-" * 60)
 
-    result = subprocess.run(cmd, cwd=project_root)
+    result = subprocess.run(cmd, cwd=project_root, check=False)
 
     if result.returncode == 0:
         print("\n✅ All tests passed!")

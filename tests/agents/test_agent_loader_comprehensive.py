@@ -21,33 +21,7 @@ as it's a critical component used throughout the Claude MPM system. These
 tests verify both functional correctness and performance characteristics.
 """
 
-import json
-import logging
-import os
-import tempfile
-import time
-from pathlib import Path
-from typing import Any, Dict, Optional
-from unittest.mock import MagicMock, Mock, patch
 
-import pytest
 
-from claude_mpm.agents.agent_loader import (
-    AGENT_CACHE_PREFIX,
-    MODEL_NAME_MAPPINGS,
-    MODEL_THRESHOLDS,
-    AgentLoader,
-    ComplexityLevel,
-    ModelType,
-    _get_loader,
-    clear_agent_cache,
-    get_agent_prompt,
-    get_agent_prompt_with_model_info,
-    list_available_agents,
-    reload_agents,
-    validate_agent_files,
-    validate_agent_files,
-)
 
 # NOTE: These legacy functions were removed from the codebase
-from claude_mpm.validation.agent_validator import ValidationResult

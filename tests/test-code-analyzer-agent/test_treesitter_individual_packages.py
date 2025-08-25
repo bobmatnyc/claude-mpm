@@ -27,7 +27,7 @@ def install_package(package_name):
         result = subprocess.run(
             [sys.executable, "-m", "pip", "install", package_name],
             capture_output=True,
-            text=True,
+            text=True, check=False,
         )
         return result.returncode == 0
     except Exception as e:
@@ -87,11 +87,11 @@ def test_individual_package_imports():
                     from tree_sitter import Language
 
                     lang = Language(module.language())
-                    print(f"   ✅ Successfully created Language object")
+                    print("   ✅ Successfully created Language object")
                     results.append((package_name, True, "All tests passed"))
                 except ImportError:
                     print(
-                        f"   ⚠️  tree-sitter core not available, but module import works"
+                        "   ⚠️  tree-sitter core not available, but module import works"
                     )
                     results.append((package_name, True, "Import works, core missing"))
                 except Exception as e:
@@ -236,7 +236,7 @@ if __name__ == "__main__":
             [sys.executable, str(test_file)],
             capture_output=True,
             text=True,
-            cwd=test_file.parent,
+            cwd=test_file.parent, check=False,
         )
 
         print("Individual package test output:")
@@ -289,7 +289,7 @@ def main():
         if success:
             successful_imports += 1
 
-    print(f"\n🔗 Language Object Creation Results:")
+    print("\n🔗 Language Object Creation Results:")
     successful_languages = 0
     for module_name, success, message in language_results:
         status = "✅ PASS" if success else "❌ FAIL"
@@ -297,12 +297,12 @@ def main():
         if success:
             successful_languages += 1
 
-    print(f"\n🐍 Python 3.13 Compatibility:")
+    print("\n🐍 Python 3.13 Compatibility:")
     status = "✅ PASS" if python313_compat else "❌ FAIL"
     print(f"{status}: Python 3.13 compatibility requirements")
 
     # Overall assessment
-    print(f"\n🎯 Overall Results:")
+    print("\n🎯 Overall Results:")
     print(
         f"   📦 Package imports: {successful_imports}/{len(import_results)} successful"
     )

@@ -2,7 +2,6 @@
 """Unit tests for ConfigScreenV2 components."""
 
 import sys
-import tempfile
 from pathlib import Path
 
 import yaml
@@ -13,7 +12,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 # NOTE: Manager module and ConfigScreenV2 were removed from the codebase
 # These tests are for legacy UI functionality that no longer exists
 import pytest
-pytest.skip("Manager module and ConfigScreenV2 UI components were removed", allow_module_level=True)
+
+pytest.skip(
+    "Manager module and ConfigScreenV2 UI components were removed",
+    allow_module_level=True,
+)
 
 # Original imports (no longer available):
 # from claude_mpm.manager.discovery import Installation
@@ -208,7 +211,7 @@ def main():
         return 0
 
     except Exception as e:
-        print(f"=== TEST FAILED ===")
+        print("=== TEST FAILED ===")
         print(f"Error: {e}")
         import traceback
 

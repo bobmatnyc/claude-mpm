@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Comprehensive test to ensure no HTML comments appear in final PM instructions."""
 
-import os
 import re
 import sys
 from pathlib import Path
@@ -60,9 +59,8 @@ def check_for_html_comments(content: str, source: str) -> bool:
         if len(html_comments) > 10:
             print(f"  ... and {len(html_comments) - 10} more")
         return False
-    else:
-        print(f"✅ No HTML comments found in {source}")
-        return True
+    print(f"✅ No HTML comments found in {source}")
+    return True
 
 
 def main():
@@ -106,9 +104,8 @@ def main():
     if all_passed:
         print("✅ ALL TESTS PASSED: No HTML comments in PM instructions")
         return 0
-    else:
-        print("❌ TESTS FAILED: HTML comments still present in instructions")
-        return 1
+    print("❌ TESTS FAILED: HTML comments still present in instructions")
+    return 1
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 import pytest
+
 #!/usr/bin/env python3
 """
 Integration test for the unified ticket tool.

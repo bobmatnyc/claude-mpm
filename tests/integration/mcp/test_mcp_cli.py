@@ -8,7 +8,6 @@ registered and accessible through the claude-mpm CLI.
 
 import subprocess
 import sys
-from pathlib import Path
 
 
 def test_mcp_commands():
@@ -37,7 +36,7 @@ def test_mcp_commands():
         cmd_str = " ".join(cmd_parts)
 
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5, check=False)
 
             if result.returncode == 0:
                 print(f"✅ {cmd_str}")
@@ -63,7 +62,7 @@ def test_mcp_commands():
     # Test status command
     cmd = ["python", "-m", "claude_mpm.cli", "mcp", "status"]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5, check=False)
         if result.returncode == 0:
             print("✅ mcp status executed successfully")
             print("Output:")
@@ -80,9 +79,8 @@ def test_mcp_commands():
     if all_passed:
         print("✅ All MCP CLI commands are working correctly!")
         return 0
-    else:
-        print("❌ Some MCP CLI commands failed!")
-        return 1
+    print("❌ Some MCP CLI commands failed!")
+    return 1
 
 
 if __name__ == "__main__":

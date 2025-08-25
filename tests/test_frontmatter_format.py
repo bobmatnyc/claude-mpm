@@ -6,12 +6,9 @@ follows the correct format and contains all required fields.
 """
 
 import re
-import shutil
-import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import pytest
 import yaml
 
 

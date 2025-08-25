@@ -7,15 +7,11 @@ Tests the document summarizer tool implementation for ISS-0037.
 
 import os
 import tempfile
-from datetime import datetime
-from pathlib import Path
-from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     MCPToolInvocation,
-    MCPToolResult,
 )
 from claude_mpm.services.mcp_gateway.tools.document_summarizer import (
     DocumentSummarizerTool,

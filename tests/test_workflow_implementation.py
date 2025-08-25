@@ -120,7 +120,7 @@ def test_backward_compatibility():
             convert_to_unified_status,
             is_compatible_status,
         )
-        from ai_trackdown_pytools.core.models import PRStatus, TaskStatus
+        from ai_trackdown_pytools.core.models import TaskStatus
 
         # Test conversion from legacy enum
         unified = convert_to_unified_status(TaskStatus.OPEN)

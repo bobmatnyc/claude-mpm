@@ -1,4 +1,5 @@
 import pytest
+
 #!/usr/bin/env python3
 """
 Test the unified ticket tool through the MCP Gateway.

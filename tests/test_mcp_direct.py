@@ -77,7 +77,7 @@ def test_mcp_direct():
                     "id": 2,
                 }
 
-                print(f"\nSending tools/list request...")
+                print("\nSending tools/list request...")
                 proc.stdin.write(json.dumps(list_request) + "\n")
                 proc.stdin.flush()
 

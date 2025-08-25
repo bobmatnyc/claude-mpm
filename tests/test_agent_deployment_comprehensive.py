@@ -43,20 +43,17 @@ import json
 import os
 import shutil
 import sys
-import tempfile
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, Mock, mock_open, patch
+from unittest.mock import patch
 
 import pytest
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from claude_mpm.core.exceptions import AgentDeploymentError
 from claude_mpm.services.agents.deployment import AgentDeploymentService
 
 
@@ -457,8 +454,7 @@ class TestPartialDeploymentFailures:
             # Corrupt every third write
             if corruption_count % 3 == 0:
                 return Path.write_text(self, "CORRUPTED DATA", encoding, errors)
-            else:
-                return Path.write_text(self, data, encoding, errors)
+            return Path.write_text(self, data, encoding, errors)
 
         with patch.object(Path, "write_text", corrupting_write_text):
             # Deploy with corruption simulation
@@ -571,9 +567,8 @@ class TestRollbackScenarios:
             if write_count <= 1:
                 # Allow first write to succeed
                 return Path.write_text(self, data, encoding, errors)
-            else:
-                # Fail subsequent writes to trigger rollback
-                raise OSError("Simulated deployment failure")
+            # Fail subsequent writes to trigger rollback
+            raise OSError("Simulated deployment failure")
 
         with patch.object(Path, "write_text", failing_after_partial_write):
             # Attempt deployment that should trigger rollback

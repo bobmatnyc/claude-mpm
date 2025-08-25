@@ -1,6 +1,5 @@
 import pytest
-import pytest
-import pytest
+
 #!/usr/bin/env python3
 """
 Test script for MCP Server Implementation
@@ -140,7 +139,7 @@ async def test_mcp_server():
     # Test tools/list request (simulated)
     request = {"jsonrpc": "2.0", "id": "1", "method": "tools/list", "params": {}}
     response = await server.handle_request(request)
-    print(f"✓ Handled tools/list request")
+    print("✓ Handled tools/list request")
 
     # Get server metrics
     print("\nServer metrics:")
@@ -260,9 +259,8 @@ async def main():
             print("✓ Structured logging with appropriate log levels")
             print("✓ Server lifecycle management implemented")
             return 0
-        else:
-            print("SOME TESTS FAILED! ✗")
-            return 1
+        print("SOME TESTS FAILED! ✗")
+        return 1
 
     except Exception as e:
         print(f"\n✗ Test suite failed with error: {e}")

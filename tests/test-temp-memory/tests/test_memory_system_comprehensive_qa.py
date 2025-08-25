@@ -58,7 +58,7 @@ class MemorySystemQATest:
 
         cmd = [self.mpm_cmd] + args
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, check=False)
             return {
                 "returncode": result.returncode,
                 "stdout": result.stdout,
@@ -212,9 +212,11 @@ class MemorySystemQATest:
                 "add_success": add_result["returncode"] == 0,
                 "view_success": view_result["returncode"] == 0,
                 "view_found_content": "test" in view_result["stdout"].lower(),
-                "status_output": status_result["stdout"][:200] + "..."
-                if len(status_result["stdout"]) > 200
-                else status_result["stdout"],
+                "status_output": (
+                    status_result["stdout"][:200] + "..."
+                    if len(status_result["stdout"]) > 200
+                    else status_result["stdout"]
+                ),
             },
         )
 

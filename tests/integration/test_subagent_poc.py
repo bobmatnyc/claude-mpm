@@ -16,7 +16,6 @@ import pytest
 )
 def test_subagent_poc():
     """Placeholder for subagent POC test."""
-    pass
 
 
 if __name__ == "__main__":

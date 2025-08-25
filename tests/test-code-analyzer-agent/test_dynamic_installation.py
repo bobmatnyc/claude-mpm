@@ -4,11 +4,8 @@ Test script to validate dynamic installation logic for missing tree-sitter packa
 This tests the agent's ability to install packages on-demand.
 """
 
-import importlib
-import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 
@@ -18,7 +15,7 @@ def uninstall_package(package_name):
         result = subprocess.run(
             [sys.executable, "-m", "pip", "uninstall", "-y", package_name],
             capture_output=True,
-            text=True,
+            text=True, check=False,
         )
         return result.returncode == 0
     except Exception:
@@ -136,7 +133,7 @@ if __name__ == "__main__":
             [sys.executable, str(test_file)],
             capture_output=True,
             text=True,
-            cwd=test_file.parent,
+            cwd=test_file.parent, check=False,
         )
 
         print(result.stdout)
@@ -266,7 +263,7 @@ if __name__ == "__main__":
             [sys.executable, str(fallback_file)],
             capture_output=True,
             text=True,
-            cwd=fallback_file.parent,
+            cwd=fallback_file.parent, check=False,
         )
 
         print(result.stdout)
