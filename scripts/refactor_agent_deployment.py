@@ -39,7 +39,8 @@ class AgentDeploymentRefactorer:
             ],
             capture_output=True,
             text=True,
-            cwd=str(self.project_root), check=False,
+            cwd=str(self.project_root),
+            check=False,
         )
 
         if result.returncode != 0:
@@ -534,10 +535,8 @@ class DeploymentResultsManager:
             lines = remaining.split("\n")
             end_idx = 0
             for i, line in enumerate(lines[1:], 1):
-                if (
-                    (line
-                    and not line.startswith(" "))
-                    or (line.startswith("    def ") and i > 1)
+                if (line and not line.startswith(" ")) or (
+                    line.startswith("    def ") and i > 1
                 ):
                     end_idx = i
                     break
@@ -553,10 +552,8 @@ class DeploymentResultsManager:
             lines = remaining.split("\n")
             end_idx = 0
             for i, line in enumerate(lines[1:], 1):
-                if (
-                    (line
-                    and not line.startswith(" "))
-                    or (line.startswith("    def ") and i > 1)
+                if (line and not line.startswith(" ")) or (
+                    line.startswith("    def ") and i > 1
                 ):
                     end_idx = i
                     break
@@ -1036,10 +1033,8 @@ class SingleAgentDeployer:
             lines = remaining.split("\n")
             end_idx = 0
             for i, line in enumerate(lines[1:], 1):
-                if (
-                    (line
-                    and not line.startswith(" "))
-                    or (line.startswith("    def ") and i > 1)
+                if (line and not line.startswith(" ")) or (
+                    line.startswith("    def ") and i > 1
                 ):
                     end_idx = i
                     break
@@ -1055,10 +1050,8 @@ class SingleAgentDeployer:
             lines = remaining.split("\n")
             end_idx = 0
             for i, line in enumerate(lines[1:], 1):
-                if (
-                    (line
-                    and not line.startswith(" "))
-                    or (line.startswith("    def ") and i > 1)
+                if (line and not line.startswith(" ")) or (
+                    line.startswith("    def ") and i > 1
                 ):
                     end_idx = i
                     break
@@ -1076,10 +1069,8 @@ class SingleAgentDeployer:
             lines = remaining.split("\n")
             end_idx = 0
             for i, line in enumerate(lines[1:], 1):
-                if (
-                    (line
-                    and not line.startswith(" "))
-                    or (line.startswith("    def ") and i > 1)
+                if (line and not line.startswith(" ")) or (
+                    line.startswith("    def ") and i > 1
                 ):
                     end_idx = i
                     break
@@ -1105,7 +1096,8 @@ class SingleAgentDeployer:
         subprocess.run(
             ["git", "commit", "-m", commit_msg],
             cwd=str(self.project_root),
-            capture_output=True, check=False,
+            capture_output=True,
+            check=False,
         )
 
         print(f"✅ Committed: {commit_msg}")

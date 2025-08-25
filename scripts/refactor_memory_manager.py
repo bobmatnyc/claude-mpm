@@ -13,7 +13,6 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
 
-
 def create_memory_file_service():
     """Phase 1.1: Extract MemoryFileService class."""
 
