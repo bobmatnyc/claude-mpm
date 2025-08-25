@@ -3,8 +3,7 @@
 Monitors individual process health including CPU, memory, file descriptors, and threads.
 """
 
-import time
-from typing import List, Optional
+from typing import List
 
 from claude_mpm.core.constants import ResourceLimits, TimeoutConfig
 
@@ -12,6 +11,7 @@ from .base import BaseMonitoringService, HealthMetric, HealthStatus
 
 try:
     import psutil
+
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
@@ -20,7 +20,7 @@ except ImportError:
 
 class ProcessHealthService(BaseMonitoringService):
     """Service for monitoring individual process health.
-    
+
     Monitors:
     - Process existence and status
     - Process CPU usage
@@ -37,7 +37,7 @@ class ProcessHealthService(BaseMonitoringService):
         fd_threshold: int = 1000,
     ):
         """Initialize process health service.
-        
+
         Args:
             pid: Process ID to monitor
             cpu_threshold: CPU usage threshold as percentage
@@ -98,19 +98,19 @@ class ProcessHealthService(BaseMonitoringService):
 
             # Process status
             metrics.extend(self._check_process_status())
-            
+
             # CPU usage
             metrics.extend(self._check_cpu_usage())
-            
+
             # Memory usage
             metrics.extend(self._check_memory_usage())
-            
+
             # File descriptors
             metrics.extend(self._check_file_descriptors())
-            
+
             # Thread count
             metrics.extend(self._check_thread_count())
-            
+
             # Process metadata
             metrics.extend(self._check_process_metadata())
 
@@ -329,7 +329,7 @@ class ProcessHealthService(BaseMonitoringService):
 
     def is_process_alive(self) -> bool:
         """Quick check if process is still alive.
-        
+
         Returns:
             True if process exists and is running
         """

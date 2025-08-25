@@ -10,10 +10,6 @@ from .base import (
     HealthMetric,
     HealthStatus,
 )
-from .network import NetworkHealthService
-from .process import ProcessHealthService
-from .resources import ResourceMonitorService
-from .service import ServiceHealthService
 
 # Legacy exports for backward compatibility
 from .legacy import (
@@ -22,6 +18,10 @@ from .legacy import (
     ProcessResourceChecker,
     ServiceHealthChecker,
 )
+from .network import NetworkHealthService
+from .process import ProcessHealthService
+from .resources import ResourceMonitorService
+from .service import ServiceHealthService
 
 __all__ = [
     # New service-based API

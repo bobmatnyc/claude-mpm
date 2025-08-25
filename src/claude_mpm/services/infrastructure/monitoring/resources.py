@@ -3,13 +3,13 @@
 Monitors system-wide resource usage including CPU, memory, and disk utilization.
 """
 
-import time
 from typing import Dict, List, Optional
 
 from .base import BaseMonitoringService, HealthMetric, HealthStatus
 
 try:
     import psutil
+
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
@@ -18,7 +18,7 @@ except ImportError:
 
 class ResourceMonitorService(BaseMonitoringService):
     """Service for monitoring system resource usage.
-    
+
     Monitors:
     - System CPU usage
     - System memory usage
@@ -33,7 +33,7 @@ class ResourceMonitorService(BaseMonitoringService):
         disk_threshold: float = 90.0,
     ):
         """Initialize resource monitor service.
-        
+
         Args:
             cpu_threshold: CPU usage warning threshold (%)
             memory_threshold: Memory usage warning threshold (%)
@@ -62,10 +62,8 @@ class ResourceMonitorService(BaseMonitoringService):
         # CPU usage
         try:
             cpu_percent = psutil.cpu_percent(interval=0.1)
-            cpu_status = self._get_threshold_status(
-                cpu_percent, self.cpu_threshold
-            )
-            
+            cpu_status = self._get_threshold_status(cpu_percent, self.cpu_threshold)
+
             metrics.append(
                 HealthMetric(
                     name="system_cpu_usage",
@@ -75,7 +73,7 @@ class ResourceMonitorService(BaseMonitoringService):
                     unit="%",
                 )
             )
-            
+
             # CPU count for context
             metrics.append(
                 HealthMetric(
@@ -101,7 +99,7 @@ class ResourceMonitorService(BaseMonitoringService):
             memory_status = self._get_threshold_status(
                 memory.percent, self.memory_threshold
             )
-            
+
             metrics.append(
                 HealthMetric(
                     name="system_memory_usage",
@@ -111,7 +109,7 @@ class ResourceMonitorService(BaseMonitoringService):
                     unit="%",
                 )
             )
-            
+
             # Memory details
             metrics.append(
                 HealthMetric(
@@ -121,7 +119,7 @@ class ResourceMonitorService(BaseMonitoringService):
                     unit="GB",
                 )
             )
-            
+
             metrics.append(
                 HealthMetric(
                     name="memory_total_gb",
@@ -144,10 +142,8 @@ class ResourceMonitorService(BaseMonitoringService):
         # Disk usage
         try:
             disk = psutil.disk_usage("/")
-            disk_status = self._get_threshold_status(
-                disk.percent, self.disk_threshold
-            )
-            
+            disk_status = self._get_threshold_status(disk.percent, self.disk_threshold)
+
             metrics.append(
                 HealthMetric(
                     name="disk_usage",
@@ -157,7 +153,7 @@ class ResourceMonitorService(BaseMonitoringService):
                     unit="%",
                 )
             )
-            
+
             metrics.append(
                 HealthMetric(
                     name="disk_free_gb",
@@ -182,14 +178,14 @@ class ResourceMonitorService(BaseMonitoringService):
             if hasattr(psutil, "getloadavg"):
                 load1, load5, load15 = psutil.getloadavg()
                 cpu_count = psutil.cpu_count()
-                
+
                 # Load is concerning if > cpu_count
                 load_status = HealthStatus.HEALTHY
                 if load1 > cpu_count:
                     load_status = HealthStatus.WARNING
                 if load1 > cpu_count * 1.5:
                     load_status = HealthStatus.CRITICAL
-                
+
                 metrics.append(
                     HealthMetric(
                         name="load_average_1min",
@@ -198,7 +194,7 @@ class ResourceMonitorService(BaseMonitoringService):
                         threshold=cpu_count,
                     )
                 )
-                
+
                 metrics.append(
                     HealthMetric(
                         name="load_average_5min",
@@ -211,28 +207,25 @@ class ResourceMonitorService(BaseMonitoringService):
 
         return metrics
 
-    def _get_threshold_status(
-        self, value: float, threshold: float
-    ) -> HealthStatus:
+    def _get_threshold_status(self, value: float, threshold: float) -> HealthStatus:
         """Determine health status based on threshold.
-        
+
         Args:
             value: Current value
             threshold: Warning threshold
-            
+
         Returns:
             Health status based on value vs threshold
         """
         if value < threshold:
             return HealthStatus.HEALTHY
-        elif value < threshold * 1.1:  # 10% above threshold
+        if value < threshold * 1.1:  # 10% above threshold
             return HealthStatus.WARNING
-        else:
-            return HealthStatus.CRITICAL
+        return HealthStatus.CRITICAL
 
     def get_resource_summary(self) -> Optional[Dict[str, float]]:
         """Get quick resource summary without full health check.
-        
+
         Returns:
             Dictionary with current resource usage percentages
         """

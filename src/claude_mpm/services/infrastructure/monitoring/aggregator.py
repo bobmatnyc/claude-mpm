@@ -20,7 +20,7 @@ from .base import (
 
 class MonitoringAggregatorService(BaseMonitoringService):
     """Service that aggregates health checks from multiple monitoring services.
-    
+
     Provides:
     - Unified health checking across all registered services
     - Health history tracking
@@ -31,33 +31,33 @@ class MonitoringAggregatorService(BaseMonitoringService):
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize monitoring aggregator service.
-        
+
         Args:
             config: Configuration dictionary for monitoring
         """
         super().__init__("MonitoringAggregator")
         self.config = config or {}
-        
+
         # Configuration with defaults
         self.check_interval = self.config.get("check_interval", 30)
         self.history_size = self.config.get("history_size", 100)
         self.aggregation_window = self.config.get("aggregation_window", 300)
-        
+
         # Registered monitoring services
         self.services: List[BaseMonitoringService] = []
         self.checkers: List[HealthChecker] = []  # For backward compatibility
-        
+
         # Health history
         self.health_history: deque = deque(maxlen=self.history_size)
-        
+
         # Monitoring state
         self.monitoring = False
         self.monitor_task: Optional[asyncio.Task] = None
         self.last_check_result: Optional[HealthCheckResult] = None
-        
+
         # Health callbacks for recovery integration
         self.health_callbacks: List[Callable[[HealthCheckResult], None]] = []
-        
+
         # Statistics
         self.monitoring_stats = {
             "checks_performed": 0,
@@ -65,12 +65,12 @@ class MonitoringAggregatorService(BaseMonitoringService):
             "average_check_duration_ms": 0,
             "last_check_timestamp": None,
         }
-        
+
         self.logger.info("Monitoring aggregator initialized")
 
     def add_service(self, service: BaseMonitoringService) -> None:
         """Add a monitoring service to aggregate.
-        
+
         Args:
             service: Monitoring service to add
         """
@@ -79,7 +79,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
 
     def add_checker(self, checker: HealthChecker) -> None:
         """Add a health checker (backward compatibility).
-        
+
         Args:
             checker: Health checker to add
         """
@@ -90,7 +90,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
         self, callback: Callable[[HealthCheckResult], None]
     ) -> None:
         """Add a callback to be called when health checks complete.
-        
+
         Args:
             callback: Function to call with HealthCheckResult
         """
@@ -99,7 +99,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
 
     async def check_health(self) -> List[HealthMetric]:
         """Perform health check across all services.
-        
+
         Returns:
             Combined list of health metrics from all services
         """
@@ -118,7 +118,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
                 service_start = time.time()
                 metrics = await service.check_health()
                 service_duration = (time.time() - service_start) * 1000
-                
+
                 all_metrics.extend(metrics)
                 self.logger.debug(
                     f"Service {service.get_name()} completed in {service_duration:.2f}ms"
@@ -127,7 +127,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
                 error_msg = f"Service {service.get_name()} failed: {e}"
                 errors.append(error_msg)
                 self.logger.error(error_msg)
-                
+
                 all_metrics.append(
                     HealthMetric(
                         name=f"{service.get_name()}_error",
@@ -143,7 +143,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
                 checker_start = time.time()
                 metrics = await checker.check_health()
                 checker_duration = (time.time() - checker_start) * 1000
-                
+
                 all_metrics.extend(metrics)
                 self.logger.debug(
                     f"Checker {checker.get_name()} completed in {checker_duration:.2f}ms"
@@ -152,7 +152,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
                 error_msg = f"Checker {checker.get_name()} failed: {e}"
                 errors.append(error_msg)
                 self.logger.error(error_msg)
-                
+
                 all_metrics.append(
                     HealthMetric(
                         name=f"{checker.get_name()}_error",
@@ -195,10 +195,10 @@ class MonitoringAggregatorService(BaseMonitoringService):
 
     def _determine_overall_status(self, metrics: List[HealthMetric]) -> HealthStatus:
         """Determine overall health status from individual metrics.
-        
+
         Args:
             metrics: List of health metrics
-            
+
         Returns:
             Overall health status
         """
@@ -206,7 +206,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
             return HealthStatus.UNKNOWN
 
         # Count metrics by status
-        status_counts = {status: 0 for status in HealthStatus}
+        status_counts = dict.fromkeys(HealthStatus, 0)
         for metric in metrics:
             status_counts[metric.status] += 1
 
@@ -231,7 +231,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
 
     def _update_statistics(self, result: HealthCheckResult, duration_ms: float) -> None:
         """Update monitoring statistics.
-        
+
         Args:
             result: Health check result
             duration_ms: Check duration in milliseconds
@@ -250,7 +250,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
 
     async def _notify_callbacks(self, result: HealthCheckResult) -> None:
         """Notify health callbacks asynchronously.
-        
+
         Args:
             result: Health check result to pass to callbacks
         """
@@ -307,7 +307,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
 
     def get_current_status(self) -> Optional[HealthCheckResult]:
         """Get the most recent health check result.
-        
+
         Returns:
             Most recent health check result or None
         """
@@ -317,29 +317,29 @@ class MonitoringAggregatorService(BaseMonitoringService):
         self, limit: Optional[int] = None
     ) -> List[HealthCheckResult]:
         """Get health check history.
-        
+
         Args:
             limit: Maximum number of results to return
-            
+
         Returns:
             List of health check results, newest first
         """
         history = list(self.health_history)
         history.reverse()  # Newest first
-        
+
         if limit:
             history = history[:limit]
-        
+
         return history
 
     def get_aggregated_status(
         self, window_seconds: Optional[int] = None
     ) -> Dict[str, Any]:
         """Get aggregated health status over a time window.
-        
+
         Args:
             window_seconds: Time window for aggregation
-            
+
         Returns:
             Dictionary with aggregated health statistics
         """
@@ -349,8 +349,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
 
         # Filter history to time window
         recent_results = [
-            result for result in self.health_history
-            if result.timestamp >= cutoff_time
+            result for result in self.health_history if result.timestamp >= cutoff_time
         ]
 
         if not recent_results:
@@ -362,7 +361,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
             }
 
         # Aggregate statistics
-        status_counts = {status: 0 for status in HealthStatus}
+        status_counts = dict.fromkeys(HealthStatus, 0)
         total_metrics = 0
         total_errors = 0
         total_duration_ms = 0
@@ -405,7 +404,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
 
     def export_diagnostics(self) -> Dict[str, Any]:
         """Export comprehensive diagnostics information.
-        
+
         Returns:
             Dictionary with diagnostic information
         """

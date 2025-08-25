@@ -11,7 +11,7 @@ from .base import BaseMonitoringService, HealthMetric, HealthStatus
 
 class NetworkHealthService(BaseMonitoringService):
     """Service for monitoring network health and connectivity.
-    
+
     Monitors:
     - Port availability and binding
     - Socket creation capability
@@ -21,7 +21,7 @@ class NetworkHealthService(BaseMonitoringService):
 
     def __init__(self, default_timeout: float = 1.0):
         """Initialize network health service.
-        
+
         Args:
             default_timeout: Default connection timeout in seconds
         """
@@ -37,7 +37,7 @@ class NetworkHealthService(BaseMonitoringService):
         timeout: Optional[float] = None,
     ) -> None:
         """Add an endpoint to monitor.
-        
+
         Args:
             host: Host address to monitor
             port: Port number to monitor
@@ -112,13 +112,13 @@ class NetworkHealthService(BaseMonitoringService):
         timeout: float,
     ) -> List[HealthMetric]:
         """Check connectivity to a specific endpoint.
-        
+
         Args:
             host: Host to check
             port: Port to check
             name: Endpoint name for metrics
             timeout: Connection timeout
-            
+
         Returns:
             List of health metrics for the endpoint
         """
@@ -179,11 +179,11 @@ class NetworkHealthService(BaseMonitoringService):
 
     def check_port_available(self, port: int, host: str = "0.0.0.0") -> bool:
         """Check if a port is available for binding.
-        
+
         Args:
             port: Port number to check
             host: Host interface to check
-            
+
         Returns:
             True if port is available for binding
         """
@@ -202,12 +202,12 @@ class NetworkHealthService(BaseMonitoringService):
         host: str = "0.0.0.0",
     ) -> List[int]:
         """Scan a range of ports to find available ones.
-        
+
         Args:
             start_port: Starting port number
             end_port: Ending port number (inclusive)
             host: Host interface to check
-            
+
         Returns:
             List of available port numbers
         """
