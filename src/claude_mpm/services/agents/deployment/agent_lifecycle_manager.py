@@ -38,7 +38,6 @@ from typing import Any, Dict, List, Optional
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.models.agent_definition import AgentDefinition
 from claude_mpm.services.agents.management import AgentManager
-from claude_mpm.utils.path_operations import path_ops
 from claude_mpm.services.agents.memory import (
     AgentPersistenceService,
     PersistenceOperation,
@@ -53,6 +52,7 @@ from claude_mpm.services.agents.registry.modification_tracker import (
     ModificationType,
 )
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
+from claude_mpm.utils.path_operations import path_ops
 
 # Import extracted services
 from .agent_operation_service import (
@@ -80,13 +80,13 @@ __all__ = [
 class AgentLifecycleManager(BaseService):
     """
     Agent Lifecycle Manager - Unified agent management across hierarchy tiers.
-    
+
     Refactored to use specialized services following SOLID principles:
     - AgentStateService handles state tracking
     - AgentOperationService handles CRUD operations
     - AgentRecordService handles persistence
     - LifecycleHealthChecker handles health monitoring
-    
+
     Features:
     - Complete agent lifecycle management (CRUD operations)
     - Integrated modification tracking and persistence
@@ -343,7 +343,7 @@ class AgentLifecycleManager(BaseService):
             LifecycleOperationResult with operation details
         """
         start_time = time.time()
-        
+
         # Check if agent already exists
         if self.state_service.get_record(agent_name):
             return LifecycleOperationResult(
@@ -360,9 +360,7 @@ class AgentLifecycleManager(BaseService):
         )
 
         # Determine location based on tier
-        location = (
-            "project" if tier == ModificationTier.PROJECT else "framework"
-        )
+        location = "project" if tier == ModificationTier.PROJECT else "framework"
 
         # Create agent using AgentManager (sync call in executor)
         try:
@@ -375,9 +373,7 @@ class AgentLifecycleManager(BaseService):
                 )
             else:
                 # Fallback to direct file creation if AgentManager not available
-                file_path = await self._determine_agent_file_path(
-                    agent_name, tier
-                )
+                file_path = await self._determine_agent_file_path(agent_name, tier)
                 path_ops.ensure_dir(file_path.parent)
                 path_ops.safe_write(file_path, agent_content)
         except Exception as e:
@@ -452,9 +448,7 @@ class AgentLifecycleManager(BaseService):
         await self._update_performance_metrics(result)
 
         self.operation_history.append(result)
-        self.logger.info(
-            f"Created agent '{agent_name}' in {result.duration_ms:.1f}ms"
-        )
+        self.logger.info(f"Created agent '{agent_name}' in {result.duration_ms:.1f}ms")
 
         return result
 
