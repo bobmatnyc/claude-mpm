@@ -32,12 +32,17 @@ Created for ISS-0118: Agent Registry and Hierarchical Discovery System
 
 import asyncio
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService
+from claude_mpm.models.agent_definition import AgentDefinition
 from claude_mpm.services.agents.management import AgentManager
+from claude_mpm.utils.path_operations import path_ops
 from claude_mpm.services.agents.memory import (
     AgentPersistenceService,
+    PersistenceOperation,
+    PersistenceRecord,
     PersistenceStrategy,
 )
 from claude_mpm.services.agents.registry import AgentRegistry
@@ -337,6 +342,8 @@ class AgentLifecycleManager(BaseService):
         Returns:
             LifecycleOperationResult with operation details
         """
+        start_time = time.time()
+        
         # Check if agent already exists
         if self.state_service.get_record(agent_name):
             return LifecycleOperationResult(
@@ -380,94 +387,76 @@ class AgentLifecycleManager(BaseService):
             path_ops.ensure_dir(file_path.parent)
             path_ops.safe_write(file_path, agent_content)
 
-                # Track modification
-                modification = await self.modification_tracker.track_modification(
-                    agent_name=agent_name,
-                    modification_type=ModificationType.CREATE,
-                    file_path=str(file_path),
-                    tier=tier,
-                    agent_type=agent_type,
-                    **kwargs,
-                )
+        # Track modification
+        modification = await self.modification_tracker.track_modification(
+            agent_name=agent_name,
+            modification_type=ModificationType.CREATE,
+            file_path=str(file_path),
+            tier=tier,
+            agent_type=agent_type,
+            **kwargs,
+        )
 
-                # Note: We don't use persistence_service for the actual write anymore
-                # since AgentManager handles that. We create a synthetic record for compatibility.
-                persistence_record = PersistenceRecord(
-                    operation_id=f"create_{agent_name}_{time.time()}",
-                    operation_type=PersistenceOperation.CREATE,
-                    agent_name=agent_name,
-                    source_tier=tier,
-                    target_tier=tier,
-                    strategy=self.default_persistence_strategy,
-                    success=True,
-                    timestamp=time.time(),
-                    file_path=str(file_path),
-                )
+        # Note: We don't use persistence_service for the actual write anymore
+        # since AgentManager handles that. We create a synthetic record for compatibility.
+        persistence_record = PersistenceRecord(
+            operation_id=f"create_{agent_name}_{time.time()}",
+            operation_type=PersistenceOperation.CREATE,
+            agent_name=agent_name,
+            source_tier=tier,
+            target_tier=tier,
+            strategy=self.default_persistence_strategy,
+            success=True,
+            timestamp=time.time(),
+            file_path=str(file_path),
+        )
 
-                # Create lifecycle record
-                lifecycle_record = AgentLifecycleRecord(
-                    agent_name=agent_name,
-                    current_state=LifecycleState.ACTIVE,
-                    tier=tier,
-                    file_path=str(file_path),
-                    created_at=time.time(),
-                    last_modified=time.time(),
-                    version="1.0.0",
-                    modifications=[modification.modification_id],
-                    persistence_operations=[persistence_record.operation_id],
-                    metadata={"agent_type": agent_type, **kwargs},
-                )
+        # Create lifecycle record
+        lifecycle_record = AgentLifecycleRecord(
+            agent_name=agent_name,
+            current_state=LifecycleState.ACTIVE,
+            tier=tier,
+            file_path=str(file_path),
+            created_at=time.time(),
+            last_modified=time.time(),
+            version="1.0.0",
+            modifications=[modification.modification_id],
+            persistence_operations=[persistence_record.operation_id],
+            metadata={"agent_type": agent_type, **kwargs},
+        )
 
-                self.agent_records[agent_name] = lifecycle_record
+        self.agent_records[agent_name] = lifecycle_record
 
-                # Invalidate cache and update registry
-                cache_invalidated = await self._invalidate_agent_cache(agent_name)
-                registry_updated = await self._update_registry(agent_name)
+        # Invalidate cache and update registry
+        cache_invalidated = await self._invalidate_agent_cache(agent_name)
+        registry_updated = await self._update_registry(agent_name)
 
-                # Create result
-                result = LifecycleOperationResult(
-                    operation=LifecycleOperation.CREATE,
-                    agent_name=agent_name,
-                    success=persistence_record.success,
-                    duration_ms=(time.time() - start_time) * 1000,
-                    modification_id=modification.modification_id,
-                    persistence_id=persistence_record.operation_id,
-                    cache_invalidated=cache_invalidated,
-                    registry_updated=registry_updated,
-                    metadata={"file_path": str(file_path)},
-                )
+        # Create result
+        result = LifecycleOperationResult(
+            operation=LifecycleOperation.CREATE,
+            agent_name=agent_name,
+            success=persistence_record.success,
+            duration_ms=(time.time() - start_time) * 1000,
+            modification_id=modification.modification_id,
+            persistence_id=persistence_record.operation_id,
+            cache_invalidated=cache_invalidated,
+            registry_updated=registry_updated,
+            metadata={"file_path": str(file_path)},
+        )
 
-                if not persistence_record.success:
-                    result.error_message = persistence_record.error_message
-                    lifecycle_record.current_state = LifecycleState.CONFLICTED
+        if not persistence_record.success:
+            result.error_message = persistence_record.error_message
+            lifecycle_record.current_state = LifecycleState.CONFLICTED
 
-                # Update performance metrics
-                await self._update_performance_metrics(result)
+        # Update performance metrics
+        await self._update_performance_metrics(result)
 
-                self.operation_history.append(result)
-                self.logger.info(
-                    f"Created agent '{agent_name}' in {result.duration_ms:.1f}ms"
-                )
+        self.operation_history.append(result)
+        self.logger.info(
+            f"Created agent '{agent_name}' in {result.duration_ms:.1f}ms"
+        )
 
-                return result
-
-            except Exception as e:
-                result = LifecycleOperationResult(
-                    operation=LifecycleOperation.CREATE,
-                    agent_name=agent_name,
-                    success=False,
-                    duration_ms=(time.time() - start_time) * 1000,
-                    error_message=str(e),
-                )
-
-                self.operation_history.append(result)
-                await self._update_performance_metrics(result)
-
-                self.logger.error(f"Failed to create agent '{agent_name}': {e}")
-                return result
-
-            finally:
-                self.active_operations.pop(agent_name, None)
+        return result
 
     async def update_agent(
         self, agent_name: str, agent_content: str, **kwargs
