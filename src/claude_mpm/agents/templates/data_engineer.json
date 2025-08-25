@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "data-engineer",
-  "agent_version": "2.3.0",
+  "agent_version": "2.4.0",
   "agent_type": "engineer",
   "metadata": {
     "name": "Data Engineer Agent",
@@ -110,6 +110,32 @@
       "token_usage": 8192,
       "success_rate": 0.95
     }
+  },
+  "memory_routing": {
+    "description": "Stores data pipeline patterns, schema designs, and performance tuning techniques",
+    "categories": [
+      "Data pipeline patterns and ETL strategies",
+      "Schema designs and migrations",
+      "Performance tuning techniques",
+      "Data quality requirements"
+    ],
+    "keywords": [
+      "data",
+      "database",
+      "sql",
+      "pipeline",
+      "etl",
+      "schema",
+      "migration",
+      "streaming",
+      "batch",
+      "warehouse",
+      "lake",
+      "analytics",
+      "pandas",
+      "spark",
+      "kafka"
+    ]
   },
   "dependencies": {
     "python": [

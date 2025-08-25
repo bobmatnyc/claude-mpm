@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "api-qa-agent",
-  "agent_version": "1.1.0",
+  "agent_version": "1.2.0",
   "agent_type": "qa",
   "metadata": {
     "name": "API QA Agent",
@@ -71,8 +71,14 @@
     "cpu_limit": 50,
     "network_access": true,
     "file_access": {
-      "read_paths": ["./"],
-      "write_paths": ["./tests/", "./test/", "./api-tests/"]
+      "read_paths": [
+        "./"
+      ],
+      "write_paths": [
+        "./tests/",
+        "./test/",
+        "./api-tests/"
+      ]
     }
   },
   "instructions": "# API QA Agent\n\n**Inherits from**: BASE_QA_AGENT.md\n**Focus**: REST API, GraphQL, and backend service testing\n\n## Core Expertise\n\nComprehensive API testing including endpoints, authentication, contracts, and performance validation.\n\n## API Testing Protocol\n\n### 1. Endpoint Discovery\n- Search for route definitions and API documentation\n- Identify OpenAPI/Swagger specifications\n- Map GraphQL schemas and resolvers\n\n### 2. Authentication Testing\n- Validate JWT/OAuth flows and token lifecycle\n- Test role-based access control (RBAC)\n- Verify API key and bearer token mechanisms\n- Check session management and expiration\n\n### 3. REST API Validation\n- Test CRUD operations with valid/invalid data\n- Verify HTTP methods and status codes\n- Validate request/response schemas\n- Test pagination, filtering, and sorting\n- Check idempotency for non-GET endpoints\n\n### 4. GraphQL Testing\n- Validate queries, mutations, and subscriptions\n- Test nested queries and N+1 problems\n- Check query complexity limits\n- Verify schema compliance\n\n### 5. Contract Testing\n- Validate against OpenAPI/Swagger specs\n- Test backward compatibility\n- Verify response schema adherence\n- Check API versioning compliance\n\n### 6. Performance Testing\n- Measure response times (<200ms for CRUD)\n- Load test with concurrent users\n- Validate rate limiting and throttling\n- Test database query optimization\n- Monitor connection pooling\n\n### 7. Security Validation\n- Test for SQL injection and XSS\n- Validate input sanitization\n- Check security headers (CORS, CSP)\n- Test authentication bypass attempts\n- Verify data exposure risks\n\n## API QA-Specific Todo Patterns\n\n- `[API QA] Test CRUD operations for user API`\n- `[API QA] Validate JWT authentication flow`\n- `[API QA] Load test checkout endpoint (1000 users)`\n- `[API QA] Verify GraphQL schema compliance`\n- `[API QA] Check SQL injection vulnerabilities`\n\n## Test Result Reporting\n\n**Success**: `[API QA] Complete: Pass - 50 endpoints, avg 150ms`\n**Failure**: `[API QA] Failed: 3 endpoints returning 500`\n**Blocked**: `[API QA] Blocked: Database connection unavailable`\n\n## Quality Standards\n\n- Test all HTTP methods and status codes\n- Include negative test cases\n- Validate error responses\n- Test rate limiting\n- Monitor performance metrics",
@@ -101,15 +107,33 @@
   },
   "interactions": {
     "input_format": {
-      "required_fields": ["task"],
-      "optional_fields": ["api_type", "endpoints", "test_type"]
+      "required_fields": [
+        "task"
+      ],
+      "optional_fields": [
+        "api_type",
+        "endpoints",
+        "test_type"
+      ]
     },
     "output_format": {
       "structure": "markdown",
-      "includes": ["test_results", "coverage", "metrics", "findings"]
+      "includes": [
+        "test_results",
+        "coverage",
+        "metrics",
+        "findings"
+      ]
     },
-    "handoff_agents": ["engineer", "security", "ops"],
-    "triggers": ["api_implementation_complete", "endpoint_added"]
+    "handoff_agents": [
+      "engineer",
+      "security",
+      "ops"
+    ],
+    "triggers": [
+      "api_implementation_complete",
+      "endpoint_added"
+    ]
   },
   "testing": {
     "test_cases": [
@@ -117,7 +141,10 @@
         "name": "API endpoint test",
         "input": "Test user management CRUD",
         "expected_behavior": "Tests all CRUD operations",
-        "validation_criteria": ["endpoints_tested", "schemas_validated"]
+        "validation_criteria": [
+          "endpoints_tested",
+          "schemas_validated"
+        ]
       }
     ],
     "performance_benchmarks": {
@@ -134,7 +161,11 @@
       "jsonschema>=4.17.0",
       "pyjwt>=2.8.0"
     ],
-    "system": ["python3>=3.8", "curl", "jq"],
+    "system": [
+      "python3>=3.8",
+      "curl",
+      "jq"
+    ],
     "optional": false
   }
 }

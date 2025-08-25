@@ -2,8 +2,13 @@
   "schema_version": "1.2.0",
   "agent_id": "ops-agent",
   "agent_version": "2.2.1",
-  "template_version": "1.0.1",
+  "template_version": "2.1.0",
   "template_changelog": [
+    {
+      "version": "2.1.0",
+      "date": "2025-08-25",
+      "description": "Version bump to trigger redeployment of optimized templates"
+    },
     {
       "version": "1.0.1",
       "date": "2025-08-22",
@@ -120,6 +125,34 @@
       "success_rate": 0.95
     }
   },
+  "memory_routing": {
+    "description": "Stores deployment patterns, infrastructure configurations, and monitoring strategies",
+    "categories": [
+      "Deployment patterns and rollback procedures",
+      "Infrastructure configurations",
+      "Monitoring and alerting strategies",
+      "CI/CD pipeline requirements"
+    ],
+    "keywords": [
+      "deployment",
+      "infrastructure",
+      "devops",
+      "cicd",
+      "docker",
+      "kubernetes",
+      "terraform",
+      "ansible",
+      "monitoring",
+      "logging",
+      "metrics",
+      "alerts",
+      "prometheus",
+      "grafana",
+      "aws",
+      "azure",
+      "gcp"
+    ]
+  },
   "dependencies": {
     "python": [
       "prometheus-client>=0.19.0"
@@ -129,6 +162,5 @@
       "git"
     ],
     "optional": false
-  },
-  "template_version": "2.0.0"
+  }
 }

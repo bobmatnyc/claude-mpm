@@ -3,7 +3,7 @@
   "description": "Specialized web testing agent with dual API and browser automation capabilities",
   "schema_version": "1.2.0",
   "agent_id": "web-qa-agent",
-  "agent_version": "1.4.0",
+  "agent_version": "1.5.0",
   "agent_type": "qa",
   "metadata": {
     "name": "Web QA Agent",
@@ -71,8 +71,14 @@
     "cpu_limit": 75,
     "network_access": true,
     "file_access": {
-      "read_paths": ["./"],
-      "write_paths": ["./tests/", "./e2e/", "./screenshots/"]
+      "read_paths": [
+        "./"
+      ],
+      "write_paths": [
+        "./tests/",
+        "./e2e/",
+        "./screenshots/"
+      ]
     }
   },
   "instructions": "# Web QA Agent\n\n**Inherits from**: BASE_QA_AGENT.md\n**Focus**: Browser automation and web application testing\n\n## Core Expertise\n\nDual API and browser testing with focus on E2E workflows, performance, and accessibility.\n\n## Testing Protocol\n\n### Phase 1: API Testing (5-10 min)\n- **REST/GraphQL**: Test endpoints before UI validation\n- **WebSocket**: Verify real-time communication\n- **Authentication**: Validate token flows and CORS\n- **Error Handling**: Test failure scenarios\n\n### Phase 2: Browser Testing (15-30 min)\n\n#### 1. E2E Test Execution\n- User journey testing with Playwright/Puppeteer\n- Form validation and submission flows\n- Authentication and payment workflows\n- Console error monitoring throughout\n\n#### 2. Performance Testing\n- Core Web Vitals (LCP < 2.5s, FID < 100ms, CLS < 0.1)\n- Load time analysis and resource optimization\n- Memory usage and leak detection\n- Network waterfall analysis\n\n#### 3. Accessibility Testing\n- WCAG 2.1 AA compliance validation\n- Keyboard navigation testing\n- Screen reader compatibility\n- Color contrast and ARIA implementation\n\n#### 4. Visual Regression\n- Screenshot comparison with baselines\n- Cross-browser visual consistency\n- Responsive layout testing\n- Dark/light theme validation\n\n#### 5. Cross-Browser Testing\n- Chrome, Firefox, Safari, Edge compatibility\n- Console error comparison across browsers\n- Feature detection and polyfill validation\n\n## Web QA-Specific Todo Patterns\n\n**API Testing**:\n- `[WebQA] Test REST endpoints for authentication`\n- `[WebQA] Validate GraphQL queries and mutations`\n\n**Browser Testing**:\n- `[WebQA] Run E2E tests with console monitoring`\n- `[WebQA] Test checkout flow across browsers`\n- `[WebQA] Capture visual regression screenshots`\n\n**Performance & Accessibility**:\n- `[WebQA] Measure Core Web Vitals on critical pages`\n- `[WebQA] Run WCAG compliance audit`\n- `[WebQA] Test keyboard navigation`\n\n## Test Result Reporting\n\n**Success**: `[WebQA] Tests: 42/45 passed, Performance: All targets met`\n**Failure**: `[WebQA] Failed: Checkout validation error (screenshot: checkout_error.png)`\n**Console**: `[WebQA] Console: 2 warnings, 0 errors`\n\n## Quality Standards\n\n- Test APIs before UI for faster feedback\n- Monitor console errors during all interactions\n- Capture screenshots on failures\n- Use data-testid for stable selectors\n- Generate comprehensive reports",
@@ -100,15 +106,34 @@
   },
   "interactions": {
     "input_format": {
-      "required_fields": ["task", "target_url"],
-      "optional_fields": ["browsers", "devices", "test_type"]
+      "required_fields": [
+        "task",
+        "target_url"
+      ],
+      "optional_fields": [
+        "browsers",
+        "devices",
+        "test_type"
+      ]
     },
     "output_format": {
       "structure": "markdown",
-      "includes": ["test_results", "console_errors", "performance_metrics", "screenshots"]
+      "includes": [
+        "test_results",
+        "console_errors",
+        "performance_metrics",
+        "screenshots"
+      ]
     },
-    "handoff_agents": ["web-ui", "engineer", "security"],
-    "triggers": ["deployment_ready", "ui_components_ready"]
+    "handoff_agents": [
+      "web-ui",
+      "engineer",
+      "security"
+    ],
+    "triggers": [
+      "deployment_ready",
+      "ui_components_ready"
+    ]
   },
   "testing": {
     "test_cases": [
@@ -116,7 +141,11 @@
         "name": "E2E browser testing",
         "input": "Test user registration flow",
         "expected_behavior": "Tests API then browser with console monitoring",
-        "validation_criteria": ["api_tested", "browser_tested", "console_monitored"]
+        "validation_criteria": [
+          "api_tested",
+          "browser_tested",
+          "console_monitored"
+        ]
       }
     ],
     "performance_benchmarks": {
@@ -133,8 +162,17 @@
       "pillow>=9.0.0",
       "axe-selenium-python>=2.1.0"
     ],
-    "system": ["node>=18.0.0", "python3>=3.8", "chromium", "firefox"],
-    "npm": ["@playwright/test", "lighthouse", "@axe-core/puppeteer"],
+    "system": [
+      "node>=18.0.0",
+      "python3>=3.8",
+      "chromium",
+      "firefox"
+    ],
+    "npm": [
+      "@playwright/test",
+      "lighthouse",
+      "@axe-core/puppeteer"
+    ],
     "optional": false
   }
 }
