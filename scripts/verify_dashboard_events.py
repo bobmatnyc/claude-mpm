@@ -18,6 +18,76 @@ except ImportError:
     sys.exit(1)
 
 
+
+
+def setup_event_handlers(sio, event_log):
+    """Set up all event handlers for the socket.io client."""
+
+    @sio.event
+    async def connect():
+        print(f"\n✅ Connected to SocketIO server at {datetime.now(timezone.utc).isoformat()}")
+        print("Monitoring for events...")
+        print("-" * 40)
+
+    @sio.event
+    async def disconnect():
+        print(f"\n❌ Disconnected from server at {datetime.now(timezone.utc).isoformat()}")
+
+    @sio.event
+    async def claude_event(data):
+        await handle_claude_event(data, event_log)
+
+    @sio.event
+    async def test_event(data):
+        print(f"\n📨 TEST EVENT received: {data}")
+        event_log.append({"type": "test", "data": data})
+
+    @sio.event
+    async def error(data):
+        print(f"\n❌ Error event: {data}")
+
+
+async def handle_claude_event(data, event_log):
+    """Process a claude_event."""
+    print("\n🎯 CLAUDE EVENT received:")
+    print(f"  Type: {data.get('type', 'unknown')}")
+    print(f"  Subtype: {data.get('subtype', '')}")
+
+    if "hook" in str(data).lower():
+        print("  ✅ Contains 'hook' - this is a hook event!")
+
+    event_log.append({"type": "claude", "data": data})
+
+    if len(event_log) % 5 == 0:
+        print(f"\n📊 Total events received: {len(event_log)}")
+
+
+async def send_test_events(sio):
+    """Send a series of test events."""
+    print("\n📤 Sending test events...")
+
+    for i in range(3):
+        test_data = create_test_event(i)
+
+        await sio.emit("claude_event", test_data)
+        print(f"  ✅ Sent test event #{i+1}")
+        await asyncio.sleep(1)
+
+    print("\n✅ Test events sent")
+
+
+def create_test_event(index):
+    """Create a test event with the given index."""
+    return {
+        "type": "hook",
+        "subtype": "pre_tool",
+        "tool_name": ["Read", "Write", "Bash"][index],
+        "sessionId": "monitor-test",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "parameters": {"test": f"event_{index}"}
+    }
+
+
 async def monitor_dashboard_events():
     """Connect to the SocketIO server as a dashboard client and monitor events."""
 
