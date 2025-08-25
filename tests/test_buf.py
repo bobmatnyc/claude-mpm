@@ -1,22 +1,19 @@
-from .lib import TestBase, FileCreator
-
-from smmap.mman import (
-    SlidingWindowMapManager,
-    StaticWindowMapManager
-)
-from smmap.buf import SlidingWindowMapBuffer
-
+import os
+import sys
 from random import randint
 from time import time
-import sys
-import os
 
+from smmap.buf import SlidingWindowMapBuffer
+from smmap.mman import SlidingWindowMapManager, StaticWindowMapManager
+
+from .lib import FileCreator, TestBase
 
 man_optimal = SlidingWindowMapManager()
 man_worst_case = SlidingWindowMapManager(
     window_size=TestBase.k_window_test_size // 100,
     max_memory_size=TestBase.k_window_test_size // 3,
-    max_open_handles=15)
+    max_open_handles=15,
+)
 static_man = StaticWindowMapManager()
 
 
@@ -27,10 +24,14 @@ class TestBuf(TestBase):
 
             # invalid paths fail upon construction
             c = man_optimal.make_cursor(fc.path)
-            self.assertRaises(ValueError, SlidingWindowMapBuffer, type(c)())            # invalid cursor
-            self.assertRaises(ValueError, SlidingWindowMapBuffer, c, fc.size)       # offset too large
+            self.assertRaises(
+                ValueError, SlidingWindowMapBuffer, type(c)()
+            )  # invalid cursor
+            self.assertRaises(
+                ValueError, SlidingWindowMapBuffer, c, fc.size
+            )  # offset too large
 
-            buf = SlidingWindowMapBuffer()                                              # can create uninitialized buffers
+            buf = SlidingWindowMapBuffer()  # can create uninitialized buffers
             assert buf.cursor() is None
 
             # can call end access any time
@@ -51,24 +52,24 @@ class TestBuf(TestBase):
             assert buf.cursor().is_valid()
 
             # simple access
-            with open(fc.path, 'rb') as fp:
+            with open(fc.path, "rb") as fp:
                 data = fp.read()
             assert data[offset] == buf[0]
-            assert data[offset:offset * 2] == buf[0:offset]
+            assert data[offset : offset * 2] == buf[0:offset]
 
             # negative indices, partial slices
             assert buf[-1] == buf[len(buf) - 1]
-            assert buf[-10:] == buf[len(buf) - 10:len(buf)]
+            assert buf[-10:] == buf[len(buf) - 10 : len(buf)]
 
             # end access makes its cursor invalid
             buf.end_access()
             assert not buf.cursor().is_valid()
-            assert buf.cursor().is_associated()         # but it remains associated
+            assert buf.cursor().is_associated()  # but it remains associated
 
             # an empty begin access fixes it up again
             assert buf.begin_access() == True and buf.cursor().is_valid()
-            del(buf)        # ends access automatically
-            del(c)
+            del buf  # ends access automatically
+            del c
 
             assert man_optimal.num_file_handles() == 1
 
@@ -80,12 +81,14 @@ class TestBuf(TestBase):
             max_num_accesses = 100
             fd = os.open(fc.path, os.O_RDONLY)
             for item in (fc.path, fd):
-                for manager, man_id in ((man_optimal, 'optimal'),
-                                        (man_worst_case, 'worst case'),
-                                        (static_man, 'static optimal')):
+                for manager, man_id in (
+                    (man_optimal, "optimal"),
+                    (man_worst_case, "worst case"),
+                    (static_man, "static optimal"),
+                ):
                     buf = SlidingWindowMapBuffer(manager.make_cursor(item))
                     assert manager.num_file_handles() == 1
-                    for access_mode in range(2):    # single, multi
+                    for access_mode in range(2):  # single, multi
                         num_accesses_left = max_num_accesses
                         num_bytes = 0
                         fsize = fc.size
@@ -113,12 +116,24 @@ class TestBuf(TestBase):
                         assert manager.num_file_handles()
                         assert manager.collect()
                         assert manager.num_file_handles() == 0
-                        elapsed = max(time() - st, 0.001)  # prevent zero division errors on windows
+                        elapsed = max(
+                            time() - st, 0.001
+                        )  # prevent zero division errors on windows
                         mb = float(1000 * 1000)
                         mode_str = (access_mode and "slice") or "single byte"
-                        print("%s: Made %i random %s accesses to buffer created from %s reading a total of %f mb in %f s (%f mb/s)"
-                              % (man_id, max_num_accesses, mode_str, type(item), num_bytes / mb, elapsed, (num_bytes / mb) / elapsed),
-                              file=sys.stderr)
+                        print(
+                            "%s: Made %i random %s accesses to buffer created from %s reading a total of %f mb in %f s (%f mb/s)"
+                            % (
+                                man_id,
+                                max_num_accesses,
+                                mode_str,
+                                type(item),
+                                num_bytes / mb,
+                                elapsed,
+                                (num_bytes / mb) / elapsed,
+                            ),
+                            file=sys.stderr,
+                        )
                     # END handle access mode
                     del buf
                 # END for each manager

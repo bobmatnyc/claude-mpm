@@ -21,34 +21,30 @@ import platform
 
 import psutil
 import psutil._common
-from psutil import LINUX
-from psutil import MACOS
-from psutil import OPENBSD
-from psutil import POSIX
-from psutil import SUNOS
-from psutil import WINDOWS
-from psutil.tests import HAS_CPU_AFFINITY
-from psutil.tests import HAS_CPU_FREQ
-from psutil.tests import HAS_ENVIRON
-from psutil.tests import HAS_IONICE
-from psutil.tests import HAS_MEMORY_MAPS
-from psutil.tests import HAS_NET_IO_COUNTERS
-from psutil.tests import HAS_PROC_CPU_NUM
-from psutil.tests import HAS_PROC_IO_COUNTERS
-from psutil.tests import HAS_RLIMIT
-from psutil.tests import HAS_SENSORS_BATTERY
-from psutil.tests import HAS_SENSORS_FANS
-from psutil.tests import HAS_SENSORS_TEMPERATURES
-from psutil.tests import TestMemoryLeak
-from psutil.tests import create_sockets
-from psutil.tests import get_testfn
-from psutil.tests import process_namespace
-from psutil.tests import pytest
-from psutil.tests import skip_on_access_denied
-from psutil.tests import spawn_testproc
-from psutil.tests import system_namespace
-from psutil.tests import terminate
-
+from psutil import LINUX, MACOS, OPENBSD, POSIX, SUNOS, WINDOWS
+from psutil.tests import (
+    HAS_CPU_AFFINITY,
+    HAS_CPU_FREQ,
+    HAS_ENVIRON,
+    HAS_IONICE,
+    HAS_MEMORY_MAPS,
+    HAS_NET_IO_COUNTERS,
+    HAS_PROC_CPU_NUM,
+    HAS_PROC_IO_COUNTERS,
+    HAS_RLIMIT,
+    HAS_SENSORS_BATTERY,
+    HAS_SENSORS_FANS,
+    HAS_SENSORS_TEMPERATURES,
+    TestMemoryLeak,
+    create_sockets,
+    get_testfn,
+    process_namespace,
+    pytest,
+    skip_on_access_denied,
+    spawn_testproc,
+    system_namespace,
+    terminate,
+)
 
 cext = psutil._psplatform.cext
 thisproc = psutil.Process()
@@ -223,7 +219,7 @@ class TestProcessObjectLeaks(TestMemoryLeak):
 
     @fewtimes_if_linux()
     def test_open_files(self):
-        with open(get_testfn(), 'w'):
+        with open(get_testfn(), "w"):
             self.execute(self.proc.open_files)
 
     @pytest.mark.skipif(not HAS_MEMORY_MAPS, reason="not supported")
@@ -252,7 +248,7 @@ class TestProcessObjectLeaks(TestMemoryLeak):
         # 'pfiles' cmd  output; we don't want that part of the code to
         # be executed.
         with create_sockets():
-            kind = 'inet' if SUNOS else 'all'
+            kind = "inet" if SUNOS else "all"
             self.execute(lambda: self.proc.net_connections(kind))
 
     @pytest.mark.skipif(not HAS_ENVIRON, reason="not supported")
@@ -364,7 +360,7 @@ class TestModuleFunctionsLeaks(TestMemoryLeak):
     @fewtimes_if_linux()
     # TODO: remove this once 1892 is fixed
     @pytest.mark.skipif(
-        MACOS and platform.machine() == 'arm64', reason="skipped due to #1892"
+        MACOS and platform.machine() == "arm64", reason="skipped due to #1892"
     )
     @pytest.mark.skipif(not HAS_CPU_FREQ, reason="not supported")
     def test_cpu_freq(self):
@@ -393,13 +389,13 @@ class TestModuleFunctionsLeaks(TestMemoryLeak):
 
     def test_disk_usage(self):
         times = FEW_TIMES if POSIX else self.times
-        self.execute(lambda: psutil.disk_usage('.'), times=times)
+        self.execute(lambda: psutil.disk_usage("."), times=times)
 
     def test_disk_partitions(self):
         self.execute(psutil.disk_partitions)
 
     @pytest.mark.skipif(
-        LINUX and not os.path.exists('/proc/diskstats'),
+        LINUX and not os.path.exists("/proc/diskstats"),
         reason="/proc/diskstats not available on this Linux version",
     )
     @fewtimes_if_linux()
@@ -423,9 +419,9 @@ class TestModuleFunctionsLeaks(TestMemoryLeak):
     @pytest.mark.skipif(MACOS and os.getuid() != 0, reason="need root access")
     def test_net_connections(self):
         # always opens and handle on Windows() (once)
-        psutil.net_connections(kind='all')
+        psutil.net_connections(kind="all")
         with create_sockets():
-            self.execute(lambda: psutil.net_connections(kind='all'))
+            self.execute(lambda: psutil.net_connections(kind="all"))
 
     def test_net_if_addrs(self):
         # Note: verified that on Windows this was a false positive.

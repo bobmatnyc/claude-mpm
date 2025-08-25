@@ -120,9 +120,7 @@ def check_version_consistency() -> bool:
     # Suggest fix
     if "VERSION" in found_versions:
         print("\n💡 To fix, run: make sync-versions")
-        print(
-            f"   This will sync all files to VERSION: {found_versions['VERSION']}"
-        )
+        print(f"   This will sync all files to VERSION: {found_versions['VERSION']}")
 
     return False
 

@@ -262,7 +262,8 @@ if __name__ == "__main__":
             [sys.executable, str(test_file)],
             capture_output=True,
             text=True,
-            cwd=test_file.parent, check=False,
+            cwd=test_file.parent,
+            check=False,
         )
 
         print("Test script output:")

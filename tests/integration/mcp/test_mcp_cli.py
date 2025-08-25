@@ -36,7 +36,9 @@ def test_mcp_commands():
         cmd_str = " ".join(cmd_parts)
 
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5, check=False)
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=5, check=False
+            )
 
             if result.returncode == 0:
                 print(f"✅ {cmd_str}")
@@ -62,7 +64,9 @@ def test_mcp_commands():
     # Test status command
     cmd = ["python", "-m", "claude_mpm.cli", "mcp", "status"]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5, check=False)
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=5, check=False
+        )
         if result.returncode == 0:
             print("✅ mcp status executed successfully")
             print("Output:")

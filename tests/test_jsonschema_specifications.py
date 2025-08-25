@@ -2,7 +2,6 @@ from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
-
 from jsonschema_specifications import REGISTRY
 
 

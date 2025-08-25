@@ -20,7 +20,6 @@ import select
 import signal
 import sys
 import threading
-import time
 from datetime import datetime
 
 # Import extracted modules with fallback for direct execution
@@ -59,6 +58,7 @@ DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
 # Import EventBus availability flag for backward compatibility with tests
 try:
     from claude_mpm.services.event_bus import EventBus
+
     EVENTBUS_AVAILABLE = True
 except ImportError:
     EVENTBUS_AVAILABLE = False
@@ -90,23 +90,21 @@ class ClaudeHookHandler:
         self.state_manager = StateManagerService()
         self.connection_manager = ConnectionManagerService()
         self.duplicate_detector = DuplicateEventDetector()
-        
+
         # Initialize extracted managers
         self.memory_hook_manager = MemoryHookManager()
         self.response_tracking_manager = ResponseTrackingManager()
         self.event_handlers = EventHandlers(self)
-        
+
         # Initialize subagent processor with dependencies
         self.subagent_processor = SubagentResponseProcessor(
-            self.state_manager,
-            self.response_tracking_manager,
-            self.connection_manager
+            self.state_manager, self.response_tracking_manager, self.connection_manager
         )
-        
+
         # Backward compatibility properties for tests
         self.connection_pool = self.connection_manager.connection_pool
         self.event_bus = self.connection_manager.event_bus
-        
+
         # Expose state manager properties for backward compatibility
         self.active_delegations = self.state_manager.active_delegations
         self.delegation_history = self.state_manager.delegation_history
@@ -298,7 +296,7 @@ class ClaudeHookHandler:
     def _emit_socketio_event(self, namespace: str, event: str, data: dict):
         """Emit event through connection manager."""
         self.connection_manager.emit_event(namespace, event, data)
-    
+
     def _get_event_key(self, event: dict) -> str:
         """Generate event key through duplicate detector (backward compatibility)."""
         return self.duplicate_detector.generate_event_key(event)

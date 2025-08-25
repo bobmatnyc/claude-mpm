@@ -24,7 +24,8 @@ def test_resume_passthrough():
         cwd=project_root,
         capture_output=True,
         text=True,
-        env={"PYTHONPATH": str(project_root / "src")}, check=False,
+        env={"PYTHONPATH": str(project_root / "src")},
+        check=False,
     )
 
     if result.returncode == 0:
@@ -49,7 +50,8 @@ def test_resume_passthrough():
         cwd=project_root,
         capture_output=True,
         text=True,
-        env={"PYTHONPATH": str(project_root / "src")}, check=False,
+        env={"PYTHONPATH": str(project_root / "src")},
+        check=False,
     )
 
     # This will fail to launch Claude (which is expected in test) but should parse correctly
@@ -68,7 +70,8 @@ def test_resume_passthrough():
         cwd=project_root,
         capture_output=True,
         text=True,
-        env={"PYTHONPATH": str(project_root / "src")}, check=False,
+        env={"PYTHONPATH": str(project_root / "src")},
+        check=False,
     )
 
     if result.returncode == 0:

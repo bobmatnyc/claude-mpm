@@ -10,7 +10,6 @@ from unittest import TestCase
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
-
 class TestConfigNoDuplicateLogging(TestCase):
     """Test that configuration loading doesn't produce duplicate messages."""
 

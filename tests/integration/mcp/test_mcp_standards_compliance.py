@@ -29,7 +29,8 @@ def test_cli_functionality():
             [sys.executable, "-m", "claude_mpm.cli", "mcp", "status"],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent, check=False,
+            cwd=Path(__file__).parent.parent,
+            check=False,
         )
 
         if result.returncode == 0:
@@ -52,7 +53,8 @@ def test_cli_functionality():
             [sys.executable, "-m", "claude_mpm.cli", "mcp", "tools"],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent, check=False,
+            cwd=Path(__file__).parent.parent,
+            check=False,
         )
 
         if result.returncode == 0:
@@ -87,7 +89,8 @@ def test_cli_functionality():
             ],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent, check=False,
+            cwd=Path(__file__).parent.parent,
+            check=False,
         )
 
         if result.returncode == 0:
@@ -119,7 +122,8 @@ def test_cli_functionality():
             ],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent, check=False,
+            cwd=Path(__file__).parent.parent,
+            check=False,
         )
 
         if result.returncode == 0:
@@ -151,7 +155,8 @@ def test_cli_functionality():
             ],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent, check=False,
+            cwd=Path(__file__).parent.parent,
+            check=False,
         )
 
         if result.returncode == 0:

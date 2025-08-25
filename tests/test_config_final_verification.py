@@ -86,7 +86,8 @@ print(f"Success messages: {success_count}")
         capture_output=True,
         text=True,
         timeout=10,
-        env=env, check=False,
+        env=env,
+        check=False,
     )
 
     if result.stdout.strip():

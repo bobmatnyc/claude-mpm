@@ -52,7 +52,13 @@ response_logging:
 
         # Run the command and capture output
         result = subprocess.run(
-            cmd, cwd=tmpdir, env=env, capture_output=True, text=True, timeout=10, check=False
+            cmd,
+            cwd=tmpdir,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
         )
 
         # Combine stdout and stderr to check all output
@@ -137,7 +143,11 @@ print(f"Config._success_logged: {Config._success_logged}")
 
     try:
         result = subprocess.run(
-            [sys.executable, test_file], capture_output=True, text=True, timeout=10, check=False
+            [sys.executable, test_file],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
         )
 
         output = result.stdout + result.stderr

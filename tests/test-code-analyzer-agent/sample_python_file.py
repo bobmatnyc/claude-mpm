@@ -245,7 +245,5 @@ if __name__ == "__main__":
 
     # High fan-out - many imports at module level (should be detected)
 
-
-
     result = massive_function()
     print(result)

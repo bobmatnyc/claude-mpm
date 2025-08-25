@@ -3,50 +3,62 @@
 # This module is part of GitDB and is released under
 # the New BSD License: https://opensource.org/license/bsd-3-clause/
 """Test everything about packs reading and writing"""
-from gitdb.test.lib import (
-    TestBase,
-    with_rw_directory,
-    fixture_path
-)
+import os
+import tempfile
 
-from gitdb.stream import DeltaApplyReader
-
-from gitdb.pack import (
-    PackEntity,
-    PackIndexFile,
-    PackFile
-)
-
+import pytest
 from gitdb.base import (
     OInfo,
     OStream,
 )
-
-from gitdb.fun import delta_types
 from gitdb.exc import UnsupportedOperation
+from gitdb.fun import delta_types
+from gitdb.pack import PackEntity, PackFile, PackIndexFile
+from gitdb.stream import DeltaApplyReader
+from gitdb.test.lib import TestBase, fixture_path, with_rw_directory
 from gitdb.util import to_bin_sha
 
-import pytest
 
-import os
-import tempfile
-
-
-#{ Utilities
+# { Utilities
 def bin_sha_from_filename(filename):
     return to_bin_sha(os.path.splitext(os.path.basename(filename))[0][5:])
-#} END utilities
+
+
+# } END utilities
 
 
 class TestPack(TestBase):
 
-    packindexfile_v1 = (fixture_path('packs/pack-c0438c19fb16422b6bbcce24387b3264416d485b.idx'), 1, 67)
-    packindexfile_v2 = (fixture_path('packs/pack-11fdfa9e156ab73caae3b6da867192221f2089c2.idx'), 2, 30)
-    packindexfile_v2_3_ascii = (fixture_path('packs/pack-a2bf8e71d8c18879e499335762dd95119d93d9f1.idx'), 2, 42)
-    packfile_v2_1 = (fixture_path('packs/pack-c0438c19fb16422b6bbcce24387b3264416d485b.pack'), 2, packindexfile_v1[2])
-    packfile_v2_2 = (fixture_path('packs/pack-11fdfa9e156ab73caae3b6da867192221f2089c2.pack'), 2, packindexfile_v2[2])
+    packindexfile_v1 = (
+        fixture_path("packs/pack-c0438c19fb16422b6bbcce24387b3264416d485b.idx"),
+        1,
+        67,
+    )
+    packindexfile_v2 = (
+        fixture_path("packs/pack-11fdfa9e156ab73caae3b6da867192221f2089c2.idx"),
+        2,
+        30,
+    )
+    packindexfile_v2_3_ascii = (
+        fixture_path("packs/pack-a2bf8e71d8c18879e499335762dd95119d93d9f1.idx"),
+        2,
+        42,
+    )
+    packfile_v2_1 = (
+        fixture_path("packs/pack-c0438c19fb16422b6bbcce24387b3264416d485b.pack"),
+        2,
+        packindexfile_v1[2],
+    )
+    packfile_v2_2 = (
+        fixture_path("packs/pack-11fdfa9e156ab73caae3b6da867192221f2089c2.pack"),
+        2,
+        packindexfile_v2[2],
+    )
     packfile_v2_3_ascii = (
-        fixture_path('packs/pack-a2bf8e71d8c18879e499335762dd95119d93d9f1.pack'), 2, packindexfile_v2_3_ascii[2])
+        fixture_path("packs/pack-a2bf8e71d8c18879e499335762dd95119d93d9f1.pack"),
+        2,
+        packindexfile_v2_3_ascii[2],
+    )
 
     def _assert_index_file(self, index, version, size):
         assert index.packfile_checksum() != index.indexfile_checksum()
@@ -88,7 +100,7 @@ class TestPack(TestBase):
 
             assert info.pack_offset == stream.pack_offset
             assert info.type_id == stream.type_id
-            assert hasattr(stream, 'read')
+            assert hasattr(stream, "read")
 
             # it should be possible to read from both streams
             assert obj.read() == stream.read()
@@ -130,7 +142,11 @@ class TestPack(TestBase):
 
     def test_pack(self):
         # there is this special version 3, but apparently its like 2 ...
-        for packfile, version, size in (self.packfile_v2_3_ascii, self.packfile_v2_1, self.packfile_v2_2):
+        for packfile, version, size in (
+            self.packfile_v2_3_ascii,
+            self.packfile_v2_1,
+            self.packfile_v2_2,
+        ):
             pack = PackFile(packfile)
             self._assert_pack_file(pack, version, size)
         # END for each pack to test
@@ -138,9 +154,11 @@ class TestPack(TestBase):
     @with_rw_directory
     def test_pack_entity(self, rw_dir):
         pack_objs = list()
-        for packinfo, indexinfo in ((self.packfile_v2_1, self.packindexfile_v1),
-                                    (self.packfile_v2_2, self.packindexfile_v2),
-                                    (self.packfile_v2_3_ascii, self.packindexfile_v2_3_ascii)):
+        for packinfo, indexinfo in (
+            (self.packfile_v2_1, self.packindexfile_v1),
+            (self.packfile_v2_2, self.packindexfile_v2),
+            (self.packfile_v2_3_ascii, self.packindexfile_v2_3_ascii),
+        ):
             packfile, version, size = packinfo
             indexfile, version, size = indexinfo
             entity = PackEntity(packfile)
@@ -157,7 +175,7 @@ class TestPack(TestBase):
                 assert info.size == stream.size
 
                 # we return fully resolved items, which is implied by the sha centric access
-                assert not info.type_id in delta_types
+                assert info.type_id not in delta_types
 
                 # try all calls
                 assert len(entity.collect_streams(info.binsha))
@@ -182,21 +200,22 @@ class TestPack(TestBase):
 
         # pack writing - write all packs into one
         # index path can be None
-        pack_path1 = tempfile.mktemp('', "pack1", rw_dir)
-        pack_path2 = tempfile.mktemp('', "pack2", rw_dir)
-        index_path = tempfile.mktemp('', 'index', rw_dir)
+        pack_path1 = tempfile.mktemp("", "pack1", rw_dir)
+        pack_path2 = tempfile.mktemp("", "pack2", rw_dir)
+        index_path = tempfile.mktemp("", "index", rw_dir)
         iteration = 0
 
         def rewind_streams():
             for obj in pack_objs:
                 obj.stream.seek(0)
+
         # END utility
-        for ppath, ipath, num_obj in zip((pack_path1, pack_path2),
-                                         (index_path, None),
-                                         (len(pack_objs), None)):
+        for ppath, ipath, num_obj in zip(
+            (pack_path1, pack_path2), (index_path, None), (len(pack_objs), None)
+        ):
             iwrite = None
             if ipath:
-                ifile = open(ipath, 'wb')
+                ifile = open(ipath, "wb")
                 iwrite = ifile.write
             # END handle ip
 
@@ -206,8 +225,10 @@ class TestPack(TestBase):
             # END rewind streams
             iteration += 1
 
-            with open(ppath, 'wb') as pfile:
-                pack_sha, index_sha = PackEntity.write_pack(pack_objs, pfile.write, iwrite, object_count=num_obj)
+            with open(ppath, "wb") as pfile:
+                pack_sha, index_sha = PackEntity.write_pack(
+                    pack_objs, pfile.write, iwrite, object_count=num_obj
+                )
             assert os.path.getsize(ppath) > 100
 
             # verify pack
@@ -246,4 +267,4 @@ class TestPack(TestBase):
     def test_pack_64(self):
         # TODO: hex-edit a pack helping us to verify that we can handle 64 byte offsets
         # of course without really needing such a huge pack
-        pytest.skip('not implemented')
+        pytest.skip("not implemented")

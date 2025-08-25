@@ -1,7 +1,6 @@
 import pytest
-
-from referencing import Registry, Resource, Specification
 import referencing.jsonschema
+from referencing import Registry, Resource, Specification
 
 
 @pytest.mark.parametrize(
@@ -379,4 +378,4 @@ def test_multiple_lookup_recursive_ref_with_nonrecursive_ref():
 
 
 def test_empty_registry():
-    assert referencing.jsonschema.EMPTY_REGISTRY == Registry()
+    assert Registry() == referencing.jsonschema.EMPTY_REGISTRY

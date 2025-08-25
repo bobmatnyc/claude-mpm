@@ -59,7 +59,8 @@ async def test_server_running():
             ["claude-mpm", "monitor", "status"],
             capture_output=True,
             text=True,
-            timeout=5, check=False,
+            timeout=5,
+            check=False,
         )
 
         if "is running" in result.stdout:
@@ -354,7 +355,9 @@ async def main():
 
     if not is_running:
         log_step("", "Server is not running. Attempting to start it...", "WARNING")
-        subprocess.run(["claude-mpm", "monitor", "start"], capture_output=True, check=False)
+        subprocess.run(
+            ["claude-mpm", "monitor", "start"], capture_output=True, check=False
+        )
         await asyncio.sleep(3)
         is_running, port = await test_server_running()
         results["server_running"] = is_running

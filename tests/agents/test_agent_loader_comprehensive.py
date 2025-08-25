@@ -22,6 +22,4 @@ tests verify both functional correctness and performance characteristics.
 """
 
 
-
-
 # NOTE: These legacy functions were removed from the codebase

@@ -58,7 +58,9 @@ class MemorySystemQATest:
 
         cmd = [self.mpm_cmd] + args
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, check=False)
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=30, check=False
+            )
             return {
                 "returncode": result.returncode,
                 "stdout": result.stdout,

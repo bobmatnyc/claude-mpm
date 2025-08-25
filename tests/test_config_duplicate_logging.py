@@ -12,7 +12,6 @@ logging.basicConfig(level=logging.DEBUG, format="%(levelname)s: %(message)s")
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
-
 def test_multiple_config_instances():
     """Test creating multiple Config instances to see the duplicate logging."""
     print("Creating first Config instance...")

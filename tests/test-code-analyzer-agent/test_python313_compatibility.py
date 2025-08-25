@@ -49,7 +49,10 @@ def check_no_language_pack_dependency():
     # Check pip list for the package
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "pip", "list"], capture_output=True, text=True, check=False
+            [sys.executable, "-m", "pip", "list"],
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if "tree-sitter-language-pack" in result.stdout:
             print("❌ FAIL: tree-sitter-language-pack found in pip list")
@@ -182,7 +185,8 @@ if __name__ == "__main__":
             [sys.executable, str(compat_file)],
             capture_output=True,
             text=True,
-            cwd=compat_file.parent, check=False,
+            cwd=compat_file.parent,
+            check=False,
         )
 
         print(result.stdout)

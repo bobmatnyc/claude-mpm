@@ -30,7 +30,8 @@ def test_audit_script():
             [sys.executable, str(audit_script), "--project-root", str(project_root)],
             capture_output=True,
             text=True,
-            timeout=30, check=False,
+            timeout=30,
+            check=False,
         )
 
         if result.returncode not in [0, 1]:  # 0 = success, 1 = issues found
@@ -57,7 +58,8 @@ def test_audit_script():
             ],
             capture_output=True,
             text=True,
-            timeout=30, check=False,
+            timeout=30,
+            check=False,
         )
 
         if result.returncode not in [0, 1]:
@@ -84,7 +86,8 @@ def test_audit_script():
             [sys.executable, str(audit_script), "--help"],
             capture_output=True,
             text=True,
-            timeout=10, check=False,
+            timeout=10,
+            check=False,
         )
 
         if result.returncode != 0:

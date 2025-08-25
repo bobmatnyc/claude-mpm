@@ -14,7 +14,7 @@ from collections import deque
 from datetime import datetime
 from io import StringIO
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, PropertyMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -234,11 +234,12 @@ class TestConnectionManagement:
         assert handler.event_bus is None
 
     @patch("src.claude_mpm.hooks.claude_hooks.hook_handler._global_handler", None)
-    @patch("src.claude_mpm.hooks.claude_hooks.hook_handler._handler_lock", threading.Lock())
+    @patch(
+        "src.claude_mpm.hooks.claude_hooks.hook_handler._handler_lock", threading.Lock()
+    )
     def test_singleton_pattern(self):
         """Test global handler singleton pattern."""
         from src.claude_mpm.hooks.claude_hooks.hook_handler import (
-            ClaudeHookHandler,
             main,
         )
 
@@ -296,7 +297,9 @@ class TestStateManagement:
         old_session = "old-session"
         old_timestamp = datetime.now().timestamp() - 400  # More than 5 minutes old
         handler.active_delegations[old_session] = "engineer"
-        handler.delegation_history.append((f"{old_session}:{old_timestamp}", "engineer"))
+        handler.delegation_history.append(
+            (f"{old_session}:{old_timestamp}", "engineer")
+        )
 
         # Add a new delegation
         new_session = "new-session"
@@ -351,7 +354,7 @@ class TestStateManagement:
 
         # Mock current directory
         mock_getcwd.return_value = "/original/path"
-        
+
         mock_result = MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = "main\n"
@@ -541,7 +544,10 @@ class TestSubagentStopProcessing:
         # Check event emission
         mock_emit.assert_called_once()
         emitted_data = mock_emit.call_args[0][2]
-        assert emitted_data["structured_response"]["MEMORIES"] == structured_response["MEMORIES"]
+        assert (
+            emitted_data["structured_response"]["MEMORIES"]
+            == structured_response["MEMORIES"]
+        )
 
         # Check delegation request was cleaned up
         assert session_id not in handler.delegation_requests
@@ -626,7 +632,11 @@ class TestSubagentStopProcessing:
             assert mock_emit.called
 
         # Test with no output
-        event2 = {"hook_event_name": "SubagentStop", "session_id": "test-2", "reason": "timeout"}
+        event2 = {
+            "hook_event_name": "SubagentStop",
+            "session_id": "test-2",
+            "reason": "timeout",
+        }
 
         with patch.object(handler, "_emit_socketio_event") as mock_emit:
             handler.handle_subagent_stop(event2)
@@ -664,7 +674,11 @@ class TestSubagentStopProcessing:
         assert emitted_data["agent_type"] == "research"
 
         # Test with engineering task
-        event2 = {"hook_event_name": "SubagentStop", "session_id": "test-456", "task": "Refactor code base"}
+        event2 = {
+            "hook_event_name": "SubagentStop",
+            "session_id": "test-456",
+            "task": "Refactor code base",
+        }
 
         with patch.object(handler, "_emit_socketio_event") as mock_emit:
             handler.handle_subagent_stop(event2)
@@ -685,7 +699,11 @@ class TestDuplicateDetection:
 
         handler = hook_handler.ClaudeHookHandler()
 
-        event = {"hook_event_name": "PreToolUse", "session_id": "test-123", "tool_name": "Task"}
+        event = {
+            "hook_event_name": "PreToolUse",
+            "session_id": "test-123",
+            "tool_name": "Task",
+        }
 
         event_key = handler._get_event_key(event)
         current_time = time.time()
@@ -727,13 +745,20 @@ class TestDuplicateDetection:
             "hook_event_name": "PreToolUse",
             "session_id": "sess-123",
             "tool_name": "Task",
-            "tool_input": {"subagent_type": "research", "prompt": "Find information about AI"},
+            "tool_input": {
+                "subagent_type": "research",
+                "prompt": "Find information about AI",
+            },
         }
         key1 = handler._get_event_key(event1)
         assert "PreToolUse:sess-123:Task:research:Find information" in key1
 
         # Test UserPromptSubmit
-        event2 = {"hook_event_name": "UserPromptSubmit", "session_id": "sess-456", "prompt": "Help me code"}
+        event2 = {
+            "hook_event_name": "UserPromptSubmit",
+            "session_id": "sess-456",
+            "prompt": "Help me code",
+        }
         key2 = handler._get_event_key(event2)
         assert "UserPromptSubmit:sess-456:Help me code" in key2
 
@@ -812,7 +837,9 @@ class TestErrorHandling:
 
         handler = ClaudeHookHandler()
 
-        with patch.object(handler, "_read_hook_event", side_effect=Exception("Read error")):
+        with patch.object(
+            handler, "_read_hook_event", side_effect=Exception("Read error")
+        ):
             with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
                 handler.handle()
 
@@ -894,7 +921,9 @@ class TestMainEntryPoint:
         mock_handle.assert_called_once()
         mock_exit.assert_called_with(0)
 
-    @patch("src.claude_mpm.hooks.claude_hooks.hook_handler._global_handler", MagicMock())
+    @patch(
+        "src.claude_mpm.hooks.claude_hooks.hook_handler._global_handler", MagicMock()
+    )
     def test_main_reuses_singleton(self):
         """Test that main reuses existing singleton."""
         from src.claude_mpm.hooks.claude_hooks import hook_handler
@@ -935,7 +964,9 @@ class TestMainEntryPoint:
         from src.claude_mpm.hooks.claude_hooks import hook_handler
 
         with patch.object(
-            hook_handler.ClaudeHookHandler, "__init__", side_effect=Exception("Init failed")
+            hook_handler.ClaudeHookHandler,
+            "__init__",
+            side_effect=Exception("Init failed"),
         ):
             with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
                 with patch("sys.exit") as mock_exit:
@@ -958,7 +989,10 @@ class TestIntegration:
 
         # Step 1: Track delegation
         session_id = "workflow-session-123"
-        request_data = {"prompt": "Research Python async patterns", "description": "Find best practices"}
+        request_data = {
+            "prompt": "Research Python async patterns",
+            "description": "Find best practices",
+        }
 
         handler._track_delegation(session_id, "research", request_data)
 
@@ -1000,8 +1034,8 @@ class TestIntegration:
 
     def test_periodic_cleanup_trigger(self):
         """Test that periodic cleanup is triggered."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
         from src.claude_mpm.hooks.claude_hooks import hook_handler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         # Reset recent events to avoid duplicate detection
         hook_handler._recent_events = deque(maxlen=10)
@@ -1015,7 +1049,7 @@ class TestIntegration:
             {
                 "hook_event_name": "UserPromptSubmit",
                 "session_id": f"test-cleanup-{i}",
-                "prompt": f"test prompt {i}"
+                "prompt": f"test prompt {i}",
             }
             for i in range(3)
         ]
@@ -1028,12 +1062,16 @@ class TestIntegration:
             cleanup_called = True
             original_cleanup()
 
-        with patch.object(handler, "_cleanup_old_entries", side_effect=mock_cleanup_tracking):
+        with patch.object(
+            handler, "_cleanup_old_entries", side_effect=mock_cleanup_tracking
+        ):
             with patch.object(handler.event_handlers, "handle_user_prompt_fast"):
                 with patch("sys.stdout", new_callable=StringIO):
                     # Process multiple events
                     for i, event in enumerate(events):
-                        with patch.object(handler, "_read_hook_event", return_value=event):
+                        with patch.object(
+                            handler, "_read_hook_event", return_value=event
+                        ):
                             handler.handle()
 
         # Cleanup should have been called at least once
@@ -1058,7 +1096,9 @@ class TestMockValidation:
                 # Should be able to import without errors
                 import importlib
 
-                importlib.reload(sys.modules["src.claude_mpm.hooks.claude_hooks.hook_handler"])
+                importlib.reload(
+                    sys.modules["src.claude_mpm.hooks.claude_hooks.hook_handler"]
+                )
 
     def test_subprocess_mocking(self):
         """Test subprocess operations are properly mocked."""

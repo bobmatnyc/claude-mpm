@@ -63,7 +63,9 @@ def run_subcommand(
 ) -> subprocess.CompletedProcess:
     """Run a command with timeout."""
     try:
-        return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
+        return subprocess.run(
+            cmd, capture_output=True, text=True, timeout=timeout, check=False
+        )
     except subprocess.TimeoutExpired:
         return subprocess.CompletedProcess(
             cmd, 124, "", f"Command timed out after {timeout}s"
@@ -150,7 +152,10 @@ def cleanup_daemon():
     # Kill any remaining processes
     try:
         result = subprocess.run(
-            ["pgrep", "-f", "socketio_daemon"], capture_output=True, text=True, check=False
+            ["pgrep", "-f", "socketio_daemon"],
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if result.stdout.strip():
             pids = result.stdout.strip().split("\n")

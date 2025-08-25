@@ -63,6 +63,7 @@ class StateManagerService:
         """Track a new agent delegation with optional request data for response correlation."""
         if DEBUG:
             import sys
+
             print(
                 f"  - session_id: {session_id[:16] if session_id else 'None'}...",
                 file=sys.stderr,
@@ -88,6 +89,7 @@ class StateManagerService:
                 }
                 if DEBUG:
                     import sys
+
                     print(
                         f"  - ✅ Stored in delegation_requests[{session_id[:16]}...]",
                         file=sys.stderr,
@@ -230,11 +232,12 @@ class StateManagerService:
         """Find matching request data for a session, with fuzzy matching fallback."""
         # First try exact match
         request_info = self.delegation_requests.get(session_id)
-        
+
         # If exact match fails, try partial matching
         if not request_info and session_id:
             if DEBUG:
                 import sys
+
                 print(
                     f"  - Trying fuzzy match for session {session_id[:16]}...",
                     file=sys.stderr,
@@ -252,6 +255,7 @@ class StateManagerService:
                 ):
                     if DEBUG:
                         import sys
+
                         print(
                             f"  - ✅ Fuzzy match found: {stored_sid[:16]}...",
                             file=sys.stderr,
@@ -264,7 +268,7 @@ class StateManagerService:
                         if stored_sid != session_id:
                             del self.delegation_requests[stored_sid]
                     break
-        
+
         return request_info
 
     def remove_request(self, session_id: str):

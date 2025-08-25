@@ -19,7 +19,6 @@ def test_thread_safety():
 
     sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-
     # Reset for clean test
     Config.reset_singleton()
 
@@ -103,7 +102,11 @@ print(f"All configs same: {id(config) == id(hook.config) if hasattr(hook, 'confi
 
     try:
         result = subprocess.run(
-            [sys.executable, test_file], capture_output=True, text=True, timeout=10, check=False
+            [sys.executable, test_file],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
         )
 
         print("\n=== IMPORT ORDER TEST ===")

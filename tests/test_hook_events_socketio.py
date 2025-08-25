@@ -13,12 +13,16 @@ def test_hook_events():
     status_result = subprocess.run(
         ["python", "src/claude_mpm/scripts/socketio_daemon.py", "status"],
         capture_output=True,
-        text=True, check=False,
+        text=True,
+        check=False,
     )
 
     if "is running" not in status_result.stdout:
         print("❌ Socket.IO server is not running. Starting it...")
-        subprocess.run(["python", "src/claude_mpm/scripts/socketio_daemon.py", "start"], check=False)
+        subprocess.run(
+            ["python", "src/claude_mpm/scripts/socketio_daemon.py", "start"],
+            check=False,
+        )
         time.sleep(2)
     else:
         print("✅ Socket.IO server is running")

@@ -7,6 +7,7 @@ class TestTutorial(TestBase):
         # Memory Managers
         ##################
         import smmap
+
         # This instance should be globally available in your application
         # It is configured to be well suitable for 32-bit or 64 bit applications.
         mman = smmap.SlidingWindowMapManager()
@@ -20,6 +21,7 @@ class TestTutorial(TestBase):
         # Cursors
         ##########
         import smmap.test.lib
+
         with smmap.test.lib.FileCreator(1024 * 1024 * 8, "test_file") as fc:
             # obtain a cursor to access some file.
             c = mman.make_cursor(fc.path)
@@ -32,13 +34,13 @@ class TestTutorial(TestBase):
             # access. The following just says you want as much data as possible starting
             # from offset 0.
             # To be sure your region could be mapped, query for validity
-            assert c.use_region().is_valid()        # use_region returns self
+            assert c.use_region().is_valid()  # use_region returns self
 
             # once a region was mapped, you must query its dimension regularly
             # to assure you don't try to access its buffer out of its bounds
             assert c.size()
-            c.buffer()[0]           # first byte
-            c.buffer()[1:10]            # first 9 bytes
+            c.buffer()[0]  # first byte
+            c.buffer()[1:10]  # first 9 bytes
             c.buffer()[c.size() - 1]  # last byte
 
             # you can query absolute offsets, and check whether an offset is included

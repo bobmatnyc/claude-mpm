@@ -24,7 +24,9 @@ try:
     # Run memory init first
     print("\n=== Running memory init ===")
     init_cmd = [mpm_cmd, "memory", "init"]
-    init_result = subprocess.run(init_cmd, capture_output=True, text=True, timeout=60, check=False)
+    init_result = subprocess.run(
+        init_cmd, capture_output=True, text=True, timeout=60, check=False
+    )
     print(f"Init return code: {init_result.returncode}")
     if init_result.stderr:
         print(f"Init STDERR: {init_result.stderr}")
@@ -33,7 +35,9 @@ try:
     print("\n=== Running memory add ===")
     test_content = "This is a test memory entry"
     add_cmd = [mpm_cmd, "memory", "add", test_content]
-    add_result = subprocess.run(add_cmd, capture_output=True, text=True, timeout=60, check=False)
+    add_result = subprocess.run(
+        add_cmd, capture_output=True, text=True, timeout=60, check=False
+    )
     print(f"Add return code: {add_result.returncode}")
     print(f"Add STDOUT: {add_result.stdout}")
     if add_result.stderr:

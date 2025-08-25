@@ -15,7 +15,8 @@ def uninstall_package(package_name):
         result = subprocess.run(
             [sys.executable, "-m", "pip", "uninstall", "-y", package_name],
             capture_output=True,
-            text=True, check=False,
+            text=True,
+            check=False,
         )
         return result.returncode == 0
     except Exception:
@@ -133,7 +134,8 @@ if __name__ == "__main__":
             [sys.executable, str(test_file)],
             capture_output=True,
             text=True,
-            cwd=test_file.parent, check=False,
+            cwd=test_file.parent,
+            check=False,
         )
 
         print(result.stdout)
@@ -263,7 +265,8 @@ if __name__ == "__main__":
             [sys.executable, str(fallback_file)],
             capture_output=True,
             text=True,
-            cwd=fallback_file.parent, check=False,
+            cwd=fallback_file.parent,
+            check=False,
         )
 
         print(result.stdout)

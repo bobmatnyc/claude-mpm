@@ -109,9 +109,7 @@ def test_agent_capabilities_discovery():
         for issue in issues:
             print(f"  - {issue}")
         return False
-    print(
-        "\n✅ All tests passed! Agent IDs are correctly discovered and formatted."
-    )
+    print("\n✅ All tests passed! Agent IDs are correctly discovered and formatted.")
     print("\nThe PM context will now show agent IDs that work with the Task tool:")
     print("  - Use `research` not `research_agent`")
     print("  - Use `engineer` not `engineer_agent`")

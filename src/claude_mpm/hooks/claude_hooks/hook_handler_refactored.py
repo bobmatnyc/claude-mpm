@@ -20,7 +20,6 @@ import select
 import signal
 import sys
 import threading
-import time
 from datetime import datetime
 
 # Import extracted modules with fallback for direct execution
@@ -76,17 +75,15 @@ class ClaudeHookHandler:
         self.state_manager = StateManagerService()
         self.connection_manager = ConnectionManagerService()
         self.duplicate_detector = DuplicateEventDetector()
-        
+
         # Initialize extracted managers
         self.memory_hook_manager = MemoryHookManager()
         self.response_tracking_manager = ResponseTrackingManager()
         self.event_handlers = EventHandlers(self)
-        
+
         # Initialize subagent processor with dependencies
         self.subagent_processor = SubagentResponseProcessor(
-            self.state_manager,
-            self.response_tracking_manager,
-            self.connection_manager
+            self.state_manager, self.response_tracking_manager, self.connection_manager
         )
 
     def handle(self):

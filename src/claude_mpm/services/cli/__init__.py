@@ -9,10 +9,10 @@ from .startup_checker import IStartupChecker, StartupCheckerService, StartupWarn
 
 __all__ = [
     "AgentDependencyService",
-    "IAgentDependencyService",
     "AgentValidationService",
+    "IAgentDependencyService",
     "IAgentValidationService",
     "IStartupChecker",
-    "StartupCheckerService", 
-    "StartupWarning"
+    "StartupCheckerService",
+    "StartupWarning",
 ]

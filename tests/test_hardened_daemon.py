@@ -116,7 +116,9 @@ def get_metrics() -> dict:
 def cleanup_daemon():
     """Ensure daemon is stopped and cleaned up."""
     print("Cleaning up any existing daemon...")
-    subprocess.run([sys.executable, str(DAEMON_SCRIPT), "stop"], capture_output=True, check=False)
+    subprocess.run(
+        [sys.executable, str(DAEMON_SCRIPT), "stop"], capture_output=True, check=False
+    )
     time.sleep(2)
 
 
@@ -128,7 +130,10 @@ def test_basic_startup():
 
     # Start daemon
     result = subprocess.run(
-        [sys.executable, str(DAEMON_SCRIPT), "start"], capture_output=True, text=True, check=False
+        [sys.executable, str(DAEMON_SCRIPT), "start"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
     # Wait for startup
@@ -166,7 +171,10 @@ def test_basic_startup():
 
     # Stop daemon
     result = subprocess.run(
-        [sys.executable, str(DAEMON_SCRIPT), "stop"], capture_output=True, text=True, check=False
+        [sys.executable, str(DAEMON_SCRIPT), "stop"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
     time.sleep(2)
@@ -185,7 +193,9 @@ def test_crash_recovery():
     print("=" * 60)
 
     # Start daemon
-    subprocess.run([sys.executable, str(DAEMON_SCRIPT), "start"], capture_output=True, check=False)
+    subprocess.run(
+        [sys.executable, str(DAEMON_SCRIPT), "start"], capture_output=True, check=False
+    )
     time.sleep(3)
 
     initial_pid = get_daemon_pid()
@@ -241,7 +251,9 @@ def test_crash_recovery():
         log_test("Automatic recovery", False, f"Server not recovered. PID: {new_pid}")
 
     # Cleanup
-    subprocess.run([sys.executable, str(DAEMON_SCRIPT), "stop"], capture_output=True, check=False)
+    subprocess.run(
+        [sys.executable, str(DAEMON_SCRIPT), "stop"], capture_output=True, check=False
+    )
     time.sleep(2)
 
 
@@ -255,7 +267,9 @@ def test_health_monitoring():
     os.environ["SOCKETIO_HEALTH_CHECK_INTERVAL"] = "5"
 
     # Start daemon
-    subprocess.run([sys.executable, str(DAEMON_SCRIPT), "start"], capture_output=True, check=False)
+    subprocess.run(
+        [sys.executable, str(DAEMON_SCRIPT), "start"], capture_output=True, check=False
+    )
     time.sleep(3)
 
     if get_daemon_pid() == 0:
@@ -297,7 +311,9 @@ def test_health_monitoring():
         log_test("Health monitoring", False, "No metrics available")
 
     # Cleanup
-    subprocess.run([sys.executable, str(DAEMON_SCRIPT), "stop"], capture_output=True, check=False)
+    subprocess.run(
+        [sys.executable, str(DAEMON_SCRIPT), "stop"], capture_output=True, check=False
+    )
     time.sleep(2)
 
 
@@ -315,7 +331,10 @@ def test_configuration():
 
     # Start daemon
     result = subprocess.run(
-        [sys.executable, str(DAEMON_SCRIPT), "start"], capture_output=True, text=True, check=False
+        [sys.executable, str(DAEMON_SCRIPT), "start"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
     time.sleep(3)
@@ -332,7 +351,10 @@ def test_configuration():
 
     # Check status output for configuration
     result = subprocess.run(
-        [sys.executable, str(DAEMON_SCRIPT), "status"], capture_output=True, text=True, check=False
+        [sys.executable, str(DAEMON_SCRIPT), "status"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
     if "Max Retries: 5" in result.stdout:
@@ -341,7 +363,9 @@ def test_configuration():
         log_test("Custom max retries", False, "Configuration not reflected in status")
 
     # Cleanup
-    subprocess.run([sys.executable, str(DAEMON_SCRIPT), "stop"], capture_output=True, check=False)
+    subprocess.run(
+        [sys.executable, str(DAEMON_SCRIPT), "stop"], capture_output=True, check=False
+    )
     time.sleep(2)
 
     # Reset environment
@@ -362,7 +386,9 @@ def test_concurrent_protection():
     print("=" * 60)
 
     # Start first instance
-    subprocess.run([sys.executable, str(DAEMON_SCRIPT), "start"], capture_output=True, check=False)
+    subprocess.run(
+        [sys.executable, str(DAEMON_SCRIPT), "start"], capture_output=True, check=False
+    )
     time.sleep(3)
 
     first_pid = get_daemon_pid()
@@ -372,7 +398,10 @@ def test_concurrent_protection():
 
     # Try to start second instance
     result = subprocess.run(
-        [sys.executable, str(DAEMON_SCRIPT), "start"], capture_output=True, text=True, check=False
+        [sys.executable, str(DAEMON_SCRIPT), "start"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
     # Check that second instance was prevented
@@ -392,7 +421,9 @@ def test_concurrent_protection():
         )
 
     # Cleanup
-    subprocess.run([sys.executable, str(DAEMON_SCRIPT), "stop"], capture_output=True, check=False)
+    subprocess.run(
+        [sys.executable, str(DAEMON_SCRIPT), "stop"], capture_output=True, check=False
+    )
     time.sleep(2)
 
 

@@ -11,19 +11,19 @@ import re
 import time
 
 import psutil
-from psutil import MACOS
-from psutil import POSIX
-from psutil.tests import CI_TESTING
-from psutil.tests import HAS_BATTERY
-from psutil.tests import TOLERANCE_DISK_USAGE
-from psutil.tests import TOLERANCE_SYS_MEM
-from psutil.tests import PsutilTestCase
-from psutil.tests import pytest
-from psutil.tests import retry_on_failure
-from psutil.tests import sh
-from psutil.tests import spawn_testproc
-from psutil.tests import terminate
-
+from psutil import MACOS, POSIX
+from psutil.tests import (
+    CI_TESTING,
+    HAS_BATTERY,
+    TOLERANCE_DISK_USAGE,
+    TOLERANCE_SYS_MEM,
+    PsutilTestCase,
+    pytest,
+    retry_on_failure,
+    sh,
+    spawn_testproc,
+    terminate,
+)
 
 if POSIX:
     from psutil._psutil_posix import getpagesize
@@ -43,13 +43,13 @@ def sysctl(cmdline):
 
 def vm_stat(field):
     """Wrapper around 'vm_stat' cmdline utility."""
-    out = sh('vm_stat')
-    for line in out.split('\n'):
+    out = sh("vm_stat")
+    for line in out.split("\n"):
         if field in line:
             break
     else:
         raise ValueError("line not found")
-    return int(re.search(r'\d+', line).group(0)) * getpagesize()
+    return int(re.search(r"\d+", line).group(0)) * getpagesize()
 
 
 @pytest.mark.skipif(not MACOS, reason="MACOS only")
@@ -64,13 +64,11 @@ class TestProcess(PsutilTestCase):
 
     def test_process_create_time(self):
         output = sh(f"ps -o lstart -p {self.pid}")
-        start_ps = output.replace('STARTED', '').strip()
-        hhmmss = start_ps.split(' ')[-2]
-        year = start_ps.split(' ')[-1]
+        start_ps = output.replace("STARTED", "").strip()
+        hhmmss = start_ps.split(" ")[-2]
+        year = start_ps.split(" ")[-1]
         start_psutil = psutil.Process(self.pid).create_time()
-        assert hhmmss == time.strftime(
-            "%H:%M:%S", time.localtime(start_psutil)
-        )
+        assert hhmmss == time.strftime("%H:%M:%S", time.localtime(start_psutil))
         assert year == time.strftime("%Y", time.localtime(start_psutil))
 
 
@@ -85,12 +83,12 @@ class TestSystemAPIs(PsutilTestCase):
         # against "df -a"
         def df(path):
             out = sh(f'df -k "{path}"').strip()
-            lines = out.split('\n')
+            lines = out.split("\n")
             lines.pop(0)
             line = lines.pop(0)
             dev, total, used, free = line.split()[:4]
-            if dev == 'none':
-                dev = ''
+            if dev == "none":
+                dev = ""
             total = int(total) * 1024
             used = int(used) * 1024
             free = int(free) * 1024
@@ -116,7 +114,7 @@ class TestSystemAPIs(PsutilTestCase):
 
     # TODO: remove this once 1892 is fixed
     @pytest.mark.skipif(
-        MACOS and platform.machine() == 'arm64', reason="skipped due to #1892"
+        MACOS and platform.machine() == "arm64", reason="skipped due to #1892"
     )
     def test_cpu_freq(self):
         freq = psutil.cpu_freq()
@@ -127,11 +125,11 @@ class TestSystemAPIs(PsutilTestCase):
     # --- virtual mem
 
     def test_vmem_total(self):
-        sysctl_hwphymem = sysctl('sysctl hw.memsize')
+        sysctl_hwphymem = sysctl("sysctl hw.memsize")
         assert sysctl_hwphymem == psutil.virtual_memory().total
 
     @pytest.mark.skipif(
-        CI_TESTING and MACOS and platform.machine() == 'arm64',
+        CI_TESTING and MACOS and platform.machine() == "arm64",
         reason="skipped on MACOS + ARM64 + CI_TESTING",
     )
     @retry_on_failure()
@@ -181,8 +179,8 @@ class TestSystemAPIs(PsutilTestCase):
             except RuntimeError:
                 pass
             else:
-                assert stats.isup == ('RUNNING' in out), out
-                assert stats.mtu == int(re.findall(r'mtu (\d+)', out)[0])
+                assert stats.isup == ("RUNNING" in out), out
+                assert stats.mtu == int(re.findall(r"mtu (\d+)", out)[0])
 
     # --- sensors_battery
 
