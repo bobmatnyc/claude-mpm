@@ -31,10 +31,7 @@ def should_skip_file(file_path: Path) -> bool:
             return True
 
     # Skip binary files
-    if file_path.suffix in {".pyc", ".pyo", ".so", ".dylib", ".dll", ".exe", ".bin"}:
-        return True
-
-    return False
+    return file_path.suffix in {".pyc", ".pyo", ".so", ".dylib", ".dll", ".exe", ".bin"}
 
 
 def update_file(file_path: Path, dry_run: bool = False) -> Tuple[bool, int]:
@@ -44,7 +41,7 @@ def update_file(file_path: Path, dry_run: bool = False) -> Tuple[bool, int]:
         (was_updated, num_replacements)
     """
     try:
-        with open(file_path, encoding="utf-8") as f:
+        with file_path.open(encoding="utf-8") as f:
             content = f.read()
     except (OSError, UnicodeDecodeError):
         return False, 0
@@ -67,7 +64,7 @@ def update_file(file_path: Path, dry_run: bool = False) -> Tuple[bool, int]:
 
     if content != original_content:
         if not dry_run:
-            with open(file_path, "w", encoding="utf-8") as f:
+            with file_path.open("w", encoding="utf-8") as f:
                 f.write(content)
         return True, replacement_count
 

@@ -48,10 +48,10 @@ def check_mcp_configured():
         try:
             import json
 
-            with open(config_path) as f:
+            with config_path.open() as f:
                 config = json.load(f)
             return "claude-mpm-gateway" in config.get("mcpServers", {})
-        except:
+        except Exception:
             pass
 
     return False

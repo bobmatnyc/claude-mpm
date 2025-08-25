@@ -9,7 +9,7 @@ hook handler, removing direct Socket.IO dependencies.
 
 import asyncio
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -83,7 +83,7 @@ class SimplifiedHookHandler:
             response_data={
                 "content": content,
                 "model": model,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "context": self.conversation_context,
             },
             correlation_id=self.current_correlation_id,
@@ -118,7 +118,7 @@ class SimplifiedHookHandler:
             event_type="Start",
             event_data={
                 "task": task,
-                "started_at": datetime.now().isoformat(),
+                "started_at": datetime.now(timezone.utc).isoformat(),
             },
             correlation_id=self.current_correlation_id,
         )
@@ -136,7 +136,7 @@ class SimplifiedHookHandler:
             event_type="Stop",
             event_data={
                 "result": result,
-                "stopped_at": datetime.now().isoformat(),
+                "stopped_at": datetime.now(timezone.utc).isoformat(),
             },
             correlation_id=self.current_correlation_id,
         )

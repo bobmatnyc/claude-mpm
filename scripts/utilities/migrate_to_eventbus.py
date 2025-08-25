@@ -10,7 +10,7 @@ This script:
 
 import shutil
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add parent directory to path
@@ -24,7 +24,7 @@ def backup_original_handler():
         / "src/claude_mpm/hooks/claude_hooks/hook_handler.py"
     )
     backup_file = src_file.with_suffix(
-        f".py.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        f".py.backup_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
     )
 
     if src_file.exists():

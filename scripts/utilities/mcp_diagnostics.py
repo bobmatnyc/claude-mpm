@@ -14,7 +14,7 @@ import json
 import os
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -42,7 +42,7 @@ def check_command(cmd, name):
 def diagnose():
     """Run comprehensive diagnostics."""
     print("MCP Server Diagnostics Report")
-    print(f"Generated: {datetime.now().isoformat()}")
+    print(f"Generated: {datetime.now(timezone.utc).isoformat()}")
 
     # System Information
     print_section("System Information")
@@ -188,7 +188,7 @@ def diagnose():
         print(f"Config file found: {config_path}")
 
         try:
-            with open(config_path) as f:
+            with config_path.open() as f:
                 config = json.load(f)
 
             if "mcpServers" in config:

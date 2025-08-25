@@ -4,9 +4,10 @@ Monitor real-time hook events from Claude tool usage.
 """
 
 import asyncio
+import contextlib
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add project root to path
@@ -40,7 +41,7 @@ class RealTimeEventMonitor:
 
         @self.client.event
         async def claude_event(data):
-            timestamp = datetime.now().strftime("%H:%M:%S")
+            timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
             event_type = data.get("type", "unknown")
 
             print(f"[{timestamp}] 📨 HOOK EVENT RECEIVED:")
@@ -106,10 +107,8 @@ class RealTimeEventMonitor:
         except Exception as e:
             print(f"❌ Error: {e}")
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 await self.client.disconnect()
-            except:
-                pass
 
 
 async def main():
