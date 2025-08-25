@@ -7,12 +7,8 @@ and stale process detection features.
 
 import json
 import os
-import subprocess
 import sys
-import tempfile
-import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 # Add src to path for testing
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -21,6 +17,7 @@ try:
     import psutil
 
     from claude_mpm.services.socketio_server import SocketIOServer
+
     PSUTIL_AVAILABLE = True  # Assume psutil is available for tests
 except ImportError as e:
     print(f"Import error: {e}")
@@ -44,7 +41,7 @@ def test_pidfile_creation_and_validation():
             assert server.pidfile_path.exists(), "PID file was not created"
 
             # Verify content format
-            with open(server.pidfile_path, "r") as f:
+            with open(server.pidfile_path) as f:
                 content = f.read()
 
             # Should be JSON format with metadata
@@ -226,9 +223,8 @@ def run_all_tests():
     if passed == total:
         print("🎉 All tests passed!")
         return True
-    else:
-        print("❌ Some tests failed")
-        return False
+    print("❌ Some tests failed")
+    return False
 
 
 if __name__ == "__main__":

@@ -11,7 +11,6 @@ import json
 import os
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 # Add src to path
@@ -47,7 +46,7 @@ def test_delegation_with_response_tracking():
         env=env,
         capture_output=True,
         text=True,
-        timeout=60,
+        timeout=60, check=False,
     )
 
     print("=== STDERR Output (Debug Logs) ===")
@@ -109,7 +108,7 @@ def test_delegation_with_response_tracking():
         for file in response_files[:3]:  # Show first 3
             print(f"  - {file.name}")
             # Read and show a snippet of the response
-            with open(file, "r") as f:
+            with open(file) as f:
                 data = json.load(f)
                 agent_type = data.get("agent_type", "unknown")
                 request_preview = data.get("request", "")[:100]
@@ -165,11 +164,10 @@ def test_delegation_with_response_tracking():
     if tests_passed == tests_total:
         print("\n🎉 All tests passed! Delegation tracking is working correctly.")
         return 0
-    else:
-        print(
-            f"\n⚠️ {tests_total - tests_passed} test(s) failed. Check the debug output above."
-        )
-        return 1
+    print(
+        f"\n⚠️ {tests_total - tests_passed} test(s) failed. Check the debug output above."
+    )
+    return 1
 
 
 def main():

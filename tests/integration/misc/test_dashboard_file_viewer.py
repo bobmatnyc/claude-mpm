@@ -1,4 +1,5 @@
 import pytest
+
 #!/usr/bin/env python3
 """Test script to verify the Socket.IO dashboard file viewer is working.
 

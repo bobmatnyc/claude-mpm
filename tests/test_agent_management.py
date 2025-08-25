@@ -14,7 +14,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 # NOTE: Manager module and ConfigScreenV2 were removed from the codebase
 # These tests are for legacy UI functionality that no longer exists
 import pytest
-pytest.skip("Manager module and ConfigScreenV2 UI components were removed", allow_module_level=True)
+
+pytest.skip(
+    "Manager module and ConfigScreenV2 UI components were removed",
+    allow_module_level=True,
+)
 
 # Original imports (no longer available):
 # from claude_mpm.manager.discovery import Installation
@@ -300,17 +304,17 @@ def main():
 
         print("=== AGENT MANAGEMENT TESTS PASSED ===")
 
-        print(f"\nSummary:")
-        print(f"  Agent deployment service: ✓ Working")
-        print(f"  Install agents dialog: ✓ Working")
-        print(f"  Import agents dialog: ✓ Working")
-        print(f"  Agent import functionality: ✓ Working")
-        print(f"  Error handling: ✓ Working")
+        print("\nSummary:")
+        print("  Agent deployment service: ✓ Working")
+        print("  Install agents dialog: ✓ Working")
+        print("  Import agents dialog: ✓ Working")
+        print("  Agent import functionality: ✓ Working")
+        print("  Error handling: ✓ Working")
 
         return 0
 
     except Exception as e:
-        print(f"=== AGENT MANAGEMENT TESTS FAILED ===")
+        print("=== AGENT MANAGEMENT TESTS FAILED ===")
         print(f"Error: {e}")
         import traceback
 

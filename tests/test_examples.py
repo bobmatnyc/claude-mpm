@@ -11,10 +11,7 @@ This test suite combines tests for hello_world, calculator, and greeting functio
 that were previously in separate test files.
 """
 
-import io
-import sys
 import unittest
-from contextlib import redirect_stdout
 
 # from tests.examples import add, divide, greet, hello_world, multiply, subtract
 

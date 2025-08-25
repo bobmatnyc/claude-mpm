@@ -3,7 +3,6 @@
 
 import os
 import subprocess
-import sys
 import tempfile
 from pathlib import Path
 
@@ -25,13 +24,13 @@ try:
     # Run memory init
     print("\n=== Running memory init ===")
     init_cmd = [mpm_cmd, "memory", "init"]
-    init_result = subprocess.run(init_cmd, capture_output=True, text=True, timeout=60)
+    init_result = subprocess.run(init_cmd, capture_output=True, text=True, timeout=60, check=False)
     print(f"Init return code: {init_result.returncode}")
 
     # Run memory add
     print("\n=== Running memory add ===")
     add_cmd = [mpm_cmd, "memory", "add", "qa", "pattern", "This is a test memory entry"]
-    add_result = subprocess.run(add_cmd, capture_output=True, text=True, timeout=60)
+    add_result = subprocess.run(add_cmd, capture_output=True, text=True, timeout=60, check=False)
     print(f"Add return code: {add_result.returncode}")
     print(f"Add STDOUT: {add_result.stdout}")
     if add_result.stderr:
@@ -41,7 +40,7 @@ try:
     print("\n=== Running memory status ===")
     status_cmd = [mpm_cmd, "memory", "status"]
     status_result = subprocess.run(
-        status_cmd, capture_output=True, text=True, timeout=60
+        status_cmd, capture_output=True, text=True, timeout=60, check=False
     )
     print(f"Status return code: {status_result.returncode}")
     print(f"Status STDOUT: {status_result.stdout}")
@@ -50,7 +49,7 @@ try:
     print("\n=== Running memory search ===")
     search_cmd = [mpm_cmd, "memory", "search", "test"]
     search_result = subprocess.run(
-        search_cmd, capture_output=True, text=True, timeout=60
+        search_cmd, capture_output=True, text=True, timeout=60, check=False
     )
     print(f"Search return code: {search_result.returncode}")
     print(f"Search STDOUT: {search_result.stdout}")
@@ -59,11 +58,11 @@ try:
 
     # Check memory files
     memory_dir = Path(test_dir) / ".claude-mpm" / "memories"
-    print(f"\nMemory directory contents:")
+    print("\nMemory directory contents:")
     for file in memory_dir.iterdir():
         print(f"  {file}")
         if file.suffix == ".md":
-            with open(file, "r") as f:
+            with open(file) as f:
                 content = f.read()
                 print(f"    Content preview: {content[:200]}...")
 

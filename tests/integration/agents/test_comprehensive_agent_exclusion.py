@@ -10,7 +10,6 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -22,7 +21,7 @@ def run_subcommand(cmd: List[str], cwd: str = None) -> Tuple[int, str, str]:
     """Run a command and return (exit_code, stdout, stderr)."""
     try:
         result = subprocess.run(
-            cmd, capture_output=True, text=True, cwd=cwd or os.getcwd()
+            cmd, capture_output=True, text=True, cwd=cwd or os.getcwd(), check=False
         )
         return result.returncode, result.stdout, result.stderr
     except Exception as e:
@@ -67,7 +66,6 @@ def test_basic_exclusion() -> Dict[str, any]:
         # Test without exclusions
         create_test_config(config_dir / "configuration.yaml", [])
 
-        from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
         from claude_mpm.services.agents.deployment.agent_deployment import (
             AgentDeploymentService,
         )
@@ -135,7 +133,6 @@ def test_case_sensitivity() -> Dict[str, any]:
         config_dir.mkdir()
         target_dir = temp_path / ".claude" / "agents"
 
-        from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
         from claude_mpm.services.agents.deployment.agent_deployment import (
             AgentDeploymentService,
         )
@@ -291,7 +288,7 @@ def generate_report(test_results: List[Dict[str, any]]):
     passed_tests = sum(1 for r in test_results if r["passed"])
     failed_tests = total_tests - passed_tests
 
-    print(f"\n📊 SUMMARY:")
+    print("\n📊 SUMMARY:")
     print(f"   Total Tests: {total_tests}")
     print(f"   Passed: {passed_tests}")
     print(f"   Failed: {failed_tests}")

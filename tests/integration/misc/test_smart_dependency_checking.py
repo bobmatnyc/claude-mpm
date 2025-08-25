@@ -11,12 +11,9 @@ This script tests various scenarios of the smart dependency checking:
 
 import json
 import os
-import shutil
 import sys
-import tempfile
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -37,7 +34,7 @@ def test_environment_detection():
 
     # Test current environment
     context = EnvironmentContext.detect_execution_context()
-    print(f"\nCurrent environment context:")
+    print("\nCurrent environment context:")
     for key, value in context.items():
         print(f"  {key}: {value}")
 
@@ -89,7 +86,7 @@ def test_agent_change_detection():
 
             # First check - should detect changes (no previous state)
             has_changed, hash1 = loader.has_agents_changed()
-            print(f"\nFirst check (no previous state):")
+            print("\nFirst check (no previous state):")
             print(f"  Has changed: {has_changed}")
             print(f"  Hash: {hash1[:16]}...")
 
@@ -98,7 +95,7 @@ def test_agent_change_detection():
 
             # Second check - should not detect changes
             has_changed, hash2 = loader.has_agents_changed()
-            print(f"\nSecond check (no changes):")
+            print("\nSecond check (no changes):")
             print(f"  Has changed: {has_changed}")
             print(f"  Hash: {hash2[:16]}...")
 
@@ -107,7 +104,7 @@ def test_agent_change_detection():
 
             # Third check - should detect changes
             has_changed, hash3 = loader.has_agents_changed()
-            print(f"\nThird check (after modification):")
+            print("\nThird check (after modification):")
             print(f"  Has changed: {has_changed}")
             print(f"  Hash: {hash3[:16]}...")
 
@@ -117,7 +114,7 @@ def test_agent_change_detection():
 
             # Fourth check - should detect changes
             has_changed, hash4 = loader.has_agents_changed()
-            print(f"\nFourth check (after adding agent):")
+            print("\nFourth check (after adding agent):")
             print(f"  Has changed: {has_changed}")
             print(f"  Hash: {hash4[:16]}...")
 
@@ -154,7 +151,7 @@ def test_dependency_caching():
 
         # Store in cache
         cache.set(deployment_hash, test_results)
-        print(f"Stored results in cache")
+        print("Stored results in cache")
 
         # Test cache hit
         cached = cache.get(deployment_hash)
@@ -164,14 +161,14 @@ def test_dependency_caching():
 
         # Test cache stats
         stats = cache.get_cache_stats()
-        print(f"\nCache statistics:")
+        print("\nCache statistics:")
         for key, value in stats.items():
             print(f"  {key}: {value}")
 
         # Test cache expiration
         import time
 
-        print(f"\nWaiting for cache to expire (2 seconds)...")
+        print("\nWaiting for cache to expire (2 seconds)...")
         time.sleep(2.1)
 
         cached = cache.get(deployment_hash)
@@ -290,7 +287,7 @@ def test_integration():
             print(f"2. Can prompt for installation: {can_prompt} ({prompt_reason})")
 
             # 4. Get or check dependencies
-            print(f"3. Checking dependencies...")
+            print("3. Checking dependencies...")
             results, was_cached = smart_checker.get_or_check_dependencies(
                 loader=loader, force_check=False
             )
@@ -307,7 +304,7 @@ def test_integration():
                 )
 
             # 5. Simulate second run (should use cache)
-            print(f"\n4. Second run (should use cache):")
+            print("\n4. Second run (should use cache):")
             results2, was_cached2 = smart_checker.get_or_check_dependencies(
                 loader=loader, force_check=False
             )

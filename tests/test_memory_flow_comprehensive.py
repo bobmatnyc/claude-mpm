@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Comprehensive test for memory flow and categorization."""
 
-import json
-import sys
 import re
+import sys
 from pathlib import Path
 
 # Add project root to path
@@ -11,23 +10,22 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 
 def test_memory_categorization():
     """Test that memories are categorized correctly by type."""
-    
+
     config = Config()
     manager = AgentMemoryManager(config, project_root)
-    
+
     # Clean slate for testing
     test_agent = "test_categorization_agent"
-    
+
     # Remove any existing memory file
     memory_file = manager.memories_dir / f"{test_agent}_memories.md"
     if memory_file.exists():
         memory_file.unlink()
-    
+
     # Test response with different memory types
     test_responses = [
         {
@@ -44,10 +42,10 @@ Task completed.
 }
 ```
 """,
-            "expected_section": "Project Architecture"
+            "expected_section": "Project Architecture",
         },
         {
-            "name": "pattern_memory", 
+            "name": "pattern_memory",
             "response": """
 Task completed.
 
@@ -60,7 +58,7 @@ Task completed.
 }
 ```
 """,
-            "expected_section": "Coding Patterns Learned"
+            "expected_section": "Coding Patterns Learned",
         },
         {
             "name": "mistake_memory",
@@ -76,7 +74,7 @@ Task completed.
 }
 ```
 """,
-            "expected_section": "Common Mistakes to Avoid"
+            "expected_section": "Common Mistakes to Avoid",
         },
         {
             "name": "integration_memory",
@@ -92,7 +90,7 @@ Task completed.
 }
 ```
 """,
-            "expected_section": "Integration Points"
+            "expected_section": "Integration Points",
         },
         {
             "name": "context_memory",
@@ -108,7 +106,7 @@ Task completed.
 }
 ```
 """,
-            "expected_section": "Current Technical Context"
+            "expected_section": "Current Technical Context",
         },
         {
             "name": "guideline_memory",
@@ -124,64 +122,66 @@ Task completed.
 }
 ```
 """,
-            "expected_section": "Implementation Guidelines"
-        }
+            "expected_section": "Implementation Guidelines",
+        },
     ]
-    
+
     print("Testing memory categorization...")
-    
+
     for test_case in test_responses:
         print(f"\n• Testing {test_case['name']}...")
-        
-        success = manager.extract_and_update_memory(test_agent, test_case['response'])
-        
+
+        success = manager.extract_and_update_memory(test_agent, test_case["response"])
+
         if not success:
             print(f"✗ Failed to extract memory from {test_case['name']}")
             return False
-            
+
         # Verify memory was categorized correctly
         memory_content = manager.load_agent_memory(test_agent)
-        
+
         # Check if the expected section exists
         if f"## {test_case['expected_section']}" not in memory_content:
             print(f"✗ Expected section '{test_case['expected_section']}' not found")
             return False
-            
+
         # Extract the memory text from the response
-        memory_match = re.search(r'"remember":\s*\[\s*"([^"]+)"', test_case['response'])
+        memory_match = re.search(r'"remember":\s*\[\s*"([^"]+)"', test_case["response"])
         if memory_match:
             memory_text = memory_match.group(1)
             if memory_text not in memory_content:
                 print(f"✗ Memory text '{memory_text}' not found in memory file")
                 return False
-        
-        print(f"✓ {test_case['name']} categorized correctly in '{test_case['expected_section']}'")
-    
-    print(f"\n✓ All memory types categorized correctly!")
-    
+
+        print(
+            f"✓ {test_case['name']} categorized correctly in '{test_case['expected_section']}'"
+        )
+
+    print("\n✓ All memory types categorized correctly!")
+
     # Show final memory structure
     print("\nFinal memory structure:")
     print("-" * 60)
     memory_content = manager.load_agent_memory(test_agent)
     print(memory_content)
     print("-" * 60)
-    
+
     return True
 
 
 def test_duplicate_prevention():
     """Test that duplicate memories are not added."""
-    
+
     config = Config()
     manager = AgentMemoryManager(config, project_root)
-    
+
     test_agent = "test_duplicate_agent"
-    
+
     # Clean slate - remove any existing memory
     memory_file = manager.memories_dir / f"{test_agent}_memories.md"
     if memory_file.exists():
         memory_file.unlink()
-    
+
     # Add a memory twice
     duplicate_response = """
 Task completed.
@@ -195,38 +195,39 @@ Task completed.
 }
 ```
 """
-    
+
     print("Testing duplicate memory prevention...")
-    
+
     # Add memory first time
     success1 = manager.extract_and_update_memory(test_agent, duplicate_response)
     if not success1:
         print("✗ Failed to add memory first time")
         return False
-        
+
     # Add same memory second time
     success2 = manager.extract_and_update_memory(test_agent, duplicate_response)
-    
+
     # Check memory content
     memory_content = manager.load_agent_memory(test_agent)
-    memory_count = memory_content.count("This is a duplicate memory that should only appear once")
-    
+    memory_count = memory_content.count(
+        "This is a duplicate memory that should only appear once"
+    )
+
     if memory_count == 1:
         print("✓ Duplicate memory correctly prevented")
         return True
-    else:
-        print(f"✗ Memory appears {memory_count} times (should be 1)")
-        return False
+    print(f"✗ Memory appears {memory_count} times (should be 1)")
+    return False
 
 
 def test_json_parsing_edge_cases():
     """Test edge cases in JSON parsing."""
-    
+
     config = Config()
     manager = AgentMemoryManager(config, project_root)
-    
+
     test_agent = "test_edge_cases_agent"
-    
+
     edge_cases = [
         {
             "name": "malformed_json",
@@ -242,7 +243,7 @@ Task completed.
 }
 ```
 """,
-            "should_succeed": False
+            "should_succeed": False,
         },
         {
             "name": "empty_remember_array",
@@ -256,7 +257,7 @@ Task completed.
 }
 ```
 """,
-            "should_succeed": False  # Empty arrays should be ignored
+            "should_succeed": False,  # Empty arrays should be ignored
         },
         {
             "name": "remember_with_empty_string",
@@ -270,14 +271,14 @@ Task completed.
 }
 ```
 """,
-            "should_succeed": False  # Empty strings should be ignored
+            "should_succeed": False,  # Empty strings should be ignored
         },
         {
             "name": "no_json_block",
             "response": """
 Task completed without any JSON block.
 """,
-            "should_succeed": False
+            "should_succeed": False,
         },
         {
             "name": "multiple_json_blocks",
@@ -298,44 +299,46 @@ Second block:
 }
 ```
 """,
-            "should_succeed": True  # Should find the first valid one
-        }
+            "should_succeed": True,  # Should find the first valid one
+        },
     ]
-    
+
     print("Testing JSON parsing edge cases...")
-    
+
     for test_case in edge_cases:
         print(f"\n• Testing {test_case['name']}...")
-        
-        success = manager.extract_and_update_memory(test_agent, test_case['response'])
-        
-        if success == test_case['should_succeed']:
+
+        success = manager.extract_and_update_memory(test_agent, test_case["response"])
+
+        if success == test_case["should_succeed"]:
             print(f"✓ {test_case['name']} handled correctly (success={success})")
         else:
-            print(f"✗ {test_case['name']} handled incorrectly (expected success={test_case['should_succeed']}, got={success})")
+            print(
+                f"✗ {test_case['name']} handled incorrectly (expected success={test_case['should_succeed']}, got={success})"
+            )
             return False
-    
+
     return True
 
 
 def main():
     """Run all memory flow tests."""
-    
+
     print("Memory Flow Comprehensive Test")
     print("=" * 60)
-    
+
     tests = [
         ("Memory Categorization", test_memory_categorization),
-        ("Duplicate Prevention", test_duplicate_prevention),  
-        ("JSON Parsing Edge Cases", test_json_parsing_edge_cases)
+        ("Duplicate Prevention", test_duplicate_prevention),
+        ("JSON Parsing Edge Cases", test_json_parsing_edge_cases),
     ]
-    
+
     all_passed = True
-    
+
     for test_name, test_func in tests:
         print(f"\n{test_name}")
         print("-" * len(test_name))
-        
+
         try:
             passed = test_func()
             if passed:
@@ -346,14 +349,13 @@ def main():
         except Exception as e:
             print(f"✗ {test_name} failed with exception: {e}")
             all_passed = False
-    
+
     print("\n" + "=" * 60)
     if all_passed:
         print("✓ All tests passed!")
         return 0
-    else:
-        print("✗ Some tests failed")
-        return 1
+    print("✗ Some tests failed")
+    return 1
 
 
 if __name__ == "__main__":

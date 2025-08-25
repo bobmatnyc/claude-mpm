@@ -12,10 +12,9 @@ DESIGN DECISIONS:
 - Test different output formats
 """
 
-import pytest
 from argparse import Namespace
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 from claude_mpm.cli.commands.cleanup import CleanupCommand
 from claude_mpm.cli.shared.base_command import CommandResult
@@ -36,26 +35,18 @@ class TestCleanupCommand:
     def test_validate_args_default():
         """Test validation with default args."""
         args = Namespace(
-            days=30,
-            max_size='500KB',
-            archive=True,
-            dry_run=False,
-            force=False
+            days=30, max_size="500KB", archive=True, dry_run=False, force=False
         )
         error = self.command.validate_args(args)
         assert error is None
 
     def test_validate_args_valid_sizes():
         """Test validation with valid size formats."""
-        valid_sizes = ['100KB', '500KB', '1MB', '10MB', '1GB']
-        
+        valid_sizes = ["100KB", "500KB", "1MB", "10MB", "1GB"]
+
         for size in valid_sizes:
             args = Namespace(
-                days=30,
-                max_size=size,
-                archive=True,
-                dry_run=False,
-                force=False
+                days=30, max_size=size, archive=True, dry_run=False, force=False
             )
             error = self.command.validate_args(args)
             assert error is None, f"Size {size} should be valid"
@@ -63,30 +54,22 @@ class TestCleanupCommand:
     def test_validate_args_invalid_size():
         """Test validation with invalid size format."""
         args = Namespace(
-            days=30,
-            max_size='invalid',
-            archive=True,
-            dry_run=False,
-            force=False
+            days=30, max_size="invalid", archive=True, dry_run=False, force=False
         )
         error = self.command.validate_args(args)
         assert error is not None
-        assert 'Invalid size format' in error
+        assert "Invalid size format" in error
 
     def test_validate_args_negative_days():
         """Test validation with negative days."""
         args = Namespace(
-            days=-1,
-            max_size='500KB',
-            archive=True,
-            dry_run=False,
-            force=False
+            days=-1, max_size="500KB", archive=True, dry_run=False, force=False
         )
         error = self.command.validate_args(args)
         assert error is not None
-        assert 'positive number' in error
+        assert "positive number" in error
 
-    @patch('claude_mpm.cli.commands.cleanup.Path')
+    @patch("claude_mpm.cli.commands.cleanup.Path")
     def test_run_memory_cleanup(mock_path_class):
         """Test memory cleanup operation."""
         mock_path = Mock()
@@ -94,30 +77,30 @@ class TestCleanupCommand:
         mock_path.is_file.return_value = True
         mock_path.stat.return_value = Mock(st_size=1000000)
         mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path('/mock/home')
-        
+        mock_path_class.home.return_value = Path("/mock/home")
+
         args = Namespace(
             days=30,
-            max_size='500KB',
+            max_size="500KB",
             archive=True,
             dry_run=False,
             force=True,
-            format='text'
+            format="text",
         )
-        
-        with patch.object(self.command, '_analyze_cleanup_needs') as mock_analyze:
+
+        with patch.object(self.command, "_analyze_cleanup_needs") as mock_analyze:
             mock_analyze.return_value = {
-                'files': [{'path': '/mock/path/.claude.json', 'size': 1000000}],
-                'total_size': 1000000,
-                'space_to_free': 500000
+                "files": [{"path": "/mock/path/.claude.json", "size": 1000000}],
+                "total_size": 1000000,
+                "space_to_free": 500000,
             }
-            
+
             result = self.command.run(args)
-            
+
             assert isinstance(result, CommandResult)
             mock_analyze.assert_called_once_with(args)
 
-    @patch('claude_mpm.cli.commands.cleanup.Path')
+    @patch("claude_mpm.cli.commands.cleanup.Path")
     def test_run_memory_cleanup_dry_run(mock_path_class):
         """Test memory cleanup in dry-run mode."""
         mock_path = Mock()
@@ -125,30 +108,30 @@ class TestCleanupCommand:
         mock_path.is_file.return_value = True
         mock_path.stat.return_value = Mock(st_size=500000)
         mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path('/mock/home')
-        
+        mock_path_class.home.return_value = Path("/mock/home")
+
         args = Namespace(
             days=30,
-            max_size='500KB',
+            max_size="500KB",
             archive=True,
             dry_run=True,  # Dry run mode
             force=False,
-            format='text'
+            format="text",
         )
-        
-        with patch.object(self.command, '_analyze_cleanup_needs') as mock_analyze:
+
+        with patch.object(self.command, "_analyze_cleanup_needs") as mock_analyze:
             mock_analyze.return_value = {
-                'files': [{'path': '/mock/path/.claude.json', 'size': 500000}],
-                'total_size': 500000,
-                'space_to_free': 0
+                "files": [{"path": "/mock/path/.claude.json", "size": 500000}],
+                "total_size": 500000,
+                "space_to_free": 0,
             }
-            
+
             result = self.command.run(args)
-            
+
             assert isinstance(result, CommandResult)
             # In dry run, files should not actually be deleted
 
-    @patch('claude_mpm.cli.commands.cleanup.Path')
+    @patch("claude_mpm.cli.commands.cleanup.Path")
     def test_run_with_archive(mock_path_class):
         """Test cleanup with archiving enabled."""
         mock_path = Mock()
@@ -156,29 +139,29 @@ class TestCleanupCommand:
         mock_path.is_file.return_value = True
         mock_path.stat.return_value = Mock(st_size=1000000)
         mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path('/mock/home')
-        
+        mock_path_class.home.return_value = Path("/mock/home")
+
         args = Namespace(
             days=30,
-            max_size='500KB',
+            max_size="500KB",
             archive=True,
             dry_run=False,
             force=True,
-            format='text'
+            format="text",
         )
-        
-        with patch.object(self.command, '_analyze_cleanup_needs') as mock_analyze:
+
+        with patch.object(self.command, "_analyze_cleanup_needs") as mock_analyze:
             mock_analyze.return_value = {
-                'files': [{'path': '/mock/path/.claude.json', 'size': 1000000}],
-                'total_size': 1000000,
-                'space_to_free': 500000
+                "files": [{"path": "/mock/path/.claude.json", "size": 1000000}],
+                "total_size": 1000000,
+                "space_to_free": 500000,
             }
-            
+
             result = self.command.run(args)
-            
+
             assert isinstance(result, CommandResult)
 
-    @patch('claude_mpm.cli.commands.cleanup.Path')
+    @patch("claude_mpm.cli.commands.cleanup.Path")
     def test_run_without_archive(mock_path_class):
         """Test cleanup without archiving."""
         mock_path = Mock()
@@ -186,110 +169,110 @@ class TestCleanupCommand:
         mock_path.is_file.return_value = True
         mock_path.stat.return_value = Mock(st_size=1000000)
         mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path('/mock/home')
-        
+        mock_path_class.home.return_value = Path("/mock/home")
+
         args = Namespace(
             days=30,
-            max_size='500KB',
+            max_size="500KB",
             archive=False,
             dry_run=False,
             force=True,
-            format='json'
+            format="json",
         )
-        
-        with patch.object(self.command, '_analyze_cleanup_needs') as mock_analyze:
+
+        with patch.object(self.command, "_analyze_cleanup_needs") as mock_analyze:
             mock_analyze.return_value = {
-                'files': [{'path': '/mock/path/.claude.json', 'size': 1000000}],
-                'total_size': 1000000,
-                'space_to_free': 500000
+                "files": [{"path": "/mock/path/.claude.json", "size": 1000000}],
+                "total_size": 1000000,
+                "space_to_free": 500000,
             }
-            
+
             result = self.command.run(args)
-            
+
             assert isinstance(result, CommandResult)
 
-    @patch('builtins.input')
-    @patch('claude_mpm.cli.commands.cleanup.Path')
+    @patch("builtins.input")
+    @patch("claude_mpm.cli.commands.cleanup.Path")
     def test_cleanup_with_confirmation(mock_path_class, mock_input):
         """Test cleanup with user confirmation."""
-        mock_input.return_value = 'yes'
+        mock_input.return_value = "yes"
         mock_path = Mock()
         mock_path.exists.return_value = True
         mock_path.is_file.return_value = True
         mock_path.stat.return_value = Mock(st_size=1000000)
         mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path('/mock/home')
-        
+        mock_path_class.home.return_value = Path("/mock/home")
+
         args = Namespace(
             days=30,
-            max_size='500KB',
+            max_size="500KB",
             archive=True,
             dry_run=False,
             force=False,  # Require confirmation
-            format='text'
+            format="text",
         )
-        
-        with patch.object(self.command, '_analyze_cleanup_needs') as mock_analyze:
+
+        with patch.object(self.command, "_analyze_cleanup_needs") as mock_analyze:
             mock_analyze.return_value = {
-                'files': [{'path': '/mock/path/.claude.json', 'size': 1000000}],
-                'total_size': 1000000,
-                'space_to_free': 500000
+                "files": [{"path": "/mock/path/.claude.json", "size": 1000000}],
+                "total_size": 1000000,
+                "space_to_free": 500000,
             }
-            
+
             result = self.command.run(args)
-            
+
             assert isinstance(result, CommandResult)
 
     def test_cleanup_cancelled_by_user():
         """Test cleanup cancelled by user input."""
         args = Namespace(
             days=30,
-            max_size='500KB',
+            max_size="500KB",
             archive=True,
             dry_run=False,
             force=False,
-            format='text'
+            format="text",
         )
-        
-        with patch('builtins.input', return_value='no'):
+
+        with patch("builtins.input", return_value="no"):
             # Mock the method to avoid actual file operations
-            with patch.object(self.command, '_analyze_cleanup_needs') as mock_analyze:
+            with patch.object(self.command, "_analyze_cleanup_needs") as mock_analyze:
                 mock_analyze.return_value = {
-                    'files': [],
-                    'total_size': 0,
-                    'space_to_free': 0
+                    "files": [],
+                    "total_size": 0,
+                    "space_to_free": 0,
                 }
-                
+
                 result = self.command.run(args)
-                
+
                 # Check if cleanup was cancelled (implementation dependent)
                 assert isinstance(result, CommandResult)
 
-    @patch('claude_mpm.cli.commands.cleanup.Path')
+    @patch("claude_mpm.cli.commands.cleanup.Path")
     def test_cleanup_permission_error(mock_path_class):
         """Test cleanup with permission errors."""
         mock_path = Mock()
         mock_path.exists.return_value = True
         mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path('/mock/home')
-        
+        mock_path_class.home.return_value = Path("/mock/home")
+
         args = Namespace(
             days=30,
-            max_size='500KB',
+            max_size="500KB",
             archive=True,
             dry_run=False,
             force=True,
-            format='text'
+            format="text",
         )
-        
-        with patch.object(self.command, '_analyze_cleanup_needs') as mock_analyze:
+
+        with patch.object(self.command, "_analyze_cleanup_needs") as mock_analyze:
             mock_analyze.side_effect = PermissionError("Access denied")
-            
+
             result = self.command.run(args)
-            
+
             assert result.success is False
 
-    @patch('claude_mpm.cli.commands.cleanup.Path')
+    @patch("claude_mpm.cli.commands.cleanup.Path")
     def test_cleanup_json_output(mock_path_class):
         """Test cleanup with JSON output format."""
         mock_path = Mock()
@@ -297,29 +280,29 @@ class TestCleanupCommand:
         mock_path.is_file.return_value = True
         mock_path.stat.return_value = Mock(st_size=1000000)
         mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path('/mock/home')
-        
+        mock_path_class.home.return_value = Path("/mock/home")
+
         args = Namespace(
             days=30,
-            max_size='500KB',
+            max_size="500KB",
             archive=True,
             dry_run=False,
             force=True,
-            format='json'
+            format="json",
         )
-        
-        with patch.object(self.command, '_analyze_cleanup_needs') as mock_analyze:
+
+        with patch.object(self.command, "_analyze_cleanup_needs") as mock_analyze:
             mock_analyze.return_value = {
-                'files': [{'path': '/mock/path/.claude.json', 'size': 1000000}],
-                'total_size': 1000000,
-                'space_to_free': 500000
+                "files": [{"path": "/mock/path/.claude.json", "size": 1000000}],
+                "total_size": 1000000,
+                "space_to_free": 500000,
             }
-            
+
             result = self.command.run(args)
-            
+
             assert isinstance(result, CommandResult)
 
-    @patch('claude_mpm.cli.commands.cleanup.Path')
+    @patch("claude_mpm.cli.commands.cleanup.Path")
     def test_cleanup_yaml_output(mock_path_class):
         """Test cleanup with YAML output format."""
         mock_path = Mock()
@@ -327,43 +310,43 @@ class TestCleanupCommand:
         mock_path.is_file.return_value = True
         mock_path.stat.return_value = Mock(st_size=750000)
         mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path('/mock/home')
-        
+        mock_path_class.home.return_value = Path("/mock/home")
+
         args = Namespace(
             days=30,
-            max_size='500KB',
+            max_size="500KB",
             archive=True,
             dry_run=False,
             force=True,
-            format='yaml'
+            format="yaml",
         )
-        
-        with patch.object(self.command, '_analyze_cleanup_needs') as mock_analyze:
+
+        with patch.object(self.command, "_analyze_cleanup_needs") as mock_analyze:
             mock_analyze.return_value = {
-                'files': [{'path': '/mock/path/.claude.json', 'size': 750000}],
-                'total_size': 750000,
-                'space_to_free': 250000
+                "files": [{"path": "/mock/path/.claude.json", "size": 750000}],
+                "total_size": 750000,
+                "space_to_free": 250000,
             }
-            
+
             result = self.command.run(args)
-            
+
             assert isinstance(result, CommandResult)
 
-    @patch('claude_mpm.cli.commands.cleanup.Path')
+    @patch("claude_mpm.cli.commands.cleanup.Path")
     def test_run_with_exception(mock_path_class):
         """Test general exception handling in run method."""
         mock_path_class.home.side_effect = Exception("Unexpected error")
-        
+
         args = Namespace(
             days=30,
-            max_size='500KB',
+            max_size="500KB",
             archive=True,
             dry_run=False,
             force=True,
-            format='text'
+            format="text",
         )
-        
+
         result = self.command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is False

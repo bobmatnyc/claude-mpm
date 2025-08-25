@@ -18,15 +18,12 @@ import json
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
-from claude_mpm.core.exceptions import AgentDeploymentError
 from claude_mpm.services.agents.deployment.agent_deployment import (
     AgentDeploymentService,
 )

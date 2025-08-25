@@ -18,7 +18,6 @@ from datetime import datetime
 
 from claude_mpm.core.agent_name_normalizer import (
     AgentNameNormalizer,
-    agent_name_normalizer,
 )
 
 

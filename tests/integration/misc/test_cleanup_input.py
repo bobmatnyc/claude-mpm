@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Test script to reproduce the cleanup-memory input issue."""
 
-import os
 import sys
 
 
@@ -14,7 +13,7 @@ def test_basic_input():
     try:
         response = input("Enter 'y' or 'n': ")
         print(f"You entered: '{response}'")
-        print(f"Response repr: {repr(response)}")
+        print(f"Response repr: {response!r}")
         print(f"Response stripped: '{response.strip()}'")
         print(f"Response lower: '{response.lower()}'")
     except Exception as e:

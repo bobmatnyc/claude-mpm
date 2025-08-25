@@ -4,9 +4,8 @@ Tests the extracted agent capabilities service to ensure it maintains
 the same behavior as the original ClaudeRunner methods.
 """
 
-import tempfile
 from pathlib import Path
-from unittest.mock import Mock, mock_open, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -72,7 +71,7 @@ class TestAgentCapabilitiesService:
 
         # Test that the method exists and can be called
         assert hasattr(service, "_discover_agents_from_dir")
-        assert callable(getattr(service, "_discover_agents_from_dir"))
+        assert callable(service._discover_agents_from_dir)
 
     def test_discover_agents_from_dir_with_files(service, tmp_path):
         """Test agent discovery with actual files."""

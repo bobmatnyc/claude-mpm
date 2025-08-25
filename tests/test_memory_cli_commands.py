@@ -13,37 +13,26 @@ including:
 """
 
 import json
-import os
-import sys
-import tempfile
 from argparse import Namespace
 from io import StringIO
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch, mock_open
+from unittest.mock import Mock, patch
 
 import pytest
 
 # Import the classes and functions we're testing
 from claude_mpm.cli.commands.memory import (
     MemoryManagementCommand,
-    _add_learning,
     _build_memory,
-    _clean_memory,
     _cross_reference_memory,
-    _init_memory,
-    _optimize_memory,
-    _output_all_memories_raw,
-    _output_single_agent_raw,
-    _parse_memory_content,
     _route_memory_command,
-    _show_memories,
-    _show_status,
-    _view_memory,
+    _display_single_optimization_result,
+    _display_bulk_optimization_results,
     manage_memory,
 )
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
-from claude_mpm.services.agents.memory import AgentMemoryManager
+from claude_mpm.services.cli.memory_crud_service import MemoryCRUDService
 from claude_mpm.cli.shared.base_command import CommandResult
+from claude_mpm.services.agents.memory import AgentMemoryManager
 
 
 class TestMemoryManagementCommand:
@@ -74,9 +63,9 @@ class TestMemoryManagementCommand:
                     "sections": 3,
                     "items": 10,
                     "last_modified": "2025-01-01T12:00:00Z",
-                    "auto_learning": True
+                    "auto_learning": True,
                 }
-            }
+            },
         }
         manager.update_agent_memory.return_value = True
         manager.add_learning.return_value = True
@@ -91,8 +80,9 @@ class TestMemoryManagementCommand:
     @pytest.fixture
     def memory_subcommand(self, mock_memory_manager):
         """Create MemoryManagementCommand instance with mocked dependencies."""
-        with patch('claude_mpm.cli.commands.memory.ConfigLoader') as mock_loader, \
-             patch('claude_mpm.cli.commands.memory.AgentMemoryManager') as mock_manager_class:
+        with patch("claude_mpm.cli.commands.memory.ConfigLoader") as mock_loader, patch(
+            "claude_mpm.cli.commands.memory.AgentMemoryManager"
+        ) as mock_manager_class:
 
             mock_loader.return_value.load_main_config.return_value = Mock()
             mock_manager_class.return_value = mock_memory_manager
@@ -134,7 +124,7 @@ class TestMemoryManagementCommand:
         """Test run() with show/view command."""
         args = Namespace(memory_command="show", format="text", agent=None)
 
-        with patch('claude_mpm.cli.commands.memory._show_memories') as mock_show:
+        with patch("claude_mpm.cli.commands.memory._show_memories") as mock_show:
             result = memory_command.run(args)
 
         assert isinstance(result, CommandResult)
@@ -148,10 +138,10 @@ class TestMemoryManagementCommand:
             format="text",
             agent="engineer",
             learning_type="pattern",
-            content="Use dependency injection"
+            content="Use dependency injection",
         )
 
-        with patch('claude_mpm.cli.commands.memory._add_learning') as mock_add:
+        with patch("claude_mpm.cli.commands.memory._add_learning") as mock_add:
             result = memory_command.run(args)
 
         assert isinstance(result, CommandResult)
@@ -257,9 +247,7 @@ class TestAgentMemoryManager:
     def test_update_agent_memory_adds_new_item(memory_manager):
         """Test update_agent_memory adds new learning item."""
         success = memory_manager.update_agent_memory(
-            "engineer",
-            "Coding Patterns Learned",
-            "Use dependency injection pattern"
+            "engineer", "Coding Patterns Learned", "Use dependency injection pattern"
         )
 
         assert success is True
@@ -271,9 +259,7 @@ class TestAgentMemoryManager:
     def test_add_learning_with_pattern_type(memory_manager):
         """Test add_learning with pattern learning type."""
         success = memory_manager.add_learning(
-            "engineer",
-            "pattern",
-            "Always validate input parameters"
+            "engineer", "pattern", "Always validate input parameters"
         )
 
         assert success is True
@@ -286,9 +272,7 @@ class TestAgentMemoryManager:
     def test_add_learning_with_architecture_type(memory_manager):
         """Test add_learning with architecture learning type."""
         success = memory_manager.add_learning(
-            "engineer",
-            "architecture",
-            "System uses microservices pattern"
+            "engineer", "architecture", "System uses microservices pattern"
         )
 
         assert success is True
@@ -317,7 +301,9 @@ class TestAgentMemoryManager:
     def test_save_memory_file_handles_errors(memory_manager):
         """Test _save_memory_file handles write errors gracefully."""
         # Mock Path.write_text to raise an exception
-        with patch.object(Path, 'write_text', side_effect=PermissionError("Access denied")):
+        with patch.object(
+            Path, "write_text", side_effect=PermissionError("Access denied")
+        ):
             success = memory_manager._save_memory_file("test_agent", "content")
 
             assert success is False
@@ -328,7 +314,9 @@ class TestAgentMemoryManager:
         memory_dir = temp_dir / ".claude-mpm" / "memories"
         memory_dir.mkdir(parents=True)
 
-        (memory_dir / "engineer_memories.md").write_text("# Engineer Memory\n" + "x" * 1000)
+        (memory_dir / "engineer_memories.md").write_text(
+            "# Engineer Memory\n" + "x" * 1000
+        )
         (memory_dir / "qa_memories.md").write_text("# QA Memory\n" + "y" * 500)
 
         status = memory_manager.get_memory_status()
@@ -424,7 +412,9 @@ class TestMemoryFileOperations:
         for agent in test_agents:
             memory_manager._save_memory_file(agent, f"# {agent} Memory")
 
-            expected_file = temp_dir / ".claude-mpm" / "memories" / f"{agent}_memories.md"
+            expected_file = (
+                temp_dir / ".claude-mpm" / "memories" / f"{agent}_memories.md"
+            )
             assert expected_file.exists()
 
     def test_memory_content_encoding(memory_manager, temp_dir):
@@ -454,7 +444,6 @@ class TestMemoryFileOperations:
     def test_concurrent_memory_access(memory_manager):
         """Test memory manager handles concurrent access gracefully."""
         import threading
-        import time
 
         results = []
         errors = []
@@ -462,9 +451,7 @@ class TestMemoryFileOperations:
         def update_memory(agent_id, item_num):
             try:
                 success = memory_manager.update_agent_memory(
-                    agent_id,
-                    "Test Section",
-                    f"Test item {item_num}"
+                    agent_id, "Test Section", f"Test item {item_num}"
                 )
                 results.append(success)
             except Exception as e:
@@ -514,7 +501,7 @@ class TestMemoryFileOperations:
 
         # Create corrupted file (binary data)
         corrupted_file = memory_dir / "engineer_memories.md"
-        corrupted_file.write_bytes(b'\x00\x01\x02\x03\x04')
+        corrupted_file.write_bytes(b"\x00\x01\x02\x03\x04")
 
         # Loading should handle corruption gracefully
         result = memory_manager.load_agent_memory("engineer")
@@ -548,7 +535,7 @@ class TestMemoryStatusAndDisplay:
                     "sections": 4,
                     "items": 15,
                     "last_modified": "2025-01-01T12:00:00Z",
-                    "auto_learning": True
+                    "auto_learning": True,
                 },
                 "qa": {
                     "size_kb": 40,
@@ -557,15 +544,15 @@ class TestMemoryStatusAndDisplay:
                     "sections": 3,
                     "items": 10,
                     "last_modified": "2025-01-01T11:00:00Z",
-                    "auto_learning": True
-                }
-            }
+                    "auto_learning": True,
+                },
+            },
         }
         return manager
 
     def test_show_status_displays_system_health(mock_memory_manager):
         """Test _show_status displays system health information."""
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_status(mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -576,7 +563,7 @@ class TestMemoryStatusAndDisplay:
 
     def test_show_status_displays_agent_information(mock_memory_manager):
         """Test _show_status displays individual agent information."""
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_status(mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -597,10 +584,10 @@ class TestMemoryStatusAndDisplay:
             "system_enabled": True,
             "auto_learning": True,
             "total_agents": 0,
-            "agents": {}
+            "agents": {},
         }
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_status(manager)
 
         output = mock_stdout.getvalue()
@@ -614,7 +601,7 @@ class TestMemoryStatusAndDisplay:
         manager.memories_dir = Path("/test/memories")
         manager.memories_dir.exists.return_value = False
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_basic_status(manager)
 
         output = mock_stdout.getvalue()
@@ -623,11 +610,13 @@ class TestMemoryStatusAndDisplay:
 
     def test_show_memories_all_agents(mock_memory_manager):
         """Test _show_memories displays all agent memories."""
-        mock_memory_manager.load_agent_memory.side_effect = lambda agent: f"# {agent} Memory\n- Test content"
+        mock_memory_manager.load_agent_memory.side_effect = (
+            lambda agent: f"# {agent} Memory\n- Test content"
+        )
 
         args = Namespace(agent=None, format="summary", raw=False)
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_memories(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -635,11 +624,13 @@ class TestMemoryStatusAndDisplay:
 
     def test_show_memories_single_agent(mock_memory_manager):
         """Test _show_memories displays single agent memory."""
-        mock_memory_manager.load_agent_memory.return_value = "# Engineer Memory\n## Patterns\n- Test pattern"
+        mock_memory_manager.load_agent_memory.return_value = (
+            "# Engineer Memory\n## Patterns\n- Test pattern"
+        )
 
         args = Namespace(agent="engineer", format="detailed", raw=False)
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_memories(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -651,7 +642,7 @@ class TestMemoryStatusAndDisplay:
 
         args = Namespace(agent="engineer", format="summary", raw=True)
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_memories(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -726,10 +717,10 @@ class TestMemoryUtilitiesAndRouting:
         args = Namespace(
             agent="engineer",
             learning_type="pattern",
-            content="Use factory pattern for object creation"
+            content="Use factory pattern for object creation",
         )
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _add_learning(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -743,12 +734,10 @@ class TestMemoryUtilitiesAndRouting:
         mock_memory_manager.add_learning.return_value = False
 
         args = Namespace(
-            agent="engineer",
-            learning_type="pattern",
-            content="Test content"
+            agent="engineer", learning_type="pattern", content="Test content"
         )
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _add_learning(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -758,7 +747,7 @@ class TestMemoryUtilitiesAndRouting:
         """Test _init_memory displays initialization instructions."""
         args = Namespace()
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _init_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -773,7 +762,7 @@ class TestMemoryUtilitiesAndRouting:
 
         args = Namespace()
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _clean_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -786,7 +775,7 @@ class TestMemoryUtilitiesAndRouting:
 
         args = Namespace()
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _clean_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -796,7 +785,7 @@ class TestMemoryUtilitiesAndRouting:
         """Test _build_memory displays build information."""
         args = Namespace()
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _build_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -806,7 +795,7 @@ class TestMemoryUtilitiesAndRouting:
         """Test _optimize_memory displays optimization information."""
         args = Namespace(agent=None)
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _optimize_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -816,7 +805,7 @@ class TestMemoryUtilitiesAndRouting:
         """Test _route_memory_command displays routing information."""
         args = Namespace(command="test command")
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _route_memory_subcommand(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -826,7 +815,7 @@ class TestMemoryUtilitiesAndRouting:
         """Test _cross_reference_memory displays cross-reference information."""
         args = Namespace()
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _cross_reference_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -836,7 +825,9 @@ class TestMemoryUtilitiesAndRouting:
         """Test manage_memory function calls MemoryManagementCommand."""
         args = Namespace(memory_command="status", format="text")
 
-        with patch('claude_mpm.cli.commands.memory.MemoryManagementCommand') as mock_command_class:
+        with patch(
+            "claude_mpm.cli.commands.memory.MemoryManagementCommand"
+        ) as mock_command_class:
             mock_command = Mock()
             mock_result = Mock()
             mock_result.exit_code = 0
@@ -852,7 +843,9 @@ class TestMemoryUtilitiesAndRouting:
         """Test manage_memory maintains backward compatibility."""
         args = Namespace(memory_command="status", format="text")
 
-        with patch('claude_mpm.cli.commands.memory.MemoryManagementCommand') as mock_command_class:
+        with patch(
+            "claude_mpm.cli.commands.memory.MemoryManagementCommand"
+        ) as mock_command_class:
             mock_command = Mock()
             mock_result = Mock()
             mock_result.exit_code = 0
@@ -867,9 +860,11 @@ class TestMemoryUtilitiesAndRouting:
 
     def test_output_single_agent_raw_json_format(mock_memory_manager):
         """Test _output_single_agent_raw outputs valid JSON."""
-        mock_memory_manager.load_agent_memory.return_value = "# Test Memory\n- Test item"
+        mock_memory_manager.load_agent_memory.return_value = (
+            "# Test Memory\n- Test item"
+        )
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _output_single_agent_raw("engineer", mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -898,9 +893,11 @@ class TestMemoryUtilitiesAndRouting:
         mock_file2.stem = "qa_memories"
 
         mock_memory_manager.memories_dir.glob.return_value = [mock_file1, mock_file2]
-        mock_memory_manager.load_agent_memory.side_effect = lambda agent: f"# {agent} Memory"
+        mock_memory_manager.load_agent_memory.side_effect = (
+            lambda agent: f"# {agent} Memory"
+        )
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _output_all_memories_raw(mock_memory_manager)
 
         output = mock_stdout.getvalue()

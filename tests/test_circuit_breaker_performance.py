@@ -8,15 +8,12 @@ This test suite validates the circuit breaker pattern implementation:
 - Validate fail-fast behavior
 """
 
-import asyncio
 import json
 import os
 import sys
-import threading
 import time
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
-from unittest.mock import Mock, patch
+from datetime import datetime
+from typing import Any, Dict
 
 # Add the src directory to Python path
 script_dir = os.path.dirname(os.path.abspath(__file__))

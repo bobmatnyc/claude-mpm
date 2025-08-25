@@ -4,10 +4,9 @@
 from claude_mpm.services.agents.memory.content_manager import MemoryContentManager
 
 # Create content manager
-content_manager = MemoryContentManager({
-    "max_items_per_section": 15,
-    "max_line_length": 120
-})
+content_manager = MemoryContentManager(
+    {"max_items_per_section": 15, "max_line_length": 120}
+)
 
 # Create initial content
 initial_content = """# Agent Memory
@@ -21,18 +20,18 @@ initial_content = """# Agent Memory
 
 print("Initial content:")
 print(initial_content)
-print("\n" + "="*60 + "\n")
+print("\n" + "=" * 60 + "\n")
 
 # Add similar item
 updated_content = content_manager.add_item_to_section(
     initial_content,
     "Implementation Guidelines",
-    "Use async/await for all database operations and queries"
+    "Use async/await for all database operations and queries",
 )
 
 print("After adding similar item:")
 print(updated_content)
-print("\n" + "="*60 + "\n")
+print("\n" + "=" * 60 + "\n")
 
 # Count items in Implementation Guidelines
 lines = updated_content.split("\n")

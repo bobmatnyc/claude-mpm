@@ -1,68 +1,67 @@
 #!/usr/bin/env python3
 """Comprehensive verification that the config duplicate message fix works."""
 
-import sys
+import logging
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
-import logging
 
 # Set up logging
 logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
+
 
 def test_thread_safety():
     """Test thread safety of the singleton."""
     import threading
-    import time
-    
+
     sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-    
-    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
-    
+
+
     # Reset for clean test
     Config.reset_singleton()
-    
+
     configs = []
     success_messages = []
-    
+
     def create_config(name):
         """Create a config instance in a thread."""
         config = Config()
         configs.append((name, id(config)))
         # Check if success was logged
         success_messages.append((name, Config._success_logged))
-    
+
     # Create threads
     threads = []
     for i in range(10):
         thread = threading.Thread(target=create_config, args=(f"Thread-{i}",))
         threads.append(thread)
-    
+
     # Start all threads simultaneously
     for thread in threads:
         thread.start()
-    
+
     # Wait for all threads to complete
     for thread in threads:
         thread.join()
-    
+
     # Check results
     unique_ids = set(id_val for _, id_val in configs)
-    
+
     print("\n=== THREAD SAFETY TEST ===")
     print(f"Created {len(configs)} Config instances in threads")
     print(f"Unique instance IDs: {len(unique_ids)}")
     print(f"All same instance: {len(unique_ids) == 1}")
     print(f"Success flag final value: {Config._success_logged}")
-    
+
     # Count how many threads saw success_logged as False
     saw_false = sum(1 for _, logged in success_messages if not logged)
     print(f"Threads that saw _success_logged=False: {saw_false}")
-    
+
     return len(unique_ids) == 1 and saw_false <= 1
+
 
 def test_import_order():
     """Test different import orders."""
@@ -97,36 +96,37 @@ print(f"Success messages: {success_count}")
 # Verify singleton
 print(f"All configs same: {id(config) == id(hook.config) if hasattr(hook, 'config') else 'N/A'}")
 """
-    
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write(test_script)
         test_file = f.name
-    
+
     try:
         result = subprocess.run(
-            [sys.executable, test_file],
-            capture_output=True,
-            text=True,
-            timeout=10
+            [sys.executable, test_file], capture_output=True, text=True, timeout=10, check=False
         )
-        
+
         print("\n=== IMPORT ORDER TEST ===")
         print(result.stdout)
-        
+
         # Check for single success message
-        return "Success messages: 1" in result.stdout or "Success messages: 0" in result.stdout
-        
+        return (
+            "Success messages: 1" in result.stdout
+            or "Success messages: 0" in result.stdout
+        )
+
     finally:
         Path(test_file).unlink()
+
 
 def main():
     """Run comprehensive verification tests."""
     print("=" * 70)
     print("CONFIG DUPLICATE MESSAGE FIX VERIFICATION")
     print("=" * 70)
-    
+
     all_passed = True
-    
+
     # Test 1: Thread safety
     print("\nTest 1: Thread Safety")
     try:
@@ -138,7 +138,7 @@ def main():
     except Exception as e:
         print(f"✗ Thread safety test ERROR: {e}")
         all_passed = False
-    
+
     # Test 2: Import order
     print("\nTest 2: Import Order")
     try:
@@ -150,7 +150,7 @@ def main():
     except Exception as e:
         print(f"✗ Import order test ERROR: {e}")
         all_passed = False
-    
+
     print("\n" + "=" * 70)
     if all_passed:
         print("✓✓✓ ALL VERIFICATION TESTS PASSED ✓✓✓")
@@ -158,8 +158,9 @@ def main():
     else:
         print("✗✗✗ SOME VERIFICATION TESTS FAILED ✗✗✗")
     print("=" * 70)
-    
+
     return 0 if all_passed else 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -170,9 +170,9 @@ Project agents override system agents:
 ## Getting Help
 
 ### Documentation Resources
-- **[Main Agent Guide](../AGENTS.md)** - Comprehensive agent system documentation
+- **[Main Agent Guide](AGENTS.md)** - Comprehensive agent system documentation
 - **[Agent Creation Guide](../developer/07-agent-system/creation-guide.md)** - Create custom agents
-- **[Agent Schema Reference](../developer/07-agent-system/schema.md)** - Agent configuration schema
+- **[Agent Schema Reference](../developer/10-schemas/agent_schema_documentation.md)** - Agent configuration schema
 - **[Agent Frontmatter Guide](../developer/07-agent-system/frontmatter.md)** - Configuration fields
 
 ### CLI Commands
@@ -206,7 +206,7 @@ claude-mpm agents fix --all --dry-run
 ### Adding New Agents
 1. Create comprehensive documentation following the template
 2. Update this catalog with agent entry
-3. Add agent to main [AGENTS.md](../AGENTS.md) if applicable
+3. Add agent to main [AGENTS.md](AGENTS.md) if applicable
 4. Test all examples and procedures
 5. Review for consistency with existing documentation
 

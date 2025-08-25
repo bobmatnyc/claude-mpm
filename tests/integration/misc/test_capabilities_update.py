@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Test the updated agent capabilities generation."""
 
-import os
 import sys
 from pathlib import Path
 
@@ -104,9 +103,8 @@ def test_capabilities_generation():
         print("   - Clean agent names (for TodoWrite)")
         print("   - Agent IDs in parentheses (for Task tool)")
         return True
-    else:
-        print("⚠️ Some tests failed. Please review the output above.")
-        return False
+    print("⚠️ Some tests failed. Please review the output above.")
+    return False
 
 
 if __name__ == "__main__":

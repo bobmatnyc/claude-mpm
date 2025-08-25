@@ -9,9 +9,7 @@ This script tests that:
 """
 
 import os
-import shutil
 import sys
-import tempfile
 from pathlib import Path
 
 # Add src to path for imports

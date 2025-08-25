@@ -1,10 +1,7 @@
 """Unit tests for DeploymentManager configuration options."""
 
-import tempfile
 from pathlib import Path
 from unittest.mock import Mock
-
-import pytest
 
 from claude_mpm.services.framework_claude_md_generator.deployment_manager import (
     DeploymentManager,

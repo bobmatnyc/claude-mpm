@@ -2,11 +2,10 @@
 """Tests for Claude hook handler security features."""
 
 import json
-import os
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import patch
 
 # Add src to path for imports
 project_root = Path(__file__).parent.parent

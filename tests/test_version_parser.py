@@ -10,15 +10,11 @@ Tests cover:
 """
 
 import json
-import subprocess
-import tempfile
 import unittest
-from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 from claude_mpm.services.version_control.semantic_versioning import (
-    SemanticVersion,
     SemanticVersionManager,
 )
 from claude_mpm.services.version_control.version_parser import (

@@ -18,7 +18,6 @@ import json
 import sys
 import time
 from datetime import datetime
-from typing import Any, Dict
 
 try:
     import socketio
@@ -42,7 +41,7 @@ class DiagnosticHookHandler:
         self.events_sent = 0
         self.errors = []
 
-        print(f"🔍 DIAGNOSTIC: Hook Handler Test")
+        print("🔍 DIAGNOSTIC: Hook Handler Test")
         print(f"🌐 Server URL: {server_url}")
         print(f"📅 Start time: {datetime.now().isoformat()}")
         print("=" * 80)
@@ -145,11 +144,10 @@ class DiagnosticHookHandler:
             if self.socketio_client.connected:
                 print("✅ CONNECTION SUCCESSFUL")
                 return True
-            else:
-                error_msg = "Connection failed - client not connected"
-                self.errors.append(error_msg)
-                print(f"❌ CONNECTION FAILED: {error_msg}")
-                return False
+            error_msg = "Connection failed - client not connected"
+            self.errors.append(error_msg)
+            print(f"❌ CONNECTION FAILED: {error_msg}")
+            return False
 
         except Exception as e:
             error_msg = f"Connection attempt failed: {e}"
@@ -218,7 +216,7 @@ class DiagnosticHookHandler:
                 self.socketio_client.emit(event, data, namespace=namespace)
                 self.events_sent += 1
 
-                print(f"   ✅ Event emitted successfully")
+                print("   ✅ Event emitted successfully")
                 time.sleep(0.5)  # Small delay between events
 
             except Exception as e:

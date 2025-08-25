@@ -67,9 +67,8 @@ def test_agent_deployment_paths():
     ):
         print("\n✅ SUCCESS: All paths resolved correctly!")
         return True
-    else:
-        print("\n❌ FAILURE: Path resolution mismatch!")
-        return False
+    print("\n❌ FAILURE: Path resolution mismatch!")
+    return False
 
 
 if __name__ == "__main__":

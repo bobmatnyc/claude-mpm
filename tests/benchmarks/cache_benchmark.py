@@ -16,18 +16,15 @@ import argparse
 import asyncio
 import json
 import logging
-import os
 import random
 import statistics
 import string
 import sys
-import tempfile
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 # Add claude-mpm to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
@@ -319,9 +316,9 @@ class CacheBenchmark:
                 duration_seconds=duration,
                 hit_rate_percent=hit_rate,
                 miss_rate_percent=miss_rate,
-                operations_per_second=total_operations / duration
-                if duration > 0
-                else 0,
+                operations_per_second=(
+                    total_operations / duration if duration > 0 else 0
+                ),
                 memory_usage_mb=cache_metrics.get("size_mb", 0.0),
                 cache_size_entries=cache_metrics.get("entry_count", 0),
                 success=True,
@@ -400,9 +397,9 @@ class CacheBenchmark:
                 hit_rate_percent=(retrieved_count / (len(data_sizes) * 10) * 100),
                 miss_rate_percent=100
                 - (retrieved_count / (len(data_sizes) * 10) * 100),
-                operations_per_second=total_operations / duration
-                if duration > 0
-                else 0,
+                operations_per_second=(
+                    total_operations / duration if duration > 0 else 0
+                ),
                 memory_usage_mb=memory_growth,
                 cache_size_entries=final_metrics.get("entry_count", 0),
                 success=True,
@@ -506,9 +503,9 @@ class CacheBenchmark:
                 duration_seconds=duration,
                 hit_rate_percent=final_rate,  # Final hit rate after all should expire
                 miss_rate_percent=100 - final_rate,
-                operations_per_second=total_operations / duration
-                if duration > 0
-                else 0,
+                operations_per_second=(
+                    total_operations / duration if duration > 0 else 0
+                ),
                 memory_usage_mb=cache_metrics.get("size_mb", 0.0),
                 cache_size_entries=cache_metrics.get("entry_count", 0),
                 success=ttl_working,
@@ -690,7 +687,7 @@ class CacheBenchmark:
         print(f"Failed: {metadata.get('failed_tests', 0)}")
         print(f"Execution Time: {metadata.get('execution_time', 0):.2f}s")
 
-        print(f"\n📊 AGGREGATE METRICS:")
+        print("\n📊 AGGREGATE METRICS:")
         print(f"{'='*60}")
         print(
             f"Average Hit Rate:        {metrics.get('average_hit_rate_percent', 0):.1f}%"
@@ -705,7 +702,7 @@ class CacheBenchmark:
 
         target_hit_rate = metadata.get("target_hit_rate", 50.0)
         meets_target = metadata.get("meets_target", False)
-        print(f"\n🎯 TARGET VALIDATION:")
+        print("\n🎯 TARGET VALIDATION:")
         print(f"{'='*60}")
         print(f"Target Hit Rate:         {target_hit_rate:.1f}%")
         print(
@@ -714,7 +711,7 @@ class CacheBenchmark:
         print(f"Target Met:              {'✅ YES' if meets_target else '❌ NO'}")
 
         # Individual test results
-        print(f"\n📋 INDIVIDUAL TEST RESULTS:")
+        print("\n📋 INDIVIDUAL TEST RESULTS:")
         print(f"{'='*60}")
         for result in results.get("test_results", []):
             status = "✅" if result["success"] else "❌"

@@ -9,9 +9,7 @@ Tests all template building, merging, and formatting functionality.
 
 import json
 import sys
-import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 import pytest
 

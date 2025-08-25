@@ -8,8 +8,6 @@ stale locks and can recover from crashed instances.
 """
 
 import json
-import os
-import signal
 import subprocess
 import sys
 import time
@@ -30,9 +28,11 @@ def test_stale_lock_recovery():
 
     print("\n1. Cleaning up any existing locks...")
     result = subprocess.run(
-        [sys.executable, str(cleanup_script), "--force"], capture_output=True, text=True
+        [sys.executable, str(cleanup_script), "--force"], capture_output=True, text=True, check=False
     )
-    print(f"   Cleanup result: {'✅ Success' if result.returncode == 0 else '❌ Failed'}")
+    print(
+        f"   Cleanup result: {'✅ Success' if result.returncode == 0 else '❌ Failed'}"
+    )
 
     # Create a fake stale lock (simulate crashed process)
     state_dir = Path.home() / ".claude-mpm" / "mcp"
@@ -63,7 +63,7 @@ def test_stale_lock_recovery():
     result = subprocess.run(
         [sys.executable, str(cleanup_script), "--check-only"],
         capture_output=True,
-        text=True,
+        text=True, check=False,
     )
 
     if "stale" in result.stdout.lower():
@@ -77,7 +77,6 @@ def test_stale_lock_recovery():
     print("\n4. Testing automatic recovery via Python API...")
 
     try:
-        import asyncio
 
         from claude_mpm.services.mcp_gateway.manager import MCPGatewayManager
 
@@ -154,9 +153,11 @@ def test_stale_lock_recovery():
     # Final cleanup
     print("\n7. Final cleanup...")
     result = subprocess.run(
-        [sys.executable, str(cleanup_script), "--force"], capture_output=True, text=True
+        [sys.executable, str(cleanup_script), "--force"], capture_output=True, text=True, check=False
     )
-    print(f"   Cleanup result: {'✅ Success' if result.returncode == 0 else '❌ Failed'}")
+    print(
+        f"   Cleanup result: {'✅ Success' if result.returncode == 0 else '❌ Failed'}"
+    )
 
     print("\n" + "=" * 50)
     print("✅ All integration tests passed!")
@@ -176,7 +177,7 @@ def test_cleanup_script_cli():
     # Test help output
     print("\n1. Testing help output...")
     result = subprocess.run(
-        [sys.executable, str(cleanup_script), "--help"], capture_output=True, text=True
+        [sys.executable, str(cleanup_script), "--help"], capture_output=True, text=True, check=False
     )
 
     if "cleanup" in result.stdout.lower() and result.returncode == 0:
@@ -190,7 +191,7 @@ def test_cleanup_script_cli():
     result = subprocess.run(
         [sys.executable, str(cleanup_script), "--check-only"],
         capture_output=True,
-        text=True,
+        text=True, check=False,
     )
 
     if "MCP Lock Status Check" in result.stdout and result.returncode == 0:
@@ -204,7 +205,7 @@ def test_cleanup_script_cli():
     result = subprocess.run(
         [sys.executable, str(cleanup_script), "--check-only", "--verbose"],
         capture_output=True,
-        text=True,
+        text=True, check=False,
     )
 
     if result.returncode == 0:
@@ -242,10 +243,9 @@ def main():
         print("✅ ALL INTEGRATION TESTS PASSED")
         print("The MCP gateway lock management system is working correctly.")
         return 0
-    else:
-        print("❌ SOME TESTS FAILED")
-        print("Please review the output above for details.")
-        return 1
+    print("❌ SOME TESTS FAILED")
+    print("Please review the output above for details.")
+    return 1
 
 
 if __name__ == "__main__":

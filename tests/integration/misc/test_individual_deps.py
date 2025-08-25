@@ -8,7 +8,6 @@ as a transitive dependency to properly separate them.
 
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 
@@ -19,7 +18,7 @@ def test_package_crypto_dep(package_name):
 
         # Create venv
         subprocess.run(
-            [sys.executable, "-m", "venv", str(venv_path)], capture_output=True
+            [sys.executable, "-m", "venv", str(venv_path)], capture_output=True, check=False
         )
 
         # Get pip path
@@ -32,14 +31,14 @@ def test_package_crypto_dep(package_name):
 
         # Upgrade pip
         subprocess.run(
-            [str(pip_path), "install", "--upgrade", "pip"], capture_output=True
+            [str(pip_path), "install", "--upgrade", "pip"], capture_output=True, check=False
         )
 
         # Try to install the package
         result = subprocess.run(
             [str(pip_path), "install", "--dry-run", package_name],
             capture_output=True,
-            text=True,
+            text=True, check=False,
         )
 
         # Check if cryptography is in the output

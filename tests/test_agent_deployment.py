@@ -41,9 +41,7 @@ TROUBLESHOOTING:
 - Deployment failures: Check file permissions
 """
 
-import shutil
 import sys
-import tempfile
 from pathlib import Path
 
 # Add src to path

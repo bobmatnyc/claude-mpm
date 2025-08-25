@@ -13,7 +13,6 @@ class TestTicketCLI:
 
     def test_placeholder():
         """Placeholder test."""
-        pass
 
 
 @pytest.mark.skip(reason="Ticket command has been removed from the project")
@@ -22,4 +21,3 @@ class TestMain:
 
     def test_placeholder():
         """Placeholder test."""
-        pass

@@ -14,16 +14,14 @@ proper sharing of the session logger between components.
 import json
 import os
 import sys
-import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from claude_mpm.core.claude_runner import ClaudeRunner
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.core.interactive_session import InteractiveSession
 
 

@@ -5,9 +5,10 @@ WHY: Verify that the migration to BaseCommand pattern works correctly
 and maintains backward compatibility with ai-trackdown integration.
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
 from argparse import Namespace
+from unittest.mock import patch
+
+import pytest
 
 from claude_mpm.cli.commands.tickets import TicketsCommand
 from claude_mpm.cli.shared.base_command import CommandResult
@@ -44,77 +45,77 @@ class TestTicketsCommandMigration:
         result = self.command.validate_args(args)
         assert result is None
 
-    @patch('claude_mpm.cli.commands.tickets.list_tickets_legacy')
+    @patch("claude_mpm.cli.commands.tickets.list_tickets_legacy")
     def test_list_tickets_success(mock_list):
         """Test successful list tickets execution."""
         mock_list.return_value = 0
         args = Namespace(tickets_command=TicketCommands.LIST.value)
-        
+
         result = self.command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is True
         assert result.exit_code == 0
         assert "successfully" in result.message
 
-    @patch('claude_mpm.cli.commands.tickets.list_tickets_legacy')
+    @patch("claude_mpm.cli.commands.tickets.list_tickets_legacy")
     def test_list_tickets_failure(mock_list):
         """Test failed list tickets execution."""
         mock_list.return_value = 1
         args = Namespace(tickets_command=TicketCommands.LIST.value)
-        
+
         result = self.command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is False
         assert result.exit_code == 1
         assert "Failed" in result.message
 
-    @patch('claude_mpm.cli.commands.tickets.create_ticket_legacy')
+    @patch("claude_mpm.cli.commands.tickets.create_ticket_legacy")
     def test_create_ticket_success(mock_create):
         """Test successful create ticket execution."""
         mock_create.return_value = 0
         args = Namespace(tickets_command=TicketCommands.CREATE.value)
-        
+
         result = self.command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is True
         assert result.exit_code == 0
         assert "created successfully" in result.message
 
-    @patch('claude_mpm.cli.commands.tickets.view_ticket_legacy')
+    @patch("claude_mpm.cli.commands.tickets.view_ticket_legacy")
     def test_view_ticket_success(mock_view):
         """Test successful view ticket execution."""
         mock_view.return_value = 0
         args = Namespace(tickets_command=TicketCommands.VIEW.value)
-        
+
         result = self.command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is True
         assert "viewed successfully" in result.message
 
-    @patch('claude_mpm.cli.commands.tickets.update_ticket_legacy')
+    @patch("claude_mpm.cli.commands.tickets.update_ticket_legacy")
     def test_update_ticket_success(mock_update):
         """Test successful update ticket execution."""
         mock_update.return_value = 0
         args = Namespace(tickets_command=TicketCommands.UPDATE.value)
-        
+
         result = self.command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is True
         assert "updated successfully" in result.message
 
-    @patch('claude_mpm.cli.commands.tickets.close_ticket_legacy')
+    @patch("claude_mpm.cli.commands.tickets.close_ticket_legacy")
     def test_close_ticket_success(mock_close):
         """Test successful close ticket execution."""
         mock_close.return_value = 0
         args = Namespace(tickets_command=TicketCommands.CLOSE.value)
-        
+
         result = self.command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is True
         assert "closed successfully" in result.message
@@ -122,9 +123,9 @@ class TestTicketsCommandMigration:
     def test_unknown_command():
         """Test handling of unknown command."""
         args = Namespace(tickets_command="unknown")
-        
+
         result = self.command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is False
         assert "Unknown tickets command" in result.message
@@ -132,27 +133,27 @@ class TestTicketsCommandMigration:
     def test_backward_compatibility_function():
         """Test that the manage_tickets function maintains backward compatibility."""
         from claude_mpm.cli.commands.tickets import manage_tickets
-        
-        with patch.object(TicketsCommand, 'execute') as mock_execute:
+
+        with patch.object(TicketsCommand, "execute") as mock_execute:
             mock_result = CommandResult.success_result("Test success")
             mock_execute.return_value = mock_result
-            
+
             args = Namespace(tickets_command=TicketCommands.LIST.value)
             exit_code = manage_tickets(args)
-            
+
             assert exit_code == 0
             mock_execute.assert_called_once_with(args)
 
     def test_list_tickets_compatibility_function():
         """Test that the list_tickets compatibility function works."""
         from claude_mpm.cli.commands.tickets import list_tickets
-        
-        with patch('claude_mpm.cli.commands.tickets.manage_tickets') as mock_manage:
+
+        with patch("claude_mpm.cli.commands.tickets.manage_tickets") as mock_manage:
             mock_manage.return_value = 0
-            
+
             args = Namespace()
             result = list_tickets(args)
-            
+
             assert result == 0
             mock_manage.assert_called_once_with(args)
             assert args.tickets_command == TicketCommands.LIST.value
@@ -165,14 +166,14 @@ class TestTicketsCommandErrorHandling:
         """Setup test fixtures."""
         self.command = TicketsCommand()
 
-    @patch('claude_mpm.cli.commands.tickets.list_tickets_legacy')
+    @patch("claude_mpm.cli.commands.tickets.list_tickets_legacy")
     def test_exception_handling(mock_list):
         """Test that exceptions are properly handled."""
         mock_list.side_effect = Exception("Test error")
         args = Namespace(tickets_command=TicketCommands.LIST.value)
-        
+
         result = self.command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is False
         assert "Error executing tickets command" in result.message

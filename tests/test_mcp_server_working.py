@@ -50,7 +50,6 @@ def test_mcp_server():
         proc.stdin.flush()
 
         # Read response (with timeout)
-        import select
         import time
 
         # Wait for response
@@ -87,9 +86,8 @@ def test_mcp_server():
                         )
 
                     return True
-                else:
-                    print("❌ Invalid JSON-RPC response format")
-                    return False
+                print("❌ Invalid JSON-RPC response format")
+                return False
 
             except json.JSONDecodeError as e:
                 print(f"❌ Failed to parse response: {e}")

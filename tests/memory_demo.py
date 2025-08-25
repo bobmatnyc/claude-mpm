@@ -90,9 +90,7 @@ def demo_memory_system():
     updated_memory = current_memory + new_knowledge
 
     print(f"   💾 Updated memory size: {len(updated_memory)} chars")
-    print(
-        f"   ✅ Memory update would be saved to: .claude-mpm/memories/{agent_id}.md"
-    )
+    print(f"   ✅ Memory update would be saved to: .claude-mpm/memories/{agent_id}.md")
 
     # 4. Show single-line fact format
     print("\n4. Memory File Format")

@@ -1,6 +1,5 @@
 """Tests for centralized exception hierarchy."""
 
-import pytest
 
 from claude_mpm.core.exceptions import (
     ALL_MPM_ERRORS,

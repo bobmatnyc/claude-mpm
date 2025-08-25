@@ -30,17 +30,17 @@ def main():
     for tier, agents in hierarchy.items():
         print(f"  {tier.upper()}: {len(agents)} agents")
 
-    print(f"\n📋 PROJECT tier agents:")
+    print("\n📋 PROJECT tier agents:")
     for agent in hierarchy.get("project", []):
         print(f"  - {agent}")
 
     # Test specific agents
-    print(f"\n🔍 Testing specific agents:")
+    print("\n🔍 Testing specific agents:")
 
     # Test our project QA agent
     test_qa = adapter.registry.get_agent("test_project_qa")
     if test_qa:
-        print(f"✅ test_project_qa found:")
+        print("✅ test_project_qa found:")
         print(f"   Tier: {test_qa.tier}")
         print(f"   Path: {test_qa.path}")
     else:
@@ -49,7 +49,7 @@ def main():
     # Test precedence by checking what 'qa' resolves to
     qa_agent = adapter.registry.get_agent("qa")
     if qa_agent:
-        print(f"✅ qa agent resolved:")
+        print("✅ qa agent resolved:")
         print(f"   Name: {qa_agent.name}")
         print(f"   Tier: {qa_agent.tier}")
         print(f"   Path: {qa_agent.path}")

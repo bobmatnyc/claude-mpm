@@ -16,8 +16,10 @@ python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -e ".[dev]"
 
-# Run tests
-pytest tests/
+# Quality checks and tests (RECOMMENDED)
+make quality              # Run all quality checks
+make lint-fix            # Auto-fix code issues
+pytest tests/            # Run tests
 ```
 
 ## Documentation Structure
@@ -272,12 +274,41 @@ python scripts/validate_agent_frontmatter.py agent.md --verbose
 
 Older and deprecated documentation has been moved to [./archive/](./archive/) for reference.
 
+## Development Workflow
+
+The recommended development workflow uses Make quality commands for consistent code quality:
+
+```bash
+# 1. Make your changes
+vim src/claude_mpm/some_file.py
+
+# 2. Auto-fix issues
+make lint-fix            # Fix formatting, imports, etc.
+
+# 3. Check quality
+make quality             # Run all quality checks
+
+# 4. Run tests
+pytest tests/
+
+# 5. Pre-commit quality gate
+make pre-publish         # Complete quality + tests
+```
+
+**Key Quality Commands:**
+- `make quality` - Run all linting and quality checks
+- `make lint-fix` - Auto-fix formatting, imports, and style issues  
+- `make pre-publish` - Complete quality gate (lint + tests + checks)
+
+See [docs/reference/DEPLOY.md](../reference/DEPLOY.md) for detailed quality documentation.
+
 ## Contributing
 
 1. Follow [coding standards](./03-development/coding-standards.md)
-2. Add tests for new features
-3. Update documentation
-4. Submit PR with clear description
+2. Use quality commands: `make lint-fix` → `make quality` → `make pre-publish`
+3. Add tests for new features
+4. Update documentation
+5. Submit PR with clear description
 
 ## Support
 

@@ -7,8 +7,6 @@ Tests that the MCP server implementation follows the official MCP specification
 and works correctly with the expected protocol flow.
 """
 
-import asyncio
-import json
 import subprocess
 import sys
 from pathlib import Path
@@ -31,7 +29,7 @@ def test_cli_functionality():
             [sys.executable, "-m", "claude_mpm.cli", "mcp", "status"],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent,
+            cwd=Path(__file__).parent.parent, check=False,
         )
 
         if result.returncode == 0:
@@ -54,7 +52,7 @@ def test_cli_functionality():
             [sys.executable, "-m", "claude_mpm.cli", "mcp", "tools"],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent,
+            cwd=Path(__file__).parent.parent, check=False,
         )
 
         if result.returncode == 0:
@@ -89,7 +87,7 @@ def test_cli_functionality():
             ],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent,
+            cwd=Path(__file__).parent.parent, check=False,
         )
 
         if result.returncode == 0:
@@ -121,7 +119,7 @@ def test_cli_functionality():
             ],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent,
+            cwd=Path(__file__).parent.parent, check=False,
         )
 
         if result.returncode == 0:
@@ -153,7 +151,7 @@ def test_cli_functionality():
             ],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent,
+            cwd=Path(__file__).parent.parent, check=False,
         )
 
         if result.returncode == 0:
@@ -208,7 +206,7 @@ def test_cli_functionality():
             if "I/O operation on closed file" in stderr_text:
                 print("   ✅ Expected I/O cleanup errors during shutdown (normal)")
         else:
-            print(f"   ❌ Server startup failed")
+            print("   ❌ Server startup failed")
             success = False
 
     except Exception as e:
@@ -270,10 +268,9 @@ def main():
         print("  }")
         print("}")
         return 0
-    else:
-        print("❌ Some MCP standards compliance tests failed!")
-        print("Please check the errors above and fix any issues.")
-        return 1
+    print("❌ Some MCP standards compliance tests failed!")
+    print("Please check the errors above and fix any issues.")
+    return 1
 
 
 if __name__ == "__main__":

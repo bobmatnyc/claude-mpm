@@ -43,9 +43,7 @@ class MemoryMonitor:
         self.start_memory = self.get_memory_usage()
         self.peak_memory = self.start_memory
         self.measurements: List[Tuple[datetime, float]] = []
-        self.warnings_issued: Dict[int, bool] = {
-            t: False for t in self.WARNING_THRESHOLDS
-        }
+        self.warnings_issued: Dict[int, bool] = dict.fromkeys(self.WARNING_THRESHOLDS, False)
 
         if enable_logging:
             self._setup_logging()

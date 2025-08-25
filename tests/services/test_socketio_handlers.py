@@ -5,13 +5,7 @@ ConnectionEventHandler, GitEventHandler, FileEventHandler, and the registry
 with comprehensive mocking of dependencies.
 """
 
-import asyncio
-import os
-import subprocess
-import tempfile
-from datetime import datetime
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
+from unittest.mock import AsyncMock, Mock, call, patch
 
 import pytest
 

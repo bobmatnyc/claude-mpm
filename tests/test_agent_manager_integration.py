@@ -1,8 +1,5 @@
 import pytest
-import pytest
-import pytest
-import pytest
-import pytest
+
 #!/usr/bin/env python3
 """
 Test script for AgentManager integration with AgentLifecycleManager.
@@ -191,9 +188,8 @@ async def test_read_agent():
             logger.info(f"  Tier: {record.tier.value}")
             logger.info(f"  Last modified: {record.last_modified_datetime}")
             return True
-        else:
-            logger.error("Agent not found in lifecycle records")
-            return False
+        logger.error("Agent not found in lifecycle records")
+        return False
 
     finally:
         await lifecycle_mgr.stop()
@@ -248,7 +244,7 @@ async def test_lifecycle_stats():
 
         # Performance metrics
         perf = stats["performance_metrics"]
-        logger.info(f"  Performance:")
+        logger.info("  Performance:")
         logger.info(f"    Total operations: {perf['total_operations']}")
         logger.info(f"    Successful: {perf['successful_operations']}")
         logger.info(f"    Failed: {perf['failed_operations']}")
@@ -300,9 +296,8 @@ async def main():
     if all_passed:
         logger.info("✓ All integration tests PASSED")
         return 0
-    else:
-        logger.error("✗ Some integration tests FAILED")
-        return 1
+    logger.error("✗ Some integration tests FAILED")
+    return 1
 
 
 if __name__ == "__main__":

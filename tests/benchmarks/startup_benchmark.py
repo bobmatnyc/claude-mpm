@@ -20,12 +20,11 @@ import os
 import statistics
 import subprocess
 import sys
-import tempfile
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import psutil
 
@@ -373,7 +372,7 @@ class StartupBenchmark:
         print(f"Success Rate: {results.get('success_rate', 0):.1f}%")
         print(f"Execution Time: {metadata.get('total_execution_time', 0):.2f}s")
 
-        print(f"\n📊 PERFORMANCE METRICS:")
+        print("\n📊 PERFORMANCE METRICS:")
         print(f"{'='*60}")
         print(f"Mean Startup Time:   {stats.get('mean_time', 0):.3f}s")
         print(f"Median Startup Time: {stats.get('median_time', 0):.3f}s")
@@ -384,7 +383,7 @@ class StartupBenchmark:
 
         target_met = stats.get("meets_target", False)
         target_time = metadata.get("target_startup_time", 2.0)
-        print(f"\n🎯 TARGET VALIDATION:")
+        print("\n🎯 TARGET VALIDATION:")
         print(f"{'='*60}")
         print(f"Target Time:         {target_time:.1f}s")
         print(f"Actual Time:         {stats.get('mean_time', 0):.3f}s")
@@ -396,7 +395,7 @@ class StartupBenchmark:
 
         # Per-mode breakdown
         if "by_mode" in results:
-            print(f"\n📋 BY MODE BREAKDOWN:")
+            print("\n📋 BY MODE BREAKDOWN:")
             print(f"{'='*60}")
             for mode, mode_stats in results["by_mode"].items():
                 print(

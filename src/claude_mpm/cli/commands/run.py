@@ -18,7 +18,6 @@ import os
 import subprocess
 import sys
 import time
-import webbrowser
 from datetime import datetime
 from typing import Optional
 
@@ -26,6 +25,10 @@ from ...constants import LogLevel
 from ...core.logger import get_logger
 from ...core.shared.config_loader import ConfigLoader
 from ...core.unified_paths import get_package_root, get_scripts_dir
+from ...services.cli.session_manager import SessionManager, ManagedSession
+from ...services.cli.startup_checker import StartupCheckerService
+from ...services.cli.dashboard_launcher import DashboardLauncher
+from ...services.cli.socketio_manager import SocketIOManager
 from ...services.port_manager import PortManager
 from ...utils.dependency_manager import ensure_socketio_dependencies
 from ..shared import BaseCommand, CommandResult
@@ -35,7 +38,6 @@ from ..startup_logging import (
     setup_startup_logging,
 )
 from ..utils import get_user_input, list_agent_versions_at_startup
-from .run_config_checker import RunConfigChecker
 
 
 def filter_claude_mpm_args(claude_args):
@@ -159,7 +161,7 @@ def create_session_context(session_id, session_manager):
 
     base_context = create_simple_context()
 
-    session_data = session_manager.get_session_by_id(session_id)
+    session_data = session_manager.get_session_info(session_id)
     if not session_data:
         return base_context
 
@@ -207,6 +209,10 @@ class RunCommand(BaseCommand):
             # Execute the main run logic
             success = self._execute_run_session(args)
 
+            # Log memory stats at session completion
+            from ..startup_logging import log_memory_stats
+            log_memory_stats(self.logger, "Session End Memory")
+            
             if success:
                 return CommandResult.success_result(
                     "Claude session completed successfully"
@@ -278,21 +284,27 @@ class RunCommand(BaseCommand):
 
     def _check_configuration_health(self):
         """Check configuration health at startup."""
-        checker = RunConfigChecker(self.logger)
-        checker.check_configuration_health()
+        # Use new StartupCheckerService
+        from ...core.config import Config
+        config_service = Config()
+        checker = StartupCheckerService(config_service)
+        warnings = checker.check_configuration()
+        checker.display_warnings(warnings)
 
     def _check_claude_json_memory(self, args):
         """Check .claude.json file size and warn about memory issues."""
-        checker = RunConfigChecker(self.logger)
-        checker.check_claude_json_memory(args)
+        # Use new StartupCheckerService
+        from ...core.config import Config
+        config_service = Config()
+        checker = StartupCheckerService(config_service)
+        resume_enabled = getattr(args, 'mpm_resume', False)
+        warning = checker.check_memory(resume_enabled)
+        if warning:
+            checker.display_warnings([warning])
 
     def _setup_session_management(self, args):
         """Setup session management and handle resumption."""
-        try:
-            from ...core.session_manager import SessionManager
-        except ImportError:
-            from claude_mpm.core.session_manager import SessionManager
-
+        # Use the new SessionManager service from the CLI services layer
         session_manager = SessionManager()
         resume_session_id = None
         resume_context = None
@@ -302,7 +314,7 @@ class RunCommand(BaseCommand):
                 # Resume the last interactive session
                 resume_session_id = session_manager.get_last_interactive_session()
                 if resume_session_id:
-                    session_data = session_manager.get_session_by_id(resume_session_id)
+                    session_data = session_manager.get_session_info(resume_session_id)
                     if session_data:
                         resume_context = session_data.get("context", "default")
                         self.logger.info(
@@ -319,7 +331,7 @@ class RunCommand(BaseCommand):
             else:
                 # Resume specific session by ID
                 resume_session_id = args.mpm_resume
-                session_data = session_manager.get_session_by_id(resume_session_id)
+                session_data = session_manager.get_session_info(resume_session_id)
                 if session_data:
                     resume_context = session_data.get("context", "default")
                     self.logger.info(
@@ -414,42 +426,41 @@ class RunCommand(BaseCommand):
                 self.logger.warning(f"Dependency check failed: {e}")
 
     def _setup_monitoring(self, args):
-        """Setup monitoring configuration."""
+        """Setup monitoring configuration using SocketIOManager."""
         monitor_mode = getattr(args, "monitor", False)
         websocket_port = 8765  # Default port
 
         if monitor_mode:
-            # Ensure Socket.IO dependencies are available
-            if not ensure_socketio_dependencies():
+            # Use SocketIOManager for server management
+            socketio_manager = SocketIOManager(self.logger)
+            
+            # Check dependencies
+            deps_ok, error_msg = socketio_manager.ensure_dependencies()
+            if not deps_ok:
                 self.logger.warning(
-                    "Socket.IO dependencies not available, disabling monitor mode"
+                    f"Socket.IO dependencies not available: {error_msg}, disabling monitor mode"
                 )
                 monitor_mode = False
             else:
-                # Get available port
-                port_manager = PortManager()
-                websocket_port = port_manager.get_available_port(8765)
-
-                # Start Socket.IO server if not running
-                if not self._is_socketio_server_running(websocket_port):
-                    if not self._start_socketio_server(websocket_port, self.logger):
-                        self.logger.warning(
-                            "Failed to start Socket.IO server, disabling monitor mode"
-                        )
-                        monitor_mode = False
-                    else:
-                        # Give server time to start
-                        time.sleep(2)
-
-                if monitor_mode:
-                    # Open browser to monitoring interface
-                    monitor_url = f"http://localhost:{websocket_port}"
-                    self.logger.info(f"Opening monitor interface: {monitor_url}")
-                    try:
-                        webbrowser.open(monitor_url)
-                        args._browser_opened_by_cli = True
-                    except Exception as e:
-                        self.logger.warning(f"Could not open browser: {e}")
+                # Find available port and start server
+                websocket_port = socketio_manager.find_available_port(8765)
+                success, server_info = socketio_manager.start_server(port=websocket_port)
+                
+                if not success:
+                    self.logger.warning(
+                        "Failed to start Socket.IO server, disabling monitor mode"
+                    )
+                    monitor_mode = False
+                else:
+                    # Use DashboardLauncher for browser opening only
+                    dashboard_launcher = DashboardLauncher(self.logger)
+                    monitor_url = dashboard_launcher.get_dashboard_url(websocket_port)
+                    
+                    # Try to open browser
+                    browser_opened = dashboard_launcher._open_browser(monitor_url)
+                    args._browser_opened_by_cli = browser_opened
+                    
+                    if not browser_opened:
                         print(f"💡 Monitor interface available at: {monitor_url}")
 
         return monitor_mode, websocket_port
@@ -509,16 +520,16 @@ class RunCommand(BaseCommand):
             # For resumed sessions, create enhanced context with session information
             context = create_session_context(resume_session_id, session_manager)
             # Update session usage
-            session_manager.active_sessions[resume_session_id][
-                "last_used"
-            ] = datetime.now().isoformat()
-            session_manager.active_sessions[resume_session_id]["use_count"] += 1
-            session_manager._save_sessions()
+            session = session_manager.load_session(resume_session_id)
+            if session:
+                session.last_used = datetime.now().isoformat()
+                session.use_count += 1
+                session_manager.save_session(session)
         else:
             # Create a new session for tracking
-            new_session_id = session_manager.create_session("default")
+            new_session = session_manager.create_session("default")
             context = create_simple_context()
-            self.logger.info(f"Created new session {new_session_id}")
+            self.logger.info(f"Created new session {new_session.id}")
 
         return context
 
@@ -556,17 +567,6 @@ class RunCommand(BaseCommand):
             self.logger.error(f"Session execution failed: {e}")
             return False
 
-    def _is_socketio_server_running(self, port: int) -> bool:
-        """Check if Socket.IO server is running on the specified port."""
-        try:
-            import socket
-
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(1)
-                result = s.connect_ex(("localhost", port))
-                return result == 0
-        except Exception:
-            return False
 
 
 def run_session(args):
@@ -627,12 +627,10 @@ def run_session_legacy(args):
 
     try:
         from ...core.claude_runner import ClaudeRunner, create_simple_context
-        from ...core.session_manager import SessionManager
     except ImportError:
         from claude_mpm.core.claude_runner import ClaudeRunner, create_simple_context
-        from claude_mpm.core.session_manager import SessionManager
 
-    # Handle session resumption
+    # Handle session resumption using the new SessionManager service
     session_manager = SessionManager()
     resume_session_id = None
     resume_context = None
@@ -642,7 +640,7 @@ def run_session_legacy(args):
             # Resume the last interactive session
             resume_session_id = session_manager.get_last_interactive_session()
             if resume_session_id:
-                session_data = session_manager.get_session_by_id(resume_session_id)
+                session_data = session_manager.get_session_info(resume_session_id)
                 if session_data:
                     resume_context = session_data.get("context", "default")
                     logger.info(
@@ -659,7 +657,7 @@ def run_session_legacy(args):
         else:
             # Resume specific session by ID
             resume_session_id = args.mpm_resume
-            session_data = session_manager.get_session_by_id(resume_session_id)
+            session_data = session_manager.get_session_info(resume_session_id)
             if session_data:
                 resume_context = session_data.get("context", "default")
                 logger.info(
@@ -859,11 +857,14 @@ def run_session_legacy(args):
 
     # Display Socket.IO server info if enabled
     if enable_websocket:
-        # Auto-install Socket.IO dependencies if needed
+        # Use SocketIOManager for server management
+        socketio_manager = SocketIOManager(logger)
+        
+        # Check dependencies
         print("🔧 Checking Socket.IO dependencies...")
-        dependencies_ok, error_msg = ensure_socketio_dependencies(logger)
-
-        if not dependencies_ok:
+        deps_ok, error_msg = socketio_manager.ensure_dependencies()
+        
+        if not deps_ok:
             print(f"❌ Failed to install Socket.IO dependencies: {error_msg}")
             print(
                 "  Please install manually: pip install python-socketio aiohttp python-engineio"
@@ -872,33 +873,35 @@ def run_session_legacy(args):
             # Continue anyway - some functionality might still work
         else:
             print("✓ Socket.IO dependencies ready")
-
-        try:
-            import socketio
-
-            print(f"✓ Socket.IO server enabled at http://localhost:{websocket_port}")
-            if launch_method == "exec":
-                print(
-                    "  Note: Socket.IO monitoring using exec mode with Claude Code hooks"
-                )
-
-            # Launch Socket.IO dashboard if in monitor mode
+            
+            # Find available port and start server if in monitor mode
             if monitor_mode:
-                success, browser_opened = launch_socketio_monitor(
-                    websocket_port, logger
-                )
-                if not success:
+                websocket_port = socketio_manager.find_available_port(websocket_port)
+                success, server_info = socketio_manager.start_server(port=websocket_port)
+                
+                if success:
+                    print(f"✓ Socket.IO server enabled at {server_info.url}")
+                    if launch_method == "exec":
+                        print(
+                            "  Note: Socket.IO monitoring using exec mode with Claude Code hooks"
+                        )
+                    
+                    # Use DashboardLauncher for browser opening
+                    dashboard_launcher = DashboardLauncher(logger)
+                    monitor_url = dashboard_launcher.get_dashboard_url(websocket_port)
+                    browser_opened = dashboard_launcher._open_browser(monitor_url)
+                    args._browser_opened_by_cli = browser_opened
+                    
+                    if not browser_opened:
+                        print(f"💡 Monitor interface available at: {monitor_url}")
+                else:
                     print("⚠️  Failed to launch Socket.IO monitor")
                     print(
                         f"  You can manually run: python scripts/launch_socketio_dashboard.py --port {websocket_port}"
                     )
-                # Store whether browser was opened by CLI for coordination with ClaudeRunner
-                args._browser_opened_by_cli = browser_opened
-        except ImportError as e:
-            print(f"⚠️  Socket.IO still not available after installation attempt: {e}")
-            print("  This might be a virtual environment issue.")
-            print("  Try: pip install python-socketio aiohttp python-engineio")
-            print("  Or: pip install claude-mpm[monitor]")
+                    args._browser_opened_by_cli = False
+            else:
+                print(f"✓ Socket.IO ready (port: {websocket_port})")
 
     runner = ClaudeRunner(
         enable_tickets=enable_tickets,
@@ -925,16 +928,16 @@ def run_session_legacy(args):
         # For resumed sessions, create enhanced context with session information
         context = create_session_context(resume_session_id, session_manager)
         # Update session usage
-        session_manager.active_sessions[resume_session_id][
-            "last_used"
-        ] = datetime.now().isoformat()
-        session_manager.active_sessions[resume_session_id]["use_count"] += 1
-        session_manager._save_sessions()
+        session = session_manager.load_session(resume_session_id)
+        if session:
+            session.last_used = datetime.now().isoformat()
+            session.use_count += 1
+            session_manager.save_session(session)
     else:
         # Create a new session for tracking
-        new_session_id = session_manager.create_session("default")
+        new_session = session_manager.create_session("default")
         context = create_simple_context()
-        logger.info(f"Created new session {new_session_id}")
+        logger.info(f"Created new session {new_session.id}")
 
     # For monitor mode, we handled everything in launch_socketio_monitor
     # No need for ClaudeRunner browser delegation
@@ -963,407 +966,57 @@ def run_session_legacy(args):
         runner.run_interactive(context)
 
 
+# Legacy helper functions - now delegating to SocketIOManager
 def launch_socketio_monitor(port, logger):
-    """Launch the Socket.IO monitoring dashboard."""
-    from .socketio_monitor import SocketIOMonitor
-
-    monitor = SocketIOMonitor(logger)
-    return monitor.launch_monitor(port)
-
-
-# Socket.IO monitoring functions moved to socketio_monitor.py
+    """Launch the Socket.IO monitoring dashboard (legacy compatibility)."""
+    socketio_manager = SocketIOManager(logger)
+    success, server_info = socketio_manager.start_server(port=port)
+    
+    if success:
+        # Open browser using DashboardLauncher
+        launcher = DashboardLauncher(logger)
+        browser_opened = launcher._open_browser(server_info.url)
+        return success, browser_opened
+    
+    return False, False
 
 
 def _check_socketio_server_running(port, logger):
-    """Check if a Socket.IO server is running on the specified port."""
-    from .socketio_monitor import SocketIOMonitor
-
-    monitor = SocketIOMonitor(logger)
-    return monitor.check_server_running(port)
+    """Check if a Socket.IO server is running on the specified port (legacy compatibility)."""
+    socketio_manager = SocketIOManager(logger)
+    return socketio_manager.is_server_running(port)
 
 
 def _start_standalone_socketio_server(port, logger):
-    """Start a standalone Socket.IO server using the Python daemon."""
-    from .socketio_monitor import SocketIOMonitor
-
-    monitor = SocketIOMonitor(logger)
-    return monitor.start_standalone_server(port)
-    """
-    Start a standalone Socket.IO server using the Python daemon.
-
-    WHY: For monitor mode, we want a persistent server that runs independently
-    of the Claude session. This allows users to monitor multiple sessions and
-    keeps the dashboard available even when Claude isn't running.
-
-    DESIGN DECISION: We use a pure Python daemon script to manage the server
-    process. This avoids Node.js dependencies (like PM2) and provides proper
-    process management with PID tracking.
-
-    Args:
-        port: Port number for the server
-        logger: Logger instance for output
-
-    Returns:
-        bool: True if server started successfully, False otherwise
-    """
-    try:
-        import subprocess
-
-        # Get path to daemon script in package
-        daemon_script = get_package_root() / "scripts" / "socketio_daemon.py"
-
-        if not daemon_script.exists():
-            logger.error(f"Socket.IO daemon script not found: {daemon_script}")
-            return False
-
-        logger.info(f"Starting Socket.IO server daemon on port {port}")
-
-        # Start the daemon
-        result = subprocess.run(
-            [sys.executable, str(daemon_script), "start"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-
-        if result.returncode != 0:
-            logger.error(f"Failed to start Socket.IO daemon: {result.stderr}")
-            return False
-
-        # Wait for server using event-based polling instead of fixed delays
-        # WHY: Replace fixed sleep delays with active polling for faster startup detection
-        max_wait_time = 15  # Maximum 15 seconds
-        poll_interval = 0.1  # Start with 100ms polling
-
-        logger.info(f"Waiting up to {max_wait_time} seconds for server to be ready...")
-
-        # Give daemon minimal time to fork
-        time.sleep(0.2)  # Reduced from 0.5s
-
-        start_time = time.time()
-        attempt = 0
-
-        while time.time() - start_time < max_wait_time:
-            attempt += 1
-            elapsed = time.time() - start_time
-
-            logger.debug(
-                f"Checking server readiness (attempt {attempt}, elapsed {elapsed:.1f}s)"
-            )
-
-            # Adaptive polling - start fast, slow down over time
-            if elapsed < 2:
-                poll_interval = 0.1  # 100ms for first 2 seconds
-            elif elapsed < 5:
-                poll_interval = 0.25  # 250ms for next 3 seconds
-            else:
-                poll_interval = 0.5  # 500ms after 5 seconds
-
-            time.sleep(poll_interval)
-
-            # Check if the daemon server is accepting connections
-            if _check_socketio_server_running(port, logger):
-                logger.info(
-                    f"✅ Standalone Socket.IO server started successfully on port {port}"
-                )
-                logger.info(
-                    f"🕐 Server ready after {attempt} attempts ({elapsed:.1f}s)"
-                )
-                return True
-            logger.debug(f"Server not yet accepting connections on attempt {attempt}")
-
-        # Timeout reached
-        time.time() - start_time
-        logger.error(
-            f"❌ Socket.IO server health check failed after {max_wait_time}s timeout ({attempt} attempts)"
-        )
-        logger.warning(
-            "⏱️  Server may still be starting - try waiting a few more seconds"
-        )
-        logger.warning(
-            "💡 The daemon process might be running but not yet accepting HTTP connections"
-        )
-        logger.error("🔧 Troubleshooting steps:")
-        logger.error("   - Wait a few more seconds and try again")
-        logger.error(f"   - Check for port conflicts: lsof -i :{port}")
-        logger.error("   - Try a different port with --websocket-port")
-        logger.error("   - Verify dependencies: pip install python-socketio aiohttp")
-        return False
-
-    except Exception as e:
-        logger.error(f"❌ Failed to start standalone Socket.IO server: {e}")
-        import traceback
-
-        logger.error(f"📋 Stack trace: {traceback.format_exc()}")
-        logger.error(
-            "💡 This may be a dependency issue - try: pip install python-socketio aiohttp"
-        )
-        return False
+    """Start a standalone Socket.IO server (legacy compatibility)."""
+    socketio_manager = SocketIOManager(logger)
+    success, _ = socketio_manager.start_server(port=port)
+    return success
 
 
 def open_in_browser_tab(url, logger):
     """Open URL in browser, attempting to reuse existing tabs when possible."""
-    from .socketio_monitor import SocketIOMonitor
-
-    monitor = SocketIOMonitor(logger)
-    return monitor.open_in_browser_tab(url)
-    """
-    Open URL in browser, attempting to reuse existing tabs when possible.
-
-    WHY: Users prefer reusing browser tabs instead of opening new ones constantly.
-    This function attempts platform-specific solutions for tab reuse.
-
-    DESIGN DECISION: We try different methods based on platform capabilities,
-    falling back to standard webbrowser.open() if needed.
-
-    Args:
-        url: URL to open
-        logger: Logger instance for output
-    """
-    try:
-        # Platform-specific optimizations for tab reuse
-        import platform
-
-        system = platform.system().lower()
-
-        if system == "darwin":  # macOS
-            # Just use the standard webbrowser module on macOS
-            # The AppleScript approach is too unreliable
-            webbrowser.open(url, new=0, autoraise=True)  # new=0 tries to reuse window
-            logger.info("Opened browser on macOS")
-
-        elif system == "linux":
-            # On Linux, try to use existing browser session
-            try:
-                # This is a best-effort approach for common browsers
-                webbrowser.get().open(
-                    url, new=0
-                )  # new=0 tries to reuse existing window
-                logger.info("Attempted Linux browser tab reuse")
-            except Exception:
-                webbrowser.open(url, autoraise=True)
-
-        elif system == "windows":
-            # On Windows, try to use existing browser
-            try:
-                webbrowser.get().open(
-                    url, new=0
-                )  # new=0 tries to reuse existing window
-                logger.info("Attempted Windows browser tab reuse")
-            except Exception:
-                webbrowser.open(url, autoraise=True)
-        else:
-            # Unknown platform, use standard opening
-            webbrowser.open(url, autoraise=True)
-
-    except Exception as e:
-        logger.warning(f"Browser opening failed: {e}")
-        # Final fallback
-        webbrowser.open(url)
+    launcher = DashboardLauncher(logger)
+    return launcher._open_browser(url)
 
 
 def _check_claude_json_memory(args, logger):
     """Check .claude.json file size and warn about memory issues."""
-    checker = RunConfigChecker(logger)
-    checker.check_claude_json_memory(args)
-    """Check .claude.json file size and warn about memory issues.
-
-    WHY: Large .claude.json files (>500KB) cause significant memory issues when
-    using --resume. Claude Code loads the entire conversation history into
-    memory, leading to 2GB+ memory consumption.
-
-    DESIGN DECISIONS:
-    - Warn at 500KB (conservative threshold)
-    - Suggest cleanup command for remediation
-    - Allow bypass with --force flag
-    - Only check when using --resume
-
-    Args:
-        args: Parsed command line arguments
-        logger: Logger instance for output
-    """
-    # Only check if using --mpm-resume
-    if not hasattr(args, "mpm_resume") or not args.mpm_resume:
-        return
-
-    claude_json_path = Path.home() / ".claude.json"
-
-    # Check if file exists
-    if not claude_json_path.exists():
-        logger.debug("No .claude.json file found")
-        return
-
-    # Check file size
-    file_size = claude_json_path.stat().st_size
-
-    # Format size for display
-    def format_size(size_bytes):
-        for unit in ["B", "KB", "MB", "GB"]:
-            if size_bytes < 1024.0:
-                return f"{size_bytes:.1f}{unit}"
-            size_bytes /= 1024.0
-        return f"{size_bytes:.1f}TB"
-
-    # Get thresholds from configuration
-    try:
-        config_loader = ConfigLoader()
-        config = config_loader.load_main_config()
-        memory_config = config.get("memory_management", {})
-        warning_threshold = (
-            memory_config.get("claude_json_warning_threshold_kb", 500) * 1024
-        )
-        critical_threshold = (
-            memory_config.get("claude_json_critical_threshold_kb", 1024) * 1024
-        )
-    except Exception as e:
-        logger.debug(f"Could not load memory configuration: {e}")
-        # Fall back to defaults
-        warning_threshold = 500 * 1024  # 500KB
-        critical_threshold = 1024 * 1024  # 1MB
-
-    if file_size > critical_threshold:
-        print(
-            f"\n⚠️  CRITICAL: Large .claude.json file detected ({format_size(file_size)})"
-        )
-        print("   This WILL cause memory issues when using --resume")
-        print("   Claude Code may consume 2GB+ of memory\n")
-
-        if not getattr(args, "force", False):
-            print("   Recommended actions:")
-            print("   1. Run 'claude-mpm cleanup-memory' to archive old conversations")
-            print("   2. Use --force to bypass this warning (not recommended)")
-            sys.stdout.flush()  # Ensure prompt is displayed before input
-
-            # Check if we're in a TTY environment for proper input handling
-            if not sys.stdin.isatty():
-                # In non-TTY environment (like pipes), use readline
-                print(
-                    "\n   Would you like to continue anyway? [y/N]: ",
-                    end="",
-                    flush=True,
-                )
-                try:
-                    response = sys.stdin.readline().strip().lower()
-                    # Handle various line endings and control characters
-                    response = response.replace("\r", "").replace("\n", "").strip()
-                except (EOFError, KeyboardInterrupt):
-                    response = "n"
-            else:
-                # In TTY environment, use normal input()
-                print(
-                    "\n   Would you like to continue anyway? [y/N]: ",
-                    end="",
-                    flush=True,
-                )
-                try:
-                    response = input().strip().lower()
-                except (EOFError, KeyboardInterrupt):
-                    response = "n"
-
-            if response != "y":
-                print(
-                    "\n✅ Session cancelled. Run 'claude-mpm cleanup-memory' to fix this issue."
-                )
-                sys.exit(0)
-
-    elif file_size > warning_threshold:
-        print(
-            f"\n⚠️  Warning: .claude.json file is getting large ({format_size(file_size)})"
-        )
-        print("   This may cause memory issues when using --resume")
-        print(
-            "   💡 Consider running 'claude-mpm cleanup-memory' to archive old conversations\n"
-        )
-        # Just warn, don't block execution
-
-    logger.info(f".claude.json size: {format_size(file_size)}")
+    # Use new StartupCheckerService
+    from ...core.config import Config
+    config_service = Config()
+    checker = StartupCheckerService(config_service)
+    resume_enabled = getattr(args, 'mpm_resume', False)
+    warning = checker.check_memory(resume_enabled)
+    if warning:
+        checker.display_warnings([warning])
 
 
 def _check_configuration_health(logger):
     """Check configuration health at startup and warn about issues."""
-    checker = RunConfigChecker(logger)
-    checker.check_configuration_health()
-    """Check configuration health at startup and warn about issues.
-
-    WHY: Configuration errors can cause silent failures, especially for response
-    logging. This function proactively checks configuration at startup and warns
-    users about any issues, providing actionable guidance.
-
-    DESIGN DECISIONS:
-    - Non-blocking: Issues are logged as warnings, not errors
-    - Actionable: Provides specific commands to fix issues
-    - Focused: Only checks critical configuration that affects runtime
-
-    Args:
-        logger: Logger instance for output
-    """
-    try:
-        # Load configuration using ConfigLoader
-        config_loader = ConfigLoader()
-        config = config_loader.load_main_config()
-
-        # Validate configuration
-        is_valid, errors, warnings = config.validate_configuration()
-
-        # Get configuration status for additional context
-        status = config.get_configuration_status()
-
-        # Report critical errors that will affect functionality
-        if errors:
-            logger.warning("⚠️  Configuration issues detected:")
-            for error in errors[:3]:  # Show first 3 errors
-                logger.warning(f"  • {error}")
-            if len(errors) > 3:
-                logger.warning(f"  • ... and {len(errors) - 3} more")
-            logger.info(
-                "💡 Run 'claude-mpm config validate' to see all issues and fixes"
-            )
-
-        # Check response logging specifically since it's commonly misconfigured
-        response_logging_enabled = config.get("response_logging.enabled", False)
-        if not response_logging_enabled:
-            logger.debug(
-                "Response logging is disabled (response_logging.enabled=false)"
-            )
-        else:
-            # Check if session directory is writable
-            session_dir = Path(
-                config.get(
-                    "response_logging.session_directory", ".claude-mpm/responses"
-                )
-            )
-            if not session_dir.is_absolute():
-                session_dir = Path.cwd() / session_dir
-
-            if not session_dir.exists():
-                try:
-                    session_dir.mkdir(parents=True, exist_ok=True)
-                    logger.debug(f"Created response logging directory: {session_dir}")
-                except Exception as e:
-                    logger.warning(
-                        f"Cannot create response logging directory {session_dir}: {e}"
-                    )
-                    logger.info("💡 Fix with: mkdir -p " + str(session_dir))
-            elif not os.access(session_dir, os.W_OK):
-                logger.warning(
-                    f"Response logging directory is not writable: {session_dir}"
-                )
-                logger.info("💡 Fix with: chmod 755 " + str(session_dir))
-
-        # Report non-critical warnings (only in debug mode)
-        if warnings and logger.isEnabledFor(logging.DEBUG):
-            logger.debug("Configuration warnings:")
-            for warning in warnings:
-                logger.debug(f"  • {warning}")
-
-        # Log loaded configuration source for debugging
-        if status.get("loaded_from") and status["loaded_from"] != "defaults":
-            logger.debug(f"Configuration loaded from: {status['loaded_from']}")
-
-    except Exception as e:
-        # Don't let configuration check errors prevent startup
-        logger.debug(f"Configuration check failed (non-critical): {e}")
-        # Only show user-facing message if it's likely to affect them
-        if "yaml" in str(e).lower():
-            logger.warning("⚠️  Configuration file may have YAML syntax errors")
-            logger.info("💡 Validate with: claude-mpm config validate")
+    # Use new StartupCheckerService
+    from ...core.config import Config
+    config_service = Config()
+    checker = StartupCheckerService(config_service)
+    warnings = checker.check_configuration()
+    checker.display_warnings(warnings)

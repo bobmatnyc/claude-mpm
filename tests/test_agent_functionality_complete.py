@@ -9,7 +9,6 @@ import os
 import sys
 import traceback
 from datetime import datetime
-from pathlib import Path
 
 # Add src to path
 sys.path.insert(
@@ -73,7 +72,7 @@ class AgentFunctionalityTester:
                 TestResult(
                     "AgentLoader initialization",
                     True,
-                    f"Successfully initialized AgentLoader",
+                    "Successfully initialized AgentLoader",
                 )
             )
 
@@ -179,7 +178,7 @@ class AgentFunctionalityTester:
                     TestResult(
                         f"Load {agent_type} agent",
                         False,
-                        f"Exception during loading",
+                        "Exception during loading",
                         str(e),
                     )
                 )
@@ -356,7 +355,7 @@ class AgentFunctionalityTester:
             for schema_file in schema_files:
                 if os.path.exists(schema_file):
                     try:
-                        with open(schema_file, "r") as f:
+                        with open(schema_file) as f:
                             schema_data = json.load(f)
                         self.results.append(
                             TestResult(

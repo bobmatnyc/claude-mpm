@@ -8,13 +8,11 @@ during deployment.
 
 import shutil
 import sys
-import tempfile
 from pathlib import Path
 
 # Add src to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.agents.deployment.agent_deployment import (
     AgentDeploymentService,
@@ -68,7 +66,7 @@ def test_agent_exclusion():
         config.set("agent_deployment.case_sensitive", False)
 
         print(f"   Excluding agents: {', '.join(excluded_agents)}")
-        print(f"   Case sensitive: False")
+        print("   Case sensitive: False")
 
         results = service.deploy_agents(
             target_dir=target_dir, force_rebuild=True, config=config
@@ -85,7 +83,7 @@ def test_agent_exclusion():
         expected_excluded = len(excluded_agents)
         actual_excluded = initial_count - excluded_count
 
-        print(f"\n4. Verification:")
+        print("\n4. Verification:")
         print("-" * 40)
         print(f"   Expected to exclude: {expected_excluded} agents")
         print(f"   Actually excluded: {actual_excluded} agents")
@@ -105,7 +103,7 @@ def test_agent_exclusion():
                 f"   ❌ ERROR: Excluded agents were deployed: {', '.join(excluded_found)}"
             )
         else:
-            print(f"   ✅ SUCCESS: All excluded agents were properly filtered")
+            print("   ✅ SUCCESS: All excluded agents were properly filtered")
 
         # Test 3: Case sensitivity test
         print("\n5. Testing case sensitivity...")
@@ -120,8 +118,8 @@ def test_agent_exclusion():
         )  # Wrong case
         config.set("agent_deployment.case_sensitive", True)
 
-        print(f"   Excluding agents: Research, Data_Engineer (wrong case)")
-        print(f"   Case sensitive: True")
+        print("   Excluding agents: Research, Data_Engineer (wrong case)")
+        print("   Case sensitive: True")
 
         results = service.deploy_agents(
             target_dir=target_dir, force_rebuild=True, config=config
@@ -133,10 +131,10 @@ def test_agent_exclusion():
         deployed_agents = [agent["name"] for agent in results["deployed"]]
         if "research" in deployed_agents and "data_engineer" in deployed_agents:
             print(
-                f"   ✅ Case-sensitive matching works: agents not excluded with wrong case"
+                "   ✅ Case-sensitive matching works: agents not excluded with wrong case"
             )
         else:
-            print(f"   ❌ Case-sensitive matching failed")
+            print("   ❌ Case-sensitive matching failed")
 
         print("\n" + "=" * 80)
         print("TEST COMPLETE")
@@ -187,7 +185,7 @@ agent_deployment:
             excluded = config.get("agent_deployment.excluded_agents", [])
             case_sensitive = config.get("agent_deployment.case_sensitive", False)
 
-            print(f"\n2. Loaded configuration:")
+            print("\n2. Loaded configuration:")
             print(f"   Excluded agents: {excluded}")
             print(f"   Case sensitive: {case_sensitive}")
 

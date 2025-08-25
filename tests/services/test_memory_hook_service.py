@@ -1,9 +1,11 @@
 """Test module for MemoryHookService."""
 
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
-from claude_mpm.services.memory_hook_service import MemoryHookService
+
 from claude_mpm.services.core.interfaces import MemoryHookInterface
+from claude_mpm.services.memory_hook_service import MemoryHookService
 
 
 class TestMemoryHookService:
@@ -32,14 +34,14 @@ class TestMemoryHookService:
         """Test get_hook_status method returns correct structure."""
         service = MemoryHookService()
         status = service.get_hook_status()
-        
+
         assert isinstance(status, dict)
         assert "registered_hooks" in status
         assert "hook_service_available" in status
         assert "memory_enabled" in status
         assert "total_hooks" in status
         assert "status" in status
-        
+
         # Check initial values
         assert status["registered_hooks"] == []
         assert status["hook_service_available"] is False
@@ -52,9 +54,9 @@ class TestMemoryHookService:
         mock_hook_service = Mock()
         service = MemoryHookService(hook_service=mock_hook_service)
         service.registered_hooks = ["memory_load", "memory_save"]
-        
+
         status = service.get_hook_status()
-        
+
         assert status["registered_hooks"] == ["memory_load", "memory_save"]
         assert status["hook_service_available"] is True
         assert status["total_hooks"] == 2
@@ -64,12 +66,12 @@ class TestMemoryHookService:
         """Test get_memory_status method."""
         service = MemoryHookService()
         status = service.get_memory_status()
-        
+
         assert isinstance(status, dict)
         assert "enabled" in status
         assert "hooks_registered" in status
         assert "service_available" in status
-        
+
         assert status["enabled"] is False
         assert status["hooks_registered"] is False
         assert status["service_available"] is True
@@ -83,7 +85,7 @@ class TestMemoryHookService:
         """Test register_memory_hooks when no hook service is available."""
         service = MemoryHookService()
         service.register_memory_hooks()
-        
+
         # Should not register any hooks
         assert service.registered_hooks == []
 
@@ -91,10 +93,10 @@ class TestMemoryHookService:
         """Test register_memory_hooks with a mock hook service."""
         mock_hook_service = Mock()
         mock_hook_service.register_hook = Mock(return_value=True)
-        
+
         service = MemoryHookService(hook_service=mock_hook_service)
         service.register_memory_hooks()
-        
+
         # Should have registered two hooks
         assert mock_hook_service.register_hook.call_count == 2
         assert "memory_load" in service.registered_hooks
@@ -104,9 +106,9 @@ class TestMemoryHookService:
         """Test unregister_memory_hooks method."""
         mock_hook_service = Mock()
         service = MemoryHookService(hook_service=mock_hook_service)
-        
+
         service.unregister_memory_hooks()
-        
+
         # Should attempt to unregister hooks
         assert mock_hook_service.unregister_hook.call_count == 3
 
@@ -114,28 +116,34 @@ class TestMemoryHookService:
     async def test_initialize_and_cleanup():
         """Test async initialization and cleanup methods."""
         service = MemoryHookService()
-        
+
         # Test initialization
         await service._initialize()
-        
+
         # Test cleanup
         await service._cleanup()
-        
+
         # These are no-op methods but should not raise errors
         assert True
 
     def test_all_abstract_methods_implemented():
         """Verify all abstract methods from MemoryHookInterface are implemented."""
         # Get all abstract methods from the interface
-        from abc import ABC
+
         interface_methods = [
-            method for method in dir(MemoryHookInterface)
-            if not method.startswith('_') and callable(getattr(MemoryHookInterface, method))
+            method
+            for method in dir(MemoryHookInterface)
+            if not method.startswith("_")
+            and callable(getattr(MemoryHookInterface, method))
         ]
-        
+
         service = MemoryHookService()
-        
+
         # Check each interface method is implemented
         for method_name in interface_methods:
-            assert hasattr(service, method_name), f"Method {method_name} not implemented"
-            assert callable(getattr(service, method_name)), f"Method {method_name} is not callable"
+            assert hasattr(
+                service, method_name
+            ), f"Method {method_name} not implemented"
+            assert callable(
+                getattr(service, method_name)
+            ), f"Method {method_name} is not callable"

@@ -12,7 +12,6 @@ This test creates a temporary user project and verifies that:
 import json
 import os
 import sys
-import tempfile
 from pathlib import Path
 
 # Add src to path for imports
@@ -90,7 +89,7 @@ def test_user_directory_scenario():
         user_claude_agents = user_project / ".claude" / "agents"
         framework_claude_agents = framework_dir / ".claude" / "agents"
 
-        print(f"\nChecking deployment locations:")
+        print("\nChecking deployment locations:")
         print(f"  User project .claude/agents/: {user_claude_agents.exists()}")
         print(f"  Framework .claude/agents/: {framework_claude_agents.exists()}")
 
@@ -131,17 +130,17 @@ def test_user_directory_scenario():
             assert (
                 not framework_test_agent.exists()
             ), f"Test agent should NOT be in framework directory: {framework_test_agent}"
-            print(f"✓ Framework directory not contaminated with user agents")
+            print("✓ Framework directory not contaminated with user agents")
         else:
-            print(f"✓ Framework .claude/agents/ directory not created (good)")
+            print("✓ Framework .claude/agents/ directory not created (good)")
 
         # Clean up
         del os.environ["CLAUDE_MPM_USER_PWD"]
 
         print("\n✅ User directory scenario test PASSED!")
         print(f"   - System agents deployed to: {user_claude_agents}")
-        print(f"   - Project agents deployed correctly")
-        print(f"   - Framework directory unchanged")
+        print("   - Project agents deployed correctly")
+        print("   - Framework directory unchanged")
 
 
 if __name__ == "__main__":

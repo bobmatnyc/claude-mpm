@@ -1,21 +1,5 @@
 import pytest
-import pytest
-import pytest
-import pytest
-import pytest
-import pytest
-import pytest
-import pytest
-import pytest
-import pytest
-import pytest
-import pytest
-import pytest
-import pytest
-import pytest
-import pytest
-import pytest
-import pytest
+
 """Comprehensive tests for health monitoring and recovery systems.
 
 This test suite validates:
@@ -26,23 +10,17 @@ This test suite validates:
 """
 
 import asyncio
-import os
 
 # Test imports
 import sys
-import threading
 import time
-from collections import deque
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
-
-import pytest
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 try:
-    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
     from claude_mpm.services.infrastructure.monitoring import (
         AdvancedHealthMonitor,
         HealthCheckResult,
@@ -61,6 +39,7 @@ try:
         RecoveryManager,
     )
     from claude_mpm.services.socketio_server import SocketIOServer
+    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
     HEALTH_MONITORING_AVAILABLE = True
 except ImportError as e:

@@ -11,9 +11,7 @@ This test demonstrates all the new features of the enhanced DIContainer:
 """
 
 import threading
-import time
-from typing import List, Optional
-from unittest.mock import MagicMock, Mock
+from typing import List
 
 import pytest
 
@@ -22,7 +20,6 @@ from claude_mpm.core.container import (
     DIContainer,
     ServiceLifetime,
     ServiceNotFoundError,
-    ServiceScope,
 )
 
 

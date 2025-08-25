@@ -9,7 +9,6 @@ DESIGN DECISION: Test both positive cases (valid formats) and edge cases
 
 import pytest
 
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.hooks.memory_integration_hook import MemoryPostDelegationHook
 
 

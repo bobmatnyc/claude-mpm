@@ -26,6 +26,21 @@ AgentRegistryAdapter = safe_import(
     "claude_mpm.core.agent_registry", "core.agent_registry", ["AgentRegistryAdapter"]
 )
 
+# Import the service container and interfaces
+try:
+    from claude_mpm.services.core.service_container import ServiceContainer, get_global_container
+    from claude_mpm.services.core.service_interfaces import ICacheManager, IPathResolver, IMemoryManager
+    from claude_mpm.services.core.cache_manager import CacheManager
+    from claude_mpm.services.core.path_resolver import PathResolver
+    from claude_mpm.services.core.memory_manager import MemoryManager
+except ImportError:
+    # Fallback for development environments
+    from ..services.core.service_container import ServiceContainer, get_global_container
+    from ..services.core.service_interfaces import ICacheManager, IPathResolver, IMemoryManager
+    from ..services.core.cache_manager import CacheManager
+    from ..services.core.path_resolver import PathResolver
+    from ..services.core.memory_manager import MemoryManager
+
 
 class FrameworkLoader:
     """
@@ -71,7 +86,8 @@ class FrameworkLoader:
     """
 
     def __init__(
-        self, framework_path: Optional[Path] = None, agents_dir: Optional[Path] = None
+        self, framework_path: Optional[Path] = None, agents_dir: Optional[Path] = None,
+        service_container: Optional[ServiceContainer] = None
     ):
         """
         Initialize framework loader.
@@ -79,29 +95,54 @@ class FrameworkLoader:
         Args:
             framework_path: Explicit path to framework (auto-detected if None)
             agents_dir: Custom agents directory (overrides framework agents)
+            service_container: Optional service container for dependency injection
         """
         self.logger = get_logger("framework_loader")
-        self.framework_path = framework_path or self._detect_framework_path()
         self.agents_dir = agents_dir
         self.framework_version = None
         self.framework_last_modified = None
 
-        # Performance optimization: Initialize caches
-        self._agent_capabilities_cache: Optional[str] = None
-        self._agent_capabilities_cache_time: float = 0
-        self._deployed_agents_cache: Optional[Set[str]] = None
-        self._deployed_agents_cache_time: float = 0
-        self._agent_metadata_cache: Dict[
-            str, Tuple[Optional[Dict[str, Any]], float]
-        ] = {}
-        self._memories_cache: Optional[Dict[str, Any]] = None
-        self._memories_cache_time: float = 0
-
-        # Cache TTL settings (in seconds)
-        self.CAPABILITIES_CACHE_TTL = 60  # 60 seconds for capabilities
-        self.DEPLOYED_AGENTS_CACHE_TTL = 30  # 30 seconds for deployed agents
-        self.METADATA_CACHE_TTL = 60  # 60 seconds for agent metadata
-        self.MEMORIES_CACHE_TTL = 60  # 60 seconds for memories
+        # Use provided container or get global container
+        self.container = service_container or get_global_container()
+        
+        # Register services if not already registered
+        if not self.container.is_registered(ICacheManager):
+            self.container.register(ICacheManager, CacheManager, True)  # singleton=True
+        
+        if not self.container.is_registered(IPathResolver):
+            # PathResolver depends on CacheManager, so resolve it first
+            cache_manager = self.container.resolve(ICacheManager)
+            path_resolver = PathResolver(cache_manager=cache_manager)
+            self.container.register_instance(IPathResolver, path_resolver)
+        
+        if not self.container.is_registered(IMemoryManager):
+            # MemoryManager depends on both CacheManager and PathResolver
+            cache_manager = self.container.resolve(ICacheManager)
+            path_resolver = self.container.resolve(IPathResolver)
+            memory_manager = MemoryManager(cache_manager=cache_manager, path_resolver=path_resolver)
+            self.container.register_instance(IMemoryManager, memory_manager)
+        
+        # Resolve services from container
+        self._cache_manager = self.container.resolve(ICacheManager)
+        self._path_resolver = self.container.resolve(IPathResolver)
+        self._memory_manager = self.container.resolve(IMemoryManager)
+        
+        # Initialize framework path using PathResolver
+        self.framework_path = framework_path or self._path_resolver.detect_framework_path()
+        
+        # Keep TTL constants for backward compatibility
+        # These are implementation-specific, so we use defaults if not available
+        if hasattr(self._cache_manager, 'capabilities_ttl'):
+            self.CAPABILITIES_CACHE_TTL = self._cache_manager.capabilities_ttl
+            self.DEPLOYED_AGENTS_CACHE_TTL = self._cache_manager.deployed_agents_ttl
+            self.METADATA_CACHE_TTL = self._cache_manager.metadata_ttl
+            self.MEMORIES_CACHE_TTL = self._cache_manager.memories_ttl
+        else:
+            # Default TTL values
+            self.CAPABILITIES_CACHE_TTL = 60
+            self.DEPLOYED_AGENTS_CACHE_TTL = 30
+            self.METADATA_CACHE_TTL = 60
+            self.MEMORIES_CACHE_TTL = 60
 
         self.framework_content = self._load_framework_content()
 
@@ -114,29 +155,15 @@ class FrameworkLoader:
 
     def clear_all_caches(self) -> None:
         """Clear all caches to force reload on next access."""
-        self.logger.info("Clearing all framework loader caches")
-        self._agent_capabilities_cache = None
-        self._agent_capabilities_cache_time = 0
-        self._deployed_agents_cache = None
-        self._deployed_agents_cache_time = 0
-        self._agent_metadata_cache.clear()
-        self._memories_cache = None
-        self._memories_cache_time = 0
+        self._cache_manager.clear_all()
 
     def clear_agent_caches(self) -> None:
         """Clear agent-related caches (capabilities, deployed agents, metadata)."""
-        self.logger.info("Clearing agent-related caches")
-        self._agent_capabilities_cache = None
-        self._agent_capabilities_cache_time = 0
-        self._deployed_agents_cache = None
-        self._deployed_agents_cache_time = 0
-        self._agent_metadata_cache.clear()
+        self._cache_manager.clear_agent_caches()
 
     def clear_memory_caches(self) -> None:
         """Clear memory-related caches."""
-        self.logger.info("Clearing memory caches")
-        self._memories_cache = None
-        self._memories_cache_time = 0
+        self._cache_manager.clear_memory_caches()
 
     def _initialize_output_style(self) -> None:
         """Initialize output style management and deploy if applicable."""
@@ -210,150 +237,8 @@ class FrameworkLoader:
                 "📝 Output style content will be injected into framework instructions as fallback"
             )
 
-    def _detect_framework_path(self) -> Optional[Path]:
-        """Auto-detect claude-mpm framework using unified path management."""
-        try:
-            # Use the unified path manager for consistent detection
-            from ..core.unified_paths import DeploymentContext, get_path_manager
 
-            path_manager = get_path_manager()
-            deployment_context = path_manager._deployment_context
 
-            # Check if we're in a packaged installation
-            if deployment_context in [
-                DeploymentContext.PIP_INSTALL,
-                DeploymentContext.PIPX_INSTALL,
-                DeploymentContext.SYSTEM_PACKAGE,
-            ]:
-                self.logger.info(
-                    f"Running from packaged installation (context: {deployment_context})"
-                )
-                # Return a marker path to indicate packaged installation
-                return Path("__PACKAGED__")
-            if deployment_context == DeploymentContext.DEVELOPMENT:
-                # Development mode - use framework root
-                framework_root = path_manager.framework_root
-                if (framework_root / "src" / "claude_mpm" / "agents").exists():
-                    self.logger.info(
-                        f"Using claude-mpm development installation at: {framework_root}"
-                    )
-                    return framework_root
-            elif deployment_context == DeploymentContext.EDITABLE_INSTALL:
-                # Editable install - similar to development
-                framework_root = path_manager.framework_root
-                if (framework_root / "src" / "claude_mpm" / "agents").exists():
-                    self.logger.info(
-                        f"Using claude-mpm editable installation at: {framework_root}"
-                    )
-                    return framework_root
-
-        except Exception as e:
-            self.logger.warning(
-                f"Failed to use unified path manager for framework detection: {e}"
-            )
-            # Fall back to original detection logic
-
-        # Fallback: Original detection logic for compatibility
-        try:
-            # Check if the package is installed
-            import claude_mpm
-
-            package_file = Path(claude_mpm.__file__)
-
-            # For packaged installations, we don't need a framework path
-            # since we'll use importlib.resources to load files
-            if "site-packages" in str(package_file) or "dist-packages" in str(
-                package_file
-            ):
-                self.logger.info(
-                    f"Running from packaged installation at: {package_file.parent}"
-                )
-                # Return a marker path to indicate packaged installation
-                return Path("__PACKAGED__")
-        except ImportError:
-            pass
-
-        # Then check if we're in claude-mpm project (development mode)
-        current_file = Path(__file__)
-        if "claude-mpm" in str(current_file):
-            # We're running from claude-mpm, use its agents
-            for parent in current_file.parents:
-                if parent.name == "claude-mpm":
-                    if (parent / "src" / "claude_mpm" / "agents").exists():
-                        self.logger.info(f"Using claude-mpm at: {parent}")
-                        return parent
-                    break
-
-        # Otherwise check common locations for claude-mpm
-        candidates = [
-            # Current directory (if we're already in claude-mpm)
-            Path.cwd(),
-            # Development location
-            Path.home() / "Projects" / "claude-mpm",
-            # Current directory subdirectory
-            Path.cwd() / "claude-mpm",
-        ]
-
-        for candidate in candidates:
-            if candidate and candidate.exists():
-                # Check for claude-mpm agents directory
-                if (candidate / "src" / "claude_mpm" / "agents").exists():
-                    self.logger.info(f"Found claude-mpm at: {candidate}")
-                    return candidate
-
-        self.logger.warning("Framework not found, will use minimal instructions")
-        return None
-
-    def _get_npm_global_path(self) -> Optional[Path]:
-        """Get npm global installation path."""
-        try:
-            import subprocess
-
-            result = subprocess.run(
-                ["npm", "root", "-g"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-                check=False,
-            )
-            if result.returncode == 0:
-                npm_root = Path(result.stdout.strip())
-                return npm_root / "@bobmatnyc" / "claude-multiagent-pm"
-        except:
-            pass
-        return None
-
-    def _discover_framework_paths(
-        self,
-    ) -> tuple[Optional[Path], Optional[Path], Optional[Path]]:
-        """
-        Discover agent directories based on priority.
-
-        Returns:
-            Tuple of (agents_dir, templates_dir, main_dir)
-        """
-        agents_dir = None
-        templates_dir = None
-        main_dir = None
-
-        if self.agents_dir and self.agents_dir.exists():
-            agents_dir = self.agents_dir
-            self.logger.info(f"Using custom agents directory: {agents_dir}")
-        elif self.framework_path and self.framework_path != Path("__PACKAGED__"):
-            # Prioritize templates directory over main agents directory
-            templates_dir = (
-                self.framework_path / "src" / "claude_mpm" / "agents" / "templates"
-            )
-            main_dir = self.framework_path / "src" / "claude_mpm" / "agents"
-
-            if templates_dir.exists() and any(templates_dir.glob("*.md")):
-                agents_dir = templates_dir
-                self.logger.info(f"Using agents from templates directory: {agents_dir}")
-            elif main_dir.exists() and any(main_dir.glob("*.md")):
-                agents_dir = main_dir
-                self.logger.info(f"Using agents from main directory: {agents_dir}")
-
-        return agents_dir, templates_dir, main_dir
 
     def _try_load_file(self, file_path: Path, file_type: str) -> Optional[str]:
         """
@@ -398,31 +283,6 @@ class FrameworkLoader:
             if hasattr(self.logger, "level") and self.logger.level <= logging.ERROR:
                 self.logger.error(f"Failed to load {file_type}: {e}")
             return None
-
-    def _migrate_memory_file(self, old_path: Path, new_path: Path) -> None:
-        """
-        Migrate memory file from old naming convention to new.
-
-        WHY: Supports backward compatibility by automatically migrating from
-        the old {agent_id}_agent.md and {agent_id}.md formats to the new {agent_id}_memories.md format.
-
-        Args:
-            old_path: Path to the old file
-            new_path: Path to the new file
-        """
-        if old_path.exists() and not new_path.exists():
-            try:
-                # Read content from old file
-                content = old_path.read_text(encoding="utf-8")
-                # Write to new file
-                new_path.write_text(content, encoding="utf-8")
-                # Remove old file
-                old_path.unlink()
-                self.logger.info(
-                    f"Migrated memory file from {old_path.name} to {new_path.name}"
-                )
-            except Exception as e:
-                self.logger.error(f"Failed to migrate memory file {old_path.name}: {e}")
 
     def _load_instructions_file(self, content: Dict[str, Any]) -> None:
         """
@@ -586,17 +446,10 @@ class FrameworkLoader:
         Returns:
             Set of agent names (file stems) that are deployed
         """
-        # Check if cache is valid
-        current_time = time.time()
-        if (
-            self._deployed_agents_cache is not None
-            and current_time - self._deployed_agents_cache_time
-            < self.DEPLOYED_AGENTS_CACHE_TTL
-        ):
-            self.logger.debug(
-                f"Using cached deployed agents (age: {current_time - self._deployed_agents_cache_time:.1f}s)"
-            )
-            return self._deployed_agents_cache
+        # Try to get from cache first
+        cached = self._cache_manager.get_deployed_agents()
+        if cached is not None:
+            return cached
 
         # Cache miss or expired - perform actual scan
         self.logger.debug("Scanning for deployed agents (cache miss or expired)")
@@ -621,368 +474,28 @@ class FrameworkLoader:
         self.logger.debug(f"Total deployed agents found: {len(deployed)}")
 
         # Update cache
-        self._deployed_agents_cache = deployed
-        self._deployed_agents_cache_time = current_time
+        self._cache_manager.set_deployed_agents(deployed)
 
         return deployed
 
     def _load_actual_memories(self, content: Dict[str, Any]) -> None:
         """
-        Load actual memories from both user and project directories.
-        Uses caching to avoid repeated file I/O operations.
-
-        Loading order:
-        1. User-level memories from ~/.claude-mpm/memories/ (global defaults)
-        2. Project-level memories from ./.claude-mpm/memories/ (overrides user)
-
-        This loads:
-        1. PM memories from PM_memories.md (always loaded)
-        2. Agent memories from <agent>_memories.md (only if agent is deployed)
-
+        Load actual memories using the MemoryManager service.
+        
+        This method delegates all memory loading operations to the MemoryManager,
+        which handles caching, aggregation, deduplication, and legacy format migration.
+        
         Args:
             content: Dictionary to update with actual memories
         """
-        # Check if cache is valid
-        current_time = time.time()
-        if (
-            self._memories_cache is not None
-            and current_time - self._memories_cache_time < self.MEMORIES_CACHE_TTL
-        ):
-            cache_age = current_time - self._memories_cache_time
-            self.logger.debug(f"Using cached memories (age: {cache_age:.1f}s)")
-
-            # Apply cached memories to content
-            if "actual_memories" in self._memories_cache:
-                content["actual_memories"] = self._memories_cache["actual_memories"]
-            if "agent_memories" in self._memories_cache:
-                content["agent_memories"] = self._memories_cache["agent_memories"]
-            return
-
-        # Cache miss or expired - perform actual loading
-        self.logger.debug("Loading memories from disk (cache miss or expired)")
-
-        # Define memory directories in priority order (user first, then project)
-        user_memories_dir = Path.home() / ".claude-mpm" / "memories"
-        project_memories_dir = Path.cwd() / ".claude-mpm" / "memories"
-
-        # Check for deployed agents
-        deployed_agents = self._get_deployed_agents()
-
-        # Track loading statistics
-        loaded_count = 0
-        skipped_count = 0
-
-        # Dictionary to store aggregated memories
-        pm_memories = []
-        agent_memories_dict = {}
-
-        # Load memories from user directory first
-        if user_memories_dir.exists():
-            self.logger.info(
-                f"Loading user-level memory files from: {user_memories_dir}"
-            )
-            loaded, skipped = self._load_memories_from_directory(
-                user_memories_dir,
-                deployed_agents,
-                pm_memories,
-                agent_memories_dict,
-                "user",
-            )
-            loaded_count += loaded
-            skipped_count += skipped
-        else:
-            self.logger.debug(
-                f"No user memories directory found at: {user_memories_dir}"
-            )
-
-        # Load memories from project directory (overrides user memories)
-        if project_memories_dir.exists():
-            self.logger.info(
-                f"Loading project-level memory files from: {project_memories_dir}"
-            )
-            loaded, skipped = self._load_memories_from_directory(
-                project_memories_dir,
-                deployed_agents,
-                pm_memories,
-                agent_memories_dict,
-                "project",
-            )
-            loaded_count += loaded
-            skipped_count += skipped
-        else:
-            self.logger.debug(
-                f"No project memories directory found at: {project_memories_dir}"
-            )
-
-        # Aggregate PM memories
-        if pm_memories:
-            aggregated_pm = self._aggregate_memories(pm_memories)
-            content["actual_memories"] = aggregated_pm
-            memory_size = len(aggregated_pm.encode("utf-8"))
-            self.logger.info(
-                f"Aggregated PM memory ({memory_size:,} bytes) from {len(pm_memories)} source(s)"
-            )
-
-        # Store agent memories (already aggregated per agent)
-        if agent_memories_dict:
-            content["agent_memories"] = agent_memories_dict
-            for agent_name, memory_content in agent_memories_dict.items():
-                memory_size = len(memory_content.encode("utf-8"))
-                self.logger.debug(
-                    f"Aggregated {agent_name} memory: {memory_size:,} bytes"
-                )
-
-        # Update cache with loaded memories
-        self._memories_cache = {}
-        if "actual_memories" in content:
-            self._memories_cache["actual_memories"] = content["actual_memories"]
-        if "agent_memories" in content:
-            self._memories_cache["agent_memories"] = content["agent_memories"]
-        self._memories_cache_time = current_time
-
-        # Log detailed summary
-        if loaded_count > 0 or skipped_count > 0:
-            # Count unique agents with memories
-            agent_count = len(agent_memories_dict) if agent_memories_dict else 0
-            pm_loaded = bool(content.get("actual_memories"))
-
-            summary_parts = []
-            if pm_loaded:
-                summary_parts.append("PM memory loaded")
-            if agent_count > 0:
-                summary_parts.append(f"{agent_count} agent memories loaded")
-            if skipped_count > 0:
-                summary_parts.append(
-                    f"{skipped_count} non-deployed agent memories skipped"
-                )
-
-            self.logger.info(f"Memory loading complete: {' | '.join(summary_parts)}")
-
-            # Log deployed agents for reference
-            if len(deployed_agents) > 0:
-                self.logger.debug(
-                    f"Deployed agents available for memory loading: {', '.join(sorted(deployed_agents))}"
-                )
-
-    def _load_memories_from_directory(
-        self,
-        memories_dir: Path,
-        deployed_agents: set,
-        pm_memories: list,
-        agent_memories_dict: dict,
-        source: str,
-    ) -> tuple[int, int]:
-        """
-        Load memories from a specific directory.
-
-        Args:
-            memories_dir: Directory to load memories from
-            deployed_agents: Set of deployed agent names
-            pm_memories: List to append PM memories to
-            agent_memories_dict: Dict to store agent memories
-            source: Source label ("user" or "project")
-
-        Returns:
-            Tuple of (loaded_count, skipped_count)
-        """
-        loaded_count = 0
-        skipped_count = 0
-
-        # Load PM memories (always loaded)
-        # Support migration from both old formats
-        pm_memory_path = memories_dir / "PM_memories.md"
-        old_pm_path = memories_dir / "PM.md"
-
-        # Migrate from old PM.md if needed
-        if not pm_memory_path.exists() and old_pm_path.exists():
-            try:
-                old_pm_path.rename(pm_memory_path)
-                self.logger.info("Migrated PM.md to PM_memories.md")
-            except Exception as e:
-                self.logger.error(f"Failed to migrate PM.md: {e}")
-                pm_memory_path = old_pm_path  # Fall back to old path
-        if pm_memory_path.exists():
-            loaded_content = self._try_load_file(
-                pm_memory_path, f"PM memory ({source})"
-            )
-            if loaded_content:
-                pm_memories.append(
-                    {
-                        "source": source,
-                        "content": loaded_content,
-                        "path": pm_memory_path,
-                    }
-                )
-                memory_size = len(loaded_content.encode("utf-8"))
-                self.logger.info(
-                    f"Loaded {source} PM memory: {pm_memory_path} ({memory_size:,} bytes)"
-                )
-                loaded_count += 1
-
-        # First, migrate any old format memory files to new format
-        # This handles backward compatibility for existing installations
-        for old_file in memories_dir.glob("*.md"):
-            # Skip files already in correct format and special files
-            if old_file.name.endswith("_memories.md") or old_file.name in [
-                "PM.md",
-                "README.md",
-            ]:
-                continue
-
-            # Determine new name based on old format
-            if old_file.stem.endswith("_agent"):
-                # Old format: {agent_name}_agent.md -> {agent_name}_memories.md
-                agent_name = old_file.stem[:-6]  # Remove "_agent" suffix
-                new_path = memories_dir / f"{agent_name}_memories.md"
-                if not new_path.exists():
-                    self._migrate_memory_file(old_file, new_path)
-            else:
-                # Intermediate format: {agent_name}.md -> {agent_name}_memories.md
-                agent_name = old_file.stem
-                new_path = memories_dir / f"{agent_name}_memories.md"
-                if not new_path.exists():
-                    self._migrate_memory_file(old_file, new_path)
-
-        # Load agent memories (only for deployed agents)
-        # Only process *_memories.md files to avoid README.md and other docs
-        for memory_file in memories_dir.glob("*_memories.md"):
-            # Skip PM_memories.md as we already handled it
-            if memory_file.name == "PM_memories.md":
-                continue
-
-            # Extract agent name from file (remove "_memories" suffix)
-            agent_name = memory_file.stem[:-9]  # Remove "_memories" suffix
-
-            # Check if agent is deployed
-            if agent_name in deployed_agents:
-                loaded_content = self._try_load_file(
-                    memory_file, f"agent memory: {agent_name} ({source})"
-                )
-                if loaded_content:
-                    # Store or merge agent memories
-                    if agent_name not in agent_memories_dict:
-                        agent_memories_dict[agent_name] = []
-
-                    # If it's a list, append the new memory entry
-                    if isinstance(agent_memories_dict[agent_name], list):
-                        agent_memories_dict[agent_name].append(
-                            {
-                                "source": source,
-                                "content": loaded_content,
-                                "path": memory_file,
-                            }
-                        )
-
-                    memory_size = len(loaded_content.encode("utf-8"))
-                    self.logger.info(
-                        f"Loaded {source} memory for {agent_name}: {memory_file.name} ({memory_size:,} bytes)"
-                    )
-                    loaded_count += 1
-            else:
-                # Provide more detailed logging about why the memory was skipped
-                self.logger.info(
-                    f"Skipped {source} memory: {memory_file.name} (agent '{agent_name}' not deployed)"
-                )
-                # Also log a debug message with available agents for diagnostics
-                if (
-                    agent_name.replace("_", "-") in deployed_agents
-                    or agent_name.replace("-", "_") in deployed_agents
-                ):
-                    # Detect naming mismatches
-                    alt_name = (
-                        agent_name.replace("_", "-")
-                        if "_" in agent_name
-                        else agent_name.replace("-", "_")
-                    )
-                    if alt_name in deployed_agents:
-                        self.logger.warning(
-                            f"Naming mismatch detected: Memory file uses '{agent_name}' but deployed agent is '{alt_name}'. "
-                            f"Consider renaming {memory_file.name} to {alt_name}_memories.md"
-                        )
-                skipped_count += 1
-
-        # After loading all memories for this directory, aggregate agent memories
-        for agent_name in list(agent_memories_dict.keys()):
-            if (
-                isinstance(agent_memories_dict[agent_name], list)
-                and agent_memories_dict[agent_name]
-            ):
-                # Aggregate memories for this agent
-                aggregated = self._aggregate_memories(agent_memories_dict[agent_name])
-                agent_memories_dict[agent_name] = aggregated
-
-        return loaded_count, skipped_count
-
-    def _aggregate_memories(self, memory_entries: list) -> str:
-        """
-        Aggregate multiple memory entries into a single memory string.
-
-        Strategy:
-        - Simplified to support list-based memories only
-        - Preserve all unique bullet-point items (lines starting with -)
-        - Remove exact duplicates
-        - Project-level memories take precedence over user-level
-
-        Args:
-            memory_entries: List of memory entries with source, content, and path
-
-        Returns:
-            Aggregated memory content as a string
-        """
-        if not memory_entries:
-            return ""
-
-        # If only one entry, return it as-is
-        if len(memory_entries) == 1:
-            return memory_entries[0]["content"]
-
-        # Parse all memories into a simple list
-        all_items = {}  # Dict to track items and their source
-        metadata_lines = []
-        agent_id = None
-
-        for entry in memory_entries:
-            content = entry["content"]
-            source = entry["source"]
-
-            for line in content.split("\n"):
-                # Check for header to extract agent_id
-                if line.startswith("# Agent Memory:"):
-                    agent_id = line.replace("# Agent Memory:", "").strip()
-                # Check for metadata lines
-                elif line.startswith("<!-- ") and line.endswith(" -->"):
-                    # Only keep metadata from project source or if not already present
-                    if source == "project" or line not in metadata_lines:
-                        metadata_lines.append(line)
-                # Check for list items
-                elif line.strip().startswith("-"):
-                    # Normalize the item for comparison
-                    item_text = line.strip()
-                    normalized = item_text.lstrip("- ").strip().lower()
-
-                    # Add item if new or if project source overrides user source
-                    if normalized not in all_items or source == "project":
-                        all_items[normalized] = (item_text, source)
-
-        # Build aggregated content as simple list
-        lines = []
-
-        # Add header
-        if agent_id:
-            lines.append(f"# Agent Memory: {agent_id}")
-        else:
-            lines.append("# Agent Memory")
-
-        # Add latest timestamp from metadata
-        lines.append(f"<!-- Last Updated: {datetime.now().isoformat()}Z -->")
-        lines.append("")
-
-        # Add all unique items (sorted for consistency)
-        for normalized_key in sorted(all_items.keys()):
-            item_text, source = all_items[normalized_key]
-            lines.append(item_text)
-
-        return "\n".join(lines)
+        # Use MemoryManager to load all memories
+        memories = self._memory_manager.load_memories()
+        
+        # Apply loaded memories to content
+        if "actual_memories" in memories:
+            content["actual_memories"] = memories["actual_memories"]
+        if "agent_memories" in memories:
+            content["agent_memories"] = memories["agent_memories"]
 
     def _load_single_agent(
         self, agent_file: Path
@@ -1133,8 +646,11 @@ class FrameworkLoader:
         # Load actual memories from .claude-mpm/memories/PM_memories.md
         self._load_actual_memories(content)
 
-        # Discover agent directories
-        agents_dir, templates_dir, main_dir = self._discover_framework_paths()
+        # Discover agent directories using PathResolver
+        agents_dir, templates_dir, main_dir = self._path_resolver.discover_agent_paths(
+            agents_dir=self.agents_dir,
+            framework_path=self.framework_path
+        )
 
         # Load agents from discovered directory
         self._load_agents_directory(content, agents_dir, templates_dir, main_dir)
@@ -1615,18 +1131,13 @@ Extract tickets from these patterns:
         """Generate dynamic agent capabilities section from deployed agents.
         Uses caching to avoid repeated file I/O and parsing operations."""
 
-        # Check if cache is valid
+        # Try to get from cache first
+        cached_capabilities = self._cache_manager.get_capabilities()
+        if cached_capabilities is not None:
+            return cached_capabilities
+        
+        # Will be used for updating cache later
         current_time = time.time()
-        if (
-            self._agent_capabilities_cache is not None
-            and current_time - self._agent_capabilities_cache_time
-            < self.CAPABILITIES_CACHE_TTL
-        ):
-            cache_age = current_time - self._agent_capabilities_cache_time
-            self.logger.debug(
-                f"Using cached agent capabilities (age: {cache_age:.1f}s)"
-            )
-            return self._agent_capabilities_cache
 
         # Cache miss or expired - generate capabilities
         self.logger.debug("Generating agent capabilities (cache miss or expired)")
@@ -1674,8 +1185,7 @@ Extract tickets from these patterns:
                 self.logger.warning(f"No agents found in any location: {agents_dirs}")
                 result = self._get_fallback_capabilities()
                 # Cache the fallback result too
-                self._agent_capabilities_cache = result
-                self._agent_capabilities_cache_time = current_time
+                self._cache_manager.set_capabilities(result)
                 return result
 
             # Log agent collection summary
@@ -1700,8 +1210,7 @@ Extract tickets from these patterns:
             if not deployed_agents:
                 result = self._get_fallback_capabilities()
                 # Cache the fallback result
-                self._agent_capabilities_cache = result
-                self._agent_capabilities_cache_time = current_time
+                self._cache_manager.set_capabilities(result)
                 return result
 
             # Sort agents alphabetically by ID
@@ -1777,8 +1286,7 @@ Extract tickets from these patterns:
             section += f"\n**Total Available Agents**: {len(deployed_agents)}\n"
 
             # Cache the generated capabilities
-            self._agent_capabilities_cache = section
-            self._agent_capabilities_cache_time = current_time
+            self._cache_manager.set_capabilities(section)
             self.logger.debug(
                 f"Cached agent capabilities section ({len(section)} chars)"
             )
@@ -1806,14 +1314,12 @@ Extract tickets from these patterns:
             file_mtime = agent_file.stat().st_mtime
             current_time = time.time()
 
-            # Check if we have cached data for this file
-            if cache_key in self._agent_metadata_cache:
-                cached_data, cached_mtime = self._agent_metadata_cache[cache_key]
+            # Try to get from cache first
+            cached_result = self._cache_manager.get_agent_metadata(cache_key)
+            if cached_result is not None:
+                cached_data, cached_mtime = cached_result
                 # Use cache if file hasn't been modified and cache isn't too old
-                if (
-                    cached_mtime == file_mtime
-                    and current_time - cached_mtime < self.METADATA_CACHE_TTL
-                ):
+                if cached_mtime == file_mtime:
                     self.logger.debug(f"Using cached metadata for {agent_file.name}")
                     return cached_data
 
@@ -1866,7 +1372,7 @@ Extract tickets from these patterns:
                     agent_data["routing"] = routing_data
 
             # Cache the parsed metadata
-            self._agent_metadata_cache[cache_key] = (agent_data, file_mtime)
+            self._cache_manager.set_agent_metadata(cache_key, agent_data, file_mtime)
 
             return agent_data
 

@@ -15,8 +15,6 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
-from unittest.mock import patch
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -158,7 +156,7 @@ This is a project-specific workflow override.
                 os.chdir(original_cwd)
 
         except Exception as e:
-            self.log_result("Memory loading order test", False, f"Exception: {str(e)}")
+            self.log_result("Memory loading order test", False, f"Exception: {e!s}")
 
     def test_memory_limits(self):
         """Test memory limits enforcement."""
@@ -201,7 +199,7 @@ This is a project-specific workflow override.
             )
 
         except Exception as e:
-            self.log_result("Memory limits test", False, f"Exception: {str(e)}")
+            self.log_result("Memory limits test", False, f"Exception: {e!s}")
 
     def test_pm_memory_instructions(self):
         """Test that PM memory instructions are clear and actionable."""
@@ -275,7 +273,7 @@ This is a project-specific workflow override.
 
         except Exception as e:
             self.log_result(
-                "PM memory instructions test", False, f"Exception: {str(e)}"
+                "PM memory instructions test", False, f"Exception: {e!s}"
             )
 
     def test_memory_file_operations(self):
@@ -352,7 +350,7 @@ This is a project-specific workflow override.
 
         except Exception as e:
             self.log_result(
-                "Memory file operations test", False, f"Exception: {str(e)}"
+                "Memory file operations test", False, f"Exception: {e!s}"
             )
 
     def test_fallback_to_system_memory(self):
@@ -395,7 +393,7 @@ This is a project-specific workflow override.
 
         except Exception as e:
             self.log_result(
-                "System memory fallback test", False, f"Exception: {str(e)}"
+                "System memory fallback test", False, f"Exception: {e!s}"
             )
 
     def cleanup(self):
@@ -431,9 +429,8 @@ This is a project-specific workflow override.
             if passed == total:
                 print("🎉 All memory management tests PASSED!")
                 return True
-            else:
-                print(f"❌ {total - passed} tests FAILED!")
-                return False
+            print(f"❌ {total - passed} tests FAILED!")
+            return False
 
         finally:
             self.cleanup()

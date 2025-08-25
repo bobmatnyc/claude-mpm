@@ -7,8 +7,6 @@ as required by TSK-0063.
 
 from typing import Any, List
 
-import pytest
-
 from claude_mpm.core.container import DIContainer
 from claude_mpm.services.core.interfaces import IServiceContainer
 

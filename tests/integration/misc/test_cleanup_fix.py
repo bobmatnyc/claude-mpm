@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """Test script to verify the cleanup command fix."""
 
-import os
 import subprocess
 import sys
-from pathlib import Path
 
 
 def test_cleanup_with_echo():
@@ -19,7 +17,7 @@ def test_cleanup_with_echo():
         'echo "n" | claude-mpm cleanup-memory',
         shell=True,
         capture_output=True,
-        text=True,
+        text=True, check=False,
     )
 
     if "Cleanup cancelled" in result.stdout:
@@ -35,7 +33,7 @@ def test_cleanup_with_echo():
         "claude-mpm cleanup-memory --dry-run",
         shell=True,
         capture_output=True,
-        text=True,
+        text=True, check=False,
     )
 
     if "Continue?" not in result.stdout and "DRY RUN MODE" in result.stdout:
@@ -53,7 +51,7 @@ def test_cleanup_with_force():
         "claude-mpm cleanup-memory --dry-run --force",
         shell=True,
         capture_output=True,
-        text=True,
+        text=True, check=False,
     )
 
     if "Continue?" not in result.stdout and "DRY RUN MODE" in result.stdout:
@@ -75,7 +73,7 @@ if __name__ == "__main__":
     print("=== Testing Cleanup Command Fix ===\n")
 
     # Check if claude-mpm is available
-    result = subprocess.run(["which", "claude-mpm"], capture_output=True)
+    result = subprocess.run(["which", "claude-mpm"], capture_output=True, check=False)
     if result.returncode != 0:
         print("❌ claude-mpm not found in PATH")
         print("   Please ensure claude-mpm is installed and in your PATH")

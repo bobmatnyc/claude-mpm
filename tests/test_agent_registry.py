@@ -1,9 +1,7 @@
 """Tests for agent registry integration."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
-
-import pytest
+from unittest.mock import Mock, patch
 
 from claude_mpm.core.agent_registry import AgentRegistryAdapter
 

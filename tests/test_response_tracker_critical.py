@@ -13,13 +13,11 @@ Tests critical functionality including:
 """
 
 import json
-import os
-import tempfile
 import threading
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import mock_open, patch
 
 import pytest
 
@@ -55,7 +53,7 @@ class TestResponseTrackerBasics:
             assert "test_agent" in file_path.name
 
             # Verify content
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 data = json.load(f)
 
             assert data["agent"] == "test_agent"
@@ -91,7 +89,7 @@ class TestResponseTrackerBasics:
                 metadata=metadata,
             )
 
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 data = json.load(f)
 
             assert data["metadata"] == metadata
@@ -338,7 +336,7 @@ class TestErrorHandling:
             )
 
             # Verify content is preserved
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             assert data["request"] == unicode_content
@@ -500,7 +498,7 @@ class TestLargeResponses:
             )
 
             # Verify it was saved correctly
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 data = json.load(f)
 
             assert len(data["response"]) == len(large_response)
@@ -590,7 +588,7 @@ class TestCleanup:
             # Manually modify the timestamp in the file
             session_dir = Path(tmpdir) / old_session_id
             for file_path in session_dir.glob("*.json"):
-                with open(file_path, "r") as f:
+                with open(file_path) as f:
                     data = json.load(f)
 
                 # Set timestamp to 10 days ago
@@ -677,7 +675,7 @@ class TestEdgeCases:
                 session_id="empty_session",
             )
 
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 data = json.load(f)
 
             assert data["request"] == ""
@@ -735,7 +733,7 @@ class TestEdgeCases:
                 session_id="special_session",
             )
 
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 data = json.load(f)
 
             assert data["request"] == special_content

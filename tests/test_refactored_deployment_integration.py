@@ -6,14 +6,9 @@ and that the service maintains compatibility with existing functionality.
 
 import json
 import shutil
-import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
-
-import pytest
 
 from claude_mpm.core.interfaces import AgentDeploymentInterface
-from claude_mpm.services.agents.deployment.facade import DeploymentFacade
 from claude_mpm.services.agents.deployment.interface_adapter import (
     AgentDeploymentInterfaceAdapter,
 )

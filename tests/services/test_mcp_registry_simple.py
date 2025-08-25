@@ -5,7 +5,6 @@ Simple Unit Tests for MCP Tool Registry
 Focused unit tests that work with the actual ToolRegistry implementation.
 """
 
-import asyncio
 import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock

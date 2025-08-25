@@ -14,7 +14,6 @@ import json
 import os
 import shutil
 import sys
-import tempfile
 from pathlib import Path
 
 # Add project root to path
@@ -44,10 +43,8 @@ def test_interactive_response_logging_integration():
 
         # Initialize components
         from claude_mpm.core.claude_runner import ClaudeRunner
-        from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
         from claude_mpm.core.interactive_session import InteractiveSession
         from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
-        from claude_mpm.services.response_tracker import ResponseTracker
 
         # Create config
         config = Config(config_file=str(config_file))
@@ -108,7 +105,7 @@ def test_interactive_response_logging_integration():
                     ), f"Response file not created at {file_path}"
 
                     # Verify content
-                    with open(file_path, "r") as f:
+                    with open(file_path) as f:
                         content = json.load(f)
                         assert content["request"] == "Test request"
                         assert content["response"] == "Test response"
@@ -147,7 +144,6 @@ def test_response_logging_disabled():
 
         # Initialize components
         from claude_mpm.core.claude_runner import ClaudeRunner
-        from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
         from claude_mpm.core.interactive_session import InteractiveSession
 
         # Create config

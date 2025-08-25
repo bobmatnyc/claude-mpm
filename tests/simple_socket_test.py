@@ -54,14 +54,14 @@ def test_hook_handler_improvements():
             text=True,
             capture_output=True,
             env=env,
-            timeout=10,
+            timeout=10, check=False,
         )
 
         print(f"📤 Exit code: {result.returncode}")
         print(f"📤 Stdout: {result.stdout}")
 
         if result.stderr:
-            print(f"📤 Stderr (should show hook processing):")
+            print("📤 Stderr (should show hook processing):")
             stderr_lines = result.stderr.strip().split("\n")
             for line in stderr_lines:
                 if line:
@@ -83,7 +83,7 @@ def test_hook_handler_improvements():
                 "Socket.IO emission attempted (failed due to no server)"
             )
 
-        print(f"\n✅ Improvements detected:")
+        print("\n✅ Improvements detected:")
         for improvement in improvements_detected:
             print(f"   • {improvement}")
 
@@ -96,7 +96,7 @@ def test_hook_handler_improvements():
 
 def test_connection_pool_fixes():
     """Test connection pool with fixes."""
-    print(f"\n🧪 Testing connection pool fixes")
+    print("\n🧪 Testing connection pool fixes")
     print("=" * 50)
 
     try:
@@ -140,7 +140,7 @@ def test_connection_pool_fixes():
 
         # Get stats
         stats = pool.get_stats()
-        print(f"📊 Pool stats:")
+        print("📊 Pool stats:")
         for key, value in stats.items():
             print(f"   {key}: {value}")
 
@@ -166,8 +166,8 @@ def main():
     # Test 2: Connection pool fixes
     pool_success = test_connection_pool_fixes()
 
-    print(f"\n" + "=" * 60)
-    print(f"🎯 Fix Verification Results:")
+    print("\n" + "=" * 60)
+    print("🎯 Fix Verification Results:")
     print(
         f"   Hook handler improvements: {'✅ Working' if hook_success else '❌ Issues'}"
     )
@@ -182,23 +182,23 @@ def main():
     )
 
     if overall_success:
-        print(f"\n✅ Socket.IO hook integration fixes are working!")
-        print(f"\nThe fixes applied:")
-        print(f"  1. ✅ Connection pool namespace issue resolved")
-        print(f"  2. ✅ Hook handler environment check improved")
-        print(f"  3. ✅ Server handler signature fixed (when server runs)")
-        print(f"\nTo complete testing:")
+        print("\n✅ Socket.IO hook integration fixes are working!")
+        print("\nThe fixes applied:")
+        print("  1. ✅ Connection pool namespace issue resolved")
+        print("  2. ✅ Hook handler environment check improved")
+        print("  3. ✅ Server handler signature fixed (when server runs)")
+        print("\nTo complete testing:")
         print(
-            f"  1. Start Socket.IO server: python -m claude_mpm.services.socketio_server"
+            "  1. Start Socket.IO server: python -m claude_mpm.services.socketio_server"
         )
-        print(f"  2. Run hook tests with server running")
-        print(f"  3. Test with actual Claude --monitor command")
+        print("  2. Run hook tests with server running")
+        print("  3. Test with actual Claude --monitor command")
     else:
-        print(f"\n❌ Some fixes need more work:")
+        print("\n❌ Some fixes need more work:")
         if not hook_success:
-            print(f"   - Hook handler improvements not working properly")
+            print("   - Hook handler improvements not working properly")
         if not pool_success:
-            print(f"   - Connection pool fixes have issues")
+            print("   - Connection pool fixes have issues")
 
     return overall_success
 

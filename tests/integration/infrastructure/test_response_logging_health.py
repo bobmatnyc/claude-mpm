@@ -23,17 +23,14 @@ USAGE:
 import argparse
 import json
 import os
-import shutil
 import sys
-import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Tuple
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 from claude_mpm.services.claude_session_logger import ClaudeSessionLogger
 from claude_mpm.services.response_tracker import ResponseTracker
@@ -121,18 +118,18 @@ class ResponseLoggingHealthChecker:
                 "message": "No configuration file found",
                 "fix": "Create .claude-mpm/configuration.yaml with response_logging section",
             }
-            print(f"  ✗ No configuration file found")
+            print("  ✗ No configuration file found")
 
             if self.auto_fix:
                 self._create_default_config()
-                print(f"  → Created default configuration file")
+                print("  → Created default configuration file")
                 self.fixes_applied.append("Created default configuration")
         else:
             # Check YAML syntax
             try:
                 import yaml
 
-                with open(found_config, "r") as f:
+                with open(found_config) as f:
                     yaml.safe_load(f)
 
                 self.results[check_name] = {
@@ -170,11 +167,11 @@ class ResponseLoggingHealthChecker:
                     "message": "No response_logging configuration found",
                     "fix": "Add response_logging section to configuration",
                 }
-                print(f"  ⚠ No response_logging configuration found")
+                print("  ⚠ No response_logging configuration found")
 
                 if self.auto_fix:
                     self._add_response_logging_config()
-                    print(f"  → Added response_logging configuration")
+                    print("  → Added response_logging configuration")
                     self.fixes_applied.append("Added response_logging configuration")
             else:
                 # Check key settings
@@ -195,9 +192,9 @@ class ResponseLoggingHealthChecker:
                 }
 
                 if enabled:
-                    print(f"  ✓ Configuration loaded (response logging enabled)")
+                    print("  ✓ Configuration loaded (response logging enabled)")
                 else:
-                    print(f"  ⚠ Configuration loaded but response logging disabled")
+                    print("  ⚠ Configuration loaded but response logging disabled")
 
                 if self.verbose:
                     print(f"    Format: {format_type}")
@@ -227,21 +224,21 @@ class ResponseLoggingHealthChecker:
                         "message": "Response tracker initialized successfully",
                         "session_logger": True,
                     }
-                    print(f"  ✓ Response tracker initialized successfully")
+                    print("  ✓ Response tracker initialized successfully")
                 else:
                     self.results[check_name] = {
                         "status": "error",
                         "message": "Response tracker enabled but session logger failed",
                         "fix": "Check session directory permissions",
                     }
-                    print(f"  ✗ Response tracker enabled but session logger failed")
+                    print("  ✗ Response tracker enabled but session logger failed")
             else:
                 self.results[check_name] = {
                     "status": "disabled",
                     "message": "Response tracker disabled by configuration",
                     "fix": "Enable response_logging in configuration",
                 }
-                print(f"  ⚠ Response tracker disabled by configuration")
+                print("  ⚠ Response tracker disabled by configuration")
 
         except Exception as e:
             self.results[check_name] = {
@@ -290,7 +287,7 @@ class ResponseLoggingHealthChecker:
                     "message": "Session logger working correctly",
                     "test_file": str(log_path),
                 }
-                print(f"  ✓ Session logger working correctly")
+                print("  ✓ Session logger working correctly")
 
                 # Clean up test file
                 try:
@@ -307,7 +304,7 @@ class ResponseLoggingHealthChecker:
                     "message": "Session logger failed to create log file",
                     "fix": "Check directory permissions and disk space",
                 }
-                print(f"  ✗ Session logger failed to create log file")
+                print("  ✗ Session logger failed to create log file")
 
         except Exception as e:
             self.results[check_name] = {
@@ -333,14 +330,14 @@ class ResponseLoggingHealthChecker:
                         "message": "Hook handler has active response tracker",
                         "tracker_enabled": True,
                     }
-                    print(f"  ✓ Hook handler has active response tracker")
+                    print("  ✓ Hook handler has active response tracker")
                 else:
                     self.results[check_name] = {
                         "status": "warning",
                         "message": "Hook handler has disabled response tracker",
                         "tracker_enabled": False,
                     }
-                    print(f"  ⚠ Hook handler has disabled response tracker")
+                    print("  ⚠ Hook handler has disabled response tracker")
             else:
                 # Check if RESPONSE_TRACKING_AVAILABLE flag is set
                 from claude_mpm.hooks.claude_hooks import hook_handler
@@ -351,14 +348,14 @@ class ResponseLoggingHealthChecker:
                         "message": "Response tracking available but not initialized",
                         "fix": "Hook handler may need reinitialization",
                     }
-                    print(f"  ⚠ Response tracking available but not initialized")
+                    print("  ⚠ Response tracking available but not initialized")
                 else:
                     self.results[check_name] = {
                         "status": "error",
                         "message": "Response tracking not available in hook handler",
                         "fix": "Check ResponseTracker import in hook_handler.py",
                     }
-                    print(f"  ✗ Response tracking not available in hook handler")
+                    print("  ✗ Response tracking not available in hook handler")
 
         except Exception as e:
             self.results[check_name] = {
@@ -382,7 +379,7 @@ class ResponseLoggingHealthChecker:
                     "status": "skipped",
                     "message": "Response logging disabled, skipping test",
                 }
-                print(f"  ⚠ Response logging disabled, skipping test")
+                print("  ⚠ Response logging disabled, skipping test")
                 return
 
             # Test logging a response
@@ -406,7 +403,7 @@ class ResponseLoggingHealthChecker:
 
             if log_path and log_path.exists():
                 # Verify content
-                with open(log_path, "r") as f:
+                with open(log_path) as f:
                     logged_data = json.load(f)
 
                 if logged_data.get("agent") == test_agent:
@@ -415,7 +412,7 @@ class ResponseLoggingHealthChecker:
                         "message": "Response logging working correctly",
                         "test_file": str(log_path),
                     }
-                    print(f"  ✓ Response logging working correctly")
+                    print("  ✓ Response logging working correctly")
 
                     # Clean up test file
                     try:
@@ -428,14 +425,14 @@ class ResponseLoggingHealthChecker:
                         "message": "Response logged but data incorrect",
                         "fix": "Check response tracker implementation",
                     }
-                    print(f"  ✗ Response logged but data incorrect")
+                    print("  ✗ Response logged but data incorrect")
             else:
                 self.results[check_name] = {
                     "status": "error",
                     "message": "Response logging failed to create file",
                     "fix": "Check directory permissions and disk space",
                 }
-                print(f"  ✗ Response logging failed to create file")
+                print("  ✗ Response logging failed to create file")
 
         except Exception as e:
             self.results[check_name] = {
@@ -493,7 +490,7 @@ class ResponseLoggingHealthChecker:
                     "message": "Directory permissions correct",
                     "directory": str(session_dir),
                 }
-                print(f"  ✓ Directory permissions correct")
+                print("  ✓ Directory permissions correct")
             else:
                 self.results[check_name] = {
                     "status": "warning" if len(issues) == 1 else "error",
@@ -501,7 +498,7 @@ class ResponseLoggingHealthChecker:
                     "issues": issues,
                     "fix": f"Ensure {session_dir} exists and is writable",
                 }
-                print(f"  ⚠ Directory permission issues:")
+                print("  ⚠ Directory permission issues:")
                 for issue in issues:
                     print(f"    • {issue}")
 
@@ -555,7 +552,7 @@ response_logging:
             if config_path.exists():
                 import yaml
 
-                with open(config_path, "r") as f:
+                with open(config_path) as f:
                     config = yaml.safe_load(f) or {}
 
                 if "response_logging" not in config:
@@ -648,10 +645,9 @@ def main():
     # Exit with appropriate code
     if all_healthy:
         return 0
-    elif any(r.get("status") == "error" for r in results.values()):
+    if any(r.get("status") == "error" for r in results.values()):
         return 1
-    else:
-        return 2  # Warnings
+    return 2  # Warnings
 
 
 if __name__ == "__main__":

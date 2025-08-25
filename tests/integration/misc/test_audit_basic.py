@@ -30,7 +30,7 @@ def test_audit_script():
             [sys.executable, str(audit_script), "--project-root", str(project_root)],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=30, check=False,
         )
 
         if result.returncode not in [0, 1]:  # 0 = success, 1 = issues found
@@ -57,7 +57,7 @@ def test_audit_script():
             ],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=30, check=False,
         )
 
         if result.returncode not in [0, 1]:
@@ -68,7 +68,7 @@ def test_audit_script():
             output_data = json.loads(result.stdout)
             required_keys = ["summary", "issues", "fixed_count"]
             if not all(key in output_data for key in required_keys):
-                print(f"❌ FAIL: JSON output missing required keys")
+                print("❌ FAIL: JSON output missing required keys")
                 print(f"Got keys: {list(output_data.keys())}")
                 return False
         except json.JSONDecodeError as e:
@@ -84,11 +84,11 @@ def test_audit_script():
             [sys.executable, str(audit_script), "--help"],
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=10, check=False,
         )
 
         if result.returncode != 0:
-            print(f"❌ FAIL: Help command failed")
+            print("❌ FAIL: Help command failed")
             return False
 
         if "usage:" not in result.stdout.lower():

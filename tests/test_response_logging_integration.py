@@ -10,20 +10,16 @@ DESIGN DECISION: We simulate a minimal interactive session to verify that:
 3. Log files are created in the correct location
 """
 
-import json
 import os
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from claude_mpm.core.claude_runner import ClaudeRunner
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 
 class TestResponseLoggingIntegration(unittest.TestCase):

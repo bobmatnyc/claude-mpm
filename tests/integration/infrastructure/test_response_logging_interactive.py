@@ -10,14 +10,12 @@ USAGE:
 
 import os
 import sys
-import tempfile
 from pathlib import Path
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from claude_mpm.core.claude_runner import ClaudeRunner
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 
 def test_response_logging_interactive():
@@ -71,9 +69,9 @@ response_logging:
         # This would normally launch Claude interactively
         # For testing, we'll just show what would happen
         print("🚀 Would launch interactive Claude with:")
-        print(f"   - Launch method: exec (initial)")
-        print(f"   - Response logging: enabled")
-        print(f"   - Expected: AUTO-SWITCH to subprocess mode")
+        print("   - Launch method: exec (initial)")
+        print("   - Response logging: enabled")
+        print("   - Expected: AUTO-SWITCH to subprocess mode")
         print()
 
         # Simulate the check that happens in run_interactive

@@ -1,14 +1,11 @@
 import pytest
-import pytest
-import pytest
-import pytest
+
 #!/usr/bin/env python3
 """
 Comprehensive Socket.IO connection test with detailed diagnostics.
 """
 
 import asyncio
-import json
 import sys
 import time
 from datetime import datetime
@@ -86,9 +83,8 @@ class SocketIOConnectionTester:
             if self.connected:
                 print("✅ Connection test PASSED")
                 return True
-            else:
-                print("❌ Connection test FAILED - Not connected")
-                return False
+            print("❌ Connection test FAILED - Not connected")
+            return False
 
         except Exception as e:
             print(f"❌ Connection test FAILED with error: {e}")
