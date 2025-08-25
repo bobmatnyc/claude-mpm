@@ -5,7 +5,6 @@ This script connects to the SocketIO server and displays all events
 being broadcast to the dashboard. Useful for debugging event flow issues.
 """
 
-import signal
 import sys
 import time
 from collections import defaultdict
@@ -46,16 +45,25 @@ def signal_handler(signum, frame):
 def monitor_dashboard_events(server_url="http://localhost:8765"):
     """Monitor events being sent to the dashboard."""
     print("\n🔍 Dashboard Event Monitor")
-    print("=" * 60)
-    print(f"Connecting to: {server_url}")
-    print("Press Ctrl+C to stop monitoring\n")
+    print("="*40)
 
-    # Register signal handler
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    client = connect_and_monitor(server_url, stats)
+    if not client:
+        return
 
-    # Create SocketIO client
-    client = socketio.Client()
+    try:
+        print("\n⏳ Monitoring... Press Ctrl+C to stop\n")
+        while True:
+            time.sleep(1)
+            check_idle_time()
+    except KeyboardInterrupt:
+        print("\n\n📊 Session Statistics:")
+        print_statistics()
+        client.disconnect()
+
+
+def create_event_handlers(client, stats):
+    """Create and register all event handlers for the client."""
 
     @client.on("connect")
     def on_connect():
@@ -74,47 +82,7 @@ def monitor_dashboard_events(server_url="http://localhost:8765"):
         now = datetime.now(timezone.utc)
         last_event_time = now
 
-        # Extract event details
-        event_type = data.get("subtype", "unknown")
-        source = data.get("source", "unknown")
-        timestamp = data.get("timestamp", "")
-
-        # Update statistics
-        stats[event_type] += 1
-
-        # Format and display event
-        time_str = now.strftime("%H:%M:%S.%f")[:-3]
-
-        # Color coding for different event types
-        if "error" in event_type.lower():
-            emoji = "❌"
-        elif "subagent" in event_type.lower():
-            emoji = "🤖"
-        elif "tool" in event_type.lower():
-            emoji = "🔧"
-        elif "prompt" in event_type.lower():
-            emoji = "💬"
-        elif "heartbeat" in event_type.lower():
-            emoji = "💓"
-        else:
-            emoji = "📨"
-
-        print(f"[{time_str}] {emoji} {event_type:20} (source: {source:15}) {timestamp}")
-
-        # Show details for specific events
-        if event_type in ["subagent_stop", "pre_tool"]:
-            event_data = data.get("data", {})
-            if event_type == "subagent_stop":
-                agent_type = event_data.get("agent_type", "unknown")
-                print(f"           └─ Agent: {agent_type}")
-            elif event_type == "pre_tool":
-                tool_name = event_data.get("tool_name", "unknown")
-                print(f"           └─ Tool: {tool_name}")
-                if tool_name == "Task":
-                    delegation = event_data.get("delegation_details", {})
-                    if delegation:
-                        delegated_to = delegation.get("agent_type", "unknown")
-                        print(f"           └─ Delegating to: {delegated_to}")
+        handle_claude_event(data, now, stats)
 
     @client.on("system_event")
     def on_system_event(data):
@@ -124,50 +92,64 @@ def monitor_dashboard_events(server_url="http://localhost:8765"):
         now = datetime.now(timezone.utc)
         last_event_time = now
 
-        event_type = data.get("subtype", "system")
-        stats[f"system_{event_type}"] += 1
+        handle_system_event(data, now, stats)
 
-        if event_type == "heartbeat":
-            event_data = data.get("data", {})
-            uptime = event_data.get("uptime_seconds", 0)
-            clients = event_data.get("connected_clients", 0)
-            total_events = event_data.get("total_events", 0)
 
-            time_str = now.strftime("%H:%M:%S")
-            print(
-                f"[{time_str}] 💓 System heartbeat - uptime: {uptime}s, clients: {clients}, events: {total_events}"
-            )
+def handle_claude_event(data, timestamp, stats):
+    """Process a claude_event."""
+    event_type = data.get("type", "unknown")
+    subtype = data.get("subtype", "")
 
-    # Connect to server
+    # Update statistics
+    stats[event_type] += 1
+    if subtype:
+        stats[f"{event_type}.{subtype}"] += 1
+
+    # Display event details
+    print(f"\n{'='*60}")
+    print(f"📊 Event: {event_type}")
+    if subtype:
+        print(f"   Subtype: {subtype}")
+    print(f"   Time: {timestamp.strftime('%H:%M:%S')}")
+
+    # Show event data
+    event_data = data.get("data", {})
+    if event_data:
+        print("   Data:")
+        for key, value in list(event_data.items())[:5]:
+            value_str = str(value)[:100]
+            print(f"     {key}: {value_str}")
+
+    print(f"{'='*60}")
+
+
+def handle_system_event(data, timestamp, stats):
+    """Process a system_event."""
+    event_type = data.get("type", "system")
+
+    # Update statistics
+    stats["system"] += 1
+
+    # Only show non-heartbeat system events
+    if "heartbeat" not in str(data).lower():
+        print(f"\n🔧 System Event: {event_type}")
+        print(f"   Time: {timestamp.strftime('%H:%M:%S')}")
+
+
+def connect_and_monitor(server_url, stats):
+    """Connect to server and set up monitoring."""
+
+    client = socketio.Client()
+    create_event_handlers(client, stats)
+
     try:
-        client.connect(server_url)
-
-        # Monitor loop
-        print(
-            "\nMonitoring dashboard events. Statistics will update as events arrive..."
-        )
-        print(
-            "(If you don't see events, make sure Claude Code is running with hooks enabled)\n"
-        )
-
-        while True:
-            time.sleep(10)
-
-            # Show periodic status
-            if last_event_time:
-                seconds_since_last = (datetime.now(timezone.utc) - last_event_time).total_seconds()
-                if seconds_since_last > 30:
-                    print(f"\n⏳ No events for {seconds_since_last:.0f} seconds...")
-
-    except KeyboardInterrupt:
-        signal_handler(signal.SIGINT, None)
+        print(f"\n🔌 Connecting to {server_url}...")
+        client.connect(server_url, namespaces=["/"])
+        print("✅ Connection established\n")
+        return client
     except Exception as e:
-        print(f"\n❌ Error: {e}")
-        return False
-    finally:
-        client.disconnect()
-
-    return True
+        print(f"❌ Failed to connect: {e}")
+        return None
 
 
 if __name__ == "__main__":
