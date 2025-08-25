@@ -251,9 +251,7 @@ class TicketsCommand(BaseCommand):
             if result["success"]:
                 print(self.formatter.format_operation_result("update", ticket_id, True))
                 return CommandResult.success_result(result["message"])
-            print(
-                self.formatter.format_operation_result("update", ticket_id, False)
-            )
+            print(self.formatter.format_operation_result("update", ticket_id, False))
             return CommandResult.error_result(result["error"])
 
         except Exception as e:
@@ -338,9 +336,7 @@ class TicketsCommand(BaseCommand):
             if result["success"]:
                 print(self.formatter.format_operation_result("delete", ticket_id, True))
                 return CommandResult.success_result(result["message"])
-            print(
-                self.formatter.format_operation_result("delete", ticket_id, False)
-            )
+            print(self.formatter.format_operation_result("delete", ticket_id, False))
             return CommandResult.error_result(result["error"])
 
         except Exception as e:
@@ -406,9 +402,7 @@ class TicketsCommand(BaseCommand):
                     self.formatter.format_operation_result("comment", ticket_id, True)
                 )
                 return CommandResult.success_result(result["message"])
-            print(
-                self.formatter.format_operation_result("comment", ticket_id, False)
-            )
+            print(self.formatter.format_operation_result("comment", ticket_id, False))
             return CommandResult.error_result(result["error"])
 
         except Exception as e:
@@ -448,9 +442,7 @@ class TicketsCommand(BaseCommand):
                     )
                 )
                 return CommandResult.success_result(result["message"])
-            print(
-                self.formatter.format_operation_result("workflow", ticket_id, False)
-            )
+            print(self.formatter.format_operation_result("workflow", ticket_id, False))
             return CommandResult.error_result(result["error"])
 
         except Exception as e:
