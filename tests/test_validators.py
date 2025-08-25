@@ -2352,9 +2352,7 @@ class TestRefResolver(TestCase):
 
     def test_it_does_not_retrieve_schema_urls_from_the_network(self):
         ref = validators.Draft3Validator.META_SCHEMA["id"]
-        with mock.patch.object(
-            self.resolver, "resolve_remote"
-        ) as patched:
+        with mock.patch.object(self.resolver, "resolve_remote") as patched:
             with self.resolver.resolving(ref) as resolved:
                 pass
         self.assertEqual(resolved, validators.Draft3Validator.META_SCHEMA)
