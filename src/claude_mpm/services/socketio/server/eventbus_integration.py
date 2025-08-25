@@ -10,8 +10,9 @@ WHY this integration module:
 import logging
 from typing import Optional
 
-from claude_mpm.services.event_bus import EventBus, SocketIORelay
+from claude_mpm.services.event_bus import EventBus
 from claude_mpm.services.event_bus.config import get_config
+from claude_mpm.services.event_bus.direct_relay import DirectSocketIORelay
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class EventBusIntegration:
             server_instance: Optional Socket.IO server instance
         """
         self.server = server_instance
-        self.relay: Optional[SocketIORelay] = None
+        self.relay: Optional[DirectSocketIORelay] = None
         self.event_bus: Optional[EventBus] = None
         self.config = get_config()
         self.enabled = self.config.enabled and self.config.relay_enabled
@@ -76,23 +77,33 @@ class EventBusIntegration:
             # Apply configuration
             self.config.apply_to_eventbus(self.event_bus)
 
-            # Create and configure relay
-            relay_port = port or self.config.relay_port
+            # Create direct relay that uses server's broadcaster
             print(
-                f"[{datetime.now().isoformat()}] Creating SocketIORelay on port {relay_port}...",
+                f"[{datetime.now().isoformat()}] Creating DirectSocketIORelay...",
                 flush=True,
             )
-            self.relay = SocketIORelay(relay_port)
-            self.config.apply_to_relay(self.relay)
+            if self.server:
+                self.relay = DirectSocketIORelay(self.server)
+                print(
+                    f"[{datetime.now().isoformat()}] DirectSocketIORelay created with server instance",
+                    flush=True,
+                )
+            else:
+                logger.warning("No server instance provided, relay won't work")
+                print(
+                    f"[{datetime.now().isoformat()}] WARNING: No server instance for relay",
+                    flush=True,
+                )
+                return False
 
             # Start the relay
             print(f"[{datetime.now().isoformat()}] Starting relay...", flush=True)
             self.relay.start()
             print(f"[{datetime.now().isoformat()}] Relay started", flush=True)
 
-            logger.info(f"EventBus integration setup complete (port: {relay_port})")
+            logger.info("EventBus integration setup complete with DirectSocketIORelay")
             print(
-                f"[{datetime.now().isoformat()}] EventBus integration setup complete",
+                f"[{datetime.now().isoformat()}] EventBus integration setup complete with DirectSocketIORelay",
                 flush=True,
             )
             return True

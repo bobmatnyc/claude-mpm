@@ -10,6 +10,7 @@ from .agents import manage_agents
 from .aggregate import aggregate_command
 from .cleanup import cleanup_memory
 from .config import manage_config
+from .configure import manage_configure
 from .doctor import run_doctor
 from .info import show_info
 from .mcp import manage_mcp
@@ -25,6 +26,7 @@ __all__ = [
     "manage_agent_manager",
     "manage_agents",
     "manage_config",
+    "manage_configure",
     "manage_mcp",
     "manage_memory",
     "manage_monitor",

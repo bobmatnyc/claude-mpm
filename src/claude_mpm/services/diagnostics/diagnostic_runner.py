@@ -18,6 +18,7 @@ from .checks import (
     ConfigurationCheck,
     FilesystemCheck,
     InstallationCheck,
+    InstructionsCheck,
     MCPCheck,
     MonitorCheck,
     StartupLogCheck,
@@ -48,6 +49,7 @@ class DiagnosticRunner:
             InstallationCheck,
             ConfigurationCheck,
             FilesystemCheck,
+            InstructionsCheck,  # Check instruction files early
             ClaudeDesktopCheck,
             AgentCheck,
             MCPCheck,
@@ -107,9 +109,20 @@ class DiagnosticRunner:
 
         # Group checks by dependency level
         # Level 1: No dependencies
-        level1 = [InstallationCheck, FilesystemCheck, ConfigurationCheck]
+        level1 = [
+            InstallationCheck,
+            FilesystemCheck,
+            ConfigurationCheck,
+            InstructionsCheck,
+        ]
         # Level 2: May depend on level 1
-        level2 = [ClaudeDesktopCheck, AgentCheck, MCPCheck, MonitorCheck]
+        level2 = [
+            ClaudeDesktopCheck,
+            AgentCheck,
+            MCPCheck,
+            MonitorCheck,
+            StartupLogCheck,
+        ]
         # Level 3: Depends on others
         level3 = [CommonIssuesCheck]
 

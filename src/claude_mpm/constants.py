@@ -36,6 +36,7 @@ class CLICommands(str, Enum):
     MEMORY = "memory"
     MONITOR = "monitor"
     CONFIG = "config"
+    CONFIGURE = "configure"
     AGGREGATE = "aggregate"
     CLEANUP = "cleanup-memory"
     MCP = "mcp"

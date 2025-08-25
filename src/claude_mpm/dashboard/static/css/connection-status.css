@@ -1,0 +1,370 @@
+/**
+ * Enhanced Connection Status Styles
+ * Provides visual feedback for connection state and quality
+ */
+
+/* Connection Status Badge Enhancements */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.status-badge span {
+    display: inline-block;
+    animation: pulse 2s infinite;
+}
+
+/* Connection States */
+.status-connecting {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.status-connecting span {
+    animation: spin 1s linear infinite;
+}
+
+.status-connected {
+    background: linear-gradient(135deg, #667eea 0%, #4299e1 100%);
+    color: white;
+    box-shadow: 0 2px 10px rgba(66, 153, 225, 0.3);
+}
+
+.status-connected span {
+    color: #68d391;
+    animation: pulse-connected 2s infinite;
+}
+
+.status-reconnecting {
+    background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+    color: #744210;
+}
+
+.status-reconnecting span {
+    animation: spin 1s linear infinite;
+}
+
+.status-disconnected {
+    background: linear-gradient(135deg, #e3e3e3 0%, #b8b8b8 100%);
+    color: #4a5568;
+}
+
+.status-stale {
+    background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+    color: #744210;
+}
+
+.status-stale::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+.status-failed {
+    background: linear-gradient(135deg, #fc5c7d 0%, #fc5c7d 100%);
+    color: white;
+}
+
+/* Connection Quality Indicator */
+.connection-quality {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    background: #f7fafc;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+.quality-bar {
+    width: 60px;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.quality-fill {
+    height: 100%;
+    transition: width 0.3s ease, background 0.3s ease;
+    border-radius: 3px;
+}
+
+.quality-good .quality-fill {
+    background: linear-gradient(90deg, #68d391, #48bb78);
+}
+
+.quality-moderate .quality-fill {
+    background: linear-gradient(90deg, #f6d365, #fda085);
+}
+
+.quality-poor .quality-fill {
+    background: linear-gradient(90deg, #fc5c7d, #fc5c7d);
+}
+
+.quality-text {
+    color: #4a5568;
+    font-weight: 500;
+}
+
+/* Latency Display */
+.connection-latency {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+.latency-good {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.latency-moderate {
+    background: #fed7aa;
+    color: #7c2d12;
+}
+
+.latency-poor {
+    background: #fed7d7;
+    color: #742a2a;
+}
+
+/* Connection Metrics Panel */
+.connection-metrics {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-top: 16px;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.metric-item {
+    text-align: center;
+    padding: 8px;
+    background: #f7fafc;
+    border-radius: 8px;
+}
+
+.metric-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #2d3748;
+    display: block;
+}
+
+.metric-label {
+    font-size: 11px;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+}
+
+/* Notification Area */
+.connection-notifications {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    max-width: 320px;
+}
+
+.notification {
+    background: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    margin-bottom: 8px;
+    font-size: 14px;
+    opacity: 1;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    animation: slideIn 0.3s ease;
+    border-left: 4px solid;
+}
+
+.notification-info {
+    border-left-color: #4299e1;
+}
+
+.notification-success {
+    border-left-color: #48bb78;
+    background: #f0fff4;
+}
+
+.notification-warning {
+    border-left-color: #ed8936;
+    background: #fffdf7;
+}
+
+.notification-error {
+    border-left-color: #f56565;
+    background: #fff5f5;
+}
+
+/* Connection Health Badge */
+.connection-health {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: #f7fafc;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.health-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.health-excellent {
+    background: #48bb78;
+    box-shadow: 0 0 0 2px rgba(72, 187, 120, 0.3);
+}
+
+.health-good {
+    background: #38b2ac;
+    box-shadow: 0 0 0 2px rgba(56, 178, 172, 0.3);
+}
+
+.health-fair {
+    background: #ed8936;
+    box-shadow: 0 0 0 2px rgba(237, 137, 54, 0.3);
+}
+
+.health-poor {
+    background: #f56565;
+    box-shadow: 0 0 0 2px rgba(245, 101, 101, 0.3);
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes pulse-connected {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes shimmer {
+    to {
+        left: 100%;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .connection-notifications {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .connection-metrics {
+        padding: 12px;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .connection-quality {
+        background: #2d3748;
+    }
+    
+    .quality-bar {
+        background: #4a5568;
+    }
+    
+    .quality-text {
+        color: #cbd5e0;
+    }
+    
+    .connection-metrics {
+        background: #2d3748;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    .metric-item {
+        background: #1a202c;
+    }
+    
+    .metric-value {
+        color: #e2e8f0;
+    }
+    
+    .metric-label {
+        color: #a0aec0;
+    }
+    
+    .notification {
+        background: #2d3748;
+        color: #e2e8f0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    
+    .connection-health {
+        background: #2d3748;
+    }
+}
