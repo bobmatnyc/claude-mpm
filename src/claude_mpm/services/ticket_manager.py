@@ -6,7 +6,11 @@ class TicketManager:
 
     def create_task(self, *args, **kwargs):
         """Stub method."""
-        return
+        return "TSK-STUB-001"  # Return a stub ticket ID
+
+    def create_ticket(self, *args, **kwargs):
+        """Stub method - alias for create_task."""
+        return self.create_task(*args, **kwargs)
 
     def list_recent_tickets(self, *args, **kwargs):
         """Stub method."""
@@ -14,7 +18,7 @@ class TicketManager:
 
     def get_ticket(self, *args, **kwargs):
         """Stub method."""
-        return
+        return None
 
     def update_task(self, *args, **kwargs):
         """Stub method."""
