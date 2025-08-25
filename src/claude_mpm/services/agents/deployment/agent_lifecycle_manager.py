@@ -1,13 +1,17 @@
-from pathlib import Path
-
 #!/usr/bin/env python3
 """
-Agent Lifecycle Manager - ISS-0118 Integration Service
-======================================================
+Agent Lifecycle Manager - ISS-0118 Integration Service (Refactored)
+===================================================================
 
 Comprehensive agent lifecycle management integrating modification tracking,
 persistence, and registry services for complete agent management across
 the three-tier hierarchy.
+
+This refactored version delegates responsibilities to specialized services:
+- AgentStateService: State tracking and transitions
+- AgentOperationService: CRUD operations
+- AgentRecordService: Persistence and history
+- LifecycleHealthChecker: Health monitoring
 
 Key Features:
 - Unified agent lifecycle management (create, modify, delete, restore)
@@ -28,19 +32,12 @@ Created for ISS-0118: Agent Registry and Hierarchical Discovery System
 
 import asyncio
 import time
-from dataclasses import dataclass, field
-from datetime import datetime
-from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService
-from claude_mpm.core.unified_paths import get_path_manager
-from claude_mpm.models.agent_definition import AgentDefinition
 from claude_mpm.services.agents.management import AgentManager
 from claude_mpm.services.agents.memory import (
     AgentPersistenceService,
-    PersistenceOperation,
-    PersistenceRecord,
     PersistenceStrategy,
 )
 from claude_mpm.services.agents.registry import AgentRegistry
@@ -51,82 +48,40 @@ from claude_mpm.services.agents.registry.modification_tracker import (
     ModificationType,
 )
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
-from claude_mpm.utils.config_manager import ConfigurationManager
-from claude_mpm.utils.path_operations import path_ops
 
+# Import extracted services
+from .agent_operation_service import (
+    AgentOperationService,
+    LifecycleOperation,
+    LifecycleOperationResult,
+)
+from .agent_record_service import AgentRecordService
+from .agent_state_service import (
+    AgentLifecycleRecord,
+    AgentStateService,
+    LifecycleState,
+)
 
-class LifecycleOperation(Enum):
-    """Agent lifecycle operations."""
-
-    CREATE = "create"
-    UPDATE = "update"
-    DELETE = "delete"
-    RESTORE = "restore"
-    MIGRATE = "migrate"
-    REPLICATE = "replicate"
-    VALIDATE = "validate"
-
-
-class LifecycleState(Enum):
-    """Agent lifecycle states."""
-
-    ACTIVE = "active"
-    MODIFIED = "modified"
-    DELETED = "deleted"
-    CONFLICTED = "conflicted"
-    MIGRATING = "migrating"
-    VALIDATING = "validating"
-
-
-@dataclass
-class AgentLifecycleRecord:
-    """Complete lifecycle record for an agent."""
-
-    agent_name: str
-    current_state: LifecycleState
-    tier: ModificationTier
-    file_path: str
-    created_at: float
-    last_modified: float
-    version: str
-    modifications: List[str] = field(default_factory=list)  # Modification IDs
-    persistence_operations: List[str] = field(default_factory=list)  # Operation IDs
-    backup_paths: List[str] = field(default_factory=list)
-    validation_status: str = "valid"
-    validation_errors: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-    @property
-    def age_days(self) -> float:
-        """Get age in days."""
-        return (time.time() - self.created_at) / (24 * 3600)
-
-    @property
-    def last_modified_datetime(self) -> datetime:
-        """Get last modified as datetime."""
-        return datetime.fromtimestamp(self.last_modified)
-
-
-@dataclass
-class LifecycleOperationResult:
-    """Result of a lifecycle operation."""
-
-    operation: LifecycleOperation
-    agent_name: str
-    success: bool
-    duration_ms: float
-    error_message: Optional[str] = None
-    modification_id: Optional[str] = None
-    persistence_id: Optional[str] = None
-    cache_invalidated: bool = False
-    registry_updated: bool = False
-    metadata: Dict[str, Any] = field(default_factory=dict)
+# Re-export for backward compatibility
+__all__ = [
+    "AgentLifecycleManager",
+    "AgentLifecycleRecord",
+    "LifecycleOperation",
+    "LifecycleOperationResult",
+    "LifecycleState",
+]
 
 
 class AgentLifecycleManager(BaseService):
     """
     Agent Lifecycle Manager - Unified agent management across hierarchy tiers.
-
+    
+    Refactored to use specialized services following SOLID principles:
+    - AgentStateService handles state tracking
+    - AgentOperationService handles CRUD operations
+    - AgentRecordService handles persistence
+    - LifecycleHealthChecker handles health monitoring
+    
     Features:
     - Complete agent lifecycle management (CRUD operations)
     - Integrated modification tracking and persistence
@@ -153,17 +108,20 @@ class AgentLifecycleManager(BaseService):
             )
         )
 
-        # Core services
+        # Core external services
         self.shared_cache: Optional[SharedPromptCache] = None
         self.agent_registry: Optional[AgentRegistry] = None
         self.modification_tracker: Optional[AgentModificationTracker] = None
         self.persistence_service: Optional[AgentPersistenceService] = None
         self.agent_manager: Optional[AgentManager] = None
 
-        # Lifecycle tracking
-        self.agent_records: Dict[str, AgentLifecycleRecord] = {}
-        self.operation_history: List[LifecycleOperationResult] = []
-        self.active_operations: Dict[str, LifecycleOperation] = {}
+        # Extracted internal services
+        self.state_service = AgentStateService()
+        self.operation_service = AgentOperationService()
+        self.record_service = AgentRecordService()
+
+        # Backward compatibility - expose service data through properties
+        self._operation_lock = asyncio.Lock()
 
         # Performance metrics
         self.performance_metrics = {
@@ -174,13 +132,7 @@ class AgentLifecycleManager(BaseService):
             "cache_hit_rate": 0.0,
         }
 
-        # Operation lock for thread safety
-        self._operation_lock = asyncio.Lock()
-
-        # Configuration manager
-        self.config_mgr = ConfigurationManager(cache_enabled=True)
-
-        self.logger.info("AgentLifecycleManager initialized")
+        self.logger.info("AgentLifecycleManager initialized (refactored)")
 
     async def _initialize(self) -> None:
         """Initialize the lifecycle manager."""
@@ -189,8 +141,18 @@ class AgentLifecycleManager(BaseService):
         # Initialize core services
         await self._initialize_core_services()
 
-        # Load existing agent records
-        await self._load_agent_records()
+        # Initialize extracted services
+        await self.state_service.start()
+        await self.operation_service.start()
+        await self.record_service.start()
+
+        # Load existing agent records into state service
+        records = await self.record_service.load_records()
+        self.state_service.agent_records = records
+
+        # Setup operation service dependencies
+        self.operation_service.agent_manager = self.agent_manager
+        self.operation_service.set_modification_tracker(self.modification_tracker)
 
         # Start service integrations
         await self._setup_service_integrations()
@@ -205,8 +167,14 @@ class AgentLifecycleManager(BaseService):
         """Cleanup lifecycle manager resources."""
         self.logger.info("Cleaning up AgentLifecycleManager...")
 
-        # Save agent records
-        await self._save_agent_records()
+        # Save agent records through record service
+        await self.record_service.save_records(self.state_service.agent_records)
+        await self.record_service.save_history(self.operation_service.operation_history)
+
+        # Stop extracted services
+        await self.state_service.stop()
+        await self.operation_service.stop()
+        await self.record_service.stop()
 
         # Stop core services if we own them
         await self._cleanup_core_services()
@@ -260,26 +228,20 @@ class AgentLifecycleManager(BaseService):
         except Exception as e:
             self.logger.warning(f"Failed to setup some service integrations: {e}")
 
-    async def _load_agent_records(self) -> None:
-        """Load existing agent lifecycle records."""
-        try:
-            records_file = (
-                get_path_manager().get_tracking_dir() / "lifecycle_records.json"
-            )
-            if path_ops.validate_exists(records_file):
-                data = self.config_mgr.load_json(records_file)
+    @property
+    def agent_records(self) -> Dict[str, AgentLifecycleRecord]:
+        """Get agent records from state service (backward compatibility)."""
+        return self.state_service.agent_records
 
-                for agent_name, record_data in data.items():
-                    record = AgentLifecycleRecord(**record_data)
-                    # Convert string enum back to enum
-                    record.current_state = LifecycleState(record_data["current_state"])
-                    record.tier = ModificationTier(record_data["tier"])
-                    self.agent_records[agent_name] = record
+    @property
+    def operation_history(self) -> List[LifecycleOperationResult]:
+        """Get operation history from operation service (backward compatibility)."""
+        return self.operation_service.operation_history
 
-                self.logger.info(f"Loaded {len(self.agent_records)} agent records")
-
-        except Exception as e:
-            self.logger.warning(f"Failed to load agent records: {e}")
+    @property
+    def active_operations(self) -> Dict[str, LifecycleOperation]:
+        """Get active operations from operation service (backward compatibility)."""
+        return self.operation_service.active_operations
 
     async def _save_agent_records(self) -> None:
         """Save agent lifecycle records to disk."""
@@ -375,54 +337,48 @@ class AgentLifecycleManager(BaseService):
         Returns:
             LifecycleOperationResult with operation details
         """
-        start_time = time.time()
+        # Check if agent already exists
+        if self.state_service.get_record(agent_name):
+            return LifecycleOperationResult(
+                operation=LifecycleOperation.CREATE,
+                agent_name=agent_name,
+                success=False,
+                duration_ms=0,
+                error_message="Agent already exists",
+            )
 
-        async with self._operation_lock:
-            self.active_operations[agent_name] = LifecycleOperation.CREATE
+        # Create agent definition
+        agent_def = await self._create_agent_definition(
+            agent_name, agent_content, tier, agent_type, **kwargs
+        )
 
-            try:
-                # Check if agent already exists
-                if agent_name in self.agent_records:
-                    return LifecycleOperationResult(
-                        operation=LifecycleOperation.CREATE,
-                        agent_name=agent_name,
-                        success=False,
-                        duration_ms=(time.time() - start_time) * 1000,
-                        error_message="Agent already exists",
-                    )
+        # Determine location based on tier
+        location = (
+            "project" if tier == ModificationTier.PROJECT else "framework"
+        )
 
-                # Create agent definition
-                agent_def = await self._create_agent_definition(
-                    agent_name, agent_content, tier, agent_type, **kwargs
+        # Create agent using AgentManager (sync call in executor)
+        try:
+            if self.agent_manager:
+                file_path = await self._run_sync_in_executor(
+                    self.agent_manager.create_agent,
+                    agent_name,
+                    agent_def,
+                    location,
                 )
-
-                # Determine location based on tier
-                location = (
-                    "project" if tier == ModificationTier.PROJECT else "framework"
+            else:
+                # Fallback to direct file creation if AgentManager not available
+                file_path = await self._determine_agent_file_path(
+                    agent_name, tier
                 )
-
-                # Create agent using AgentManager (sync call in executor)
-                try:
-                    if self.agent_manager:
-                        file_path = await self._run_sync_in_executor(
-                            self.agent_manager.create_agent,
-                            agent_name,
-                            agent_def,
-                            location,
-                        )
-                    else:
-                        # Fallback to direct file creation if AgentManager not available
-                        file_path = await self._determine_agent_file_path(
-                            agent_name, tier
-                        )
-                        path_ops.ensure_dir(file_path.parent)
-                        path_ops.safe_write(file_path, agent_content)
-                except Exception as e:
-                    self.logger.error(f"AgentManager failed to create agent: {e}")
-                    # Fallback to direct file creation
-                    file_path = await self._determine_agent_file_path(agent_name, tier)
-                    path_ops.ensure_dir(file_path.parent)
-                    path_ops.safe_write(file_path, agent_content)
+                path_ops.ensure_dir(file_path.parent)
+                path_ops.safe_write(file_path, agent_content)
+        except Exception as e:
+            self.logger.error(f"AgentManager failed to create agent: {e}")
+            # Fallback to direct file creation
+            file_path = await self._determine_agent_file_path(agent_name, tier)
+            path_ops.ensure_dir(file_path.parent)
+            path_ops.safe_write(file_path, agent_content)
 
                 # Track modification
                 modification = await self.modification_tracker.track_modification(

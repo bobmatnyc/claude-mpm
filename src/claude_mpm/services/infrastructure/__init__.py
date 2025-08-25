@@ -13,14 +13,40 @@ Services:
 - MemoryGuardian: Memory monitoring and process restart management
 """
 
-from .health_monitor import HealthMonitor
 from .logging import LoggingService
-from .memory_guardian import MemoryGuardian
-from .monitoring import AdvancedHealthMonitor
+from .monitoring import (
+    AdvancedHealthMonitor,
+    MonitoringAggregatorService,
+    NetworkHealthService,
+    ProcessHealthService,
+    ResourceMonitorService,
+    ServiceHealthService,
+)
+
+# Check if optional modules exist
+try:
+    from .health_monitor import HealthMonitor
+except ImportError:
+    HealthMonitor = None
+
+try:
+    from .memory_guardian import MemoryGuardian
+except ImportError:
+    MemoryGuardian = None
 
 __all__ = [
     "AdvancedHealthMonitor",  # For SocketIO server monitoring
-    "HealthMonitor",  # For Memory Guardian system monitoring
     "LoggingService",
-    "MemoryGuardian",
+    # New service-based monitoring API
+    "MonitoringAggregatorService",
+    "NetworkHealthService",
+    "ProcessHealthService",
+    "ResourceMonitorService",
+    "ServiceHealthService",
 ]
+
+# Add optional modules if they exist
+if HealthMonitor is not None:
+    __all__.append("HealthMonitor")
+if MemoryGuardian is not None:
+    __all__.append("MemoryGuardian")

@@ -34,9 +34,13 @@ class AgentDiscoveryService:
         self.logger = get_logger(__name__)
         self.templates_dir = templates_dir
 
-    def list_available_agents(self) -> List[Dict[str, Any]]:
+    def list_available_agents(self, log_discovery: bool = True) -> List[Dict[str, Any]]:
         """
         List all available agent templates with their metadata.
+
+        Args:
+            log_discovery: Whether to log discovery results (default: True).
+                          Set to False when called from multi-source discovery to avoid duplicate logs.
 
         Returns:
             List of agent information dictionaries containing:
@@ -73,7 +77,9 @@ class AgentDiscoveryService:
         # Sort by agent name for consistent ordering
         agents.sort(key=lambda x: x.get("name", ""))
 
-        self.logger.info(f"Discovered {len(agents)} available agent templates")
+        # Only log if requested (to avoid duplicate logging from multi-source discovery)
+        if log_discovery:
+            self.logger.info(f"Discovered {len(agents)} available agent templates from {self.templates_dir.name}")
         return agents
 
     def get_filtered_templates(
@@ -153,7 +159,8 @@ class AgentDiscoveryService:
             Dictionary mapping categories to lists of agent names
         """
         categories = {}
-        agents = self.list_available_agents()
+        # Don't log discovery when called internally
+        agents = self.list_available_agents(log_discovery=False)
 
         for agent in agents:
             agent_name = agent.get("name", "unknown")
