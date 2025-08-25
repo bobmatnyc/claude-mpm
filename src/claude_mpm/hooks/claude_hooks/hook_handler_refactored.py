@@ -56,20 +56,6 @@ except ImportError:
 # Set CLAUDE_MPM_HOOK_DEBUG=false to disable debug output
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
 
-# Import EventBus availability flag for backward compatibility with tests
-try:
-    from claude_mpm.services.event_bus import EventBus
-    EVENTBUS_AVAILABLE = True
-except ImportError:
-    EVENTBUS_AVAILABLE = False
-    EventBus = None
-
-# Import get_connection_pool for backward compatibility with tests
-try:
-    from claude_mpm.core.socketio_pool import get_connection_pool
-except ImportError:
-    get_connection_pool = None
-
 # Global singleton handler instance
 _global_handler = None
 _handler_lock = threading.Lock()
@@ -102,16 +88,6 @@ class ClaudeHookHandler:
             self.response_tracking_manager,
             self.connection_manager
         )
-        
-        # Backward compatibility properties for tests
-        self.connection_pool = self.connection_manager.connection_pool
-        self.event_bus = self.connection_manager.event_bus
-        
-        # Expose state manager properties for backward compatibility
-        self.active_delegations = self.state_manager.active_delegations
-        self.delegation_history = self.state_manager.delegation_history
-        self.delegation_requests = self.state_manager.delegation_requests
-        self.pending_prompts = self.state_manager.pending_prompts
 
     def handle(self):
         """Process hook event with minimal overhead and timeout protection.
@@ -256,7 +232,7 @@ class ClaudeHookHandler:
             "PostToolUse": self.event_handlers.handle_post_tool_fast,
             "Notification": self.event_handlers.handle_notification_fast,
             "Stop": self.event_handlers.handle_stop_fast,
-            "SubagentStop": self.event_handlers.handle_subagent_stop_fast,
+            "SubagentStop": self.handle_subagent_stop,
             "AssistantResponse": self.event_handlers.handle_assistant_response,
         }
 
@@ -298,10 +274,6 @@ class ClaudeHookHandler:
     def _emit_socketio_event(self, namespace: str, event: str, data: dict):
         """Emit event through connection manager."""
         self.connection_manager.emit_event(namespace, event, data)
-    
-    def _get_event_key(self, event: dict) -> str:
-        """Generate event key through duplicate detector (backward compatibility)."""
-        return self.duplicate_detector.generate_event_key(event)
 
     def __del__(self):
         """Cleanup on handler destruction."""
