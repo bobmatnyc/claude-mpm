@@ -544,122 +544,13 @@ class EventHandlers:
         self.hook_handler._emit_socketio_event("", "stop", stop_data)
 
     def handle_subagent_stop_fast(self, event):
-        """Handle subagent stop events with improved agent type detection."""
-        # Enhanced debug logging for session correlation
-        session_id = event.get("session_id", "")
-        if DEBUG:
-            print(
-                f"  - session_id: {session_id[:16] if session_id else 'None'}...",
-                file=sys.stderr,
-            )
-            print(f"  - event keys: {list(event.keys())}", file=sys.stderr)
-            print(
-                f"  - delegation_requests size: {len(self.hook_handler.delegation_requests)}",
-                file=sys.stderr,
-            )
-
-        # First try to get agent type from our tracking
-        agent_type = (
-            self.hook_handler._get_delegation_agent_type(session_id)
-            if session_id
-            else "unknown"
-        )
-
-        # Fall back to event data if tracking didn't have it
-        if agent_type == "unknown":
-            agent_type = event.get("agent_type", event.get("subagent_type", "unknown"))
-
-        agent_id = event.get("agent_id", event.get("subagent_id", ""))
-        reason = event.get("reason", event.get("stop_reason", "unknown"))
-
-        # Try to infer agent type from other fields if still unknown
-        if agent_type == "unknown" and "task" in event:
-            task_desc = str(event.get("task", "")).lower()
-            if "research" in task_desc:
-                agent_type = "research"
-            elif "engineer" in task_desc or "code" in task_desc:
-                agent_type = "engineer"
-            elif "pm" in task_desc or "project" in task_desc:
-                agent_type = "pm"
-
-        # Always log SubagentStop events for debugging
-        if DEBUG or agent_type != "unknown":
-            print(
-                f"Hook handler: Processing SubagentStop - agent: '{agent_type}', session: '{session_id}', reason: '{reason}'",
-                file=sys.stderr,
-            )
-
-        # Get working directory and git branch
-        working_dir = event.get("cwd", "")
-        git_branch = self._get_git_branch(working_dir) if working_dir else "Unknown"
-
-        # Try to extract structured response from output if available
-        output = event.get("output", "")
-        structured_response = None
-        if output:
-            try:
-                json_match = re.search(
-                    r"```json\s*(\{.*?\})\s*```", str(output), re.DOTALL
-                )
-                if json_match:
-                    structured_response = json.loads(json_match.group(1))
-                    if DEBUG:
-                        print(
-                            f"Extracted structured response from {agent_type} agent in SubagentStop",
-                            file=sys.stderr,
-                        )
-            except (json.JSONDecodeError, AttributeError):
-                pass  # No structured response, that's okay
-
-        # Handle response tracking with fuzzy matching
-        self._handle_subagent_response_tracking(
-            session_id,
-            agent_type,
-            reason,
-            output,
-            structured_response,
-            working_dir,
-            git_branch,
-        )
-
-        # Prepare subagent stop data
-        subagent_stop_data = {
-            "agent_type": agent_type,
-            "agent_id": agent_id,
-            "reason": reason,
-            "session_id": session_id,
-            "working_directory": working_dir,
-            "git_branch": git_branch,
-            "timestamp": datetime.now().isoformat(),
-            "is_successful_completion": reason in ["completed", "finished", "done"],
-            "is_error_termination": reason in ["error", "timeout", "failed", "blocked"],
-            "is_delegation_related": agent_type
-            in ["research", "engineer", "pm", "ops", "qa", "documentation", "security"],
-            "has_results": bool(event.get("results") or event.get("output")),
-            "duration_context": event.get("duration_ms"),
-            "hook_event_name": "SubagentStop",  # Explicitly set for dashboard
-        }
-
-        # Add structured response data if available
-        if structured_response:
-            subagent_stop_data["structured_response"] = {
-                "task_completed": structured_response.get("task_completed", False),
-                "instructions": structured_response.get("instructions", ""),
-                "results": structured_response.get("results", ""),
-                "files_modified": structured_response.get("files_modified", []),
-                "tools_used": structured_response.get("tools_used", []),
-                "remember": structured_response.get("remember"),
-            }
-
-        # Debug log the processed data
-        if DEBUG:
-            print(
-                f"SubagentStop processed data: agent_type='{agent_type}', session_id='{session_id}'",
-                file=sys.stderr,
-            )
-
-        # Emit normalized event with high priority
-        self.hook_handler._emit_socketio_event("", "subagent_stop", subagent_stop_data)
+        """Handle subagent stop events by delegating to the specialized processor."""
+        # Delegate to the specialized subagent processor
+        if hasattr(self.hook_handler, 'subagent_processor'):
+            self.hook_handler.subagent_processor.process_subagent_stop(event)
+        else:
+            # Fallback to handle_subagent_stop if processor not available
+            self.hook_handler.handle_subagent_stop(event)
 
     def _handle_subagent_response_tracking(
         self,
