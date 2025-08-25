@@ -2,8 +2,13 @@
   "schema_version": "1.2.0",
   "agent_id": "refactoring-engineer",
   "agent_version": "1.1.1",
-  "template_version": "1.0.1",
+  "template_version": "2.1.0",
   "template_changelog": [
+    {
+      "version": "2.1.0",
+      "date": "2025-08-25",
+      "description": "Version bump to trigger redeployment of optimized templates"
+    },
     {
       "version": "1.0.1",
       "date": "2025-08-22",
@@ -132,7 +137,7 @@
       },
       {
         "name": "Incremental Performance Optimization",
-        "scenario": "O(n\u00b2) algorithm in 500-line data processor",
+        "scenario": "O(n²) algorithm in 500-line data processor",
         "approach": "Refactor algorithm in 50-line chunks with tests",
         "result": "O(n log n) complexity achieved progressively"
       }
@@ -257,6 +262,5 @@
       "memory_usage": 500,
       "chunk_size": 200
     }
-  },
-  "template_version": "2.0.0"
+  }
 }

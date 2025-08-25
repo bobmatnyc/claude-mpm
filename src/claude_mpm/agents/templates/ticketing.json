@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "ticketing-agent",
-  "agent_version": "2.3.1",
+  "agent_version": "2.4.0",
   "agent_type": "documentation",
   "metadata": {
     "name": "Ticketing Agent",
@@ -36,7 +36,7 @@
     "features": [
       "external_pm_integration",
       "jira_api_support",
-      "github_issues_support", 
+      "github_issues_support",
       "linear_api_support",
       "url_pattern_detection",
       "api_credential_management"

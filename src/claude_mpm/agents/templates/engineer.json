@@ -4,8 +4,13 @@
   "schema_version": "1.2.0",
   "agent_id": "engineer",
   "agent_version": "3.8.0",
-  "template_version": "2.1.0",
+  "template_version": "2.2.0",
   "template_changelog": [
+    {
+      "version": "2.2.0",
+      "date": "2025-08-25",
+      "description": "Version bump to trigger redeployment of optimized templates"
+    },
     {
       "version": "2.1.0",
       "date": "2025-08-25",

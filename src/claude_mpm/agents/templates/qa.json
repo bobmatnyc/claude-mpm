@@ -2,8 +2,13 @@
   "schema_version": "1.2.0",
   "agent_id": "qa-agent",
   "agent_version": "3.5.0",
-  "template_version": "2.0.1",
+  "template_version": "2.1.0",
   "template_changelog": [
+    {
+      "version": "2.1.0",
+      "date": "2025-08-25",
+      "description": "Version bump to trigger redeployment of optimized templates"
+    },
     {
       "version": "2.0.1",
       "date": "2025-08-22",
@@ -172,6 +177,33 @@
       "token_usage": 8192,
       "success_rate": 0.95
     }
+  },
+  "memory_routing": {
+    "description": "Stores testing strategies, quality standards, and bug patterns",
+    "categories": [
+      "Testing strategies and coverage requirements",
+      "Quality standards and acceptance criteria",
+      "Bug patterns and regression risks",
+      "Test infrastructure and tooling"
+    ],
+    "keywords": [
+      "test",
+      "testing",
+      "quality",
+      "bug",
+      "defect",
+      "validation",
+      "verification",
+      "coverage",
+      "automation",
+      "regression",
+      "acceptance",
+      "criteria",
+      "metrics",
+      "pytest",
+      "unit test",
+      "integration test"
+    ]
   },
   "dependencies": {
     "python": [

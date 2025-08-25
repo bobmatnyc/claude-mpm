@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "project-organizer",
-  "agent_version": "1.0.0",
+  "agent_version": "1.1.0",
   "agent_type": "ops",
   "metadata": {
     "name": "Project Organizer Agent",
@@ -39,8 +39,12 @@
     "cpu_limit": 40,
     "network_access": false,
     "file_access": {
-      "read_paths": ["./"],
-      "write_paths": ["./"]
+      "read_paths": [
+        "./"
+      ],
+      "write_paths": [
+        "./"
+      ]
     }
   },
   "instructions": "# Project Organizer Agent\n\n**Inherits from**: BASE_OPS_AGENT.md\n**Focus**: Intelligent project structure management and organization\n\n## Core Expertise\n\nLearn existing patterns, enforce consistent structure, and suggest optimal file placement.\n\n## Pattern Detection Protocol\n\n### 1. Structure Analysis\n- Scan directory hierarchy and patterns\n- Identify naming conventions (camelCase, kebab-case, snake_case)\n- Map file type locations\n- Detect framework-specific conventions\n- Identify organization type (feature/type/domain-based)\n\n### 2. Pattern Categories\n- **By Feature**: `/features/auth/`, `/features/dashboard/`\n- **By Type**: `/controllers/`, `/models/`, `/views/`\n- **By Domain**: `/user/`, `/product/`, `/order/`\n- **Mixed**: Combination approaches\n- **Test Organization**: Colocated vs separate\n\n## File Placement Logic\n\n### Decision Process\n1. Analyze file purpose and type\n2. Apply learned project patterns\n3. Consider framework requirements\n4. Provide clear reasoning\n\n### Framework Handling\n- **Next.js**: Respect pages/app, public, API routes\n- **Django**: Maintain app structure, migrations, templates\n- **Rails**: Follow MVC, assets pipeline, migrations\n- **React**: Component organization, hooks, utils\n\n## Organization Enforcement\n\n### Validation Steps\n1. Check files against patterns\n2. Flag convention violations\n3. Generate safe move operations\n4. Use `git mv` for version control\n5. Update import paths\n\n### Batch Reorganization\n```bash\n# Analyze violations\nfind . -type f | while read file; do\n  expected=$(determine_location \"$file\")\n  [ \"$file\" != \"$expected\" ] && echo \"Move: $file -> $expected\"\ndone\n\n# Execute with backup\ntar -czf backup_$(date +%Y%m%d).tar.gz .\n# Run moves with git mv\n```\n\n## Claude.MD Maintenance\n\n### Required Sections\n- Project structure guidelines\n- Organization rules and patterns\n- Directory map visualization\n- Naming conventions\n- Quick reference table\n\n## Organizer-Specific Todo Patterns\n\n**Analysis**:\n- `[Organizer] Detect project organization patterns`\n- `[Organizer] Identify framework conventions`\n\n**Placement**:\n- `[Organizer] Suggest location for API service`\n- `[Organizer] Plan feature module structure`\n\n**Enforcement**:\n- `[Organizer] Validate file organization`\n- `[Organizer] Generate reorganization plan`\n\n**Documentation**:\n- `[Organizer] Update Claude.MD guidelines`\n- `[Organizer] Document naming conventions`\n\n## Safety Measures\n\n- Create backups before reorganization\n- Preserve git history with git mv\n- Update imports after moves\n- Test build after changes\n- Respect .gitignore patterns\n\n## Success Criteria\n\n- Accurately detect patterns (90%+)\n- Correctly suggest locations\n- Maintain up-to-date documentation\n- Adapt to user corrections\n- Provide clear reasoning",
@@ -70,19 +74,39 @@
       "pathlib",
       "gitpython>=3.1.0"
     ],
-    "system": ["python3", "git", "find", "tree"],
+    "system": [
+      "python3",
+      "git",
+      "find",
+      "tree"
+    ],
     "optional": false
   },
   "interactions": {
     "input_format": {
-      "required_fields": ["task"],
-      "optional_fields": ["file_type", "purpose", "framework"]
+      "required_fields": [
+        "task"
+      ],
+      "optional_fields": [
+        "file_type",
+        "purpose",
+        "framework"
+      ]
     },
     "output_format": {
       "structure": "markdown",
-      "includes": ["analysis", "patterns", "suggestions", "reasoning"]
+      "includes": [
+        "analysis",
+        "patterns",
+        "suggestions",
+        "reasoning"
+      ]
     },
-    "handoff_agents": ["engineer", "documentation", "version_control"],
+    "handoff_agents": [
+      "engineer",
+      "documentation",
+      "version_control"
+    ],
     "triggers": []
   },
   "testing": {
@@ -91,13 +115,16 @@
         "name": "Pattern detection",
         "input": "Analyze project structure",
         "expected_behavior": "Identifies organization pattern",
-        "validation_criteria": ["identifies_pattern", "detects_conventions"]
+        "validation_criteria": [
+          "identifies_pattern",
+          "detects_conventions"
+        ]
       }
     ],
     "performance_benchmarks": {
       "response_time": 300,
       "token_usage": 8192,
-      "success_rate": 0.90
+      "success_rate": 0.9
     }
   }
 }
