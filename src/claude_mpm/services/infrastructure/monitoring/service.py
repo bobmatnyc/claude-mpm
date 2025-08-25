@@ -4,14 +4,14 @@ Monitors service-specific metrics like client connections, event processing, and
 """
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from .base import BaseMonitoringService, HealthMetric, HealthStatus
 
 
 class ServiceHealthService(BaseMonitoringService):
     """Service for monitoring application-level health metrics.
-    
+
     Monitors:
     - Connected clients count
     - Event processing rate
@@ -28,7 +28,7 @@ class ServiceHealthService(BaseMonitoringService):
         stale_activity_seconds: int = 300,
     ):
         """Initialize service health monitoring.
-        
+
         Args:
             service_stats: Reference to service statistics dictionary
             max_clients: Maximum allowed connected clients
@@ -40,7 +40,7 @@ class ServiceHealthService(BaseMonitoringService):
         self.max_clients = max_clients
         self.max_error_rate = max_error_rate
         self.stale_activity_seconds = stale_activity_seconds
-        
+
         # Rate calculation state
         self.last_check_time = time.time()
         self.last_events_processed = 0
@@ -53,16 +53,16 @@ class ServiceHealthService(BaseMonitoringService):
 
         # Connected clients
         metrics.extend(self._check_client_connections())
-        
+
         # Event processing
         metrics.extend(self._check_event_processing(current_time))
-        
+
         # Error rates
         metrics.extend(self._check_error_rates())
-        
+
         # Service activity
         metrics.extend(self._check_service_activity(current_time))
-        
+
         # Response times (if available)
         metrics.extend(self._check_response_times())
 
@@ -76,7 +76,7 @@ class ServiceHealthService(BaseMonitoringService):
         metrics = []
         try:
             client_count = self.service_stats.get("clients_connected", 0)
-            
+
             # Determine status based on thresholds
             if client_count > self.max_clients:
                 client_status = HealthStatus.CRITICAL
@@ -93,7 +93,7 @@ class ServiceHealthService(BaseMonitoringService):
                     threshold=self.max_clients,
                 )
             )
-            
+
             # Client connection rate (if available)
             if "connection_rate" in self.service_stats:
                 metrics.append(
@@ -120,17 +120,17 @@ class ServiceHealthService(BaseMonitoringService):
         metrics = []
         try:
             events_processed = self.service_stats.get("events_processed", 0)
-            
+
             # Calculate processing rate
             time_diff = current_time - self.last_check_time
             if time_diff > 0 and self.last_events_processed > 0:
                 event_rate = (events_processed - self.last_events_processed) / time_diff
-                
+
                 # Determine status based on rate
                 rate_status = HealthStatus.HEALTHY
                 if event_rate == 0 and events_processed > 0:
                     rate_status = HealthStatus.WARNING  # Processing stopped
-                
+
                 metrics.append(
                     HealthMetric(
                         name="event_processing_rate",
@@ -151,7 +151,7 @@ class ServiceHealthService(BaseMonitoringService):
                     status=HealthStatus.HEALTHY,
                 )
             )
-            
+
             # Event queue size (if available)
             if "event_queue_size" in self.service_stats:
                 queue_size = self.service_stats["event_queue_size"]
@@ -160,7 +160,7 @@ class ServiceHealthService(BaseMonitoringService):
                     queue_status = HealthStatus.WARNING
                 if queue_size > 5000:
                     queue_status = HealthStatus.CRITICAL
-                
+
                 metrics.append(
                     HealthMetric(
                         name="event_queue_size",
@@ -185,10 +185,10 @@ class ServiceHealthService(BaseMonitoringService):
         try:
             errors = self.service_stats.get("errors", 0)
             total_events = self.service_stats.get("events_processed", 1)
-            
+
             # Calculate error rate
             error_rate = errors / max(total_events, 1)
-            
+
             # Determine status based on rate
             if error_rate > self.max_error_rate:
                 error_status = HealthStatus.CRITICAL
@@ -217,7 +217,7 @@ class ServiceHealthService(BaseMonitoringService):
                     ),
                 )
             )
-            
+
             # Recent error rate (errors in last check period)
             if self.last_errors is not None:
                 recent_errors = errors - self.last_errors
@@ -232,9 +232,9 @@ class ServiceHealthService(BaseMonitoringService):
                         ),
                     )
                 )
-            
+
             self.last_errors = errors
-            
+
         except Exception as e:
             metrics.append(
                 HealthMetric(
@@ -251,7 +251,7 @@ class ServiceHealthService(BaseMonitoringService):
         metrics = []
         try:
             last_activity = self.service_stats.get("last_activity")
-            
+
             if last_activity:
                 # Parse timestamp if needed
                 if isinstance(last_activity, str):
@@ -260,7 +260,7 @@ class ServiceHealthService(BaseMonitoringService):
                     last_activity_timestamp = float(last_activity)
 
                 time_since_activity = current_time - last_activity_timestamp
-                
+
                 # Determine status based on staleness
                 if time_since_activity > self.stale_activity_seconds * 2:
                     activity_status = HealthStatus.CRITICAL
@@ -300,11 +300,11 @@ class ServiceHealthService(BaseMonitoringService):
     def _check_response_times(self) -> List[HealthMetric]:
         """Check response time metrics if available."""
         metrics = []
-        
+
         # Average response time
         if "avg_response_time_ms" in self.service_stats:
             avg_time = self.service_stats["avg_response_time_ms"]
-            
+
             # Determine status based on response time
             if avg_time > 1000:  # > 1 second
                 time_status = HealthStatus.CRITICAL
@@ -312,7 +312,7 @@ class ServiceHealthService(BaseMonitoringService):
                 time_status = HealthStatus.WARNING
             else:
                 time_status = HealthStatus.HEALTHY
-            
+
             metrics.append(
                 HealthMetric(
                     name="avg_response_time",
@@ -321,7 +321,7 @@ class ServiceHealthService(BaseMonitoringService):
                     unit="ms",
                 )
             )
-        
+
         # P95 response time
         if "p95_response_time_ms" in self.service_stats:
             metrics.append(
@@ -332,32 +332,34 @@ class ServiceHealthService(BaseMonitoringService):
                     unit="ms",
                 )
             )
-        
+
         return metrics
 
     def _parse_timestamp(self, timestamp_str: str) -> float:
         """Parse ISO timestamp string to float.
-        
+
         Args:
             timestamp_str: ISO format timestamp string
-            
+
         Returns:
             Timestamp as float (seconds since epoch)
         """
         try:
             from dateutil.parser import parse
+
             dt = parse(timestamp_str)
             return dt.timestamp()
         except ImportError:
             # Fallback: try manual parsing
             from datetime import datetime
+
             clean_timestamp = timestamp_str.rstrip("Z")
             dt = datetime.fromisoformat(clean_timestamp.replace("T", " "))
             return dt.timestamp()
 
     def update_stats(self, **kwargs) -> None:
         """Update service statistics.
-        
+
         Args:
             **kwargs: Statistics to update
         """

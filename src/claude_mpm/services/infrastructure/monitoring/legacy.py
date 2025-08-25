@@ -14,7 +14,7 @@ from .service import ServiceHealthService
 
 class ProcessResourceChecker(HealthChecker):
     """Legacy wrapper for ProcessHealthService.
-    
+
     Maintains backward compatibility with existing code.
     """
 
@@ -45,7 +45,7 @@ class ProcessResourceChecker(HealthChecker):
 
 class NetworkConnectivityChecker(HealthChecker):
     """Legacy wrapper for NetworkHealthService.
-    
+
     Maintains backward compatibility with existing code.
     """
 
@@ -66,7 +66,7 @@ class NetworkConnectivityChecker(HealthChecker):
         # Filter to only return metrics for the configured endpoint
         all_metrics = await self.service.check_health()
         relevant_metrics = []
-        
+
         for metric in all_metrics:
             # Include socket creation and metrics for our endpoint
             if (
@@ -78,13 +78,13 @@ class NetworkConnectivityChecker(HealthChecker):
                 if f"port_accessible_{self.host}_{self.port}" in metric.name:
                     metric.name = "port_accessible"
                 relevant_metrics.append(metric)
-        
+
         return relevant_metrics
 
 
 class ServiceHealthChecker(HealthChecker):
     """Legacy wrapper for ServiceHealthService.
-    
+
     Maintains backward compatibility with existing code.
     """
 
@@ -121,14 +121,14 @@ class ServiceHealthChecker(HealthChecker):
 
 class AdvancedHealthMonitor:
     """Legacy wrapper for MonitoringAggregatorService.
-    
+
     Maintains backward compatibility with existing code.
     """
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize legacy advanced health monitor."""
         self.service = MonitoringAggregatorService(config)
-        
+
         # Expose service properties for compatibility
         self.config = self.service.config
         self.check_interval = self.service.check_interval
@@ -141,9 +141,10 @@ class AdvancedHealthMonitor:
         self.last_check_result = self.service.last_check_result
         self.health_callbacks = self.service.health_callbacks
         self.monitoring_stats = self.service.monitoring_stats
-        
+
         # Legacy logger
         import logging
+
         self.logger = logging.getLogger(f"{__name__}.AdvancedHealthMonitor")
 
     def add_checker(self, checker: HealthChecker) -> None:
