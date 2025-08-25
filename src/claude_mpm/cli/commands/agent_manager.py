@@ -57,6 +57,7 @@ class AgentManagerCommand(AgentCommand):
             "show": self._show_agent,
             "test": self._test_agent,
             "templates": self._list_templates,
+            "reset": self._reset_agents,
         }
 
         command = args.agent_manager_command
@@ -330,6 +331,208 @@ class AgentManagerCommand(AgentCommand):
                 output += f"    {template['description']}\n"
         return CommandResult.success_result(output)
 
+    def _reset_agents(self, args) -> CommandResult:
+        """Reset by removing claude-mpm authored agents from project and user directories.
+        
+        This command removes any agents with "author: claude-mpm" in their frontmatter,
+        preserving user-created agents. This is useful for clean reinstalls or when
+        wanting to get fresh versions of system agents.
+        """
+        try:
+            # Determine which directories to clean
+            clean_project = not getattr(args, "user_only", False)
+            clean_user = not getattr(args, "project_only", False)
+            dry_run = getattr(args, "dry_run", False)
+            force = getattr(args, "force", False)
+            output_format = getattr(args, "format", "text")
+            
+            # Track results
+            results = {
+                "project": {"checked": False, "removed": [], "preserved": []},
+                "user": {"checked": False, "removed": [], "preserved": []},
+                "dry_run": dry_run,
+                "total_removed": 0,
+                "total_preserved": 0,
+            }
+            
+            # Check project directory - always scan first to see what's there
+            if clean_project:
+                project_dir = Path.cwd() / ".claude" / "agents"
+                if project_dir.exists():
+                    results["project"]["checked"] = True
+                    # Always scan with dry_run=True first to see what's there
+                    self._scan_and_clean_directory(
+                        project_dir, results["project"], dry_run=True
+                    )
+            
+            # Check user directory - always scan first to see what's there
+            if clean_user:
+                user_dir = Path.home() / ".claude" / "agents"
+                if user_dir.exists():
+                    results["user"]["checked"] = True
+                    # Always scan with dry_run=True first to see what's there
+                    self._scan_and_clean_directory(
+                        user_dir, results["user"], dry_run=True
+                    )
+            
+            # Calculate totals
+            results["total_removed"] = len(results["project"]["removed"]) + len(
+                results["user"]["removed"]
+            )
+            results["total_preserved"] = len(results["project"]["preserved"]) + len(
+                results["user"]["preserved"]
+            )
+            
+            # Handle output based on format
+            if output_format == "json":
+                return CommandResult.success_result("Reset completed", data=results)
+            
+            # Generate text output
+            output = self._format_reset_results(results, dry_run, force)
+            
+            # If not dry-run, perform actual removal
+            if not dry_run and results["total_removed"] > 0:
+                # If force mode, remove immediately; otherwise get confirmation
+                if not force:
+                    # Get confirmation first
+                    print(output)
+                    print("\n⚠️  This will permanently remove the agents listed above.")
+                    
+                    # Ensure stdout is flushed before reading input
+                    sys.stdout.flush()
+                    
+                    # Get confirmation
+                    try:
+                        response = input("Continue? [y/N]: ").strip().lower()
+                        if response not in ["y", "yes"]:
+                            return CommandResult.success_result("Reset cancelled by user")
+                    except (KeyboardInterrupt, EOFError):
+                        return CommandResult.success_result("\nReset cancelled")
+                
+                # Perform actual removal using the list we already have
+                if clean_project and results["project"]["removed"]:
+                    project_dir = Path.cwd() / ".claude" / "agents"
+                    for agent in results["project"]["removed"]:
+                        agent_file = project_dir / agent
+                        try:
+                            if agent_file.exists():
+                                agent_file.unlink()
+                                self.logger.info(f"Removed claude-mpm agent: {agent_file}")
+                        except Exception as e:
+                            self.logger.warning(f"Could not remove {agent_file}: {e}")
+                
+                if clean_user and results["user"]["removed"]:
+                    user_dir = Path.home() / ".claude" / "agents"
+                    for agent in results["user"]["removed"]:
+                        agent_file = user_dir / agent
+                        try:
+                            if agent_file.exists():
+                                agent_file.unlink()
+                                self.logger.info(f"Removed claude-mpm agent: {agent_file}")
+                        except Exception as e:
+                            self.logger.warning(f"Could not remove {agent_file}: {e}")
+                
+                # Update output to show actual removal
+                output = self._format_reset_results(results, dry_run=False, force=force)
+            
+            return CommandResult.success_result(output)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to reset agents: {e}", exc_info=True)
+            return CommandResult.error_result(f"Failed to reset agents: {e}")
+    
+    def _scan_and_clean_directory(
+        self, directory: Path, results: Dict[str, Any], dry_run: bool
+    ) -> None:
+        """Scan a directory for claude-mpm authored agents and optionally remove them.
+        
+        Args:
+            directory: Directory to scan
+            results: Results dictionary to update
+            dry_run: If True, only scan without removing
+        """
+        for agent_file in directory.glob("*.md"):
+            try:
+                content = agent_file.read_text()
+                # Check if this is a claude-mpm authored agent
+                if "author: claude-mpm" in content.lower():
+                    results["removed"].append(agent_file.name)
+                    if not dry_run:
+                        agent_file.unlink()
+                        self.logger.info(f"Removed claude-mpm agent: {agent_file}")
+                else:
+                    results["preserved"].append(agent_file.name)
+                    self.logger.debug(f"Preserved user agent: {agent_file}")
+            except Exception as e:
+                self.logger.warning(f"Could not process {agent_file}: {e}")
+    
+    def _format_reset_results(
+        self, results: Dict[str, Any], dry_run: bool, force: bool
+    ) -> str:
+        """Format reset results for display.
+        
+        Args:
+            results: Results dictionary
+            dry_run: Whether this was a dry run
+            force: Whether force mode was used
+            
+        Returns:
+            Formatted output string
+        """
+        if dry_run:
+            output = "🔍 DRY RUN - No changes will be made\n"
+            output += "=" * 50 + "\n\n"
+        else:
+            output = "🧹 Agent Reset Complete\n"
+            output += "=" * 50 + "\n\n"
+        
+        # Show project results
+        if results["project"]["checked"]:
+            output += "📁 Project Level (.claude/agents):\n"
+            if results["project"]["removed"]:
+                action = "Would remove" if dry_run else "Removed"
+                output += f"   {action} {len(results['project']['removed'])} claude-mpm agent(s):\n"
+                for agent in results["project"]["removed"][:5]:
+                    output += f"      • {agent}\n"
+                if len(results["project"]["removed"]) > 5:
+                    output += f"      ... and {len(results['project']['removed']) - 5} more\n"
+            else:
+                output += "   No claude-mpm agents found\n"
+            
+            if results["project"]["preserved"]:
+                output += f"   Preserved {len(results['project']['preserved'])} user-created agent(s)\n"
+            output += "\n"
+        
+        # Show user results
+        if results["user"]["checked"]:
+            output += "📁 User Level (~/.claude/agents):\n"
+            if results["user"]["removed"]:
+                action = "Would remove" if dry_run else "Removed"
+                output += f"   {action} {len(results['user']['removed'])} claude-mpm agent(s):\n"
+                for agent in results["user"]["removed"][:5]:
+                    output += f"      • {agent}\n"
+                if len(results["user"]["removed"]) > 5:
+                    output += f"      ... and {len(results['user']['removed']) - 5} more\n"
+            else:
+                output += "   No claude-mpm agents found\n"
+            
+            if results["user"]["preserved"]:
+                output += f"   Preserved {len(results['user']['preserved'])} user-created agent(s)\n"
+            output += "\n"
+        
+        # Show summary
+        output += "📊 Summary:\n"
+        if dry_run:
+            output += f"   • Would remove: {results['total_removed']} agent(s)\n"
+        else:
+            output += f"   • Removed: {results['total_removed']} agent(s)\n"
+        output += f"   • Preserved: {results['total_preserved']} user agent(s)\n"
+        
+        if dry_run and results["total_removed"] > 0:
+            output += "\n💡 Run with --force to execute this cleanup immediately"
+        
+        return output
+
     def _interactive_create(self) -> CommandResult:
         """Interactive agent creation wizard."""
         print("\n=== Agent Creation Wizard ===\n")
@@ -493,6 +696,7 @@ Commands:
   show          Display detailed agent information
   test          Validate agent configuration
   templates     List available agent templates
+  reset         Remove claude-mpm authored agents for clean install
 
 Examples:
   claude-mpm agent-manager list
@@ -500,6 +704,8 @@ Examples:
   claude-mpm agent-manager variant --base research --id research-v2
   claude-mpm agent-manager deploy --agent-id my-agent --tier user
   claude-mpm agent-manager customize-pm --level project
+  claude-mpm agent-manager reset --dry-run
+  claude-mpm agent-manager reset --force --project-only
 
 Note: PM customization writes to .claude-mpm/INSTRUCTIONS.md, not CLAUDE.md
 """
@@ -520,7 +726,11 @@ def manage_agent_manager(args) -> int:
     result = command.run(args)
 
     if result.success:
-        if result.message:
+        # Handle JSON output format
+        output_format = getattr(args, "format", "text")
+        if output_format == "json" and result.data is not None:
+            print(json.dumps(result.data, indent=2))
+        elif result.message:
             print(result.message)
         return 0
     if result.message:

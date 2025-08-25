@@ -32,6 +32,9 @@ Examples:
   claude-mpm agent-manager show --id engineer            # Show agent details
   claude-mpm agent-manager test --id my-agent            # Test agent configuration
   claude-mpm agent-manager templates                     # List available templates
+  claude-mpm agent-manager reset --dry-run               # Preview agent cleanup
+  claude-mpm agent-manager reset --force                 # Remove all claude-mpm agents
+  claude-mpm agent-manager reset --project-only          # Clean only project agents
 """,
     )
 
@@ -194,6 +197,37 @@ Examples:
     templates_parser.add_argument(
         "--format",
         choices=["text", "json", "yaml"],
+        default="text",
+        help="Output format (default: text)",
+    )
+
+    # Reset command
+    reset_parser = agent_subparsers.add_parser(
+        "reset", help="Remove claude-mpm authored agents for clean install"
+    )
+    reset_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Execute cleanup immediately without confirmation",
+    )
+    reset_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview what would be removed without making changes",
+    )
+    reset_parser.add_argument(
+        "--project-only",
+        action="store_true",
+        help="Only clean project-level agents (.claude/agents)",
+    )
+    reset_parser.add_argument(
+        "--user-only",
+        action="store_true",
+        help="Only clean user-level agents (~/.claude/agents)",
+    )
+    reset_parser.add_argument(
+        "--format",
+        choices=["text", "json"],
         default="text",
         help="Output format (default: text)",
     )

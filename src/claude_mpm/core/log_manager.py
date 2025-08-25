@@ -179,6 +179,11 @@ class LogManager:
         # Add to cache
         self._dir_cache[log_type] = log_dir
 
+        # One-time migration for MPM logs from old location to new subdirectory
+        if log_type == "mpm" and not hasattr(self, "_mpm_logs_migrated"):
+            await self._migrate_mpm_logs()
+            self._mpm_logs_migrated = True
+
         # Schedule cleanup for old logs
         await self.cleanup_old_logs(
             log_dir,
@@ -206,7 +211,7 @@ class LogManager:
         # Map log types to directory names
         dir_mapping = {
             "startup": "startup",
-            "mpm": "",  # Root of logs directory
+            "mpm": "mpm",  # MPM logs in dedicated subdirectory
             "prompts": "prompts",
             "sessions": "sessions",
             "agents": "agents",
@@ -342,6 +347,47 @@ class LogManager:
             logger.info(f"Cleaned up {deleted_count} old log files from {directory}")
 
         return deleted_count
+
+    async def _migrate_mpm_logs(self):
+        """
+        One-time migration to move existing MPM logs to new subdirectory.
+        
+        Moves mpm_*.log files from .claude-mpm/logs/ to .claude-mpm/logs/mpm/
+        """
+        try:
+            old_location = self.base_log_dir
+            new_location = self.base_log_dir / "mpm"
+            
+            # Only proceed if old location exists and has MPM logs
+            if not old_location.exists():
+                return
+            
+            # Find all MPM log files in the old location
+            mpm_logs = list(old_location.glob("mpm_*.log"))
+            
+            if not mpm_logs:
+                return  # No logs to migrate
+            
+            # Ensure new directory exists
+            new_location.mkdir(parents=True, exist_ok=True)
+            
+            migrated_count = 0
+            for log_file in mpm_logs:
+                try:
+                    # Move file to new location
+                    new_path = new_location / log_file.name
+                    if not new_path.exists():  # Don't overwrite existing files
+                        log_file.rename(new_path)
+                        migrated_count += 1
+                except Exception as e:
+                    logger.debug(f"Could not migrate {log_file}: {e}")
+            
+            if migrated_count > 0:
+                logger.info(f"Migrated {migrated_count} MPM log files to {new_location}")
+                
+        except Exception as e:
+            # Migration is best-effort, don't fail if something goes wrong
+            logger.debug(f"MPM log migration skipped: {e}")
 
     async def log_prompt(
         self, prompt_type: str, content: str, metadata: Optional[Dict[str, Any]] = None

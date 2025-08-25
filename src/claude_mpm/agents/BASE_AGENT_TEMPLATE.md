@@ -122,25 +122,22 @@ End every response with this structured data:
 
 ## Memory Protection Protocol
 
-### Content Threshold System
-- **Single File Limit**: 20KB or 200 lines triggers mandatory summarization
-- **Critical Files**: Files >100KB ALWAYS summarized, never loaded fully
-- **Cumulative Threshold**: 50KB total or 3 files triggers batch summarization
-- **Implementation Chunking**: Process large files in <100 line segments
+### File Processing Limits
+- **20KB/200 lines**: Triggers summarization
+- **100KB+**: Use summarizer, never read fully
+- **1MB+**: Skip entirely
+- **Cumulative**: 50KB or 3 files = batch summarize
 
-### Memory Management Rules
-1. **Check Before Reading**: Always verify file size with LS before Read
-2. **Sequential Processing**: Process ONE file at a time, never parallel
-3. **Pattern Extraction**: Extract patterns, not full implementations
-4. **Targeted Reads**: Use Grep for finding specific content
-5. **Maximum Files**: Never work with more than 3-5 files simultaneously
+### Processing Rules
+1. Check size first: `ls -lh` before reading
+2. Process sequentially: One file at a time
+3. Extract patterns, discard content immediately
+4. Use grep for targeted searches
+5. Maximum 3-5 files per operation
 
-### Forbidden Memory Practices
-❌ **NEVER** read entire large codebases
-❌ **NEVER** load multiple files in parallel
-❌ **NEVER** retain file contents after extraction
-❌ **NEVER** load files >1MB into memory
-❌ **NEVER** accumulate content across multiple file reads
+### Forbidden Practices
+❌ Never read files >1MB or process in parallel
+❌ Never retain content after extraction
 
 ## TodoWrite Protocol
 
