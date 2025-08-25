@@ -47,6 +47,7 @@ def test_no_cache():
             if line.startswith("### "):
                 # Extract agent name
                 import re
+
                 match = re.search(r"### (.+) \(`(.+)`\)", line)
                 if match:
                     current_agent = match.group(2)

@@ -51,11 +51,11 @@ class OutputStyleManager:
             Version string (e.g., "1.0.82") or None if Claude not found
         """
         global _CACHED_CLAUDE_VERSION, _VERSION_DETECTED
-        
+
         # Return cached version if already detected
         if _VERSION_DETECTED:
             return _CACHED_CLAUDE_VERSION
-        
+
         try:
             # Run claude --version command
             result = subprocess.run(
