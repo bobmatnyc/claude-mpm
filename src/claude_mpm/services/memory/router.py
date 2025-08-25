@@ -25,6 +25,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.config import Config
+from claude_mpm.core.framework_loader import FrameworkLoader
 from claude_mpm.core.mixins import LoggerMixin
 
 
@@ -467,6 +468,84 @@ class MemoryRouter(LoggerMixin):
         """
         super().__init__()
         self.config = config or Config()
+        self._dynamic_patterns_loaded = False
+        self._dynamic_patterns = {}
+
+    def _load_dynamic_patterns(self) -> None:
+        """Load memory routing patterns dynamically from agent templates.
+
+        WHY: Allows agents to define their own memory routing patterns
+        in their template files, making the system more flexible and
+        maintainable.
+        """
+        if self._dynamic_patterns_loaded:
+            return
+
+        try:
+            # Initialize framework loader to access agent templates
+            framework_loader = FrameworkLoader()
+
+            # Try to load patterns from deployed agents
+            from pathlib import Path
+
+            # Check both project and user agent directories
+            agent_dirs = [
+                Path(".claude/agents"),  # Project agents
+                Path.home() / ".claude-mpm/agents",  # User agents
+            ]
+
+            for agent_dir in agent_dirs:
+                if not agent_dir.exists():
+                    continue
+
+                # Look for deployed agent files
+                for agent_file in agent_dir.glob("*.md"):
+                    agent_name = agent_file.stem
+
+                    # Try to load memory routing from template
+                    memory_routing = (
+                        framework_loader._load_memory_routing_from_template(agent_name)
+                    )
+
+                    if memory_routing:
+                        # Convert agent name to pattern key format
+                        # e.g., "research-agent" -> "research"
+                        pattern_key = (
+                            agent_name.replace("-agent", "")
+                            .replace("_agent", "")
+                            .replace("-", "_")
+                        )
+
+                        # Build pattern structure from memory routing
+                        pattern_data = {
+                            "keywords": memory_routing.get("keywords", []),
+                            "sections": memory_routing.get("categories", []),
+                        }
+
+                        # Merge with existing patterns or add new
+                        if pattern_key in self.AGENT_PATTERNS:
+                            # Merge keywords, keeping unique values
+                            existing_keywords = set(
+                                self.AGENT_PATTERNS[pattern_key]["keywords"]
+                            )
+                            new_keywords = set(memory_routing.get("keywords", []))
+                            pattern_data["keywords"] = list(
+                                existing_keywords | new_keywords
+                            )
+
+                        self._dynamic_patterns[pattern_key] = pattern_data
+                        self.logger.debug(
+                            f"Loaded dynamic memory routing for {pattern_key}"
+                        )
+
+            self._dynamic_patterns_loaded = True
+            self.logger.info(
+                f"Loaded memory routing patterns for {len(self._dynamic_patterns)} agents"
+            )
+
+        except Exception as e:
+            self.logger.warning(f"Could not load dynamic memory routing patterns: {e}")
+            self._dynamic_patterns_loaded = True  # Don't retry
 
     def get_supported_agents(self) -> List[str]:
         """Get list of supported agent types.
@@ -477,7 +556,12 @@ class MemoryRouter(LoggerMixin):
         Returns:
             List of supported agent type names
         """
-        return list(self.AGENT_PATTERNS.keys())
+        self._load_dynamic_patterns()
+
+        # Combine static and dynamic patterns
+        all_agents = set(self.AGENT_PATTERNS.keys())
+        all_agents.update(self._dynamic_patterns.keys())
+        return list(all_agents)
 
     def is_agent_supported(self, agent_type: str) -> bool:
         """Check if an agent type is supported by the memory router.
@@ -491,7 +575,8 @@ class MemoryRouter(LoggerMixin):
         Returns:
             True if agent type is supported, False otherwise
         """
-        return agent_type in self.AGENT_PATTERNS
+        self._load_dynamic_patterns()
+        return agent_type in self.AGENT_PATTERNS or agent_type in self._dynamic_patterns
 
     def analyze_and_route(
         self, content: str, context: Optional[Dict] = None
@@ -605,21 +690,30 @@ class MemoryRouter(LoggerMixin):
         Returns:
             Dict containing routing patterns and statistics
         """
+        self._load_dynamic_patterns()
+
+        # Combine static and dynamic patterns
+        all_patterns = dict(self.AGENT_PATTERNS)
+        all_patterns.update(self._dynamic_patterns)
+
         return {
-            "agents": list(self.AGENT_PATTERNS.keys()),
+            "agents": list(all_patterns.keys()),
             "default_agent": self.DEFAULT_AGENT,
+            "static_agents": list(self.AGENT_PATTERNS.keys()),
+            "dynamic_agents": list(self._dynamic_patterns.keys()),
             "patterns": {
                 agent: {
                     "keyword_count": len(patterns["keywords"]),
                     "section_count": len(patterns["sections"]),
                     "keywords": patterns["keywords"][:10],  # Show first 10
                     "sections": patterns["sections"],
+                    "source": (
+                        "dynamic" if agent in self._dynamic_patterns else "static"
+                    ),
                 }
-                for agent, patterns in self.AGENT_PATTERNS.items()
+                for agent, patterns in all_patterns.items()
             },
-            "total_keywords": sum(
-                len(p["keywords"]) for p in self.AGENT_PATTERNS.values()
-            ),
+            "total_keywords": sum(len(p["keywords"]) for p in all_patterns.values()),
         }
 
     def _normalize_content(self, content: str) -> str:
@@ -663,9 +757,14 @@ class MemoryRouter(LoggerMixin):
         Returns:
             Dict mapping agent names to relevance scores
         """
+        self._load_dynamic_patterns()
         scores = {}
 
-        for agent, patterns in self.AGENT_PATTERNS.items():
+        # Combine static and dynamic patterns
+        all_patterns = dict(self.AGENT_PATTERNS)
+        all_patterns.update(self._dynamic_patterns)
+
+        for agent, patterns in all_patterns.items():
             score = 0.0
             matched_keywords = []
 
@@ -773,10 +872,17 @@ class MemoryRouter(LoggerMixin):
         Returns:
             Section name for memory storage
         """
-        if agent not in self.AGENT_PATTERNS:
+        self._load_dynamic_patterns()
+
+        # Check both static and dynamic patterns
+        if agent in self.AGENT_PATTERNS:
+            sections = self.AGENT_PATTERNS[agent]["sections"]
+        elif agent in self._dynamic_patterns:
+            sections = self._dynamic_patterns[agent]["sections"]
+        else:
             return "Recent Learnings"
 
-        sections = self.AGENT_PATTERNS[agent]["sections"]
+        sections = sections if sections else []
 
         # Simple heuristics for section selection
         if "mistake" in content or "error" in content or "avoid" in content:

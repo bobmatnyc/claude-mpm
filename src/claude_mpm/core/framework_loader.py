@@ -1283,6 +1283,14 @@ Extract tickets from these patterns:
                 if agent.get("model") and agent["model"] != "opus":
                     section += f"- **Model**: {agent['model']}\n"
 
+                # Add memory routing information if available
+                if agent.get("memory_routing"):
+                    memory_routing = agent["memory_routing"]
+                    if memory_routing.get("description"):
+                        section += (
+                            f"- **Memory Routing**: {memory_routing['description']}\n"
+                        )
+
             # Add simple Context-Aware Agent Selection
             section += "\n## Context-Aware Agent Selection\n\n"
             section += (
@@ -1384,6 +1392,14 @@ Extract tickets from these patterns:
                 if routing_data:
                     agent_data["routing"] = routing_data
 
+            # Try to load memory routing metadata from JSON template if not in YAML frontmatter
+            if "memory_routing" not in agent_data:
+                memory_routing_data = self._load_memory_routing_from_template(
+                    agent_file.stem
+                )
+                if memory_routing_data:
+                    agent_data["memory_routing"] = memory_routing_data
+
             # Cache the parsed metadata
             self._cache_manager.set_agent_metadata(cache_key, agent_data, file_mtime)
 
@@ -1391,6 +1407,81 @@ Extract tickets from these patterns:
 
         except Exception as e:
             self.logger.debug(f"Could not parse metadata from {agent_file}: {e}")
+            return None
+
+    def _load_memory_routing_from_template(
+        self, agent_name: str
+    ) -> Optional[Dict[str, Any]]:
+        """Load memory routing metadata from agent JSON template.
+
+        Args:
+            agent_name: Name of the agent (stem of the file)
+
+        Returns:
+            Dictionary with memory routing metadata or None if not found
+        """
+        try:
+            import json
+
+            # Check if we have a framework path
+            if not self.framework_path or self.framework_path == Path("__PACKAGED__"):
+                # For packaged installations, try to load from package resources
+                if files:
+                    try:
+                        templates_package = files("claude_mpm.agents.templates")
+                        template_file = templates_package / f"{agent_name}.json"
+
+                        if template_file.is_file():
+                            template_content = template_file.read_text()
+                            template_data = json.loads(template_content)
+                            return template_data.get("memory_routing")
+                    except Exception as e:
+                        self.logger.debug(
+                            f"Could not load memory routing from packaged template for {agent_name}: {e}"
+                        )
+                return None
+
+            # For development mode, load from filesystem
+            templates_dir = (
+                self.framework_path / "src" / "claude_mpm" / "agents" / "templates"
+            )
+            template_file = templates_dir / f"{agent_name}.json"
+
+            if template_file.exists():
+                with open(template_file) as f:
+                    template_data = json.load(f)
+                    return template_data.get("memory_routing")
+
+            # Also check for variations in naming (underscore vs dash)
+            # Handle common naming variations between deployed .md files and .json templates
+            # Remove duplicates by using a set
+            alternative_names = list(
+                {
+                    agent_name.replace("-", "_"),  # api-qa -> api_qa
+                    agent_name.replace("_", "-"),  # api_qa -> api-qa
+                    agent_name.replace("-", ""),  # api-qa -> apiqa
+                    agent_name.replace("_", ""),  # api_qa -> apiqa
+                    agent_name.replace("-agent", ""),  # research-agent -> research
+                    agent_name.replace("_agent", ""),  # research_agent -> research
+                    agent_name + "_agent",  # research -> research_agent
+                    agent_name + "-agent",  # research -> research-agent
+                }
+            )
+
+            for alt_name in alternative_names:
+                if alt_name != agent_name:  # Skip the original name we already tried
+                    alt_file = templates_dir / f"{alt_name}.json"
+                    if alt_file.exists():
+                        with open(alt_file) as f:
+                            template_data = json.load(f)
+                            return template_data.get("memory_routing")
+
+            return None
+
+        except Exception as e:
+            self.logger.debug(
+                f"Could not load memory routing from template for {agent_name}: {e}"
+            )
             return None
 
     def _load_routing_from_template(self, agent_name: str) -> Optional[Dict[str, Any]]:

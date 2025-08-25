@@ -333,7 +333,7 @@ class AgentManagerCommand(AgentCommand):
 
     def _reset_agents(self, args) -> CommandResult:
         """Reset by removing claude-mpm authored agents from project and user directories.
-        
+
         This command removes any agents with "author: claude-mpm" in their frontmatter,
         preserving user-created agents. This is useful for clean reinstalls or when
         wanting to get fresh versions of system agents.
@@ -345,7 +345,7 @@ class AgentManagerCommand(AgentCommand):
             dry_run = getattr(args, "dry_run", False)
             force = getattr(args, "force", False)
             output_format = getattr(args, "format", "text")
-            
+
             # Track results
             results = {
                 "project": {"checked": False, "removed": [], "preserved": []},
@@ -354,7 +354,7 @@ class AgentManagerCommand(AgentCommand):
                 "total_removed": 0,
                 "total_preserved": 0,
             }
-            
+
             # Check project directory - always scan first to see what's there
             if clean_project:
                 project_dir = Path.cwd() / ".claude" / "agents"
@@ -364,7 +364,7 @@ class AgentManagerCommand(AgentCommand):
                     self._scan_and_clean_directory(
                         project_dir, results["project"], dry_run=True
                     )
-            
+
             # Check user directory - always scan first to see what's there
             if clean_user:
                 user_dir = Path.home() / ".claude" / "agents"
@@ -374,7 +374,7 @@ class AgentManagerCommand(AgentCommand):
                     self._scan_and_clean_directory(
                         user_dir, results["user"], dry_run=True
                     )
-            
+
             # Calculate totals
             results["total_removed"] = len(results["project"]["removed"]) + len(
                 results["user"]["removed"]
@@ -382,14 +382,14 @@ class AgentManagerCommand(AgentCommand):
             results["total_preserved"] = len(results["project"]["preserved"]) + len(
                 results["user"]["preserved"]
             )
-            
+
             # Handle output based on format
             if output_format == "json":
                 return CommandResult.success_result("Reset completed", data=results)
-            
+
             # Generate text output
             output = self._format_reset_results(results, dry_run, force)
-            
+
             # If not dry-run, perform actual removal
             if not dry_run and results["total_removed"] > 0:
                 # If force mode, remove immediately; otherwise get confirmation
@@ -397,18 +397,20 @@ class AgentManagerCommand(AgentCommand):
                     # Get confirmation first
                     print(output)
                     print("\n⚠️  This will permanently remove the agents listed above.")
-                    
+
                     # Ensure stdout is flushed before reading input
                     sys.stdout.flush()
-                    
+
                     # Get confirmation
                     try:
                         response = input("Continue? [y/N]: ").strip().lower()
                         if response not in ["y", "yes"]:
-                            return CommandResult.success_result("Reset cancelled by user")
+                            return CommandResult.success_result(
+                                "Reset cancelled by user"
+                            )
                     except (KeyboardInterrupt, EOFError):
                         return CommandResult.success_result("\nReset cancelled")
-                
+
                 # Perform actual removal using the list we already have
                 if clean_project and results["project"]["removed"]:
                     project_dir = Path.cwd() / ".claude" / "agents"
@@ -417,10 +419,12 @@ class AgentManagerCommand(AgentCommand):
                         try:
                             if agent_file.exists():
                                 agent_file.unlink()
-                                self.logger.info(f"Removed claude-mpm agent: {agent_file}")
+                                self.logger.info(
+                                    f"Removed claude-mpm agent: {agent_file}"
+                                )
                         except Exception as e:
                             self.logger.warning(f"Could not remove {agent_file}: {e}")
-                
+
                 if clean_user and results["user"]["removed"]:
                     user_dir = Path.home() / ".claude" / "agents"
                     for agent in results["user"]["removed"]:
@@ -428,24 +432,26 @@ class AgentManagerCommand(AgentCommand):
                         try:
                             if agent_file.exists():
                                 agent_file.unlink()
-                                self.logger.info(f"Removed claude-mpm agent: {agent_file}")
+                                self.logger.info(
+                                    f"Removed claude-mpm agent: {agent_file}"
+                                )
                         except Exception as e:
                             self.logger.warning(f"Could not remove {agent_file}: {e}")
-                
+
                 # Update output to show actual removal
                 output = self._format_reset_results(results, dry_run=False, force=force)
-            
+
             return CommandResult.success_result(output)
-            
+
         except Exception as e:
             self.logger.error(f"Failed to reset agents: {e}", exc_info=True)
             return CommandResult.error_result(f"Failed to reset agents: {e}")
-    
+
     def _scan_and_clean_directory(
         self, directory: Path, results: Dict[str, Any], dry_run: bool
     ) -> None:
         """Scan a directory for claude-mpm authored agents and optionally remove them.
-        
+
         Args:
             directory: Directory to scan
             results: Results dictionary to update
@@ -465,17 +471,17 @@ class AgentManagerCommand(AgentCommand):
                     self.logger.debug(f"Preserved user agent: {agent_file}")
             except Exception as e:
                 self.logger.warning(f"Could not process {agent_file}: {e}")
-    
+
     def _format_reset_results(
         self, results: Dict[str, Any], dry_run: bool, force: bool
     ) -> str:
         """Format reset results for display.
-        
+
         Args:
             results: Results dictionary
             dry_run: Whether this was a dry run
             force: Whether force mode was used
-            
+
         Returns:
             Formatted output string
         """
@@ -485,7 +491,7 @@ class AgentManagerCommand(AgentCommand):
         else:
             output = "🧹 Agent Reset Complete\n"
             output += "=" * 50 + "\n\n"
-        
+
         # Show project results
         if results["project"]["checked"]:
             output += "📁 Project Level (.claude/agents):\n"
@@ -495,14 +501,16 @@ class AgentManagerCommand(AgentCommand):
                 for agent in results["project"]["removed"][:5]:
                     output += f"      • {agent}\n"
                 if len(results["project"]["removed"]) > 5:
-                    output += f"      ... and {len(results['project']['removed']) - 5} more\n"
+                    output += (
+                        f"      ... and {len(results['project']['removed']) - 5} more\n"
+                    )
             else:
                 output += "   No claude-mpm agents found\n"
-            
+
             if results["project"]["preserved"]:
                 output += f"   Preserved {len(results['project']['preserved'])} user-created agent(s)\n"
             output += "\n"
-        
+
         # Show user results
         if results["user"]["checked"]:
             output += "📁 User Level (~/.claude/agents):\n"
@@ -512,14 +520,16 @@ class AgentManagerCommand(AgentCommand):
                 for agent in results["user"]["removed"][:5]:
                     output += f"      • {agent}\n"
                 if len(results["user"]["removed"]) > 5:
-                    output += f"      ... and {len(results['user']['removed']) - 5} more\n"
+                    output += (
+                        f"      ... and {len(results['user']['removed']) - 5} more\n"
+                    )
             else:
                 output += "   No claude-mpm agents found\n"
-            
+
             if results["user"]["preserved"]:
                 output += f"   Preserved {len(results['user']['preserved'])} user-created agent(s)\n"
             output += "\n"
-        
+
         # Show summary
         output += "📊 Summary:\n"
         if dry_run:
@@ -527,10 +537,10 @@ class AgentManagerCommand(AgentCommand):
         else:
             output += f"   • Removed: {results['total_removed']} agent(s)\n"
         output += f"   • Preserved: {results['total_preserved']} user agent(s)\n"
-        
+
         if dry_run and results["total_removed"] > 0:
             output += "\n💡 Run with --force to execute this cleanup immediately"
-        
+
         return output
 
     def _interactive_create(self) -> CommandResult:
