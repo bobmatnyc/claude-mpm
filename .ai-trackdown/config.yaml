@@ -19,4 +19,4 @@ plugins: {}
 epics:
   counter: 4
 issues:
-  counter: 20
+  counter: 21
