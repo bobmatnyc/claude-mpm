@@ -151,7 +151,9 @@ class TestAgentMemoryManager:
                         # Setup exists behavior
                         def exists_logic(self):
                             path_str = str(self)
-                            if path_str.endswith("_memories.md") or path_str.endswith("_agent.md"):
+                            if path_str.endswith("_memories.md") or path_str.endswith(
+                                "_agent.md"
+                            ):
                                 return False
                             if path_str.endswith(f"{agent_id}.md"):
                                 return True
