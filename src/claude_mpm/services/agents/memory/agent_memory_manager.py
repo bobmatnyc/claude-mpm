@@ -32,6 +32,10 @@ from claude_mpm.core.unified_paths import get_path_manager
 
 from .content_manager import MemoryContentManager
 from .template_generator import MemoryTemplateGenerator
+from .memory_file_service import MemoryFileService
+from .memory_limits_service import MemoryLimitsService
+from .memory_format_service import MemoryFormatService
+from .memory_categorization_service import MemoryCategorizationService
 
 
 class AgentMemoryManager(MemoryServiceInterface):
@@ -83,11 +87,15 @@ class AgentMemoryManager(MemoryServiceInterface):
         # Primary memories_dir points to project
         self.memories_dir = self.project_memories_dir
 
-        # Ensure project directory exists
-        self._ensure_memories_directory()
+        # Initialize services
+        self.file_service = MemoryFileService(self.memories_dir)
+        self.limits_service = MemoryLimitsService(self.config)
+        self.memory_limits = self.limits_service.memory_limits
+        self.format_service = MemoryFormatService()
+        self.categorization_service = MemoryCategorizationService()
 
-        # Initialize memory limits from configuration
-        self._init_memory_limits()
+        # Ensure project directory exists
+        self.file_service.ensure_memories_directory()
 
         # Initialize component services
         self.template_generator = MemoryTemplateGenerator(
@@ -114,132 +122,6 @@ class AgentMemoryManager(MemoryServiceInterface):
 
         return self._logger_instance
 
-    def _init_memory_limits(self):
-        """Initialize memory limits from configuration.
-
-        WHY: Allows configuration-driven memory limits instead of hardcoded values.
-        Supports agent-specific overrides for different memory requirements.
-        """
-        # Check if memory system is enabled
-        self.memory_enabled = self.config.get("memory.enabled", True)
-        self.auto_learning = self.config.get(
-            "memory.auto_learning", True
-        )  # Changed default to True
-
-        # Load default limits from configuration
-        config_limits = self.config.get("memory.limits", {})
-        self.memory_limits = {
-            "max_file_size_kb": config_limits.get(
-                "default_size_kb", self.DEFAULT_MEMORY_LIMITS["max_file_size_kb"]
-            ),
-            "max_items": config_limits.get(
-                "max_items", self.DEFAULT_MEMORY_LIMITS["max_items"]
-            ),
-            "max_line_length": config_limits.get(
-                "max_line_length", self.DEFAULT_MEMORY_LIMITS["max_line_length"]
-            ),
-        }
-
-        # Load agent-specific overrides
-        self.agent_overrides = self.config.get("memory.agent_overrides", {})
-
-    def _get_agent_limits(self, agent_id: str) -> Dict[str, Any]:
-        """Get memory limits for specific agent, including overrides.
-
-        WHY: Different agents may need different memory capacities. Research agents
-        might need larger memory for comprehensive findings, while simple agents
-        can work with smaller limits.
-
-        Args:
-            agent_id: The agent identifier
-
-        Returns:
-            Dict containing the effective limits for this agent
-        """
-        # Start with default limits
-        limits = self.memory_limits.copy()
-
-        # Apply agent-specific overrides if they exist
-        if agent_id in self.agent_overrides:
-            overrides = self.agent_overrides[agent_id]
-            if "size_kb" in overrides:
-                limits["max_file_size_kb"] = overrides["size_kb"]
-
-        return limits
-
-    def _get_agent_auto_learning(self, agent_id: str) -> bool:
-        """Check if auto-learning is enabled for specific agent.
-
-        Args:
-            agent_id: The agent identifier
-
-        Returns:
-            bool: True if auto-learning is enabled for this agent
-        """
-        # Check agent-specific override first
-        if agent_id in self.agent_overrides:
-            return self.agent_overrides[agent_id].get(
-                "auto_learning", self.auto_learning
-            )
-
-        # Fall back to global setting
-        return self.auto_learning
-
-    def _get_memory_file_with_migration(self, directory: Path, agent_id: str) -> Path:
-        """Get memory file path, migrating from old naming if needed.
-
-        WHY: Supports backward compatibility by automatically migrating from
-        the old {agent_id}_agent.md and {agent_id}.md formats to the new {agent_id}_memories.md format.
-
-        Args:
-            directory: Directory containing memory files
-            agent_id: The agent identifier
-
-        Returns:
-            Path: Path to the memory file (may not exist)
-        """
-        new_file = directory / f"{agent_id}_memories.md"
-        # Support migration from both old formats
-        old_file_agent = directory / f"{agent_id}_agent.md"
-        old_file_simple = directory / f"{agent_id}.md"
-
-        # Migrate from old formats if needed
-        if not new_file.exists():
-            # Try migrating from {agent_id}_agent.md first
-            if old_file_agent.exists():
-                try:
-                    content = old_file_agent.read_text(encoding="utf-8")
-                    new_file.write_text(content, encoding="utf-8")
-
-                    # Delete old file for all agents
-                    old_file_agent.unlink()
-                    self.logger.info(
-                        f"Migrated memory file from {old_file_agent.name} to {new_file.name}"
-                    )
-                except Exception as e:
-                    self.logger.error(
-                        f"Failed to migrate memory file for {agent_id}: {e}"
-                    )
-                    return old_file_agent
-            # Try migrating from {agent_id}.md
-            elif old_file_simple.exists():
-                try:
-                    content = old_file_simple.read_text(encoding="utf-8")
-                    new_file.write_text(content, encoding="utf-8")
-
-                    # Delete old file for all agents
-                    old_file_simple.unlink()
-                    self.logger.info(
-                        f"Migrated memory file from {old_file_simple.name} to {new_file.name}"
-                    )
-                except Exception as e:
-                    self.logger.error(
-                        f"Failed to migrate memory file for {agent_id}: {e}"
-                    )
-                    return old_file_simple
-
-        return new_file
-
     def load_agent_memory(self, agent_id: str) -> str:
         """Load agent memory file content from project directory.
 
@@ -254,7 +136,7 @@ class AgentMemoryManager(MemoryServiceInterface):
             str: The memory file content, creating default if doesn't exist
         """
         # All agents use project directory
-        project_memory_file = self._get_memory_file_with_migration(
+        project_memory_file = self.file_service.get_memory_file_with_migration(
             self.project_memories_dir, agent_id
         )
 
@@ -326,7 +208,7 @@ class AgentMemoryManager(MemoryServiceInterface):
             str: The project-specific memory template content
         """
         # Get limits for this agent
-        limits = self._get_agent_limits(agent_id)
+        limits = self.limits_service.get_agent_limits(agent_id)
 
         # Delegate to template generator
         template = self.template_generator.create_default_memory(agent_id, limits)
@@ -342,37 +224,6 @@ class AgentMemoryManager(MemoryServiceInterface):
             self.logger.error(f"Error saving default memory for {agent_id}: {e}")
 
         return template
-
-    def _save_memory_file(self, agent_id: str, content: str) -> bool:
-        """Save memory content to file.
-
-        WHY: Memory updates need to be persisted atomically to prevent corruption
-        and ensure learnings are preserved across agent invocations.
-
-        Args:
-            agent_id: Agent identifier
-            content: Content to save
-
-        Returns:
-            bool: True if save succeeded
-        """
-        try:
-            # All agents save to project directory
-            target_dir = self.project_memories_dir
-
-            # Ensure directory exists
-            target_dir.mkdir(parents=True, exist_ok=True)
-
-            memory_file = target_dir / f"{agent_id}_memories.md"
-            memory_file.write_text(content, encoding="utf-8")
-
-            self.logger.info(
-                f"Saved {agent_id} memory to project directory: {memory_file}"
-            )
-            return True
-        except Exception as e:
-            self.logger.error(f"Error saving memory for {agent_id}: {e}")
-            return False
 
     def optimize_memory(self, agent_id: Optional[str] = None) -> Dict[str, Any]:
         """Optimize agent memory by consolidating/cleaning memories.
@@ -596,10 +447,10 @@ class AgentMemoryManager(MemoryServiceInterface):
             current_memory = self.load_agent_memory(agent_id)
 
             # Parse existing memory into a simple list
-            existing_items = self._parse_memory_list(current_memory)
+            existing_items = self.format_service.parse_memory_list(current_memory)
 
             # Clean template placeholders if this is a fresh memory
-            existing_items = self._clean_template_placeholders_list(existing_items)
+            existing_items = self.format_service.clean_template_placeholders_list(existing_items)
 
             # Add new learnings, avoiding duplicates
             updated = False
@@ -638,10 +489,10 @@ class AgentMemoryManager(MemoryServiceInterface):
                 return True  # Not an error, just nothing new to add
 
             # Rebuild memory content as simple list with updated timestamp
-            new_content = self._build_simple_memory_content(agent_id, existing_items)
+            new_content = self.format_service.build_simple_memory_content(agent_id, existing_items)
 
             # Validate and save
-            agent_limits = self._get_agent_limits(agent_id)
+            agent_limits = self.limits_service.get_agent_limits(agent_id)
             if self.content_manager.exceeds_limits(new_content, agent_limits):
                 self.logger.debug(f"Memory for {agent_id} exceeds limits, truncating")
                 new_content = self.content_manager.truncate_simple_list(
@@ -649,250 +500,11 @@ class AgentMemoryManager(MemoryServiceInterface):
                 )
 
             # All memories go to project directory
-            return self._save_memory_file(agent_id, new_content)
+            return self._save_memory_file_wrapper(agent_id, new_content)
 
         except Exception as e:
             self.logger.error(f"Error adding learnings to memory for {agent_id}: {e}")
             return False
-
-    def _parse_memory_list(self, memory_content: str) -> List[str]:
-        """Parse memory content into a simple list.
-
-        Args:
-            memory_content: Raw memory file content
-
-        Returns:
-            List of memory items
-        """
-        items = []
-
-        for line in memory_content.split("\n"):
-            line = line.strip()
-            # Skip metadata lines and headers
-            if line.startswith(("<!-- ", "#")) or not line:
-                continue
-            # Collect items (with or without bullet points)
-            if line.startswith("- "):
-                items.append(line)
-            elif line and not line.startswith("##"):  # Legacy format without bullets
-                items.append(f"- {line}")
-
-        return items
-
-    def _clean_template_placeholders_list(self, items: List[str]) -> List[str]:
-        """Remove template placeholder text from item list.
-
-        Args:
-            items: List of memory items
-
-        Returns:
-            List with placeholder text removed
-        """
-        # Template placeholder patterns to remove
-        placeholders = [
-            "Analyze project structure to understand architecture patterns",
-            "Observe codebase patterns and conventions during tasks",
-            "Extract implementation guidelines from project documentation",
-            "Learn from errors encountered during project work",
-            "Project analysis pending - gather context during tasks",
-            "claude-mpm: Software project requiring analysis",
-        ]
-
-        cleaned = []
-        for item in items:
-            # Remove bullet point for comparison
-            item_text = item.lstrip("- ").strip()
-            # Keep item if it's not a placeholder
-            if item_text and item_text not in placeholders:
-                cleaned.append(item)
-
-        return cleaned
-
-    def _clean_template_placeholders(
-        self, sections: Dict[str, List[str]]
-    ) -> Dict[str, List[str]]:
-        """Remove template placeholder text from sections.
-
-        Args:
-            sections: Dict mapping section names to lists of items
-
-        Returns:
-            Dict with placeholder text removed
-        """
-        # Template placeholder patterns to remove
-        placeholders = [
-            "Analyze project structure to understand architecture patterns",
-            "Observe codebase patterns and conventions during tasks",
-            "Extract implementation guidelines from project documentation",
-            "Learn from errors encountered during project work",
-            "Project analysis pending - gather context during tasks",
-            "claude-mpm: Software project requiring analysis",
-        ]
-
-        cleaned = {}
-        for section_name, items in sections.items():
-            cleaned_items = []
-            for item in items:
-                # Remove bullet point for comparison
-                item_text = item.lstrip("- ").strip()
-                # Keep item if it's not a placeholder
-                if item_text and item_text not in placeholders:
-                    cleaned_items.append(item)
-
-            # Only include section if it has real content
-            if cleaned_items:
-                cleaned[section_name] = cleaned_items
-
-        return cleaned
-
-    def _categorize_learning(self, learning: str) -> str:
-        """Categorize a learning item into appropriate section.
-
-        Args:
-            learning: The learning string to categorize
-
-        Returns:
-            str: The section name for this learning
-        """
-        learning_lower = learning.lower()
-
-        # Check for keywords to categorize with improved patterns
-        # Order matters - more specific patterns should come first
-
-        # Architecture keywords
-        if any(
-            word in learning_lower
-            for word in [
-                "architecture",
-                "structure",
-                "design",
-                "module",
-                "component",
-                "microservices",
-                "service-oriented",
-            ]
-        ):
-            return "Project Architecture"
-
-        # Integration keywords (check before patterns to avoid "use" conflict)
-        if any(
-            word in learning_lower
-            for word in [
-                "integration",
-                "interface",
-                "api",
-                "connection",
-                "database",
-                "pooling",
-                "via",
-            ]
-        ):
-            return "Integration Points"
-
-        # Mistake keywords (check before patterns to avoid conflicts)
-        if any(
-            word in learning_lower
-            for word in ["mistake", "error", "avoid", "don't", "never", "not"]
-        ):
-            return "Common Mistakes to Avoid"
-
-        # Context keywords (check before patterns to avoid "working", "version" conflicts)
-        if any(
-            word in learning_lower
-            for word in [
-                "context",
-                "current",
-                "currently",
-                "working",
-                "version",
-                "release",
-                "candidate",
-            ]
-        ):
-            return "Current Technical Context"
-
-        # Guideline keywords (check before patterns to avoid "must", "should" conflicts)
-        if any(
-            word in learning_lower
-            for word in [
-                "guideline",
-                "rule",
-                "standard",
-                "practice",
-                "docstring",
-                "documentation",
-                "must",
-                "should",
-                "include",
-                "comprehensive",
-            ]
-        ):
-            return "Implementation Guidelines"
-
-        # Pattern keywords (including dependency injection, conventions)
-        if any(
-            word in learning_lower
-            for word in [
-                "pattern",
-                "convention",
-                "style",
-                "format",
-                "dependency injection",
-                "instantiation",
-                "use",
-                "implement",
-            ]
-        ):
-            return "Coding Patterns Learned"
-
-        # Strategy keywords
-        if any(
-            word in learning_lower
-            for word in ["strategy", "approach", "method", "technique", "effective"]
-        ):
-            return "Effective Strategies"
-
-        # Performance keywords
-        if any(
-            word in learning_lower
-            for word in ["performance", "optimization", "speed", "efficiency"]
-        ):
-            return "Performance Considerations"
-
-        # Domain keywords
-        if any(word in learning_lower for word in ["domain", "business", "specific"]):
-            return "Domain-Specific Knowledge"
-
-        return "Recent Learnings"
-
-    def _build_simple_memory_content(self, agent_id: str, items: List[str]) -> str:
-        """Build memory content as a simple list with updated timestamp.
-
-        Args:
-            agent_id: The agent identifier
-            items: List of memory items
-
-        Returns:
-            str: The formatted memory content
-        """
-        lines = []
-
-        # Add header
-        lines.append(f"# Agent Memory: {agent_id}")
-        # Always update timestamp when building new content
-        lines.append(f"<!-- Last Updated: {datetime.now().isoformat()}Z -->")
-        lines.append("")
-
-        # Add all items as a simple list
-        for item in items:
-            if item.strip():
-                # Ensure item has bullet point
-                if not item.strip().startswith("-"):
-                    lines.append(f"- {item.strip()}")
-                else:
-                    lines.append(item.strip())
-
-        return "\n".join(lines)
 
     def replace_agent_memory(self, agent_id: str, memory_items: List[str]) -> bool:
         """Replace agent's memory with new content as a simple list.
@@ -910,10 +522,10 @@ class AgentMemoryManager(MemoryServiceInterface):
         """
         try:
             # Build new memory content as simple list with updated timestamp
-            new_content = self._build_simple_memory_content(agent_id, memory_items)
+            new_content = self.format_service.build_simple_memory_content(agent_id, memory_items)
 
             # Validate and save
-            agent_limits = self._get_agent_limits(agent_id)
+            agent_limits = self.limits_service.get_agent_limits(agent_id)
             if self.content_manager.exceeds_limits(new_content, agent_limits):
                 self.logger.debug(f"Memory for {agent_id} exceeds limits, truncating")
                 new_content = self.content_manager.truncate_simple_list(
@@ -921,7 +533,7 @@ class AgentMemoryManager(MemoryServiceInterface):
                 )
 
             # Save the new memory
-            return self._save_memory_file(agent_id, new_content)
+            return self._save_memory_file_wrapper(agent_id, new_content)
 
         except Exception as e:
             self.logger.error(f"Error replacing memory for {agent_id}: {e}")
@@ -1001,105 +613,20 @@ class AgentMemoryManager(MemoryServiceInterface):
             "suggestion": "Use load_agent_memory() for specific agent memories",
         }
 
-    def _ensure_memories_directory(self):
-        """Ensure memories directory exists with README.
-
-        WHY: The memories directory needs clear documentation so developers
-        understand the purpose of these files and how to interact with them.
-        """
-        try:
-            self.memories_dir.mkdir(parents=True, exist_ok=True)
-            self.logger.debug(f"Ensured memories directory exists: {self.memories_dir}")
-
-            readme_path = self.memories_dir / "README.md"
-            if not readme_path.exists():
-                readme_content = """# Agent Memory System
-
-## Purpose
-Each agent maintains project-specific knowledge in these files. Agents read their memory file before tasks and update it when they learn something new.
-
-## Manual Editing
-Feel free to edit these files to:
-- Add project-specific guidelines
-- Remove outdated information
-- Reorganize for better clarity
-- Add domain-specific knowledge
-
-## Memory Limits
-- Max file size: 80KB (~20k tokens)
-- Max sections: 10
-- Max items per section: 15
-- Files auto-truncate when limits exceeded
-
-## File Format
-Standard markdown with structured sections. Agents expect:
-- Project Architecture
-- Implementation Guidelines
-- Common Mistakes to Avoid
-- Current Technical Context
-
-## How It Works
-1. Agents read their memory file before starting tasks
-2. Agents add learnings during or after task completion
-3. Files automatically enforce size limits
-4. Developers can manually edit for accuracy
-
-## Memory File Lifecycle
-- Created automatically when agent first runs
-- Updated through hook system after delegations
-- Manually editable by developers
-- Version controlled with project
-"""
-                readme_path.write_text(readme_content, encoding="utf-8")
-                self.logger.info("Created README.md in memories directory")
-
-        except Exception as e:
-            self.logger.error(f"Error ensuring memories directory: {e}")
-            # Continue anyway - memory system should not block operations
-
-    def _parse_memory_sections(self, memory_content: str) -> Dict[str, List[str]]:
-        """Parse memory content into sections and items.
-
+    def _save_memory_file_wrapper(self, agent_id: str, content: str) -> bool:
+        """Wrapper for save_memory_file that handles agent_id.
+        
         Args:
-            memory_content: Raw memory file content
-
+            agent_id: Agent identifier
+            content: Content to save
+            
         Returns:
-            Dict mapping section names to lists of items
+            True if saved successfully
         """
-        sections = {}
-        current_section = None
-        current_items = []
-
-        for line in memory_content.split("\n"):
-            # Skip metadata lines
-            if line.startswith("<!-- ") and line.endswith(" -->"):
-                continue
-            # Check for section headers (## Level 2 headers)
-            if line.startswith("## "):
-                # Save previous section if exists
-                if current_section and current_items:
-                    sections[current_section] = current_items
-
-                # Start new section
-                current_section = line[3:].strip()  # Remove "## " prefix
-                current_items = []
-            # Collect non-empty lines as items (but not HTML comments)
-            elif (
-                line.strip() and current_section and not line.strip().startswith("<!--")
-            ):
-                # Keep the full line with its formatting
-                current_items.append(line.strip())
-
-        # Save last section
-        if current_section and current_items:
-            sections[current_section] = current_items
-
-        return sections
-
-    # ================================================================================
-    # Interface Adapter Methods
-    # ================================================================================
-    # These methods adapt the existing implementation to comply with MemoryServiceInterface
+        file_path = self.file_service.get_memory_file_with_migration(
+            self.memories_dir, agent_id
+        )
+        return self.file_service.save_memory_file(file_path, content)
 
     def load_memory(self, agent_id: str) -> Optional[str]:
         """Load memory for a specific agent.
@@ -1189,13 +716,13 @@ Standard markdown with structured sections. Agents expect:
                     size_kb = memory_file.stat().st_size / 1024
                     metrics["agents"][agent_id] = {
                         "size_kb": round(size_kb, 2),
-                        "limit_kb": self._get_agent_limits(agent_id)[
+                        "limit_kb": self.limits_service.get_agent_limits(agent_id)[
                             "max_file_size_kb"
                         ],
                         "usage_percent": round(
                             (
                                 size_kb
-                                / self._get_agent_limits(agent_id)["max_file_size_kb"]
+                                / self.limits_service.get_agent_limits(agent_id)["max_file_size_kb"]
                             )
                             * 100,
                             1,
@@ -1210,7 +737,7 @@ Standard markdown with structured sections. Agents expect:
                     if file_path.name != "README.md":
                         agent_name = file_path.stem.replace("_memories", "")
                         size_kb = file_path.stat().st_size / 1024
-                        limit_kb = self._get_agent_limits(agent_name)[
+                        limit_kb = self.limits_service.get_agent_limits(agent_name)[
                             "max_file_size_kb"
                         ]
                         metrics["agents"][agent_name] = {
