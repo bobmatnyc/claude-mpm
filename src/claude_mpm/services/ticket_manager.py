@@ -18,7 +18,7 @@ class TicketManager:
 
     def get_ticket(self, *args, **kwargs):
         """Stub method."""
-        return None
+        return
 
     def update_task(self, *args, **kwargs):
         """Stub method."""

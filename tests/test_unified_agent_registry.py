@@ -10,7 +10,6 @@ from unittest.mock import MagicMock, patch
 
 from claude_mpm.core.unified_agent_registry import (
     AgentTier,
-    AgentType,
     UnifiedAgentRegistry,
 )
 
@@ -58,9 +57,7 @@ class TestUnifiedAgentRegistry(unittest.TestCase):
         mock_path_manager.get_project_agents_dir.return_value = self.project_dir
         mock_path_manager.get_user_agents_dir.return_value = self.user_dir
         mock_path_manager.get_system_agents_dir.return_value = self.system_dir
-        mock_path_manager.get_templates_dir.return_value = (
-            self.temp_path / "templates"
-        )
+        mock_path_manager.get_templates_dir.return_value = self.temp_path / "templates"
         mock_path_manager.get_memories_dir.return_value = self.temp_path / "memories"
 
         with patch(
@@ -136,9 +133,7 @@ class TestUnifiedAgentRegistry(unittest.TestCase):
         mock_path_manager.get_project_agents_dir.return_value = self.project_dir
         mock_path_manager.get_user_agents_dir.return_value = self.user_dir
         mock_path_manager.get_system_agents_dir.return_value = self.system_dir
-        mock_path_manager.get_templates_dir.return_value = (
-            self.temp_path / "templates"
-        )
+        mock_path_manager.get_templates_dir.return_value = self.temp_path / "templates"
         mock_path_manager.get_memories_dir.return_value = self.temp_path / "memories"
 
         with patch(

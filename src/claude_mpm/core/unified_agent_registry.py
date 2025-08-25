@@ -136,7 +136,13 @@ class UnifiedAgentRegistry:
 
         # Discovery configuration
         self.file_extensions = {".md", ".json", ".yaml", ".yml"}
-        self.ignore_patterns = {"__pycache__", ".git", "node_modules", ".pytest_cache"}
+        self.ignore_patterns = {
+            "__pycache__",
+            ".git",
+            "node_modules",
+            ".pytest_cache",
+            "backup",
+        }
 
         # Statistics
         self.discovery_stats = {
@@ -166,15 +172,15 @@ class UnifiedAgentRegistry:
         if user_path.exists():
             self.discovery_paths.append(user_path)
 
-        # System-level agents
+        # System-level agents (includes templates as a subdirectory)
         system_path = self.path_manager.get_system_agents_dir()
         if system_path.exists():
             self.discovery_paths.append(system_path)
 
-        # Templates directory
-        templates_path = self.path_manager.get_templates_dir()
-        if templates_path.exists():
-            self.discovery_paths.append(templates_path)
+        # NOTE: Templates directory is NOT added separately because:
+        # - templates_path = system_path / "templates"
+        # - The rglob("*") in _discover_path will already find templates
+        # - Adding it separately causes duplicate discovery
 
         logger.debug(
             f"Discovery paths configured: {[str(p) for p in self.discovery_paths]}"
@@ -272,9 +278,29 @@ class UnifiedAgentRegistry:
         # Remove extension and use filename as agent name
         name = file_path.stem
 
-        # Skip certain files
-        skip_files = {"README", "INSTRUCTIONS", "template", "example"}
-        if name.upper() in skip_files:
+        # Skip certain files and non-agent templates
+        skip_files = {
+            "README",
+            "INSTRUCTIONS",
+            "template",
+            "example",
+            "base_agent",
+            "base_agent_template",
+            "agent_template",
+            "agent_schema",
+            "base_pm",
+            "workflow",
+            "output_style",
+            "memory",
+            "optimization_report",
+            "vercel_ops_instructions",
+            "agent-template",
+            "agent-schema",  # Also handle hyphenated versions
+        }
+        # Case-insensitive comparison
+        if name.replace("-", "_").upper() in {
+            s.replace("-", "_").upper() for s in skip_files
+        }:
             return None
 
         # Normalize name

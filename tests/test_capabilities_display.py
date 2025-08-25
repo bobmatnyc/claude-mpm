@@ -31,9 +31,11 @@ def test_capabilities_display():
             print(f"  Has routing: {'routing' in metadata}")
             print(f"  Has memory_routing: {'memory_routing' in metadata}")
 
-            if 'memory_routing' in metadata:
-                mr = metadata['memory_routing']
-                print(f"  Memory routing description: {mr.get('description', 'None')[:60]}...")
+            if "memory_routing" in metadata:
+                mr = metadata["memory_routing"]
+                print(
+                    f"  Memory routing description: {mr.get('description', 'None')[:60]}..."
+                )
                 print(f"  Categories: {len(mr.get('categories', []))}")
                 print(f"  Keywords: {len(mr.get('keywords', []))}")
             else:
@@ -90,7 +92,7 @@ def test_capabilities_display():
         # Show first agent section
         agent_start = capabilities.find("### ")
         if agent_start != -1:
-            print(capabilities[agent_start:min(agent_start + 500, len(capabilities))])
+            print(capabilities[agent_start : min(agent_start + 500, len(capabilities))])
 
     print("\n" + "=" * 50)
     print("Test complete!")

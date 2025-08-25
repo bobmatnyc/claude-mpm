@@ -26,8 +26,16 @@ def test_final_verification():
 
     print("\n✅ TEST 1: Memory routing in agent templates")
     print("-" * 40)
-    test_agents = ["engineer", "research", "qa", "security", "documentation",
-                   "data_engineer", "ops", "version_control"]
+    test_agents = [
+        "engineer",
+        "research",
+        "qa",
+        "security",
+        "documentation",
+        "data_engineer",
+        "ops",
+        "version_control",
+    ]
 
     success_count = 0
     for agent in test_agents:
@@ -47,10 +55,13 @@ def test_final_verification():
 
     # Actually count the occurrences properly
     import re
+
     memory_routing_matches = re.findall(r"- \*\*Memory Routing\*\*: (.+)", capabilities)
 
     if memory_routing_matches:
-        print(f"  ✓ Found {len(memory_routing_matches)} agents with memory routing in capabilities")
+        print(
+            f"  ✓ Found {len(memory_routing_matches)} agents with memory routing in capabilities"
+        )
         print("\n  Examples:")
         for i, match in enumerate(memory_routing_matches[:3]):
             print(f"    {i+1}. {match[:80]}...")
@@ -64,12 +75,14 @@ def test_final_verification():
     patterns = memory_router.get_routing_patterns()
 
     print(f"  Total agents: {len(patterns['agents'])}")
-    if 'static_agents' in patterns:
+    if "static_agents" in patterns:
         print(f"  Static agents: {len(patterns['static_agents'])}")
-    if 'dynamic_agents' in patterns:
+    if "dynamic_agents" in patterns:
         print(f"  Dynamic agents: {len(patterns['dynamic_agents'])}")
-        if patterns['dynamic_agents']:
-            print(f"  Dynamic agents loaded: {', '.join(patterns['dynamic_agents'][:5])}")
+        if patterns["dynamic_agents"]:
+            print(
+                f"  Dynamic agents loaded: {', '.join(patterns['dynamic_agents'][:5])}"
+            )
 
     print("\n✅ TEST 4: Routing works correctly")
     print("-" * 40)
