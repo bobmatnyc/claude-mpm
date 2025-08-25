@@ -4,9 +4,10 @@
 import pytest
 
 # Skip entire module - event_storage module was removed in refactoring
-pytestmark = pytest.mark.skip(reason="event_storage module was removed in refactoring - needs rewrite")
+pytestmark = pytest.mark.skip(
+    reason="event_storage module was removed in refactoring - needs rewrite"
+)
 
-import json
 import sys
 from pathlib import Path
 

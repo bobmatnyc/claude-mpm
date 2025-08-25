@@ -15,13 +15,11 @@ WHY: Ensure that the MCP gateway can recover from stale locks and properly
 manage concurrent access attempts.
 """
 
-import asyncio
 import json
 import os
 import sys
-import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 

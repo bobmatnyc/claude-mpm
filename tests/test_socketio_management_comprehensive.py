@@ -17,13 +17,9 @@ Tests:
 """
 
 import io
-import json
 import os
-import signal
-import socket
 import subprocess
 import sys
-import tempfile
 import time
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -51,13 +47,13 @@ class TestResults:
             self.failed += 1
 
     def print_summary(self):
-        print(f"\n📊 Test Summary:")
+        print("\n📊 Test Summary:")
         print(f"   Passed: {self.passed}")
         print(f"   Failed: {self.failed}")
         print(f"   Total: {self.passed + self.failed}")
 
         if self.failed > 0:
-            print(f"\n❌ Failed tests:")
+            print("\n❌ Failed tests:")
             for test in self.tests:
                 if not test["passed"]:
                     print(f"   • {test['name']}: {test['details']}")
@@ -309,7 +305,7 @@ def test_backward_compatibility(results):
             ],
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=10, check=False,
         )
 
         if (
@@ -354,13 +350,13 @@ def run_manual_verification():
     print("3. Test conflict detection:")
     print(f"   a) Start daemon: {daemon_cmd} start")
     print(f"   b) Try start manager: {base_cmd} start --port 8765")
-    print(f"   c) Should show conflict warning")
+    print("   c) Should show conflict warning")
     print()
 
     print("4. Test diagnose command:")
     print(f"   a) With no servers: {base_cmd} diagnose")
     print(f"   b) With daemon running: {base_cmd} diagnose")
-    print(f"   c) Should show appropriate analysis")
+    print("   c) Should show appropriate analysis")
 
 
 def main():

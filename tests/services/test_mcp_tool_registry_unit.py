@@ -6,7 +6,6 @@ Focused unit tests for the tool registry implementation.
 Tests core functionality with the actual implementation.
 """
 
-import asyncio
 import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock

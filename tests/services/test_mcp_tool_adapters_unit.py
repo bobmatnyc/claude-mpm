@@ -6,10 +6,9 @@ Comprehensive unit tests for the built-in tool adapters.
 Tests echo, calculator, and system_info tools in isolation.
 """
 
-import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -348,9 +347,11 @@ class TestSystemInfoToolAdapter:
         # Mock psutil import failure by patching the import inside the invoke method
         with patch(
             "builtins.__import__",
-            side_effect=lambda name, *args: ImportError("No module named 'psutil'")
-            if name == "psutil"
-            else __import__(name, *args),
+            side_effect=lambda name, *args: (
+                ImportError("No module named 'psutil'")
+                if name == "psutil"
+                else __import__(name, *args)
+            ),
         ):
             invocation = MCPToolInvocation(
                 tool_name="system_info", parameters={"info_type": "memory"}

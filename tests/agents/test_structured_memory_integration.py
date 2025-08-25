@@ -8,8 +8,6 @@ Tests the enhanced memory integration with:
 - Frontmatter tracking with memories: <number> field
 """
 
-import tempfile
-from pathlib import Path
 
 import yaml
 
@@ -163,10 +161,10 @@ def test_memory_change_detection():
             if line.strip() == "## Memories":
                 in_memory_section = True
                 continue
-            elif line.startswith("## ") and in_memory_section:
+            if line.startswith("## ") and in_memory_section:
                 # Hit another section, stop collecting
                 break
-            elif in_memory_section:
+            if in_memory_section:
                 memory_lines.append(line)
 
         return "\n".join(memory_lines).strip()
@@ -335,7 +333,7 @@ INSTRUCTIONS: Review your project memory above before proceeding. Apply learned 
     print("✓ Complete memory integration workflow works")
     print(f"  - Memory lines: {memory_line_count}")
     print(f"  - Memory size: {agent_data['capabilities']['memory_size_kb']}KB")
-    print(f"  - Agent tier: project")
+    print("  - Agent tier: project")
 
 
 if __name__ == "__main__":

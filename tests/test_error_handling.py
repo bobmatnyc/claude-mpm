@@ -5,13 +5,10 @@ Tests disk full, permissions, invalid data, and other error conditions.
 """
 
 import os
-import shutil
 import stat
 import sys
-import tempfile
-import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -57,7 +54,7 @@ def test_permission_errors():
             # Get statistics
             stats = logger.get_stats()
 
-            print(f"  ✓ Attempted logs: 10")
+            print("  ✓ Attempted logs: 10")
             print(f"  ✓ Successful logs: {success_count}")
             print(f"  ✓ Failed logs: {error_count}")
             print(f"  ✓ Logger stats: {stats}")
@@ -136,7 +133,7 @@ def test_disk_space_simulation():
         # Count actual files created
         actual_files = len(list(Path(tmpdir).glob("**/*.json")))
 
-        print(f"  ✓ Attempted logs: 15")
+        print("  ✓ Attempted logs: 15")
         print(f"  ✓ Queued successfully: {successful_logs}")
         print(f"  ✓ Queue failures: {failed_logs}")
         print(f"  ✓ Actual files created: {actual_files}")
@@ -233,7 +230,7 @@ def test_invalid_data_handling():
         # Count actual files created
         files_created = len(list(Path(tmpdir).glob("**/*.json")))
 
-        print(f"\n  📊 Results:")
+        print("\n  📊 Results:")
         print(f"    ✓ Test cases: {len(test_cases)}")
         print(f"    ✓ Successful: {results['successful']}")
         print(f"    ✓ Failed: {results['failed']}")
@@ -247,7 +244,7 @@ def test_invalid_data_handling():
 
         for json_file in Path(tmpdir).glob("**/*.json"):
             try:
-                with open(json_file, "r", encoding="utf-8") as f:
+                with open(json_file, encoding="utf-8") as f:
                     import json
 
                     json.load(f)
@@ -331,7 +328,7 @@ def test_concurrent_error_scenarios():
                     else:
                         thread_dropped += 1
 
-                except Exception as e:
+                except Exception:
                     thread_exceptions += 1
 
             # Update shared results
@@ -369,7 +366,7 @@ def test_concurrent_error_scenarios():
         # Count files created
         files_created = len(list(Path(tmpdir).glob("**/*.json")))
 
-        print(f"  📊 Concurrent Error Results:")
+        print("  📊 Concurrent Error Results:")
         print(f"    ✓ Total requests attempted: {total_requests}")
         print(f"    ✓ Successful logs: {results['successful']}")
         print(f"    ✓ Dropped logs: {results['dropped']}")
@@ -414,9 +411,9 @@ def test_recovery_after_errors():
             try:
                 success = logger.log_response(
                     None if i % 3 == 0 else f"Request {i}",
-                    "X" * 50000
-                    if i % 5 == 0
-                    else f"Response {i}",  # Some very large responses
+                    (
+                        "X" * 50000 if i % 5 == 0 else f"Response {i}"
+                    ),  # Some very large responses
                     None if i % 4 == 0 else {"agent": f"error_agent_{i}"},
                 )
                 if success:
@@ -428,7 +425,7 @@ def test_recovery_after_errors():
         phase1_stats = logger.get_stats()
         phase1_files = len(list(Path(tmpdir).glob("**/*.json")))
 
-        print(f"    ✓ Phase 1 problematic logs attempted: 10")
+        print("    ✓ Phase 1 problematic logs attempted: 10")
         print(f"    ✓ Phase 1 successful: {problematic_logs}")
         print(f"    ✓ Phase 1 files: {phase1_files}")
         print(f"    ✓ Phase 1 errors: {phase1_stats['errors']}")
@@ -461,7 +458,7 @@ def test_recovery_after_errors():
         total_files = len(list(Path(tmpdir).glob("**/*.json")))
         phase2_files = total_files - phase1_files
 
-        print(f"    ✓ Phase 2 normal logs attempted: 20")
+        print("    ✓ Phase 2 normal logs attempted: 20")
         print(f"    ✓ Phase 2 successful: {normal_logs}")
         print(f"    ✓ Phase 2 new files: {phase2_files}")
         print(f"    ✓ Phase 2 errors: {phase2_stats['errors']}")
@@ -471,7 +468,7 @@ def test_recovery_after_errors():
         valid_phase2_files = 0
         for json_file in Path(tmpdir).glob("**/recovery_test_phase2/*.json"):
             try:
-                with open(json_file, "r") as f:
+                with open(json_file) as f:
                     import json
 
                     data = json.load(f)
@@ -568,20 +565,20 @@ def main():
     )
     total_tests = len(tests_results)
 
-    print(f"\n🎯 OVERALL ERROR HANDLING RESULTS:")
+    print("\n🎯 OVERALL ERROR HANDLING RESULTS:")
     print(f"  ✓ Successful tests: {successful_tests}/{total_tests}")
 
     if successful_tests >= total_tests - 1:  # Allow one test to have issues
-        print(f"\n🛡️ ERROR HANDLING TESTS PASSED!")
-        print(f"✅ System handles permission errors gracefully")
-        print(f"✅ Disk full conditions managed appropriately")
-        print(f"✅ Invalid data processed without crashes")
-        print(f"✅ Concurrent error scenarios handled")
-        print(f"✅ System recovers properly after errors")
+        print("\n🛡️ ERROR HANDLING TESTS PASSED!")
+        print("✅ System handles permission errors gracefully")
+        print("✅ Disk full conditions managed appropriately")
+        print("✅ Invalid data processed without crashes")
+        print("✅ Concurrent error scenarios handled")
+        print("✅ System recovers properly after errors")
     else:
-        print(f"\n⚠️ ERROR HANDLING HAD ISSUES")
+        print("\n⚠️ ERROR HANDLING HAD ISSUES")
         print(f"❌ Only {successful_tests}/{total_tests} tests passed")
-        print(f"❌ Review failed tests above for robustness issues")
+        print("❌ Review failed tests above for robustness issues")
 
     return {
         "tests_results": tests_results,

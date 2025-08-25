@@ -9,15 +9,11 @@ This test validates all components working together:
 - Error messages with troubleshooting guidance
 """
 
-import asyncio
 import json
 import os
 import sys
-import tempfile
-import threading
-import time
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -88,7 +84,7 @@ class IntegrationTestSuite:
             assert server.pidfile_path.exists(), "PID file not created"
 
             # Verify PID file content
-            with open(server.pidfile_path, "r") as f:
+            with open(server.pidfile_path) as f:
                 content = f.read().strip()
                 try:
                     pidfile_data = json.loads(content)
@@ -334,7 +330,7 @@ class IntegrationTestSuite:
             server.create_pidfile()
 
             # Verify it can read it back
-            with open(server.pidfile_path, "r") as f:
+            with open(server.pidfile_path) as f:
                 content = json.loads(f.read())
                 assert "pid" in content, "New format missing PID"
                 assert "server_id" in content, "New format missing server_id"
@@ -402,9 +398,8 @@ class IntegrationTestSuite:
         if passed == total:
             print("🎉 All integration tests passed!")
             return True
-        else:
-            print("❌ Some integration tests failed")
-            return False
+        print("❌ Some integration tests failed")
+        return False
 
 
 def main():

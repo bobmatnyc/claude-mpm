@@ -29,14 +29,11 @@ import os
 import statistics
 import subprocess
 import sys
-import tempfile
-import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 # Add claude-mpm to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
@@ -207,7 +204,7 @@ class PerformanceBenchmarks:
                     capture_output=True,
                     text=True,
                     timeout=10,
-                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")},
+                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")}, check=False,
                 )
 
                 if result.returncode == 0:
@@ -245,7 +242,7 @@ class PerformanceBenchmarks:
                     capture_output=True,
                     text=True,
                     timeout=15,
-                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")},
+                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")}, check=False,
                 )
 
                 end_time = time.time()
@@ -317,7 +314,7 @@ class PerformanceBenchmarks:
                     capture_output=True,
                     text=True,
                     timeout=30,
-                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")},
+                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")}, check=False,
                 )
 
                 end_time = time.time()
@@ -397,7 +394,7 @@ class PerformanceBenchmarks:
                     capture_output=True,
                     text=True,
                     timeout=10,
-                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")},
+                    env={**os.environ, "PYTHONPATH": str(self.project_root / "src")}, check=False,
                 )
 
                 end_time = time.time()

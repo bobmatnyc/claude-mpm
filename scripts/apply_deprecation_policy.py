@@ -13,12 +13,10 @@ Usage:
 """
 
 import argparse
-import os
 import shutil
 import sys
-import warnings
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -102,7 +100,7 @@ class DeprecationPolicyApplier:
                 continue
 
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
+                with open(file_path, encoding="utf-8") as f:
                     content = f.read()
 
                 # Check if deprecation warning already exists
@@ -133,8 +131,8 @@ class DeprecationPolicyApplier:
                     "# DEPRECATION WARNING",
                     "import warnings",
                     "warnings.warn(",
-                    f'    "This module is deprecated and will be removed in a future version. "',
-                    f'    "See docs/developer/DEPRECATION_POLICY.md for migration guidance.",',
+                    '    "This module is deprecated and will be removed in a future version. "',
+                    '    "See docs/developer/DEPRECATION_POLICY.md for migration guidance.",',
                     "    DeprecationWarning,",
                     "    stacklevel=2",
                     ")",
@@ -191,7 +189,7 @@ class DeprecationPolicyApplier:
         ]
 
         if gitignore_path.exists():
-            with open(gitignore_path, "r", encoding="utf-8") as f:
+            with open(gitignore_path, encoding="utf-8") as f:
                 content = f.read()
 
             # Check if patterns already exist
@@ -217,31 +215,31 @@ class DeprecationPolicyApplier:
         if self.dry_run:
             print("🔍 DRY RUN MODE - No files were actually modified")
 
-        print(f"\nObsolete files identified:")
+        print("\nObsolete files identified:")
         for category, files in obsolete_files.items():
             if files:
                 print(f"  {category.title()}: {len(files)} files")
                 for file_path in files:
                     print(f"    - {file_path}")
 
-        print(f"\nActions taken:")
+        print("\nActions taken:")
         print(f"  Files removed: {len(self.removed_files)}")
         print(f"  Deprecation warnings added: {len(self.warnings_added)}")
         print(f"  Files updated: {len(self.updated_files)}")
 
         if self.warnings_added:
-            print(f"\nDeprecation warnings added to:")
+            print("\nDeprecation warnings added to:")
             for file_path in self.warnings_added:
                 print(f"  - {file_path}")
 
-        print(f"\nNext steps:")
-        print(f"  1. Review changes before committing")
-        print(f"  2. Update documentation if needed")
-        print(f"  3. Run tests to ensure nothing is broken")
-        print(f"  4. Consider updating import statements")
+        print("\nNext steps:")
+        print("  1. Review changes before committing")
+        print("  2. Update documentation if needed")
+        print("  3. Run tests to ensure nothing is broken")
+        print("  4. Consider updating import statements")
 
-        print(f"\nFor more information, see:")
-        print(f"  docs/developer/DEPRECATION_POLICY.md")
+        print("\nFor more information, see:")
+        print("  docs/developer/DEPRECATION_POLICY.md")
 
     def apply_policy(self, phase: str = "all") -> None:
         """Apply the deprecation policy."""

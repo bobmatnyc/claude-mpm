@@ -4,11 +4,8 @@ Test script to validate multi-language support using individual tree-sitter pack
 This tests the agent's ability to analyze JavaScript, TypeScript, Go, and other languages.
 """
 
-import importlib
-import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 
@@ -167,7 +164,7 @@ if __name__ == "__main__":
             [sys.executable, str(test_file)],
             capture_output=True,
             text=True,
-            cwd=test_file.parent,
+            cwd=test_file.parent, check=False,
         )
 
         print(result.stdout)
@@ -431,7 +428,7 @@ if __name__ == "__main__":
             [sys.executable, str(feature_file)],
             capture_output=True,
             text=True,
-            cwd=feature_file.parent,
+            cwd=feature_file.parent, check=False,
         )
 
         print(result.stdout)
@@ -469,7 +466,9 @@ def main():
     print("=" * 70)
 
     print(f"📁 Multi-Language Parsing: {'✅ PASS' if parsing_success else '❌ FAIL'}")
-    print(f"🔍 Language-Specific Features: {'✅ PASS' if features_success else '❌ FAIL'}")
+    print(
+        f"🔍 Language-Specific Features: {'✅ PASS' if features_success else '❌ FAIL'}"
+    )
 
     overall_success = parsing_success and features_success
 

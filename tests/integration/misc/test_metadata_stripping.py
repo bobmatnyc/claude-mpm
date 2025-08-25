@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Test script to verify HTML metadata comments are stripped from PM instructions."""
 
-import os
 import sys
 from pathlib import Path
 
@@ -56,8 +55,7 @@ def test_metadata_stripping():
         if len(found_comments) > 5:
             print(f"  ... and {len(found_comments) - 5} more")
         return False
-    else:
-        print("✅ No metadata comments found - all properly stripped!")
+    print("✅ No metadata comments found - all properly stripped!")
 
     # Also check the first few lines to ensure clean output
     print("\n📄 First 5 lines of processed instructions:")

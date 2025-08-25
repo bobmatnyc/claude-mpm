@@ -10,15 +10,18 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from claude_mpm.core.framework_loader import FrameworkLoader
 from claude_mpm.services.system_instructions_service import SystemInstructionsService
 
+
 def get_size_mb(obj):
     """Get approximate size of an object in MB."""
     import pickle
+
     try:
         data = pickle.dumps(obj)
         return len(data) / (1024 * 1024)
     except:
         # Fallback to string representation
         return len(str(obj)) / (1024 * 1024)
+
 
 # Test FrameworkLoader content
 loader = FrameworkLoader()
@@ -43,15 +46,15 @@ for key in content.keys():
 print()
 
 # Check agent registry
-if hasattr(loader, 'agent_registry'):
+if hasattr(loader, "agent_registry"):
     registry = loader.agent_registry
     print("Agent Registry:")
-    if hasattr(registry, 'registry'):
+    if hasattr(registry, "registry"):
         reg = registry.registry
         print(f"  SimpleAgentRegistry agents: {len(reg.agents)} agents")
-    if hasattr(registry, '_unified_registry'):
+    if hasattr(registry, "_unified_registry"):
         unified = registry._unified_registry
-        if hasattr(unified, 'registry'):
+        if hasattr(unified, "registry"):
             print(f"  UnifiedRegistry agents: {len(unified.registry)} agents")
 print()
 

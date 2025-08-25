@@ -5,7 +5,6 @@ Integration tests for Document Summarizer Tool with MCP Gateway
 Tests the document summarizer tool integration with the MCP Gateway.
 """
 
-import asyncio
 import tempfile
 from pathlib import Path
 

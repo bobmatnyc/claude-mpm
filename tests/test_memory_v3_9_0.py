@@ -11,21 +11,16 @@ This test suite validates:
 6. Error handling and edge cases
 """
 
-import json
 import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, patch
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.core.framework_loader import FrameworkLoader
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
 
@@ -113,7 +108,7 @@ class MemoryV3_9_0_Tester:
                 for cmd in test_commands:
                     try:
                         result = subprocess.run(
-                            cmd, capture_output=True, text=True, timeout=30
+                            cmd, capture_output=True, text=True, timeout=30, check=False
                         )
                         if result.returncode != 0:
                             cli_success = False
@@ -141,7 +136,7 @@ class MemoryV3_9_0_Tester:
                 os.chdir(original_cwd)
 
         except Exception as e:
-            self.log_result("CLI memory add test", False, f"Exception: {str(e)}")
+            self.log_result("CLI memory add test", False, f"Exception: {e!s}")
 
     def test_api_memory_add():
         """Test adding memories via Python API."""
@@ -200,7 +195,7 @@ class MemoryV3_9_0_Tester:
             )
 
         except Exception as e:
-            self.log_result("API memory add test", False, f"Exception: {str(e)}")
+            self.log_result("API memory add test", False, f"Exception: {e!s}")
 
     def test_80kb_limit_enforcement():
         """Test 80KB limit is properly enforced with optimization."""
@@ -263,7 +258,7 @@ class MemoryV3_9_0_Tester:
 
         except Exception as e:
             self.log_result(
-                "80KB limit enforcement test", False, f"Exception: {str(e)}"
+                "80KB limit enforcement test", False, f"Exception: {e!s}"
             )
 
     def test_project_vs_system_memory_precedence():
@@ -327,7 +322,7 @@ This is project-specific memory that should override system memory.
                 os.chdir(original_cwd)
 
         except Exception as e:
-            self.log_result("Memory precedence test", False, f"Exception: {str(e)}")
+            self.log_result("Memory precedence test", False, f"Exception: {e!s}")
 
     def test_memory_persistence_across_sessions():
         """Test that memories persist across different sessions/instances."""
@@ -385,7 +380,7 @@ This is project-specific memory that should override system memory.
             )
 
         except Exception as e:
-            self.log_result("Memory persistence test", False, f"Exception: {str(e)}")
+            self.log_result("Memory persistence test", False, f"Exception: {e!s}")
 
     def test_performance_under_load():
         """Test memory system performance under various load conditions."""
@@ -454,7 +449,7 @@ This is project-specific memory that should override system memory.
             )
 
         except Exception as e:
-            self.log_result("Performance test", False, f"Exception: {str(e)}")
+            self.log_result("Performance test", False, f"Exception: {e!s}")
 
     def test_error_handling_and_edge_cases():
         """Test error handling and edge cases."""
@@ -527,7 +522,7 @@ This is project-specific memory that should override system memory.
             )
 
         except Exception as e:
-            self.log_result("Error handling test", False, f"Exception: {str(e)}")
+            self.log_result("Error handling test", False, f"Exception: {e!s}")
 
     def test_memory_optimization_features():
         """Test memory optimization features."""
@@ -568,7 +563,7 @@ This is project-specific memory that should override system memory.
             )
 
         except Exception as e:
-            self.log_result("Memory optimization test", False, f"Exception: {str(e)}")
+            self.log_result("Memory optimization test", False, f"Exception: {e!s}")
 
     def cleanup(self):
         """Clean up temporary directories."""
@@ -610,9 +605,8 @@ This is project-specific memory that should override system memory.
             if passed == total:
                 print("🎉 All v3.9.0 memory management tests PASSED!")
                 return True
-            else:
-                print(f"❌ {total - passed} tests FAILED!")
-                return False
+            print(f"❌ {total - passed} tests FAILED!")
+            return False
 
         finally:
             self.cleanup()

@@ -11,7 +11,6 @@ This script tests:
 """
 
 import sys
-import tempfile
 import time
 from pathlib import Path
 
@@ -176,7 +175,7 @@ def test_cache_metrics():
     print(f"  Total agents: {stats['total_agents']}")
     print(f"  Discovery stats: {stats['discovery_stats']}")
 
-    if "cache_metrics" in stats and stats["cache_metrics"]:
+    if stats.get("cache_metrics"):
         print(f"  Cache metrics: {stats['cache_metrics']}")
         assert stats["cache_metrics"]["hits"] > 0, "Should have cache hits"
         assert stats["cache_metrics"]["misses"] > 0, "Should have cache misses"

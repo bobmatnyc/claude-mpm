@@ -1,4 +1,5 @@
 import pytest
+
 #!/usr/bin/env python3
 """
 Test MCP Stdio Server
@@ -15,7 +16,6 @@ import asyncio
 import json
 import subprocess
 import sys
-from pathlib import Path
 
 
 @pytest.mark.asyncio

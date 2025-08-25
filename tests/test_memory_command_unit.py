@@ -9,8 +9,6 @@ This test suite covers the most important memory command functionality:
 - Basic file operations
 """
 
-import json
-import tempfile
 from argparse import Namespace
 from io import StringIO
 from pathlib import Path
@@ -24,9 +22,8 @@ from claude_mpm.cli.commands.memory import (
     _show_status,
     manage_memory,
 )
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
-from claude_mpm.services.agents.memory import AgentMemoryManager
 from claude_mpm.cli.shared.base_command import CommandResult
+from claude_mpm.services.agents.memory import AgentMemoryManager
 
 
 class TestMemoryManagementCommand:
@@ -57,9 +54,9 @@ class TestMemoryManagementCommand:
                     "sections": 4,
                     "items": 15,
                     "last_modified": "2025-01-01T12:00:00Z",
-                    "auto_learning": True
+                    "auto_learning": True,
                 }
-            }
+            },
         }
         manager.update_agent_memory.return_value = True
         manager.add_learning.return_value = True
@@ -68,21 +65,22 @@ class TestMemoryManagementCommand:
     @pytest.fixture
     def memory_subcommand(self, mock_memory_manager):
         """Create MemoryManagementCommand instance with mocked dependencies."""
-        with patch('claude_mpm.cli.commands.memory.ConfigLoader') as mock_loader, \
-             patch('claude_mpm.cli.commands.memory.AgentMemoryManager') as mock_manager_class:
-            
+        with patch("claude_mpm.cli.commands.memory.ConfigLoader") as mock_loader, patch(
+            "claude_mpm.cli.commands.memory.AgentMemoryManager"
+        ) as mock_manager_class:
+
             mock_loader.return_value.load_main_config.return_value = Mock()
             mock_manager_class.return_value = mock_memory_manager
-            
+
             command = MemoryManagementCommand()
             return command
 
     def test_run_no_subcommand_shows_status(memory_command):
         """Test that run() with no subcommand shows status."""
         args = Namespace(memory_command=None)
-        
+
         result = memory_command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is True
         assert "status" in result.message.lower()
@@ -90,9 +88,9 @@ class TestMemoryManagementCommand:
     def test_run_status_command(memory_command):
         """Test run() with status command."""
         args = Namespace(memory_command="status", format="text")
-        
+
         result = memory_command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is True
         assert "status" in result.message.lower()
@@ -100,9 +98,9 @@ class TestMemoryManagementCommand:
     def test_run_init_command(memory_command):
         """Test run() with init command."""
         args = Namespace(memory_command="init", format="text")
-        
+
         result = memory_command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is True
         assert "initialization" in result.message.lower()
@@ -110,10 +108,10 @@ class TestMemoryManagementCommand:
     def test_run_show_memories_command(memory_command):
         """Test run() with show/view command."""
         args = Namespace(memory_command="show", format="text", agent=None)
-        
-        with patch('claude_mpm.cli.commands.memory._show_memories') as mock_show:
+
+        with patch("claude_mpm.cli.commands.memory._show_memories") as mock_show:
             result = memory_command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is True
         mock_show.assert_called_once()
@@ -121,9 +119,9 @@ class TestMemoryManagementCommand:
     def test_run_unknown_command_returns_error(memory_command):
         """Test run() with unknown command returns error."""
         args = Namespace(memory_command="unknown_command")
-        
+
         result = memory_command.run(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is False
         assert "unknown" in result.message.lower() or "error" in result.message.lower()
@@ -153,7 +151,7 @@ class TestMemoryStatusAndDisplay:
                     "sections": 4,
                     "items": 15,
                     "last_modified": "2025-01-01T12:00:00Z",
-                    "auto_learning": True
+                    "auto_learning": True,
                 },
                 "qa": {
                     "size_kb": 40,
@@ -162,17 +160,17 @@ class TestMemoryStatusAndDisplay:
                     "sections": 3,
                     "items": 10,
                     "last_modified": "2025-01-01T11:00:00Z",
-                    "auto_learning": True
-                }
-            }
+                    "auto_learning": True,
+                },
+            },
         }
         return manager
 
     def test_show_status_displays_system_health(mock_memory_manager):
         """Test _show_status displays system health information."""
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_status(mock_memory_manager)
-        
+
         output = mock_stdout.getvalue()
         assert "Memory System Health" in output
         assert "healthy" in output
@@ -194,17 +192,17 @@ class TestMemoryStatusAndDisplay:
 ## Common Mistakes to Avoid
 - Don't ignore error handling
 """
-        
+
         sections = _parse_memory_content(memory_content)
-        
+
         assert "Coding Patterns Learned" in sections
         assert "Implementation Guidelines" in sections
         assert "Common Mistakes to Avoid" in sections
-        
+
         assert len(sections["Coding Patterns Learned"]) == 2
         assert len(sections["Implementation Guidelines"]) == 2
         assert len(sections["Common Mistakes to Avoid"]) == 1
-        
+
         assert "Use dependency injection" in sections["Coding Patterns Learned"]
         assert "Write unit tests first" in sections["Implementation Guidelines"]
 
@@ -215,32 +213,36 @@ class TestMemoryUtilities:
     def test_manage_memory_function_calls_command():
         """Test manage_memory function calls MemoryManagementCommand."""
         args = Namespace(memory_command="status", format="text")
-        
-        with patch('claude_mpm.cli.commands.memory.MemoryManagementCommand') as mock_command_class:
+
+        with patch(
+            "claude_mpm.cli.commands.memory.MemoryManagementCommand"
+        ) as mock_command_class:
             mock_command = Mock()
             mock_result = Mock()
             mock_result.exit_code = 0
             mock_command.execute.return_value = mock_result
             mock_command_class.return_value = mock_command
-            
+
             exit_code = manage_memory(args)
-            
+
             assert exit_code == 0
             mock_command.execute.assert_called_once_with(args)
 
     def test_manage_memory_backward_compatibility():
         """Test manage_memory maintains backward compatibility."""
         args = Namespace(memory_command="status", format="text")
-        
-        with patch('claude_mpm.cli.commands.memory.MemoryManagementCommand') as mock_command_class:
+
+        with patch(
+            "claude_mpm.cli.commands.memory.MemoryManagementCommand"
+        ) as mock_command_class:
             mock_command = Mock()
             mock_result = Mock()
             mock_result.exit_code = 0
             mock_command.execute.return_value = mock_result
             mock_command_class.return_value = mock_command
-            
+
             exit_code = manage_memory(args)
-            
+
             # Should return exit code
             assert exit_code == 0
             mock_command.execute.assert_called_once_with(args)
@@ -271,15 +273,15 @@ class TestAgentMemoryManagerBasics:
     def test_save_memory_file_creates_directory(memory_manager, temp_dir):
         """Test _save_memory_file creates directory if it doesn't exist."""
         test_content = "# Test Memory Content"
-        
+
         success = memory_manager._save_memory_file("test_agent", test_content)
-        
+
         assert success is True
-        
+
         # Verify directory was created
         memory_dir = temp_dir / ".claude-mpm" / "memories"
         assert memory_dir.exists()
-        
+
         # Verify file was created
         memory_file = memory_dir / "test_agent_memories.md"
         assert memory_file.exists()
@@ -288,21 +290,23 @@ class TestAgentMemoryManagerBasics:
     def test_memory_file_naming_convention(memory_manager, temp_dir):
         """Test memory files follow correct naming convention."""
         test_agents = ["engineer", "qa", "research", "PM"]
-        
+
         for agent in test_agents:
             memory_manager._save_memory_file(agent, f"# {agent} Memory")
-            
-            expected_file = temp_dir / ".claude-mpm" / "memories" / f"{agent}_memories.md"
+
+            expected_file = (
+                temp_dir / ".claude-mpm" / "memories" / f"{agent}_memories.md"
+            )
             assert expected_file.exists()
 
     def test_memory_content_encoding(memory_manager, temp_dir):
         """Test memory files are saved with proper UTF-8 encoding."""
         # Test with unicode content
         unicode_content = "# Memory with Unicode\n- 测试 content\n- émoji: 🧠"
-        
+
         success = memory_manager._save_memory_file("test", unicode_content)
         assert success is True
-        
+
         # Read back and verify encoding
         memory_file = temp_dir / ".claude-mpm" / "memories" / "test_memories.md"
         read_content = memory_file.read_text(encoding="utf-8")
@@ -311,7 +315,7 @@ class TestAgentMemoryManagerBasics:
     def test_load_agent_memory_creates_default_when_missing(memory_manager):
         """Test load_agent_memory creates default memory when file doesn't exist."""
         # Mock the agent_overrides to avoid the TypeError
-        with patch.object(memory_manager, 'agent_overrides', {}):
+        with patch.object(memory_manager, "agent_overrides", {}):
             result = memory_manager.load_agent_memory("engineer")
 
             assert result is not None
@@ -322,7 +326,9 @@ class TestAgentMemoryManagerBasics:
     def test_save_memory_file_handles_errors(memory_manager):
         """Test _save_memory_file handles write errors gracefully."""
         # Mock Path.write_text to raise an exception
-        with patch.object(Path, 'write_text', side_effect=PermissionError("Access denied")):
+        with patch.object(
+            Path, "write_text", side_effect=PermissionError("Access denied")
+        ):
             success = memory_manager._save_memory_file("test_agent", "content")
 
             assert success is False
@@ -352,16 +358,17 @@ class TestMemoryCommandIntegration:
                     "sections": 3,
                     "items": 8,
                     "last_modified": "2025-01-01T12:00:00Z",
-                    "auto_learning": True
+                    "auto_learning": True,
                 }
-            }
+            },
         }
         return manager
 
     def test_get_status_data_with_existing_directory():
         """Test _get_status_data with existing memory directory."""
-        with patch('claude_mpm.cli.commands.memory.ConfigLoader') as mock_loader, \
-             patch('claude_mpm.cli.commands.memory.AgentMemoryManager') as mock_manager_class:
+        with patch("claude_mpm.cli.commands.memory.ConfigLoader") as mock_loader, patch(
+            "claude_mpm.cli.commands.memory.AgentMemoryManager"
+        ) as mock_manager_class:
 
             # Setup mocks
             mock_loader.return_value.load_main_config.return_value = Mock()
@@ -392,13 +399,16 @@ class TestMemoryCommandIntegration:
 
     def test_get_memories_data_single_agent():
         """Test _get_memories_data for single agent."""
-        with patch('claude_mpm.cli.commands.memory.ConfigLoader') as mock_loader, \
-             patch('claude_mpm.cli.commands.memory.AgentMemoryManager') as mock_manager_class:
+        with patch("claude_mpm.cli.commands.memory.ConfigLoader") as mock_loader, patch(
+            "claude_mpm.cli.commands.memory.AgentMemoryManager"
+        ) as mock_manager_class:
 
             mock_loader.return_value.load_main_config.return_value = Mock()
 
             mock_manager = Mock()
-            mock_manager.load_agent_memory.return_value = "# Engineer Memory\n- Test content"
+            mock_manager.load_agent_memory.return_value = (
+                "# Engineer Memory\n- Test content"
+            )
             mock_manager_class.return_value = mock_manager
 
             command = MemoryManagementCommand()
@@ -412,8 +422,9 @@ class TestMemoryCommandIntegration:
 
     def test_show_memories_json_format():
         """Test _show_memories with JSON format output."""
-        with patch('claude_mpm.cli.commands.memory.ConfigLoader') as mock_loader, \
-             patch('claude_mpm.cli.commands.memory.AgentMemoryManager') as mock_manager_class:
+        with patch("claude_mpm.cli.commands.memory.ConfigLoader") as mock_loader, patch(
+            "claude_mpm.cli.commands.memory.AgentMemoryManager"
+        ) as mock_manager_class:
 
             mock_loader.return_value.load_main_config.return_value = Mock()
 
@@ -433,8 +444,9 @@ class TestMemoryCommandIntegration:
 
     def test_init_memory_json_format():
         """Test _init_memory with JSON format output."""
-        with patch('claude_mpm.cli.commands.memory.ConfigLoader') as mock_loader, \
-             patch('claude_mpm.cli.commands.memory.AgentMemoryManager') as mock_manager_class:
+        with patch("claude_mpm.cli.commands.memory.ConfigLoader") as mock_loader, patch(
+            "claude_mpm.cli.commands.memory.AgentMemoryManager"
+        ) as mock_manager_class:
 
             mock_loader.return_value.load_main_config.return_value = Mock()
             mock_manager_class.return_value = Mock()
@@ -451,8 +463,9 @@ class TestMemoryCommandIntegration:
 
     def test_status_command_json_format():
         """Test status command with JSON format output."""
-        with patch('claude_mpm.cli.commands.memory.ConfigLoader') as mock_loader, \
-             patch('claude_mpm.cli.commands.memory.AgentMemoryManager') as mock_manager_class:
+        with patch("claude_mpm.cli.commands.memory.ConfigLoader") as mock_loader, patch(
+            "claude_mpm.cli.commands.memory.AgentMemoryManager"
+        ) as mock_manager_class:
 
             mock_loader.return_value.load_main_config.return_value = Mock()
 
@@ -492,7 +505,7 @@ class TestMemoryCommandFunctions:
 
         args = Namespace()
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _init_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -512,7 +525,7 @@ class TestMemoryCommandFunctions:
 
         args = Namespace()
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _clean_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -529,7 +542,7 @@ class TestMemoryCommandFunctions:
 
         args = Namespace()
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _clean_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -539,11 +552,13 @@ class TestMemoryCommandFunctions:
         """Test _view_memory displays memory content."""
         from claude_mpm.cli.commands.memory import _view_memory
 
-        mock_memory_manager.load_agent_memory.return_value = "# Test Memory\n- Test content"
+        mock_memory_manager.load_agent_memory.return_value = (
+            "# Test Memory\n- Test content"
+        )
 
         args = Namespace(agent_id="engineer")  # Use agent_id instead of agent
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _view_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -556,7 +571,7 @@ class TestMemoryCommandFunctions:
 
         args = Namespace(agent_id=None)  # Use agent_id instead of agent
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _view_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -567,11 +582,13 @@ class TestMemoryCommandFunctions:
         """Test _show_memories displays memory output."""
         from claude_mpm.cli.commands.memory import _show_memories
 
-        mock_memory_manager.load_agent_memory.return_value = "# Test Memory\n- Test content"
+        mock_memory_manager.load_agent_memory.return_value = (
+            "# Test Memory\n- Test content"
+        )
 
         args = Namespace(agent="engineer", format="summary", raw=False)
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_memories(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()

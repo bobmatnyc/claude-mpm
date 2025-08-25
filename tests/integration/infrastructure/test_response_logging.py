@@ -13,7 +13,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 # Enable debug mode
 os.environ["CLAUDE_MPM_HOOK_DEBUG"] = "true"
 
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.services.response_tracker import ResponseTracker
 
 
@@ -41,8 +40,7 @@ def test_response_logging():
             "   To enable, set 'response_logging.enabled: true' or 'response_tracking.enabled: true'"
         )
         return False
-    else:
-        print("   ✅ Response logging is ENABLED")
+    print("   ✅ Response logging is ENABLED")
 
     # Check response directory
     print("\n2. Checking response directory...")
@@ -54,7 +52,7 @@ def test_response_logging():
 
     print(f"   Directory: {response_dir}")
     if response_dir.exists():
-        print(f"   ✅ Directory exists")
+        print("   ✅ Directory exists")
 
         # List recent response files
         response_files = list(response_dir.glob("**/*.json"))
@@ -75,7 +73,7 @@ def test_response_logging():
         else:
             print("   ⚠️ No response files found yet")
     else:
-        print(f"   ⚠️ Directory does not exist (will be created on first response)")
+        print("   ⚠️ Directory does not exist (will be created on first response)")
 
     # Test response tracker
     print("\n3. Testing ResponseTracker...")
@@ -99,7 +97,7 @@ def test_response_logging():
                 print(f"   ✅ Test response logged to: {test_file.name}")
 
                 # Read and verify the content
-                with open(test_file, "r") as f:
+                with open(test_file) as f:
                     content = json.load(f)
                     if (
                         content.get("request")
@@ -130,7 +128,7 @@ def test_response_logging():
         / "hook_handler.py"
     )
     if hook_handler_path.exists():
-        with open(hook_handler_path, "r") as f:
+        with open(hook_handler_path) as f:
             content = f.read()
 
         has_stop_tracking = (

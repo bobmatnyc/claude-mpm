@@ -4,7 +4,6 @@
 import os
 import shlex
 import subprocess
-import sys
 from pathlib import Path
 
 
@@ -18,7 +17,7 @@ def run_test(test_name, command):
     # Split command string into a list to avoid shell=True
     command_parts = shlex.split(command)
     result = subprocess.run(
-        command_parts, capture_output=True, text=True, cwd=Path(__file__).parent.parent
+        command_parts, capture_output=True, text=True, cwd=Path(__file__).parent.parent, check=False
     )
 
     print("Output:")
@@ -49,7 +48,7 @@ def main():
             "list agents",
         ],
         capture_output=True,
-        text=True,
+        text=True, check=False,
     )
 
     if "Deployed" in deploy_result.stdout:
@@ -98,7 +97,7 @@ def main():
 
     # Check actual files
     agent_files = list(Path(".claude/agents").glob("*.md"))
-    print(f"\n📁 Agent files in .claude/agents/:")
+    print("\n📁 Agent files in .claude/agents/:")
     for f in agent_files:
         print(f"  - {f.name}")
 

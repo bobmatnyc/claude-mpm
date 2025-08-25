@@ -5,14 +5,18 @@ WHY: Verify that the BaseCommand pattern works correctly and provides
 consistent behavior across all migrated CLI commands.
 """
 
-import pytest
 import tempfile
 from argparse import Namespace
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
-from claude_mpm.cli.shared.base_command import BaseCommand, CommandResult, ServiceCommand, AgentCommand, MemoryCommand
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
+from claude_mpm.cli.shared.base_command import (
+    AgentCommand,
+    BaseCommand,
+    CommandResult,
+    MemoryCommand,
+    ServiceCommand,
+)
 
 
 class TestCommandResult:
@@ -76,7 +80,7 @@ class ConcreteCommand(BaseCommand):
 
     def validate_args(self, args) -> str:
         """Test implementation of validate_args."""
-        if hasattr(args, 'invalid') and args.invalid:
+        if hasattr(args, "invalid") and args.invalid:
             return "Invalid argument provided"
         return None
 
@@ -99,61 +103,61 @@ class TestBaseCommand:
         """Test configuration lazy loading."""
         # Config should be None initially
         assert self.command._config is None
-        
+
         # Accessing config should create instance
         config = self.command.config
         assert config is not None
         assert isinstance(config, Config)
         assert self.command._config is config
-        
+
         # Second access should return same instance
         config2 = self.command.config
         assert config2 is config
 
     def test_working_dir_default():
         """Test working directory default behavior."""
-        with patch('os.getcwd', return_value='/test/dir'):
+        with patch("os.getcwd", return_value="/test/dir"):
             working_dir = self.command.working_dir
-            assert working_dir == Path('/test/dir')
+            assert working_dir == Path("/test/dir")
 
     def test_working_dir_from_env():
         """Test working directory from environment variable."""
-        with patch.dict('os.environ', {'CLAUDE_MPM_USER_PWD': '/env/dir'}):
+        with patch.dict("os.environ", {"CLAUDE_MPM_USER_PWD": "/env/dir"}):
             # Reset cached working dir
             self.command._working_dir = None
             working_dir = self.command.working_dir
-            assert working_dir == Path('/env/dir')
+            assert working_dir == Path("/env/dir")
 
     def test_setup_logging_debug():
         """Test logging setup with debug flag."""
         args = Namespace(debug=True)
-        
-        with patch('logging.getLogger') as mock_get_logger:
+
+        with patch("logging.getLogger") as mock_get_logger:
             mock_logger = Mock()
             mock_get_logger.return_value = mock_logger
-            
+
             self.command.setup_logging(args)
             mock_logger.setLevel.assert_called_once()
 
     def test_setup_logging_verbose():
         """Test logging setup with verbose flag."""
         args = Namespace(verbose=True, debug=False)
-        
-        with patch('logging.getLogger') as mock_get_logger:
+
+        with patch("logging.getLogger") as mock_get_logger:
             mock_logger = Mock()
             mock_get_logger.return_value = mock_logger
-            
+
             self.command.setup_logging(args)
             mock_logger.setLevel.assert_called_once()
 
     def test_setup_logging_quiet():
         """Test logging setup with quiet flag."""
         args = Namespace(quiet=True, debug=False, verbose=False)
-        
-        with patch('logging.getLogger') as mock_get_logger:
+
+        with patch("logging.getLogger") as mock_get_logger:
             mock_logger = Mock()
             mock_get_logger.return_value = mock_logger
-            
+
             self.command.setup_logging(args)
             mock_logger.setLevel.assert_called_once()
 
@@ -162,7 +166,7 @@ class TestBaseCommand:
         args = Namespace()
 
         # Mock the Config class instead of the property
-        with patch('claude_mpm.cli.shared.command_base.Config') as mock_config_class:
+        with patch("claude_mpm.cli.shared.command_base.Config") as mock_config_class:
             mock_config = Mock()
             mock_config_class.return_value = mock_config
 
@@ -172,17 +176,19 @@ class TestBaseCommand:
 
     def test_load_config_with_file():
         """Test configuration loading with specific file."""
-        with tempfile.NamedTemporaryFile(suffix='.yaml', delete=False) as tmp:
-            tmp.write(b'test_key: test_value\n')
+        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as tmp:
+            tmp.write(b"test_key: test_value\n")
             tmp.flush()
-            
+
             args = Namespace(config=Path(tmp.name))
-            
+
             # Mock Config to avoid actual file loading complexity
-            with patch('claude_mpm.cli.shared.command_base.Config') as mock_config_class:
+            with patch(
+                "claude_mpm.cli.shared.command_base.Config"
+            ) as mock_config_class:
                 mock_config = Mock()
                 mock_config_class.return_value = mock_config
-                
+
                 self.command.load_config(args)
                 mock_config_class.assert_called_once_with(config_file=Path(tmp.name))
                 assert self.command._config is mock_config
@@ -190,9 +196,9 @@ class TestBaseCommand:
     def test_execute_success():
         """Test successful command execution."""
         args = Namespace()
-        
+
         result = self.command.execute(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is True
         assert result.exit_code == 0
@@ -203,9 +209,9 @@ class TestBaseCommand:
     def test_execute_validation_error():
         """Test command execution with validation error."""
         args = Namespace(invalid=True)
-        
+
         result = self.command.execute(args)
-        
+
         assert isinstance(result, CommandResult)
         assert result.success is False
         assert result.exit_code == 1
@@ -215,11 +221,11 @@ class TestBaseCommand:
     def test_execute_keyboard_interrupt():
         """Test command execution with keyboard interrupt."""
         args = Namespace()
-        
+
         # Mock run method to raise KeyboardInterrupt
-        with patch.object(self.command, 'run', side_effect=KeyboardInterrupt()):
+        with patch.object(self.command, "run", side_effect=KeyboardInterrupt()):
             result = self.command.execute(args)
-            
+
             assert isinstance(result, CommandResult)
             assert result.success is False
             assert result.exit_code == 130
@@ -228,11 +234,11 @@ class TestBaseCommand:
     def test_execute_exception():
         """Test command execution with general exception."""
         args = Namespace()
-        
+
         # Mock run method to raise exception
-        with patch.object(self.command, 'run', side_effect=Exception("Test error")):
+        with patch.object(self.command, "run", side_effect=Exception("Test error")):
             result = self.command.execute(args)
-            
+
             assert isinstance(result, CommandResult)
             assert result.success is False
             assert result.exit_code == 1
@@ -241,31 +247,35 @@ class TestBaseCommand:
     def test_print_result_text_format():
         """Test printing result in text format."""
         result = CommandResult.success_result("Test success")
-        args = Namespace(format='text')
-        
-        with patch('claude_mpm.cli.shared.output_formatters.format_output') as mock_format:
+        args = Namespace(format="text")
+
+        with patch(
+            "claude_mpm.cli.shared.output_formatters.format_output"
+        ) as mock_format:
             mock_format.return_value = "Formatted output"
-            
-            with patch('builtins.print') as mock_print:
+
+            with patch("builtins.print") as mock_print:
                 self.command.print_result(result, args)
-                
-                mock_format.assert_called_once_with(result, 'text')
+
+                mock_format.assert_called_once_with(result, "text")
                 mock_print.assert_called_once_with("Formatted output")
 
     def test_print_result_to_file():
         """Test printing result to file."""
         result = CommandResult.success_result("Test success")
-        
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
-            args = Namespace(format='json', output=tmp.name)
-            
-            with patch('claude_mpm.cli.shared.output_formatters.format_output') as mock_format:
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp:
+            args = Namespace(format="json", output=tmp.name)
+
+            with patch(
+                "claude_mpm.cli.shared.output_formatters.format_output"
+            ) as mock_format:
                 mock_format.return_value = '{"success": true}'
-                
+
                 self.command.print_result(result, args)
-                
+
                 # Verify file was written
-                with open(tmp.name, 'r') as f:
+                with open(tmp.name) as f:
                     content = f.read()
                     assert content == '{"success": true}'
 

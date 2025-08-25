@@ -2,11 +2,7 @@
 """End-to-end tests for claude-mpm interactive and non-interactive modes."""
 
 import os
-import signal
 import subprocess
-import sys
-import tempfile
-import time
 from pathlib import Path
 
 import pytest
@@ -27,7 +23,7 @@ class TestE2E:
         ), f"claude-mpm script not found at {CLAUDE_MPM_SCRIPT}"
         assert os.access(
             CLAUDE_MPM_SCRIPT, os.X_OK
-        ), f"claude-mpm script is not executable"
+        ), "claude-mpm script is not executable"
 
     def test_version_command():
         """Test that --version returns expected format."""
@@ -35,7 +31,7 @@ class TestE2E:
             [str(CLAUDE_MPM_SCRIPT), "--version"],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=30, check=False,
         )
 
         assert result.returncode == 0, f"Version command failed: {result.stderr}"
@@ -53,7 +49,7 @@ class TestE2E:
             [str(CLAUDE_MPM_SCRIPT), "--help"],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=30, check=False,
         )
 
         assert result.returncode == 0, f"Help command failed: {result.stderr}"
@@ -80,7 +76,7 @@ class TestE2E:
             ],
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=60, check=False,
         )
 
         assert (
@@ -95,7 +91,7 @@ class TestE2E:
             input="What is 7 * 7?",
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=60, check=False,
         )
 
         assert result.returncode == 0, f"Non-interactive stdin failed: {result.stderr}"
@@ -114,7 +110,7 @@ class TestE2E:
             ],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=30, check=False,
         )
 
         # Check that it ran successfully
@@ -124,7 +120,7 @@ class TestE2E:
     def test_info_subcommand():
         """Test the info command."""
         result = subprocess.run(
-            [str(CLAUDE_MPM_SCRIPT), "info"], capture_output=True, text=True, timeout=30
+            [str(CLAUDE_MPM_SCRIPT), "info"], capture_output=True, text=True, timeout=30, check=False
         )
 
         # Info command might have some errors but should still provide output
@@ -148,7 +144,7 @@ class TestE2E:
             [str(CLAUDE_MPM_SCRIPT), "run", "-i", prompt, "--non-interactive"],
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=60, check=False,
         )
 
         assert (
@@ -171,7 +167,7 @@ class TestE2E:
                 ],
                 capture_output=True,
                 text=True,
-                timeout=90,  # Increased timeout
+                timeout=90, check=False,  # Increased timeout
             )
 
             # Check for hook service startup message in stdout or stderr
@@ -188,7 +184,7 @@ class TestE2E:
             [str(CLAUDE_MPM_SCRIPT), "invalid-command", "--non-interactive"],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=30, check=False,
         )
 
         # Claude MPM should show help or error for invalid commands

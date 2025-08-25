@@ -28,7 +28,7 @@ def test_deployed_agents():
     for agent_file, expected_name in expected_names.items():
         agent_path = deployed_agents_dir / agent_file
         if agent_path.exists():
-            with open(agent_path, "r") as f:
+            with open(agent_path) as f:
                 content = f.read()
                 if f"name: {expected_name}" in content:
                     print(f"  ✅ {agent_file}: name is '{expected_name}'")
@@ -80,7 +80,7 @@ def test_framework_loader():
     deployed_agents_dir = Path(__file__).parent.parent / ".claude" / "agents"
     if deployed_agents_dir.exists():
         for agent_file in deployed_agents_dir.glob("*.md"):
-            with open(agent_file, "r") as f:
+            with open(agent_file) as f:
                 content = f.read()
                 if content.startswith("---"):
                     end_marker = content.find("---", 3)

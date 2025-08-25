@@ -2,10 +2,8 @@
 Sample Python file to test Python AST analysis capabilities.
 This file contains various Python constructs for comprehensive testing.
 """
-import asyncio
-import os
+
 import subprocess
-import sys
 from typing import Dict, List, Optional
 
 # Constants and variables
@@ -23,7 +21,6 @@ class DatabaseManager:
 
     def connect(self):
         """Simple connection method."""
-        pass
 
     def execute_query(self, query: str, params: Optional[Dict] = None):
         """Potential SQL injection vulnerability."""
@@ -35,7 +32,7 @@ class DatabaseManager:
         """Execute raw SQL - security risk."""
         # This should be flagged as a security issue
         return subprocess.run(
-            f'mysql -e "{query}"', shell=True
+            f'mysql -e "{query}"', shell=True, check=False
         )  # Command injection risk
 
     # Large method with high complexity (should be flagged)
@@ -87,7 +84,7 @@ class UserService:
     async def get_user(self, user_id: int) -> Optional[Dict]:
         """Async method with synchronous I/O issue."""
         # BAD: Synchronous I/O in async context
-        with open("/tmp/user_cache.txt", "r") as f:
+        with open("/tmp/user_cache.txt") as f:
             cached_data = f.read()
 
         return {"id": user_id, "cached": cached_data}
@@ -122,7 +119,7 @@ def read_file(filename: str) -> str:
     full_path = f"/var/app/data/{filename}"
 
     try:
-        with open(full_path, "r") as f:
+        with open(full_path) as f:
             return f.read()
     except FileNotFoundError:
         return ""
@@ -247,28 +244,8 @@ if __name__ == "__main__":
     service = UserService(db)
 
     # High fan-out - many imports at module level (should be detected)
-    import json
 
-    import boto3
-    import celery
-    import click
-    import django
-    import fastapi
-    import flask
-    import kubernetes
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import pandas as pd
-    import pytest
-    import redis
-    import requests
-    import seaborn as sns
-    import sklearn
-    import tensorflow as tf
-    import torch
-    import yaml
 
-    import docker
 
     result = massive_function()
     print(result)

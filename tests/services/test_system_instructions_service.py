@@ -4,9 +4,7 @@ Tests the extracted system instructions service to ensure it maintains
 the same behavior as the original ClaudeRunner methods.
 """
 
-import tempfile
-from pathlib import Path
-from unittest.mock import Mock, mock_open, patch
+from unittest.mock import Mock, patch
 
 import pytest
 

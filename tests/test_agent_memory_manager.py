@@ -6,13 +6,11 @@ Tests memory file operations, size limits, and learning capture.
 """
 
 import shutil
-import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
 
 
@@ -29,22 +27,15 @@ class TestAgentMemoryManager:
     @pytest.fixture
     def memory_manager(self, temp_project_dir):
         """Create a memory manager with mocked project root."""
-        with patch(
-            "claude_mpm.utils.paths.get_path_manager"
-        ) as mock_path_manager:
+        with patch("claude_mpm.utils.paths.get_path_manager") as mock_path_manager:
             # Setup the mock path manager
             mock_pm = MagicMock()
             mock_pm.get_project_root.return_value = temp_project_dir
             mock_path_manager.return_value = mock_pm
-            
+
             # Create a config object with default memory settings
             config = MagicMock()
-            config.get.return_value = {
-                'memory': {
-                    'enabled': True,
-                    'max_size': 1000000
-                }
-            }
+            config.get.return_value = {"memory": {"enabled": True, "max_size": 1000000}}
             manager = AgentMemoryManager(config)
             return manager
 

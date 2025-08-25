@@ -5,12 +5,8 @@ baseline behavior. Tests focus on the major methods that will be extracted
 into separate services during refactoring.
 """
 
-import os
-import subprocess
-import tempfile
-import uuid
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, call, mock_open, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -733,7 +729,9 @@ class TestClaudeRunnerSessionManagement:
         runner.run_interactive("test context")
 
         # Verify the session management service was called
-        mock_session_service.run_interactive_session.assert_called_once_with("test context")
+        mock_session_service.run_interactive_session.assert_called_once_with(
+            "test context"
+        )
 
     def test_run_interactive_initialization_failure(runner):
         """Test interactive session when service is not available."""
@@ -755,7 +753,9 @@ class TestClaudeRunnerSessionManagement:
         result = runner.run_oneshot("test prompt", "test context")
 
         assert result is True
-        mock_session_service.run_oneshot_session.assert_called_once_with("test prompt", "test context")
+        mock_session_service.run_oneshot_session.assert_called_once_with(
+            "test prompt", "test context"
+        )
 
     def test_run_oneshot_mmp_command(runner):
         """Test oneshot session when service is not available."""

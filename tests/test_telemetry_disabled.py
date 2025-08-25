@@ -8,24 +8,29 @@ import subprocess
 import sys
 from pathlib import Path
 
+
 def test_python_module():
     """Test if DISABLE_TELEMETRY is set when running as Python module."""
     try:
         result = subprocess.run(
-            [sys.executable, "-c", 
-             "import os; os.environ.setdefault('DISABLE_TELEMETRY', '0'); "
-             "import sys; sys.path.insert(0, 'src'); "
-             "from claude_mpm import __main__; "
-             "print(os.environ.get('DISABLE_TELEMETRY', 'not set'))"],
+            [
+                sys.executable,
+                "-c",
+                "import os; os.environ.setdefault('DISABLE_TELEMETRY', '0'); "
+                "import sys; sys.path.insert(0, 'src'); "
+                "from claude_mpm import __main__; "
+                "print(os.environ.get('DISABLE_TELEMETRY', 'not set'))",
+            ],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent
+            cwd=Path(__file__).parent.parent, check=False,
         )
         output = result.stdout.strip()
-        return output == '1'
+        return output == "1"
     except Exception as e:
         print(f"  Error: {e}")
         return False
+
 
 def test_bash_script(script_path):
     """Test if a bash script sets DISABLE_TELEMETRY."""
@@ -37,37 +42,41 @@ def test_bash_script(script_path):
             capture_output=True,
             text=True,
             shell=True,
-            cwd=Path(__file__).parent.parent
+            cwd=Path(__file__).parent.parent, check=False,
         )
         output = result.stdout.strip()
-        return output == '1'
+        return output == "1"
     except Exception as e:
         print(f"  Error: {e}")
         return False
+
 
 def test_python_script(script_path):
     """Test if a Python script sets DISABLE_TELEMETRY."""
     try:
         # Check if the script contains the environment setting
-        with open(script_path, 'r') as f:
+        with open(script_path) as f:
             content = f.read()
-        return "os.environ['DISABLE_TELEMETRY'] = '1'" in content or \
-               'os.environ["DISABLE_TELEMETRY"] = "1"' in content or \
-               "os.environ.setdefault('DISABLE_TELEMETRY', '1')" in content or \
-               'os.environ.setdefault("DISABLE_TELEMETRY", "1")' in content
+        return (
+            "os.environ['DISABLE_TELEMETRY'] = '1'" in content
+            or 'os.environ["DISABLE_TELEMETRY"] = "1"' in content
+            or "os.environ.setdefault('DISABLE_TELEMETRY', '1')" in content
+            or 'os.environ.setdefault("DISABLE_TELEMETRY", "1")' in content
+        )
     except Exception as e:
         print(f"  Error: {e}")
         return False
+
 
 def main():
     """Run telemetry disable tests."""
     print("=" * 60)
     print("Testing DISABLE_TELEMETRY Environment Variable Setup")
     print("=" * 60)
-    
+
     project_root = Path(__file__).parent.parent
     os.chdir(project_root)
-    
+
     # Test bash scripts
     print("\n1. Testing Bash Entry Points:")
     bash_scripts = [
@@ -75,7 +84,7 @@ def main():
         ("scripts/claude-mpm", "Scripts wrapper"),
         ("scripts/claude-mpm-socketio", "SocketIO wrapper"),
     ]
-    
+
     bash_passed = True
     for script, description in bash_scripts:
         script_path = project_root / script
@@ -87,7 +96,7 @@ def main():
                 bash_passed = False
         else:
             print(f"  ⚠️  {description}: Script not found at {script_path}")
-    
+
     # Test Python entry points
     print("\n2. Testing Python Entry Points:")
     python_scripts = [
@@ -101,7 +110,7 @@ def main():
         ("bin/claude-mpm-mcp-simple", "MCP simple binary"),
         ("bin/socketio-daemon", "SocketIO daemon"),
     ]
-    
+
     python_passed = True
     for script, description in python_scripts:
         script_path = project_root / script
@@ -113,19 +122,19 @@ def main():
                 python_passed = False
         else:
             print(f"  ⚠️  {description}: Script not found at {script_path}")
-    
+
     # Test Node.js scripts
     print("\n3. Testing Node.js Entry Points:")
     node_scripts = [
         ("bin/claude-mpm", "Node.js main wrapper"),
         ("bin/ticket", "Node.js ticket wrapper"),
     ]
-    
+
     node_passed = True
     for script, description in node_scripts:
         script_path = project_root / script
         if script_path.exists():
-            with open(script_path, 'r') as f:
+            with open(script_path) as f:
                 content = f.read()
             if "process.env.DISABLE_TELEMETRY = '1'" in content:
                 print(f"  ✅ {description}: Sets DISABLE_TELEMETRY=1")
@@ -134,7 +143,7 @@ def main():
                 node_passed = False
         else:
             print(f"  ⚠️  {description}: Script not found at {script_path}")
-    
+
     # Test the actual Python module import
     print("\n4. Testing Runtime Behavior:")
     if test_python_module():
@@ -143,7 +152,7 @@ def main():
     else:
         print("  ❌ Python module does not set DISABLE_TELEMETRY properly")
         module_passed = False
-    
+
     print("\n" + "=" * 60)
     all_passed = bash_passed and python_passed and node_passed and module_passed
     if all_passed:
@@ -153,8 +162,9 @@ def main():
         print("⚠️  WARNING: Some entry points may not disable telemetry")
         print("Please review the failed tests above")
     print("=" * 60)
-    
+
     return 0 if all_passed else 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

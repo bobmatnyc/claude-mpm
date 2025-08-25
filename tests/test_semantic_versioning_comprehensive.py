@@ -14,16 +14,13 @@ functionality including:
 
 import json
 import logging
-import tempfile
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock, mock_open, patch
 
 import pytest
 
 # Import the classes we're testing
 from claude_mpm.services.version_control.semantic_versioning import (
-    ChangeAnalysis,
     SemanticVersion,
     SemanticVersionManager,
     VersionBumpType,

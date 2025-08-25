@@ -1,5 +1,5 @@
 import pytest
-import pytest
+
 #!/usr/bin/env python3
 """Test script to verify the Socket.IO server refactoring.
 
@@ -10,7 +10,6 @@ event handlers maintains backward compatibility and works correctly.
 import asyncio
 import os
 import sys
-import time
 from pathlib import Path
 
 # Add src to path for imports
@@ -45,15 +44,6 @@ def test_handler_imports():
     print("\nTesting handler imports...")
 
     try:
-        from claude_mpm.services.socketio.handlers import (
-            BaseEventHandler,
-            ConnectionEventHandler,
-            EventHandlerRegistry,
-            FileEventHandler,
-            GitEventHandler,
-            MemoryEventHandler,
-            ProjectEventHandler,
-        )
 
         print("✓ All handler modules imported successfully")
         return True

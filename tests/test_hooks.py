@@ -32,7 +32,7 @@ try:
         "http://localhost:8080/hooks/execute", json=test_payload, timeout=5
     )
     result = exec_response.json()
-    print(f"\nSubmit hook test result:")
+    print("\nSubmit hook test result:")
     print(f"  Success: {result.get('success', False)}")
     print(f"  Results: {result.get('results', [])}")
 

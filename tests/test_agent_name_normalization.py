@@ -7,8 +7,6 @@ lowercase names, aliases, and space-separated names.
 
 import logging
 import unittest
-from datetime import datetime
-from unittest.mock import MagicMock, Mock, patch
 
 from claude_mpm.agents.agent_loader import (
     get_agent_prompt,
@@ -16,7 +14,6 @@ from claude_mpm.agents.agent_loader import (
 )
 from claude_mpm.core.agent_name_normalizer import (
     AgentNameNormalizer,
-    agent_name_normalizer,
 )
 
 # Configure logging for tests

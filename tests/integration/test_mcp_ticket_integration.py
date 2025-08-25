@@ -1,4 +1,5 @@
 import pytest
+
 #!/usr/bin/env python3
 """
 Integration test for MCP ticket tools with aitrackdown.
@@ -70,7 +71,7 @@ async def test_ticket_workflow():
     try:
         result = await list_tool.invoke(list_invocation)
         if result.success:
-            print(f"✅ Found tickets:")
+            print("✅ Found tickets:")
             if isinstance(result.data, list):
                 for ticket in result.data[:5]:
                     print(
@@ -95,7 +96,7 @@ async def test_ticket_workflow():
         try:
             result = await view_tool.invoke(view_invocation)
             if result.success:
-                print(f"✅ Ticket details:")
+                print("✅ Ticket details:")
                 if isinstance(result.data, dict):
                     print(f"   Title: {result.data.get('title', 'Unknown')}")
                     print(f"   Status: {result.data.get('status', 'Unknown')}")
@@ -122,7 +123,7 @@ async def test_ticket_workflow():
         try:
             result = await update_tool.invoke(update_invocation)
             if result.success:
-                print(f"✅ Updated ticket status")
+                print("✅ Updated ticket status")
                 print(f"   {result.data.get('message', 'Status updated')}")
             else:
                 print(f"❌ Failed to update ticket: {result.error}")
@@ -139,7 +140,7 @@ async def test_ticket_workflow():
     try:
         result = await search_tool.invoke(search_invocation)
         if result.success:
-            print(f"✅ Search results:")
+            print("✅ Search results:")
             if isinstance(result.data, list):
                 for ticket in result.data[:5]:
                     print(

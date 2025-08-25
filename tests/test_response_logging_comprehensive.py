@@ -14,18 +14,15 @@ import json
 import os
 import shutil
 import sys
-import tempfile
 import threading
 import time
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 from claude_mpm.services.response_tracker import ResponseTracker
 
@@ -169,7 +166,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
         self.assertTrue(response_path.exists(), "Response file should exist")
 
         # Verify response content
-        with open(response_path, "r") as f:
+        with open(response_path) as f:
             response_data = json.load(f)
 
         self.assertEqual(response_data["agent"], "test_agent")
@@ -497,9 +494,8 @@ def main():
     if result.wasSuccessful():
         print("✅ All tests passed!")
         return 0
-    else:
-        print("❌ Some tests failed!")
-        return 1
+    print("❌ Some tests failed!")
+    return 1
 
 
 if __name__ == "__main__":

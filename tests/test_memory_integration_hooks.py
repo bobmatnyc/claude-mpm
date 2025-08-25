@@ -5,11 +5,8 @@ extract learnings after delegation.
 """
 
 from datetime import datetime
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
-import pytest
-
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.hooks.base_hook import HookContext, HookType
 from claude_mpm.hooks.memory_integration_hook import (
     MemoryPostDelegationHook,

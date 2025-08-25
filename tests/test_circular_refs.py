@@ -26,14 +26,17 @@ print(f"Instructions length: {len(instructions)}")
 
 # Check what's referencing the loader
 import sys
-print(f"\nReference count for loader: {sys.getrefcount(loader) - 1}")  # -1 for the getrefcount call itself
+
+print(
+    f"\nReference count for loader: {sys.getrefcount(loader) - 1}"
+)  # -1 for the getrefcount call itself
 
 # Get referrers
 referrers = gc.get_referrers(loader)
 print(f"Number of referrers: {len(referrers)}")
 for i, ref in enumerate(referrers[:5]):  # Show first 5 referrers
     print(f"  Referrer {i}: {type(ref)}")
-    if hasattr(ref, '__name__'):
+    if hasattr(ref, "__name__"):
         print(f"    Name: {ref.__name__}")
 
 # Clear the loader
@@ -53,7 +56,7 @@ else:
     print("\nNo uncollectable garbage")
 
 # Now test with multiple loaders
-print("\n" + "="*50)
+print("\n" + "=" * 50)
 print("Testing multiple loaders...")
 
 weak_refs = []

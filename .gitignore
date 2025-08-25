@@ -190,6 +190,46 @@ docs/test-*.md
 # Backup files
 *.backup
 *.bak
+*.old
+setup.py.backup
 
 # Test fixtures
 fake/
+
+# Test reports and outputs (root directory)
+*_test_report.json
+*_verification_report.json
+*_test_report.md
+*_verification_report.md
+*_analysis_report.md
+test_results_*.json
+test_file.txt
+
+# Dashboard screenshots (root directory)
+dashboard_*.png
+final_dashboard_*.png
+*_screenshots/
+
+# Coverage files
+.coverage
+coverage.json
+htmlcov/
+
+# Debug and log files (root directory)
+debug_*.txt
+*_stderr.log
+*_config_logs.txt
+framework_loader_output.txt
+
+# Temporary and generated files
+MONITOR_BUILD
+requirements-monitor.txt
+
+# macOS system files
+.DS_Store
+
+# Python test artifacts
+MagicMock/
+
+# Patch files
+*.patch

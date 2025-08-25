@@ -9,7 +9,6 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.core.logger import get_logger
 
 # Show all existing loggers before
 print("Loggers before creating FrameworkLoader:")

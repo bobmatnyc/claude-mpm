@@ -1,14 +1,11 @@
 """Tests for get_path_manager() utility."""
 
-import os
-import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from claude_mpm.core.unified_paths import (
-    find_file_upwards,
     get_framework_root,
     get_path_manager,
     get_project_root,

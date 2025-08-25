@@ -12,19 +12,16 @@ DESIGN DECISION: We test multiple scenarios:
 4. Proper logging of the auto-switch decision
 """
 
-import json
 import os
 import sys
-import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from claude_mpm.core.claude_runner import ClaudeRunner
-from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 
 class TestResponseLoggingAutoSwitch(unittest.TestCase):

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Test script to verify agent ID mapping fix for PM instructions."""
 
-import os
 import sys
 from pathlib import Path
 

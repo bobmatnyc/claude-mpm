@@ -16,14 +16,10 @@ WHY this comprehensive test:
 """
 
 import asyncio
-import json
-import subprocess
 import sys
 import threading
 import time
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List
 
 try:
     import socketio
@@ -60,7 +56,7 @@ class EndToEndDiagnosticTest:
         self.hook_client = None
         self.dashboard_clients = {}
 
-        print(f"🔍 END-TO-END DIAGNOSTIC TEST")
+        print("🔍 END-TO-END DIAGNOSTIC TEST")
         print(f"🌐 Server URL: {self.server_url}")
         print(f"📅 Start time: {self.start_time.isoformat()}")
         print("=" * 80)
@@ -444,7 +440,7 @@ class EndToEndDiagnosticTest:
         print("=" * 80)
 
         # Connection analysis
-        print(f"🔗 SERVER CONNECTIONS:")
+        print("🔗 SERVER CONNECTIONS:")
         print(f"   Server running: {self.server_running}")
         print(f"   Hook client connected: {self.hook_client_connected}")
         print(
@@ -452,11 +448,11 @@ class EndToEndDiagnosticTest:
         )
 
         # Event flow analysis
-        print(f"\n📤 EVENT SENDING:")
+        print("\n📤 EVENT SENDING:")
         print(f"   Total events sent: {self.events_sent}")
         print(f"   Timing records: {len(self.timing_data)}")
 
-        print(f"\n📥 EVENT RECEIVING:")
+        print("\n📥 EVENT RECEIVING:")
         total_received = sum(len(events) for events in self.events_received.values())
         print(f"   Total events received: {total_received}")
 
@@ -468,7 +464,7 @@ class EndToEndDiagnosticTest:
                 print(f"      Event types: {', '.join(event_types)}")
 
         # Server-side analysis
-        print(f"\n🖥️  SERVER-SIDE EVENTS:")
+        print("\n🖥️  SERVER-SIDE EVENTS:")
         print(f"   Total server events recorded: {len(self.server_events)}")
 
         event_type_counts = {}
@@ -481,19 +477,19 @@ class EndToEndDiagnosticTest:
 
         # Timing analysis
         if self.timing_data:
-            print(f"\n⏱️  TIMING ANALYSIS:")
+            print("\n⏱️  TIMING ANALYSIS:")
             avg_response_time = "N/A (not implemented)"
             print(f"   Average response time: {avg_response_time}")
 
         # Error analysis
-        print(f"\n🚨 ERRORS:")
+        print("\n🚨 ERRORS:")
         print(f"   Total errors: {len(self.errors)}")
         if self.errors:
             for i, error in enumerate(self.errors, 1):
                 print(f"   {i}. {error}")
 
         # Diagnostic conclusions
-        print(f"\n🔍 DIAGNOSTIC CONCLUSIONS:")
+        print("\n🔍 DIAGNOSTIC CONCLUSIONS:")
 
         if self.server_running and self.hook_client_connected:
             print("   ✅ Basic connectivity: PASS")

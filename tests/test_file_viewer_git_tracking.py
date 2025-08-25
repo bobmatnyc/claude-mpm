@@ -8,7 +8,6 @@ with the old correlation method.
 """
 
 import json
-import os
 from datetime import datetime, timedelta
 
 

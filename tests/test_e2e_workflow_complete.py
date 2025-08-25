@@ -17,7 +17,6 @@ from ai_trackdown_pytools.core.models import (
     TaskModel,
     UnifiedStatus,
 )
-from ai_trackdown_pytools.core.workflow import workflow_state_machine
 
 
 def test_task_workflow():
@@ -185,9 +184,9 @@ def test_bug_workflow_with_reopen():
                 id=f"COM-{300 + len(transitions)}",
                 parent_id=bug.id,
                 parent_type="bug",
-                author="qa_tester"
-                if new_status == UnifiedStatus.REOPENED
-                else "developer",
+                author=(
+                    "qa_tester" if new_status == UnifiedStatus.REOPENED else "developer"
+                ),
                 content=comment_text,
                 created_at=datetime.now(),
             )
@@ -233,7 +232,7 @@ def test_epic_workflow():
             if can_transition:
                 epic.status = "in_progress"
                 comment = CommentModel(
-                    id=f"COM-400",
+                    id="COM-400",
                     parent_id=epic.id,
                     parent_type="epic",
                     author="product_owner",
@@ -241,7 +240,7 @@ def test_epic_workflow():
                     created_at=datetime.now(),
                 )
                 print(
-                    f"✓ Transitioned to in_progress (planning not available from open)"
+                    "✓ Transitioned to in_progress (planning not available from open)"
                 )
                 continue
 
@@ -428,10 +427,10 @@ def test_invalid_transitions():
         bug.status = UnifiedStatus.CLOSED
         # If we got here without error, validation isn't working
         tests_passed.append(False)
-        print(f"Bug closed without resolution: FAILED (should require resolution)")
+        print("Bug closed without resolution: FAILED (should require resolution)")
     except:
         tests_passed.append(True)
-        print(f"Bug close without resolution blocked: PASSED")
+        print("Bug close without resolution blocked: PASSED")
 
     return all(tests_passed)
 

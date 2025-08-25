@@ -1,4 +1,5 @@
 import pytest
+
 #!/usr/bin/env python3
 """
 Test MCP Client Integration
@@ -10,7 +11,6 @@ standards compliance and proper protocol implementation.
 
 import asyncio
 import json
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict
@@ -53,7 +53,7 @@ class SimpleMCPClient:
         try:
             response = json.loads(response_line.decode().strip())
             return response
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError:
             raise Exception(f"Invalid JSON response: {response_line.decode()}")
 
     async def initialize(self) -> Dict[str, Any]:

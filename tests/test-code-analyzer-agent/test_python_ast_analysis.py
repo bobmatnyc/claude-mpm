@@ -5,10 +5,8 @@ This script tests the agent's ability to use Python's native AST for .py files.
 """
 
 import ast
-import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 
@@ -21,7 +19,7 @@ def test_python_ast_parsing():
     sample_file = Path(__file__).parent / "sample_python_file.py"
 
     try:
-        with open(sample_file, "r") as f:
+        with open(sample_file) as f:
             source_code = f.read()
 
         # Parse with Python AST
@@ -45,7 +43,7 @@ def analyze_python_with_ast():
     sample_file = Path(__file__).parent / "sample_python_file.py"
 
     try:
-        with open(sample_file, "r") as f:
+        with open(sample_file) as f:
             source_code = f.read()
 
         tree = ast.parse(source_code)
@@ -151,7 +149,7 @@ def analyze_python_with_ast():
         )
 
         # Test specific Python AST capabilities
-        print(f"\n📊 Python AST Specific Capabilities:")
+        print("\n📊 Python AST Specific Capabilities:")
 
         # Count function complexity (nested control structures)
         complex_functions = []
@@ -264,7 +262,7 @@ if __name__ == "__main__":
             [sys.executable, str(test_file)],
             capture_output=True,
             text=True,
-            cwd=test_file.parent,
+            cwd=test_file.parent, check=False,
         )
 
         print("Test script output:")

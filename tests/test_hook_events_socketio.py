@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Test if hook events are being sent to Socket.IO server"""
 
-import json
 import subprocess
 import sys
 import time
@@ -14,12 +13,12 @@ def test_hook_events():
     status_result = subprocess.run(
         ["python", "src/claude_mpm/scripts/socketio_daemon.py", "status"],
         capture_output=True,
-        text=True,
+        text=True, check=False,
     )
 
     if "is running" not in status_result.stdout:
         print("❌ Socket.IO server is not running. Starting it...")
-        subprocess.run(["python", "src/claude_mpm/scripts/socketio_daemon.py", "start"])
+        subprocess.run(["python", "src/claude_mpm/scripts/socketio_daemon.py", "start"], check=False)
         time.sleep(2)
     else:
         print("✅ Socket.IO server is running")
@@ -77,7 +76,7 @@ def test_hook_events():
     # Check server logs
     print("\nChecking server logs...")
     try:
-        with open("/Users/masa/.claude-mpm/socketio-server.log", "r") as f:
+        with open("/Users/masa/.claude-mpm/socketio-server.log") as f:
             lines = f.readlines()
             recent_lines = lines[-20:]
             print("Recent server log entries:")

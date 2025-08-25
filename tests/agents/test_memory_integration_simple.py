@@ -5,11 +5,8 @@ Simple Memory Integration Test
 Tests the memory integration functionality without importing the full framework.
 """
 
-import json
 import sys
-import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 # Add the src directory to the path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
@@ -23,7 +20,7 @@ def test_memory_file_processing():
         """Extract agent name from memory filename."""
         if filename.endswith("_agent.md"):
             return filename[:-9]  # Remove '_agent.md' (9 characters)
-        elif filename.endswith(".md"):
+        if filename.endswith(".md"):
             agent_name = filename[:-3]  # Remove '.md'
             # Skip if it's a generic file like README.md
             if agent_name.lower() in ["readme", "index", "template"]:
@@ -149,9 +146,9 @@ def test_enhance_existing_agent():
     metadata = agent_data.setdefault("metadata", {})
     original_description = metadata.get("description", "")
     if "project memories" not in original_description.lower():
-        metadata[
-            "description"
-        ] = f"{original_description} (Enhanced with project memories)".strip()
+        metadata["description"] = (
+            f"{original_description} (Enhanced with project memories)".strip()
+        )
 
     # Mark as memory-aware in capabilities
     capabilities = agent_data.setdefault("capabilities", {})

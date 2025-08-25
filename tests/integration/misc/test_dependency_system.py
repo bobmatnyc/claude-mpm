@@ -10,7 +10,6 @@ This script verifies that:
 """
 
 import json
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -116,7 +115,7 @@ def test_aggregation_script():
 
     # Run the script in dry-run mode
     result = subprocess.run(
-        [sys.executable, str(script_path), "--dry-run"], capture_output=True, text=True
+        [sys.executable, str(script_path), "--dry-run"], capture_output=True, text=True, check=False
     )
 
     assert result.returncode == 0, f"Aggregation script failed: {result.stderr}"
@@ -181,7 +180,7 @@ dev = ["pytest"]
         # Check that pyproject.toml was updated
         import toml
 
-        with open(temp_path / "pyproject.toml", "r") as f:
+        with open(temp_path / "pyproject.toml") as f:
             updated_config = toml.load(f)
 
         assert "project" in updated_config
@@ -231,9 +230,8 @@ def main():
             "🎉 All tests passed! Agent dependency management system is working correctly."
         )
         return 0
-    else:
-        print("❌ Some tests failed. Please check the implementation.")
-        return 1
+    print("❌ Some tests failed. Please check the implementation.")
+    return 1
 
 
 if __name__ == "__main__":

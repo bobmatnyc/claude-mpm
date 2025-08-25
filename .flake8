@@ -1,0 +1,73 @@
+# Flake8 configuration for claude-mpm
+# Traditional Python linter for additional checks
+
+[flake8]
+# Maximum line length (matching Black)
+max-line-length = 88
+
+# Maximum complexity for functions
+max-complexity = 10
+
+# Extend default ignores
+extend-ignore =
+    # Whitespace before ':' (Black compatibility)
+    E203,
+    # Line break before binary operator (Black compatibility)
+    W503,
+    # Missing docstring in public module
+    D100,
+    # Missing docstring in public class
+    D101,
+    # Missing docstring in public method
+    D102,
+    # Missing docstring in public function
+    D103,
+    # Missing docstring in public package
+    D104,
+    # Missing docstring in magic method
+    D105,
+    # One-line docstring should fit on one line
+    D200,
+
+# Exclude directories
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    .venv-*,
+    venv,
+    env,
+    build,
+    dist,
+    *.egg-info,
+    .pytest_cache,
+    .mypy_cache,
+    .ruff_cache,
+    node_modules,
+    dashboard_*,
+    realtime_*,
+    test_screenshots,
+
+# Per-file ignores
+per-file-ignores =
+    # Allow unused imports in __init__ files
+    __init__.py:F401,F403
+    # Allow print statements and assertions in tests
+    tests/*.py:S101,S102
+    # Allow complex logic in scripts
+    scripts/*.py:C901
+
+# Enable additional plugins
+# Note: These need to be installed separately
+# pip install flake8-import-order flake8-tidy-imports flake8-bugbear
+enable-extensions =
+    # Import order checking
+    I001, I002, I003, I004, I005,
+    # Tidy imports
+    TID251,
+    # Bugbear warnings
+    B001, B002, B003, B004, B005, B006, B007, B008,
+
+# Import order style (matching isort with Black)
+import-order-style = google
+application-import-names = claude_mpm

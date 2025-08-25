@@ -3,8 +3,6 @@
 
 import subprocess
 import sys
-import threading
-import time
 from pathlib import Path
 
 # Add parent to path

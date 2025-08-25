@@ -1,4 +1,5 @@
 import pytest
+
 #!/usr/bin/env python3
 """
 Integration Test Script for Hello World MCP Tool
@@ -154,7 +155,7 @@ async def test_hello_world_tool(verbose: bool = False):
 
         except Exception as e:
             failed_tests += 1
-            print(f"      ✗ Exception: {str(e)}")
+            print(f"      ✗ Exception: {e!s}")
 
     # Test error handling
     print("\n6. Testing error handling...")
@@ -194,16 +195,16 @@ async def test_hello_world_tool(verbose: bool = False):
                 if verbose:
                     print(f"      ✓ Error handled correctly: {result.error}")
                 else:
-                    print(f"      ✓ Error handled correctly")
+                    print("      ✓ Error handled correctly")
             else:
-                print(f"      ✗ Expected error but got success")
+                print("      ✗ Expected error but got success")
 
         except Exception as e:
             error_handled += 1
             if verbose:
-                print(f"      ✓ Exception handled: {str(e)}")
+                print(f"      ✓ Exception handled: {e!s}")
             else:
-                print(f"      ✓ Exception handled")
+                print("      ✓ Exception handled")
 
     # Get analytics
     print("\n7. Tool Analytics...")
@@ -252,10 +253,9 @@ async def test_hello_world_tool(verbose: bool = False):
         print("\n✅ Hello World Tool validation PASSED!")
         print("The MCP Gateway is working correctly.")
         return True
-    else:
-        print("\n❌ Hello World Tool validation FAILED")
-        print("Please check the errors above.")
-        return False
+    print("\n❌ Hello World Tool validation FAILED")
+    print("Please check the errors above.")
+    return False
 
 
 async def benchmark_hello_world_tool():

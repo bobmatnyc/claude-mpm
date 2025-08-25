@@ -14,7 +14,6 @@ Tests critical functionality including:
 
 import json
 import os
-import tempfile
 import threading
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
@@ -22,7 +21,6 @@ from unittest.mock import MagicMock, mock_open, patch
 import pytest
 
 from claude_mpm.agents.base_agent_loader import (
-    TEMPLATE_SECTIONS,
     PromptTemplate,
     _build_dynamic_prompt,
     _parse_content_sections,

@@ -11,12 +11,9 @@ Tests all aspects of the dynamic agent capabilities implementation:
 7. Backward compatibility
 """
 
-import json
 import sys
-import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -83,7 +80,7 @@ def test_agent_discovery_all_tiers():
         )
 
     except Exception as e:
-        result.message = f"Exception: {str(e)}"
+        result.message = f"Exception: {e!s}"
 
     result.duration = time.time() - start_time
     return result
@@ -153,7 +150,7 @@ def test_agent_format_handling():
             result.message = "All format handling tests passed"
 
     except Exception as e:
-        result.message = f"Exception: {str(e)}"
+        result.message = f"Exception: {e!s}"
 
     result.duration = time.time() - start_time
     return result
@@ -224,7 +221,7 @@ def test_capabilities_generator_quality():
             result.message = "Generated content meets all quality requirements"
 
     except Exception as e:
-        result.message = f"Exception: {str(e)}"
+        result.message = f"Exception: {e!s}"
 
     result.duration = time.time() - start_time
     return result
@@ -268,19 +265,18 @@ def test_content_assembler_replacement():
                     messages.append(f"{desc}: no dynamic content inserted")
                 else:
                     messages.append(f"{desc}: OK")
+            # Should be unchanged
+            elif processed != test_content:
+                all_passed = False
+                messages.append(f"{desc}: content changed unexpectedly")
             else:
-                # Should be unchanged
-                if processed != test_content:
-                    all_passed = False
-                    messages.append(f"{desc}: content changed unexpectedly")
-                else:
-                    messages.append(f"{desc}: OK")
+                messages.append(f"{desc}: OK")
 
         result.passed = all_passed
         result.message = "; ".join(messages)
 
     except Exception as e:
-        result.message = f"Exception: {str(e)}"
+        result.message = f"Exception: {e!s}"
 
     result.duration = time.time() - start_time
     return result
@@ -329,7 +325,7 @@ def test_error_handling_fallback():
             ContentAssembler.__init__ = original_init
 
     except Exception as e:
-        result.message = f"Exception during error handling test: {str(e)}"
+        result.message = f"Exception during error handling test: {e!s}"
 
     result.duration = time.time() - start_time
     return result
@@ -372,7 +368,7 @@ def test_performance_requirements():
             result.message = f"Too slow: {total_time*1000:.1f}ms > 200ms requirement"
 
     except Exception as e:
-        result.message = f"Exception: {str(e)}"
+        result.message = f"Exception: {e!s}"
 
     result.duration = time.time() - start_time
     return result
@@ -404,7 +400,7 @@ No placeholders here."""
             result.message = "Static content was modified unexpectedly"
 
     except Exception as e:
-        result.message = f"Exception: {str(e)}"
+        result.message = f"Exception: {e!s}"
 
     result.duration = time.time() - start_time
     return result
@@ -454,7 +450,7 @@ def test_project_override_system():
             result.message = "Project override not properly displayed"
 
     except Exception as e:
-        result.message = f"Exception: {str(e)}"
+        result.message = f"Exception: {e!s}"
 
     result.duration = time.time() - start_time
     return result

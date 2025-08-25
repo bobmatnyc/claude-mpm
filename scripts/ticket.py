@@ -29,8 +29,9 @@ This wrapper delegates to:
 """
 
 import os
+
 # Disable telemetry by default
-os.environ['DISABLE_TELEMETRY'] = '1'
+os.environ["DISABLE_TELEMETRY"] = "1"
 
 import subprocess
 import sys

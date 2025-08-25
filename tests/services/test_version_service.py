@@ -4,9 +4,8 @@ Tests the extracted version service to ensure it maintains
 the same behavior as the original ClaudeRunner version methods.
 """
 
-import tempfile
 from pathlib import Path
-from unittest.mock import Mock, mock_open, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -40,9 +39,11 @@ class TestVersionService:
         # Mock the import to fail, then mock importlib.metadata to succeed
         with patch(
             "builtins.__import__",
-            side_effect=lambda name, *args, **kwargs: __import__(name, *args, **kwargs)
-            if name != "claude_mpm"
-            else (_ for _ in ()).throw(ImportError()),
+            side_effect=lambda name, *args, **kwargs: (
+                __import__(name, *args, **kwargs)
+                if name != "claude_mpm"
+                else (_ for _ in ()).throw(ImportError())
+            ),
         ), patch("importlib.metadata.version", return_value="2.0.0"), patch.object(
             service, "_get_build_number", return_value=None
         ):

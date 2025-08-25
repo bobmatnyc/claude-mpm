@@ -8,7 +8,6 @@ This script tests:
 3. Event tracking and counting in dashboard
 """
 
-import json
 import os
 import sys
 import time
@@ -35,9 +34,8 @@ def test_socket_connection():
         if client and client.connected:
             print("✅ Socket.IO connection successful")
             return True
-        else:
-            print("❌ Socket.IO connection failed")
-            return False
+        print("❌ Socket.IO connection failed")
+        return False
 
     except Exception as e:
         print(f"❌ Error testing connection: {e}")
@@ -49,7 +47,6 @@ def test_agent_event_emission():
     print("\n=== Testing Agent Event Emission ===")
 
     try:
-        from datetime import datetime
 
         from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
@@ -104,7 +101,6 @@ def test_multiple_agent_delegations():
     print("\n=== Testing Multiple Agent Delegations ===")
 
     try:
-        from datetime import datetime
 
         from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 

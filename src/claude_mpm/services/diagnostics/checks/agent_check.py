@@ -110,15 +110,31 @@ class AgentCheck(BaseDiagnosticCheck):
             )
 
     def _check_deployed_agents(self) -> DiagnosticResult:
-        """Check deployed agents in user directory."""
-        agents_dir = Path.home() / ".claude" / "agents"
+        """Check deployed agents in both project and user directories."""
+        import os
 
-        if not agents_dir.exists():
+        # Check project-level agents first (preferred in development)
+        project_agents_dir = Path(os.getcwd()) / ".claude" / "agents"
+        user_agents_dir = Path.home() / ".claude" / "agents"
+
+        # Determine which directory to check
+        if project_agents_dir.exists():
+            agents_dir = project_agents_dir
+            location = "project"
+        elif user_agents_dir.exists():
+            agents_dir = user_agents_dir
+            location = "user"
+        else:
+            # Neither exists, default to user directory for error message
             return DiagnosticResult(
                 category="Deployed Agents",
                 status=DiagnosticStatus.ERROR,
-                message="Agents directory does not exist",
-                details={"path": str(agents_dir), "count": 0},
+                message="No agents directory found (checked project and user)",
+                details={
+                    "project_path": str(project_agents_dir),
+                    "user_path": str(user_agents_dir),
+                    "count": 0,
+                },
                 fix_command="claude-mpm agents deploy",
                 fix_description="Create agents directory and deploy agents",
             )
@@ -130,8 +146,8 @@ class AgentCheck(BaseDiagnosticCheck):
             return DiagnosticResult(
                 category="Deployed Agents",
                 status=DiagnosticStatus.ERROR,
-                message="No agents deployed",
-                details={"path": str(agents_dir), "count": 0},
+                message=f"No agents deployed in {location} directory",
+                details={"path": str(agents_dir), "location": location, "count": 0},
                 fix_command="claude-mpm agents deploy",
                 fix_description="Deploy available agents",
             )
@@ -145,9 +161,10 @@ class AgentCheck(BaseDiagnosticCheck):
             return DiagnosticResult(
                 category="Deployed Agents",
                 status=DiagnosticStatus.WARNING,
-                message=f"Missing core agents: {', '.join(missing_core)}",
+                message=f"Missing core agents in {location}: {', '.join(missing_core)}",
                 details={
                     "path": str(agents_dir),
+                    "location": location,
                     "count": len(agent_files),
                     "deployed": deployed_names,
                     "missing_core": missing_core,
@@ -159,9 +176,10 @@ class AgentCheck(BaseDiagnosticCheck):
         return DiagnosticResult(
             category="Deployed Agents",
             status=DiagnosticStatus.OK,
-            message=f"{len(agent_files)} agents deployed",
+            message=f"{len(agent_files)} agents deployed ({location} level)",
             details={
                 "path": str(agents_dir),
+                "location": location,
                 "count": len(agent_files),
                 "deployed": deployed_names,
             },
@@ -170,14 +188,23 @@ class AgentCheck(BaseDiagnosticCheck):
     def _check_agent_versions(self) -> DiagnosticResult:
         """Check if deployed agents are up-to-date."""
         try:
+            import os
+
             from ....services.agents.deployment.agent_version_manager import (
                 AgentVersionManager,
             )
 
             version_manager = AgentVersionManager()
-            agents_dir = Path.home() / ".claude" / "agents"
 
-            if not agents_dir.exists():
+            # Check both project and user directories
+            project_agents_dir = Path(os.getcwd()) / ".claude" / "agents"
+            user_agents_dir = Path.home() / ".claude" / "agents"
+
+            if project_agents_dir.exists():
+                agents_dir = project_agents_dir
+            elif user_agents_dir.exists():
+                agents_dir = user_agents_dir
+            else:
                 return DiagnosticResult(
                     category="Agent Versions",
                     status=DiagnosticStatus.SKIPPED,
@@ -232,12 +259,21 @@ class AgentCheck(BaseDiagnosticCheck):
     def _validate_agents(self) -> DiagnosticResult:
         """Validate agent configurations."""
         try:
+            import os
+
             from ....services.agents.deployment.agent_validator import AgentValidator
 
             AgentValidator()
-            agents_dir = Path.home() / ".claude" / "agents"
 
-            if not agents_dir.exists():
+            # Check both project and user directories
+            project_agents_dir = Path(os.getcwd()) / ".claude" / "agents"
+            user_agents_dir = Path.home() / ".claude" / "agents"
+
+            if project_agents_dir.exists():
+                agents_dir = project_agents_dir
+            elif user_agents_dir.exists():
+                agents_dir = user_agents_dir
+            else:
                 return DiagnosticResult(
                     category="Agent Validation",
                     status=DiagnosticStatus.SKIPPED,
@@ -290,11 +326,23 @@ class AgentCheck(BaseDiagnosticCheck):
 
     def _check_common_issues(self) -> DiagnosticResult:
         """Check for common agent-related issues."""
+        import os
+
         issues = []
 
+        # Check both project and user directories
+        project_agents_dir = Path(os.getcwd()) / ".claude" / "agents"
+        user_agents_dir = Path.home() / ".claude" / "agents"
+
+        if project_agents_dir.exists():
+            agents_dir = project_agents_dir
+        elif user_agents_dir.exists():
+            agents_dir = user_agents_dir
+        else:
+            agents_dir = None
+
         # Check for duplicate agents
-        agents_dir = Path.home() / ".claude" / "agents"
-        if agents_dir.exists():
+        if agents_dir and agents_dir.exists():
             agent_names = {}
             for agent_file in agents_dir.glob("*.md"):
                 name = agent_file.stem.lower()
@@ -304,9 +352,7 @@ class AgentCheck(BaseDiagnosticCheck):
                     agent_names[name] = agent_file
 
         # Check permissions
-        if agents_dir.exists():
-            import os
-
+        if agents_dir and agents_dir.exists():
             if not os.access(agents_dir, os.R_OK):
                 issues.append("Agents directory not readable")
             if not os.access(agents_dir, os.W_OK):

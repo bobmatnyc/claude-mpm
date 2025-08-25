@@ -39,7 +39,7 @@ def test_hook_with_stdin(description, event_data):
             capture_output=True,
             text=True,
             timeout=5,
-            env=env,
+            env=env, check=False,
         )
 
         if result.stdout:

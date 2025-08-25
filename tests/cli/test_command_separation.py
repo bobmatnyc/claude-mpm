@@ -10,11 +10,10 @@ changes to experimental features don't affect stable functionality.
 import ast
 import importlib.util
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 
 class TestCommandSeparation(unittest.TestCase):
@@ -36,7 +35,7 @@ class TestCommandSeparation(unittest.TestCase):
         WHY: The main run command should have zero dependencies on experimental
         memory guardian features to ensure stability.
         """
-        with open(self.run_module_path, "r") as f:
+        with open(self.run_module_path) as f:
             source = f.read()
 
         # Parse the AST to find all imports
@@ -74,7 +73,7 @@ class TestCommandSeparation(unittest.TestCase):
         WHY: Even without direct imports, we want to ensure no references to
         memory guardian functionality exist in the stable run command.
         """
-        with open(self.run_module_path, "r") as f:
+        with open(self.run_module_path) as f:
             source = f.read()
 
         # Check for string references to memory guardian
@@ -104,7 +103,7 @@ class TestCommandSeparation(unittest.TestCase):
         run_guarded_module = importlib.util.module_from_spec(spec)
 
         # Check that MemoryAwareClaudeRunner is imported
-        with open(self.run_guarded_module_path, "r") as f:
+        with open(self.run_guarded_module_path) as f:
             source = f.read()
 
         self.assertIn(
@@ -126,7 +125,7 @@ class TestCommandSeparation(unittest.TestCase):
         WHY: Users must be warned when using experimental features to set
         proper expectations about stability and support.
         """
-        with open(self.run_guarded_module_path, "r") as f:
+        with open(self.run_guarded_module_path) as f:
             source = f.read()
 
         # Check for experimental warnings in the code
@@ -149,7 +148,7 @@ class TestCommandSeparation(unittest.TestCase):
         so users know before running the command.
         """
         parser_path = self.src_dir / "claude_mpm" / "cli" / "parser.py"
-        with open(parser_path, "r") as f:
+        with open(parser_path) as f:
             source = f.read()
 
         # Check for experimental marking in parser
@@ -172,7 +171,7 @@ class TestCommandSeparation(unittest.TestCase):
         )
 
         # Check that it has the required functionality
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             source = f.read()
 
         required_methods = [
@@ -273,7 +272,7 @@ class TestCommandSeparation(unittest.TestCase):
         for doc_file in memory_guardian_docs:
             doc_path = docs_dir / doc_file
             if doc_path.exists():
-                with open(doc_path, "r") as f:
+                with open(doc_path) as f:
                     content = f.read()
 
                 # Check for experimental warning

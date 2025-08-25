@@ -7,12 +7,12 @@ without breaking existing workflows or scripts.
 """
 
 import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 # Determine which daemon to use
-USE_HARDENED = os.environ.get('SOCKETIO_USE_HARDENED', 'true').lower() == 'true'
+USE_HARDENED = os.environ.get("SOCKETIO_USE_HARDENED", "true").lower() == "true"
 
 # Find the appropriate daemon script
 script_dir = Path(__file__).parent.parent / "src" / "claude_mpm" / "scripts"
@@ -26,11 +26,13 @@ if USE_HARDENED:
         print("Using hardened Socket.IO daemon for improved reliability")
 else:
     daemon_script = script_dir / "socketio_daemon.py"
-    print("Using original Socket.IO daemon (set SOCKETIO_USE_HARDENED=true for hardened version)")
+    print(
+        "Using original Socket.IO daemon (set SOCKETIO_USE_HARDENED=true for hardened version)"
+    )
 
 # Pass through all arguments to the selected daemon
 if daemon_script.exists():
-    result = subprocess.run([sys.executable, str(daemon_script)] + sys.argv[1:])
+    result = subprocess.run([sys.executable, str(daemon_script)] + sys.argv[1:], check=False)
     sys.exit(result.returncode)
 else:
     print(f"Error: Daemon script not found at {daemon_script}")

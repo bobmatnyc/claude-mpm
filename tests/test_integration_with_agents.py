@@ -7,10 +7,8 @@ Tests backward compatibility and real-world usage.
 import json
 import os
 import sys
-import tempfile
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -495,7 +493,7 @@ def main():
     print("INTEGRATION TEST SUMMARY")
     print("=" * 60)
 
-    print(f"🔄 Backward Compatibility:")
+    print("🔄 Backward Compatibility:")
     print(
         f"  ✓ Performance improvement: {compatibility_result['performance_improvement_pct']:.1f}%"
     )
@@ -507,25 +505,27 @@ def main():
     )
     print(f"  ✓ Status: {'✅ PASS' if compatibility_result['success'] else '❌ FAIL'}")
 
-    print(f"\n🌐 Global Function:")
+    print("\n🌐 Global Function:")
     print(f"  ✓ Responses logged: {convenience_result['responses_logged']}")
     print(f"  ✓ Throughput: {convenience_result['throughput']:.1f} responses/sec")
     print(f"  ✓ Status: {'✅ PASS' if convenience_result['success'] else '❌ FAIL'}")
 
-    print(f"\n🆔 Session Handling:")
+    print("\n🆔 Session Handling:")
     print(
         f"  ✓ Environment detection: {'✅' if session_result['env_detection_works'] else '❌'}"
     )
-    print(f"  ✓ Manual setting: {'✅' if session_result['manual_session_set'] else '❌'}")
+    print(
+        f"  ✓ Manual setting: {'✅' if session_result['manual_session_set'] else '❌'}"
+    )
     print(f"  ✓ Status: {'✅ PASS' if session_result['success'] else '❌ FAIL'}")
 
-    print(f"\n📋 Metadata Handling:")
+    print("\n📋 Metadata Handling:")
     print(f"  ✓ Files created: {metadata_result['files_created']}")
     print(f"  ✓ Valid files: {metadata_result['valid_files']}")
     print(f"  ✓ Unique agents: {metadata_result['unique_agents']}")
     print(f"  ✓ Status: {'✅ PASS' if metadata_result['success'] else '❌ FAIL'}")
 
-    print(f"\n🛡️ Error Recovery:")
+    print("\n🛡️ Error Recovery:")
     print(f"  ✓ Successful logs: {error_result['successful_logs']}")
     print(f"  ✓ Dropped logs: {error_result['dropped_logs']}")
     print(

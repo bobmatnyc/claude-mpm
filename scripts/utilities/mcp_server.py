@@ -13,33 +13,36 @@ DESIGN DECISION: Keep this launcher minimal and delegate all logic
 to the wrapper script for maintainability.
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Disable telemetry by default
-os.environ['DISABLE_TELEMETRY'] = '1'
+os.environ["DISABLE_TELEMETRY"] = "1"
 
 # Add the project root to Python path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
+import subprocess
+
 # Import and run the wrapper
 from pathlib import Path
-import subprocess
+
 
 def main():
     """Run the MCP server via the wrapper script."""
     wrapper_script = Path(__file__).parent / "mcp_wrapper.py"
-    
+
     if not wrapper_script.exists():
         print(f"Error: Wrapper script not found at {wrapper_script}", file=sys.stderr)
         sys.exit(1)
-    
+
     # Execute the wrapper script with the same Python interpreter
-    import subprocess
-    result = subprocess.run([sys.executable, str(wrapper_script)])
+
+    result = subprocess.run([sys.executable, str(wrapper_script)], check=False)
     sys.exit(result.returncode)
+
 
 if __name__ == "__main__":
     main()

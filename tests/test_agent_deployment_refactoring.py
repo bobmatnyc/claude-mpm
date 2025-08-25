@@ -1,7 +1,6 @@
 """Tests for the refactored agent deployment components."""
 
 import json
-import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -14,7 +13,6 @@ from claude_mpm.services.agents.deployment.config import (
 )
 from claude_mpm.services.agents.deployment.facade import (
     AsyncDeploymentExecutor,
-    DeploymentExecutor,
     DeploymentFacade,
     SyncDeploymentExecutor,
 )
@@ -52,7 +50,6 @@ from claude_mpm.services.agents.deployment.validation import (
     DeploymentValidator,
     TemplateValidator,
     ValidationResult,
-    ValidationSeverity,
 )
 
 

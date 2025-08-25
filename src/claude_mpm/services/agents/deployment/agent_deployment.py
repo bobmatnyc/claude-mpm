@@ -48,7 +48,10 @@ from .agent_metrics_collector import AgentMetricsCollector
 from .agent_template_builder import AgentTemplateBuilder
 from .agent_validator import AgentValidator
 from .agent_version_manager import AgentVersionManager
+from .base_agent_locator import BaseAgentLocator
+from .deployment_results_manager import DeploymentResultsManager
 from .multi_source_deployment_service import MultiSourceAgentDeploymentService
+from .single_agent_deployer import SingleAgentDeployer
 
 
 class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
@@ -120,20 +123,24 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
 
         # Initialize validator service
         self.validator = AgentValidator()
+        
+        # Initialize base agent locator service
+        self.base_agent_locator = BaseAgentLocator(self.logger)
+        
+        # Initialize deployment results manager
+        self.results_manager = DeploymentResultsManager(self.logger)
+        
+        # Initialize single agent deployer
+        self.single_agent_deployer = SingleAgentDeployer(
+            self.template_builder,
+            self.version_manager,
+            self.results_manager,
+            self.logger,
+        )
 
         # Initialize filesystem manager service
         self.filesystem_manager = AgentFileSystemManager()
 
-        # Initialize deployment metrics tracking
-        self._deployment_metrics = {
-            "total_deployments": 0,
-            "successful_deployments": 0,
-            "failed_deployments": 0,
-            "migrations_performed": 0,
-            "version_migration_count": 0,
-            "agent_type_counts": {},
-            "deployment_errors": {},
-        }
 
         # Determine the actual working directory using configuration
         # Priority: param > config > environment > current directory
@@ -169,7 +176,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             self.base_agent_path = configured_base_agent
         else:
             # Priority-based search for base_agent.json
-            self.base_agent_path = self._find_base_agent_file()
+            self.base_agent_path = self.base_agent_locator.find_base_agent_file(paths.agents_dir)
 
         # Initialize configuration manager (after base_agent_path is set)
         self.configuration_manager = AgentConfigurationManager(self.base_agent_path)
@@ -180,86 +187,6 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         self.logger.info(f"Templates directory: {self.templates_dir}")
         self.logger.info(f"Base agent path: {self.base_agent_path}")
 
-    def _find_base_agent_file(self) -> Path:
-        """Find base agent file with priority-based search.
-
-        Priority order:
-        1. Environment variable override (CLAUDE_MPM_BASE_AGENT_PATH)
-        2. Current working directory (for local development)
-        3. Known development locations
-        4. User override location (~/.claude/agents/)
-        5. Framework agents directory (from paths)
-        """
-        # Priority 0: Check environment variable override
-        env_path = os.environ.get("CLAUDE_MPM_BASE_AGENT_PATH")
-        if env_path:
-            env_base_agent = Path(env_path)
-            if env_base_agent.exists():
-                self.logger.info(
-                    f"Using environment variable base_agent: {env_base_agent}"
-                )
-                return env_base_agent
-            self.logger.warning(
-                f"CLAUDE_MPM_BASE_AGENT_PATH set but file doesn't exist: {env_base_agent}"
-            )
-
-        # Priority 1: Check current working directory for local development
-        cwd = Path.cwd()
-        cwd_base_agent = cwd / "src" / "claude_mpm" / "agents" / "base_agent.json"
-        if cwd_base_agent.exists():
-            self.logger.info(
-                f"Using local development base_agent from cwd: {cwd_base_agent}"
-            )
-            return cwd_base_agent
-
-        # Priority 2: Check known development locations
-        known_dev_paths = [
-            Path(
-                "/Users/masa/Projects/claude-mpm/src/claude_mpm/agents/base_agent.json"
-            ),
-            Path.home()
-            / "Projects"
-            / "claude-mpm"
-            / "src"
-            / "claude_mpm"
-            / "agents"
-            / "base_agent.json",
-            Path.home()
-            / "projects"
-            / "claude-mpm"
-            / "src"
-            / "claude_mpm"
-            / "agents"
-            / "base_agent.json",
-        ]
-
-        for dev_path in known_dev_paths:
-            if dev_path.exists():
-                self.logger.info(f"Using development base_agent: {dev_path}")
-                return dev_path
-
-        # Priority 3: Check user override location
-        user_base_agent = Path.home() / ".claude" / "agents" / "base_agent.json"
-        if user_base_agent.exists():
-            self.logger.info(f"Using user override base_agent: {user_base_agent}")
-            return user_base_agent
-
-        # Priority 4: Use framework agents directory (fallback)
-        framework_base_agent = paths.agents_dir / "base_agent.json"
-        if framework_base_agent.exists():
-            self.logger.info(f"Using framework base_agent: {framework_base_agent}")
-            return framework_base_agent
-
-        # If still not found, log all searched locations and raise error
-        self.logger.error("Base agent file not found in any location:")
-        self.logger.error(f"  1. CWD: {cwd_base_agent}")
-        self.logger.error(f"  2. Dev paths: {known_dev_paths}")
-        self.logger.error(f"  3. User: {user_base_agent}")
-        self.logger.error(f"  4. Framework: {framework_base_agent}")
-
-        # Final fallback to framework path even if it doesn't exist
-        # (will fail later with better error message)
-        return framework_base_agent
 
     def deploy_agents(
         self,
@@ -362,7 +289,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         agents_dir = self._determine_agents_directory(target_dir)
 
         # Initialize results dictionary
-        results = self._initialize_deployment_results(agents_dir, deployment_start_time)
+        results = self.results_manager.initialize_deployment_results(agents_dir, deployment_start_time)
 
         try:
             # Create agents directory if needed
@@ -372,7 +299,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             self._repair_existing_agents(agents_dir, results)
 
             # Log deployment source tier
-            source_tier = self._determine_source_tier()
+            source_tier = self.base_agent_locator.determine_source_tier(self.templates_dir)
             self.logger.info(
                 f"Building and deploying {source_tier} agents to: {agents_dir}"
             )
@@ -439,7 +366,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                     else "single"
                 )
 
-                self._deploy_single_agent(
+                self.single_agent_deployer.deploy_single_agent(
                     template_file=template_file_path,
                     agents_dir=agents_dir,
                     base_agent_data=base_agent_data,
@@ -478,31 +405,24 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             results["errors"].append(error_msg)
 
             # METRICS: Track deployment failure
-            self._deployment_metrics["failed_deployments"] += 1
-            error_type = type(e).__name__
-            self._deployment_metrics["deployment_errors"][error_type] = (
-                self._deployment_metrics["deployment_errors"].get(error_type, 0) + 1
-            )
+            self.results_manager.update_deployment_metrics(False, type(e).__name__)
 
         # METRICS: Calculate final deployment metrics
-        deployment_end_time = time.time()
-        deployment_duration = (deployment_end_time - deployment_start_time) * 1000  # ms
-
-        results["metrics"]["end_time"] = deployment_end_time
-        results["metrics"]["duration_ms"] = deployment_duration
+        self.results_manager.finalize_results(results, deployment_start_time)
 
         # METRICS: Update rolling averages and statistics
+        deployment_duration = results["metrics"].get("duration_ms", 0)
         self.metrics_collector.update_deployment_metrics(deployment_duration, results)
 
         return results
 
     def get_deployment_metrics(self) -> Dict[str, Any]:
         """Get current deployment metrics."""
-        return self.metrics_collector.get_deployment_metrics()
+        return self.results_manager.get_deployment_metrics()
 
     def reset_metrics(self) -> None:
         """Reset deployment metrics."""
-        return self.metrics_collector.reset_metrics()
+        return self.results_manager.reset_metrics()
 
     def set_claude_environment(
         self, config_dir: Optional[Path] = None
@@ -543,73 +463,14 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         - Properly loads base_agent_data before building agent content
         """
         try:
-            # Find the template file
-            template_file = self.templates_dir / f"{agent_name}.json"
-            if not template_file.exists():
-                self.logger.error(f"Agent template not found: {agent_name}")
-                return False
-
-            # Ensure target directory exists
-            # target_dir should already be the agents directory
-            target_dir.mkdir(parents=True, exist_ok=True)
-
-            # Build and deploy the agent
-            target_file = target_dir / f"{agent_name}.md"
-
-            # Check if update is needed
-            if not force_rebuild and target_file.exists():
-                # Load base agent data for version checking
-                base_agent_data = {}
-                base_agent_version = (0, 0, 0)
-                if self.base_agent_path.exists():
-                    try:
-                        import json
-
-                        base_agent_data = json.loads(self.base_agent_path.read_text())
-                        base_agent_version = self.version_manager.parse_version(
-                            base_agent_data.get("base_version")
-                            or base_agent_data.get("version", 0)
-                        )
-                    except Exception as e:
-                        self.logger.warning(
-                            f"Could not load base agent for version check: {e}"
-                        )
-
-                needs_update, reason = self.version_manager.check_agent_needs_update(
-                    target_file, template_file, base_agent_version
-                )
-                if not needs_update:
-                    self.logger.info(f"Agent {agent_name} is up to date")
-                    return True
-                self.logger.info(f"Updating agent {agent_name}: {reason}")
-
-            # Load base agent data for building
-            base_agent_data = {}
-            if self.base_agent_path.exists():
-                try:
-                    import json
-
-                    base_agent_data = json.loads(self.base_agent_path.read_text())
-                except Exception as e:
-                    self.logger.warning(f"Could not load base agent: {e}")
-
-            # Build the agent markdown
-            # For single agent deployment, determine source from template location
-            source_info = self._determine_agent_source(template_file)
-            agent_content = self.template_builder.build_agent_markdown(
-                agent_name, template_file, base_agent_data, source_info
+            return self.single_agent_deployer.deploy_agent(
+                agent_name,
+                self.templates_dir,
+                target_dir,
+                self.base_agent_path,
+                force_rebuild,
+                self.working_directory,
             )
-            if not agent_content:
-                self.logger.error(f"Failed to build agent content for {agent_name}")
-                return False
-
-            # Write to target file
-            target_file.write_text(agent_content)
-            self.logger.info(
-                f"Successfully deployed agent: {agent_name} to {target_file}"
-            )
-
-            return True
 
         except AgentDeploymentError:
             # Re-raise our custom exceptions
@@ -764,11 +625,9 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                 self.logger.info(f"Async deployment completed in {duration_ms:.1f}ms")
 
                 # Update internal metrics
-                self._deployment_metrics["total_deployments"] += 1
-                if not results.get("errors"):
-                    self._deployment_metrics["successful_deployments"] += 1
-                else:
-                    self._deployment_metrics["failed_deployments"] += 1
+                self.results_manager.update_deployment_metrics(
+                    not results.get("errors")
+                )
 
             return results
 
@@ -793,42 +652,6 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         resolver = AgentsDirectoryResolver(self.working_directory)
         return resolver.determine_agents_directory(target_dir)
 
-    def _initialize_deployment_results(
-        self, agents_dir: Path, deployment_start_time: float
-    ) -> Dict[str, Any]:
-        """
-        Initialize the deployment results dictionary.
-
-        WHY: Consistent result structure ensures all deployment
-        operations return the same format for easier processing.
-
-        Args:
-            agents_dir: Target agents directory
-            deployment_start_time: Start time for metrics
-
-        Returns:
-            Initialized results dictionary
-        """
-        return {
-            "target_dir": str(agents_dir),
-            "deployed": [],
-            "errors": [],
-            "skipped": [],
-            "updated": [],
-            "migrated": [],  # Track agents migrated from old format
-            "converted": [],  # Track YAML to MD conversions
-            "repaired": [],  # Track agents with repaired frontmatter
-            "total": 0,
-            # METRICS: Add detailed timing and performance data to results
-            "metrics": {
-                "start_time": deployment_start_time,
-                "end_time": None,
-                "duration_ms": None,
-                "agent_timings": {},  # Track individual agent deployment times
-                "validation_times": {},  # Track template validation times
-                "resource_usage": {},  # Could track memory/CPU if needed
-            },
-        }
 
     def _repair_existing_agents(
         self, agents_dir: Path, results: Dict[str, Any]
@@ -852,11 +675,6 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             for agent_name in repair_results["repaired"]:
                 self.logger.debug(f"  - Repaired: {agent_name}")
 
-    def _determine_source_tier(self) -> str:
-        """Determine the source tier for logging."""
-        from .deployment_type_detector import DeploymentTypeDetector
-
-        return DeploymentTypeDetector.determine_source_tier(self.templates_dir)
 
     def _load_base_agent(self) -> tuple:
         """Load base agent content and version."""
@@ -866,204 +684,8 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         """Get and filter template files based on exclusion rules."""
         return self.discovery_service.get_filtered_templates(excluded_agents, config)
 
-    def _deploy_single_agent(
-        self,
-        template_file: Path,
-        agents_dir: Path,
-        base_agent_data: dict,
-        base_agent_version: tuple,
-        force_rebuild: bool,
-        deployment_mode: str,
-        results: Dict[str, Any],
-        source_info: str = "unknown",
-    ) -> None:
-        """
-        Deploy a single agent template.
 
-        WHY: Extracting single agent deployment logic reduces complexity
-        and makes the main deployment loop more readable.
 
-        Args:
-            template_file: Agent template file
-            agents_dir: Target agents directory
-            base_agent_data: Base agent data
-            base_agent_version: Base agent version
-            force_rebuild: Whether to force rebuild
-            deployment_mode: Deployment mode (update/project)
-            results: Results dictionary to update
-            source_info: Source of the agent (system/project/user)
-        """
-        try:
-            # METRICS: Track individual agent deployment time
-            agent_start_time = time.time()
-
-            agent_name = template_file.stem
-            target_file = agents_dir / f"{agent_name}.md"
-
-            # Check if agent needs update
-            needs_update, is_migration, reason = self._check_update_status(
-                target_file,
-                template_file,
-                base_agent_version,
-                force_rebuild,
-                deployment_mode,
-            )
-
-            # Skip if exists and doesn't need update (only in update mode)
-            if (
-                target_file.exists()
-                and not needs_update
-                and deployment_mode != "project"
-            ):
-                results["skipped"].append(agent_name)
-                self.logger.debug(f"Skipped up-to-date agent: {agent_name}")
-                return
-
-            # Build the agent file as markdown with YAML frontmatter
-            agent_content = self.template_builder.build_agent_markdown(
-                agent_name, template_file, base_agent_data, source_info
-            )
-
-            # Write the agent file
-            is_update = target_file.exists()
-            target_file.write_text(agent_content)
-
-            # Record metrics and update results
-            self._record_agent_deployment(
-                agent_name,
-                template_file,
-                target_file,
-                is_update,
-                is_migration,
-                reason,
-                agent_start_time,
-                results,
-            )
-
-        except AgentDeploymentError as e:
-            # Re-raise our custom exceptions
-            self.logger.error(str(e))
-            results["errors"].append(str(e))
-        except Exception as e:
-            # Wrap generic exceptions with context
-            error_msg = f"Failed to build {template_file.name}: {e}"
-            self.logger.error(error_msg)
-            results["errors"].append(error_msg)
-
-    def _check_update_status(
-        self,
-        target_file: Path,
-        template_file: Path,
-        base_agent_version: tuple,
-        force_rebuild: bool,
-        deployment_mode: str,
-    ) -> tuple:
-        """
-        Check if agent needs update and determine status.
-
-        WHY: Centralized update checking logic ensures consistent
-        version comparison and migration detection.
-
-        Args:
-            target_file: Target agent file
-            template_file: Template file
-            base_agent_version: Base agent version
-            force_rebuild: Whether to force rebuild
-            deployment_mode: Deployment mode
-
-        Returns:
-            Tuple of (needs_update, is_migration, reason)
-        """
-        needs_update = force_rebuild
-        is_migration = False
-        reason = ""
-
-        # In project deployment mode, always deploy regardless of version
-        if deployment_mode == "project":
-            if target_file.exists():
-                needs_update = True
-                self.logger.debug(
-                    f"Project deployment mode: will deploy {template_file.stem}"
-                )
-            else:
-                needs_update = True
-        elif not needs_update and target_file.exists():
-            # In update mode, check version compatibility
-            needs_update, reason = self.version_manager.check_agent_needs_update(
-                target_file, template_file, base_agent_version
-            )
-            if needs_update:
-                # Check if this is a migration from old format
-                if "migration needed" in reason:
-                    is_migration = True
-                    self.logger.info(f"Migrating agent {template_file.stem}: {reason}")
-                else:
-                    self.logger.info(
-                        f"Agent {template_file.stem} needs update: {reason}"
-                    )
-
-        return needs_update, is_migration, reason
-
-    def _record_agent_deployment(
-        self,
-        agent_name: str,
-        template_file: Path,
-        target_file: Path,
-        is_update: bool,
-        is_migration: bool,
-        reason: str,
-        agent_start_time: float,
-        results: Dict[str, Any],
-    ) -> None:
-        """
-        Record deployment metrics and update results.
-
-        WHY: Centralized metrics recording ensures consistent tracking
-        of deployment performance and statistics.
-
-        Args:
-            agent_name: Name of the agent
-            template_file: Template file
-            target_file: Target file
-            is_update: Whether this is an update
-            is_migration: Whether this is a migration
-            reason: Update/migration reason
-            agent_start_time: Start time for this agent
-            results: Results dictionary to update
-        """
-        # METRICS: Record deployment time for this agent
-        agent_deployment_time = (time.time() - agent_start_time) * 1000  # Convert to ms
-        results["metrics"]["agent_timings"][agent_name] = agent_deployment_time
-
-        # METRICS: Update agent type deployment counts
-        self._deployment_metrics["agent_type_counts"][agent_name] = (
-            self._deployment_metrics["agent_type_counts"].get(agent_name, 0) + 1
-        )
-
-        deployment_info = {
-            "name": agent_name,
-            "template": str(template_file),
-            "target": str(target_file),
-            "deployment_time_ms": agent_deployment_time,
-        }
-
-        if is_migration:
-            deployment_info["reason"] = reason
-            results["migrated"].append(deployment_info)
-            self.logger.info(
-                f"Successfully migrated agent: {agent_name} to semantic versioning"
-            )
-
-            # METRICS: Track migration statistics
-            self._deployment_metrics["migrations_performed"] += 1
-            self._deployment_metrics["version_migration_count"] += 1
-
-        elif is_update:
-            results["updated"].append(deployment_info)
-            self.logger.debug(f"Updated agent: {agent_name}")
-        else:
-            results["deployed"].append(deployment_info)
-            self.logger.debug(f"Built and deployed agent: {agent_name}")
 
     def _validate_and_repair_existing_agents(self, agents_dir: Path) -> Dict[str, Any]:
         """Validate and repair broken frontmatter in existing agent files."""
@@ -1072,37 +694,6 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         validator = AgentFrontmatterValidator(self.logger)
         return validator.validate_and_repair_existing_agents(agents_dir)
 
-    def _determine_agent_source(self, template_path: Path) -> str:
-        """Determine the source of an agent from its template path.
-
-        WHY: When deploying single agents, we need to track their source
-        for proper version management and debugging.
-
-        Args:
-            template_path: Path to the agent template
-
-        Returns:
-            Source string (system/project/user/unknown)
-        """
-        template_str = str(template_path.resolve())
-
-        # Check if it's a system template
-        if (
-            "/claude_mpm/agents/templates/" in template_str
-            or "/src/claude_mpm/agents/templates/" in template_str
-        ):
-            return "system"
-
-        # Check if it's a project agent
-        if "/.claude-mpm/agents/" in template_str:
-            # Check if it's in the current working directory
-            if str(self.working_directory) in template_str:
-                return "project"
-            # Check if it's in user home
-            if str(Path.home()) in template_str:
-                return "user"
-
-        return "unknown"
 
     def _should_use_multi_source_deployment(self, deployment_mode: str) -> bool:
         """Determine if multi-source deployment should be used.

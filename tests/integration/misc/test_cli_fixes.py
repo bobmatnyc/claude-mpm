@@ -27,12 +27,12 @@ def run_subcommand(cmd, description):
         # Split command string into a list to avoid shell=True
         command_parts = shlex.split(cmd)
         result = subprocess.run(
-            command_parts, capture_output=True, text=True, timeout=10
+            command_parts, capture_output=True, text=True, timeout=10, check=False
         )
 
         success = result.returncode == 0
         if success:
-            print(f"✓ PASSED")
+            print("✓ PASSED")
         else:
             print(f"✗ FAILED (exit code: {result.returncode})")
             if result.stderr:
@@ -40,7 +40,7 @@ def run_subcommand(cmd, description):
 
         return success, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
-        print(f"✗ FAILED (timeout)")
+        print("✗ FAILED (timeout)")
         return False, "", "Command timed out"
     except Exception as e:
         print(f"✗ FAILED (exception: {e})")
@@ -134,9 +134,8 @@ def main():
     if tests_passed == tests_run:
         print("\n✓ All tests passed successfully!")
         return 0
-    else:
-        print(f"\n✗ {len(failed_tests)} test(s) failed")
-        return 1
+    print(f"\n✗ {len(failed_tests)} test(s) failed")
+    return 1
 
 
 if __name__ == "__main__":

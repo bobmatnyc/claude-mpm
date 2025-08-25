@@ -5,12 +5,8 @@ initialization, environment setup, command processing, error handling,
 and cleanup with comprehensive mocking of external dependencies.
 """
 
-import os
-import subprocess
-import tempfile
 import uuid
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -382,7 +378,8 @@ class TestInteractiveSession:
     def test_process_interactive_command_agents_exception(interactive_session):
         """Test processing of /agents command with exception."""
         with patch(
-            "claude_mpm.cli.utils.get_agent_versions_display", side_effect=Exception("Error")
+            "claude_mpm.cli.utils.get_agent_versions_display",
+            side_effect=Exception("Error"),
         ), patch("builtins.print") as mock_print:
             result = interactive_session.process_interactive_command("/agents")
 
@@ -477,7 +474,14 @@ class TestInteractiveSession:
         ):
             result = interactive_session._build_claude_command()
 
-            expected = ["claude", "--model", "opus", "--dangerously-skip-permissions", "--append-system-prompt", "system prompt"]
+            expected = [
+                "claude",
+                "--model",
+                "opus",
+                "--dangerously-skip-permissions",
+                "--append-system-prompt",
+                "system prompt",
+            ]
             assert result == expected
 
     def test_build_claude_command_with_args(interactive_session):

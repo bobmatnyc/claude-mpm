@@ -7,7 +7,6 @@ that events sent via HTTP POST are properly received by connected clients.
 """
 
 import asyncio
-import json
 import sys
 import time
 from pathlib import Path
@@ -201,7 +200,7 @@ class TestClient:
     def _report_results(self):
         """Report test results."""
 
-        print(f"\n📊 TEST RESULTS:")
+        print("\n📊 TEST RESULTS:")
         print(f"🔌 Connected namespaces: {len(self.connected_namespaces)}")
         print(f"📨 Events received: {len(self.received_events)}")
 

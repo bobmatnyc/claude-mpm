@@ -5,12 +5,7 @@ This test suite validates the concatenation of INSTRUCTIONS.md, TODOWRITE.md,
 and MEMORIES.md files into a complete agent instruction set.
 """
 
-import shutil
-import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
-
-import pytest
 
 
 class TestInstructionSynthesis:
@@ -357,8 +352,7 @@ Critical system instructions that must not be tampered with.
         """Merge system and custom instructions."""
         if custom_priority:
             return custom + "\n\n" + system
-        else:
-            return system + "\n\n" + custom
+        return system + "\n\n" + custom
 
     def _inject_capabilities(self, instructions: str, capabilities: list) -> str:
         """Inject dynamic capabilities into instructions."""
