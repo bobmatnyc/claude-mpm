@@ -475,6 +475,13 @@ class SocketClient {
                 return;
             }
             
+            // Check if this is a code analysis event - if so, don't add to events list
+            // Code analysis events are handled by the code-tree component and shown in the footer
+            if (validatedEvent.type && validatedEvent.type.startsWith('code:')) {
+                console.log('Code analysis event received via claude_event, not adding to events list:', validatedEvent.type);
+                return;
+            }
+            
             // Transform event to match expected format (for backward compatibility)
             const transformedEvent = this.transformEvent(validatedEvent);
             console.log('Transformed event:', transformedEvent);
@@ -1124,6 +1131,11 @@ class SocketClient {
                 const subtype = type.substring(5); // Remove 'hook.' prefix
                 transformedEvent.type = 'hook';
                 transformedEvent.subtype = subtype;
+            }
+            // Transform 'code:*' events to proper code type
+            else if (type.startsWith('code:')) {
+                transformedEvent.type = 'code';
+                transformedEvent.subtype = type.substring(5); // Remove 'code:' prefix
             }
             // Transform other dotted types like 'session.started' -> type: 'session', subtype: 'started'
             else if (type.includes('.')) {

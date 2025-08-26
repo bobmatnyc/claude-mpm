@@ -16,6 +16,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [4.1.10] - 2025-08-26
+
+### Fixed
+- **Code Quality**: Comprehensive linting fixes and improvements across entire codebase
+  - Fixed ruff configuration to use new [lint] section format
+  - Applied auto-formatting with black and isort
+  - Resolved import sorting and organization issues
+  - Fixed numerous linting warnings in tests and scripts
+
+### Changed
+- **Dashboard UI**: Enhanced code tree component with improved visualization
+- **Project Structure**: Moved test files from root to proper test directories
+- **Code Consistency**: Improved maintainability through comprehensive formatting
+
 ## [4.1.9] - 2025-08-26
 
 ### Added
