@@ -221,14 +221,14 @@ class ConfigureCommand(BaseCommand):
 
         if getattr(args, "version_info", False):
             return self._show_version_info()
-            
+
         # Handle hook installation
         if getattr(args, "install_hooks", False):
             return self._install_hooks(force=getattr(args, "force", False))
-            
+
         if getattr(args, "verify_hooks", False):
             return self._verify_hooks()
-            
+
         if getattr(args, "uninstall_hooks", False):
             return self._uninstall_hooks()
 
@@ -1192,49 +1192,52 @@ Directory: {self.project_dir}
         self.console.print(f"[bold]Python:[/bold] {data['python_version']}")
 
         return CommandResult.success_result("Version information displayed", data=data)
-        
+
     def _install_hooks(self, force: bool = False) -> CommandResult:
         """Install Claude MPM hooks for Claude Code integration."""
         try:
             from ...hooks.claude_hooks.installer import HookInstaller
-            
+
             installer = HookInstaller()
-            
+
             # Check current status first
             status = installer.get_status()
             if status["installed"] and not force:
                 self.console.print("[yellow]Hooks are already installed.[/yellow]")
                 self.console.print("Use --force to reinstall.")
-                
+
                 if not status["valid"]:
                     self.console.print("\n[red]However, there are issues:[/red]")
                     for issue in status["issues"]:
                         self.console.print(f"  - {issue}")
-                        
-                return CommandResult.success_result("Hooks already installed", data=status)
-                
+
+                return CommandResult.success_result(
+                    "Hooks already installed", data=status
+                )
+
             # Install hooks
             self.console.print("[cyan]Installing Claude MPM hooks...[/cyan]")
             success = installer.install_hooks(force=force)
-            
+
             if success:
                 self.console.print("[green]✓ Hooks installed successfully![/green]")
                 self.console.print("\nYou can now use /mpm commands in Claude Code:")
                 self.console.print("  /mpm         - Show help")
                 self.console.print("  /mpm status  - Show claude-mpm status")
-                
+
                 # Verify installation
                 is_valid, issues = installer.verify_hooks()
                 if not is_valid:
-                    self.console.print("\n[yellow]Warning: Installation completed but verification found issues:[/yellow]")
+                    self.console.print(
+                        "\n[yellow]Warning: Installation completed but verification found issues:[/yellow]"
+                    )
                     for issue in issues:
                         self.console.print(f"  - {issue}")
-                        
+
                 return CommandResult.success_result("Hooks installed successfully")
-            else:
-                self.console.print("[red]✗ Hook installation failed[/red]")
-                return CommandResult.error_result("Hook installation failed")
-                
+            self.console.print("[red]✗ Hook installation failed[/red]")
+            return CommandResult.error_result("Hook installation failed")
+
         except ImportError:
             self.console.print("[red]Error: HookInstaller module not found[/red]")
             self.console.print("Please ensure claude-mpm is properly installed.")
@@ -1242,69 +1245,78 @@ Directory: {self.project_dir}
         except Exception as e:
             self.logger.error(f"Hook installation error: {e}", exc_info=True)
             return CommandResult.error_result(f"Hook installation failed: {e}")
-            
+
     def _verify_hooks(self) -> CommandResult:
         """Verify that Claude MPM hooks are properly installed."""
         try:
             from ...hooks.claude_hooks.installer import HookInstaller
-            
+
             installer = HookInstaller()
             status = installer.get_status()
-            
+
             self.console.print("[bold]Hook Installation Status[/bold]\n")
-            
+
             if status["installed"]:
-                self.console.print(f"[green]✓[/green] Hooks installed at: {status['hook_script']}")
+                self.console.print(
+                    f"[green]✓[/green] Hooks installed at: {status['hook_script']}"
+                )
             else:
                 self.console.print("[red]✗[/red] Hooks not installed")
-                
+
             if status["settings_file"]:
-                self.console.print(f"[green]✓[/green] Settings file: {status['settings_file']}")
+                self.console.print(
+                    f"[green]✓[/green] Settings file: {status['settings_file']}"
+                )
             else:
                 self.console.print("[red]✗[/red] Settings file not found")
-                
+
             if status.get("configured_events"):
-                self.console.print(f"[green]✓[/green] Configured events: {', '.join(status['configured_events'])}")
+                self.console.print(
+                    f"[green]✓[/green] Configured events: {', '.join(status['configured_events'])}"
+                )
             else:
                 self.console.print("[red]✗[/red] No events configured")
-                
+
             if status["valid"]:
                 self.console.print("\n[green]All checks passed![/green]")
             else:
                 self.console.print("\n[red]Issues found:[/red]")
                 for issue in status["issues"]:
                     self.console.print(f"  - {issue}")
-                    
-            return CommandResult.success_result("Hook verification complete", data=status)
-            
+
+            return CommandResult.success_result(
+                "Hook verification complete", data=status
+            )
+
         except ImportError:
             self.console.print("[red]Error: HookInstaller module not found[/red]")
             return CommandResult.error_result("HookInstaller module not found")
         except Exception as e:
             self.logger.error(f"Hook verification error: {e}", exc_info=True)
             return CommandResult.error_result(f"Hook verification failed: {e}")
-            
+
     def _uninstall_hooks(self) -> CommandResult:
         """Uninstall Claude MPM hooks."""
         try:
             from ...hooks.claude_hooks.installer import HookInstaller
-            
+
             installer = HookInstaller()
-            
+
             # Confirm uninstallation
-            if not Confirm.ask("[yellow]Are you sure you want to uninstall Claude MPM hooks?[/yellow]"):
+            if not Confirm.ask(
+                "[yellow]Are you sure you want to uninstall Claude MPM hooks?[/yellow]"
+            ):
                 return CommandResult.success_result("Uninstallation cancelled")
-                
+
             self.console.print("[cyan]Uninstalling Claude MPM hooks...[/cyan]")
             success = installer.uninstall_hooks()
-            
+
             if success:
                 self.console.print("[green]✓ Hooks uninstalled successfully![/green]")
                 return CommandResult.success_result("Hooks uninstalled successfully")
-            else:
-                self.console.print("[red]✗ Hook uninstallation failed[/red]")
-                return CommandResult.error_result("Hook uninstallation failed")
-                
+            self.console.print("[red]✗ Hook uninstallation failed[/red]")
+            return CommandResult.error_result("Hook uninstallation failed")
+
         except ImportError:
             self.console.print("[red]Error: HookInstaller module not found[/red]")
             return CommandResult.error_result("HookInstaller module not found")

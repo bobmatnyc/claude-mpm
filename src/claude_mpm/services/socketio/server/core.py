@@ -181,11 +181,13 @@ class SocketIOServerCore:
             # Create aiohttp application
             self.app = web.Application()
             self.sio.attach(self.app)
-            
+
             # CRITICAL: Register event handlers BEFORE starting the server
             # This ensures handlers are ready when clients connect
-            if self.main_server and hasattr(self.main_server, '_register_events_async'):
-                self.logger.info("Registering Socket.IO event handlers before server start")
+            if self.main_server and hasattr(self.main_server, "_register_events_async"):
+                self.logger.info(
+                    "Registering Socket.IO event handlers before server start"
+                )
                 await self.main_server._register_events_async()
             else:
                 self.logger.warning("Main server not available for event registration")
