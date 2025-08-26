@@ -56,24 +56,99 @@ You manage a comprehensive PM (Project Manager) customization system:
 
 ### Configuration System
 
-Additionally manage configuration files:
+#### Configuration Files (YAML Format)
 
-1. **Project Config** (`./.claude-mpm/configuration.yaml`)
-2. **User Config** (`~/.claude-mpm/configuration.yaml`)
-3. **System Config** (`/etc/claude-mpm/configuration.yaml`)
+The Claude MPM configuration system uses **YAML files**, not JSON:
 
-Features configured:
-- Response logging settings
-- Agent exclusion lists
-- Memory system parameters
-- SocketIO server configuration
-- Performance tuning
+1. **Project Config** (`./.claude-mpm/configuration.yaml`) - Project-specific settings
+2. **User Config** (`~/.claude-mpm/configuration.yaml`) - User's personal settings
+3. **System Config** (`/etc/claude-mpm/configuration.yaml`) - System defaults
+
+#### Agent Deployment Configuration
+
+Control agent deployment through the `agent_deployment` section:
+
+```yaml
+# .claude-mpm/configuration.yaml
+agent_deployment:
+  excluded_agents: ["research", "qa", "documentation"]  # List agents to exclude
+  case_sensitive: false      # Case-insensitive agent name matching (default: false)
+  exclude_dependencies: false # Whether to exclude agent dependencies (default: false)
+```
+
+#### Complete Configuration Example
+
+```yaml
+# .claude-mpm/configuration.yaml
+# Agent deployment settings
+agent_deployment:
+  excluded_agents: ["research", "qa", "documentation"]
+  case_sensitive: false
+  exclude_dependencies: false
+
+# Memory system settings
+memory:
+  enabled: true
+  auto_learning: true
+  limits:
+    default_size_kb: 80
+    max_sections: 10
+    max_items_per_section: 15
+
+# Response tracking
+response_tracking:
+  enabled: true
+  track_all_interactions: false
+  max_response_age_hours: 24
+  max_responses_per_agent: 100
+
+# Response logging
+response_logging:
+  enabled: true
+  track_all_interactions: false
+  format: json
+
+# SocketIO server
+socketio:
+  enabled: true
+  port_range: [8080, 8099]
+  default_port: 8080
+```
+
+#### Important Configuration Notes
+
+- **Configuration is YAML**: All configuration files use YAML format, not JSON
+- **No `use_custom_only` setting**: Use `excluded_agents` list to control deployment
+- **Agent exclusion**: List agent IDs in `excluded_agents` to prevent deployment
+- **Case sensitivity**: Control with `case_sensitive` field (default: false)
 
 **IMPORTANT NOTES**:
 - CLAUDE.md files are NOT loaded by MPM (handled by Claude Code directly)
 - SystemInstructionsDeployer auto-deploys PM instructions on first run
 - FrameworkLoader orchestrates all customization loading
 - Template variable {{CAPABILITIES}} is dynamically replaced with agent list
+- Configuration uses YAML format (`.claude-mpm/configuration.yaml`), not JSON
+- Agents excluded via `agent_deployment.excluded_agents` list in configuration
+
+## Agent Storage and Deployment
+
+### Directory Structure
+
+**Development/Source Templates** (JSON format):
+- `.claude-mpm/agents/*.json` - Project-level agent source templates
+- `~/.claude-mpm/agents/*.json` - User-level agent source templates
+- These JSON files are compiled to Markdown during deployment
+
+**Runtime/Deployed Agents** (Markdown format):
+- `.claude/agents/*.md` - Project-level deployed agents (what Claude Code reads)
+- `~/.claude/agents/*.md` - User-level deployed agents
+- `/src/claude_mpm/agents/templates/*.md` - System-level agent templates
+
+**Key Points**:
+- JSON files in `.claude-mpm/agents/` are source templates for development
+- MD files in `.claude/agents/` are deployed agents that Claude Code reads
+- Agent deployment compiles JSON templates to Markdown format
+- Version-based precedence determines which agent is used (highest version wins)
 
 ## Core Responsibilities
 
@@ -506,6 +581,28 @@ Brief description of action taken
 - Overridden Versions: [list lower versions if any]
 - Development Mode: Yes/No (if version 999.x.x)
 ```
+
+## Common Misconceptions
+
+### Configuration Format
+❌ **INCORRECT**: "Configuration is in `.claude-mpm/config/agents.json`"
+✅ **CORRECT**: Configuration is in `.claude-mpm/configuration.yaml` (YAML format)
+
+### Agent Exclusion
+❌ **INCORRECT**: "Use `use_custom_only: true` to control agents"
+✅ **CORRECT**: Use `agent_deployment.excluded_agents` list in configuration.yaml
+
+### Agent Storage
+❌ **INCORRECT**: "Agents are stored as JSON at runtime"
+✅ **CORRECT**: 
+- Source templates: `.claude-mpm/agents/*.json` (development)
+- Deployed agents: `.claude/agents/*.md` (runtime, what Claude Code reads)
+
+### Configuration Files
+❌ **INCORRECT**: "Individual agent configs in `.claude-mpm/agents/[agent-name].json`"
+✅ **CORRECT**: 
+- Main config: `.claude-mpm/configuration.yaml` (YAML)
+- Agent templates: `.claude-mpm/agents/*.json` (compiled to MD on deployment)
 
 ## Security Considerations
 
