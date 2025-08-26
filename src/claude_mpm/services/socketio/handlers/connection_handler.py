@@ -177,7 +177,7 @@ class EnhancedConnectionEventHandler(BaseEventHandler):
         async def ping(sid):
             """Handle ping from client for health monitoring."""
             try:
-                # Update activity in connection manager
+                # Update activity in connection manager - CRITICAL for preventing stale connections
                 if self.server.connection_manager:
                     await self.server.connection_manager.update_activity(sid, "ping")
 
@@ -293,23 +293,8 @@ class EnhancedConnectionEventHandler(BaseEventHandler):
             except Exception as e:
                 self.logger.error(f"Error getting connection stats for {sid}: {e}")
 
-        @sio.event
-        async def heartbeat(sid):
-            """Handle client heartbeat for connection monitoring."""
-            try:
-                # Update activity
-                if self.server.connection_manager:
-                    await self.server.connection_manager.update_activity(sid, "event")
-
-                # Send heartbeat response
-                await sio.emit(
-                    "heartbeat_response",
-                    {"timestamp": datetime.now().isoformat(), "status": "alive"},
-                    room=sid,
-                )
-
-            except Exception as e:
-                self.logger.error(f"Error handling heartbeat from {sid}: {e}")
+        # Heartbeat handler removed - Using Socket.IO's built-in ping/pong instead
+        # This prevents conflicting heartbeat systems that can cause disconnections
 
         self.logger.info("Enhanced connection event handlers registered")
 

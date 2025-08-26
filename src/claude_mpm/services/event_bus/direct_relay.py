@@ -59,9 +59,30 @@ class DirectSocketIORelay:
 
         # Add debug logging for verification
         logger.info("[DirectRelay] Subscribed to hook.* events on EventBus")
-        logger.info(
-            f"[DirectRelay] Server broadcaster available: {self.server and self.server.broadcaster is not None}"
+
+        # Check and log broadcaster availability
+        broadcaster_available = (
+            self.server
+            and hasattr(self.server, "broadcaster")
+            and self.server.broadcaster is not None
         )
+        logger.info(
+            f"[DirectRelay] Server broadcaster available: {broadcaster_available}"
+        )
+        if not broadcaster_available:
+            if not self.server:
+                logger.warning(
+                    "[DirectRelay] No server instance provided - events will not be relayed!"
+                )
+            elif not hasattr(self.server, "broadcaster"):
+                logger.warning(
+                    "[DirectRelay] Server has no broadcaster attribute - events will not be relayed!"
+                )
+            else:
+                logger.warning(
+                    "[DirectRelay] Server broadcaster is None - events will not be relayed!"
+                )
+
         logger.info(f"[DirectRelay] EventBus instance: {self.event_bus is not None}")
 
         # Mark as connected after successful subscription
@@ -76,9 +97,28 @@ class DirectSocketIORelay:
             data: The event data
         """
         try:
-            # Log the event reception
+            # Enhanced debug logging for troubleshooting
             if self.debug:
                 logger.debug(f"[DirectRelay] Received event: {event_type}")
+                logger.debug(f"[DirectRelay] Event data type: {type(data).__name__}")
+                logger.debug(
+                    f"[DirectRelay] Event data keys: {list(data.keys()) if isinstance(data, dict) else 'not-dict'}"
+                )
+                logger.debug(
+                    f"[DirectRelay] Relay state - enabled: {self.enabled}, connected: {self.connected}"
+                )
+                logger.debug(
+                    f"[DirectRelay] Server state - has_server: {self.server is not None}, has_broadcaster: {self.server and hasattr(self.server, 'broadcaster') and self.server.broadcaster is not None}"
+                )
+
+            # Always log reception of important events
+            if event_type in [
+                "hook.pre_tool",
+                "hook.post_tool",
+                "hook.user_prompt",
+                "hook.subagent_stop",
+            ]:
+                logger.info(f"[DirectRelay] Processing important event: {event_type}")
 
             # Only relay hook events
             if event_type.startswith("hook."):
@@ -143,9 +183,26 @@ class DirectSocketIORelay:
                             f"[DirectRelay] Broadcasted hook event: {event_type}"
                         )
                 else:
+                    # Enhanced logging when broadcaster is not available
                     logger.warning(
                         f"[DirectRelay] Server broadcaster not available for {event_type}"
                     )
+                    if self.server:
+                        logger.warning(
+                            f"[DirectRelay] Server exists but broadcaster is None"
+                        )
+                        logger.warning(
+                            f"[DirectRelay] Server type: {type(self.server).__name__}"
+                        )
+                        logger.warning(
+                            f"[DirectRelay] Server has broadcaster attr: {hasattr(self.server, 'broadcaster')}"
+                        )
+                        if hasattr(self.server, "broadcaster"):
+                            logger.warning(
+                                f"[DirectRelay] Broadcaster value: {self.server.broadcaster}"
+                            )
+                    else:
+                        logger.warning(f"[DirectRelay] Server is None")
                     self.stats["events_failed"] += 1
 
         except Exception as e:

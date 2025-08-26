@@ -158,14 +158,18 @@ class SocketIOServerCore:
     async def _start_server(self):
         """Start the Socket.IO server with aiohttp."""
         try:
-            # Create Socket.IO server with proper ping/pong configuration
+            # Import centralized configuration for consistency
+            from ....config.socketio_config import CONNECTION_CONFIG
+            
+            # Create Socket.IO server with centralized configuration
+            # CRITICAL: These values MUST match client settings to prevent disconnections
             self.sio = socketio.AsyncServer(
                 cors_allowed_origins="*",
                 logger=False,  # Disable Socket.IO's own logging
                 engineio_logger=False,
-                ping_interval=25,  # Send ping every 25 seconds
-                ping_timeout=60,  # Wait 60 seconds for pong response
-                max_http_buffer_size=1e8,  # 100MB max buffer
+                ping_interval=CONNECTION_CONFIG['ping_interval'],  # 45 seconds from config
+                ping_timeout=CONNECTION_CONFIG['ping_timeout'],    # 20 seconds from config
+                max_http_buffer_size=CONNECTION_CONFIG['max_http_buffer_size'],  # 100MB from config
             )
 
             # Create aiohttp application
@@ -196,9 +200,13 @@ class SocketIOServerCore:
             if self.static_path:
                 self.logger.info(f"Serving static files from: {self.static_path}")
 
-            # Start heartbeat task
-            self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
-            self.logger.info("Started system heartbeat task")
+            # Conditionally start heartbeat task based on configuration
+            from ....config.socketio_config import CONNECTION_CONFIG
+            if CONNECTION_CONFIG.get('enable_extra_heartbeat', False):
+                self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+                self.logger.info("Started system heartbeat task")
+            else:
+                self.logger.info("System heartbeat disabled (using Socket.IO ping/pong instead)")
 
             # Keep the server running
             while self.running:
