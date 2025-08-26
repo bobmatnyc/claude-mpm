@@ -16,6 +16,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [4.1.7] - 2025-08-26
+
+### Fixed
+- **Dashboard/SocketIO Connection Stability**: Improved connection management and error handling
+  - Enhanced SocketIO server connection management with better error recovery
+  - Improved client-side reconnection logic and stability
+  - Added comprehensive connection monitoring and debugging capabilities
+  - Fixed event bus direct relay for more reliable message passing
+  - Enhanced connection manager with better tracking and cleanup
+
+### Changed
+- **Agent Manager Update (v1.1.0)**: Enhanced customization knowledge and documentation
+  - Added detailed variant creation and deployment documentation
+  - Improved guidance for agent customization workflows
+  - Better examples for agent hierarchy and variant management
+
 ## [4.1.6] - 2025-08-25
 
 ### Added
