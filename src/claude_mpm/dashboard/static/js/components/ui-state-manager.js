@@ -96,6 +96,7 @@ class UIStateManager {
         if (text.includes('agents')) return 'agents';
         if (text.includes('tools')) return 'tools';
         if (text.includes('files')) return 'files';
+        if (text.includes('code')) return 'code';
         if (text.includes('sessions')) return 'sessions';
         if (text.includes('system')) return 'system';
         return 'events';

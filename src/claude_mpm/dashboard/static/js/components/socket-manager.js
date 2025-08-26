@@ -81,6 +81,10 @@ class SocketManager {
 
         // Set up git branch listener when connected
         if (type === 'connected' && this.socketClient && this.socketClient.socket) {
+            // Expose socket globally for components like CodeTree
+            window.socket = this.socketClient.socket;
+            console.log('SocketManager: Exposed socket globally as window.socket');
+            
             this.setupGitBranchListener();
         }
     }
@@ -105,6 +109,9 @@ class SocketManager {
 
             if (this.socketClient.socket.connected) {
                 console.log('SocketManager: Socket is already connected, updating status');
+                // Expose socket globally for components like CodeTree
+                window.socket = this.socketClient.socket;
+                console.log('SocketManager: Exposed socket globally as window.socket');
                 this.updateConnectionStatus('Connected', 'connected');
             } else if (this.socketClient.isConnecting || this.socketClient.socket.connecting) {
                 console.log('SocketManager: Socket is connecting, updating status');
@@ -123,6 +130,11 @@ class SocketManager {
             console.log('SocketManager: Secondary status check after 1 second');
             if (this.socketClient && this.socketClient.socket && this.socketClient.socket.connected) {
                 console.log('SocketManager: Socket connected in secondary check, updating status');
+                // Expose socket globally if not already done
+                if (!window.socket) {
+                    window.socket = this.socketClient.socket;
+                    console.log('SocketManager: Exposed socket globally as window.socket (secondary check)');
+                }
                 this.updateConnectionStatus('Connected', 'connected');
             }
         }, 1000);
