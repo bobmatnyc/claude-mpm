@@ -5,10 +5,10 @@ This script shows the CORRECT format that Claude uses for hook events
 and provides a simple way to test individual events.
 """
 
-import json
 import asyncio
-from datetime import datetime
+import json
 import sys
+from datetime import datetime
 
 try:
     import aiohttp
@@ -47,24 +47,24 @@ def create_correct_event(event_name: str, data: dict = None) -> dict:
         "hook_event_type": event_name,
         "hook_input_data": data or {},
         "sessionId": f"test-{datetime.now().strftime('%H%M%S')}",
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
 
 
 async def send_test_event(event_name: str, data: dict = None, port: int = 8765):
     """Send a single test event to verify format."""
     event = create_correct_event(event_name, data)
-    
+
     print(f"\n📤 Sending {event_name} event...")
     print(f"Format: {json.dumps(event, indent=2)}")
-    
+
     url = f"http://localhost:{port}/api/events"
-    
+
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=event) as response:
                 if response.status == 204:
-                    print(f"✅ Event sent successfully!")
+                    print("✅ Event sent successfully!")
                 else:
                     text = await response.text()
                     print(f"❌ Failed: {response.status} - {text}")
@@ -74,25 +74,25 @@ async def send_test_event(event_name: str, data: dict = None, port: int = 8765):
 
 async def main():
     """Main entry point."""
-    print("="*60)
+    print("=" * 60)
     print("Claude Event Format Verification")
-    print("="*60)
+    print("=" * 60)
     print(CLAUDE_EVENT_FORMAT)
-    print("="*60)
-    
+    print("=" * 60)
+
     if len(sys.argv) > 1:
         # Test specific event type from command line
         event_type = sys.argv[1]
-        
+
         # Example data for different event types
         event_data = {
             "UserPromptSubmit": {"prompt": "Test prompt"},
             "PreToolUse": {"tool_name": "Bash", "params": {"command": "ls"}},
             "PostToolUse": {"tool_name": "Bash", "success": True},
             "Stop": {"reason": "task_completed"},
-            "SubagentStop": {"agent_type": "engineer", "reason": "completed"}
+            "SubagentStop": {"agent_type": "engineer", "reason": "completed"},
         }
-        
+
         data = event_data.get(event_type, {})
         await send_test_event(event_type, data)
     else:
@@ -103,22 +103,22 @@ async def main():
         print("  python verify_event_format.py PreToolUse")
         print("  python verify_event_format.py SubagentStop")
         print("\nThis will send a test event with the CORRECT format.")
-        
+
         # Show example of correct vs wrong format
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("Format Comparison:")
-        print("="*60)
-        
+        print("=" * 60)
+
         print("\n✅ CORRECT Format (what Claude sends):")
         correct = create_correct_event("PreToolUse", {"tool_name": "Bash"})
         print(json.dumps(correct, indent=2))
-        
+
         print("\n❌ WRONG Format (what tests were sending):")
         wrong = {
             "event": "PreToolUse",  # WRONG: should be hook_event_name
-            "type": "pre_tool",     # WRONG: should be hook_event_name
-            "tool_name": "Bash",     # WRONG: should be in hook_input_data
-            "timestamp": datetime.now().isoformat()
+            "type": "pre_tool",  # WRONG: should be hook_event_name
+            "tool_name": "Bash",  # WRONG: should be in hook_input_data
+            "timestamp": datetime.now().isoformat(),
         }
         print(json.dumps(wrong, indent=2))
 
