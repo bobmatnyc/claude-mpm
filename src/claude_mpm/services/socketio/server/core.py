@@ -273,24 +273,87 @@ class SocketIOServerCore:
                 # Parse JSON payload
                 event_data = await request.json()
 
-                # Log receipt if debugging
-                event_type = event_data.get("subtype", "unknown")
-                self.logger.debug(f"Received HTTP event: {event_type}")
+                # Log receipt with more detail
+                event_type = event_data.get("subtype") or event_data.get("hook_event_name") or "unknown"
+                self.logger.info(f"📨 Received HTTP event: {event_type}")
+                self.logger.debug(f"Event data keys: {list(event_data.keys())}")
+                self.logger.debug(f"Connected clients: {len(self.connected_clients)}")
+                
+                # Transform hook event format to claude_event format if needed
+                if "hook_event_name" in event_data and "event" not in event_data:
+                    # This is a raw hook event, transform it
+                    from claude_mpm.services.socketio.event_normalizer import EventNormalizer
+                    normalizer = EventNormalizer()
+                    
+                    # Create the format expected by normalizer
+                    raw_event = {
+                        "type": "hook",
+                        "subtype": event_data.get("hook_event_name", "unknown").lower().replace("submit", "").replace("use", "_use"),
+                        "timestamp": event_data.get("timestamp"),
+                        "data": event_data.get("hook_input_data", {}),
+                        "source": "claude_hooks",
+                        "session_id": event_data.get("session_id"),
+                    }
+                    
+                    # Map hook event names to dashboard subtypes
+                    subtype_map = {
+                        "UserPromptSubmit": "user_prompt",
+                        "PreToolUse": "pre_tool",
+                        "PostToolUse": "post_tool",
+                        "Stop": "stop",
+                        "SubagentStop": "subagent_stop",
+                        "AssistantResponse": "assistant_response"
+                    }
+                    raw_event["subtype"] = subtype_map.get(event_data.get("hook_event_name"), "unknown")
+                    
+                    normalized = normalizer.normalize(raw_event, source="hook")
+                    event_data = normalized.to_dict()
+                    self.logger.debug(f"Normalized event: type={event_data.get('type')}, subtype={event_data.get('subtype')}")
 
                 # Broadcast to all connected dashboard clients via SocketIO
                 if self.sio:
-                    # The event is already in claude_event format from the hook handler
-                    await self.sio.emit("claude_event", event_data)
-
-                    # Update stats
-                    self.stats["events_sent"] = self.stats.get("events_sent", 0) + 1
-
-                    # Add to event buffer for late-joining clients
-                    with self.buffer_lock:
-                        self.event_buffer.append(event_data)
-                        self.stats["events_buffered"] = len(self.event_buffer)
+                    # CRITICAL: Use the main server's broadcaster for proper event handling
+                    # The broadcaster handles retries, connection management, and buffering
+                    if self.main_server and hasattr(self.main_server, 'broadcaster') and self.main_server.broadcaster:
+                        # The broadcaster expects raw event data and will normalize it
+                        # Since we already normalized it, we need to pass it in a way that won't double-normalize
+                        # We'll emit directly through the broadcaster's sio with proper handling
+                        
+                        # Add to event buffer and history
+                        with self.buffer_lock:
+                            self.event_buffer.append(event_data)
+                            self.stats["events_buffered"] = len(self.event_buffer)
+                        
+                        # Add to main server's event history
+                        if hasattr(self.main_server, 'event_history'):
+                            self.main_server.event_history.append(event_data)
+                        
+                        # Use the broadcaster's sio to emit (it's the same as self.sio)
+                        # This ensures the event goes through the proper channels
+                        await self.sio.emit("claude_event", event_data)
+                        
+                        # Update broadcaster stats
+                        if hasattr(self.main_server.broadcaster, 'stats'):
+                            self.main_server.broadcaster.stats["events_sent"] = \
+                                self.main_server.broadcaster.stats.get("events_sent", 0) + 1
+                        
+                        self.logger.info(f"✅ Event broadcasted: {event_data.get('subtype', 'unknown')} to {len(self.connected_clients)} clients")
+                        self.logger.debug(f"Connected client IDs: {list(self.connected_clients) if self.connected_clients else 'None'}")
+                    else:
+                        # Fallback: Direct emit if broadcaster not available (shouldn't happen)
+                        self.logger.warning("Broadcaster not available, using direct emit")
+                        await self.sio.emit("claude_event", event_data)
+                        
+                        # Update stats manually if using fallback
+                        self.stats["events_sent"] = self.stats.get("events_sent", 0) + 1
+                        
+                        # Add to event buffer for late-joining clients
+                        with self.buffer_lock:
+                            self.event_buffer.append(event_data)
+                            self.stats["events_buffered"] = len(self.event_buffer)
 
                 # Return 204 No Content for success
+                self.logger.debug(f"✅ HTTP event processed successfully: {event_type}")
                 return web.Response(status=204)
 
             except Exception as e:
