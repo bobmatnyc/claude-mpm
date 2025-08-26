@@ -7,6 +7,7 @@ and maintainability.
 """
 
 from .base import BaseEventHandler
+from .code_analysis import CodeAnalysisEventHandler
 from .connection import ConnectionEventHandler
 from .file import FileEventHandler
 from .git import GitEventHandler
@@ -16,6 +17,7 @@ from .registry import EventHandlerRegistry
 
 __all__ = [
     "BaseEventHandler",
+    "CodeAnalysisEventHandler",
     "ConnectionEventHandler",
     "EventHandlerRegistry",
     "FileEventHandler",

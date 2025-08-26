@@ -34,6 +34,7 @@ from .commands import (  # run_guarded_session is imported lazily to avoid loadi
     run_session,
     show_info,
 )
+from .commands.analyze_code import manage_analyze_code
 from .parser import create_parser, preprocess_args
 from .utils import ensure_directories, setup_logging
 
@@ -402,6 +403,7 @@ def _execute_command(command: str, args) -> int:
         CLICommands.CONFIG.value: manage_config,
         CLICommands.CONFIGURE.value: manage_configure,
         CLICommands.AGGREGATE.value: aggregate_command,
+        CLICommands.ANALYZE_CODE.value: manage_analyze_code,
         CLICommands.CLEANUP.value: cleanup_memory,
         CLICommands.MCP.value: manage_mcp,
         CLICommands.DOCTOR.value: run_doctor,

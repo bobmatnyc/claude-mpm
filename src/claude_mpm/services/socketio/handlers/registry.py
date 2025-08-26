@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
     from ..server import SocketIOServer
 
+from .code_analysis import CodeAnalysisEventHandler
 from .connection import ConnectionEventHandler
 from .file import FileEventHandler
 from .git import GitEventHandler
@@ -37,6 +38,7 @@ class EventHandlerRegistry:
         HookEventHandler,  # Hook events for session tracking
         GitEventHandler,  # Git operations
         FileEventHandler,  # File operations
+        CodeAnalysisEventHandler,  # Code analysis for dashboard
         ProjectEventHandler,  # Project management (future)
         MemoryEventHandler,  # Memory management (future)
     ]

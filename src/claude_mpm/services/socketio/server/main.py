@@ -265,10 +265,16 @@ class SocketIOServer(SocketIOServiceInterface):
             except Exception as e:
                 self.logger.error(f"Error during EventBus teardown: {e}")
 
-        # Stop health monitoring in connection handler
+        # Stop code analysis handler
         if self.event_registry:
-            from ..handlers import ConnectionEventHandler
+            from ..handlers import CodeAnalysisEventHandler, ConnectionEventHandler
+            
+            # Stop analysis runner
+            analysis_handler = self.event_registry.get_handler(CodeAnalysisEventHandler)
+            if analysis_handler and hasattr(analysis_handler, "cleanup"):
+                analysis_handler.cleanup()
 
+            # Stop health monitoring in connection handler
             conn_handler = self.event_registry.get_handler(ConnectionEventHandler)
             if conn_handler and hasattr(conn_handler, "stop_health_monitoring"):
                 conn_handler.stop_health_monitoring()

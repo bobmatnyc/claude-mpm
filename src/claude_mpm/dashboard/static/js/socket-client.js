@@ -1,74 +1,303 @@
 /**
  * Socket.IO Client for Claude MPM Dashboard
- * Handles WebSocket connections and event processing
+ * 
+ * This module provides real-time WebSocket communication between the Claude MPM dashboard
+ * and the backend Socket.IO server. It handles connection management, event processing,
+ * retry logic, and health monitoring.
+ * 
+ * Architecture:
+ * - Maintains persistent WebSocket connection to Claude MPM backend
+ * - Implements robust retry logic with exponential backoff
+ * - Provides event queuing during disconnections
+ * - Validates event schemas for data integrity
+ * - Monitors connection health with ping/pong mechanisms
+ * 
+ * Event Flow:
+ * 1. Events from Claude Code hooks → Socket.IO server → Dashboard client
+ * 2. Dashboard requests → Socket.IO server → Backend services
+ * 3. Status updates → Socket.IO server → All connected clients
+ * 
+ * Thread Safety:
+ * - Single-threaded JavaScript execution model ensures safety
+ * - Event callbacks are queued and executed sequentially
+ * - Connection state changes are atomic
+ * 
+ * Performance Considerations:
+ * - Event queue limited to 100 items to prevent memory leaks
+ * - Health checks run every 45s to match server ping interval
+ * - Exponential backoff prevents connection spam
+ * - Lazy event validation reduces overhead
+ * 
+ * Security:
+ * - Connects only to localhost to prevent external access
+ * - Event schema validation prevents malformed data processing
+ * - Connection timeout prevents hanging connections
+ * 
+ * @author Claude MPM Team
+ * @version 1.0
+ * @since v4.0.25
  */
 
 // Access the global io from window object in ES6 module context
+// WHY: Socket.IO is loaded via CDN in HTML, available as window.io
 const io = window.io;
 
+/**
+ * Primary Socket.IO client for dashboard communication.
+ * 
+ * Manages WebSocket connection lifecycle, event processing, and error handling.
+ * Implements connection resilience with automatic retry and health monitoring.
+ * 
+ * Key Features:
+ * - Automatic connection retry with exponential backoff
+ * - Event queue management during disconnections  
+ * - Schema validation for incoming events
+ * - Health monitoring with ping/pong
+ * - Session management and event history
+ * 
+ * Connection States:
+ * - isConnected: Currently connected to server
+ * - isConnecting: Connection attempt in progress
+ * - disconnectTime: Timestamp of last disconnection
+ * 
+ * Event Processing:
+ * - Validates against schema before processing
+ * - Queues events during disconnection (max 100)
+ * - Maintains event history and session tracking
+ * 
+ * @class SocketClient
+ */
 class SocketClient {
+    /**
+     * Initialize Socket.IO client with default configuration.
+     * 
+     * Sets up connection management, event processing, and health monitoring.
+     * Configures retry logic and event queue management.
+     * 
+     * WHY this initialization approach:
+     * - Lazy socket creation allows for port specification
+     * - Event queue prevents data loss during reconnections
+     * - Health monitoring detects server issues early
+     * - Schema validation ensures data integrity
+     * 
+     * @constructor
+     */
     constructor() {
+        /**
+         * Socket.IO connection instance.
+         * @type {Socket|null}
+         * @private
+         */
         this.socket = null;
+        
+        /**
+         * Current connection port.
+         * @type {string|null}
+         * @private
+         */
         this.port = null; // Store the current port
+        
+        /**
+         * Event callback registry for connection lifecycle events.
+         * WHY: Allows multiple components to register for connection events.
+         * @type {Object.<string, Function[]>}
+         * @private
+         */
         this.connectionCallbacks = {
-            connect: [],
-            disconnect: [],
-            error: [],
-            event: []
+            connect: [],    // Called on successful connection
+            disconnect: [], // Called on disconnection  
+            error: [],      // Called on connection errors
+            event: []       // Called on incoming events
         };
         
-        // Event schema validation
+        /**
+         * Event schema definition for validation.
+         * WHY: Ensures data integrity and prevents processing malformed events.
+         * @type {Object}
+         * @private
+         */
         this.eventSchema = {
             required: ['source', 'type', 'subtype', 'timestamp', 'data'],
             optional: ['event', 'session_id']
         };
 
-        // Connection state
+        /**
+         * Current connection state.
+         * @type {boolean}
+         * @private
+         */
         this.isConnected = false;
+        
+        /**
+         * Connection attempt in progress flag.
+         * WHY: Prevents multiple simultaneous connection attempts.
+         * @type {boolean}
+         * @private
+         */
         this.isConnecting = false;
+        
+        /**
+         * Timestamp of last successful connection.
+         * @type {number|null}
+         * @private
+         */
         this.lastConnectTime = null;
+        
+        /**
+         * Timestamp of last disconnection.
+         * WHY: Used to calculate downtime and trigger reconnection logic.
+         * @type {number|null}
+         * @private
+         */
         this.disconnectTime = null;
 
-        // Event processing
+        /**
+         * Event history storage.
+         * WHY: Maintains event history for dashboard display and analysis.
+         * @type {Array.<Object>}
+         * @private
+         */
         this.events = [];
+        
+        /**
+         * Session tracking map.
+         * WHY: Groups events by session for better organization.
+         * @type {Map<string, Object>}
+         * @private
+         */
         this.sessions = new Map();
+        
+        /**
+         * Current active session identifier.
+         * @type {string|null}
+         * @private
+         */
         this.currentSessionId = null;
 
-        // Event queue for disconnection periods
+        /**
+         * Event queue for disconnection periods.
+         * WHY: Prevents event loss during temporary disconnections.
+         * @type {Array.<Object>}
+         * @private
+         */
         this.eventQueue = [];
+        
+        /**
+         * Maximum queue size to prevent memory leaks.
+         * WHY: Limits memory usage during extended disconnections.
+         * @type {number}
+         * @private
+         * @const
+         */
         this.maxQueueSize = 100;
         
-        // Retry configuration - Match server settings
+        /**
+         * Current retry attempt counter.
+         * WHY: Tracks retry attempts for exponential backoff logic.
+         * @type {number}
+         * @private
+         */
         this.retryAttempts = 0;
+        
+        /**
+         * Maximum retry attempts before giving up.
+         * WHY: Prevents infinite retry loops that could impact performance.
+         * @type {number}
+         * @private
+         * @const
+         */
         this.maxRetryAttempts = 5;  // Increased from 3 to 5 for better stability
+        
+        /**
+         * Retry delay intervals in milliseconds (exponential backoff).
+         * WHY: Prevents server overload during connection issues.
+         * @type {number[]}
+         * @private
+         * @const
+         */
         this.retryDelays = [1000, 2000, 3000, 4000, 5000]; // Exponential backoff with 5 attempts
+        
+        /**
+         * Map of pending emissions for retry logic.
+         * WHY: Tracks failed emissions that need to be retried.
+         * @type {Map<string, Object>}
+         * @private
+         */
         this.pendingEmissions = new Map(); // Track pending emissions for retry
         
-        // Health monitoring
+        /**
+         * Timestamp of last ping sent to server.
+         * WHY: Used for health monitoring and connection validation.
+         * @type {number|null}
+         * @private
+         */
         this.lastPingTime = null;
+        
+        /**
+         * Timestamp of last pong received from server.
+         * WHY: Confirms server is responsive and connection is healthy.
+         * @type {number|null}
+         * @private
+         */
         this.lastPongTime = null;
+        
+        /**
+         * Health check timeout in milliseconds.
+         * WHY: More lenient than Socket.IO timeout to prevent false positives.
+         * @type {number}
+         * @private
+         * @const
+         */
         this.pingTimeout = 90000; // 90 seconds for health check (more lenient than Socket.IO timeout)
+        
+        /**
+         * Health check interval timer.
+         * @type {number|null}
+         * @private
+         */
         this.healthCheckInterval = null;
         
-        // Start periodic status check as fallback mechanism
+        // Initialize background monitoring
         this.startStatusCheckFallback();
         this.startHealthMonitoring();
     }
 
     /**
-     * Connect to Socket.IO server
-     * @param {string} port - Port number to connect to
+     * Connect to Socket.IO server on specified port.
+     * 
+     * Initiates WebSocket connection to the Claude MPM Socket.IO server.
+     * Handles connection conflicts and ensures clean state transitions.
+     * 
+     * Connection Process:
+     * 1. Validates port and constructs localhost URL
+     * 2. Checks for existing connections and cleans up if needed
+     * 3. Delegates to doConnect() for actual connection logic
+     * 
+     * Thread Safety:
+     * - Uses setTimeout for async cleanup to prevent race conditions
+     * - Connection state flags prevent multiple simultaneous attempts
+     * 
+     * @param {string} [port='8765'] - Port number to connect to (defaults to 8765)
+     * 
+     * @throws {Error} If Socket.IO library is not loaded
+     * 
+     * @example
+     * // Connect to default port
+     * socketClient.connect();
+     * 
+     * // Connect to specific port
+     * socketClient.connect('8766');
      */
     connect(port = '8765') {
-        // Store the port for later use
+        // Store the port for later use in reconnections
         this.port = port;
         const url = `http://localhost:${port}`;
 
-        // Prevent multiple simultaneous connections
+        // WHY this check: Prevents connection conflicts that can cause memory leaks
         if (this.socket && (this.socket.connected || this.socket.connecting)) {
             console.log('Already connected or connecting, disconnecting first...');
             this.socket.disconnect();
-            // Wait a moment for cleanup
+            // WHY 100ms delay: Allows cleanup to complete before new connection
             setTimeout(() => this.doConnect(url), 100);
             return;
         }
@@ -77,8 +306,28 @@ class SocketClient {
     }
 
     /**
-     * Perform the actual connection
-     * @param {string} url - Socket.IO server URL
+     * Execute the actual Socket.IO connection with full configuration.
+     * 
+     * Creates and configures Socket.IO client with appropriate timeouts,
+     * retry logic, and transport settings. Sets up event handlers for
+     * connection lifecycle management.
+     * 
+     * Configuration Details:
+     * - autoConnect: true - Immediate connection attempt
+     * - reconnection: true - Built-in reconnection enabled
+     * - pingInterval: 45000ms - Matches server configuration
+     * - pingTimeout: 20000ms - Health check timeout
+     * - transports: ['websocket', 'polling'] - Fallback options
+     * 
+     * WHY these settings:
+     * - Ping intervals must match server to prevent timeouts
+     * - Limited reconnection attempts prevent infinite loops
+     * - forceNew prevents socket reuse issues
+     * 
+     * @param {string} url - Complete Socket.IO server URL (http://localhost:port)
+     * @private
+     * 
+     * @throws {Error} If Socket.IO library is not available
      */
     doConnect(url) {
         console.log(`Connecting to Socket.IO server at ${url}`);
@@ -131,6 +380,10 @@ class SocketClient {
             }
             
             this.notifyConnectionStatus('Connected', 'connected');
+
+            // Expose socket globally for components that need direct access
+            window.socket = this.socket;
+            console.log('SocketClient: Exposed socket globally as window.socket');
 
             // Emit connect callback
             this.connectionCallbacks.connect.forEach(callback =>
@@ -289,6 +542,48 @@ class SocketClient {
 
         this.socket.on('log.entry', (data) => {
             this.addEvent({ type: 'log', subtype: 'entry', timestamp: new Date().toISOString(), data });
+        });
+
+        // Code analysis events - don't add to event list, just pass through
+        // These are handled by the code-tree component and shown in the footer
+        this.socket.on('code:analysis:queued', (data) => {
+            // Don't add to events list - handled by code-tree component
+            console.log('Code analysis queued event received, not adding to events list');
+        });
+        
+        this.socket.on('code:analysis:accepted', (data) => {
+            // Don't add to events list
+            console.log('Code analysis accepted event received, not adding to events list');
+        });
+        
+        this.socket.on('code:analysis:start', (data) => {
+            // Don't add to events list
+            console.log('Code analysis start event received, not adding to events list');
+        });
+        
+        this.socket.on('code:analysis:complete', (data) => {
+            // Don't add to events list
+            console.log('Code analysis complete event received, not adding to events list');
+        });
+        
+        this.socket.on('code:analysis:error', (data) => {
+            // Don't add to events list
+            console.log('Code analysis error event received, not adding to events list');
+        });
+        
+        this.socket.on('code:file:start', (data) => {
+            // Don't add to events list
+            console.log('Code file start event received, not adding to events list');
+        });
+        
+        this.socket.on('code:node:found', (data) => {
+            // Don't add to events list
+            console.log('Code node found event received, not adding to events list');
+        });
+        
+        this.socket.on('code:analysis:progress', (data) => {
+            // Don't add to events list
+            console.log('Code analysis progress event received, not adding to events list');
         });
 
         this.socket.on('history', (data) => {
