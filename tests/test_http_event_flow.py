@@ -69,10 +69,7 @@ def test_http_event_flow():
             "type": "hook",
             "subtype": "user_prompt",
             "timestamp": datetime.now().isoformat(),
-            "data": {
-                "sessionId": "test-session-1",
-                "prompt": "Test prompt from HTTP"
-            }
+            "data": {"sessionId": "test-session-1", "prompt": "Test prompt from HTTP"},
         },
         {
             "event": "claude_event",
@@ -82,10 +79,8 @@ def test_http_event_flow():
             "data": {
                 "sessionId": "test-session-1",
                 "tool_name": "Task",
-                "delegation_details": {
-                    "agent_type": "engineer"
-                }
-            }
+                "delegation_details": {"agent_type": "engineer"},
+            },
         },
         {
             "event": "claude_event",
@@ -95,9 +90,9 @@ def test_http_event_flow():
             "data": {
                 "sessionId": "test-session-1",
                 "agent_type": "engineer",
-                "response": "Task completed"
-            }
-        }
+                "response": "Task completed",
+            },
+        },
     ]
 
     for event in test_events:
@@ -106,7 +101,7 @@ def test_http_event_flow():
                 "http://localhost:8765/api/events",
                 json=event,
                 timeout=1.0,
-                headers={'Content-Type': 'application/json'}
+                headers={"Content-Type": "application/json"},
             )
             if response.status_code == 204:
                 print(f"   ✅ Sent {event['subtype']} event via HTTP POST")
@@ -129,7 +124,9 @@ def test_http_event_flow():
         print(f"   ✅ All {len(test_events)} events received by dashboard!")
         print("\n   📊 Event Summary:")
         for i, event in enumerate(received_events, 1):
-            print(f"      {i}. {event.get('subtype', 'unknown')} - {event.get('timestamp', 'no timestamp')}")
+            print(
+                f"      {i}. {event.get('subtype', 'unknown')} - {event.get('timestamp', 'no timestamp')}"
+            )
     else:
         print(f"   ❌ Only {len(received_events)}/{len(test_events)} events received")
         if received_events:
@@ -150,12 +147,12 @@ def test_http_event_flow():
                 "type": "hook",
                 "subtype": f"rapid_event_{event_num}",
                 "timestamp": datetime.now().isoformat(),
-                "data": {"event_num": event_num}
+                "data": {"event_num": event_num},
             }
             response = requests.post(
                 "http://localhost:8765/api/events",
                 json=event,
-                timeout=0.5  # Short timeout for fire-and-forget
+                timeout=0.5,  # Short timeout for fire-and-forget
             )
             return response.status_code == 204
         except:
@@ -195,7 +192,9 @@ def test_http_event_flow():
     print("\n" + "=" * 60)
     if success and rapid_events_received > 0:
         print("✅ HTTP EVENT FLOW TEST PASSED!")
-        print("The dashboard can now receive events reliably from ephemeral hook handlers.")
+        print(
+            "The dashboard can now receive events reliably from ephemeral hook handlers."
+        )
         return True
     print("❌ HTTP EVENT FLOW TEST FAILED")
     return False
@@ -211,5 +210,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Test failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

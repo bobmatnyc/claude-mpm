@@ -197,6 +197,7 @@ async def capture_dashboard_state(browser_context):
 async def send_test_event():
     """Send a test hook event through the socketio pool."""
     import sys
+
     sys.path.insert(0, str(Path(__file__).parent / "src"))
 
     from claude_mpm.core.socketio_pool import get_connection_pool

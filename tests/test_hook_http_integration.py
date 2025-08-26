@@ -66,32 +66,32 @@ def test_hook_http_integration():
             "hook_event_name": "UserPromptSubmit",
             "sessionId": "test-integration-session",
             "prompt": "Test prompt for integration",
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         },
         {
             "hook_event_name": "PreToolUse",
             "sessionId": "test-integration-session",
             "tool_name": "Task",
-            "params": {
-                "agent": "engineer",
-                "task": "Fix the bug"
-            },
-            "timestamp": datetime.now().isoformat()
+            "params": {"agent": "engineer", "task": "Fix the bug"},
+            "timestamp": datetime.now().isoformat(),
         },
         {
             "hook_event_name": "SubagentStop",
             "sessionId": "test-integration-session",
-            "response": {
-                "result": "Task completed successfully"
-            },
-            "timestamp": datetime.now().isoformat()
-        }
+            "response": {"result": "Task completed successfully"},
+            "timestamp": datetime.now().isoformat(),
+        },
     ]
 
     # Path to the hook handler
     hook_handler_path = os.path.join(
-        os.path.dirname(__file__), "..", "src", "claude_mpm",
-        "hooks", "claude_hooks", "hook_handler.py"
+        os.path.dirname(__file__),
+        "..",
+        "src",
+        "claude_mpm",
+        "hooks",
+        "claude_hooks",
+        "hook_handler.py",
     )
 
     if not os.path.exists(hook_handler_path):
@@ -115,7 +115,10 @@ def test_hook_http_integration():
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                env={**os.environ, "CLAUDE_MPM_HOOK_DEBUG": "false"}  # Disable debug output
+                env={
+                    **os.environ,
+                    "CLAUDE_MPM_HOOK_DEBUG": "false",
+                },  # Disable debug output
             )
 
             # Send the event to stdin
@@ -191,5 +194,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Test failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

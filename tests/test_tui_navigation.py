@@ -23,6 +23,7 @@ from textual.widgets import (
 
 class TestScreen(Screen):
     """Simple test screen."""
+
     def __init__(self, name: str):
         super().__init__()
         self.name = name
@@ -111,7 +112,7 @@ class TestNavigationApp(App):
         self.log("ListView.Selected triggered")
 
         # Try to get screen name from item data
-        if event.item and hasattr(event.item, 'data'):
+        if event.item and hasattr(event.item, "data"):
             screen_name = event.item.data
             self.log(f"Selected item with data: {screen_name}")
             self.switch_screen(screen_name)
