@@ -225,7 +225,14 @@ class ClaudeHookHandler:
                 # Empty or whitespace-only data
                 return None
 
-            return json.loads(event_data)
+            parsed = json.loads(event_data)
+            # Debug: Log the actual event format we receive
+            if DEBUG:
+                print(f"Received event with keys: {list(parsed.keys())}", file=sys.stderr)
+                for key in ['hook_event_name', 'event', 'type', 'event_type']:
+                    if key in parsed:
+                        print(f"  {key} = '{parsed[key]}'", file=sys.stderr)
+            return parsed
         except (json.JSONDecodeError, ValueError) as e:
             if DEBUG:
                 print(f"Failed to parse hook event: {e}", file=sys.stderr)
@@ -245,7 +252,20 @@ class ClaudeHookHandler:
         Args:
             event: Hook event dictionary
         """
-        hook_type = event.get("hook_event_name", "unknown")
+        # Try multiple field names for compatibility
+        hook_type = (
+            event.get("hook_event_name") or 
+            event.get("event") or 
+            event.get("type") or 
+            event.get("event_type") or 
+            event.get("hook_event_type") or
+            "unknown"
+        )
+        
+        # Log the actual event structure for debugging
+        if DEBUG and hook_type == "unknown":
+            print(f"Unknown event format, keys: {list(event.keys())}", file=sys.stderr)
+            print(f"Event sample: {str(event)[:200]}", file=sys.stderr)
 
         # Map event types to handlers
         event_handlers = {
