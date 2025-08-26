@@ -60,7 +60,9 @@ class SocketIOConfig:
     ping_timeout: int = CONNECTION_CONFIG["ping_timeout"]  # 20 seconds
     ping_interval: int = CONNECTION_CONFIG["ping_interval"]  # 25 seconds (was 45)
     max_http_buffer_size: int = int(CONNECTION_CONFIG["max_http_buffer_size"])
-    connection_timeout: int = CONNECTION_CONFIG.get("connection_timeout", 10)  # 10 seconds
+    connection_timeout: int = CONNECTION_CONFIG.get(
+        "connection_timeout", 10
+    )  # 10 seconds
 
     # Compatibility settings
     min_client_version: str = "0.7.0"

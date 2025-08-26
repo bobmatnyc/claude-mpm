@@ -45,7 +45,9 @@ def monitor_server():
 
         # Show current port status
         try:
-            result = subprocess.run(["netstat", "-an"], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                ["netstat", "-an"], capture_output=True, text=True, check=False
+            )
             port_8765_lines = [
                 line
                 for line in result.stdout.split("\n")

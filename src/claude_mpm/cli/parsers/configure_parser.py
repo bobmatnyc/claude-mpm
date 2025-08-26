@@ -95,7 +95,7 @@ def add_configure_subparser(subparsers) -> argparse.ArgumentParser:
         metavar="FILE",
         help="Import configuration from a file",
     )
-    
+
     # Hook management options
     hooks_group = configure_parser.add_argument_group("hook management")
     hooks_group.add_argument(

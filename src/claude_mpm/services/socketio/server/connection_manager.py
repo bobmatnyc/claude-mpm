@@ -188,7 +188,7 @@ class ConnectionManager:
         """
         max_retries = 3
         retry_delay = 0.1  # Start with 100ms
-        
+
         for attempt in range(max_retries):
             try:
                 async with self._lock:
@@ -216,7 +216,9 @@ class ConnectionManager:
                             conn.metrics.reconnect_count += 1
                             conn.metrics.connect_count += 1
                             if old_conn.disconnected_at:
-                                conn.metrics.total_downtime += now - old_conn.disconnected_at
+                                conn.metrics.total_downtime += (
+                                    now - old_conn.disconnected_at
+                                )
 
                             # Clean up old connection
                             del self.connections[old_sid]
@@ -239,9 +241,8 @@ class ConnectionManager:
                         self.connections[sid] = conn
                         self.client_mapping[client_id] = sid
                         return conn
-                    else:
-                        raise ValueError(f"Invalid connection state for {sid}")
-                        
+                    raise ValueError(f"Invalid connection state for {sid}")
+
             except Exception as e:
                 self.logger.warning(
                     f"Failed to register connection {sid} (attempt {attempt + 1}/{max_retries}): {e}"
@@ -251,7 +252,9 @@ class ConnectionManager:
                     retry_delay *= 2  # Exponential backoff
                 else:
                     # Final attempt failed, create minimal connection
-                    self.logger.error(f"All attempts failed for {sid}, creating minimal connection")
+                    self.logger.error(
+                        f"All attempts failed for {sid}, creating minimal connection"
+                    )
                     conn = ClientConnection(
                         sid=sid,
                         client_id=client_id or str(uuid4()),
