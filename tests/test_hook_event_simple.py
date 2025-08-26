@@ -27,13 +27,14 @@ time.sleep(5)
 print("\nTesting connection pool emission...")
 pool = get_connection_pool()
 
-# Send test events
+# Send test events with CORRECT format
 for i in range(3):
     test_event = {
-        "type": "hook",
+        "hook_event_name": "TestEvent",  # CORRECT: Use hook_event_name
+        "hook_event_type": "TestEvent",
         "subtype": f"test_{i}",
         "timestamp": datetime.now().isoformat(),
-        "data": {"message": f"Test event {i} from connection pool", "index": i},
+        "hook_input_data": {"message": f"Test event {i} from connection pool", "index": i},
     }
 
     print(f"Sending event {i}...")
