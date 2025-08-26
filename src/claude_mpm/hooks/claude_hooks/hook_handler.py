@@ -12,15 +12,21 @@ WHY service-oriented approach:
 - Easier testing and maintenance
 - Reduced file size from 1040 to ~400 lines
 - Clear service boundaries and responsibilities
+
+NOTE: Requires Claude Code version 1.0.92 or higher for proper hook support.
+Earlier versions do not support matcher-based hook configuration.
 """
 
 import json
 import os
+import re
 import select
 import signal
+import subprocess
 import sys
 import threading
 from datetime import datetime
+from typing import Optional, Tuple
 
 # Import extracted modules with fallback for direct execution
 try:
@@ -73,6 +79,66 @@ except ImportError:
 # Global singleton handler instance
 _global_handler = None
 _handler_lock = threading.Lock()
+
+# Minimum Claude Code version required for hook support
+MIN_CLAUDE_VERSION = "1.0.92"
+
+
+def check_claude_version() -> Tuple[bool, Optional[str]]:
+    """Check if Claude Code version is compatible with hook monitoring.
+    
+    Returns:
+        Tuple of (is_compatible, version_string)
+    """
+    try:
+        # Try to detect Claude Code version
+        result = subprocess.run(
+            ["claude", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        
+        if result.returncode == 0:
+            version_text = result.stdout.strip()
+            # Extract version number (e.g., "1.0.92 (Claude Code)" -> "1.0.92")
+            match = re.match(r"^([\d\.]+)", version_text)
+            if match:
+                version = match.group(1)
+                
+                # Compare versions
+                def parse_version(v: str):
+                    try:
+                        return [int(x) for x in v.split(".")]
+                    except (ValueError, AttributeError):
+                        return [0]
+                
+                current = parse_version(version)
+                required = parse_version(MIN_CLAUDE_VERSION)
+                
+                # Check if current version meets minimum
+                for i in range(max(len(current), len(required))):
+                    curr_part = current[i] if i < len(current) else 0
+                    req_part = required[i] if i < len(required) else 0
+                    
+                    if curr_part < req_part:
+                        if DEBUG:
+                            print(
+                                f"⚠️  Claude Code {version} does not support matcher-based hooks "
+                                f"(requires {MIN_CLAUDE_VERSION}+). Hook monitoring disabled.",
+                                file=sys.stderr,
+                            )
+                        return False, version
+                    elif curr_part > req_part:
+                        return True, version
+                
+                return True, version
+    except Exception as e:
+        if DEBUG:
+            print(f"Warning: Could not detect Claude Code version: {e}", file=sys.stderr)
+    
+    return False, None
 
 
 class ClaudeHookHandler:
@@ -335,6 +401,19 @@ def main():
     """Entry point with singleton pattern and proper cleanup."""
     global _global_handler
     _continue_printed = False  # Track if we've already printed continue
+    
+    # Check Claude Code version compatibility first
+    is_compatible, version = check_claude_version()
+    if not is_compatible:
+        # Version incompatible - just continue without processing
+        # This prevents errors on older Claude Code versions
+        if DEBUG and version:
+            print(
+                f"Skipping hook processing due to version incompatibility ({version})",
+                file=sys.stderr,
+            )
+        print(json.dumps({"action": "continue"}))
+        sys.exit(0)
 
     def cleanup_handler(signum=None, frame=None):
         """Cleanup handler for signals and exit."""
