@@ -34,8 +34,10 @@ def main():
     except Exception as e:
         print(f"\nError running TUI: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

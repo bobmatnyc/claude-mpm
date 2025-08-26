@@ -33,7 +33,7 @@ class ListViewTest(App):
                     ListItem(Label("Item 2"), id="item-2"),
                     ListItem(Label("Item 3"), id="item-3"),
                     ListItem(Label("Item 4"), id="item-4"),
-                    id="test-list"
+                    id="test-list",
                 )
 
             yield Static("Output will appear here\n", id="output")
@@ -59,7 +59,9 @@ class ListViewTest(App):
     @on(ListView.Selected, "#test-list")
     def on_list_selected_decorator(self, event: ListView.Selected):
         """Handle selection via decorator."""
-        self.add_output(f"✓ ListView.Selected (decorator): item={event.item}, id={event.item.id if hasattr(event.item, 'id') else 'no-id'}")
+        self.add_output(
+            f"✓ ListView.Selected (decorator): item={event.item}, id={event.item.id if hasattr(event.item, 'id') else 'no-id'}"
+        )
 
     def on_list_view_selected(self, event: ListView.Selected):
         """Handle selection via method name."""
@@ -73,7 +75,7 @@ class ListViewTest(App):
     @on(ListItem.Pressed)
     def on_item_pressed(self, event: ListItem.Pressed):
         """Handle ListItem press."""
-        sender_id = event.sender.id if hasattr(event.sender, 'id') else 'no-id'
+        sender_id = event.sender.id if hasattr(event.sender, "id") else "no-id"
         self.add_output(f"✓ ListItem.Pressed: sender.id={sender_id}")
 
     def on_key(self, event):

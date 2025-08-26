@@ -1200,7 +1200,11 @@ class SettingsScreen(Container):
             import subprocess
 
             result = subprocess.run(
-                ["claude", "--version"], capture_output=True, text=True, timeout=5, check=False
+                ["claude", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
             )
             if result.returncode == 0:
                 claude_version = result.stdout.strip()

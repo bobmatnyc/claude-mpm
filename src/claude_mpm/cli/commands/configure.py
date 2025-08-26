@@ -1018,7 +1018,11 @@ class ConfigureCommand(BaseCommand):
             import subprocess
 
             result = subprocess.run(
-                ["claude", "--version"], capture_output=True, text=True, timeout=5, check=False
+                ["claude", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
             )
             if result.returncode == 0:
                 claude_version = result.stdout.strip()
@@ -1157,7 +1161,11 @@ Directory: {self.project_dir}
             import subprocess
 
             result = subprocess.run(
-                ["claude", "--version"], capture_output=True, text=True, timeout=5, check=False
+                ["claude", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
             )
             if result.returncode == 0:
                 data["claude_version"] = result.stdout.strip()

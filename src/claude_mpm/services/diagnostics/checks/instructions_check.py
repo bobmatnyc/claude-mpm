@@ -374,9 +374,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
                 continue
 
         # Check for Claude Code specific content in INSTRUCTIONS.md
-        instructions_files = [
-            path for path in files if path.name == "INSTRUCTIONS.md"
-        ]
+        instructions_files = [path for path in files if path.name == "INSTRUCTIONS.md"]
         for path in instructions_files:
             try:
                 content = path.read_text(encoding="utf-8")
