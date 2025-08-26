@@ -1,182 +1,204 @@
 #!/usr/bin/env python3
-"""Monitor dashboard events to verify HTTP event flow is working.
+"""Monitor dashboard events to verify hook event flow.
 
-This script connects to the SocketIO server and displays all events
-being broadcast to the dashboard. Useful for debugging event flow issues.
+This script connects to the dashboard and monitors incoming events
+to verify that Claude hook events are being properly received.
 """
 
+import asyncio
+import json
+import signal
 import sys
-import time
-from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime
+from typing import Optional
 
-import socketio
+try:
+    import aiohttp
+    import socketio
+except ImportError:
+    print("Please install required packages: pip install aiohttp python-socketio")
+    sys.exit(1)
 
-# Statistics tracking
-stats = defaultdict(int)
-start_time = datetime.now(timezone.utc)
-last_event_time = None
+class DashboardMonitor:
+    """Monitor dashboard events."""
+    
+    def __init__(self, host="localhost", port=8765):
+        self.host = host
+        self.port = port
+        self.base_url = f"http://{host}:{port}"
+        self.sio = socketio.AsyncClient()
+        self.event_count = 0
+        self.running = True
+        
+        # Register event handlers
+        self._register_handlers()
+    
+    def _register_handlers(self):
+        """Register SocketIO event handlers."""
+        
+        @self.sio.event
+        async def connect():
+            print(f"✅ Connected to dashboard at {self.base_url}")
+            print("Monitoring for events...")
+            print("-" * 60)
+        
+        @self.sio.event
+        async def disconnect():
+            print("\n❌ Disconnected from dashboard")
+        
+        @self.sio.event
+        async def connect_error(data):
+            print(f"❌ Connection error: {data}")
+        
+        # Monitor various event types
+        @self.sio.on("*")
+        async def catch_all(event, data):
+            """Catch all events."""
+            self.event_count += 1
+            timestamp = datetime.now().isoformat()
+            print(f"\n[{timestamp}] Event #{self.event_count}")
+            print(f"  Type: {event}")
+            
+            # Pretty print the data
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    if isinstance(value, (dict, list)):
+                        print(f"  {key}: {json.dumps(value, indent=4)}")
+                    else:
+                        print(f"  {key}: {value}")
+            else:
+                print(f"  Data: {data}")
+            print("-" * 60)
+        
+        # Specific handlers for known event types
+        @self.sio.on("user_prompt")
+        async def on_user_prompt(data):
+            print(f"📝 User Prompt: {data.get('prompt_preview', 'N/A')}")
+        
+        @self.sio.on("pre_tool")
+        async def on_pre_tool(data):
+            print(f"🔧 Pre-Tool: {data.get('tool_name', 'N/A')}")
+            if data.get('tool_name') == 'Task':
+                details = data.get('delegation_details', {})
+                print(f"   → Delegating to {details.get('agent_type', 'unknown')} agent")
+        
+        @self.sio.on("post_tool")
+        async def on_post_tool(data):
+            status = "✅" if data.get('success') else "❌"
+            print(f"🔧 Post-Tool: {data.get('tool_name', 'N/A')} {status}")
+        
+        @self.sio.on("subagent_start")
+        async def on_subagent_start(data):
+            print(f"🤖 Subagent Start: {data.get('agent_type', 'N/A')}")
+        
+        @self.sio.on("subagent_stop")
+        async def on_subagent_stop(data):
+            print(f"🤖 Subagent Stop: {data.get('agent_type', 'N/A')} - {data.get('reason', 'N/A')}")
+        
+        @self.sio.on("stop")
+        async def on_stop(data):
+            print(f"🛑 Stop: {data.get('reason', 'N/A')}")
+    
+    async def check_health(self) -> bool:
+        """Check if dashboard is healthy."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.base_url}/health") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        print(f"Dashboard health: {data}")
+                        return True
+                    else:
+                        print(f"Dashboard health check failed: {response.status}")
+                        return False
+        except Exception as e:
+            print(f"Failed to check dashboard health: {e}")
+            return False
+    
+    async def test_http_endpoint(self):
+        """Test the HTTP event endpoint."""
+        print("\nTesting HTTP event endpoint...")
+        test_event = {
+            "hook_event_name": "TestEvent",
+            "type": "test",
+            "data": {"message": "Testing HTTP endpoint"},
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/api/events",
+                    json=test_event,
+                    headers={"Content-Type": "application/json"}
+                ) as response:
+                    if response.status == 204:
+                        print("✅ HTTP endpoint test successful (204 No Content)")
+                        return True
+                    else:
+                        text = await response.text()
+                        print(f"❌ HTTP endpoint returned {response.status}: {text}")
+                        return False
+        except Exception as e:
+            print(f"❌ Failed to test HTTP endpoint: {e}")
+            return False
+    
+    async def monitor(self):
+        """Start monitoring dashboard events."""
+        print(f"\nConnecting to dashboard at {self.base_url}...")
+        
+        # Check health first
+        if not await self.check_health():
+            print("⚠️ Dashboard may not be healthy, attempting connection anyway...")
+        
+        # Test HTTP endpoint
+        await self.test_http_endpoint()
+        
+        # Connect via SocketIO
+        try:
+            await self.sio.connect(
+                self.base_url,
+                namespaces=["/", "/hook", "/claude"]
+            )
+            
+            # Keep running until interrupted
+            while self.running:
+                await asyncio.sleep(1)
+            
+        except Exception as e:
+            print(f"❌ Failed to connect: {e}")
+        finally:
+            if self.sio.connected:
+                await self.sio.disconnect()
+    
+    def stop(self):
+        """Stop monitoring."""
+        self.running = False
 
-
-def signal_handler(signum, frame):
-    """Handle Ctrl+C gracefully."""
-    print("\n\n📊 Final Statistics:")
-    print("=" * 60)
-
-    total_events = sum(stats.values())
-    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
-
-    print(f"Total events: {total_events}")
-    print(f"Duration: {duration:.1f} seconds")
-    print(f"Events per second: {total_events/duration:.2f}")
-
-    if stats:
-        print("\nEvent breakdown:")
-        for event_type, count in sorted(
-            stats.items(), key=lambda x: x[1], reverse=True
-        ):
-            percentage = (count / total_events) * 100
-            print(f"  {event_type:20} {count:5} ({percentage:.1f}%)")
-
-    print("\n✅ Monitoring stopped")
-    sys.exit(0)
-
-
-def monitor_dashboard_events(server_url="http://localhost:8765"):
-    """Monitor events being sent to the dashboard."""
-    print("\n🔍 Dashboard Event Monitor")
-    print("=" * 40)
-
-    client = connect_and_monitor(server_url, stats)
-    if not client:
-        return
-
+async def main():
+    """Main entry point."""
+    monitor = DashboardMonitor()
+    
+    # Handle Ctrl+C gracefully
+    def signal_handler(sig, frame):
+        print("\n\nStopping monitor...")
+        monitor.stop()
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    
     try:
-        print("\n⏳ Monitoring... Press Ctrl+C to stop\n")
-        while True:
-            time.sleep(1)
-            check_idle_time()
+        await monitor.monitor()
     except KeyboardInterrupt:
-        print("\n\n📊 Session Statistics:")
-        print_statistics()
-        client.disconnect()
-
-
-def create_event_handlers(client, stats):
-    """Create and register all event handlers for the client."""
-
-    @client.on("connect")
-    def on_connect():
-        print(f"✅ Connected to server at {datetime.now(timezone.utc).isoformat()}")
-        print("Monitoring events...\n")
-
-    @client.on("disconnect")
-    def on_disconnect():
-        print(
-            f"\n⚠️ Disconnected from server at {datetime.now(timezone.utc).isoformat()}"
-        )
-
-    @client.on("claude_event")
-    def on_claude_event(data):
-        """Handle claude_event from server."""
-        global last_event_time
-
-        now = datetime.now(timezone.utc)
-        last_event_time = now
-
-        handle_claude_event(data, now, stats)
-
-    @client.on("system_event")
-    def on_system_event(data):
-        """Handle system events (like heartbeats)."""
-        global last_event_time
-
-        now = datetime.now(timezone.utc)
-        last_event_time = now
-
-        handle_system_event(data, now, stats)
-
-
-def handle_claude_event(data, timestamp, stats):
-    """Process a claude_event."""
-    event_type = data.get("type", "unknown")
-    subtype = data.get("subtype", "")
-
-    # Update statistics
-    stats[event_type] += 1
-    if subtype:
-        stats[f"{event_type}.{subtype}"] += 1
-
-    # Display event details
-    print(f"\n{'='*60}")
-    print(f"📊 Event: {event_type}")
-    if subtype:
-        print(f"   Subtype: {subtype}")
-    print(f"   Time: {timestamp.strftime('%H:%M:%S')}")
-
-    # Show event data
-    event_data = data.get("data", {})
-    if event_data:
-        print("   Data:")
-        for key, value in list(event_data.items())[:5]:
-            value_str = str(value)[:100]
-            print(f"     {key}: {value_str}")
-
-    print(f"{'='*60}")
-
-
-def handle_system_event(data, timestamp, stats):
-    """Process a system_event."""
-    event_type = data.get("type", "system")
-
-    # Update statistics
-    stats["system"] += 1
-
-    # Only show non-heartbeat system events
-    if "heartbeat" not in str(data).lower():
-        print(f"\n🔧 System Event: {event_type}")
-        print(f"   Time: {timestamp.strftime('%H:%M:%S')}")
-
-
-def connect_and_monitor(server_url, stats):
-    """Connect to server and set up monitoring."""
-
-    client = socketio.Client()
-    create_event_handlers(client, stats)
-
-    try:
-        print(f"\n🔌 Connecting to {server_url}...")
-        client.connect(server_url, namespaces=["/"])
-        print("✅ Connection established\n")
-        return client
-    except Exception as e:
-        print(f"❌ Failed to connect: {e}")
-        return None
-
+        print("\n\nMonitor stopped by user")
+    
+    print(f"\nTotal events received: {monitor.event_count}")
 
 if __name__ == "__main__":
-    # Allow custom server URL
-    server_url = "http://localhost:8765"
-    if len(sys.argv) > 1:
-        server_url = sys.argv[1]
-
-    print(
-        f"""
-╔════════════════════════════════════════════════════════════╗
-║            Dashboard Event Monitor for Claude MPM          ║
-╠════════════════════════════════════════════════════════════╣
-║  This tool monitors events being sent to the dashboard     ║
-║  via the new HTTP POST mechanism from hook handlers.       ║
-║                                                             ║
-║  Usage: {sys.argv[0]} [server_url]              ║
-║  Default: http://localhost:8765                            ║
-╚════════════════════════════════════════════════════════════╝
-"""
-    )
-
-    try:
-        success = monitor_dashboard_events(server_url)
-        sys.exit(0 if success else 1)
-    except Exception as e:
-        print(f"\n❌ Monitor failed: {e}")
-        sys.exit(1)
+    print("="*60)
+    print("Dashboard Event Monitor")
+    print("="*60)
+    print("\nThis tool monitors events coming into the dashboard.")
+    print("Run the test script in another terminal to send events.")
+    print("\nPress Ctrl+C to stop monitoring\n")
+    
+    asyncio.run(main())

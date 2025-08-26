@@ -2,6 +2,16 @@
 
 This module provides a relay that connects EventBus directly to the
 Socket.IO server's broadcaster, avoiding the client loopback issue.
+
+IMPORTANT - Claude Event Format:
+Claude sends hook events with these REQUIRED fields:
+- hook_event_name: The event type (UserPromptSubmit, PreToolUse, PostToolUse, etc.)
+- hook_event_type: Usually same as hook_event_name
+- hook_input_data: Contains the actual event data
+- sessionId: Session identifier
+- timestamp: ISO format timestamp
+
+DO NOT use "event" or "type" fields - use "hook_event_name" instead!
 """
 
 import logging
