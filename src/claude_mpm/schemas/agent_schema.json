@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "title": "Claude MPM Agent Schema",
   "description": "Schema definition for Claude MPM agent templates. This schema enforces the structure and validation rules for all agent configurations in the Claude MPM system.",
   "type": "object",
@@ -18,7 +18,7 @@
       "type": "string",
       "pattern": "^\\d+\\.\\d+\\.\\d+$",
       "description": "Schema version for the agent template format. This ensures compatibility between the agent template and the schema validator. Must be updated when breaking changes are made to the schema.",
-      "examples": ["1.0.0", "1.2.0"]
+      "examples": ["1.0.0", "1.2.0", "1.3.0"]
     },
     "agent_id": {
       "type": "string",
@@ -44,7 +44,10 @@
         "security",
         "ops",
         "data_engineer",
-        "version_control"
+        "version_control",
+        "system",
+        "refactoring",
+        "memory_manager"
       ]
     },
     "metadata": {
@@ -64,19 +67,19 @@
         "description": {
           "type": "string",
           "minLength": 10,
-          "maxLength": 200,
+          "maxLength": 250,
           "description": "Brief description of agent purpose and capabilities. Used in agent selection and documentation."
         },
         "category": {
           "type": "string",
-          "enum": ["engineering", "research", "quality", "operations", "specialized"],
+          "enum": ["engineering", "research", "quality", "operations", "specialized", "system", "project-management", "infrastructure"],
           "description": "Agent category for organization"
         },
         "tags": {
           "type": "array",
           "items": {
             "type": "string",
-            "pattern": "^[a-z][a-z0-9-]*$"
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$"
           },
           "minItems": 1,
           "maxItems": 10,
@@ -99,8 +102,48 @@
         },
         "color": {
           "type": "string",
-          "enum": ["red", "blue", "green", "yellow", "purple", "orange", "pink", "cyan"],
+          "enum": ["red", "blue", "green", "yellow", "purple", "orange", "pink", "cyan", "indigo", "gray", "black", "white"],
           "description": "Agent color for visual identification in Claude Code interface. Helps distinguish agents at a glance."
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Agent metadata version for tracking changes"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["stable", "experimental", "deprecated", "development"],
+          "description": "Current status of the agent template"
+        }
+      }
+    },
+    "template_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Template version tracking independent of agent version. Used for tracking template improvements and optimizations.",
+      "examples": ["1.0.0", "1.4.0", "2.2.0"]
+    },
+    "template_changelog": {
+      "type": "array",
+      "description": "Template version history tracking changes and improvements",
+      "items": {
+        "type": "object",
+        "required": ["version", "date", "description"],
+        "properties": {
+          "version": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+$",
+            "description": "Template version for this changelog entry"
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Date of the template version release in YYYY-MM-DD format"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of changes in this template version"
+          }
         }
       }
     },
@@ -135,7 +178,6 @@
       "type": "object",
       "required": [
         "model",
-        "tools",
         "resource_tier"
       ],
       "properties": {
@@ -173,7 +215,14 @@
               "terraform",
               "aws",
               "gcloud",
-              "azure"
+              "azure",
+              "mcp__claude-mpm-gateway__document_summarizer",
+              "mcp__claude-mpm-gateway__ticket",
+              "mcp__mcp-vector-search__search_code",
+              "mcp__mcp-vector-search__search_similar",
+              "mcp__mcp-vector-search__search_context",
+              "mcp__mcp-vector-search__get_project_status",
+              "mcp__mcp-vector-search__index_project"
             ]
           },
           "uniqueItems": true,
@@ -185,7 +234,8 @@
             "basic",
             "standard",
             "intensive",
-            "lightweight"
+            "lightweight",
+            "high"
           ],
           "description": "Resource allocation tier that determines memory, CPU, and timeout limits. See definitions section for specific limits."
         },
@@ -251,12 +301,46 @@
           "type": "array",
           "items": {"type": "string"},
           "description": "Tool names to explicitly disallow, overriding the tools array. Use for security restrictions (e.g., 'Bash' to prevent shell access)."
+        },
+        "limits": {
+          "type": "object",
+          "description": "Explicit resource limits for the agent",
+          "properties": {
+            "memory_limit": {
+              "type": "integer",
+              "minimum": 512,
+              "maximum": 8192,
+              "description": "Memory limit in MB"
+            },
+            "cpu_limit": {
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 100,
+              "description": "CPU limit percentage"
+            },
+            "max_file_size": {
+              "type": "integer",
+              "minimum": 1024,
+              "description": "Maximum file size in bytes that can be processed"
+            },
+            "max_files_per_session": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum number of files that can be accessed per session"
+            }
+          }
+        },
+        "tool_choice": {
+          "type": "string",
+          "enum": ["auto", "required", "none"],
+          "default": "auto",
+          "description": "Tool usage strategy for the agent"
         }
       }
     },
     "instructions": {
       "type": "string",
-      "minLength": 100,
+      "minLength": 10,
       "maxLength": 8000,
       "description": "Agent system instructions that define behavior, approach, and constraints. This becomes the agent's system prompt."
     },
@@ -294,7 +378,7 @@
     },
     "interactions": {
       "type": "object",
-      "description": "Agent interaction patterns",
+      "description": "Agent interaction patterns and protocols",
       "properties": {
         "input_format": {
           "type": "object",
@@ -306,6 +390,11 @@
             "optional_fields": {
               "type": "array",
               "items": {"type": "string"}
+            },
+            "supported_operations": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "List of supported operations for this agent"
             }
           }
         },
@@ -319,6 +408,10 @@
             "includes": {
               "type": "array",
               "items": {"type": "string"}
+            },
+            "example": {
+              "type": "string",
+              "description": "Example output format for the agent"
             }
           }
         },
@@ -330,13 +423,42 @@
         "triggers": {
           "type": "array",
           "items": {
-            "type": "object",
-            "properties": {
-              "condition": {"type": "string"},
-              "action": {"type": "string"}
-            }
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Simple trigger condition"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "condition": {"type": "string"},
+                  "action": {"type": "string"}
+                },
+                "description": "Complex trigger with condition and action"
+              }
+            ]
           },
-          "description": "Conditions that trigger specific actions"
+          "description": "Conditions that trigger specific actions or agent activation"
+        },
+        "protocols": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Communication protocols supported by this agent"
+        },
+        "response_format": {
+          "type": "object",
+          "description": "Detailed response format specifications",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["markdown", "json", "structured", "mixed"]
+            },
+            "template": {"type": "string"},
+            "required_sections": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
         }
       }
     },
@@ -365,8 +487,39 @@
           "properties": {
             "response_time": {"type": "integer"},
             "token_usage": {"type": "integer"},
-            "success_rate": {"type": "number"}
+            "success_rate": {"type": "number"},
+            "validation_accuracy": {"type": "number"}
           }
+        },
+        "integration_tests": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "List of integration test scenarios"
+        }
+      }
+    },
+    "memory_routing": {
+      "type": "object",
+      "description": "Memory system routing configuration for agent",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Description of what memories this agent stores"
+        },
+        "categories": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Memory categories this agent contributes to"
+        },
+        "keywords": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Keywords for memory routing and retrieval"
+        },
+        "retention_policy": {
+          "type": "string",
+          "enum": ["permanent", "session", "temporary"],
+          "description": "Memory retention policy for this agent"
         }
       }
     },
@@ -397,7 +550,7 @@
       }
     }
   },
-  "additionalProperties": false,
+  "additionalProperties": true,
   "definitions": {
     "model_mappings": {
       "description": "Mappings for model normalization from full names to tiers",

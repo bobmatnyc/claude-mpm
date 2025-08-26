@@ -92,9 +92,12 @@ class UIStateManager {
     getTabNameFromButton(button) {
         const text = button.textContent.toLowerCase();
         if (text.includes('events')) return 'events';
+        if (text.includes('activity')) return 'activity';
         if (text.includes('agents')) return 'agents';
         if (text.includes('tools')) return 'tools';
         if (text.includes('files')) return 'files';
+        if (text.includes('sessions')) return 'sessions';
+        if (text.includes('system')) return 'system';
         return 'events';
     }
 

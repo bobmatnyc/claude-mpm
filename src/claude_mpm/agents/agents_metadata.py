@@ -289,6 +289,61 @@ IMAGEMAGICK_CONFIG = {
     },
 }
 
+# Agentic Coder Optimizer Agent Metadata
+AGENTIC_CODER_OPTIMIZER_CONFIG = {
+    "name": "agentic_coder_optimizer_agent",
+    "version": "1.0.0",
+    "type": "optimization_agent",
+    "capabilities": [
+        "project_optimization",
+        "documentation_standardization",
+        "workflow_unification",
+        "build_system_optimization",
+        "developer_experience_improvement",
+        "agentic_workflow_design",
+        "quality_tooling_setup",
+        "version_management_setup",
+    ],
+    "primary_interface": "project_optimization_tools",
+    "performance_targets": {
+        "project_analysis": "10m",
+        "documentation_optimization": "30m",
+        "workflow_standardization": "1h",
+        "setup_time_reduction": "80%",
+        "command_unification_rate": "90%",
+        "onboarding_improvement": "5x_faster",
+    },
+}
+
+# Agent Manager Agent Metadata
+AGENT_MANAGER_CONFIG = {
+    "name": "agent_manager",
+    "version": "2.0.0",
+    "type": "system_agent",
+    "capabilities": [
+        "agent_creation",
+        "variant_management",
+        "pm_configuration",
+        "deployment_control",
+        "hierarchy_management",
+        "template_generation",
+        "agent_validation",
+        "version_precedence_resolution",
+        "yaml_configuration_management",
+        "instruction_customization",
+    ],
+    "primary_interface": "agent_lifecycle_management",
+    "performance_targets": {
+        "agent_creation": "30s",
+        "deployment_operation": "10s",
+        "validation_check": "5s",
+        "pm_instruction_update": "15s",
+        "version_conflict_resolution": "5s",
+        "template_generation": "20s",
+        "configuration_validation": "3s",
+    },
+}
+
 # Aggregate all configs for easy access
 ALL_AGENT_CONFIGS = {
     "documentation": DOCUMENTATION_CONFIG,
@@ -303,4 +358,6 @@ ALL_AGENT_CONFIGS = {
     "data_engineer": DATA_ENGINEER_CONFIG,
     "project_organizer": PROJECT_ORGANIZER_CONFIG,
     "imagemagick": IMAGEMAGICK_CONFIG,
+    "agentic_coder_optimizer": AGENTIC_CODER_OPTIMIZER_CONFIG,
+    "agent_manager": AGENT_MANAGER_CONFIG,
 }

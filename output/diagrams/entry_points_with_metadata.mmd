@@ -1,0 +1,30 @@
+%% Diagram Metadata
+%% Generated: 2024-01-01 12:00:00
+%% Source: example_analysis
+%% Type: entry_points
+%% Statistics:
+%%   lines: 21
+%%   nodes: 6
+%%   edges: 3
+
+flowchart TB
+    %% Application Entry Points
+
+    Start([Application Start])
+
+    subgraph subgraph_cli[Cli]
+        src_claude_mpm_cli_main_py_main[main.py::main (L42)]
+        src_claude_mpm_cli_parser_py_parse_args[parser.py::parse_args (L15)]
+    end
+
+    subgraph subgraph_web[Web]
+        src_claude_mpm_dashboard_app_py_create_app[app.py::create_app (L25)]
+    end
+
+    Start --> src_claude_mpm_cli_main_py_main
+    Start --> src_claude_mpm_cli_parser_py_parse_args
+    Start --> src_claude_mpm_dashboard_app_py_create_app
+
+    classDef entryPoint fill:#90EE90,stroke:#333,stroke-width:2px
+    classDef startNode fill:#FFD700,stroke:#333,stroke-width:3px
+    class Start startNode

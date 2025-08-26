@@ -528,12 +528,44 @@ class SocketClient {
                     id: sessionId,
                     startTime: eventData.timestamp,
                     lastActivity: eventData.timestamp,
-                    eventCount: 0
+                    eventCount: 0,
+                    working_directory: null,
+                    git_branch: null
                 });
             }
             const session = this.sessions.get(sessionId);
             session.lastActivity = eventData.timestamp;
             session.eventCount++;
+            
+            // Extract working directory from event data if available (prioritize newer data)
+            // Check multiple possible locations for working directory
+            const possiblePaths = [
+                eventData.data.cwd,
+                eventData.data.working_directory,
+                eventData.data.working_dir,
+                eventData.data.workingDirectory,
+                eventData.data.instance_info?.working_dir,
+                eventData.data.instance_info?.working_directory,
+                eventData.data.instance_info?.cwd,
+                eventData.cwd,
+                eventData.working_directory,
+                eventData.working_dir
+            ];
+            
+            for (const path of possiblePaths) {
+                if (path && typeof path === 'string' && path.trim()) {
+                    session.working_directory = path;
+                    console.log(`[SOCKET-CLIENT] Found working directory for session ${sessionId}:`, path);
+                    break;
+                }
+            }
+            
+            // Extract git branch if available
+            if (eventData.data.git_branch) {
+                session.git_branch = eventData.data.git_branch;
+            } else if (eventData.data.instance_info && eventData.data.instance_info.git_branch) {
+                session.git_branch = eventData.data.instance_info.git_branch;
+            }
         }
 
         if (notify) {
@@ -602,6 +634,32 @@ class SocketClient {
      */
     onEventUpdate(callback) {
         this.connectionCallbacks.event.push(callback);
+    }
+
+    /**
+     * Subscribe to socket events (proxy to underlying socket)
+     * @param {string} event - Event name
+     * @param {Function} callback - Callback function
+     */
+    on(event, callback) {
+        if (this.socket) {
+            return this.socket.on(event, callback);
+        } else {
+            console.warn(`Cannot subscribe to '${event}': socket not initialized`);
+        }
+    }
+
+    /**
+     * Unsubscribe from socket events (proxy to underlying socket)
+     * @param {string} event - Event name
+     * @param {Function} callback - Callback function (optional)
+     */
+    off(event, callback) {
+        if (this.socket) {
+            return this.socket.off(event, callback);
+        } else {
+            console.warn(`Cannot unsubscribe from '${event}': socket not initialized`);
+        }
     }
 
     /**
@@ -820,11 +878,40 @@ class SocketClient {
             transformedEvent.data = eventData.data;
         }
 
+        // Add hook_event_name for ActivityTree compatibility
+        // Map the type/subtype structure to the expected hook_event_name format
+        if (transformedEvent.type === 'hook') {
+            if (transformedEvent.subtype === 'pre_tool') {
+                transformedEvent.hook_event_name = 'PreToolUse';
+            } else if (transformedEvent.subtype === 'post_tool') {
+                transformedEvent.hook_event_name = 'PostToolUse';
+            } else if (transformedEvent.subtype === 'subagent_start') {
+                transformedEvent.hook_event_name = 'SubagentStart';
+            } else if (transformedEvent.subtype === 'subagent_stop') {
+                transformedEvent.hook_event_name = 'SubagentStop';
+            } else if (transformedEvent.subtype === 'todo_write') {
+                transformedEvent.hook_event_name = 'TodoWrite';
+            } else if (transformedEvent.subtype === 'start') {
+                transformedEvent.hook_event_name = 'Start';
+            } else if (transformedEvent.subtype === 'stop') {
+                transformedEvent.hook_event_name = 'Stop';
+            }
+        } else if (transformedEvent.type === 'subagent') {
+            if (transformedEvent.subtype === 'start') {
+                transformedEvent.hook_event_name = 'SubagentStart';
+            } else if (transformedEvent.subtype === 'stop') {
+                transformedEvent.hook_event_name = 'SubagentStop';
+            }
+        } else if (transformedEvent.type === 'todo' && transformedEvent.subtype === 'updated') {
+            transformedEvent.hook_event_name = 'TodoWrite';
+        }
+
         // Debug logging for tool events
         if (transformedEvent.type === 'hook' && (transformedEvent.subtype === 'pre_tool' || transformedEvent.subtype === 'post_tool')) {
             console.log('Transformed tool event:', {
                 type: transformedEvent.type,
                 subtype: transformedEvent.subtype,
+                hook_event_name: transformedEvent.hook_event_name,
                 tool_name: transformedEvent.tool_name,
                 has_tool_parameters: !!transformedEvent.tool_parameters,
                 tool_parameters: transformedEvent.tool_parameters,

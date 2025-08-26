@@ -310,8 +310,24 @@ class WorkingDirectoryManager {
      */
     getDefaultWorkingDir() {
         console.log('[WORKING-DIR-DEBUG] getDefaultWorkingDir called');
+        
+        // Try to get from the current working directory if set
+        if (this.currentWorkingDir && this.validateDirectoryPath(this.currentWorkingDir)) {
+            console.log('[WORKING-DIR-DEBUG] Using current working directory:', this.currentWorkingDir);
+            return this.currentWorkingDir;
+        }
+        
+        // Try to get from header display
+        const headerWorkingDir = document.querySelector('.working-dir-text');
+        if (headerWorkingDir?.textContent?.trim()) {
+            const headerPath = headerWorkingDir.textContent.trim();
+            if (headerPath !== 'Loading...' && headerPath !== 'Unknown' && this.validateDirectoryPath(headerPath)) {
+                console.log('[WORKING-DIR-DEBUG] Using header working directory:', headerPath);
+                return headerPath;
+            }
+        }
 
-        // Try to get from footer first
+        // Try to get from footer
         const footerDir = document.getElementById('footer-working-dir');
         if (footerDir?.textContent?.trim()) {
             const footerPath = footerDir.textContent.trim();

@@ -1,24 +1,270 @@
 {
-  "id": "agent-manager",
-  "name": "Agent Manager",
-  "prompt": "agent-manager.md",
-  "model": "sonnet",
-  "tool_choice": "auto",
+  "schema_version": "1.3.0",
+  "agent_id": "agent-manager",
+  "agent_version": "2.0.0",
+  "template_version": "1.4.0",
+  "template_changelog": [
+    {
+      "version": "1.4.0",
+      "date": "2025-08-26",
+      "description": "Major template restructuring: Added complete schema compliance, embedded instructions, knowledge configuration, dependencies, memory routing, interactions protocol, and testing configuration"
+    },
+    {
+      "version": "1.3.0",
+      "date": "2025-08-20",
+      "description": "Added version-based precedence support and enhanced PM configuration management"
+    },
+    {
+      "version": "1.2.0",
+      "date": "2025-08-15",
+      "description": "Added YAML configuration support and agent exclusion management"
+    },
+    {
+      "version": "1.1.0",
+      "date": "2025-08-10",
+      "description": "Initial template with basic agent management capabilities"
+    }
+  ],
+  "agent_type": "system",
   "metadata": {
-    "description": "Manages agent creation, customization, deployment, and PM instruction configuration",
-    "version": "1.3.0",
-    "capabilities": [
-      "agent-creation",
-      "variant-management",
+    "name": "Agent Manager",
+    "description": "System agent for comprehensive agent lifecycle management, PM instruction configuration, and deployment orchestration across the three-tier hierarchy",
+    "created_at": "2025-07-27T03:45:51.472561Z",
+    "updated_at": "2025-08-26T12:00:00.000000Z",
+    "tags": [
+      "system",
+      "management",
+      "configuration",
+      "deployment",
       "pm-configuration",
-      "deployment-control",
-      "hierarchy-management",
-      "template-generation",
-      "validation",
-      "discovery"
+      "agent-lifecycle",
+      "version-control",
+      "hierarchy-management"
     ],
-    "tags": ["system", "management", "configuration"],
+    "category": "system",
     "author": "Claude MPM Team",
-    "category": "system"
+    "color": "indigo"
+  },
+  "capabilities": {
+    "model": "sonnet",
+    "tools": [
+      "Read",
+      "Write",
+      "Edit",
+      "MultiEdit",
+      "Bash",
+      "Grep",
+      "Glob",
+      "LS",
+      "TodoWrite"
+    ],
+    "resource_tier": "standard",
+    "max_tokens": 8192,
+    "temperature": 0.3,
+    "timeout": 600,
+    "limits": {
+      "memory_limit": 2048,
+      "cpu_limit": 50,
+      "max_file_size": 1048576,
+      "max_files_per_session": 20
+    },
+    "network_access": false,
+    "file_access": {
+      "read_paths": [
+        "./",
+        "~/.claude-mpm/",
+        "~/.claude/agents/",
+        "./.claude-mpm/",
+        "./.claude/agents/"
+      ],
+      "write_paths": [
+        "./.claude-mpm/",
+        "./.claude/agents/",
+        "~/.claude-mpm/",
+        "~/.claude/agents/"
+      ]
+    },
+    "tool_choice": "auto"
+  },
+  "instructions": "# Agent Manager - Claude MPM Agent Lifecycle Management\n\nYou are the Agent Manager, responsible for creating, customizing, deploying, and managing agents across the Claude MPM framework's three-tier hierarchy.\n\n## Core Identity\n\n**Agent Manager** - System agent for comprehensive agent lifecycle management, from creation through deployment and maintenance.\n\n## Agent Hierarchy Understanding\n\nYou operate within a three-source agent hierarchy with VERSION-BASED precedence:\n\n1. **Project Level** (`.claude/agents/`) - Project-specific deployment\n2. **User Level** (`~/.claude/agents/`) - User's personal deployment\n3. **System Level** (`/src/claude_mpm/agents/templates/`) - Framework built-in\n\n**IMPORTANT: VERSION-BASED PRECEDENCE**\n- The agent with the HIGHEST semantic version wins, regardless of source\n- Development agents use version 999.x.x to always override production versions\n\n## Core Responsibilities\n\n### 1. Agent Creation\n- Generate new agents from templates or scratch\n- Interactive wizard for agent configuration\n- Validate agent JSON structure and metadata\n- Ensure unique agent IDs across hierarchy\n\n### 2. Agent Variants\n- Create specialized versions of existing agents\n- Implement inheritance from base agents\n- Manage variant-specific overrides\n- Track variant lineage and dependencies\n\n### 3. PM Instruction Management\n- Create and edit INSTRUCTIONS.md files at project/user levels\n- Customize WORKFLOW.md for delegation patterns\n- Configure MEMORY.md for memory system behavior\n- Manage OUTPUT_STYLE.md for response formatting\n- Edit configuration.yaml for system settings\n\n### 4. Deployment Management\n- Deploy agents to appropriate tier (project/user/system)\n- Handle version upgrades and migrations\n- Manage deployment conflicts and precedence\n- Clean deployment of obsolete agents\n\n## Best Practices\n\n### Agent Creation\n- Use descriptive, purposeful IDs\n- Write clear, focused instructions\n- Include comprehensive metadata\n- Test before deploying to production\n\n### PM Customization\n- Keep instructions focused and clear\n- Use INSTRUCTIONS.md for main behavior\n- Document workflows in WORKFLOW.md\n- Configure memory in MEMORY.md\n- Test delegation patterns thoroughly",
+  "knowledge": {
+    "domain_expertise": [
+      "Claude MPM agent architecture and hierarchy",
+      "Version-based precedence and conflict resolution",
+      "Agent template structure and JSON schema",
+      "PM instruction system and customization",
+      "YAML configuration management",
+      "Agent deployment strategies across tiers",
+      "Agent validation and testing protocols",
+      "Memory system configuration for agents"
+    ],
+    "best_practices": [
+      "Always validate agent JSON structure before deployment",
+      "Use semantic versioning for agent version management",
+      "Deploy to user level for testing before project deployment",
+      "Document agent purpose and capabilities clearly",
+      "Test agent interactions and handoffs thoroughly",
+      "Backup existing agents before overriding",
+      "Use version 999.x.x for development overrides",
+      "Keep PM instructions focused and maintainable",
+      "Validate YAML configuration syntax before saving"
+    ],
+    "constraints": [
+      "Agent IDs must be lowercase with hyphens only",
+      "Maximum 50 characters for agent IDs",
+      "Semantic versioning required for all agents",
+      "JSON structure must be valid and complete",
+      "Cannot modify system-level agents directly",
+      "PM instructions must not conflict with CLAUDE.md",
+      "Configuration files must be valid YAML format"
+    ],
+    "examples": [
+      {
+        "scenario": "Creating a new custom agent",
+        "approach": "Use create command with interactive wizard, validate structure, test locally, deploy to user level"
+      },
+      {
+        "scenario": "Customizing PM instructions for a project",
+        "approach": "Create .claude-mpm/INSTRUCTIONS.md with project-specific behavior, test delegation patterns"
+      },
+      {
+        "scenario": "Resolving agent version conflicts",
+        "approach": "Check all sources for agent versions, highest version takes precedence regardless of location"
+      }
+    ]
+  },
+  "dependencies": {
+    "python": [
+      "pyyaml>=6.0.0",
+      "jsonschema>=4.17.0",
+      "semantic-version>=2.10.0",
+      "jinja2>=3.1.0"
+    ],
+    "system": [
+      "python3",
+      "git"
+    ],
+    "optional": false
+  },
+  "memory_routing": {
+    "description": "Stores agent configurations, deployment patterns, PM customizations, and version management decisions",
+    "categories": [
+      "Agent creation patterns and templates",
+      "PM instruction customizations and configurations",
+      "Deployment strategies and version management",
+      "Agent validation rules and error patterns",
+      "Configuration YAML structures and settings"
+    ],
+    "keywords": [
+      "agent",
+      "deployment",
+      "configuration",
+      "version",
+      "pm",
+      "instructions",
+      "yaml",
+      "template",
+      "variant",
+      "hierarchy",
+      "precedence",
+      "validation",
+      "customization",
+      "lifecycle",
+      "management"
+    ]
+  },
+  "interactions": {
+    "input_format": {
+      "required_fields": [
+        "operation"
+      ],
+      "optional_fields": [
+        "agent_id",
+        "deployment_tier",
+        "configuration",
+        "version",
+        "metadata"
+      ],
+      "supported_operations": [
+        "create",
+        "variant",
+        "deploy",
+        "list",
+        "show",
+        "customize-pm",
+        "validate",
+        "test"
+      ]
+    },
+    "output_format": {
+      "structure": "markdown",
+      "includes": [
+        "operation_summary",
+        "detailed_steps",
+        "result_status",
+        "agent_information",
+        "next_steps"
+      ],
+      "example": "## Agent Manager Action: [Action Type]\n\n### Summary\nBrief description of action taken\n\n### Details\n- Specific steps performed\n- Files created/modified\n\n### Result\n- Success/failure status\n- Any warnings or notes"
+    },
+    "handoff_agents": [
+      "engineer",
+      "qa",
+      "documentation",
+      "ops"
+    ],
+    "triggers": [
+      "agent creation request",
+      "PM customization needed",
+      "deployment conflict resolution",
+      "agent validation required"
+    ]
+  },
+  "testing": {
+    "test_cases": [
+      {
+        "name": "Agent creation validation",
+        "input": "Create a new agent with ID 'test-agent'",
+        "expected_behavior": "Agent is created with valid JSON structure and unique ID",
+        "validation_criteria": [
+          "valid_json_structure",
+          "unique_agent_id",
+          "required_fields_present",
+          "semantic_version_valid"
+        ]
+      },
+      {
+        "name": "PM instruction customization",
+        "input": "Customize PM instructions for project level",
+        "expected_behavior": "PM instruction files are created/updated correctly",
+        "validation_criteria": [
+          "files_created_in_correct_location",
+          "yaml_configuration_valid",
+          "instructions_properly_formatted"
+        ]
+      },
+      {
+        "name": "Version precedence resolution",
+        "input": "Deploy agent with version conflicts",
+        "expected_behavior": "Highest version takes precedence regardless of source",
+        "validation_criteria": [
+          "version_comparison_correct",
+          "precedence_rules_followed",
+          "deployment_to_correct_tier"
+        ]
+      }
+    ],
+    "performance_benchmarks": {
+      "response_time": 150,
+      "token_usage": 4096,
+      "success_rate": 0.98,
+      "validation_accuracy": 0.99
+    },
+    "integration_tests": [
+      "Agent deployment pipeline",
+      "PM instruction loading order",
+      "Configuration YAML parsing",
+      "Version conflict resolution"
+    ]
   }
 }

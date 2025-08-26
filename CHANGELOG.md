@@ -16,6 +16,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [4.1.9] - 2025-08-26
+
+### Added
+- **Mermaid Diagram Generation**: New code visualization feature for creating architecture diagrams
+  - Comprehensive mermaid visualization service with support for multiple diagram types
+  - New `claude-mpm analyze` command with `--mermaid` option for diagram generation
+  - Support for class diagrams, flow charts, component diagrams, and sequence diagrams
+  - Automatic relationship detection including inheritance, composition, and dependencies
+  - Export to various formats (SVG, PNG, HTML) with automatic rendering
+  - Integration with Code Analyzer agent for enhanced code analysis capabilities
+
+### Fixed
+- **Hook Matcher Syntax**: Corrected hook matcher syntax for Claude Code compatibility
+- **Dashboard Event Broadcasting**: Resolved issues with dashboard event field protection and broadcasting
+- **Claude Code Version Checking**: Added version checking for better hook monitoring compatibility
+
+### Changed
+- **Code Analyzer Agent**: Enhanced with mermaid diagram generation capabilities
+- **Dashboard Stability**: Improved connection management and event handling
+
 ## [4.1.8] - 2025-08-26
 
 ### Fixed
