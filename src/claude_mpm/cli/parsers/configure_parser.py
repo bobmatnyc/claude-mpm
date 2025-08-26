@@ -95,6 +95,29 @@ def add_configure_subparser(subparsers) -> argparse.ArgumentParser:
         metavar="FILE",
         help="Import configuration from a file",
     )
+    
+    # Hook management options
+    hooks_group = configure_parser.add_argument_group("hook management")
+    hooks_group.add_argument(
+        "--install-hooks",
+        action="store_true",
+        help="Install Claude MPM hooks for Claude Code integration",
+    )
+    hooks_group.add_argument(
+        "--verify-hooks",
+        action="store_true",
+        help="Verify that Claude MPM hooks are properly installed",
+    )
+    hooks_group.add_argument(
+        "--uninstall-hooks",
+        action="store_true",
+        help="Uninstall Claude MPM hooks",
+    )
+    hooks_group.add_argument(
+        "--force",
+        action="store_true",
+        help="Force reinstallation of hooks even if they already exist",
+    )
 
     # Display options
     display_group = configure_parser.add_argument_group("display options")
