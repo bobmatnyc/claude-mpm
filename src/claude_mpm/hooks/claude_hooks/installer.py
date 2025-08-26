@@ -7,10 +7,12 @@ claude-mpm hooks in the Claude Code environment.
 
 import json
 import os
+import re
 import shutil
 import stat
+import subprocess
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from ...core.logger import get_logger
 
@@ -188,12 +190,101 @@ main() {
 main "$@"
 """
 
+    # Minimum Claude Code version required for hook monitoring
+    MIN_CLAUDE_VERSION = "1.0.92"
+
     def __init__(self):
         """Initialize the hook installer."""
         self.logger = get_logger(__name__)
         self.claude_dir = Path.home() / ".claude"
         self.hooks_dir = self.claude_dir / "hooks"
         self.settings_file = self.claude_dir / "settings.json"
+        self._claude_version: Optional[str] = None
+
+    def get_claude_version(self) -> Optional[str]:
+        """
+        Get the installed Claude Code version.
+
+        Returns:
+            Version string (e.g., "1.0.92") or None if not detected
+        """
+        if self._claude_version is not None:
+            return self._claude_version
+
+        try:
+            # Run claude --version command
+            result = subprocess.run(
+                ["claude", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+
+            if result.returncode == 0:
+                # Parse version from output (e.g., "1.0.92 (Claude Code)")
+                version_text = result.stdout.strip()
+                # Extract version number using regex
+                match = re.match(r"^([\d\.]+)", version_text)
+                if match:
+                    self._claude_version = match.group(1)
+                    self.logger.info(f"Detected Claude Code version: {self._claude_version}")
+                    return self._claude_version
+            else:
+                self.logger.warning(f"Failed to get Claude version: {result.stderr}")
+
+        except FileNotFoundError:
+            self.logger.warning("Claude Code command not found in PATH")
+        except subprocess.TimeoutExpired:
+            self.logger.warning("Claude version check timed out")
+        except Exception as e:
+            self.logger.warning(f"Error detecting Claude version: {e}")
+
+        return None
+
+    def is_version_compatible(self) -> Tuple[bool, str]:
+        """
+        Check if the installed Claude Code version meets minimum requirements.
+
+        Returns:
+            Tuple of (is_compatible, message)
+        """
+        version = self.get_claude_version()
+
+        if version is None:
+            return (
+                False,
+                "Could not detect Claude Code version. Hooks require Claude Code to be installed.",
+            )
+
+        # Parse version numbers for comparison
+        def parse_version(v: str) -> List[int]:
+            """Parse semantic version string to list of integers."""
+            try:
+                return [int(x) for x in v.split(".")]
+            except (ValueError, AttributeError):
+                return [0]
+
+        current = parse_version(version)
+        required = parse_version(self.MIN_CLAUDE_VERSION)
+
+        # Compare versions (semantic versioning)
+        for i in range(max(len(current), len(required))):
+            curr_part = current[i] if i < len(current) else 0
+            req_part = required[i] if i < len(required) else 0
+
+            if curr_part < req_part:
+                return (
+                    False,
+                    f"Claude Code {version} does not support matcher-based hooks. "
+                    f"Version {self.MIN_CLAUDE_VERSION} or higher is required for hook monitoring. "
+                    f"Please upgrade Claude Code to enable dashboard monitoring features.",
+                )
+            elif curr_part > req_part:
+                # Current version is higher, compatible
+                break
+
+        return (True, f"Claude Code {version} is compatible with hook monitoring.")
 
     def install_hooks(self, force: bool = False) -> bool:
         """
@@ -207,6 +298,22 @@ main "$@"
         """
         try:
             self.logger.info("Starting hook installation...")
+
+            # Check Claude Code version compatibility
+            is_compatible, version_message = self.is_version_compatible()
+            self.logger.info(version_message)
+
+            if not is_compatible:
+                self.logger.warning(
+                    "Claude Code version is incompatible with hook monitoring. "
+                    "Skipping hook installation to avoid configuration errors."
+                )
+                print(f"\n[Warning] {version_message}")
+                print(
+                    "Hook-based monitoring features will be disabled. "
+                    "The dashboard and other features will still work without real-time monitoring."
+                )
+                return False
 
             # Create directories
             self.claude_dir.mkdir(exist_ok=True)
@@ -322,6 +429,13 @@ main "$@"
         """
         issues = []
 
+        # Check version compatibility first
+        is_compatible, version_message = self.is_version_compatible()
+        if not is_compatible:
+            issues.append(version_message)
+            # If version is incompatible, skip other checks as hooks shouldn't be installed
+            return False, issues
+
         # Check hook script exists
         hook_script_path = self.hooks_dir / "claude-mpm-hook.sh"
         if not hook_script_path.exists():
@@ -428,6 +542,10 @@ main "$@"
         Returns:
             Dictionary with status information
         """
+        # Check version compatibility
+        claude_version = self.get_claude_version()
+        is_compatible, version_message = self.is_version_compatible()
+
         is_valid, issues = self.verify_hooks()
 
         hook_script_path = self.hooks_dir / "claude-mpm-hook.sh"
@@ -440,6 +558,9 @@ main "$@"
             "settings_file": (
                 str(self.settings_file) if self.settings_file.exists() else None
             ),
+            "claude_version": claude_version,
+            "version_compatible": is_compatible,
+            "version_message": version_message,
         }
 
         # Check Claude settings for hook configuration

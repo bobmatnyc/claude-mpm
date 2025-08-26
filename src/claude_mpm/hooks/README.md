@@ -6,6 +6,16 @@ This directory contains the Claude Code hook integration for claude-mpm.
 
 The hook system allows claude-mpm to intercept and handle commands typed in Claude Code, particularly the `/mpm` commands.
 
+## Version Requirements
+
+**Claude Code 1.0.92 or higher is required for hook monitoring features.**
+
+Earlier versions of Claude Code do not support the matcher-based hook configuration format needed for real-time event monitoring. If you have an older version:
+- The dashboard and other features will still work
+- Real-time monitoring will not be available
+- You'll see a clear message about the version requirement
+- To enable monitoring, upgrade Claude Code to 1.0.92+
+
 ## Structure
 
 ```
@@ -28,13 +38,23 @@ The Claude Code hooks are the primary integration point between claude-mpm and C
 To install the Claude Code hooks:
 
 ```bash
-python scripts/install_hooks.py
+# Using the configure command (recommended)
+claude-mpm configure --install-hooks
+
+# Or check your version compatibility first
+claude-mpm configure --verify-hooks
 ```
 
 This will:
-1. Create/update `~/.claude/settings.json` with hook configuration
-2. Point to the `hook_wrapper.sh` script
-3. Copy any custom commands to `~/.claude/commands/`
+1. Check your Claude Code version for compatibility
+2. If compatible (1.0.92+), create/update `~/.claude/settings.json` with hook configuration
+3. Install the smart hook script that dynamically finds claude-mpm
+4. Copy any custom commands to `~/.claude/commands/`
+
+If your Claude Code version is older than 1.0.92:
+- You'll see a message explaining the version requirement
+- Hooks will not be installed to prevent configuration errors
+- The system will continue to work without real-time monitoring
 
 ### How It Works
 
