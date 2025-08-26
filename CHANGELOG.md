@@ -16,6 +16,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [4.1.8] - 2025-08-26
+
+### Fixed
+- **Hook Management and Configuration**: Enhanced developer experience with better tooling
+  - Added comprehensive hook management CLI commands for Claude Code integration
+  - Fixed dashboard event field protection in tests
+  - Improved error handling and validation in hook installer
+
+### Added
+- **Hook Installer**: New automated setup tool for Claude Code hook deployment
+  - Automatic detection and installation of hooks in Claude Code environment
+  - Support for both global and project-specific hook installations
+  - Comprehensive documentation for advanced hook deployment strategies
+- **Dashboard Connection Documentation**: Added troubleshooting guide for connection issues
+
+### Changed
+- **Agent Manager v1.3.0**: Major documentation and configuration improvements
+  - Added comprehensive configuration documentation with examples
+  - Enhanced variant creation and deployment guidance
+  - Improved customization workflow documentation
+
 ## [4.1.7] - 2025-08-26
 
 ### Fixed
