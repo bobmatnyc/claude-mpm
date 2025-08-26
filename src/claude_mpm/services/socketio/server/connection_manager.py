@@ -70,22 +70,30 @@ class ClientConnection:
     metrics: ConnectionMetrics = field(default_factory=ConnectionMetrics)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def is_healthy(self, timeout: float = 90.0) -> bool:
-        """Check if connection is healthy based on activity."""
+    def is_healthy(self, timeout: float = 180.0) -> bool:
+        """Check if connection is healthy based on activity.
+        
+        Args:
+            timeout: Seconds before considering connection unhealthy (default 180s)
+        """
         if self.state != ConnectionState.CONNECTED:
             return False
 
         now = time.time()
 
         # Check last activity (ping, pong, or event)
+        # Include metrics.last_activity for more comprehensive tracking
         last_activity = max(
             self.last_ping or 0,
             self.last_pong or 0,
             self.last_event or 0,
+            self.metrics.last_activity or 0,
             self.connected_at,
         )
 
-        return (now - last_activity) < timeout
+        # Add grace period for network hiccups (additional 10% of timeout)
+        grace_period = timeout * 1.1
+        return (now - last_activity) < grace_period
 
     def calculate_quality(self) -> float:
         """Calculate connection quality score (0-1)."""
@@ -140,22 +148,26 @@ class ConnectionManager:
     - Automatic event replay on reconnection
     """
 
-    def __init__(self, max_buffer_size: int = 1000, event_ttl: int = 300):
+    def __init__(self, max_buffer_size: int = None, event_ttl: int = None):
         """
-        Initialize connection manager.
+        Initialize connection manager with centralized configuration.
 
         Args:
-            max_buffer_size: Maximum events to buffer per client
-            event_ttl: Time-to-live for buffered events in seconds
+            max_buffer_size: Maximum events to buffer per client (uses config if None)
+            event_ttl: Time-to-live for buffered events in seconds (uses config if None)
         """
+        from ....config.socketio_config import CONNECTION_CONFIG
+        
         self.logger = get_logger(__name__)
         self.connections: Dict[str, ClientConnection] = {}
         self.client_mapping: Dict[str, str] = {}  # client_id -> current sid
-        self.max_buffer_size = max_buffer_size
-        self.event_ttl = event_ttl
+        
+        # Use centralized configuration with optional overrides
+        self.max_buffer_size = max_buffer_size or CONNECTION_CONFIG['max_events_buffer']
+        self.event_ttl = event_ttl or CONNECTION_CONFIG['event_ttl']
         self.global_sequence = 0
-        self.health_check_interval = 30  # seconds
-        self.stale_timeout = 90  # seconds
+        self.health_check_interval = CONNECTION_CONFIG['health_check_interval']  # 30 seconds
+        self.stale_timeout = CONNECTION_CONFIG['stale_timeout']  # 180 seconds (was 90)
         self.health_task = None
         self._lock = asyncio.Lock()
 
@@ -439,20 +451,39 @@ class ConnectionManager:
                     if conn.is_healthy(self.stale_timeout):
                         report["healthy"] += 1
                     else:
-                        # Mark as stale
-                        conn.state = ConnectionState.STALE
-                        report["stale"] += 1
-                        self.logger.warning(
-                            f"Connection {conn.client_id} marked as stale "
-                            f"(last activity: {now - conn.metrics.last_activity:.1f}s ago)"
+                        # Mark as stale only if really stale (no grace period activity)
+                        last_activity = max(
+                            conn.last_ping or 0,
+                            conn.last_pong or 0,
+                            conn.last_event or 0,
+                            conn.metrics.last_activity or 0,
+                            conn.connected_at,
                         )
+                        time_since_activity = now - last_activity
+                        
+                        # Only mark as stale if significantly over timeout (2x)
+                        if time_since_activity > (self.stale_timeout * 2):
+                            conn.state = ConnectionState.STALE
+                            report["stale"] += 1
+                            self.logger.warning(
+                                f"Connection {conn.client_id} marked as stale "
+                                f"(last activity: {time_since_activity:.1f}s ago)"
+                            )
+                        else:
+                            # Connection is borderline - keep it alive but log
+                            report["healthy"] += 1
+                            self.logger.debug(
+                                f"Connection {conn.client_id} borderline "
+                                f"(last activity: {time_since_activity:.1f}s ago)"
+                            )
+                            
                 elif conn.state == ConnectionState.DISCONNECTED:
                     report["disconnected"] += 1
 
-                    # Clean up old disconnected connections
+                    # Clean up old disconnected connections (be conservative)
                     if (
                         conn.disconnected_at
-                        and (now - conn.disconnected_at) > self.event_ttl
+                        and (now - conn.disconnected_at) > (self.event_ttl * 2)  # Double the TTL
                     ):
                         to_clean.append(sid)
 

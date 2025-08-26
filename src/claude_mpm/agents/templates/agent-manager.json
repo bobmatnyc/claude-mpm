@@ -6,7 +6,7 @@
   "tool_choice": "auto",
   "metadata": {
     "description": "Manages agent creation, customization, deployment, and PM instruction configuration",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "capabilities": [
       "agent-creation",
       "variant-management",
