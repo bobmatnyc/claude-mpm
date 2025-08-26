@@ -7,7 +7,7 @@ from pathlib import Path
 
 def fix_fallback_imports(file_path: Path):
     """Fix fallback imports in a file."""
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         content = f.read()
 
     original_content = content
@@ -49,10 +49,9 @@ def main():
     fixed_count = 0
     for file_path in files_to_fix:
         file_path = Path(file_path)
-        if file_path.exists():
-            if fix_fallback_imports(file_path):
-                print(f"Fixed fallback imports in: {file_path}")
-                fixed_count += 1
+        if file_path.exists() and fix_fallback_imports(file_path):
+            print(f"Fixed fallback imports in: {file_path}")
+            fixed_count += 1
 
     print(f"\nFixed {fixed_count} files")
 

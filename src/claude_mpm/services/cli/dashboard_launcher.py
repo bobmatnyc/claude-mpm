@@ -134,9 +134,8 @@ class DashboardLauncher(IDashboardLauncher):
         """
         try:
             # Verify dependencies for Socket.IO dashboard
-            if monitor_mode:
-                if not self._verify_socketio_dependencies():
-                    return False, False
+            if monitor_mode and not self._verify_socketio_dependencies():
+                return False, False
 
             self.logger.info(
                 f"Launching dashboard (port: {port}, monitor: {monitor_mode})"

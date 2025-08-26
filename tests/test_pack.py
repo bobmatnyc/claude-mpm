@@ -3,6 +3,7 @@
 # This module is part of GitDB and is released under
 # the New BSD License: https://opensource.org/license/bsd-3-clause/
 """Test everything about packs reading and writing"""
+import contextlib
 import os
 import tempfile
 
@@ -153,7 +154,7 @@ class TestPack(TestBase):
 
     @with_rw_directory
     def test_pack_entity(self, rw_dir):
-        pack_objs = list()
+        pack_objs = []
         for packinfo, indexinfo in (
             (self.packfile_v2_1, self.packindexfile_v1),
             (self.packfile_v2_2, self.packindexfile_v2),
@@ -187,10 +188,8 @@ class TestPack(TestBase):
                 assert ostream.binsha is not None
 
                 # verify the stream
-                try:
+                with contextlib.suppress(UnsupportedOperation):
                     assert entity.is_valid_stream(info.binsha, use_crc=True)
-                except UnsupportedOperation:
-                    pass
                 # END ignore version issues
                 assert entity.is_valid_stream(info.binsha, use_crc=False)
             # END for each info, stream tuple

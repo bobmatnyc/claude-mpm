@@ -9,10 +9,7 @@ This script helps debug why the HUD visualizer isn't showing data by:
 4. Verifying event processing and visualization
 """
 
-import json
-import os
 import sys
-from datetime import datetime, timedelta
 from pathlib import Path
 
 # Add src directory to path for imports
@@ -701,22 +698,6 @@ def enhance_hud_debugging():
         content = content.replace(old_process, new_process)
 
         # Add session filtering debugging
-        old_session_check = """        // Get all events (not just filtered ones) to build complete tree structure
-        const allEvents = this.eventViewer.getAllEvents();
-
-        if (allEvents.length === 0) {
-            console.log('⚠️ No events available for HUD processing');
-            return;
-        }
-
-        console.log(`📊 Found ${allEvents.length} total events for HUD processing`);
-
-        // Sort events by timestamp to ensure chronological processing
-        const sortedEvents = allEvents.slice().sort((a, b) => {
-            const timeA = new Date(a.timestamp).getTime();
-            const timeB = new Date(b.timestamp).getTime();
-            return timeA - timeB;
-        });"""
 
         new_session_check = """        // Get all events (not just filtered ones) to build complete tree structure
         const allEvents = this.eventViewer.getAllEvents();

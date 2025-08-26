@@ -19,11 +19,10 @@ class TestMCPSummarizerTool:
     @pytest.fixture
     def server(self):
         """Create a test server instance."""
-        server = SimpleMCPServer()
-        return server
+        return SimpleMCPServer()
 
     @pytest.mark.asyncio
-    async def test_summarize_brief(server):
+    async def test_summarize_brief(self):
         """Test brief summarization style."""
         content = """
         Artificial Intelligence is transforming industries worldwide.
@@ -33,7 +32,7 @@ class TestMCPSummarizerTool:
         Computer vision allows machines to interpret images.
         """
 
-        result = await server._summarize_content(
+        result = await self._summarize_content(
             content=content, style="brief", max_length=30
         )
 
@@ -42,7 +41,7 @@ class TestMCPSummarizerTool:
         assert "Artificial Intelligence" in result or "transforming" in result
 
     @pytest.mark.asyncio
-    async def test_summarize_bullet_points(server):
+    async def test_summarize_bullet_points(self):
         """Test bullet points extraction."""
         content = """
         Key features of our product:
@@ -53,7 +52,7 @@ class TestMCPSummarizerTool:
         • 24/7 customer service
         """
 
-        result = await server._summarize_content(
+        result = await self._summarize_content(
             content=content, style="bullet_points", max_length=50
         )
 
@@ -62,7 +61,7 @@ class TestMCPSummarizerTool:
         assert len(result.split("\n")) > 1  # Multiple lines
 
     @pytest.mark.asyncio
-    async def test_summarize_executive(server):
+    async def test_summarize_executive(self):
         """Test executive summary style."""
         content = """
         Our quarterly analysis shows significant growth in user engagement.
@@ -72,7 +71,7 @@ class TestMCPSummarizerTool:
         Investment in R&D should be increased to maintain competitive advantage.
         """
 
-        result = await server._summarize_content(
+        result = await self._summarize_content(
             content=content, style="executive", max_length=100
         )
 
@@ -82,7 +81,7 @@ class TestMCPSummarizerTool:
         )
 
     @pytest.mark.asyncio
-    async def test_summarize_detailed(server):
+    async def test_summarize_detailed(self):
         """Test detailed summarization."""
         content = """
         Chapter 1: Introduction
@@ -98,7 +97,7 @@ class TestMCPSummarizerTool:
         The system provides robust and scalable solutions.
         """
 
-        result = await server._summarize_content(
+        result = await self._summarize_content(
             content=content, style="detailed", max_length=50
         )
 
@@ -106,32 +105,32 @@ class TestMCPSummarizerTool:
         assert len(result.split()) <= 55
 
     @pytest.mark.asyncio
-    async def test_empty_content(server):
+    async def test_empty_content(self):
         """Test handling of empty content."""
-        result = await server._summarize_content(
+        result = await self._summarize_content(
             content="", style="brief", max_length=50
         )
 
         assert result == "No content provided to summarize."
 
     @pytest.mark.asyncio
-    async def test_short_content(server):
+    async def test_short_content(self):
         """Test content shorter than max length."""
         content = "This is a short sentence."
 
-        result = await server._summarize_content(
+        result = await self._summarize_content(
             content=content, style="brief", max_length=100
         )
 
         assert result == content
 
     @pytest.mark.asyncio
-    async def test_max_length_enforcement(server):
+    async def test_max_length_enforcement(self):
         """Test that max_length is respected."""
         content = " ".join(["word"] * 200)  # 200 words
 
         for max_length in [10, 25, 50, 100]:
-            result = await server._summarize_content(
+            result = await self._summarize_content(
                 content=content, style="brief", max_length=max_length
             )
 
@@ -142,22 +141,22 @@ class TestMCPSummarizerTool:
             ), f"Expected <= {max_length * 1.1} words, got {word_count}"
 
     @pytest.mark.asyncio
-    async def test_tool_registration(server):
+    async def test_tool_registration(self):
         """Test that summarize_document tool is registered."""
         # This would normally test the actual MCP tool registration
         # For now, we'll verify the tool is in the list
 
         # Note: In a real test, we'd invoke server.server.list_tools()
         # but that requires more setup. This is a simplified version.
-        assert hasattr(server, "_summarize_content")
-        assert callable(server._summarize_content)
+        assert hasattr(self, "_summarize_content")
+        assert callable(self._summarize_content)
 
     @pytest.mark.asyncio
-    async def test_sentence_boundary_preservation(server):
+    async def test_sentence_boundary_preservation(self):
         """Test that summaries end at sentence boundaries."""
         content = "First sentence. Second sentence. Third sentence. Fourth sentence."
 
-        result = await server._summarize_content(
+        result = await self._summarize_content(
             content=content,
             style="brief",
             max_length=5,  # Very short to test truncation
@@ -168,14 +167,14 @@ class TestMCPSummarizerTool:
         assert not result.endswith(" sente")
 
     @pytest.mark.asyncio
-    async def test_multiline_content(server):
+    async def test_multiline_content(self):
         """Test handling of multi-line content."""
         content = """Line 1 with some text.
         Line 2 with more text.
         Line 3 with additional text.
         Line 4 with final text."""
 
-        result = await server._summarize_content(
+        result = await self._summarize_content(
             content=content, style="brief", max_length=20
         )
 

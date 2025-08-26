@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Script to consolidate base_service.py and enhanced_base_service.py."""
 
-import ast
-import os
 
 # Analysis of the two files:
 print("Analysis of Base Service consolidation:")

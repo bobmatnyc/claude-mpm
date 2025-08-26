@@ -8,6 +8,7 @@ This script tests that the MCP server entry points defined in pyproject.toml wor
 WHY: We need to verify that the installed commands work after moving the MCP server script.
 """
 
+import contextlib
 import json
 import subprocess
 import sys
@@ -92,10 +93,8 @@ def test_entry_point(command_name):
         print(f"  ✗ FAILED - Exception: {e}")
         return False
     finally:
-        try:
+        with contextlib.suppress(Exception):
             proc.terminate()
-        except:
-            pass
 
 
 def main():

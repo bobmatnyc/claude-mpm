@@ -6,6 +6,7 @@
 
 """POSIX specific tests."""
 
+import contextlib
 import datetime
 import errno
 import os
@@ -67,10 +68,8 @@ def ps(fmt, pid=None):
     for line in output:
         line = line.strip()
 
-        try:
+        with contextlib.suppress(ValueError):
             line = int(line)
-        except ValueError:
-            pass
 
         all_output.append(line)
 

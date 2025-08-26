@@ -113,15 +113,14 @@ class TestInteractiveResponseLogging(unittest.TestCase):
         self.assertIsNotNone(session.session_id)
 
         # Verify session ID was set in tracker if enabled
-        if session.response_tracker and session.response_tracker.enabled:
-            if (
-                hasattr(session.response_tracker, "session_logger")
-                and session.response_tracker.session_logger
-            ):
-                self.assertEqual(
-                    session.response_tracker.session_logger.session_id,
-                    session.session_id,
-                )
+        if session.response_tracker and session.response_tracker.enabled and (
+            hasattr(session.response_tracker, "session_logger")
+            and session.response_tracker.session_logger
+        ):
+            self.assertEqual(
+                session.response_tracker.session_logger.session_id,
+                session.session_id,
+            )
 
     def test_cleanup_clears_session_id():
         """Test that cleanup properly clears the session ID from the tracker."""
@@ -144,31 +143,29 @@ class TestInteractiveResponseLogging(unittest.TestCase):
         session_id = session.session_id
 
         # Verify session ID is set
-        if session.response_tracker and session.response_tracker.enabled:
-            if (
-                hasattr(session.response_tracker, "session_logger")
-                and session.response_tracker.session_logger
-            ):
-                self.assertEqual(
-                    session.response_tracker.session_logger.session_id, session_id
-                )
+        if session.response_tracker and session.response_tracker.enabled and (
+            hasattr(session.response_tracker, "session_logger")
+            and session.response_tracker.session_logger
+        ):
+            self.assertEqual(
+                session.response_tracker.session_logger.session_id, session_id
+            )
 
         # Clean up the session
         session.cleanup_interactive_session()
 
         # Verify session ID was cleared
-        if session.response_tracker and session.response_tracker.enabled:
-            if (
-                hasattr(session.response_tracker, "session_logger")
-                and session.response_tracker.session_logger
-            ):
-                self.assertIsNone(session.response_tracker.session_logger.session_id)
+        if session.response_tracker and session.response_tracker.enabled and (
+            hasattr(session.response_tracker, "session_logger")
+            and session.response_tracker.session_logger
+        ):
+            self.assertIsNone(session.response_tracker.session_logger.session_id)
 
     @patch("claude_mpm.services.response_tracker.ResponseTracker")
-    def test_response_tracker_initialization_failure_handled(mock_tracker_class):
+    def test_response_tracker_initialization_failure_handled(self):
         """Test that failure to initialize response tracker is handled gracefully."""
         # Make ResponseTracker initialization fail
-        mock_tracker_class.side_effect = Exception("Test error")
+        self.side_effect = Exception("Test error")
 
         # Create mock runner with config
         mock_runner = Mock(spec=ClaudeRunner)

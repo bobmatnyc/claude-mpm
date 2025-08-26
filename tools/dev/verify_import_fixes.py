@@ -41,26 +41,26 @@ def test_import(module_path: str, import_statement: str, test_name: str) -> bool
 
         # Execute the import in the namespace
         exec(import_statement, namespace)
-        print(f"  ✓ Import successful")
+        print("  ✓ Import successful")
 
         # Try to instantiate if it's a service
         if "AgentDeploymentService" in import_statement:
             # Get the imported class from namespace
             AgentDeploymentService = namespace.get("AgentDeploymentService")
             if AgentDeploymentService:
-                service = AgentDeploymentService()
-                print(f"  ✓ Service instantiation successful")
+                AgentDeploymentService()
+                print("  ✓ Service instantiation successful")
             else:
-                print(f"  ✗ AgentDeploymentService not found in namespace")
+                print("  ✗ AgentDeploymentService not found in namespace")
                 return False
         elif "AgentManager" in import_statement:
             # Get the imported class from namespace
             AgentManager = namespace.get("AgentManager")
             if AgentManager:
-                manager = AgentManager()
-                print(f"  ✓ Manager instantiation successful")
+                AgentManager()
+                print("  ✓ Manager instantiation successful")
             else:
-                print(f"  ✗ AgentManager not found in namespace")
+                print("  ✗ AgentManager not found in namespace")
                 return False
 
         return True
@@ -143,7 +143,7 @@ def main():
         from claude_mpm.core.factories import AgentServiceFactory
 
         print("   ✓ Module imported successfully")
-        factory = AgentServiceFactory()
+        AgentServiceFactory()
         print("   ✓ Factory instantiated successfully")
     except Exception as e:
         print(f"   ✗ Failed: {e}")
@@ -152,7 +152,6 @@ def main():
     # Test 2: Import and use service_registry
     try:
         print("\n2. Testing core/service_registry.py module...")
-        from claude_mpm.core.service_registry import ServiceRegistry
 
         print("   ✓ Module imported successfully")
         # Don't instantiate as it requires container setup
@@ -176,7 +175,6 @@ def main():
     # Test 4: Import and use cli/commands/agents
     try:
         print("\n4. Testing cli/commands/agents.py module...")
-        from claude_mpm.cli.commands.agents import manage_agents
 
         print("   ✓ Module imported successfully")
         print("   ✓ Function 'manage_agents' exists")
@@ -190,7 +188,7 @@ def main():
         from claude_mpm.agents.agent_loader_integration import EnhancedAgentLoader
 
         print("   ✓ Module imported successfully")
-        loader = EnhancedAgentLoader()
+        EnhancedAgentLoader()
         print("   ✓ EnhancedAgentLoader instantiated successfully")
     except Exception as e:
         print(f"   ✗ Failed: {e}")
@@ -205,10 +203,9 @@ def main():
         print("✅ All import fixes verified successfully!")
         print("The backward compatibility layer is working correctly.")
         return 0
-    else:
-        print("❌ Some imports still have issues.")
-        print("Please review the failed tests above.")
-        return 1
+    print("❌ Some imports still have issues.")
+    print("Please review the failed tests above.")
+    return 1
 
 
 if __name__ == "__main__":

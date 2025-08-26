@@ -68,7 +68,7 @@ class TestMemoryFixesVerification:
             )
 
             # Test PM memory creation
-            pm_memory = memory_manager.load_agent_memory("PM")
+            memory_manager.load_agent_memory("PM")
 
             # Verify PM memory file is created in user directory
             user_pm_file = self.user_memories_dir / "PM_memories.md"
@@ -103,7 +103,7 @@ class TestMemoryFixesVerification:
             )
 
             # Test PM (should use user directory)
-            pm_memory = memory_manager.load_agent_memory("PM")
+            memory_manager.load_agent_memory("PM")
             user_pm_file = self.user_memories_dir / "PM_memories.md"
             project_pm_file = self.project_memories_dir / "PM_memories.md"
 
@@ -112,7 +112,7 @@ class TestMemoryFixesVerification:
 
             # Test other agents (should use project directory)
             for agent_id in ["engineer", "research", "qa", "ops"]:
-                agent_memory = memory_manager.load_agent_memory(agent_id)
+                memory_manager.load_agent_memory(agent_id)
                 user_agent_file = self.user_memories_dir / f"{agent_id}_memories.md"
                 project_agent_file = (
                     self.project_memories_dir / f"{agent_id}_memories.md"
@@ -166,7 +166,7 @@ The implementation follows best practices.
 
             # Verify memory was extracted and saved
             memory_manager = AgentMemoryManager(self.config, self.test_project_dir)
-            engineer_memory = memory_manager.load_agent_memory("engineer")
+            memory_manager.load_agent_memory("engineer")
 
             # Since the hook uses the explicit memory markers, let's check if it actually extracted
             # The hook may not have processed the memory due to the working directory setup
@@ -391,7 +391,7 @@ Task delegation completed.
 
 ```json
 {
-    "delegation_status": "completed", 
+    "delegation_status": "completed",
     "remember": ["Always verify agent capabilities before delegation", "Use specific task descriptions for better results"],
     "agent_used": "engineer"
 }
@@ -430,7 +430,7 @@ Delegation was successful.
                 shutil.rmtree(self.project_memories_dir)
 
             # Initialize memory manager (should create directories)
-            memory_manager = AgentMemoryManager(
+            AgentMemoryManager(
                 config=self.config, working_directory=self.test_project_dir
             )
 

@@ -11,8 +11,6 @@ USAGE:
 """
 
 import argparse
-import logging
-import os
 import sys
 from pathlib import Path
 
@@ -52,7 +50,7 @@ def main():
     else:
         setup_logging(level="INFO")
 
-    logger = get_logger(__name__)
+    get_logger(__name__)
 
     print("=" * 70)
     print("AGENT DEPENDENCY FIXER")

@@ -31,7 +31,7 @@ def run_claude_mpm_startup(args=None, env_vars=None):
     # Find the script path
     script_path = Path(__file__).parent / "claude-mpm"
 
-    cmd = [str(script_path)] + args
+    cmd = [str(script_path), *args]
 
     try:
         result = subprocess.run(

@@ -65,7 +65,7 @@ class TestFrameworkLoaderPathResolverIntegration:
             # Call get_framework_content to trigger agent discovery
             with patch.object(loader, "_load_agents") as mock_load_agents:
                 mock_load_agents.return_value = ""
-                content = loader.get_framework_content()
+                loader.get_framework_content()
 
                 # Verify discover_agent_paths was called
                 mock_path_resolver.discover_agent_paths.assert_called()
@@ -79,7 +79,7 @@ class TestFrameworkLoaderPathResolverIntegration:
         with patch.object(PathResolver, "detect_framework_path") as mock_detect:
             mock_detect.return_value = Path("/test/framework")
 
-            loader = FrameworkLoader(service_container=container)
+            FrameworkLoader(service_container=container)
 
             # Verify PathResolver was registered
             assert container.is_registered(IPathResolver)
@@ -160,7 +160,7 @@ class TestFrameworkLoaderPathResolverIntegration:
 
     def test_path_resolver_project_root_detection(self):
         """Test that PathResolver can find project roots."""
-        resolver = PathResolver()
+        PathResolver()
 
         with patch("claude_mpm.services.core.path_resolver.Path.cwd") as mock_cwd:
             # Set up a mock directory structure

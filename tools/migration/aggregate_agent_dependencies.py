@@ -24,10 +24,9 @@ Arguments:
 import argparse
 import json
 import logging
-import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 from packaging import version
@@ -127,11 +126,11 @@ class DependencyAggregator:
             Parsed agent configuration or None if loading fails
         """
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 if file_path.suffix == ".json":
                     return json.load(f)
-                else:  # YAML
-                    return yaml.safe_load(f)
+                # YAML
+                return yaml.safe_load(f)
 
         except Exception as e:
             logger.warning(f"Failed to load agent config {file_path}: {e}")
@@ -286,7 +285,7 @@ class DependencyAggregator:
                         return tomllib.load(f)
                 else:
                     # Fallback to toml library for writing
-                    with open(self.pyproject_path, "r", encoding="utf-8") as f:
+                    with open(self.pyproject_path, encoding="utf-8") as f:
                         return toml.load(f)
             else:
                 logger.warning("pyproject.toml not found, creating minimal structure")
@@ -329,7 +328,7 @@ class DependencyAggregator:
 
         if self.dry_run:
             logger.info("DRY RUN: Would update pyproject.toml with:")
-            logger.info(f"  [project.optional-dependencies]")
+            logger.info("  [project.optional-dependencies]")
             logger.info(f"  agents = {formatted_deps}")
             return
 

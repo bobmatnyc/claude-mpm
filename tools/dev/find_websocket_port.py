@@ -45,7 +45,7 @@ if __name__ == "__main__":
         port = find_available_port()
         if port:
             print(f"Available port: {port}")
-            print(f"\nRun claude-mpm with:")
+            print("\nRun claude-mpm with:")
             print(f"  claude-mpm --monitor --websocket-port {port}")
             sys.exit(0)
         else:

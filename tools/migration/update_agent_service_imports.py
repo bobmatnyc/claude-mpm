@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Script to update agent service imports to new hierarchical structure."""
 
-import os
 import re
 from pathlib import Path
 
 
 def update_imports_in_file(filepath):
     """Update imports in a single file."""
-    with open(filepath, "r") as f:
+    with open(filepath) as f:
         content = f.read()
 
     original_content = content
@@ -109,7 +108,7 @@ def main():
 
     # Also update markdown files in docs
     for md_file in (project_root / "docs").rglob("*.md"):
-        with open(md_file, "r") as f:
+        with open(md_file) as f:
             content = f.read()
 
         original_content = content

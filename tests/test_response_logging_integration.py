@@ -71,13 +71,12 @@ response_logging:
         # Mock the subprocess launcher to avoid actually running Claude
         with patch(
             "claude_mpm.core.claude_runner.ClaudeRunner._launch_subprocess_interactive"
-        ) as mock_launcher:
-            with patch(
-                "claude_mpm.core.claude_runner.ClaudeRunner._create_system_prompt",
-                return_value="test",
-            ):
-                # Run interactive mode
-                runner.run_interactive()
+        ) as mock_launcher, patch(
+            "claude_mpm.core.claude_runner.ClaudeRunner._create_system_prompt",
+            return_value="test",
+        ):
+            # Run interactive mode
+            runner.run_interactive()
 
         # Verify subprocess launcher was called (not exec)
         mock_launcher.assert_called_once()
@@ -101,15 +100,13 @@ response_logging:
         )
 
         # Capture print output
-        with patch("builtins.print") as mock_print:
-            with patch(
-                "claude_mpm.core.claude_runner.ClaudeRunner._launch_subprocess_interactive"
-            ):
-                with patch(
-                    "claude_mpm.core.claude_runner.ClaudeRunner._create_system_prompt",
-                    return_value="test",
-                ):
-                    runner.run_interactive()
+        with patch("builtins.print") as mock_print, patch(
+            "claude_mpm.core.claude_runner.ClaudeRunner._launch_subprocess_interactive"
+        ), patch(
+            "claude_mpm.core.claude_runner.ClaudeRunner._create_system_prompt",
+            return_value="test",
+        ):
+            runner.run_interactive()
 
         # Verify the auto-switch message was printed
         print_calls = [str(call) for call in mock_print.call_args_list]

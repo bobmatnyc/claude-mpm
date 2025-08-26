@@ -16,9 +16,9 @@ class TestSchemaStandardization:
     """Test suite for agent schema standardization implementation."""
 
     @pytest.fixture
-    def test_agents_dir(tmp_path):
+    def test_agents_dir(self):
         """Create a temporary agents directory for testing."""
-        agents_dir = tmp_path / "agents"
+        agents_dir = self / "agents"
         agents_dir.mkdir()
         return agents_dir
 
@@ -35,11 +35,11 @@ class TestSchemaStandardization:
         """Create an AgentLoader instance for testing."""
         return AgentLoader(agents_dir=str(test_agents_dir))
 
-    def test_schema_file_exists(schema_path):
+    def test_schema_file_exists(self):
         """Test that the schema file exists and is valid JSON."""
-        assert schema_path.exists(), f"Schema file not found at {schema_path}"
+        assert self.exists(), f"Schema file not found at {self}"
 
-        with open(schema_path) as f:
+        with open(self) as f:
             schema = json.load(f)
 
         # Verify schema structure
@@ -48,9 +48,9 @@ class TestSchemaStandardization:
         assert "properties" in schema
         assert "required" in schema
 
-    def test_schema_required_fields(schema_path):
+    def test_schema_required_fields(self):
         """Test that schema defines all required fields."""
-        with open(schema_path) as f:
+        with open(self) as f:
             schema = json.load(f)
 
         required_fields = [
@@ -72,7 +72,7 @@ class TestSchemaStandardization:
         assert "instructions" in props
         assert "content" in props["instructions"]["properties"]
 
-    def test_valid_agent_passes_validation(agent_loader):
+    def test_valid_agent_passes_validation(self):
         """Test that a valid agent passes validation."""
         valid_agent = {
             "id": "test_engineer",
@@ -87,9 +87,9 @@ class TestSchemaStandardization:
         }
 
         # Should not raise
-        agent_loader._validate_agent(valid_agent)
+        self._validate_agent(valid_agent)
 
-    def test_invalid_agent_fails_validation(agent_loader):
+    def test_invalid_agent_fails_validation(self):
         """Test that invalid agents fail validation."""
         # Missing required field
         invalid_agent = {
@@ -100,7 +100,7 @@ class TestSchemaStandardization:
         }
 
         with pytest.raises(ValidationError):
-            agent_loader._validate_agent(invalid_agent)
+            self._validate_agent(invalid_agent)
 
         # Invalid ID format
         invalid_agent = {
@@ -113,9 +113,9 @@ class TestSchemaStandardization:
         }
 
         with pytest.raises(ValidationError):
-            agent_loader._validate_agent(invalid_agent)
+            self._validate_agent(invalid_agent)
 
-    def test_instructions_length_limit(agent_loader):
+    def test_instructions_length_limit(self):
         """Test that instructions are limited to 8000 characters."""
         agent = {
             "id": "test",
@@ -127,11 +127,11 @@ class TestSchemaStandardization:
         }
 
         with pytest.raises(ValidationError) as exc_info:
-            agent_loader._validate_agent(agent)
+            self._validate_agent(agent)
 
         assert "8000 characters" in str(exc_info.value)
 
-    def test_resource_tier_validation(agent_loader):
+    def test_resource_tier_validation(self):
         """Test resource tier validation."""
         agent = {
             "id": "test",
@@ -143,11 +143,11 @@ class TestSchemaStandardization:
         }
 
         with pytest.raises(ValidationError) as exc_info:
-            agent_loader._validate_agent(agent)
+            self._validate_agent(agent)
 
         assert "resource_tier" in str(exc_info.value)
 
-    def test_model_resource_tier_compatibility(agent_loader):
+    def test_model_resource_tier_compatibility(self):
         """Test model and resource tier compatibility rules."""
         # Opus model requires premium tier
         agent = {
@@ -160,7 +160,7 @@ class TestSchemaStandardization:
         }
 
         with pytest.raises(ValidationError) as exc_info:
-            agent_loader._validate_agent(agent)
+            self._validate_agent(agent)
 
         assert "opus" in str(exc_info.value).lower()
         assert "premium" in str(exc_info.value).lower()
@@ -225,7 +225,7 @@ class TestSchemaStandardization:
                 assert "_agent_" in backup_file.name
                 assert backup_file.name.endswith(".json")
 
-    def test_agent_loader_with_new_schema(test_agents_dir):
+    def test_agent_loader_with_new_schema(self):
         """Test agent loader with new schema format."""
         # Create a test agent
         test_agent = {
@@ -237,18 +237,18 @@ class TestSchemaStandardization:
             "resource_tier": "standard",
         }
 
-        agent_path = test_agents_dir / "test_agent.json"
+        agent_path = self / "test_agent.json"
         with open(agent_path, "w") as f:
             json.dump(test_agent, f)
 
         # Load agent
-        loader = AgentLoader(agents_dir=str(test_agents_dir))
+        loader = AgentLoader(agents_dir=str(self))
         agents = loader.load_agents()
 
         assert len(agents) == 1
         assert agents[0]["id"] == "test_agent"
 
-    def test_agent_loader_rejects_old_format(test_agents_dir):
+    def test_agent_loader_rejects_old_format(self):
         """Test that agent loader rejects old format."""
         # Create an old format agent
         old_agent = {
@@ -259,16 +259,16 @@ class TestSchemaStandardization:
             "backstory": "Test backstory",  # Old format field
         }
 
-        agent_path = test_agents_dir / "test_agent.json"
+        agent_path = self / "test_agent.json"
         with open(agent_path, "w") as f:
             json.dump(old_agent, f)
 
         # Should fail to load
-        loader = AgentLoader(agents_dir=str(test_agents_dir))
+        loader = AgentLoader(agents_dir=str(self))
         with pytest.raises(ValidationError):
             loader.load_agents()
 
-    def test_performance_agent_loading(test_agents_dir):
+    def test_performance_agent_loading(self):
         """Test agent loading performance."""
         # Create multiple test agents
         for i in range(10):
@@ -281,10 +281,10 @@ class TestSchemaStandardization:
                 "resource_tier": "standard",
             }
 
-            with open(test_agents_dir / f"agent_{i}.json", "w") as f:
+            with open(self / f"agent_{i}.json", "w") as f:
                 json.dump(agent, f)
 
-        loader = AgentLoader(agents_dir=str(test_agents_dir))
+        loader = AgentLoader(agents_dir=str(self))
 
         # Measure loading time
         start_time = time.time()
@@ -295,7 +295,7 @@ class TestSchemaStandardization:
         # Should load in under 500ms total (50ms per agent)
         assert load_time < 0.5, f"Loading took {load_time:.3f}s, expected < 0.5s"
 
-    def test_agent_registry_integration(test_agents_dir):
+    def test_agent_registry_integration(self):
         """Test integration with AgentRegistry."""
         # Create a test agent
         test_agent = {
@@ -307,11 +307,11 @@ class TestSchemaStandardization:
             "resource_tier": "standard",
         }
 
-        with open(test_agents_dir / "registry_test.json", "w") as f:
+        with open(self / "registry_test.json", "w") as f:
             json.dump(test_agent, f)
 
         # Test with registry
-        registry = AgentRegistry(agents_dir=str(test_agents_dir))
+        registry = AgentRegistry(agents_dir=str(self))
 
         # Should find the agent
         assert registry.get_agent("registry_test") is not None
@@ -350,7 +350,7 @@ class TestSchemaStandardization:
         assert "name" in qa_agent
         assert "instructions" in qa_agent
 
-    def test_backward_compatibility_removed(agent_loader):
+    def test_backward_compatibility_removed(self):
         """Test that backward compatibility is properly removed."""
         # Old format should not work
         old_agent = {
@@ -360,9 +360,9 @@ class TestSchemaStandardization:
         }
 
         with pytest.raises(ValidationError):
-            agent_loader._validate_agent(old_agent)
+            self._validate_agent(old_agent)
 
-    def test_cache_functionality(test_agents_dir):
+    def test_cache_functionality(self):
         """Test agent loader caching."""
         # Create test agent
         test_agent = {
@@ -374,10 +374,10 @@ class TestSchemaStandardization:
             "resource_tier": "standard",
         }
 
-        with open(test_agents_dir / "cache_test.json", "w") as f:
+        with open(self / "cache_test.json", "w") as f:
             json.dump(test_agent, f)
 
-        loader = AgentLoader(agents_dir=str(test_agents_dir))
+        loader = AgentLoader(agents_dir=str(self))
 
         # First load
         agents1 = loader.load_agents()
@@ -389,7 +389,7 @@ class TestSchemaStandardization:
 
         # Modify file
         test_agent["name"] = "Modified"
-        with open(test_agents_dir / "cache_test.json", "w") as f:
+        with open(self / "cache_test.json", "w") as f:
             json.dump(test_agent, f)
 
         # Should detect change and reload

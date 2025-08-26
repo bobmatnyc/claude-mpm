@@ -23,8 +23,7 @@ logging.basicConfig(
 def count_success_messages(log_output):
     """Count how many times the success message appears."""
     lines = log_output.split("\n")
-    count = sum(1 for line in lines if "✓ Successfully loaded configuration" in line)
-    return count
+    return sum(1 for line in lines if "✓ Successfully loaded configuration" in line)
 
 
 def simulate_service_startup():

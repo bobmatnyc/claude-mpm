@@ -363,12 +363,12 @@ class TestSocketIOServerErrorIntegration(unittest.TestCase):
             self.assertEqual(error.process_status, "zombie")
 
     @patch("socket.socket")
-    def test_port_conflict_detection_with_enhanced_errors(mock_socket):
+    def test_port_conflict_detection_with_enhanced_errors(self):
         """Test port conflict detection raises enhanced errors."""
         # Mock socket to simulate port in use
         mock_sock_instance = Mock()
         mock_sock_instance.connect_ex.return_value = 0  # Success = port in use
-        mock_socket.return_value.__enter__.return_value = mock_sock_instance
+        self.return_value.__enter__.return_value = mock_sock_instance
 
         # Test port conflict detection
         with self.assertRaises(PortConflictError) as context:
@@ -489,4 +489,4 @@ if __name__ == "__main__":
         unittest.main(verbosity=2)
     else:
         print("Skipping tests due to missing imports")
-        exit(1)
+        sys.exit(1)

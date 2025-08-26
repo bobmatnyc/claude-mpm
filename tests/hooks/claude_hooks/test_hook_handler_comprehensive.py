@@ -246,7 +246,7 @@ class TestConnectionManagement:
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = True
             with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
-                with patch("sys.exit") as mock_exit:
+                with patch("sys.exit"):
                     main()
 
         # Check that continue was printed
@@ -839,9 +839,8 @@ class TestErrorHandling:
 
         with patch.object(
             handler, "_read_hook_event", side_effect=Exception("Read error")
-        ):
-            with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
-                handler.handle()
+        ), patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            handler.handle()
 
         output = mock_stdout.getvalue()
         assert '{"action": "continue"}' in output
@@ -967,10 +966,9 @@ class TestMainEntryPoint:
             hook_handler.ClaudeHookHandler,
             "__init__",
             side_effect=Exception("Init failed"),
-        ):
-            with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
-                with patch("sys.exit") as mock_exit:
-                    hook_handler.main()
+        ), patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            with patch("sys.exit") as mock_exit:
+                hook_handler.main()
 
         # Should still print continue
         output = mock_stdout.getvalue()
@@ -1064,15 +1062,14 @@ class TestIntegration:
 
         with patch.object(
             handler, "_cleanup_old_entries", side_effect=mock_cleanup_tracking
-        ):
-            with patch.object(handler.event_handlers, "handle_user_prompt_fast"):
-                with patch("sys.stdout", new_callable=StringIO):
-                    # Process multiple events
-                    for i, event in enumerate(events):
-                        with patch.object(
-                            handler, "_read_hook_event", return_value=event
-                        ):
-                            handler.handle()
+        ), patch.object(handler.event_handlers, "handle_user_prompt_fast"):
+            with patch("sys.stdout", new_callable=StringIO):
+                # Process multiple events
+                for _i, event in enumerate(events):
+                    with patch.object(
+                        handler, "_read_hook_event", return_value=event
+                    ):
+                        handler.handle()
 
         # Cleanup should have been called at least once
         assert cleanup_called, "Cleanup was not called"

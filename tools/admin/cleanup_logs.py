@@ -158,7 +158,7 @@ def show_statistics(logs_dir: Path):
         empty_sessions = [
             s for s in all_sessions if s.is_dir() and not any(s.iterdir())
         ]
-        print(f"\nSessions:")
+        print("\nSessions:")
         print(f"  Total: {len(all_sessions)}")
         print(f"  Empty: {len(empty_sessions)}")
         print(f"  Active: {len(all_sessions) - len(empty_sessions)}")
@@ -173,7 +173,7 @@ def show_statistics(logs_dir: Path):
         total_calls = 0
         total_tokens = 0
 
-        for date, data in stats.items():
+        for _date, data in stats.items():
             total_calls += data.get("total_calls", 0)
             total_tokens += data.get("total_tokens", 0)
 

@@ -305,7 +305,7 @@ This is a project-specific workflow override.
 - Testing memory management features
 """
 
-            success = memory_manager.save_memory(test_agent, initial_content)
+            memory_manager.save_memory(test_agent, initial_content)
             # Note: save_memory returns False if validation fails, but still saves the file
             # The important thing is that the file operations work
             self.log_result(

@@ -11,13 +11,13 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 # Add src to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
-def run_subcommand(cmd: List[str], cwd: str = None) -> Tuple[int, str, str]:
+def run_subcommand(cmd: List[str], cwd: Optional[str] = None) -> Tuple[int, str, str]:
     """Run a command and return (exit_code, stdout, stderr)."""
     try:
         result = subprocess.run(
@@ -77,7 +77,7 @@ def test_basic_exclusion() -> Dict[str, any]:
             config = Config()
             service = AgentDeploymentService()
 
-            baseline_results = service.deploy_agents(
+            service.deploy_agents(
                 target_dir=target_dir, force_rebuild=True, config=config
             )
 
@@ -92,7 +92,7 @@ def test_basic_exclusion() -> Dict[str, any]:
             create_test_config(config_dir / "configuration.yaml", excluded)
 
             config = Config()
-            exclusion_results = service.deploy_agents(
+            service.deploy_agents(
                 target_dir=target_dir, force_rebuild=True, config=config
             )
 
@@ -150,7 +150,7 @@ def test_case_sensitivity() -> Dict[str, any]:
             )
 
             config = Config()
-            insensitive_results = service.deploy_agents(
+            service.deploy_agents(
                 target_dir=target_dir, force_rebuild=True, config=config
             )
 
@@ -166,7 +166,7 @@ def test_case_sensitivity() -> Dict[str, any]:
             )
 
             config = Config()
-            sensitive_results = service.deploy_agents(
+            service.deploy_agents(
                 target_dir=target_dir, force_rebuild=True, config=config
             )
 

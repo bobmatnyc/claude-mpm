@@ -9,6 +9,7 @@ import asyncio
 import json
 import sys
 from datetime import datetime
+from typing import Optional
 
 try:
     import aiohttp
@@ -40,7 +41,7 @@ WRONG formats that were causing issues:
 """
 
 
-def create_correct_event(event_name: str, data: dict = None) -> dict:
+def create_correct_event(event_name: str, data: Optional[dict] = None) -> dict:
     """Create a properly formatted Claude event."""
     return {
         "hook_event_name": event_name,  # CRITICAL: Must be hook_event_name!
@@ -51,7 +52,7 @@ def create_correct_event(event_name: str, data: dict = None) -> dict:
     }
 
 
-async def send_test_event(event_name: str, data: dict = None, port: int = 8765):
+async def send_test_event(event_name: str, data: Optional[dict] = None, port: int = 8765):
     """Send a single test event to verify format."""
     event = create_correct_event(event_name, data)
 

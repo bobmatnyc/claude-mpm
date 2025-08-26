@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Verify we're capturing all necessary data from Claude hooks"""
 
-import json
 import time
 from collections import defaultdict
 
@@ -78,7 +77,7 @@ def history(data):
             event_data = event.get("data", {})
 
             # Track all fields we see
-            for field in event_data.keys():
+            for field in event_data:
                 hook_data_fields[event_type].add(field)
 
             # Check for missing expected fields
@@ -152,7 +151,7 @@ def history(data):
         # Show sample delegation
         if task_events and task_events[0].get("data", {}).get("delegation_details"):
             sample = task_events[0]["data"]["delegation_details"]
-            print(f"\n   Sample delegation details:")
+            print("\n   Sample delegation details:")
             print(f"      Agent: {sample.get('agent_type')}")
             print(f"      Preview: {sample.get('task_preview', 'N/A')[:50]}...")
     else:

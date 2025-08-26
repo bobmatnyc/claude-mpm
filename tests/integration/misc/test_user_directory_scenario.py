@@ -124,7 +124,7 @@ def test_user_directory_scenario():
 
         # Verify framework directory was NOT modified
         if framework_claude_agents.exists():
-            framework_files = list(framework_claude_agents.glob("*.md"))
+            list(framework_claude_agents.glob("*.md"))
             # Check that test agent is NOT in framework directory
             framework_test_agent = framework_claude_agents / "test_custom_agent.md"
             assert (

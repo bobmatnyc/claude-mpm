@@ -69,12 +69,12 @@ class TestRunCommand:
 
     @patch("claude_mpm.cli.commands.run.subprocess.run")
     @patch("claude_mpm.cli.commands.run.Config")
-    def test_run_basic_interactive(mock_config_class, mock_subprocess):
+    def test_run_basic_interactive(self, mock_subprocess):
         """Test running basic interactive Claude session."""
         mock_config = Mock()
         mock_config.ensure_paths.return_value = None
         mock_config.claude_desktop_config_dir = Path("/mock/claude/config")
-        mock_config_class.return_value = mock_config
+        self.return_value = mock_config
 
         mock_subprocess.return_value = Mock(returncode=0)
 
@@ -106,9 +106,9 @@ class TestRunCommand:
     @patch("claude_mpm.cli.commands.run.subprocess.run")
     @patch("claude_mpm.cli.commands.run.Config")
     @patch("claude_mpm.cli.commands.run.Path.exists")
-    def test_run_with_input_file(mock_exists, mock_config_class, mock_subprocess):
+    def test_run_with_input_file(self, mock_config_class, mock_subprocess):
         """Test running with input file."""
-        mock_exists.return_value = True
+        self.return_value = True
         mock_config = Mock()
         mock_config.ensure_paths.return_value = None
         mock_config.claude_desktop_config_dir = Path("/mock/claude/config")
@@ -244,9 +244,9 @@ class TestRunCommand:
         assert "claude-3" in call_args
 
     @patch("claude_mpm.cli.commands.run.subprocess.run")
-    def test_run_subprocess_error(mock_subprocess):
+    def test_run_subprocess_error(self):
         """Test handling of subprocess errors."""
-        mock_subprocess.side_effect = subprocess.CalledProcessError(1, "claude")
+        self.side_effect = subprocess.CalledProcessError(1, "claude")
 
         args = Namespace(
             claude_args=[],
@@ -298,13 +298,13 @@ class TestRunCommand:
     @patch("claude_mpm.cli.commands.run.subprocess.run")
     @patch("claude_mpm.cli.commands.run.Config")
     def test_run_with_no_native_agents(
-        mock_config_class, mock_subprocess, mock_list_agents
+        self, mock_subprocess, mock_list_agents
     ):
         """Test running with native agents disabled."""
         mock_config = Mock()
         mock_config.ensure_paths.return_value = None
         mock_config.claude_desktop_config_dir = Path("/mock/claude/config")
-        mock_config_class.return_value = mock_config
+        self.return_value = mock_config
 
         mock_subprocess.return_value = Mock(returncode=0)
 
@@ -335,12 +335,12 @@ class TestRunCommand:
 
     @patch("claude_mpm.cli.commands.run.subprocess.run")
     @patch("claude_mpm.cli.commands.run.Config")
-    def test_run_with_resume(mock_config_class, mock_subprocess):
+    def test_run_with_resume(self, mock_subprocess):
         """Test running with resume flag."""
         mock_config = Mock()
         mock_config.ensure_paths.return_value = None
         mock_config.claude_desktop_config_dir = Path("/mock/claude/config")
-        mock_config_class.return_value = mock_config
+        self.return_value = mock_config
 
         mock_subprocess.return_value = Mock(returncode=0)
 
@@ -373,12 +373,12 @@ class TestRunCommand:
 
     @patch("claude_mpm.cli.commands.run.subprocess.run")
     @patch("claude_mpm.cli.commands.run.Config")
-    def test_run_with_custom_websocket_port(mock_config_class, mock_subprocess):
+    def test_run_with_custom_websocket_port(self, mock_subprocess):
         """Test running with custom websocket port."""
         mock_config = Mock()
         mock_config.ensure_paths.return_value = None
         mock_config.claude_desktop_config_dir = Path("/mock/claude/config")
-        mock_config_class.return_value = mock_config
+        self.return_value = mock_config
 
         mock_subprocess.return_value = Mock(returncode=0)
 

@@ -2,10 +2,7 @@
 """Fix the Event Analysis and Full Event JSON mismatch issue."""
 
 import os
-import subprocess
 import sys
-import time
-import webbrowser
 from pathlib import Path
 
 
@@ -29,7 +26,7 @@ def diagnose_issue():
     print("   ✅ Dashboard file exists")
 
     # Read and analyze the showEventDetails function
-    with open(dashboard_path, "r") as f:
+    with open(dashboard_path) as f:
         content = f.read()
 
     print("\n3. Analyzing showEventDetails function...")
@@ -116,7 +113,7 @@ def apply_fix():
     dashboard_path = Path(__file__).parent / "claude_mpm_socketio_dashboard.html"
 
     # Read current content
-    with open(dashboard_path, "r") as f:
+    with open(dashboard_path) as f:
         content = f.read()
 
     # The fix: Ensure showEventDetails properly updates the module viewer
@@ -188,7 +185,7 @@ def main():
         return 1
 
     # Step 2: Create test scenario
-    test_file = create_test_scenario()
+    create_test_scenario()
 
     # Step 3: Apply fix
     if apply_fix():

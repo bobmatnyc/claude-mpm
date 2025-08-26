@@ -24,20 +24,20 @@ from .resources import ResourceMonitorService
 from .service import ServiceHealthService
 
 __all__ = [
-    # New service-based API
-    "ResourceMonitorService",
-    "ProcessHealthService",
-    "ServiceHealthService",
-    "NetworkHealthService",
-    "MonitoringAggregatorService",
-    # Base components
-    "HealthStatus",
-    "HealthMetric",
+    "AdvancedHealthMonitor",
     "HealthCheckResult",
     "HealthChecker",
+    "HealthMetric",
+    # Base components
+    "HealthStatus",
+    "MonitoringAggregatorService",
+    "NetworkConnectivityChecker",
+    "NetworkHealthService",
+    "ProcessHealthService",
     # Legacy compatibility
     "ProcessResourceChecker",
-    "NetworkConnectivityChecker",
+    # New service-based API
+    "ResourceMonitorService",
     "ServiceHealthChecker",
-    "AdvancedHealthMonitor",
+    "ServiceHealthService",
 ]

@@ -47,59 +47,59 @@ class TestAgentValidator:
             # Missing required fields: role, prompt_template
         }
 
-    def test_validate_valid_agent(validator, valid_agent_config):
+    def test_validate_valid_agent(self, valid_agent_config):
         """Test validation of a valid agent configuration."""
-        result = validator.validate_agent_config(valid_agent_config, "test_agent")
+        result = self.validate_agent_config(valid_agent_config, "test_agent")
 
         assert result.is_valid
         assert len(result.errors) == 0
         assert len(result.warnings) == 0
 
-    def test_validate_invalid_agent(validator, invalid_agent_config):
+    def test_validate_invalid_agent(self, invalid_agent_config):
         """Test validation of an invalid agent configuration."""
-        result = validator.validate_agent_config(invalid_agent_config, "invalid_agent")
+        result = self.validate_agent_config(invalid_agent_config, "invalid_agent")
 
         assert not result.is_valid
         assert "Missing required field: role" in result.errors
         assert "Missing required field: prompt_template" in result.errors
 
-    def test_validate_prompt_template(validator):
+    def test_validate_prompt_template(self):
         """Test prompt template validation."""
         # Valid template
-        valid, errors = validator._validate_prompt_template(
+        valid, errors = self._validate_prompt_template(
             "Test {context} {task} {constraints}"
         )
         assert valid
         assert len(errors) == 0
 
         # Invalid template - missing placeholders
-        valid, errors = validator._validate_prompt_template("Test template")
+        valid, errors = self._validate_prompt_template("Test template")
         assert not valid
         assert any("missing placeholders" in error for error in errors)
 
         # Invalid template - empty
-        valid, errors = validator._validate_prompt_template("")
+        valid, errors = self._validate_prompt_template("")
         assert not valid
         assert any("non-empty string" in error for error in errors)
 
-    def test_validate_tools(validator):
+    def test_validate_tools(self):
         """Test tools validation."""
         # Valid tools
-        valid, errors = validator._validate_tools(["file_operations", "code_analysis"])
+        valid, errors = self._validate_tools(["file_operations", "code_analysis"])
         assert valid
         assert len(errors) == 0
 
         # Invalid tool
-        valid, errors = validator._validate_tools(["file_operations", "unknown_tool"])
+        valid, errors = self._validate_tools(["file_operations", "unknown_tool"])
         assert not valid
         assert any("Unknown tool: unknown_tool" in error for error in errors)
 
         # Invalid format
-        valid, errors = validator._validate_tools("not_a_list")
+        valid, errors = self._validate_tools("not_a_list")
         assert not valid
         assert any("must be a list" in error for error in errors)
 
-    def test_overrides(validator):
+    def test_overrides(self):
         """Test override functionality."""
         # Create validator with overrides
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
@@ -136,7 +136,7 @@ class TestAgentValidator:
         finally:
             override_file.unlink()
 
-    def test_validate_profile(validator):
+    def test_validate_profile(self):
         """Test full profile validation."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             profile_data = {
@@ -160,7 +160,7 @@ class TestAgentValidator:
             profile_path = Path(f.name)
 
         try:
-            result = validator.validate_profile(profile_path)
+            result = self.validate_profile(profile_path)
             assert result.is_valid
             assert len(result.errors) == 0
         finally:
@@ -176,30 +176,30 @@ class TestValidationHooks:
         return ValidationHooks()
 
     @pytest.mark.asyncio
-    async def test_pre_load_validation(hooks):
+    async def test_pre_load_validation(self):
         """Test pre-load validation."""
         # Test with non-existent file
-        result = await hooks.run_pre_load_validation(Path("/nonexistent/file.md"))
+        result = await self.run_pre_load_validation(Path("/nonexistent/file.md"))
         assert not result.is_valid
         assert any("not found" in error for error in result.errors)
 
     @pytest.mark.asyncio
-    async def test_pre_execute_validation(hooks):
+    async def test_pre_execute_validation(self):
         """Test pre-execute validation."""
         # Valid task
-        result = await hooks.run_pre_execute_validation(
+        result = await self.run_pre_execute_validation(
             "test_agent", "Analyze this code"
         )
         assert result.is_valid
 
         # Empty task
-        result = await hooks.run_pre_execute_validation("test_agent", "")
+        result = await self.run_pre_execute_validation("test_agent", "")
         assert not result.is_valid
         assert any("cannot be empty" in error for error in result.errors)
 
         # Very long task
         long_task = "x" * 15000
-        result = await hooks.run_pre_execute_validation("test_agent", long_task)
+        result = await self.run_pre_execute_validation("test_agent", long_task)
         assert result.is_valid  # Should pass but with warning
         assert any("very long" in warning for warning in result.warnings)
 
@@ -247,7 +247,7 @@ class TestValidationHooks:
         finally:
             profile_path.unlink()
 
-    def test_custom_hooks(hooks):
+    def test_custom_hooks(self):
         """Test custom hook registration."""
         call_count = {"pre_load": 0, "post_load": 0, "pre_execute": 0}
 
@@ -264,13 +264,13 @@ class TestValidationHooks:
             return ValidationResult(is_valid=True)
 
         # Register hooks
-        hooks.register_pre_load_hook(custom_pre_load)
-        hooks.register_post_load_hook(custom_post_load)
-        hooks.register_pre_execute_hook(custom_pre_execute)
+        self.register_pre_load_hook(custom_pre_load)
+        self.register_post_load_hook(custom_post_load)
+        self.register_pre_execute_hook(custom_pre_execute)
 
-        assert len(hooks.pre_load_hooks) == 1
-        assert len(hooks.post_load_hooks) == 1
-        assert len(hooks.pre_execute_hooks) == 1
+        assert len(self.pre_load_hooks) == 1
+        assert len(self.post_load_hooks) == 1
+        assert len(self.pre_execute_hooks) == 1
 
 
 class TestValidationError:

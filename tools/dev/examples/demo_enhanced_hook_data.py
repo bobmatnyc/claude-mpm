@@ -19,7 +19,7 @@ def demonstrate_data_capture():
     print("=" * 60)
 
     # Create a handler instance
-    handler = ClaudeHookHandler()
+    ClaudeHookHandler()
 
     # Demo 1: User Prompt with various characteristics
     print("\n📝 USER PROMPT EVENT DEMO")

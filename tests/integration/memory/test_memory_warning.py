@@ -309,7 +309,7 @@ def main():
         monitor.continuous_monitor(interval=args.interval, duration=args.duration)
     else:
         # Single measurement
-        stats = monitor.measure("Manual check")
+        monitor.measure("Manual check")
         print(monitor.report())
 
 

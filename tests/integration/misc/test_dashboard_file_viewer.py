@@ -14,6 +14,7 @@ USAGE:
 """
 
 import asyncio
+import sys
 import time
 from datetime import datetime
 
@@ -24,7 +25,7 @@ try:
 except ImportError:
     SOCKETIO_AVAILABLE = False
     print("❌ Socket.IO not available. Install with: pip install python-socketio")
-    exit(1)
+    sys.exit(1)
 
 
 @pytest.mark.asyncio

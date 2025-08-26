@@ -1116,16 +1116,15 @@ class TestSystemDiskPartitions(PsutilTestCase):
         fake_file = io.StringIO("nodev\tzfs\n")
         with mock.patch(
             "psutil._common.open", return_value=fake_file, create=True
-        ) as m1:
-            with mock.patch(
-                "psutil._pslinux.cext.disk_partitions",
-                return_value=[("/dev/sdb3", "/", "zfs", "rw")],
-            ) as m2:
-                ret = psutil.disk_partitions()
-                assert m1.called
-                assert m2.called
-                assert ret
-                assert ret[0].fstype == "zfs"
+        ) as m1, mock.patch(
+            "psutil._pslinux.cext.disk_partitions",
+            return_value=[("/dev/sdb3", "/", "zfs", "rw")],
+        ) as m2:
+            ret = psutil.disk_partitions()
+            assert m1.called
+            assert m2.called
+            assert ret
+            assert ret[0].fstype == "zfs"
 
     def test_emulate_realpath_fail(self):
         # See: https://github.com/giampaolo/psutil/issues/1307
@@ -1238,15 +1237,14 @@ class TestSystemDiskIoCounters(PsutilTestCase):
             3    0   nvme0n1p1 1 2 3 4 5 6 7 8 9 10 11
             """
         )
-        with mock_open_content({"/proc/diskstats": content}):
-            with mock.patch(
-                "psutil._pslinux.is_storage_device",
-                create=True,
-                side_effect=is_storage_device,
-            ):
-                ret = psutil.disk_io_counters(perdisk=False, nowrap=False)
-                assert ret.read_count == 1
-                assert ret.write_count == 5
+        with mock_open_content({"/proc/diskstats": content}), mock.patch(
+            "psutil._pslinux.is_storage_device",
+            create=True,
+            side_effect=is_storage_device,
+        ):
+            ret = psutil.disk_io_counters(perdisk=False, nowrap=False)
+            assert ret.read_count == 1
+            assert ret.write_count == 5
 
     def test_emulate_use_sysfs(self):
         def exists(path):
@@ -1265,9 +1263,8 @@ class TestSystemDiskIoCounters(PsutilTestCase):
 
         with mock.patch(
             "psutil._pslinux.os.path.exists", create=True, side_effect=exists
-        ):
-            with pytest.raises(NotImplementedError):
-                psutil.disk_io_counters()
+        ), pytest.raises(NotImplementedError):
+            psutil.disk_io_counters()
 
 
 @pytest.mark.skipif(not LINUX, reason="LINUX only")
@@ -1621,29 +1618,25 @@ class TestSensorsBattery(PsutilTestCase):
         with mock_open_exception(
             "/sys/class/power_supply/BAT0/energy_full",
             FileNotFoundError,
+        ), mock_open_exception(
+            "/sys/class/power_supply/BAT0/charge_full",
+            FileNotFoundError,
+        ), mock_open_content(
+            {"/sys/class/power_supply/BAT0/capacity": b"88"}
         ):
-            with mock_open_exception(
-                "/sys/class/power_supply/BAT0/charge_full",
-                FileNotFoundError,
-            ):
-                with mock_open_content(
-                    {"/sys/class/power_supply/BAT0/capacity": b"88"}
-                ):
-                    assert psutil.sensors_battery().percent == 88
+            assert psutil.sensors_battery().percent == 88
 
     def test_emulate_no_power(self):
         # Emulate a case where /AC0/online file nor /BAT0/status exist.
         with mock_open_exception(
             "/sys/class/power_supply/AC/online", FileNotFoundError
+        ), mock_open_exception(
+            "/sys/class/power_supply/AC0/online", FileNotFoundError
+        ), mock_open_exception(
+            "/sys/class/power_supply/BAT0/status",
+            FileNotFoundError,
         ):
-            with mock_open_exception(
-                "/sys/class/power_supply/AC0/online", FileNotFoundError
-            ):
-                with mock_open_exception(
-                    "/sys/class/power_supply/BAT0/status",
-                    FileNotFoundError,
-                ):
-                    assert psutil.sensors_battery().power_plugged is None
+            assert psutil.sensors_battery().power_plugged is None
 
 
 @pytest.mark.skipif(not LINUX, reason="LINUX only")
@@ -1885,10 +1878,9 @@ class TestProcess(PsutilTestCase):
             patch_point = "psutil._pslinux.os.readlink"
             with mock.patch(
                 patch_point, side_effect=OSError(errno.ENAMETOOLONG, "")
-            ) as m:
-                with mock.patch("psutil._pslinux.debug"):
-                    assert p.open_files() == []
-                    assert m.called
+            ) as m, mock.patch("psutil._pslinux.debug"):
+                assert p.open_files() == []
+                assert m.called
 
     # --- mocked tests
 
@@ -2015,14 +2007,13 @@ class TestProcess(PsutilTestCase):
         # https://travis-ci.org/giampaolo/psutil/jobs/51368273
         with mock.patch(
             "resource.prlimit", side_effect=OSError(errno.ENOSYS, "")
-        ) as m1:
-            with mock.patch(
-                "psutil._pslinux.Process._is_zombie", return_value=True
-            ) as m2:
-                p = psutil.Process()
-                p.name()
-                with pytest.raises(psutil.ZombieProcess) as cm:
-                    p.rlimit(psutil.RLIMIT_NOFILE)
+        ) as m1, mock.patch(
+            "psutil._pslinux.Process._is_zombie", return_value=True
+        ) as m2:
+            p = psutil.Process()
+            p.name()
+            with pytest.raises(psutil.ZombieProcess) as cm:
+                p.rlimit(psutil.RLIMIT_NOFILE)
         assert m1.called
         assert m2.called
         assert cm.value.pid == p.pid

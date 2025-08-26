@@ -7,7 +7,7 @@ from pathlib import Path
 
 def fix_file(file_path: Path):
     """Fix fallback imports in a single file."""
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         content = f.read()
 
     original_content = content
@@ -50,10 +50,9 @@ def main():
     fixed_count = 0
     for file_name in files_to_fix:
         file_path = orchestration_dir / file_name
-        if file_path.exists():
-            if fix_file(file_path):
-                print(f"Fixed: {file_name}")
-                fixed_count += 1
+        if file_path.exists() and fix_file(file_path):
+            print(f"Fixed: {file_name}")
+            fixed_count += 1
 
     # Also fix other files
     other_files = [
@@ -65,10 +64,9 @@ def main():
 
     for file_path in other_files:
         file_path = Path(file_path)
-        if file_path.exists():
-            if fix_file(file_path):
-                print(f"Fixed: {file_path.name}")
-                fixed_count += 1
+        if file_path.exists() and fix_file(file_path):
+            print(f"Fixed: {file_path.name}")
+            fixed_count += 1
 
     print(f"\nTotal files fixed: {fixed_count}")
 

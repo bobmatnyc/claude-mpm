@@ -100,12 +100,12 @@ def main():
     print(f"❌ With errors: {stats['errors']}")
 
     if stats["files_with_corrections"]:
-        print(f"\nFiles with auto-corrections:")
+        print("\nFiles with auto-corrections:")
         for filename in stats["files_with_corrections"]:
             print(f"  - {filename}")
 
     if stats["files_with_errors"]:
-        print(f"\nFiles with errors:")
+        print("\nFiles with errors:")
         for filename in stats["files_with_errors"]:
             print(f"  - {filename}")
 

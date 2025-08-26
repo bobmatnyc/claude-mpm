@@ -4,6 +4,7 @@ Update all agent templates to version 2.0.0 with enhanced dependencies and code 
 """
 
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -91,7 +92,7 @@ def update_agent(file_path: Path, config: dict):
     """Update a single agent file with new configuration."""
 
     # Read current agent
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         agent = json.load(f)
 
     # Update version
@@ -152,4 +153,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

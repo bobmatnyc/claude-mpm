@@ -239,7 +239,7 @@ class TestSessionManager(unittest.TestCase):
         self.manager.create_session(context="orchestration")
 
         # Create default sessions
-        session1 = self.manager.create_session(context="default")
+        self.manager.create_session(context="default")
         session2 = self.manager.create_session(context="default")
 
         last_id = self.manager.get_last_interactive_session()
@@ -354,7 +354,7 @@ class TestSessionManager(unittest.TestCase):
     def test_corrupt_session_file_recovery(self):
         """Test recovery from corrupt session file."""
         # Create valid session
-        session = self.manager.create_session()
+        self.manager.create_session()
 
         # Corrupt the session file
         session_file = self.session_dir / "active_sessions.json"

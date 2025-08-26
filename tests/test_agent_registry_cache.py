@@ -62,13 +62,13 @@ def test_force_refresh():
 
     # Initial discovery
     print("Initial discovery...")
-    agents1 = registry.discover_agents()
+    registry.discover_agents()
     initial_hits = registry.discovery_stats["cache_hits"]
     initial_misses = registry.discovery_stats["cache_misses"]
 
     # Force refresh
     print("Force refresh...")
-    agents2 = registry.discover_agents(force_refresh=True)
+    registry.discover_agents(force_refresh=True)
 
     # Should have one more miss, same hits
     assert registry.discovery_stats["cache_misses"] == initial_misses + 1
@@ -99,7 +99,7 @@ Version: 1.0.0
 
         # First discovery
         print("First discovery...")
-        agents1 = registry.discover_agents()
+        registry.discover_agents()
         test_agent1 = registry.get_agent("test")
         print(f"  Found agent: {test_agent1.name if test_agent1 else 'None'}")
 
@@ -117,7 +117,7 @@ Version: 2.0.0
 
         # Second discovery (should detect modification)
         print("Second discovery (should detect file change)...")
-        agents2 = registry.discover_agents()
+        registry.discover_agents()
         test_agent2 = registry.get_agent("test")
 
         # Cache should have detected the change
@@ -135,11 +135,11 @@ def test_cache_invalidation():
 
     # Initial discovery
     print("Initial discovery...")
-    agents1 = registry.discover_agents()
+    registry.discover_agents()
 
     # Should use cache
     print("Second discovery (should use cache)...")
-    agents2 = registry.discover_agents()
+    registry.discover_agents()
     hits_before = registry.discovery_stats["cache_hits"]
 
     # Invalidate cache
@@ -148,7 +148,7 @@ def test_cache_invalidation():
 
     # Should not use cache
     print("Third discovery (should not use cache after invalidation)...")
-    agents3 = registry.discover_agents()
+    registry.discover_agents()
     hits_after = registry.discovery_stats["cache_hits"]
 
     assert hits_after == hits_before, "Cache should be invalidated"
@@ -192,7 +192,7 @@ def test_performance_improvement():
 
     print("Testing without cache (10 discoveries with force_refresh)...")
     start = time.time()
-    for i in range(10):
+    for _i in range(10):
         registry_no_cache.discover_agents(force_refresh=True)
     time_without_cache = time.time() - start
     print(f"  Time without cache: {time_without_cache:.3f}s")
@@ -202,7 +202,7 @@ def test_performance_improvement():
 
     print("Testing with cache (10 discoveries, first is miss, rest are hits)...")
     start = time.time()
-    for i in range(10):
+    for _i in range(10):
         registry_with_cache.discover_agents()
     time_with_cache = time.time() - start
     print(f"  Time with cache: {time_with_cache:.3f}s")

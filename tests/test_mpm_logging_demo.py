@@ -8,6 +8,7 @@ in a realistic scenario that users would encounter.
 
 import asyncio
 import os
+import sys
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -192,4 +193,4 @@ def test_mpm_logging_end_to_end_demo():
 
 if __name__ == "__main__":
     success = test_mpm_logging_end_to_end_demo()
-    exit(0 if success else 1)
+    sys.exit(0 if success else 1)

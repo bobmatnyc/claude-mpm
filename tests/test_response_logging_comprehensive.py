@@ -463,7 +463,7 @@ def run_performance_test():
 
         # Test latest responses performance
         start_time = time.time()
-        latest = tracker.get_latest_responses(100)
+        tracker.get_latest_responses(100)
         latest_time = time.time() - start_time
 
         print(f"   Retrieved 100 latest responses in {latest_time:.3f}s")

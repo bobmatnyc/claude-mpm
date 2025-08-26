@@ -77,7 +77,7 @@ class TestProcessIter(PsutilTestCase):
 
     def test_emulate_nsp(self):
         list(psutil.process_iter())  # populate cache
-        for x in range(2):
+        for _x in range(2):
             with mock.patch(
                 "psutil.Process.as_dict",
                 side_effect=psutil.NoSuchProcess(os.getpid()),
@@ -87,13 +87,12 @@ class TestProcessIter(PsutilTestCase):
 
     def test_emulate_access_denied(self):
         list(psutil.process_iter())  # populate cache
-        for x in range(2):
+        for _x in range(2):
             with mock.patch(
                 "psutil.Process.as_dict",
                 side_effect=psutil.AccessDenied(os.getpid()),
-            ):
-                with pytest.raises(psutil.AccessDenied):
-                    list(psutil.process_iter(attrs=["cpu_times"]))
+            ), pytest.raises(psutil.AccessDenied):
+                list(psutil.process_iter(attrs=["cpu_times"]))
             psutil.process_iter.cache_clear()  # repeat test without cache
 
     def test_attrs(self):

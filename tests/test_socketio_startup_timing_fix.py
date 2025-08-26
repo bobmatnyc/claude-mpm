@@ -93,10 +93,10 @@ class TestSocketIOStartupTimingFix(unittest.TestCase):
 
     @patch("claude_mpm.cli.commands.run._check_socketio_server_running")
     @patch("subprocess.run")
-    def test_startup_timing_simulation(mock_subprocess, mock_health_check):
+    def test_startup_timing_simulation(self, mock_health_check):
         """Simulate startup with improved timing."""
         # Mock successful daemon start
-        mock_subprocess.return_value.returncode = 0
+        self.return_value.returncode = 0
 
         # Simulate server becoming ready after several attempts (as would happen with Python 3.13)
         mock_health_check.side_effect = [False] * 8 + [True]  # Ready after 8 attempts
@@ -117,7 +117,7 @@ class TestSocketIOStartupTimingFix(unittest.TestCase):
 
     @patch("socket.socket")
     @patch("urllib.request.urlopen")
-    def test_health_check_retry_behavior(mock_urlopen, mock_socket):
+    def test_health_check_retry_behavior(self, mock_socket):
         """Test health check retry behavior for various failure scenarios."""
         # Mock TCP connection success
         mock_sock = MagicMock()
@@ -127,7 +127,7 @@ class TestSocketIOStartupTimingFix(unittest.TestCase):
         # Test scenario: Server starting but HTTP not ready (should retry)
         from urllib.error import HTTPError
 
-        mock_urlopen.side_effect = [
+        self.side_effect = [
             HTTPError("", 503, "Service Unavailable", {}, None),  # Server starting
             HTTPError("", 503, "Service Unavailable", {}, None),  # Still starting
             MagicMock(
@@ -139,12 +139,12 @@ class TestSocketIOStartupTimingFix(unittest.TestCase):
             result = _check_socketio_server_running(8765, self.logger)
 
         self.assertTrue(result, "Health check should succeed after retries")
-        self.assertEqual(mock_urlopen.call_count, 3, "Should make 3 HTTP attempts")
+        self.assertEqual(self.call_count, 3, "Should make 3 HTTP attempts")
         print("✓ Health check retry logic working correctly")
 
     @patch("socket.socket")
     @patch("urllib.request.urlopen")
-    def test_health_check_timeout_behavior(mock_urlopen, mock_socket):
+    def test_health_check_timeout_behavior(self, mock_socket):
         """Test health check behavior with connection timeouts."""
         # Mock TCP connection success
         mock_sock = MagicMock()
@@ -154,7 +154,7 @@ class TestSocketIOStartupTimingFix(unittest.TestCase):
         # Test scenario: Connection timeouts (should retry)
         from urllib.error import URLError
 
-        mock_urlopen.side_effect = [
+        self.side_effect = [
             URLError("Connection refused"),  # Connection refused
             URLError("Connection refused"),  # Still refused
             MagicMock(
@@ -166,7 +166,7 @@ class TestSocketIOStartupTimingFix(unittest.TestCase):
             result = _check_socketio_server_running(8765, self.logger)
 
         self.assertTrue(result, "Health check should succeed after connection retries")
-        self.assertEqual(mock_urlopen.call_count, 3, "Should make 3 HTTP attempts")
+        self.assertEqual(self.call_count, 3, "Should make 3 HTTP attempts")
         print("✓ Connection timeout retry logic working correctly")
 
 

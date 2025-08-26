@@ -85,8 +85,7 @@ class TestAgentMemoryManager:
         )
 
         working_dir = Path("/test/working")
-        manager = AgentMemoryManager(config=mock_config, working_directory=working_dir)
-        return manager
+        return AgentMemoryManager(config=mock_config, working_directory=working_dir)
 
     # ================================================================================
     # Memory File Operations Tests
@@ -109,20 +108,18 @@ class TestAgentMemoryManager:
         old_content = "Old memory content"
 
         new_file = directory / f"{agent_id}_memories.md"
-        old_file = directory / f"{agent_id}_agent.md"
+        directory / f"{agent_id}_agent.md"
 
         # Create mock for file operations
         with patch("pathlib.Path.exists") as mock_exists:
-            with patch("pathlib.Path.read_text", return_value=old_content) as mock_read:
+            with patch("pathlib.Path.read_text", return_value=old_content):
                 with patch("pathlib.Path.write_text") as mock_write:
                     with patch("pathlib.Path.unlink") as mock_unlink:
                         # Setup exists behavior: new_file doesn't exist, old_file exists
                         def exists_logic(self):
                             if str(self).endswith("_memories.md"):
                                 return False
-                            if str(self).endswith("_agent.md"):
-                                return True
-                            return False
+                            return bool(str(self).endswith("_agent.md"))
 
                         mock_exists.side_effect = exists_logic
                         result = manager._get_memory_file_with_migration(
@@ -140,24 +137,20 @@ class TestAgentMemoryManager:
         old_content = "Old simple format content"
 
         new_file = directory / f"{agent_id}_memories.md"
-        old_file_agent = directory / f"{agent_id}_agent.md"
-        old_file_simple = directory / f"{agent_id}.md"
+        directory / f"{agent_id}_agent.md"
+        directory / f"{agent_id}.md"
 
         # Create mock for file operations
         with patch("pathlib.Path.exists") as mock_exists:
-            with patch("pathlib.Path.read_text", return_value=old_content) as mock_read:
+            with patch("pathlib.Path.read_text", return_value=old_content):
                 with patch("pathlib.Path.write_text") as mock_write:
                     with patch("pathlib.Path.unlink") as mock_unlink:
                         # Setup exists behavior
                         def exists_logic(self):
                             path_str = str(self)
-                            if path_str.endswith("_memories.md") or path_str.endswith(
-                                "_agent.md"
-                            ):
+                            if path_str.endswith(("_memories.md", "_agent.md")):
                                 return False
-                            if path_str.endswith(f"{agent_id}.md"):
-                                return True
-                            return False
+                            return bool(path_str.endswith(f"{agent_id}.md"))
 
                         mock_exists.side_effect = exists_logic
                         result = manager._get_memory_file_with_migration(
@@ -181,9 +174,7 @@ class TestAgentMemoryManager:
                 def exists_logic(self):
                     if str(self).endswith("_memories.md"):
                         return False
-                    if str(self).endswith("_agent.md"):
-                        return True
-                    return False
+                    return bool(str(self).endswith("_agent.md"))
 
                 mock_exists.side_effect = exists_logic
                 result = manager._get_memory_file_with_migration(directory, agent_id)
@@ -506,7 +497,7 @@ class TestAgentMemoryManager:
         memory_content = """
         # Agent Memory: test_agent
         <!-- Last Updated: 2024-01-01T10:00:00Z -->
-        
+
         - Item 1
         - Item 2
         Item 3
@@ -616,7 +607,7 @@ class TestAgentMemoryManager:
         existing_memory = """
         # Agent Memory: test_agent
         <!-- Last Updated: 2024-01-01T10:00:00Z -->
-        
+
         - Existing learning 1
         - Existing learning 2
         """
@@ -642,7 +633,7 @@ class TestAgentMemoryManager:
         agent_id = "test_agent"
 
         with patch.object(manager, "_save_memory_file", return_value=True) as mock_save:
-            result = manager.replace_agent_memory(agent_id, [])
+            manager.replace_agent_memory(agent_id, [])
 
         mock_save.assert_called_once()
         # Check that empty list generates minimal content
@@ -747,11 +738,10 @@ class TestAgentMemoryManager:
         agent_id = "test_agent"
         content = "Test content"
 
-        with patch.object(Path, "mkdir"):
-            with patch.object(
-                Path, "write_text", side_effect=PermissionError("No permission")
-            ):
-                result = manager._save_memory_file(agent_id, content)
+        with patch.object(Path, "mkdir"), patch.object(
+            Path, "write_text", side_effect=PermissionError("No permission")
+        ):
+            result = manager._save_memory_file(agent_id, content)
 
         assert result is False
 
@@ -788,7 +778,7 @@ class TestAgentMemoryManager:
 
         for response in invalid_responses:
             with patch.object(manager, "_add_learnings_to_memory") as mock_add:
-                result = manager.extract_and_update_memory(agent_id, response)
+                manager.extract_and_update_memory(agent_id, response)
                 mock_add.assert_not_called()
 
     # ================================================================================
@@ -838,7 +828,7 @@ class TestAgentMemoryManager:
         )
 
         with patch.object(manager, "_save_memory_file", return_value=True) as mock_save:
-            result = manager.replace_agent_memory(agent_id, ["Item 1", "Item 2"])
+            manager.replace_agent_memory(agent_id, ["Item 1", "Item 2"])
 
         # Should save truncated content
         saved_content = mock_save.call_args[0][1]

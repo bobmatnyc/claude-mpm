@@ -50,7 +50,7 @@ class TestBaseTypes(TestBase):
 
         # test ostream
         stream = DummyStream()
-        ostream = OStream(*(info + (stream,)))
+        ostream = OStream(*((*info, stream)))
         assert ostream.stream is stream
         ostream.read(15)
         stream._assert()
@@ -59,14 +59,14 @@ class TestBaseTypes(TestBase):
         assert stream.bytes == 20
 
         # test packstream
-        postream = OPackStream(*(pinfo + (stream,)))
+        postream = OPackStream(*((*pinfo, stream)))
         assert postream.stream is stream
         postream.read(10)
         stream._assert()
         assert stream.bytes == 10
 
         # test deltapackstream
-        dpostream = ODeltaPackStream(*(dpinfo + (stream,)))
+        dpostream = ODeltaPackStream(*((*dpinfo, stream)))
         assert dpostream.stream is stream
         dpostream.read(5)
         stream._assert()
@@ -77,7 +77,7 @@ class TestBaseTypes(TestBase):
 
         # test istream
         istream = IStream(str_blob_type, s, stream)
-        assert istream.binsha == None
+        assert istream.binsha is None
         istream.binsha = sha
         assert istream.binsha == sha
 

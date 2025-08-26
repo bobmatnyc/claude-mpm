@@ -9,39 +9,39 @@ from claude_mpm.core.agent_registry import AgentRegistryAdapter
 class TestAgentRegistryAdapter:
     """Test the AgentRegistryAdapter class."""
 
-    def test_init_without_framework(tmp_path):
+    def test_init_without_framework(self):
         """Test initialization when framework not found."""
         with patch.object(AgentRegistryAdapter, "_find_framework", return_value=None):
             adapter = AgentRegistryAdapter()
             assert adapter.framework_path is None
             assert adapter.registry is None
 
-    def test_find_framework(tmp_path, monkeypatch):
+    def test_find_framework(self, monkeypatch):
         """Test framework detection."""
         # Create mock framework with correct structure
-        framework_dir = tmp_path / "Projects" / "claude-mpm"
+        framework_dir = self / "Projects" / "claude-mpm"
         framework_dir.mkdir(parents=True)
         agents_dir = framework_dir / "src" / "claude_mpm" / "agents"
         agents_dir.mkdir(parents=True)
         (agents_dir / "test_agent.md").touch()
 
         # Mock home to tmp_path
-        mock_home = tmp_path
+        mock_home = self
         monkeypatch.setattr(Path, "home", lambda: mock_home)
-        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        monkeypatch.setattr(Path, "cwd", lambda: self)
 
         # Mock __file__ to avoid detecting current framework
         monkeypatch.setattr(
-            "claude_mpm.core.agent_registry.__file__", str(tmp_path / "dummy.py")
+            "claude_mpm.core.agent_registry.__file__", str(self / "dummy.py")
         )
 
         adapter = AgentRegistryAdapter()
         assert adapter.framework_path == framework_dir
 
-    def test_initialize_registry_success(tmp_path):
+    def test_initialize_registry_success(self):
         """Test successful registry initialization."""
         # Create mock framework with correct structure
-        framework_dir = tmp_path / "framework"
+        framework_dir = self / "framework"
         framework_dir.mkdir()
         agents_dir = framework_dir / "src" / "claude_mpm" / "agents"
         agents_dir.mkdir(parents=True)
@@ -79,12 +79,12 @@ class TestAgentRegistryAdapter:
         assert result == mock_agents
         mock_registry.list_agents.assert_called_once()
 
-    def test_get_agent_definition(tmp_path):
+    def test_get_agent_definition(self):
         """Test getting agent definition."""
         adapter = AgentRegistryAdapter()
 
         # Create mock agent file
-        agent_file = tmp_path / "engineer.md"
+        agent_file = self / "engineer.md"
         agent_file.write_text("# Engineer Agent\nImplements code")
 
         # Mock registry

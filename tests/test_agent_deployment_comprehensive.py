@@ -113,10 +113,9 @@ class TestConcurrentAgentDeployment:
         def deploy_agents():
             """Deploy agents in a separate thread."""
             try:
-                result = deployment_service.deploy_agents(
+                return deployment_service.deploy_agents(
                     target_dir, force_rebuild=True
                 )
-                return result
             except Exception as e:
                 return {"error": str(e)}
 
@@ -238,7 +237,7 @@ class TestConcurrentAgentDeployment:
             assert (target_dir / ".claude" / "agents" / f"{agent}.md").exists()
 
     @pytest.mark.asyncio
-    async def test_async_concurrent_deployment(deployment_service, tmp_path):
+    async def test_async_concurrent_deployment(self, tmp_path):
         """Test async concurrent deployment scenarios."""
         target_dir = tmp_path / "async_deployed"
 
@@ -247,7 +246,7 @@ class TestConcurrentAgentDeployment:
             loop = asyncio.get_event_loop()
             return await loop.run_in_executor(
                 None,
-                lambda: deployment_service.deploy_agents(
+                lambda: self.deploy_agents(
                     target_dir, force_rebuild=True
                 ),
             )
@@ -340,7 +339,7 @@ class TestPartialDeploymentFailures:
             result = deployment_service.deploy_agents(target_dir, force_rebuild=True)
 
             # Should have errors in the result or empty deployed list
-            has_errors = (
+            (
                 len(result.get("errors", [])) > 0 or len(result.get("deployed", [])) < 3
             )
 
@@ -360,7 +359,7 @@ class TestPartialDeploymentFailures:
         # Failure file should not exist or be incomplete
         assert not failure_file.exists() or failure_file.stat().st_size == 0
 
-    def test_deployment_failure_permission_denied(deployment_service, tmp_path):
+    def test_deployment_failure_permission_denied(self, tmp_path):
         """Test deployment behavior when permission is denied."""
         target_dir = tmp_path / "deployed"
         target_dir.mkdir()
@@ -371,7 +370,7 @@ class TestPartialDeploymentFailures:
 
         with patch.object(Path, "write_text", permission_denied_write):
             # Deployment should handle permission errors gracefully
-            result = deployment_service.deploy_agents(target_dir, force_rebuild=True)
+            result = self.deploy_agents(target_dir, force_rebuild=True)
 
             # Should have errors in the result or no deployed agents
             has_permission_errors = (
@@ -382,7 +381,7 @@ class TestPartialDeploymentFailures:
                 has_permission_errors
             ), "Expected permission errors to be handled gracefully"
 
-    def test_deployment_failure_corrupted_template(deployment_service, tmp_path):
+    def test_deployment_failure_corrupted_template(self, tmp_path):
         """Test deployment behavior with corrupted agent templates."""
         templates_dir = tmp_path / "templates"
 
@@ -393,7 +392,7 @@ class TestPartialDeploymentFailures:
         target_dir = tmp_path / "deployed"
 
         # Deployment should handle corrupted templates gracefully
-        result = deployment_service.deploy_agents(target_dir, force_rebuild=True)
+        result = self.deploy_agents(target_dir, force_rebuild=True)
 
         # Should have error information for corrupted template
         assert "errors" in result
@@ -409,7 +408,7 @@ class TestPartialDeploymentFailures:
             if deployed_file.exists():
                 assert deployed_file.stat().st_size > 0
 
-    def test_deployment_failure_network_unavailable(deployment_service, tmp_path):
+    def test_deployment_failure_network_unavailable(self, tmp_path):
         """Test deployment behavior when network dependencies are unavailable."""
         target_dir = tmp_path / "deployed"
 
@@ -420,7 +419,7 @@ class TestPartialDeploymentFailures:
             # Deployment should complete without network dependencies
             # (Agent deployment is primarily local file operations)
             try:
-                result = deployment_service.deploy_agents(
+                result = self.deploy_agents(
                     target_dir, force_rebuild=True
                 )
 
@@ -578,7 +577,7 @@ class TestRollbackScenarios:
                 pass  # Expected to fail
 
         # Verify rollback occurred - files should be restored to initial state
-        for filename, initial_content in initial_files.items():
+        for filename, _initial_content in initial_files.items():
             current_file = target_dir / ".claude" / "agents" / filename
             if current_file.exists():
                 current_content = current_file.read_text()
@@ -587,9 +586,9 @@ class TestRollbackScenarios:
                     len(current_content) > 0
                 ), f"File {filename} is empty after rollback"
 
-    def test_manual_rollback_capability(deployment_service_with_existing):
+    def test_manual_rollback_capability(self):
         """Test manual rollback capability and verification."""
-        deployment_service, target_dir = deployment_service_with_existing
+        deployment_service, target_dir = self
 
         # Create backup directory to simulate rollback source
         backup_dir = target_dir.parent / "backup"
@@ -636,12 +635,12 @@ This is the backup version of agent {i}.
             assert f"version: 1.{i}.0" in content
             assert "Backup version" in content
 
-    def test_state_consistency_after_rollback(deployment_service_with_existing):
+    def test_state_consistency_after_rollback(self):
         """Test that system state is consistent after rollback operations."""
-        deployment_service, target_dir = deployment_service_with_existing
+        deployment_service, target_dir = self
 
         # Capture initial deployment status
-        initial_status = deployment_service.get_deployment_status()
+        deployment_service.get_deployment_status()
 
         # Simulate deployment update
         result = deployment_service.deploy_agents(target_dir, force_rebuild=True)
@@ -654,7 +653,7 @@ This is the backup version of agent {i}.
         assert isinstance(cleanup_result, dict)
 
         # Redeploy after cleanup
-        redeploy_result = deployment_service.deploy_agents(
+        deployment_service.deploy_agents(
             target_dir, force_rebuild=True
         )
 
@@ -695,7 +694,7 @@ This is the backup version of agent {i}.
         assert isinstance(cleanup_result, dict)
 
         # Verify deployment directory state after cleanup
-        remaining_files = list(target_dir.glob("*"))
+        list(target_dir.glob("*"))
 
         # Should not have temporary artifacts
         for temp_file in temp_files:
@@ -749,12 +748,12 @@ class TestEdgeCasesAndIntegration:
 
         return AgentDeploymentService(templates_dir, base_agent_path)
 
-    def test_deployment_with_zero_agents(complex_deployment_service, tmp_path):
+    def test_deployment_with_zero_agents(self, tmp_path):
         """Test deployment behavior when no agents are available."""
         target_dir = tmp_path / "deployed"
 
         # Deploy with empty templates directory
-        result = complex_deployment_service.deploy_agents(
+        result = self.deploy_agents(
             target_dir, force_rebuild=True
         )
 

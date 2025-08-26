@@ -3,7 +3,6 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import os
 import sys
 from pathlib import Path
 
@@ -22,7 +21,7 @@ author = "Claude MPM Team"
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 try:
-    with open(project_root / "VERSION", "r") as f:
+    with open(project_root / "VERSION") as f:
         release = f.read().strip()
         version = ".".join(release.split(".")[:2])  # Get major.minor
 except FileNotFoundError:

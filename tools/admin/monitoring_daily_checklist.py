@@ -21,7 +21,7 @@ def run_command(cmd, timeout=30):
             capture_output=True,
             text=True,
             timeout=timeout,
-            cwd=Path(__file__).parent.parent,
+            cwd=Path(__file__).parent.parent, check=False,
         )
         return result.returncode == 0, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
@@ -109,7 +109,7 @@ def check_monitoring_health():
     log_file = Path.home() / ".claude_mpm" / "logs" / "claude_mpm.log"
     error_count = 0
     if log_file.exists():
-        with open(log_file, "r") as f:
+        with open(log_file) as f:
             # Check last 1000 lines
             lines = f.readlines()[-1000:]
             error_count = sum(1 for line in lines if "ERROR" in line)
@@ -285,9 +285,8 @@ def main():
     if health_ok and tests_ok:
         print("✅ Daily checklist complete - All systems go! 🚀")
         return 0
-    else:
-        print("⚠️ Daily checklist complete - Issues need attention")
-        return 1
+    print("⚠️ Daily checklist complete - Issues need attention")
+    return 1
 
 
 if __name__ == "__main__":

@@ -14,9 +14,8 @@ Usage:
 import argparse
 import json
 import sys
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # Add the src directory to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -31,7 +30,7 @@ except ImportError:
 class AgentConfigValidator:
     """Validates agent configurations against the Claude MPM schema."""
 
-    def __init__(self, schema_path: Path = None):
+    def __init__(self, schema_path: Optional[Path] = None):
         """Initialize validator with schema."""
         if schema_path is None:
             # Use the primary schema by default
@@ -43,7 +42,7 @@ class AgentConfigValidator:
                 / "agent_schema.json"
             )
 
-        with open(schema_path, "r") as f:
+        with open(schema_path) as f:
             self.schema = json.load(f)
 
         self.validator = Draft7Validator(self.schema)
@@ -69,7 +68,7 @@ class AgentConfigValidator:
     def validate_file(self, file_path: Path) -> Tuple[bool, List[str]]:
         """Validate an agent configuration file."""
         try:
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 config = json.load(f)
             return self.validate_config(config)
         except json.JSONDecodeError as e:
@@ -89,10 +88,10 @@ class AgentConfigValidator:
             report += "✅ VALID - Configuration passes all validation checks\n"
 
             # Load config to show summary
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 config = json.load(f)
 
-            report += f"\nAgent Summary:\n"
+            report += "\nAgent Summary:\n"
             report += f"  - ID: {config.get('agent_id', 'N/A')}\n"
             report += f"  - Type: {config.get('agent_type', 'N/A')}\n"
             report += f"  - Version: {config.get('agent_version', 'N/A')}\n"
@@ -171,7 +170,7 @@ def validate_all_templates():
 
     # Print summary
     print(f"\n{'='*60}")
-    print(f"Agent Template Validation Summary")
+    print("Agent Template Validation Summary")
     print(f"{'='*60}\n")
 
     valid_count = sum(1 for _, is_valid, _ in results if is_valid)

@@ -20,16 +20,15 @@ def run_command(cmd, description):
     print("=" * 60)
 
     start_time = time.time()
-    result = subprocess.run(cmd, shell=True, cwd=Path(__file__).parent.parent)
+    result = subprocess.run(cmd, shell=True, cwd=Path(__file__).parent.parent, check=False)
     end_time = time.time()
 
     duration = end_time - start_time
     if result.returncode == 0:
         print(f"✅ {description} - PASSED ({duration:.2f}s)")
         return True
-    else:
-        print(f"❌ {description} - FAILED ({duration:.2f}s)")
-        return False
+    print(f"❌ {description} - FAILED ({duration:.2f}s)")
+    return False
 
 
 def main():
@@ -97,10 +96,9 @@ def main():
         print("  • Production deployment")
         print("  • Extension with new tools")
         return 0
-    else:
-        print(f"\n💥 {failed} TEST(S) FAILED!")
-        print("Please review the failures above and fix any issues.")
-        return 1
+    print(f"\n💥 {failed} TEST(S) FAILED!")
+    print("Please review the failures above and fix any issues.")
+    return 1
 
 
 if __name__ == "__main__":

@@ -141,7 +141,7 @@ class AgentLifecycleManager(BaseService):
         records = await self.record_service.load_records()
         self.state_service.agent_records = records
 
-        history = await self.record_service.load_history()
+        await self.record_service.load_history()
         # Convert history back to operation results if needed
         # For now, we'll start with empty history
 
@@ -299,7 +299,7 @@ class AgentLifecycleManager(BaseService):
         # Update state if successful
         if result.success:
             # Create state record
-            record = self.state_service.create_record(
+            self.state_service.create_record(
                 agent_name=agent_name,
                 tier=tier,
                 file_path=result.metadata.get("file_path", ""),

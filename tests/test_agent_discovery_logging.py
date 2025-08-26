@@ -32,7 +32,7 @@ def test_multi_source_discovery():
 
     # Show the discovered agents by source
     source_counts = {}
-    for agent_name, agent_versions in agents_by_name.items():
+    for _agent_name, agent_versions in agents_by_name.items():
         for agent_info in agent_versions:
             source = agent_info.get("source", "unknown")
             if source not in source_counts:

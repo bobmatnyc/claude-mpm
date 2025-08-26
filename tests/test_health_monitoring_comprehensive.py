@@ -268,7 +268,7 @@ class TestProcessResourceChecker:
     @patch("claude_mpm.services.health_monitor.psutil.Process")
     @patch("claude_mpm.services.health_monitor.PSUTIL_AVAILABLE", True)
     @pytest.mark.asyncio
-    async def test_process_resource_checker_critical(mock_process_class):
+    async def test_process_resource_checker_critical(self):
         """Test process resource checker with critical metrics."""
         # Create a mock process with high resource usage
         critical_mock = MockProcess(
@@ -276,7 +276,7 @@ class TestProcessResourceChecker:
             memory_mb=600,  # Above threshold
             num_fds=1200,  # Above threshold
         )
-        mock_process_class.return_value = critical_mock
+        self.return_value = critical_mock
 
         checker = ProcessResourceChecker(
             pid=1234, cpu_threshold=80.0, memory_threshold_mb=500, fd_threshold=1000
@@ -310,12 +310,12 @@ class TestNetworkConnectivityChecker:
 
     @patch("claude_mpm.services.health_monitor.socket.socket")
     @pytest.mark.asyncio
-    async def test_network_connectivity_checker_healthy(mock_socket_class):
+    async def test_network_connectivity_checker_healthy(self):
         """Test network connectivity checker when port is accessible."""
         # Mock successful connection
         mock_socket = Mock()
         mock_socket.connect_ex.return_value = 0  # Success
-        mock_socket_class.return_value = mock_socket
+        self.return_value = mock_socket
 
         checker = NetworkConnectivityChecker(host="localhost", port=8765, timeout=1.0)
 
@@ -328,12 +328,12 @@ class TestNetworkConnectivityChecker:
 
     @patch("claude_mpm.services.health_monitor.socket.socket")
     @pytest.mark.asyncio
-    async def test_network_connectivity_checker_critical(mock_socket_class):
+    async def test_network_connectivity_checker_critical(self):
         """Test network connectivity checker when port is not accessible."""
         # Mock failed connection
         mock_socket = Mock()
         mock_socket.connect_ex.return_value = 1  # Connection refused
-        mock_socket_class.return_value = mock_socket
+        self.return_value = mock_socket
 
         checker = NetworkConnectivityChecker(host="localhost", port=8765, timeout=1.0)
 
@@ -349,10 +349,10 @@ class TestServiceHealthChecker:
     """Test ServiceHealthChecker functionality."""
 
     @pytest.mark.asyncio
-    async def test_service_health_checker_healthy(service_stats):
+    async def test_service_health_checker_healthy(self):
         """Test service health checker with healthy stats."""
         checker = ServiceHealthChecker(
-            service_stats=service_stats, max_clients=100, max_error_rate=0.1
+            service_stats=self, max_clients=100, max_error_rate=0.1
         )
 
         metrics = await checker.check_health()
@@ -393,19 +393,19 @@ class TestAdvancedHealthMonitor:
     """Test AdvancedHealthMonitor functionality."""
 
     @pytest.mark.asyncio
-    async def test_health_monitor_initialization(health_config):
+    async def test_health_monitor_initialization(self):
         """Test health monitor initialization."""
-        monitor = AdvancedHealthMonitor(health_config)
+        monitor = AdvancedHealthMonitor(self)
 
-        assert monitor.check_interval == health_config["check_interval"]
-        assert monitor.history_size == health_config["history_size"]
+        assert monitor.check_interval == self["check_interval"]
+        assert monitor.history_size == self["history_size"]
         assert len(monitor.checkers) == 0
         assert not monitor.monitoring
 
     @pytest.mark.asyncio
-    async def test_add_checker(health_config, mock_process):
+    async def test_add_checker(self, mock_process):
         """Test adding health checkers to monitor."""
-        monitor = AdvancedHealthMonitor(health_config)
+        monitor = AdvancedHealthMonitor(self)
 
         with patch(
             "claude_mpm.services.health_monitor.psutil.Process",
@@ -418,9 +418,9 @@ class TestAdvancedHealthMonitor:
         assert monitor.checkers[0] == checker
 
     @pytest.mark.asyncio
-    async def test_perform_health_check(health_config, service_stats):
+    async def test_perform_health_check(self, service_stats):
         """Test performing a comprehensive health check."""
-        monitor = AdvancedHealthMonitor(health_config)
+        monitor = AdvancedHealthMonitor(self)
 
         # Add service health checker
         service_checker = ServiceHealthChecker(service_stats)
@@ -432,12 +432,12 @@ class TestAdvancedHealthMonitor:
         assert isinstance(result, HealthCheckResult)
         assert len(result.metrics) > 0
         assert result.duration_ms > 0
-        assert result.overall_status in [status for status in HealthStatus]
+        assert result.overall_status in list(HealthStatus)
 
     @pytest.mark.asyncio
-    async def test_determine_overall_status(health_config):
+    async def test_determine_overall_status(self):
         """Test overall status determination logic."""
-        monitor = AdvancedHealthMonitor(health_config)
+        monitor = AdvancedHealthMonitor(self)
 
         # All healthy metrics
         healthy_metrics = [
@@ -465,9 +465,9 @@ class TestAdvancedHealthMonitor:
         assert status == HealthStatus.WARNING
 
     @pytest.mark.asyncio
-    async def test_health_history(health_config, service_stats):
+    async def test_health_history(self, service_stats):
         """Test health check history tracking."""
-        monitor = AdvancedHealthMonitor(health_config)
+        monitor = AdvancedHealthMonitor(self)
         service_checker = ServiceHealthChecker(service_stats)
         monitor.add_checker(service_checker)
 
@@ -483,9 +483,9 @@ class TestAdvancedHealthMonitor:
         assert history[0].timestamp > history[1].timestamp > history[2].timestamp
 
     @pytest.mark.asyncio
-    async def test_aggregated_status(health_config, service_stats):
+    async def test_aggregated_status(self, service_stats):
         """Test aggregated health status calculation."""
-        monitor = AdvancedHealthMonitor(health_config)
+        monitor = AdvancedHealthMonitor(self)
         service_checker = ServiceHealthChecker(service_stats)
         monitor.add_checker(service_checker)
 
@@ -674,20 +674,20 @@ class TestRecoveryManager:
     """Test RecoveryManager functionality."""
 
     @pytest.mark.asyncio
-    async def test_recovery_manager_initialization(recovery_config):
+    async def test_recovery_manager_initialization(self):
         """Test recovery manager initialization."""
-        manager = RecoveryManager(recovery_config)
+        manager = RecoveryManager(self)
 
         assert manager.enabled is True
-        assert manager.check_interval == recovery_config["check_interval"]
+        assert manager.check_interval == self["check_interval"]
         assert isinstance(manager.circuit_breaker, CircuitBreaker)
         assert isinstance(manager.recovery_strategy, GradedRecoveryStrategy)
         assert not manager.recovery_in_progress
 
     @pytest.mark.asyncio
-    async def test_handle_health_result_no_recovery_needed(recovery_config):
+    async def test_handle_health_result_no_recovery_needed(self):
         """Test handling healthy health result (no recovery needed)."""
-        manager = RecoveryManager(recovery_config)
+        manager = RecoveryManager(self)
 
         healthy_result = HealthCheckResult(
             overall_status=HealthStatus.HEALTHY,
@@ -701,10 +701,10 @@ class TestRecoveryManager:
         assert event is None
 
     @pytest.mark.asyncio
-    async def test_handle_health_result_disabled(recovery_config):
+    async def test_handle_health_result_disabled(self):
         """Test handling health result when recovery is disabled."""
-        recovery_config["enabled"] = False
-        manager = RecoveryManager(recovery_config)
+        self["enabled"] = False
+        manager = RecoveryManager(self)
 
         critical_result = HealthCheckResult(
             overall_status=HealthStatus.CRITICAL,
@@ -718,9 +718,9 @@ class TestRecoveryManager:
         assert event is None
 
     @pytest.mark.asyncio
-    async def test_log_warning_recovery(recovery_config):
+    async def test_log_warning_recovery(self):
         """Test log warning recovery action."""
-        manager = RecoveryManager(recovery_config)
+        manager = RecoveryManager(self)
 
         warning_result = HealthCheckResult(
             overall_status=HealthStatus.WARNING,
@@ -740,9 +740,9 @@ class TestRecoveryManager:
         assert event.duration_ms > 0
 
     @pytest.mark.asyncio
-    async def test_recovery_stats_update(recovery_config):
+    async def test_recovery_stats_update(self):
         """Test recovery statistics updating."""
-        manager = RecoveryManager(recovery_config)
+        manager = RecoveryManager(self)
 
         warning_result = HealthCheckResult(
             overall_status=HealthStatus.WARNING,
@@ -764,9 +764,9 @@ class TestRecoveryManager:
         assert manager.recovery_stats["total_recoveries"] == initial_total + 1
         assert manager.recovery_stats["successful_recoveries"] > 0
 
-    def test_recovery_history(recovery_config):
+    def test_recovery_history(self):
         """Test recovery event history tracking."""
-        manager = RecoveryManager(recovery_config)
+        manager = RecoveryManager(self)
 
         # Create mock recovery events
         event1 = RecoveryEvent(
@@ -809,9 +809,9 @@ class TestSocketIOServerIntegration:
         """Test that server initializes health monitoring when available."""
         with patch(
             "claude_mpm.services.socketio_server.AdvancedHealthMonitor"
-        ) as mock_monitor, patch(
+        ), patch(
             "claude_mpm.services.socketio_server.RecoveryManager"
-        ) as mock_recovery:
+        ):
             server = SocketIOServer(host="localhost", port=8765)
 
             # Should have attempted to initialize health monitoring
@@ -921,7 +921,7 @@ async def test_full_integration_scenario():
     assert result.overall_status in [HealthStatus.WARNING, HealthStatus.CRITICAL]
 
     # Recovery should have been triggered
-    recovery_history = recovery_manager.get_recovery_history()
+    recovery_manager.get_recovery_history()
 
     # Note: Since handle_health_result returns a Task for async operations,
     # we might need to wait for it to complete in a real scenario

@@ -38,7 +38,7 @@ def fake_validator(*errors):
             return []  # pragma: no cover
 
         @classmethod
-        def check_schema(self, schema):
+        def check_schema(cls, schema):
             pass
 
     return FakeValidator
@@ -112,10 +112,10 @@ class TestCLI(TestCase):
     def test_invalid_instance(self):
         error = ValidationError("I am an error!", instance=12)
         self.assertOutputs(
-            files=dict(
-                some_schema='{"does not": "matter since it is stubbed"}',
-                some_instance=json.dumps(error.instance),
-            ),
+            files={
+                "some_schema": '{"does not": "matter since it is stubbed"}',
+                "some_instance": json.dumps(error.instance),
+            },
             validator=fake_validator([error]),
             argv=["-i", "some_instance", "some_schema"],
             exit_code=1,
@@ -125,10 +125,10 @@ class TestCLI(TestCase):
     def test_invalid_instance_pretty_output(self):
         error = ValidationError("I am an error!", instance=12)
         self.assertOutputs(
-            files=dict(
-                some_schema='{"does not": "matter since it is stubbed"}',
-                some_instance=json.dumps(error.instance),
-            ),
+            files={
+                "some_schema": '{"does not": "matter since it is stubbed"}',
+                "some_instance": json.dumps(error.instance),
+            },
             validator=fake_validator([error]),
             argv=["-i", "some_instance", "--output", "pretty", "some_schema"],
             exit_code=1,
@@ -143,10 +143,10 @@ class TestCLI(TestCase):
     def test_invalid_instance_explicit_plain_output(self):
         error = ValidationError("I am an error!", instance=12)
         self.assertOutputs(
-            files=dict(
-                some_schema='{"does not": "matter since it is stubbed"}',
-                some_instance=json.dumps(error.instance),
-            ),
+            files={
+                "some_schema": '{"does not": "matter since it is stubbed"}',
+                "some_instance": json.dumps(error.instance),
+            },
             validator=fake_validator([error]),
             argv=["--output", "plain", "-i", "some_instance", "some_schema"],
             exit_code=1,
@@ -159,10 +159,10 @@ class TestCLI(TestCase):
         second = ValidationError("Second error", instance=instance)
 
         self.assertOutputs(
-            files=dict(
-                some_schema='{"does not": "matter since it is stubbed"}',
-                some_instance=json.dumps(instance),
-            ),
+            files={
+                "some_schema": '{"does not": "matter since it is stubbed"}',
+                "some_instance": json.dumps(instance),
+            },
             validator=fake_validator([first, second]),
             argv=["-i", "some_instance", "some_schema"],
             exit_code=1,
@@ -178,10 +178,10 @@ class TestCLI(TestCase):
         second = ValidationError("Second error", instance=instance)
 
         self.assertOutputs(
-            files=dict(
-                some_schema='{"does not": "matter since it is stubbed"}',
-                some_instance=json.dumps(instance),
-            ),
+            files={
+                "some_schema": '{"does not": "matter since it is stubbed"}',
+                "some_instance": json.dumps(instance),
+            },
             validator=fake_validator([first, second]),
             argv=["-i", "some_instance", "--output", "pretty", "some_schema"],
             exit_code=1,
@@ -207,11 +207,11 @@ class TestCLI(TestCase):
         second_errors = [ValidationError("BOOM", instance=second_instance)]
 
         self.assertOutputs(
-            files=dict(
-                some_schema='{"does not": "matter since it is stubbed"}',
-                some_first_instance=json.dumps(first_instance),
-                some_second_instance=json.dumps(second_instance),
-            ),
+            files={
+                "some_schema": '{"does not": "matter since it is stubbed"}',
+                "some_first_instance": json.dumps(first_instance),
+                "some_second_instance": json.dumps(second_instance),
+            },
             validator=fake_validator(first_errors, second_errors),
             argv=[
                 "-i",
@@ -238,11 +238,11 @@ class TestCLI(TestCase):
         second_errors = [ValidationError("BOOM", instance=second_instance)]
 
         self.assertOutputs(
-            files=dict(
-                some_schema='{"does not": "matter since it is stubbed"}',
-                some_first_instance=json.dumps(first_instance),
-                some_second_instance=json.dumps(second_instance),
-            ),
+            files={
+                "some_schema": '{"does not": "matter since it is stubbed"}',
+                "some_first_instance": json.dumps(first_instance),
+                "some_second_instance": json.dumps(second_instance),
+            },
             validator=fake_validator(first_errors, second_errors),
             argv=[
                 "--output",
@@ -280,11 +280,11 @@ class TestCLI(TestCase):
         second_errors = [ValidationError("BOOM", instance=second_instance)]
 
         self.assertOutputs(
-            files=dict(
-                some_schema='{"does not": "matter since it is stubbed"}',
-                some_first_instance=json.dumps(first_instance),
-                some_second_instance=json.dumps(second_instance),
-            ),
+            files={
+                "some_schema": '{"does not": "matter since it is stubbed"}',
+                "some_first_instance": json.dumps(first_instance),
+                "some_second_instance": json.dumps(second_instance),
+            },
             validator=fake_validator(first_errors, second_errors),
             argv=[
                 "--error-format",
@@ -301,7 +301,7 @@ class TestCLI(TestCase):
 
     def test_invalid_schema(self):
         self.assertOutputs(
-            files=dict(some_schema='{"type": 12}'),
+            files={"some_schema": '{"type": 12}'},
             argv=["some_schema"],
             exit_code=1,
             stderr="""\
@@ -317,7 +317,7 @@ class TestCLI(TestCase):
         error = str(e.exception)
 
         self.assertOutputs(
-            files=dict(some_schema=json.dumps(schema)),
+            files={"some_schema": json.dumps(schema)},
             argv=["--output", "pretty", "some_schema"],
             exit_code=1,
             stderr=(
@@ -329,7 +329,7 @@ class TestCLI(TestCase):
 
     def test_invalid_schema_multiple_errors(self):
         self.assertOutputs(
-            files=dict(some_schema='{"type": 12, "items": 57}'),
+            files={"some_schema": '{"type": 12, "items": 57}'},
             argv=["some_schema"],
             exit_code=1,
             stderr="""\
@@ -345,7 +345,7 @@ class TestCLI(TestCase):
         error = str(e.exception)
 
         self.assertOutputs(
-            files=dict(some_schema=json.dumps(schema)),
+            files={"some_schema": json.dumps(schema)},
             argv=["--output", "pretty", "some_schema"],
             exit_code=1,
             stderr=(
@@ -361,10 +361,10 @@ class TestCLI(TestCase):
         just shows the schema error.
         """
         self.assertOutputs(
-            files=dict(
-                some_schema='{"type": 12, "minimum": 30}',
-                some_instance="13",
-            ),
+            files={
+                "some_schema": '{"type": 12, "minimum": 30}',
+                "some_instance": "13",
+            },
             argv=["-i", "some_instance", "some_schema"],
             exit_code=1,
             stderr="""\
@@ -380,10 +380,10 @@ class TestCLI(TestCase):
         error = str(e.exception)
 
         self.assertOutputs(
-            files=dict(
-                some_schema=json.dumps(schema),
-                some_instance=json.dumps(instance),
-            ),
+            files={
+                "some_schema": json.dumps(schema),
+                "some_instance": json.dumps(instance),
+            },
             argv=["--output", "pretty", "-i", "some_instance", "some_schema"],
             exit_code=1,
             stderr=(
@@ -395,11 +395,11 @@ class TestCLI(TestCase):
 
     def test_invalid_instance_continues_with_the_rest(self):
         self.assertOutputs(
-            files=dict(
-                some_schema='{"minimum": 30}',
-                first_instance="not valid JSON!",
-                second_instance="12",
-            ),
+            files={
+                "some_schema": '{"minimum": 30}',
+                "first_instance": "not valid JSON!",
+                "second_instance": "12",
+            },
             argv=[
                 "-i",
                 "first_instance",
@@ -423,7 +423,7 @@ class TestCLI(TestCase):
             validate(schema=schema, instance=instance)
 
         self.assertOutputs(
-            files=dict(some_schema=json.dumps(schema)),
+            files={"some_schema": json.dumps(schema)},
             argv=[
                 "--error-format",
                 ":{error.message}._-_.{error.instance}:",
@@ -437,7 +437,7 @@ class TestCLI(TestCase):
         instance = "not valid JSON!"
 
         self.assertOutputs(
-            files=dict(some_schema="{}", some_instance=instance),
+            files={"some_schema": "{}", "some_instance": instance},
             argv=["-i", "some_instance", "some_schema"],
             exit_code=1,
             stderr=f"""\
@@ -447,10 +447,10 @@ class TestCLI(TestCase):
 
     def test_instance_is_invalid_JSON_pretty_output(self):
         stdout, stderr = self.run_cli(
-            files=dict(
-                some_schema="{}",
-                some_instance="not valid JSON!",
-            ),
+            files={
+                "some_schema": "{}",
+                "some_instance": "not valid JSON!",
+            },
             argv=["--output", "pretty", "-i", "some_instance", "some_schema"],
             exit_code=1,
         )
@@ -465,7 +465,7 @@ class TestCLI(TestCase):
         instance = "not valid JSON!"
 
         self.assertOutputs(
-            files=dict(some_schema="{}"),
+            files={"some_schema": "{}"},
             stdin=StringIO(instance),
             argv=["some_schema"],
             exit_code=1,
@@ -476,7 +476,7 @@ class TestCLI(TestCase):
 
     def test_instance_is_invalid_JSON_on_stdin_pretty_output(self):
         stdout, stderr = self.run_cli(
-            files=dict(some_schema="{}"),
+            files={"some_schema": "{}"},
             stdin=StringIO("not valid JSON!"),
             argv=["--output", "pretty", "some_schema"],
             exit_code=1,
@@ -492,7 +492,7 @@ class TestCLI(TestCase):
         schema = "not valid JSON!"
 
         self.assertOutputs(
-            files=dict(some_schema=schema),
+            files={"some_schema": schema},
             argv=["some_schema"],
             exit_code=1,
             stderr=f"""\
@@ -502,7 +502,7 @@ class TestCLI(TestCase):
 
     def test_schema_is_invalid_JSON_pretty_output(self):
         stdout, stderr = self.run_cli(
-            files=dict(some_schema="not valid JSON!"),
+            files={"some_schema": "not valid JSON!"},
             argv=["--output", "pretty", "some_schema"],
             exit_code=1,
         )
@@ -518,7 +518,7 @@ class TestCLI(TestCase):
         """
         schema, instance = "not valid JSON!", "also not valid JSON!"
         self.assertOutputs(
-            files=dict(some_schema=schema, some_instance=instance),
+            files={"some_schema": schema, "some_instance": instance},
             argv=["some_schema"],
             exit_code=1,
             stderr=f"""\
@@ -531,10 +531,10 @@ class TestCLI(TestCase):
         Only the schema error is reported, as we abort immediately.
         """
         stdout, stderr = self.run_cli(
-            files=dict(
-                some_schema="not valid JSON!",
-                some_instance="also not valid JSON!",
-            ),
+            files={
+                "some_schema": "not valid JSON!",
+                "some_instance": "also not valid JSON!",
+            },
             argv=["--output", "pretty", "-i", "some_instance", "some_schema"],
             exit_code=1,
         )
@@ -547,7 +547,7 @@ class TestCLI(TestCase):
 
     def test_instance_does_not_exist(self):
         self.assertOutputs(
-            files=dict(some_schema="{}"),
+            files={"some_schema": "{}"},
             argv=["-i", "nonexisting_instance", "some_schema"],
             exit_code=1,
             stderr="""\
@@ -557,7 +557,7 @@ class TestCLI(TestCase):
 
     def test_instance_does_not_exist_pretty_output(self):
         self.assertOutputs(
-            files=dict(some_schema="{}"),
+            files={"some_schema": "{}"},
             argv=[
                 "--output",
                 "pretty",
@@ -620,7 +620,7 @@ class TestCLI(TestCase):
 
     def test_successful_validation(self):
         self.assertOutputs(
-            files=dict(some_schema="{}", some_instance="{}"),
+            files={"some_schema": "{}", "some_instance": "{}"},
             argv=["-i", "some_instance", "some_schema"],
             stdout="",
             stderr="",
@@ -628,7 +628,7 @@ class TestCLI(TestCase):
 
     def test_successful_validation_pretty_output(self):
         self.assertOutputs(
-            files=dict(some_schema="{}", some_instance="{}"),
+            files={"some_schema": "{}", "some_instance": "{}"},
             argv=["--output", "pretty", "-i", "some_instance", "some_schema"],
             stdout="===[SUCCESS]===(some_instance)===\n",
             stderr="",
@@ -636,7 +636,7 @@ class TestCLI(TestCase):
 
     def test_successful_validation_of_stdin(self):
         self.assertOutputs(
-            files=dict(some_schema="{}"),
+            files={"some_schema": "{}"},
             stdin=StringIO("{}"),
             argv=["some_schema"],
             stdout="",
@@ -645,7 +645,7 @@ class TestCLI(TestCase):
 
     def test_successful_validation_of_stdin_pretty_output(self):
         self.assertOutputs(
-            files=dict(some_schema="{}"),
+            files={"some_schema": "{}"},
             stdin=StringIO("{}"),
             argv=["--output", "pretty", "some_schema"],
             stdout="===[SUCCESS]===(<stdin>)===\n",
@@ -654,7 +654,7 @@ class TestCLI(TestCase):
 
     def test_successful_validation_of_just_the_schema(self):
         self.assertOutputs(
-            files=dict(some_schema="{}", some_instance="{}"),
+            files={"some_schema": "{}", "some_instance": "{}"},
             argv=["-i", "some_instance", "some_schema"],
             stdout="",
             stderr="",
@@ -662,7 +662,7 @@ class TestCLI(TestCase):
 
     def test_successful_validation_of_just_the_schema_pretty_output(self):
         self.assertOutputs(
-            files=dict(some_schema="{}", some_instance="{}"),
+            files={"some_schema": "{}", "some_instance": "{}"},
             argv=["--output", "pretty", "-i", "some_instance", "some_schema"],
             stdout="===[SUCCESS]===(some_instance)===\n",
             stderr="",
@@ -679,7 +679,7 @@ class TestCLI(TestCase):
         schema = f'{{"$ref": "{ref_path.name}#/definitions/num"}}'
 
         self.assertOutputs(
-            files=dict(some_schema=schema, some_instance="1"),
+            files={"some_schema": schema, "some_instance": "1"},
             argv=[
                 "-i",
                 "some_instance",
@@ -702,7 +702,7 @@ class TestCLI(TestCase):
         schema = f'{{"$ref": "{ref_path.name}#/definitions/num"}}'
 
         self.assertOutputs(
-            files=dict(some_schema=schema, some_instance='"1"'),
+            files={"some_schema": schema, "some_instance": '"1"'},
             argv=[
                 "-i",
                 "some_instance",
@@ -721,10 +721,10 @@ class TestCLI(TestCase):
 
         with self.assertRaises(_RefResolutionError) as e:
             self.assertOutputs(
-                files=dict(
-                    some_schema=schema,
-                    some_instance=instance,
-                ),
+                files={
+                    "some_schema": schema,
+                    "some_instance": instance,
+                },
                 argv=[
                     "-i",
                     "some_instance",
@@ -742,10 +742,10 @@ class TestCLI(TestCase):
 
         with self.assertRaises(_RefResolutionError) as e:
             self.assertOutputs(
-                files=dict(
-                    some_schema=schema,
-                    some_instance=instance,
-                ),
+                files={
+                    "some_schema": schema,
+                    "some_instance": instance,
+                },
                 argv=[
                     "-i",
                     "some_instance",
@@ -769,7 +769,7 @@ class TestCLI(TestCase):
         self.assertIs(Draft202012Validator, _LATEST_VERSION)
 
         self.assertOutputs(
-            files=dict(some_schema='{"const": "check"}', some_instance='"a"'),
+            files={"some_schema": '{"const": "check"}', "some_instance": '"a"'},
             argv=["-i", "some_instance", "some_schema"],
             exit_code=1,
             stdout="",
@@ -788,7 +788,7 @@ class TestCLI(TestCase):
         """
         instance = '"foo"'
         self.assertOutputs(
-            files=dict(some_schema=schema, some_instance=instance),
+            files={"some_schema": schema, "some_instance": instance},
             argv=["-i", "some_instance", "some_schema"],
             exit_code=1,
             stdout="",
@@ -807,7 +807,7 @@ class TestCLI(TestCase):
             """
         instance = '"foo"'
         self.assertOutputs(
-            files=dict(some_schema=schema, some_instance=instance),
+            files={"some_schema": schema, "some_instance": instance},
             argv=["-i", "some_instance", "some_schema"],
             stdout="",
             stderr="",

@@ -136,8 +136,8 @@ def test_manual_cache_clearing():
     print("3. Testing selective cache clearing...")
 
     # Reload some caches
-    deployed_agents2 = loader._get_deployed_agents()
-    capabilities2 = loader._generate_agent_capabilities_section()
+    loader._get_deployed_agents()
+    loader._generate_agent_capabilities_section()
 
     # Clear only agent caches
     loader.clear_agent_caches()

@@ -142,7 +142,7 @@ class IntegrationTestSuite:
 
             try:
                 server2.is_already_running(raise_on_conflict=True)
-                assert False, "Should have raised DaemonConflictError"
+                raise AssertionError("Should have raised DaemonConflictError")
             except DaemonConflictError as e:
                 assert e.port == 18003, "Wrong port in error"
                 assert "RESOLUTION STEPS" in str(e), "Missing troubleshooting guide"
@@ -164,7 +164,7 @@ class IntegrationTestSuite:
 
                 try:
                     server2.is_already_running(raise_on_conflict=True)
-                    assert False, "Should have raised StaleProcessError"
+                    raise AssertionError("Should have raised StaleProcessError")
                 except StaleProcessError as e:
                     assert e.pid == 999992, "Wrong PID in error"
                     assert (
@@ -292,10 +292,8 @@ class IntegrationTestSuite:
             try:
                 import psutil
 
-                process_validation_available = True
                 print("   ✓ Process validation (psutil) available")
             except ImportError:
-                process_validation_available = False
                 print("   ⚠ Process validation (psutil) not available - using fallback")
 
             # Test should pass regardless of psutil availability
@@ -410,4 +408,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

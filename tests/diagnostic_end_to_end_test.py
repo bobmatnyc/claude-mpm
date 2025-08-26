@@ -16,6 +16,7 @@ WHY this comprehensive test:
 """
 
 import asyncio
+import contextlib
 import sys
 import threading
 import time
@@ -217,7 +218,7 @@ class EndToEndDiagnosticTest:
         self.server_thread.start()
 
         # Wait for server to start
-        for i in range(50):  # 5 second timeout
+        for _i in range(50):  # 5 second timeout
             if self.server_running:
                 break
             time.sleep(0.1)
@@ -460,7 +461,7 @@ class EndToEndDiagnosticTest:
             if events:
                 print(f"   {namespace}: {len(events)} events")
                 # Show event types
-                event_types = set(event["event"] for event in events)
+                event_types = {event["event"] for event in events}
                 print(f"      Event types: {', '.join(event_types)}")
 
         # Server-side analysis
@@ -526,10 +527,8 @@ class EndToEndDiagnosticTest:
 
         # Disconnect hook client
         if self.hook_client and self.hook_client_connected:
-            try:
+            with contextlib.suppress(Exception):
                 self.hook_client.disconnect()
-            except:
-                pass
 
         # Disconnect dashboard clients
         for namespace, client in self.dashboard_clients.items():

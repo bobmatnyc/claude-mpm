@@ -19,7 +19,7 @@ for parent in file_path.resolve().parents:
     found = [m for m in markers if (parent / m).exists()]
     if found:
         print(f"✓ Found markers at {parent}: {found}")
-        print(f"  This should be the project root!")
+        print("  This should be the project root!")
         break
     else:
         print(f"✗ No markers at {parent}")

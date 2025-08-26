@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 """Fix agent type tracking between Task invocation and SubagentStop events."""
 
-import os
-import sys
-from pathlib import Path
 
 
 def analyze_current_implementation():

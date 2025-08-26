@@ -119,7 +119,7 @@ Implementation complete.
 
     # Force reload to trigger migration
     manager2 = AgentMemoryManager(config, project_root)
-    pm_memory = manager2.load_agent_memory("PM")
+    manager2.load_agent_memory("PM")
 
     # Check if backup was created instead of deletion
     backup_file = user_mem_dir / "PM.md.backup"
@@ -206,7 +206,7 @@ def test_memory_hook_integration():
             "agent_id": "PM",
             "response": """
             Delegation complete.
-            
+
             ```json
             {
               "status": "success",

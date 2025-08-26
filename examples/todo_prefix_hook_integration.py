@@ -77,15 +77,14 @@ class ToolExecutorWithHooks:
         # Simulate tool execution
         if tool_name == "TodoWrite":
             todos = parameters.get("todos", [])
-            print(f"\n[TodoWrite Tool Executed]")
+            print("\n[TodoWrite Tool Executed]")
             print(f"Creating {len(todos)} todo items:")
             for todo in todos:
                 print(f"  - {todo['content']}")
             return {"success": True, "todos_created": len(todos)}
-        else:
-            print(f"\n[{tool_name} Tool Executed]")
-            print(f"Parameters: {parameters}")
-            return {"success": True}
+        print(f"\n[{tool_name} Tool Executed]")
+        print(f"Parameters: {parameters}")
+        return {"success": True}
 
 
 def demo_integration():
@@ -219,8 +218,8 @@ def demo_configuration_options():
     for i, executor in enumerate([executor1, executor2, executor3], 1):
         print(f"\nConfiguration {i}:")
         try:
-            result = executor.execute_tool("TodoWrite", test_params.copy())
-            print(f"Success!")
+            executor.execute_tool("TodoWrite", test_params.copy())
+            print("Success!")
         except ValueError as e:
             print(f"Blocked: {e}")
 

@@ -10,10 +10,11 @@ of the Agentic Coder Optimizer agent.
 import json
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
 
 from claude_mpm.services.agents.agent_builder import AgentBuilderService
-from claude_mpm.services.agents.deployment.agent_deployment import AgentDeploymentService
+from claude_mpm.services.agents.deployment.agent_deployment import (
+    AgentDeploymentService,
+)
 
 
 class TestAgenticCoderOptimizerAgent(unittest.TestCase):
@@ -42,7 +43,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
 
     def test_agent_template_valid_json(self):
         """Test that the agent template is valid JSON."""
-        with open(self.template_path, "r") as f:
+        with open(self.template_path) as f:
             try:
                 data = json.load(f)
                 self.assertIsInstance(data, dict)
@@ -51,7 +52,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
 
     def test_agent_template_required_fields(self):
         """Test that the agent template has all required fields."""
-        with open(self.template_path, "r") as f:
+        with open(self.template_path) as f:
             data = json.load(f)
 
         # Check required top-level fields
@@ -74,7 +75,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
 
     def test_agent_metadata_complete(self):
         """Test that agent metadata is complete and correct."""
-        with open(self.template_path, "r") as f:
+        with open(self.template_path) as f:
             data = json.load(f)
 
         metadata = data.get("metadata", {})
@@ -86,31 +87,31 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
 
     def test_agent_capabilities_configured(self):
         """Test that agent capabilities are properly configured."""
-        with open(self.template_path, "r") as f:
+        with open(self.template_path) as f:
             data = json.load(f)
 
         capabilities = data.get("capabilities", {})
-        
+
         # Check model configuration
         self.assertEqual(capabilities.get("model"), "sonnet")
-        
+
         # Check required tools are present
         required_tools = ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
         agent_tools = capabilities.get("tools", [])
         for tool in required_tools:
             self.assertIn(tool, agent_tools, f"Missing required tool: {tool}")
-        
+
         # Check resource limits
         self.assertGreater(capabilities.get("max_tokens", 0), 0)
         self.assertGreater(capabilities.get("timeout", 0), 0)
 
     def test_agent_instructions_present(self):
         """Test that agent instructions are present and comprehensive."""
-        with open(self.template_path, "r") as f:
+        with open(self.template_path) as f:
             data = json.load(f)
 
         instructions = data.get("instructions", "")
-        
+
         # Check key sections are present
         self.assertIn("Core Mission", instructions)
         self.assertIn("Core Responsibilities", instructions)
@@ -122,7 +123,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
         """Test that the agent appears in available templates."""
         templates = self.builder_service.list_available_templates()
         agent_ids = [t["id"] for t in templates]
-        
+
         # Note: The service might return with underscores
         self.assertIn(
             self.agent_id,
@@ -134,7 +135,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
         """Test that the agent can be loaded by the builder service."""
         try:
             # Test that the template file can be loaded directly
-            with open(self.template_path, "r") as f:
+            with open(self.template_path) as f:
                 template = json.load(f)
             self.assertIsNotNone(template)
             self.assertEqual(template.get("agent_id"), "agentic-coder-optimizer")
@@ -146,15 +147,15 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
         # Test that the agent template can be deployed
         # We'll just verify the template is valid for deployment
         try:
-            with open(self.template_path, "r") as f:
+            with open(self.template_path) as f:
                 template = json.load(f)
-            
+
             # Verify deployment-critical fields
             self.assertIn("agent_id", template)
             self.assertIn("agent_version", template)
             self.assertIn("instructions", template)
             self.assertIn("capabilities", template)
-            
+
             # Verify the agent appears in the deployed agents list
             deploy_path = Path.cwd() / ".claude" / "agents"
             if deploy_path.exists():
@@ -162,25 +163,25 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
                 agent_md_file = deploy_path / f"{self.agent_id}.md"
                 self.assertTrue(
                     agent_md_file.exists(),
-                    f"Deployed agent file {agent_md_file} exists"
+                    f"Deployed agent file {agent_md_file} exists",
                 )
             else:
                 # If not deployed, at least verify template is valid
                 self.assertTrue(True, "Template is valid for deployment")
-                
+
         except Exception as e:
             self.fail(f"Agent deployment validation failed: {e}")
 
     def test_agent_memory_routing_configured(self):
         """Test that memory routing is properly configured."""
-        with open(self.template_path, "r") as f:
+        with open(self.template_path) as f:
             data = json.load(f)
 
         memory_routing = data.get("memory_routing", {})
         self.assertIn("description", memory_routing)
         self.assertIn("categories", memory_routing)
         self.assertIn("keywords", memory_routing)
-        
+
         # Check important keywords are present
         keywords = memory_routing.get("keywords", [])
         important_keywords = ["optimization", "documentation", "workflow", "agentic"]
@@ -189,21 +190,21 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
 
     def test_agent_testing_config_valid(self):
         """Test that the agent's testing configuration is valid."""
-        with open(self.template_path, "r") as f:
+        with open(self.template_path) as f:
             data = json.load(f)
 
         testing = data.get("testing", {})
-        
+
         # Check test cases are defined
         test_cases = testing.get("test_cases", [])
         self.assertGreater(len(test_cases), 0, "No test cases defined")
-        
+
         # Check each test case has required fields
         for test_case in test_cases:
             self.assertIn("name", test_case)
             self.assertIn("input", test_case)
             self.assertIn("expected_behavior", test_case)
-            
+
         # Check performance benchmarks
         benchmarks = testing.get("performance_benchmarks", {})
         self.assertIn("response_time", benchmarks)
@@ -211,16 +212,16 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
 
     def test_agent_version_consistency(self):
         """Test that agent version is consistent across configurations."""
-        with open(self.template_path, "r") as f:
+        with open(self.template_path) as f:
             data = json.load(f)
-        
+
         # Check version consistency
         agent_version = data.get("agent_version")
         template_version = data.get("template_version")
-        
+
         self.assertEqual(agent_version, "0.0.5", "Agent version mismatch")
         self.assertEqual(template_version, "0.0.5", "Template version mismatch")
-        
+
         # Check changelog has current version
         changelog = data.get("template_changelog", [])
         if changelog:

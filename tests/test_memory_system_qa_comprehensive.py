@@ -59,7 +59,7 @@ class TestMemorySystemQA:
 
             # Create a new memory for an agent
             agent_id = "engineer"
-            memory_content = memory_manager.load_agent_memory(agent_id)
+            memory_manager.load_agent_memory(agent_id)
 
             # Verify the file was created with correct naming
             expected_file = self.project_memories_dir / f"{agent_id}_memories.md"

@@ -365,7 +365,7 @@ class TestTicketLegacyFunctions:
         )
 
         with patch("subprocess.run", side_effect=FileNotFoundError):
-            with patch("builtins.print") as mock_print:
+            with patch("builtins.print"):
                 result = list_tickets_legacy(args)
 
         assert result == 0

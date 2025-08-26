@@ -241,7 +241,7 @@ def test_memory_hook_config_check():
         metadata={},
         timestamp=datetime.now(),
     )
-    result = service.execute_pre_delegation_hooks(context)
+    service.execute_pre_delegation_hooks(context)
 
     # Memory hook shouldn't execute when memory is disabled
     assert hook.executed is False

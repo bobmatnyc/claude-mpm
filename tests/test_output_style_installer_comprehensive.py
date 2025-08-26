@@ -253,7 +253,7 @@ class OutputStyleTester:
 
         initial_content = style_file.read_text()
         initial_settings = json.loads(settings_file.read_text())
-        initial_mtime = style_file.stat().st_mtime
+        style_file.stat().st_mtime
 
         # Second deployment (should be idempotent)
         result2 = manager.deploy_output_style(test_content)

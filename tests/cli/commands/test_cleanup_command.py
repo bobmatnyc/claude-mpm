@@ -49,13 +49,13 @@ class TestCleanupCommand:
 
     def test_validate_args_invalid_type():
         """Test validation with invalid cleanup type."""
-        args = Namespace(cleanup_type="invalid", dry_run=False, force=False)
+        Namespace(cleanup_type="invalid", dry_run=False, force=False)
         # Depending on implementation, this might be caught in validation
         # or during execution
 
     @patch("claude_mpm.cli.commands.cleanup.Path")
     @patch("claude_mpm.cli.commands.cleanup.shutil")
-    def test_run_memory_cleanup(mock_shutil, mock_path_class):
+    def test_run_memory_cleanup(self, mock_path_class):
         """Test memory cleanup operation."""
         mock_path = Mock()
         mock_path.exists.return_value = True
@@ -81,7 +81,7 @@ class TestCleanupCommand:
             mock_cleanup.assert_called_once_with(args)
 
     @patch("claude_mpm.cli.commands.cleanup.Path")
-    def test_run_memory_cleanup_dry_run(mock_path_class):
+    def test_run_memory_cleanup_dry_run(self):
         """Test memory cleanup in dry-run mode."""
         mock_path = Mock()
         mock_path.exists.return_value = True
@@ -89,7 +89,7 @@ class TestCleanupCommand:
             Path("/mock/path/.claude.json"),
             Path("/mock/path/.claude_cache.json"),
         ]
-        mock_path_class.return_value = mock_path
+        self.return_value = mock_path
 
         args = Namespace(
             cleanup_type="memory",
@@ -210,17 +210,17 @@ class TestCleanupCommand:
         )
 
         with patch("builtins.input", return_value="n"):
-            result = self.command.run(args)
+            self.command.run(args)
 
             # Depending on implementation, might return success with no action
             # or a specific cancellation result
 
     @patch("claude_mpm.cli.commands.cleanup.Path")
-    def test_cleanup_permission_error(mock_path_class):
+    def test_cleanup_permission_error(self):
         """Test handling permission errors during cleanup."""
         mock_path = Mock()
         mock_path.unlink.side_effect = PermissionError("Access denied")
-        mock_path_class.return_value = mock_path
+        self.return_value = mock_path
 
         args = Namespace(
             cleanup_type="memory", dry_run=False, force=True, format="text"

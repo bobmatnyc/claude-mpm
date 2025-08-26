@@ -40,39 +40,39 @@ class TestUnifiedPathManager:
         # Should contain agent files
         assert list(agents_dir.glob("*.md")) or list(agents_dir.glob("*.py"))
 
-    def test_get_project_root_with_git(tmp_path):
+    def test_get_project_root_with_git(self):
         """Test project root detection with .git directory."""
         # Create a temporary project structure
-        git_dir = tmp_path / ".git"
+        git_dir = self / ".git"
         git_dir.mkdir()
 
         # Change to a subdirectory
-        subdir = tmp_path / "src" / "submodule"
+        subdir = self / "src" / "submodule"
         subdir.mkdir(parents=True)
 
         with patch("pathlib.Path.cwd", return_value=subdir):
             root = get_path_manager().project_root
-            assert root == tmp_path
+            assert root == self
 
-    def test_get_project_root_with_pyproject(tmp_path):
+    def test_get_project_root_with_pyproject(self):
         """Test project root detection with pyproject.toml."""
         # Create pyproject.toml
-        (tmp_path / "pyproject.toml").touch()
+        (self / "pyproject.toml").touch()
 
         # Change to subdirectory
-        subdir = tmp_path / "src"
+        subdir = self / "src"
         subdir.mkdir()
 
         with patch("pathlib.Path.cwd", return_value=subdir):
             root = get_path_manager().project_root
-            assert root == tmp_path
+            assert root == self
 
-    def test_get_project_root_fallback_to_cwd(tmp_path):
+    def test_get_project_root_fallback_to_cwd(self):
         """Test project root fallback to current directory."""
         # No project markers
-        with patch("pathlib.Path.cwd", return_value=tmp_path):
+        with patch("pathlib.Path.cwd", return_value=self):
             root = get_path_manager().project_root
-            assert root == tmp_path
+            assert root == self
 
     def test_get_config_dir_project():
         """Test project config directory."""
@@ -97,22 +97,22 @@ class TestUnifiedPathManager:
         with pytest.raises(ValueError, match="Invalid scope"):
             get_path_manager().get_config_dir("invalid")
 
-    def test_find_file_upwards(tmp_path):
+    def test_find_file_upwards(self):
         """Test upward file search."""
         # Create file in parent
-        target_file = tmp_path / "target.txt"
+        target_file = self / "target.txt"
         target_file.touch()
 
         # Search from subdirectory
-        subdir = tmp_path / "a" / "b" / "c"
+        subdir = self / "a" / "b" / "c"
         subdir.mkdir(parents=True)
 
         result = get_path_manager().find_file_upwards("target.txt", subdir)
         assert result == target_file
 
-    def test_find_file_upwards_not_found(tmp_path):
+    def test_find_file_upwards_not_found(self):
         """Test upward file search when file doesn't exist."""
-        result = get_path_manager().find_file_upwards("nonexistent.txt", tmp_path)
+        result = get_path_manager().find_file_upwards("nonexistent.txt", self)
         assert result is None
 
     def test_get_project_config_dir():
@@ -121,9 +121,9 @@ class TestUnifiedPathManager:
         assert config_dir.name == ".claude-mpm"
         assert config_dir.parent == get_path_manager().project_root
 
-    def test_ensure_directory(tmp_path):
+    def test_ensure_directory(self):
         """Test directory creation."""
-        new_dir = tmp_path / "new" / "nested" / "dir"
+        new_dir = self / "new" / "nested" / "dir"
         result = get_path_manager().ensure_directory(new_dir)
 
         assert result == new_dir

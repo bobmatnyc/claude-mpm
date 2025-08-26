@@ -78,7 +78,7 @@ class CircuitBreakerPerformanceTest:
                 }
                 failure_states.append(state_info)
 
-            result = {
+            return {
                 "status": "completed",
                 "initial_state": initial_state.value,
                 "initial_can_execute": initial_can_execute,
@@ -92,7 +92,6 @@ class CircuitBreakerPerformanceTest:
                 "prevents_execution_when_open": not failure_states[-1]["can_execute"],
             }
 
-            return result
 
         except Exception as e:
             return {"status": "error", "error": str(e)}
@@ -138,7 +137,7 @@ class CircuitBreakerPerformanceTest:
             # Record elapsed time
             elapsed_time = (datetime.now() - open_time).total_seconds()
 
-            result = {
+            return {
                 "status": "completed",
                 "configured_timeout": 2,
                 "open_state": open_state,
@@ -157,7 +156,6 @@ class CircuitBreakerPerformanceTest:
                 "timeout_respected": elapsed_time >= 2.0,
             }
 
-            return result
 
         except Exception as e:
             return {"status": "error", "error": str(e)}
@@ -212,7 +210,7 @@ class CircuitBreakerPerformanceTest:
             failure_recovery_state = circuit_failure.state.value
             failure_recovery_can_execute = circuit_failure.can_execute()
 
-            result = {
+            return {
                 "status": "completed",
                 "half_open_state": half_open_state,
                 "half_open_allows_execution": half_open_can_execute,
@@ -235,7 +233,6 @@ class CircuitBreakerPerformanceTest:
                 and not failure_recovery_can_execute,
             }
 
-            return result
 
         except Exception as e:
             return {"status": "error", "error": str(e)}
@@ -277,7 +274,7 @@ class CircuitBreakerPerformanceTest:
             avg_open_time = sum(open_execution_times) / len(open_execution_times)
             max_open_time = max(open_execution_times)
 
-            result = {
+            return {
                 "status": "completed",
                 "closed_execution_time": closed_execution_time,
                 "closed_can_execute": can_execute_closed,
@@ -291,7 +288,6 @@ class CircuitBreakerPerformanceTest:
                 "rejection_rate": 100.0,  # Should reject 100% when open
             }
 
-            return result
 
         except Exception as e:
             return {"status": "error", "error": str(e)}
@@ -366,7 +362,7 @@ class CircuitBreakerPerformanceTest:
 
             pool.stop()
 
-            result = {
+            return {
                 "status": "completed",
                 "initial_state": initial_state,
                 "initial_stats": initial_stats,
@@ -387,7 +383,6 @@ class CircuitBreakerPerformanceTest:
                 "integration_working": True,  # If we got this far without exceptions
             }
 
-            return result
 
         except Exception as e:
             return {"status": "error", "error": str(e)}

@@ -21,7 +21,7 @@ from claude_mpm.services.agents.deployment.agent_deployment import (
 
 def test_agent_exclusion():
     """Test agent exclusion functionality."""
-    logger = get_logger("test_exclusion")
+    get_logger("test_exclusion")
 
     print("=" * 80)
     print("AGENT EXCLUSION TEST")
@@ -125,7 +125,7 @@ def test_agent_exclusion():
             target_dir=target_dir, force_rebuild=True, config=config
         )
 
-        case_sensitive_count = len(results["deployed"]) + len(results["updated"])
+        len(results["deployed"]) + len(results["updated"])
 
         # These should NOT be excluded because case doesn't match
         deployed_agents = [agent["name"] for agent in results["deployed"]]

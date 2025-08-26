@@ -268,7 +268,7 @@ class SocketIOServer(SocketIOServiceInterface):
         # Stop code analysis handler
         if self.event_registry:
             from ..handlers import CodeAnalysisEventHandler, ConnectionEventHandler
-            
+
             # Stop analysis runner
             analysis_handler = self.event_registry.get_handler(CodeAnalysisEventHandler)
             if analysis_handler and hasattr(analysis_handler, "cleanup"):

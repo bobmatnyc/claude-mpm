@@ -280,9 +280,9 @@ class TestMCPGatewayStartupIntegration:
         assert True  # If we get here, the function didn't block
 
     @patch("claude_mpm.cli.commands.is_mcp_gateway_configured")
-    def test_cli_startup_with_configured_gateway(mock_is_configured):
+    def test_cli_startup_with_configured_gateway(self):
         """Test CLI startup when gateway is already configured."""
-        mock_is_configured.return_value = True
+        self.return_value = True
 
         from claude_mpm.cli import _verify_mcp_gateway_startup
 
@@ -293,7 +293,7 @@ class TestMCPGatewayStartupIntegration:
 
         # Should be very fast (less than 1 second)
         assert (end_time - start_time) < 1.0
-        mock_is_configured.assert_called_once()
+        self.assert_called_once()
 
     def test_background_verification_thread():
         """Test that verification runs in background thread."""

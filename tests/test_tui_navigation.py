@@ -42,11 +42,11 @@ class TestNavigationApp(App):
         height: 100%;
         border-right: solid blue;
     }
-    
+
     #nav-list > ListItem {
         padding: 1;
     }
-    
+
     #nav-list > ListItem.--highlight {
         background: $boost;
     }

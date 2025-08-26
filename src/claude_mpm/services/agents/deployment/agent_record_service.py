@@ -217,7 +217,7 @@ class AgentRecordService(BaseService):
         Returns:
             Deserialized AgentLifecycleRecord
         """
-        record = AgentLifecycleRecord(
+        return AgentLifecycleRecord(
             agent_name=data["agent_name"],
             current_state=LifecycleState(data["current_state"]),
             tier=ModificationTier(data["tier"]),
@@ -232,7 +232,6 @@ class AgentRecordService(BaseService):
             validation_errors=data.get("validation_errors", []),
             metadata=data.get("metadata", {}),
         )
-        return record
 
     async def export_records(self, output_path: Path, format: str = "json") -> bool:
         """

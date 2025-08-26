@@ -67,9 +67,8 @@ def test_deployment():
 
                 if claude_md_path.exists():
                     print("\n❌ ERROR: CLAUDE.md was created (this should not happen!)")
-                    assert False, "CLAUDE.md should not be created"
-                else:
-                    print("\n✓ CLAUDE.md was NOT created (correct)")
+                    raise AssertionError("CLAUDE.md should not be created")
+                print("\n✓ CLAUDE.md was NOT created (correct)")
 
                 if instructions_md_path.exists():
                     print("✓ INSTRUCTIONS.md was created (correct)")
@@ -95,7 +94,7 @@ def test_deployment():
             import traceback
 
             traceback.print_exc()
-            assert False, f"Test failed with error: {e}"
+            raise AssertionError(f"Test failed with error: {e}")
 
 
 if __name__ == "__main__":

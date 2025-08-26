@@ -224,7 +224,7 @@ class TestCacheManager(unittest.TestCase):
         def reader_thread():
             """Thread that reads from cache."""
             try:
-                for i in range(50):
+                for _i in range(50):
                     cap = self.cache_manager.get_capabilities()
                     agents = self.cache_manager.get_deployed_agents()
                     if cap:
@@ -337,7 +337,7 @@ class TestCacheManagerIntegration(unittest.TestCase):
         mock_fs_cache_class.return_value = mock_fs_cache
 
         # Create cache manager
-        manager = CacheManager(
+        CacheManager(
             capabilities_ttl=100,
             deployed_agents_ttl=50,
             metadata_ttl=75,

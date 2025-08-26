@@ -415,15 +415,14 @@ class TestBaseAgentOperations(TestAgentDeploymentService):
         # Create new service to trigger _find_base_agent_file
         with patch(
             "claude_mpm.services.agents.deployment.agent_deployment.logger"
-        ) as mock_logger:
-            with patch.object(
-                AgentDeploymentService, "__init__", lambda self, *args, **kwargs: None
-            ):
-                test_service = AgentDeploymentService()
-                # Use a Mock that has a logger attribute
-                test_service._logger = Mock()
-                test_service.logger = test_service._logger
-                result = test_service._find_base_agent_file()
+        ), patch.object(
+            AgentDeploymentService, "__init__", lambda self, *args, **kwargs: None
+        ):
+            test_service = AgentDeploymentService()
+            # Use a Mock that has a logger attribute
+            test_service._logger = Mock()
+            test_service.logger = test_service._logger
+            result = test_service._find_base_agent_file()
 
         assert result == base_agent_path
 
@@ -620,7 +619,7 @@ class TestConfiguration(TestAgentDeploymentService):
             mock_resolver.determine_agents_directory.return_value = target_dir
             mock_resolver_class.return_value = mock_resolver
 
-            result = service._determine_agents_directory(target_dir)
+            service._determine_agents_directory(target_dir)
 
         mock_resolver.determine_agents_directory.assert_called_with(target_dir)
 
@@ -1300,7 +1299,7 @@ class TestDeploymentIntegration(TestAgentDeploymentService):
                 with patch.object(service, "_convert_yaml_to_md") as mock_convert:
                     mock_convert.return_value = {"converted": []}
 
-                    result = service.deploy_agents(config=mock_config)
+                    service.deploy_agents(config=mock_config)
 
         # Verify excluded agents were passed to discovery service
         mock_dependencies["discovery_service"].get_filtered_templates.assert_called()

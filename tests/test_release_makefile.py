@@ -32,22 +32,6 @@ def test_makefile_targets():
     print("🔍 Testing Makefile release targets...")
 
     # Expected release targets
-    expected_targets = [
-        "release-check",
-        "release-patch",
-        "release-minor",
-        "release-major",
-        "release-build",
-        "release-publish",
-        "release-verify",
-        "release-dry-run",
-        "release-test-pypi",
-        "release-test",
-        "release-sync-versions",
-        "release",
-        "release-full",
-        "release-help",
-    ]
 
     # Check if targets are defined
     success, stdout, stderr = run_subcommand("make -n help")

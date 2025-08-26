@@ -36,8 +36,7 @@ class TestAgentMemoryManager:
             # Create a config object with default memory settings
             config = MagicMock()
             config.get.return_value = {"memory": {"enabled": True, "max_size": 1000000}}
-            manager = AgentMemoryManager(config)
-            return manager
+            return AgentMemoryManager(config)
 
     def test_initialization_creates_directory_structure(
         self, memory_manager, temp_project_dir
@@ -51,9 +50,9 @@ class TestAgentMemoryManager:
         assert readme_file.exists()
         assert "Agent Memory System" in readme_file.read_text()
 
-    def test_load_agent_memory_creates_default(memory_manager):
+    def test_load_agent_memory_creates_default(self):
         """Test that loading non-existent memory creates default."""
-        memory = memory_manager.load_agent_memory("test_agent")
+        memory = self.load_agent_memory("test_agent")
 
         assert "Test Agent Memory" in memory
         assert "Project Architecture" in memory
@@ -61,25 +60,25 @@ class TestAgentMemoryManager:
         assert "Common Mistakes to Avoid" in memory
         assert "Current Technical Context" in memory
 
-    def test_add_learning_to_existing_section(memory_manager):
+    def test_add_learning_to_existing_section(self):
         """Test adding learning to an existing section."""
         # Create initial memory
-        memory_manager.load_agent_memory("engineer")
+        self.load_agent_memory("engineer")
 
         # Add a pattern learning
-        success = memory_manager.add_learning(
+        success = self.add_learning(
             "engineer", "pattern", "Use Factory pattern for object creation"
         )
         assert success
 
         # Verify it was added
-        memory = memory_manager.load_agent_memory("engineer")
+        memory = self.load_agent_memory("engineer")
         assert "Factory pattern" in memory
 
-    def test_add_learning_respects_item_limits(memory_manager):
+    def test_add_learning_respects_item_limits(self):
         """Test that section item limits are enforced."""
         # First, load to see how many default items exist
-        initial_memory = memory_manager.load_agent_memory("qa")
+        initial_memory = self.load_agent_memory("qa")
 
         # Count existing items in Common Mistakes section
         lines = initial_memory.split("\n")
@@ -96,15 +95,15 @@ class TestAgentMemoryManager:
         # Add items to reach the limit
         items_to_add = 15 - existing_count
         for i in range(items_to_add):
-            memory_manager.add_learning("qa", "mistake", f"Mistake number {i}")
+            self.add_learning("qa", "mistake", f"Mistake number {i}")
 
         # Add one more - should remove the oldest
-        memory_manager.add_learning(
+        self.add_learning(
             "qa", "mistake", "New mistake that should replace oldest"
         )
 
         # Verify total count is still 15
-        memory = memory_manager.load_agent_memory("qa")
+        memory = self.load_agent_memory("qa")
         lines = memory.split("\n")
         item_count = 0
         in_mistakes_section = False
@@ -119,41 +118,39 @@ class TestAgentMemoryManager:
         assert item_count == 15, f"Expected 15 items, got {item_count}"
         assert "New mistake" in memory  # New one added
 
-    def test_line_length_truncation(memory_manager):
+    def test_line_length_truncation(self):
         """Test that long lines are truncated."""
         long_content = "A" * 150  # Exceeds 120 char limit
 
-        memory_manager.add_learning("research", "pattern", long_content)
+        self.add_learning("research", "pattern", long_content)
 
-        memory = memory_manager.load_agent_memory("research")
+        memory = self.load_agent_memory("research")
         # Should be truncated to 117 chars + "..."
         assert "AAA..." in memory
         assert (
             len(
-                [line for line in memory.split("\n") if line.strip().startswith("- A")][
-                    0
-                ]
+                next(line for line in memory.split("\n") if line.strip().startswith("- A"))
             )
             <= 122
         )  # "- " prefix
 
-    def test_update_timestamp(memory_manager):
+    def test_update_timestamp(self):
         """Test that timestamps are updated on changes."""
         # Create initial memory
-        initial_memory = memory_manager.load_agent_memory("security")
+        self.load_agent_memory("security")
 
         # Add a learning
-        memory_manager.add_learning("security", "guideline", "Always validate input")
+        self.add_learning("security", "guideline", "Always validate input")
 
         # Check timestamp was updated
-        updated_memory = memory_manager.load_agent_memory("security")
+        updated_memory = self.load_agent_memory("security")
         assert "<!-- Last Updated:" in updated_memory
         assert "Auto-updated by: system -->" in updated_memory
 
-    def test_validate_and_repair_missing_sections(memory_manager):
+    def test_validate_and_repair_missing_sections(self):
         """Test that missing required sections are added during validation."""
         # Create a memory file with missing sections
-        memory_file = memory_manager.memories_dir / "broken_agent.md"
+        memory_file = self.memories_dir / "broken_agent.md"
         memory_file.write_text(
             """# Broken Agent Memory
 
@@ -166,38 +163,38 @@ class TestAgentMemoryManager:
         )
 
         # Load should repair it
-        memory = memory_manager.load_agent_memory("broken")
+        memory = self.load_agent_memory("broken")
 
         # Check all required sections exist
-        for section in memory_manager.REQUIRED_SECTIONS:
+        for section in self.REQUIRED_SECTIONS:
             assert f"## {section}" in memory
 
-    def test_size_limit_enforcement(memory_manager):
+    def test_size_limit_enforcement(self):
         """Test that file size limits are enforced."""
         # Add many items to approach size limit
         for i in range(100):
-            memory_manager.add_learning("data", "pattern", f"Pattern {i}: " + "X" * 80)
+            self.add_learning("data", "pattern", f"Pattern {i}: " + "X" * 80)
 
         # File should still exist and be under limit
-        memory_file = memory_manager.memories_dir / "data_agent.md"
+        memory_file = self.memories_dir / "data_agent.md"
         assert memory_file.exists()
 
         file_size_kb = len(memory_file.read_bytes()) / 1024
-        assert file_size_kb <= memory_manager.memory_limits["max_file_size_kb"]
+        assert file_size_kb <= self.memory_limits["max_file_size_kb"]
 
-    def test_error_handling_continues_operation(memory_manager):
+    def test_error_handling_continues_operation(self):
         """Test that errors don't break the memory system."""
         # Mock a write error
         with patch.object(Path, "write_text", side_effect=OSError("Disk full")):
             # Should return False but not raise
-            success = memory_manager.add_learning("ops", "mistake", "Some mistake")
+            success = self.add_learning("ops", "mistake", "Some mistake")
             assert not success
 
         # Should still be able to read
-        memory = memory_manager.load_agent_memory("ops")
+        memory = self.load_agent_memory("ops")
         assert "Ops Agent Memory" in memory
 
-    def test_learning_type_mapping(memory_manager):
+    def test_learning_type_mapping(self):
         """Test that learning types map to correct sections."""
         mappings = [
             ("pattern", "Coding Patterns Learned"),
@@ -213,11 +210,11 @@ class TestAgentMemoryManager:
         ]
 
         for learning_type, expected_section in mappings:
-            memory_manager.add_learning(
+            self.add_learning(
                 "test", learning_type, f"Test {learning_type} content"
             )
 
-        memory = memory_manager.load_agent_memory("test")
+        memory = self.load_agent_memory("test")
 
         # Verify each learning went to correct section
         lines = memory.split("\n")

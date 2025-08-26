@@ -242,7 +242,7 @@ First block:
 ```
 
 Second block:
-```json  
+```json
 {"MEMORIES": ["Second block replaces all"]}
 ```
 """,

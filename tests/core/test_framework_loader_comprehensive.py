@@ -16,13 +16,12 @@ import pytest
 @pytest.fixture(autouse=True)
 def mock_dependencies():
     """Mock all external dependencies for FrameworkLoader."""
-    with patch("claude_mpm.core.framework_loader.get_logger") as mock_logger:
-        with patch(
-            "claude_mpm.core.framework_loader.AgentRegistryAdapter"
-        ) as mock_registry:
-            mock_logger.return_value = MagicMock()
-            mock_registry.return_value = MagicMock()
-            yield {"logger": mock_logger, "registry": mock_registry}
+    with patch("claude_mpm.core.framework_loader.get_logger") as mock_logger, patch(
+        "claude_mpm.core.framework_loader.AgentRegistryAdapter"
+    ) as mock_registry:
+        mock_logger.return_value = MagicMock()
+        mock_registry.return_value = MagicMock()
+        yield {"logger": mock_logger, "registry": mock_registry}
 
 
 # Import after setting up mocks
@@ -110,7 +109,7 @@ class TestInstructionLoading:
         """Test INSTRUCTIONS.md loading precedence: project > user > system."""
         # Setup directory structure
         project_dir = tmp_path / ".claude-mpm"
-        user_dir = Path.home() / ".claude-mpm"
+        Path.home() / ".claude-mpm"
         system_dir = tmp_path / "system" / "claude_mpm" / "agents"
 
         project_dir.mkdir(parents=True)
@@ -190,7 +189,7 @@ class TestMemorySystem:
         """Test loading PM memories from user and project directories."""
         # Setup memory directories
         project_memories = tmp_path / ".claude-mpm" / "memories"
-        user_memories = Path.home() / ".claude-mpm" / "memories"
+        Path.home() / ".claude-mpm" / "memories"
         project_memories.mkdir(parents=True)
 
         # Create PM memory files

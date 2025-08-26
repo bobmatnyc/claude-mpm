@@ -171,7 +171,7 @@ class DependencyAnalyzerService:
                 if any(pkg in dep_lower for pkg in db_packages):
                     databases.add(db_name)
 
-        return sorted(list(databases))
+        return sorted(databases)
 
     def detect_testing_frameworks(
         self, dependencies: Optional[List[str]] = None
@@ -201,7 +201,7 @@ class DependencyAnalyzerService:
                         testing_frameworks.add(dep)
                         break
 
-        return sorted(list(testing_frameworks))
+        return sorted(testing_frameworks)
 
     def detect_web_frameworks(self, dependencies: List[str]) -> List[str]:
         """Detect web frameworks from dependencies.
@@ -343,7 +343,7 @@ class DependencyAnalyzerService:
             for dep in all_deps:
                 dep_lower = dep.lower()
                 # Check for database packages
-                for db_name, db_packages in self.DATABASE_PACKAGES.items():
+                for _db_name, db_packages in self.DATABASE_PACKAGES.items():
                     if any(pkg in dep_lower for pkg in db_packages):
                         dependencies["databases"].append(dep)
 
@@ -407,7 +407,7 @@ class DependencyAnalyzerService:
                     dep_lower = dep.lower()
 
                     # Check databases
-                    for db_name, db_packages in self.DATABASE_PACKAGES.items():
+                    for _db_name, db_packages in self.DATABASE_PACKAGES.items():
                         if any(pkg in dep_lower for pkg in db_packages):
                             dependencies["databases"].append(dep)
 

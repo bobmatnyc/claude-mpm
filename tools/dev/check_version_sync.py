@@ -101,7 +101,7 @@ def check_versions():
         errors.append(f"Version mismatch detected: {versions}")
     elif len(unique_versions) == 1:
         # All versions match - success!
-        print(f"\n✅ All versions are synchronized: {list(unique_versions)[0]}")
+        print(f"\n✅ All versions are synchronized: {next(iter(unique_versions))}")
 
     # Report errors with clear formatting
     if errors:

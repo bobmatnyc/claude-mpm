@@ -79,7 +79,7 @@ class TestMemoryAggregation:
         lines = result.split("\n")
         section_a_idx = lines.index("## Section A")
         section_b_idx = lines.index("## Section B")
-        section_c_idx = lines.index("## Section C")
+        lines.index("## Section C")
 
         # Section A should have all unique items
         section_a_content = "\n".join(lines[section_a_idx:section_b_idx])

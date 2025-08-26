@@ -225,7 +225,7 @@ class AgentDependencyService(IAgentDependencyService):
             all_python_deps = set()
             all_system_deps = set()
 
-            for agent_id, deps in loader.agent_dependencies.items():
+            for _agent_id, deps in loader.agent_dependencies.items():
                 if "python" in deps:
                     all_python_deps.update(deps["python"])
                 if "system" in deps:

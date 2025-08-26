@@ -160,10 +160,7 @@ def test_complete_integration():
     print("\nIntegration check:")
     all_present = True
     for section_name, check in expected_sections:
-        if isinstance(check, bool):
-            present = check
-        else:
-            present = check
+        present = check if isinstance(check, bool) else check
 
         status = "✓" if present else "✗"
         print(f"  {status} {section_name}")

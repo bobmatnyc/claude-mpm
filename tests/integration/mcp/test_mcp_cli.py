@@ -32,7 +32,7 @@ def test_mcp_commands():
     all_passed = True
 
     for cmd_parts in commands:
-        cmd = ["python", "-m", "claude_mpm.cli"] + cmd_parts
+        cmd = ["python", "-m", "claude_mpm.cli", *cmd_parts]
         cmd_str = " ".join(cmd_parts)
 
         try:

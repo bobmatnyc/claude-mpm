@@ -36,7 +36,7 @@ print()
 
 # Analyze what's in framework_content
 print("Framework content keys:")
-for key in content.keys():
+for key in content:
     if isinstance(content[key], str):
         print(f"  {key}: {len(content[key]):,} chars")
     elif isinstance(content[key], dict):

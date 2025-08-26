@@ -145,7 +145,7 @@ def test_async_convenience_function():
     """Test the async convenience function for global usage."""
     print("\n=== Testing Async Convenience Function ===")
 
-    with tmp_path as tmpdir:
+    with tmp_path:
         # Set environment to control logger
         os.environ["CLAUDE_LOG_FORMAT"] = "json"
 
@@ -325,9 +325,8 @@ def test_metadata_handling():
             ),
         ]
 
-        filenames_created = []
 
-        for req_summary, response, metadata, expected_prefix in test_cases:
+        for req_summary, response, metadata, _expected_prefix in test_cases:
             logger.log_response(req_summary, response, metadata)
 
         logger.flush(timeout=5.0)

@@ -252,7 +252,7 @@ def main():
     events = create_test_events()
 
     # Save to file
-    output_path = save_test_events(events)
+    save_test_events(events)
 
     # Analyze expected results
     analyze_results(events)

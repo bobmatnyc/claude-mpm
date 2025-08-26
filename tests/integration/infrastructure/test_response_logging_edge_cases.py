@@ -380,7 +380,7 @@ if __name__ == "__main__":
 
     if passed == total:
         print("🎉 All edge case tests PASSED!")
-        exit(0)
+        sys.exit(0)
     else:
         print("⚠️  Some edge case tests FAILED")
-        exit(1)
+        sys.exit(1)

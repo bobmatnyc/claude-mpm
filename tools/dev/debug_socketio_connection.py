@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """Debug Socket.IO connection issues in the dashboard."""
 
-import os
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 
@@ -16,7 +14,7 @@ def check_socketio_server():
     print("\n1. Checking if Socket.IO server is running...")
 
     # Check if the server process is running
-    result = subprocess.run(["ps", "aux"], capture_output=True, text=True)
+    result = subprocess.run(["ps", "aux"], capture_output=True, text=True, check=False)
 
     if "socketio_server" in result.stdout:
         print("✅ Socket.IO server process found")
@@ -26,7 +24,7 @@ def check_socketio_server():
 
     # Check if port 8765 is in use
     print("\n2. Checking port 8765...")
-    result = subprocess.run(["lsof", "-i", ":8765"], capture_output=True, text=True)
+    result = subprocess.run(["lsof", "-i", ":8765"], capture_output=True, text=True, check=False)
 
     if result.stdout:
         print("✅ Port 8765 is in use")
@@ -66,7 +64,7 @@ except Exception as e:
         f.write(test_script)
 
     result = subprocess.run(
-        [sys.executable, "/tmp/test_socketio.py"], capture_output=True, text=True
+        [sys.executable, "/tmp/test_socketio.py"], capture_output=True, text=True, check=False
     )
 
     print(result.stdout)
@@ -84,7 +82,7 @@ def check_dashboard_issues():
         print("❌ Dashboard file not found!")
         return
 
-    with open(dashboard_path, "r") as f:
+    with open(dashboard_path) as f:
         content = f.read()
 
     # Check for Socket.IO library

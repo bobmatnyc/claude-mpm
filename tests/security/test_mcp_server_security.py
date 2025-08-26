@@ -25,7 +25,7 @@ class TestMCPServerSecurity:
 
             # Simulate the secure implementation
             command_parts = shlex.split(malicious_cmd)
-            proc = await asyncio.create_subprocess_exec(
+            await asyncio.create_subprocess_exec(
                 *command_parts,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -64,7 +64,7 @@ class TestMCPServerSecurity:
 
                 # Simulate the secure implementation
                 command_parts = shlex.split(malicious_cmd)
-                proc = await asyncio.create_subprocess_exec(
+                await asyncio.create_subprocess_exec(
                     *command_parts,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
@@ -93,7 +93,7 @@ class TestMCPServerSecurity:
 
             # Simulate the secure implementation
             command_parts = shlex.split(cmd)
-            proc = await asyncio.create_subprocess_exec(
+            await asyncio.create_subprocess_exec(
                 *command_parts,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -115,13 +115,13 @@ class TestMCPServerSecurity:
 
             # Test that shlex.split raises ValueError for malformed quotes
             with pytest.raises(ValueError):
-                command_parts = shlex.split(cmd)
+                shlex.split(cmd)
 
             # In the actual implementation, this would be caught and handled
             try:
-                command_parts = shlex.split(cmd)
+                shlex.split(cmd)
                 # This should not be reached
-                assert False, "Expected ValueError for malformed quotes"
+                raise AssertionError("Expected ValueError for malformed quotes")
             except ValueError:
                 # This is the expected behavior - malformed quotes should raise ValueError
                 pass
@@ -148,7 +148,7 @@ class TestMCPServerSecurity:
                     stderr=asyncio.subprocess.PIPE,
                 )
                 stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=1)
-                assert False, "Expected TimeoutError"
+                raise AssertionError("Expected TimeoutError")
             except asyncio.TimeoutError:
                 # This is expected behavior
                 pass
@@ -167,7 +167,7 @@ class TestMCPServerSecurity:
 
             # Simulate the secure implementation
             command_parts = shlex.split("echo test")
-            proc = await asyncio.create_subprocess_exec(
+            await asyncio.create_subprocess_exec(
                 *command_parts,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,

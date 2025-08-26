@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Debug the capabilities generation process."""
 
-import sys
-from pathlib import Path
 
 # Use centralized path management
 from claude_mpm.config.paths import paths
@@ -52,7 +50,7 @@ def debug_capabilities_generation():
     test_content = "Before placeholder\n\n{{capabilities-list}}\n\nAfter placeholder"
     try:
         processed = assembler.apply_template_variables(test_content)
-        print(f"   ✓ Template processing successful")
+        print("   ✓ Template processing successful")
         if "{{capabilities-list}}" in processed:
             print("   ❌ Placeholder not replaced!")
         else:

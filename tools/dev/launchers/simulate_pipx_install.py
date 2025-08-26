@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Simulate how path resolution would work in a pipx installation."""
 
-import os
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -18,7 +16,7 @@ def simulate_pipx_environment():
     pipx_venv_path = Path.home() / ".local/pipx/venvs/claude-mpm"
     site_packages = pipx_venv_path / "lib/python3.11/site-packages/claude_mpm"
 
-    print(f"\nSimulated pipx environment:")
+    print("\nSimulated pipx environment:")
     print(f"  Virtual env: {pipx_venv_path}")
     print(f"  Site packages: {site_packages}")
 
@@ -77,7 +75,7 @@ def simulate_pipx_environment():
 
                 # Manually call the logic we expect
                 print(f"  Expected agents dir: {site_packages}/agents")
-                print(f"  (In real pipx install, this would resolve correctly)")
+                print("  (In real pipx install, this would resolve correctly)")
 
             except Exception as e:
                 print(f"  ERROR: {e}")

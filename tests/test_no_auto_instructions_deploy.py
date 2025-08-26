@@ -39,7 +39,7 @@ class TestNoAutoInstructionsDeploy:
             service = AgentDeploymentService(working_directory=tmpdir_path)
 
             # Deploy agents - should NOT create system instructions
-            results = service.deploy_agents(force_rebuild=False)
+            service.deploy_agents(force_rebuild=False)
 
             # Verify .claude directory doesn't have system instructions
             assert not (
@@ -65,7 +65,7 @@ class TestNoAutoInstructionsDeploy:
             # Mock the _deploy_system_instructions method
             with patch.object(service, "_deploy_system_instructions") as mock_deploy:
                 # Deploy agents
-                results = service.deploy_agents(force_rebuild=False)
+                service.deploy_agents(force_rebuild=False)
 
                 # Verify _deploy_system_instructions was NOT called
                 mock_deploy.assert_not_called()
@@ -81,7 +81,7 @@ class TestNoAutoInstructionsDeploy:
             service = AgentDeploymentService(working_directory=tmpdir_path)
 
             # Explicitly deploy system instructions
-            results = service.deploy_system_instructions_explicit(
+            service.deploy_system_instructions_explicit(
                 target_dir=claude_mpm_dir, force_rebuild=True
             )
 

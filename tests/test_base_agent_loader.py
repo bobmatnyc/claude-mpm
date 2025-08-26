@@ -69,7 +69,7 @@ class TestBaseAgentLoading:
     def test_force_reload_bypasses_cache():
         """Test that force_reload bypasses cache."""
         # Load once to populate cache
-        instructions1 = load_base_agent_instructions()
+        load_base_agent_instructions()
 
         # Force reload should read from file again
         with patch(
@@ -78,7 +78,7 @@ class TestBaseAgentLoading:
                 read_data='{"narrative_fields": {"instructions": "new content"}}'
             ),
         ) as mock_file:
-            instructions2 = load_base_agent_instructions(force_reload=True)
+            load_base_agent_instructions(force_reload=True)
 
             # Should have called open to read file
             mock_file.assert_called()
@@ -102,35 +102,33 @@ class TestBaseAgentLoading:
         """Test handling of malformed JSON in base agent file."""
         with patch(
             "builtins.open", mock_open(read_data='{"invalid": json}')
-        ) as mock_file:
-            with patch(
-                "claude_mpm.agents.base_agent_loader._get_base_agent_file"
-            ) as mock_get_file:
-                mock_path = MagicMock()
-                mock_path.exists.return_value = True
-                mock_get_file.return_value = mock_path
+        ), patch(
+            "claude_mpm.agents.base_agent_loader._get_base_agent_file"
+        ) as mock_get_file:
+            mock_path = MagicMock()
+            mock_path.exists.return_value = True
+            mock_get_file.return_value = mock_path
 
-                clear_base_agent_cache()
-                instructions = load_base_agent_instructions(force_reload=True)
+            clear_base_agent_cache()
+            instructions = load_base_agent_instructions(force_reload=True)
 
-                assert instructions is None
+            assert instructions is None
 
     def test_empty_instructions_handling():
         """Test handling when instructions field is empty."""
         empty_json = json.dumps({"narrative_fields": {"instructions": ""}})
 
-        with patch("builtins.open", mock_open(read_data=empty_json)):
-            with patch(
-                "claude_mpm.agents.base_agent_loader._get_base_agent_file"
-            ) as mock_get_file:
-                mock_path = MagicMock()
-                mock_path.exists.return_value = True
-                mock_get_file.return_value = mock_path
+        with patch("builtins.open", mock_open(read_data=empty_json)), patch(
+            "claude_mpm.agents.base_agent_loader._get_base_agent_file"
+        ) as mock_get_file:
+            mock_path = MagicMock()
+            mock_path.exists.return_value = True
+            mock_get_file.return_value = mock_path
 
-                clear_base_agent_cache()
-                instructions = load_base_agent_instructions(force_reload=True)
+            clear_base_agent_cache()
+            instructions = load_base_agent_instructions(force_reload=True)
 
-                assert instructions is None
+            assert instructions is None
 
 
 class TestTestModeHandling:
@@ -169,7 +167,7 @@ This should stay
 
             with patch(
                 "claude_mpm.agents.base_agent_loader.load_base_agent_instructions"
-            ) as mock_load:
+            ):
                 # Test the removal function directly
                 filtered = _remove_test_mode_instructions(content)
 
@@ -563,14 +561,14 @@ class TestFileValidation:
     def test_validate_existing_file():
         """Test validation of existing base agent file."""
         # Should pass for actual file
-        assert validate_base_agent_file() == True
+        assert validate_base_agent_file()
 
     def test_validate_missing_file():
         """Test validation when file is missing."""
         with patch("claude_mpm.agents.base_agent_loader.BASE_AGENT_FILE") as mock_file:
             mock_file.exists.return_value = False
 
-            assert validate_base_agent_file() == False
+            assert not validate_base_agent_file()
 
     def test_validate_not_file():
         """Test validation when path is not a file."""
@@ -578,7 +576,7 @@ class TestFileValidation:
             mock_file.exists.return_value = True
             mock_file.is_file.return_value = False
 
-            assert validate_base_agent_file() == False
+            assert not validate_base_agent_file()
 
     def test_validate_unreadable_file():
         """Test validation when file is not readable."""
@@ -587,7 +585,7 @@ class TestFileValidation:
             mock_file.is_file.return_value = True
             mock_file.read_text.side_effect = PermissionError("Cannot read file")
 
-            assert validate_base_agent_file() == False
+            assert not validate_base_agent_file()
 
     def test_get_base_agent_path():
         """Test getting base agent file path."""
@@ -627,7 +625,7 @@ class TestMemoryOptimization:
 
         # Load multiple times - should reuse cached content
         for _ in range(100):
-            instructions = load_base_agent_instructions()
+            load_base_agent_instructions()
 
         # Memory should not grow linearly (can't easily test this directly)
         # But we can verify cache is being used
@@ -699,18 +697,17 @@ class TestBackwardCompatibility:
         """Test handling of older JSON format without narrative_fields."""
         old_format = json.dumps({"instructions": "Old format instructions"})
 
-        with patch("builtins.open", mock_open(read_data=old_format)):
-            with patch(
-                "claude_mpm.agents.base_agent_loader._get_base_agent_file"
-            ) as mock_get_file:
-                mock_path = MagicMock()
-                mock_path.exists.return_value = True
-                mock_get_file.return_value = mock_path
+        with patch("builtins.open", mock_open(read_data=old_format)), patch(
+            "claude_mpm.agents.base_agent_loader._get_base_agent_file"
+        ) as mock_get_file:
+            mock_path = MagicMock()
+            mock_path.exists.return_value = True
+            mock_get_file.return_value = mock_path
 
-                clear_base_agent_cache()
-                instructions = load_base_agent_instructions(force_reload=True)
+            clear_base_agent_cache()
+            instructions = load_base_agent_instructions(force_reload=True)
 
-                assert instructions == "Old format instructions"
+            assert instructions == "Old format instructions"
 
     def test_new_json_format():
         """Test handling of new JSON format with narrative_fields."""
@@ -718,18 +715,17 @@ class TestBackwardCompatibility:
             {"narrative_fields": {"instructions": "New format instructions"}}
         )
 
-        with patch("builtins.open", mock_open(read_data=new_format)):
-            with patch(
-                "claude_mpm.agents.base_agent_loader._get_base_agent_file"
-            ) as mock_get_file:
-                mock_path = MagicMock()
-                mock_path.exists.return_value = True
-                mock_get_file.return_value = mock_path
+        with patch("builtins.open", mock_open(read_data=new_format)), patch(
+            "claude_mpm.agents.base_agent_loader._get_base_agent_file"
+        ) as mock_get_file:
+            mock_path = MagicMock()
+            mock_path.exists.return_value = True
+            mock_get_file.return_value = mock_path
 
-                clear_base_agent_cache()
-                instructions = load_base_agent_instructions(force_reload=True)
+            clear_base_agent_cache()
+            instructions = load_base_agent_instructions(force_reload=True)
 
-                assert instructions == "New format instructions"
+            assert instructions == "New format instructions"
 
 
 if __name__ == "__main__":

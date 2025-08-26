@@ -13,6 +13,8 @@ from unittest.mock import patch
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+import contextlib
+
 from claude_mpm.services.async_session_logger import AsyncSessionLogger, LogFormat
 
 
@@ -78,10 +80,8 @@ def test_permission_errors():
 
         finally:
             # Restore permissions to allow cleanup
-            try:
+            with contextlib.suppress(Exception):
                 os.chmod(readonly_dir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-            except:
-                pass
 
 
 def test_disk_space_simulation():

@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """Debug the entire hook flow from Claude to Socket.IO"""
 
-import json
 import os
 import subprocess
 import sys
-import time
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -31,7 +29,7 @@ def check_hook_wrapper():
     if os.path.exists(wrapper_path):
         print(f"✅ Hook wrapper exists at: {wrapper_path}")
         # Check if it points to our hook handler
-        with open(wrapper_path, "r") as f:
+        with open(wrapper_path) as f:
             content = f.read()
             if "claude_mpm" in content:
                 print("✅ Hook wrapper contains claude_mpm reference")
@@ -183,7 +181,7 @@ def check_hook_installation():
     if os.path.exists(install_script):
         print("Running hook installation...")
         result = subprocess.run(
-            [sys.executable, install_script], capture_output=True, text=True
+            [sys.executable, install_script], capture_output=True, text=True, check=False
         )
         print(result.stdout)
         if result.stderr:

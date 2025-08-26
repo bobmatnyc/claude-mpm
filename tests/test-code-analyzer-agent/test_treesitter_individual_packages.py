@@ -87,7 +87,7 @@ def test_individual_package_imports():
                     # This requires tree-sitter core to be installed
                     from tree_sitter import Language
 
-                    lang = Language(module.language())
+                    Language(module.language())
                     print("   ✅ Successfully created Language object")
                     results.append((package_name, True, "All tests passed"))
                 except ImportError:
@@ -155,7 +155,7 @@ def test_language_object_creation():
         try:
             module = importlib.import_module(module_name)
             lang = Language(module.language())
-            parser = Parser(lang)
+            Parser(lang)
 
             print(f"   ✅ Created Language and Parser for {file_ext} files")
             results.append((module_name, True, "Language object created successfully"))

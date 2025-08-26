@@ -109,7 +109,7 @@ class LanguageAnalyzerService:
             if files:
                 languages.add(lang)
 
-        return sorted(list(languages))
+        return sorted(languages)
 
     def detect_primary_language(
         self, file_counts: Optional[Dict[str, int]] = None
@@ -229,7 +229,7 @@ class LanguageAnalyzerService:
         """Count files by extension in the project."""
         counts = Counter()
 
-        for ext in self.FILE_EXTENSIONS.keys():
+        for ext in self.FILE_EXTENSIONS:
             files = list(self.working_directory.rglob(f"*{ext}"))
             # Filter out vendor directories
             files = [
@@ -249,7 +249,7 @@ class LanguageAnalyzerService:
         """Get a sample of source files for analysis."""
         source_files = []
 
-        for ext in self.FILE_EXTENSIONS.keys():
+        for ext in self.FILE_EXTENSIONS:
             files = list(self.working_directory.rglob(f"*{ext}"))
             # Filter out vendor directories
             files = [

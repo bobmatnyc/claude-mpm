@@ -124,7 +124,7 @@ async def test_event_flow():
 
         # Reset history flag
         history_received = False
-        events_before = len(events_received)
+        len(events_received)
 
         # Reconnect
         sio.connect("http://localhost:8765")

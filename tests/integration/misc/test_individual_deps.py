@@ -26,10 +26,10 @@ def test_package_crypto_dep(package_name):
         # Get pip path
         if sys.platform == "win32":
             pip_path = venv_path / "Scripts" / "pip"
-            python_path = venv_path / "Scripts" / "python"
+            venv_path / "Scripts" / "python"
         else:
             pip_path = venv_path / "bin" / "pip"
-            python_path = venv_path / "bin" / "python"
+            venv_path / "bin" / "python"
 
         # Upgrade pip
         subprocess.run(
@@ -47,9 +47,8 @@ def test_package_crypto_dep(package_name):
         )
 
         # Check if cryptography is in the output
-        has_crypto = "cryptography" in result.stdout.lower()
+        return "cryptography" in result.stdout.lower()
 
-        return has_crypto
 
 
 # Test suspicious packages

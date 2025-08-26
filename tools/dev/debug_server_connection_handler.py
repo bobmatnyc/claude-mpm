@@ -11,12 +11,13 @@ WHY: The automatic history transmission appears to be broken. This script will:
 import asyncio
 import logging
 import sys
-import time
 from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
+
+from typing import Optional
 
 from claude_mpm.services.socketio_server import SocketIOServer
 
@@ -79,7 +80,7 @@ class DebugSocketIOServer(SocketIOServer):
                     f"🔧 DEBUG: Event history length: {len(self.event_history)}"
                 )
                 if len(self.event_history) > 0:
-                    first_event = list(self.event_history)[0]
+                    first_event = next(iter(self.event_history))
                     self.logger.info(
                         f"🔧 DEBUG: First event type: {first_event.get('type', 'unknown')}"
                     )
@@ -117,7 +118,7 @@ class DebugSocketIOServer(SocketIOServer):
             )
 
     async def _debug_send_event_history(
-        self, sid: str, event_types: list = None, limit: int = 50
+        self, sid: str, event_types: Optional[list] = None, limit: int = 50
     ):
         """Debug version of _send_event_history with detailed logging."""
         try:
@@ -165,7 +166,7 @@ class DebugSocketIOServer(SocketIOServer):
                     "total_available": len(self.event_history),
                 }
 
-                self.logger.info(f"🔧 DEBUG: About to emit 'history' event with:")
+                self.logger.info("🔧 DEBUG: About to emit 'history' event with:")
                 self.logger.info(
                     f"🔧 DEBUG: - events count: {len(response_data['events'])}"
                 )
@@ -202,7 +203,6 @@ async def main():
 
     try:
         # Add some sample events to the history for testing
-        import json
         from datetime import datetime
 
         sample_events = [

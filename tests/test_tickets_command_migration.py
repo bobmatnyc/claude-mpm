@@ -46,9 +46,9 @@ class TestTicketsCommandMigration:
         assert result is None
 
     @patch("claude_mpm.cli.commands.tickets.list_tickets_legacy")
-    def test_list_tickets_success(mock_list):
+    def test_list_tickets_success(self):
         """Test successful list tickets execution."""
-        mock_list.return_value = 0
+        self.return_value = 0
         args = Namespace(tickets_command=TicketCommands.LIST.value)
 
         result = self.command.run(args)
@@ -59,9 +59,9 @@ class TestTicketsCommandMigration:
         assert "successfully" in result.message
 
     @patch("claude_mpm.cli.commands.tickets.list_tickets_legacy")
-    def test_list_tickets_failure(mock_list):
+    def test_list_tickets_failure(self):
         """Test failed list tickets execution."""
-        mock_list.return_value = 1
+        self.return_value = 1
         args = Namespace(tickets_command=TicketCommands.LIST.value)
 
         result = self.command.run(args)
@@ -72,9 +72,9 @@ class TestTicketsCommandMigration:
         assert "Failed" in result.message
 
     @patch("claude_mpm.cli.commands.tickets.create_ticket_legacy")
-    def test_create_ticket_success(mock_create):
+    def test_create_ticket_success(self):
         """Test successful create ticket execution."""
-        mock_create.return_value = 0
+        self.return_value = 0
         args = Namespace(tickets_command=TicketCommands.CREATE.value)
 
         result = self.command.run(args)
@@ -85,9 +85,9 @@ class TestTicketsCommandMigration:
         assert "created successfully" in result.message
 
     @patch("claude_mpm.cli.commands.tickets.view_ticket_legacy")
-    def test_view_ticket_success(mock_view):
+    def test_view_ticket_success(self):
         """Test successful view ticket execution."""
-        mock_view.return_value = 0
+        self.return_value = 0
         args = Namespace(tickets_command=TicketCommands.VIEW.value)
 
         result = self.command.run(args)
@@ -97,9 +97,9 @@ class TestTicketsCommandMigration:
         assert "viewed successfully" in result.message
 
     @patch("claude_mpm.cli.commands.tickets.update_ticket_legacy")
-    def test_update_ticket_success(mock_update):
+    def test_update_ticket_success(self):
         """Test successful update ticket execution."""
-        mock_update.return_value = 0
+        self.return_value = 0
         args = Namespace(tickets_command=TicketCommands.UPDATE.value)
 
         result = self.command.run(args)
@@ -109,9 +109,9 @@ class TestTicketsCommandMigration:
         assert "updated successfully" in result.message
 
     @patch("claude_mpm.cli.commands.tickets.close_ticket_legacy")
-    def test_close_ticket_success(mock_close):
+    def test_close_ticket_success(self):
         """Test successful close ticket execution."""
-        mock_close.return_value = 0
+        self.return_value = 0
         args = Namespace(tickets_command=TicketCommands.CLOSE.value)
 
         result = self.command.run(args)
@@ -167,9 +167,9 @@ class TestTicketsCommandErrorHandling:
         self.command = TicketsCommand()
 
     @patch("claude_mpm.cli.commands.tickets.list_tickets_legacy")
-    def test_exception_handling(mock_list):
+    def test_exception_handling(self):
         """Test that exceptions are properly handled."""
-        mock_list.side_effect = Exception("Test error")
+        self.side_effect = Exception("Test error")
         args = Namespace(tickets_command=TicketCommands.LIST.value)
 
         result = self.command.run(args)

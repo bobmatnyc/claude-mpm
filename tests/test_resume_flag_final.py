@@ -153,9 +153,8 @@ def test_end_to_end_command_building():
 
     # Add --resume if flag is set (from run.py logic)
     resume_flag_present = getattr(args, "resume", False)
-    if resume_flag_present:
-        if "--resume" not in raw_claude_args:
-            raw_claude_args = ["--resume"] + raw_claude_args
+    if resume_flag_present and "--resume" not in raw_claude_args:
+        raw_claude_args = ["--resume", *raw_claude_args]
 
     # Filter MPM-specific args
     filtered_args = filter_claude_mpm_args(raw_claude_args)

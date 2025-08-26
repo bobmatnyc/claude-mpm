@@ -54,39 +54,39 @@ from pathlib import Path
 def get_python_executable() -> str:
     """
     Detect and return the appropriate Python executable for Socket.IO daemon.
-    
+
     Intelligently detects virtual environments (venv, conda, poetry, pipenv)
     and returns the correct Python path to ensure dependency availability.
-    
+
     Detection Strategy:
     1. Check if already running in virtual environment
     2. Look for VIRTUAL_ENV environment variable
     3. Analyze executable path structure
     4. Search for project-specific virtual environments
     5. Fall back to system Python
-    
+
     WHY this complex detection:
     - Socket.IO server requires specific Python packages (socketio, eventlet)
     - System Python rarely has these packages installed
     - Virtual environments contain isolated dependencies
     - Multiple venv tools have different conventions
-    
+
     Thread Safety:
     - Read-only operations on sys and os modules
     - File system checks are atomic
     - No shared state modification
-    
+
     Performance:
     - Early returns for common cases
     - Minimal file system operations
     - Cached in practice by Python import system
-    
+
     Returns:
         str: Path to Python executable with required dependencies
-        
+
     Raises:
         FileNotFoundError: If no suitable Python executable found
-        
+
     Examples:
         >>> python_path = get_python_executable()
         >>> # Returns: '/path/to/venv/bin/python' or '/usr/bin/python3'
@@ -343,30 +343,48 @@ def start_server():
 
     # Start server using synchronous method
     server.start_sync()
-    
+
     # Debug: Check if handlers are registered (write to file for daemon)
-    with open(LOG_FILE, 'a') as f:
-        f.write(f"\n[{time.strftime('%Y-%m-%d %H:%M:%S')}] Server started, checking handlers...\n")
+    with open(LOG_FILE, "a") as f:
+        f.write(
+            f"\n[{time.strftime('%Y-%m-%d %H:%M:%S')}] Server started, checking handlers...\n"
+        )
         if server.event_registry:
-            f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Event registry exists with {len(server.event_registry.handlers)} handlers\n")
+            f.write(
+                f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Event registry exists with {len(server.event_registry.handlers)} handlers\n"
+            )
             for handler in server.event_registry.handlers:
-                f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]   - {handler.__class__.__name__}\n")
+                f.write(
+                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]   - {handler.__class__.__name__}\n"
+                )
         else:
-            f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] WARNING: No event registry found!\n")
-        
+            f.write(
+                f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] WARNING: No event registry found!\n"
+            )
+
         # Check Socket.IO events
         if server.core and server.core.sio:
-            handlers = getattr(server.core.sio, 'handlers', {})
-            f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Socket.IO has {len(handlers)} namespaces\n")
+            handlers = getattr(server.core.sio, "handlers", {})
+            f.write(
+                f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Socket.IO has {len(handlers)} namespaces\n"
+            )
             for namespace, events in handlers.items():
-                f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]   Namespace '{namespace}': {len(events)} events\n")
+                f.write(
+                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]   Namespace '{namespace}': {len(events)} events\n"
+                )
                 # List all events to debug
                 event_list = list(events.keys())
-                f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]   Events: {event_list}\n")
-                if 'code:analyze:request' in events:
-                    f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]   ✅ code:analyze:request is registered!\n")
+                f.write(
+                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]   Events: {event_list}\n"
+                )
+                if "code:analyze:request" in events:
+                    f.write(
+                        f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]   ✅ code:analyze:request is registered!\n"
+                    )
                 else:
-                    f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]   ❌ code:analyze:request NOT found\n")
+                    f.write(
+                        f"[{time.strftime('%Y-%m-%d %H:%M:%S')}]   ❌ code:analyze:request NOT found\n"
+                    )
         f.flush()
 
     # Keep running

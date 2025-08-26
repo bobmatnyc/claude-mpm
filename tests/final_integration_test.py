@@ -2,6 +2,7 @@
 """Final integration test for memory system fixes."""
 
 import shutil
+import sys
 import tempfile
 import unittest.mock
 from pathlib import Path
@@ -27,7 +28,7 @@ def run_final_integration_test():
 
             # Test PM memory (should go to user directory)
             memory_manager = AgentMemoryManager(config, test_project_dir)
-            pm_memory = memory_manager.load_agent_memory("PM")
+            memory_manager.load_agent_memory("PM")
 
             # Verify PM file location
             user_pm_file = (
@@ -44,7 +45,7 @@ def run_final_integration_test():
             print("✅ PM memory persistence verified")
 
             # Test other agent (should go to project directory)
-            engineer_memory = memory_manager.load_agent_memory("engineer")
+            memory_manager.load_agent_memory("engineer")
 
             # Verify engineer file location
             user_engineer_file = (
@@ -114,4 +115,4 @@ Task completed.
 
 if __name__ == "__main__":
     success = run_final_integration_test()
-    exit(0 if success else 1)
+    sys.exit(0 if success else 1)

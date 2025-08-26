@@ -63,8 +63,7 @@ class TestDashboardLauncher:
             "claude_mpm.services.cli.dashboard_launcher.get_logger"
         ) as mock_logger:
             mock_logger.return_value = MagicMock()
-            launcher = DashboardLauncher()
-            return launcher
+            return DashboardLauncher()
 
     @pytest.fixture
     def mock_dependencies(self):
@@ -140,11 +139,10 @@ class TestDashboardLauncher:
         with patch.object(launcher, "is_dashboard_running") as mock_is_running:
             mock_is_running.return_value = False  # Never ready
 
-            with patch("time.sleep"):
-                with patch("time.time") as mock_time:
-                    # Simulate timeout
-                    mock_time.side_effect = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]
-                    assert launcher.wait_for_dashboard(8765, timeout=3) is False
+            with patch("time.sleep"), patch("time.time") as mock_time:
+                # Simulate timeout
+                mock_time.side_effect = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]
+                assert launcher.wait_for_dashboard(8765, timeout=3) is False
 
     def test_launch_dashboard_server_already_running(self, launcher, mock_dependencies):
         """Test launching dashboard when server is already running."""

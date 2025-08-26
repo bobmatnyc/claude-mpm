@@ -93,7 +93,7 @@ def test_memory_system():
         print("\n6. Testing memory extraction from JSON response...")
         test_response = """
         Here's my analysis:
-        
+
         ```json
         {
             "task": "Test task",

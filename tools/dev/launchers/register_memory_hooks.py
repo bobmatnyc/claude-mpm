@@ -129,12 +129,12 @@ def main():
     )
 
     # Execute post-delegation hooks
-    post_result = hook_service.execute_post_delegation_hooks(post_context)
+    hook_service.execute_post_delegation_hooks(post_context)
     print("✅ Post-delegation hooks executed")
 
     # Show statistics
     stats = hook_service.get_stats()
-    print(f"\n📊 Hook Statistics:")
+    print("\n📊 Hook Statistics:")
     print(f"   Pre-delegation executions: {stats['pre_delegation_executed']}")
     print(f"   Post-delegation executions: {stats['post_delegation_executed']}")
     print(f"   Total errors: {stats['errors']}")

@@ -51,7 +51,7 @@ def test_structured_memory_insertion():
             insert_index = len(lines)
 
         # Insert memory content
-        memory_lines = [""] + memory_content.strip().split("\n") + [""]
+        memory_lines = ["", *memory_content.strip().split("\n"), ""]
         for i, memory_line in enumerate(memory_lines):
             lines.insert(insert_index + i, memory_line)
 

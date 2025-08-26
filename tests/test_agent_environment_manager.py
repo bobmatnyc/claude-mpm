@@ -43,7 +43,7 @@ class TestAgentEnvironmentManager:
         original_env = os.environ.copy()
 
         # Remove Claude-related variables
-        claude_vars = [key for key in os.environ.keys() if key.startswith("CLAUDE_")]
+        claude_vars = [key for key in os.environ if key.startswith("CLAUDE_")]
         for var in claude_vars:
             if var in os.environ:
                 del os.environ[var]
@@ -54,10 +54,10 @@ class TestAgentEnvironmentManager:
         os.environ.clear()
         os.environ.update(original_env)
 
-    def test_initialization(env_manager):
+    def test_initialization(self):
         """Test AgentEnvironmentManager initialization."""
-        assert hasattr(env_manager, "logger")
-        assert env_manager.logger is not None
+        assert hasattr(self, "logger")
+        assert self.logger is not None
 
     def test_set_claude_environment_default_dir(
         self, env_manager, temp_dir, clean_environment
@@ -92,9 +92,9 @@ class TestAgentEnvironmentManager:
         # Check that custom directory was created
         assert custom_config.exists()
 
-    def test_get_current_environment_empty(env_manager, clean_environment):
+    def test_get_current_environment_empty(self, clean_environment):
         """Test getting current environment when no Claude variables are set."""
-        current_env = env_manager.get_current_environment()
+        current_env = self.get_current_environment()
         assert isinstance(current_env, dict)
         assert len(current_env) == 0
 
@@ -223,13 +223,13 @@ class TestAgentEnvironmentManager:
         assert not setup_results["success"]
         assert len(setup_results["errors"]) > 0
 
-    def test_get_environment_info(env_manager, clean_environment):
+    def test_get_environment_info(self, clean_environment):
         """Test getting comprehensive environment information."""
         # Set some test environment variables
         os.environ["CLAUDE_CONFIG_DIR"] = "/test/config"
         os.environ["PYTHONPATH"] = "/test/python"
 
-        info = env_manager.get_environment_info()
+        info = self.get_environment_info()
 
         assert "claude_environment_variables" in info
         assert "python_path" in info
@@ -242,7 +242,7 @@ class TestAgentEnvironmentManager:
         )
         assert info["python_path"] == "/test/python"
 
-    def test_cleanup_environment(env_manager, clean_environment):
+    def test_cleanup_environment(self, clean_environment):
         """Test cleaning up environment variables."""
         # Set some Claude environment variables
         os.environ["CLAUDE_CONFIG_DIR"] = "/test/config"
@@ -250,7 +250,7 @@ class TestAgentEnvironmentManager:
         os.environ["CLAUDE_MAX_PARALLEL_SUBAGENTS"] = "3"
         os.environ["OTHER_VAR"] = "should-remain"
 
-        cleanup_results = env_manager.cleanup_environment()
+        cleanup_results = self.cleanup_environment()
 
         assert len(cleanup_results["removed_variables"]) == 3
         assert len(cleanup_results["errors"]) == 0
@@ -263,7 +263,7 @@ class TestAgentEnvironmentManager:
         # Check that other variables remain
         assert os.environ.get("OTHER_VAR") == "should-remain"
 
-    def test_find_claude_config_locations(env_manager, temp_dir):
+    def test_find_claude_config_locations(self, temp_dir):
         """Test finding Claude configuration locations."""
         # Create some test config directories
         test_configs = [
@@ -278,7 +278,7 @@ class TestAgentEnvironmentManager:
         with patch("pathlib.Path.cwd", return_value=temp_dir), patch(
             "pathlib.Path.home", return_value=temp_dir / "home"
         ):
-            locations = env_manager._find_claude_config_locations()
+            locations = self._find_claude_config_locations()
 
         # Should find the existing directories
         assert len(locations) >= 2  # At least cwd/.claude and home/.claude

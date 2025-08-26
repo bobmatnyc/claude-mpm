@@ -74,7 +74,7 @@ def test_framework_loader():
 
     from claude_mpm.core.framework_loader import FrameworkLoader
 
-    loader = FrameworkLoader()
+    FrameworkLoader()
 
     # Check that the loader correctly reads agent YAML frontmatter
     deployed_agents_dir = Path(__file__).parent.parent / ".claude" / "agents"

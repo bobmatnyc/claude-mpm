@@ -101,9 +101,7 @@ class LogManager:
         }
 
         # Base directories
-        self.base_log_dir = Path(
-            logging_config.get("base_directory", "logs")
-        )
+        self.base_log_dir = Path(logging_config.get("base_directory", "logs"))
         if not self.base_log_dir.is_absolute():
             self.base_log_dir = Path.cwd() / self.base_log_dir
 
@@ -358,7 +356,7 @@ class LogManager:
             # Check both old possible locations
             old_locations = [
                 Path.cwd() / ".claude-mpm" / "logs",  # Old default location
-                self.base_log_dir  # Current base location (logs/)
+                self.base_log_dir,  # Current base location (logs/)
             ]
             new_location = self.base_log_dir / "mpm"
 

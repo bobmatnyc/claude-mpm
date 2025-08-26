@@ -70,14 +70,14 @@ class TestCleanupCommand:
         assert "positive number" in error
 
     @patch("claude_mpm.cli.commands.cleanup.Path")
-    def test_run_memory_cleanup(mock_path_class):
+    def test_run_memory_cleanup(self):
         """Test memory cleanup operation."""
         mock_path = Mock()
         mock_path.exists.return_value = True
         mock_path.is_file.return_value = True
         mock_path.stat.return_value = Mock(st_size=1000000)
-        mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path("/mock/home")
+        self.return_value = mock_path
+        self.home.return_value = Path("/mock/home")
 
         args = Namespace(
             days=30,
@@ -101,14 +101,14 @@ class TestCleanupCommand:
             mock_analyze.assert_called_once_with(args)
 
     @patch("claude_mpm.cli.commands.cleanup.Path")
-    def test_run_memory_cleanup_dry_run(mock_path_class):
+    def test_run_memory_cleanup_dry_run(self):
         """Test memory cleanup in dry-run mode."""
         mock_path = Mock()
         mock_path.exists.return_value = True
         mock_path.is_file.return_value = True
         mock_path.stat.return_value = Mock(st_size=500000)
-        mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path("/mock/home")
+        self.return_value = mock_path
+        self.home.return_value = Path("/mock/home")
 
         args = Namespace(
             days=30,
@@ -132,14 +132,14 @@ class TestCleanupCommand:
             # In dry run, files should not actually be deleted
 
     @patch("claude_mpm.cli.commands.cleanup.Path")
-    def test_run_with_archive(mock_path_class):
+    def test_run_with_archive(self):
         """Test cleanup with archiving enabled."""
         mock_path = Mock()
         mock_path.exists.return_value = True
         mock_path.is_file.return_value = True
         mock_path.stat.return_value = Mock(st_size=1000000)
-        mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path("/mock/home")
+        self.return_value = mock_path
+        self.home.return_value = Path("/mock/home")
 
         args = Namespace(
             days=30,
@@ -162,14 +162,14 @@ class TestCleanupCommand:
             assert isinstance(result, CommandResult)
 
     @patch("claude_mpm.cli.commands.cleanup.Path")
-    def test_run_without_archive(mock_path_class):
+    def test_run_without_archive(self):
         """Test cleanup without archiving."""
         mock_path = Mock()
         mock_path.exists.return_value = True
         mock_path.is_file.return_value = True
         mock_path.stat.return_value = Mock(st_size=1000000)
-        mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path("/mock/home")
+        self.return_value = mock_path
+        self.home.return_value = Path("/mock/home")
 
         args = Namespace(
             days=30,
@@ -193,15 +193,15 @@ class TestCleanupCommand:
 
     @patch("builtins.input")
     @patch("claude_mpm.cli.commands.cleanup.Path")
-    def test_cleanup_with_confirmation(mock_path_class, mock_input):
+    def test_cleanup_with_confirmation(self, mock_input):
         """Test cleanup with user confirmation."""
         mock_input.return_value = "yes"
         mock_path = Mock()
         mock_path.exists.return_value = True
         mock_path.is_file.return_value = True
         mock_path.stat.return_value = Mock(st_size=1000000)
-        mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path("/mock/home")
+        self.return_value = mock_path
+        self.home.return_value = Path("/mock/home")
 
         args = Namespace(
             days=30,
@@ -249,12 +249,12 @@ class TestCleanupCommand:
                 assert isinstance(result, CommandResult)
 
     @patch("claude_mpm.cli.commands.cleanup.Path")
-    def test_cleanup_permission_error(mock_path_class):
+    def test_cleanup_permission_error(self):
         """Test cleanup with permission errors."""
         mock_path = Mock()
         mock_path.exists.return_value = True
-        mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path("/mock/home")
+        self.return_value = mock_path
+        self.home.return_value = Path("/mock/home")
 
         args = Namespace(
             days=30,
@@ -273,14 +273,14 @@ class TestCleanupCommand:
             assert result.success is False
 
     @patch("claude_mpm.cli.commands.cleanup.Path")
-    def test_cleanup_json_output(mock_path_class):
+    def test_cleanup_json_output(self):
         """Test cleanup with JSON output format."""
         mock_path = Mock()
         mock_path.exists.return_value = True
         mock_path.is_file.return_value = True
         mock_path.stat.return_value = Mock(st_size=1000000)
-        mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path("/mock/home")
+        self.return_value = mock_path
+        self.home.return_value = Path("/mock/home")
 
         args = Namespace(
             days=30,
@@ -303,14 +303,14 @@ class TestCleanupCommand:
             assert isinstance(result, CommandResult)
 
     @patch("claude_mpm.cli.commands.cleanup.Path")
-    def test_cleanup_yaml_output(mock_path_class):
+    def test_cleanup_yaml_output(self):
         """Test cleanup with YAML output format."""
         mock_path = Mock()
         mock_path.exists.return_value = True
         mock_path.is_file.return_value = True
         mock_path.stat.return_value = Mock(st_size=750000)
-        mock_path_class.return_value = mock_path
-        mock_path_class.home.return_value = Path("/mock/home")
+        self.return_value = mock_path
+        self.home.return_value = Path("/mock/home")
 
         args = Namespace(
             days=30,
@@ -333,9 +333,9 @@ class TestCleanupCommand:
             assert isinstance(result, CommandResult)
 
     @patch("claude_mpm.cli.commands.cleanup.Path")
-    def test_run_with_exception(mock_path_class):
+    def test_run_with_exception(self):
         """Test general exception handling in run method."""
-        mock_path_class.home.side_effect = Exception("Unexpected error")
+        self.home.side_effect = Exception("Unexpected error")
 
         args = Namespace(
             days=30,

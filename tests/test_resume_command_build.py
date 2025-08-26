@@ -80,9 +80,8 @@ def test_run_command_with_resume():
         from claude_mpm.cli.commands.run import filter_claude_mpm_args
 
         raw_claude_args = getattr(args, "claude_args", []) or []
-        if getattr(args, "resume", False):
-            if "--resume" not in raw_claude_args:
-                raw_claude_args = ["--resume"] + raw_claude_args
+        if getattr(args, "resume", False) and "--resume" not in raw_claude_args:
+            raw_claude_args = ["--resume", *raw_claude_args]
 
         claude_args = filter_claude_mpm_args(raw_claude_args)
 
@@ -99,9 +98,8 @@ def test_run_command_with_resume():
         args = parser.parse_args(["run", "--resume", "--", "--model", "opus"])
 
         raw_claude_args = getattr(args, "claude_args", []) or []
-        if getattr(args, "resume", False):
-            if "--resume" not in raw_claude_args:
-                raw_claude_args = ["--resume"] + raw_claude_args
+        if getattr(args, "resume", False) and "--resume" not in raw_claude_args:
+            raw_claude_args = ["--resume", *raw_claude_args]
 
         claude_args = filter_claude_mpm_args(raw_claude_args)
 

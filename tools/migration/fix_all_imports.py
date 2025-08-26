@@ -7,7 +7,7 @@ This handles all the edge cases we've identified.
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional
 
 
 class ComprehensiveImportFixer:
@@ -64,25 +64,24 @@ class ComprehensiveImportFixer:
             # Determine which import to use
             if "claude_mpm" in import1:
                 return f"{indent}{import1}"
-            elif "claude_mpm" in import2:
+            if "claude_mpm" in import2:
                 return f"{indent}{import2}"
-            else:
-                # Convert relative imports
-                if ".." in import1:
-                    # Convert relative import to absolute
-                    converted = self.convert_relative_to_absolute(import1, file_path)
-                    if converted:
-                        return f"{indent}{converted}"
-                elif "from " in import1:
-                    # Add claude_mpm prefix
-                    parts = import1.split("from ", 1)[1].split(" import", 1)
-                    if len(parts) == 2:
-                        module = parts[0].strip()
-                        import_clause = parts[1]
-                        if not module.startswith(("claude_mpm", ".", "ai_trackdown")):
-                            return f"{indent}from claude_mpm.{module} import{import_clause}"
+            # Convert relative imports
+            if ".." in import1:
+                # Convert relative import to absolute
+                converted = self.convert_relative_to_absolute(import1, file_path)
+                if converted:
+                    return f"{indent}{converted}"
+            elif "from " in import1:
+                # Add claude_mpm prefix
+                parts = import1.split("from ", 1)[1].split(" import", 1)
+                if len(parts) == 2:
+                    module = parts[0].strip()
+                    import_clause = parts[1]
+                    if not module.startswith(("claude_mpm", ".", "ai_trackdown")):
+                        return f"{indent}from claude_mpm.{module} import{import_clause}"
 
-                return f"{indent}{import1}"
+            return f"{indent}{import1}"
 
         return pattern.sub(replace_try_except, content)
 
@@ -118,11 +117,10 @@ class ComprehensiveImportFixer:
                     )
                 else:
                     absolute_module = "claude_mpm." + module_path
+            elif base_parts:
+                absolute_module = "claude_mpm." + ".".join(base_parts)
             else:
-                if base_parts:
-                    absolute_module = "claude_mpm." + ".".join(base_parts)
-                else:
-                    absolute_module = "claude_mpm"
+                absolute_module = "claude_mpm"
 
             return f"{indent_from}{absolute_module}{import_clause}"
 
@@ -193,11 +191,10 @@ class ComprehensiveImportFixer:
                 )
             else:
                 absolute_module = "claude_mpm." + module_path
+        elif base_parts:
+            absolute_module = "claude_mpm." + ".".join(base_parts)
         else:
-            if base_parts:
-                absolute_module = "claude_mpm." + ".".join(base_parts)
-            else:
-                absolute_module = "claude_mpm"
+            absolute_module = "claude_mpm"
 
         return f"from {absolute_module}{import_clause}"
 
@@ -224,11 +221,10 @@ class ComprehensiveImportFixer:
         for file_path in python_files:
             if dry_run:
                 print(f"Would process: {file_path.relative_to(self.project_root)}")
-            else:
-                if self.fix_file(file_path):
-                    print(f"Fixed: {file_path.relative_to(self.project_root)}")
+            elif self.fix_file(file_path):
+                print(f"Fixed: {file_path.relative_to(self.project_root)}")
 
-        print(f"\nSummary:")
+        print("\nSummary:")
         print(f"  Files fixed: {self.fixed_count}")
         print(f"  Errors: {self.error_count}")
 

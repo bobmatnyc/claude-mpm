@@ -137,7 +137,7 @@ async def main():
         # Save events for analysis
         with open("agent_events_analysis.json", "w") as f:
             json.dump(agent_events, f, indent=2, default=str)
-        print(f"\n💾 Full event data saved to: agent_events_analysis.json")
+        print("\n💾 Full event data saved to: agent_events_analysis.json")
 
     finally:
         await sio.disconnect()

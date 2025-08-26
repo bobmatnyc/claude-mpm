@@ -196,43 +196,43 @@ class TestSemanticVersionManager:
         logger = logging.getLogger(__name__)
         return SemanticVersionManager(str(temp_project_dir), logger)
 
-    def test_parse_version_basic(version_manager):
+    def test_parse_version_basic(self):
         """Test parsing basic version strings."""
         # Basic version
-        version = version_manager.parse_version("1.2.3")
+        version = self.parse_version("1.2.3")
         assert version is not None
         assert version.major == 1
         assert version.minor == 2
         assert version.patch == 3
 
         # Version with v prefix
-        version_v = version_manager.parse_version("v1.2.3")
+        version_v = self.parse_version("v1.2.3")
         assert version_v is not None
         assert version_v.major == 1
         assert version_v.minor == 2
         assert version_v.patch == 3
 
-    def test_parse_version_with_prerelease(version_manager):
+    def test_parse_version_with_prerelease(self):
         """Test parsing versions with prerelease."""
-        version = version_manager.parse_version("1.2.3-alpha.1")
+        version = self.parse_version("1.2.3-alpha.1")
         assert version is not None
         assert version.major == 1
         assert version.minor == 2
         assert version.patch == 3
         assert version.prerelease == "alpha.1"
 
-    def test_parse_version_with_build(version_manager):
+    def test_parse_version_with_build(self):
         """Test parsing versions with build metadata."""
-        version = version_manager.parse_version("1.2.3+build.123")
+        version = self.parse_version("1.2.3+build.123")
         assert version is not None
         assert version.major == 1
         assert version.minor == 2
         assert version.patch == 3
         assert version.build == "build.123"
 
-    def test_parse_version_full(version_manager):
+    def test_parse_version_full(self):
         """Test parsing full version string."""
-        version = version_manager.parse_version("1.2.3-beta.2+build.456")
+        version = self.parse_version("1.2.3-beta.2+build.456")
         assert version is not None
         assert version.major == 1
         assert version.minor == 2
@@ -240,24 +240,24 @@ class TestSemanticVersionManager:
         assert version.prerelease == "beta.2"
         assert version.build == "build.456"
 
-    def test_parse_version_invalid(version_manager):
+    def test_parse_version_invalid(self):
         """Test parsing invalid version strings."""
         # Invalid formats
-        assert version_manager.parse_version("1.2") is None
-        assert version_manager.parse_version("1.2.3.4") is None
-        assert version_manager.parse_version("invalid") is None
-        assert version_manager.parse_version("") is None
-        assert version_manager.parse_version("1.2.a") is None
+        assert self.parse_version("1.2") is None
+        assert self.parse_version("1.2.3.4") is None
+        assert self.parse_version("invalid") is None
+        assert self.parse_version("") is None
+        assert self.parse_version("1.2.a") is None
 
-    def test_parse_version_file(version_manager, temp_project_dir):
+    def test_parse_version_file(self, temp_project_dir):
         """Test parsing version from VERSION file."""
         version_file = temp_project_dir / "VERSION"
         version_file.write_text("1.2.3\n")
 
-        version_string = version_manager._parse_version_file(version_file)
+        version_string = self._parse_version_file(version_file)
         assert version_string == "1.2.3"
 
-    def test_parse_package_json_version(version_manager, temp_project_dir):
+    def test_parse_package_json_version(self, temp_project_dir):
         """Test parsing version from package.json."""
         package_json = temp_project_dir / "package.json"
         package_data = {
@@ -267,15 +267,15 @@ class TestSemanticVersionManager:
         }
         package_json.write_text(json.dumps(package_data, indent=2))
 
-        version_string = version_manager._parse_package_json_version(package_json)
+        version_string = self._parse_package_json_version(package_json)
         assert version_string == "1.2.3"
 
-    def test_parse_package_json_invalid(version_manager, temp_project_dir):
+    def test_parse_package_json_invalid(self, temp_project_dir):
         """Test parsing invalid package.json."""
         package_json = temp_project_dir / "package.json"
         package_json.write_text("invalid json")
 
-        version_string = version_manager._parse_package_json_version(package_json)
+        version_string = self._parse_package_json_version(package_json)
         assert version_string is None
 
     def test_get_current_version_from_version_file(
@@ -305,9 +305,9 @@ class TestSemanticVersionManager:
         assert current_version.minor == 2
         assert current_version.patch == 1
 
-    def test_get_current_version_no_files(version_manager):
+    def test_get_current_version_no_files(self):
         """Test getting current version when no version files exist."""
-        current_version = version_manager.get_current_version()
+        current_version = self.get_current_version()
         assert current_version is None
 
 
@@ -320,7 +320,7 @@ class TestChangeAnalysis:
         logger = logging.getLogger(__name__)
         return SemanticVersionManager("/tmp", logger)
 
-    def test_analyze_changes_breaking(version_manager):
+    def test_analyze_changes_breaking(self):
         """Test analyzing breaking changes."""
         changes = [
             "breaking: remove deprecated API",
@@ -328,7 +328,7 @@ class TestChangeAnalysis:
             "fix: resolve bug",
         ]
 
-        analysis = version_manager.analyze_changes(changes)
+        analysis = self.analyze_changes(changes)
 
         assert analysis.has_breaking_changes is True
         assert analysis.has_new_features is True
@@ -336,7 +336,7 @@ class TestChangeAnalysis:
         assert analysis.suggested_bump == VersionBumpType.MAJOR
         assert analysis.confidence > 0.5
 
-    def test_analyze_changes_features(version_manager):
+    def test_analyze_changes_features(self):
         """Test analyzing feature changes."""
         changes = [
             "feat: add user authentication",
@@ -344,7 +344,7 @@ class TestChangeAnalysis:
             "fix: minor styling issue",
         ]
 
-        analysis = version_manager.analyze_changes(changes)
+        analysis = self.analyze_changes(changes)
 
         assert analysis.has_breaking_changes is False
         assert analysis.has_new_features is True
@@ -352,7 +352,7 @@ class TestChangeAnalysis:
         assert analysis.suggested_bump == VersionBumpType.MINOR
         assert analysis.confidence > 0.5
 
-    def test_analyze_changes_fixes_only(version_manager):
+    def test_analyze_changes_fixes_only(self):
         """Test analyzing bug fix changes only."""
         changes = [
             "fix: resolve memory leak",
@@ -360,7 +360,7 @@ class TestChangeAnalysis:
             "resolve: issue with file handling",
         ]
 
-        analysis = version_manager.analyze_changes(changes)
+        analysis = self.analyze_changes(changes)
 
         assert analysis.has_breaking_changes is False
         assert analysis.has_new_features is False
@@ -368,7 +368,7 @@ class TestChangeAnalysis:
         assert analysis.suggested_bump == VersionBumpType.PATCH
         assert analysis.confidence > 0.5
 
-    def test_analyze_changes_mixed_priority(version_manager):
+    def test_analyze_changes_mixed_priority(self):
         """Test analyzing mixed changes with priority."""
         changes = [
             "docs: update README",
@@ -376,14 +376,14 @@ class TestChangeAnalysis:
             "feat: add new API endpoint",
         ]
 
-        analysis = version_manager.analyze_changes(changes)
+        analysis = self.analyze_changes(changes)
 
         # Should prioritize feature over docs/style
         assert analysis.suggested_bump == VersionBumpType.MINOR
 
-    def test_analyze_changes_empty(version_manager):
+    def test_analyze_changes_empty(self):
         """Test analyzing empty changes list."""
-        analysis = version_manager.analyze_changes([])
+        analysis = self.analyze_changes([])
 
         assert analysis.has_breaking_changes is False
         assert analysis.has_new_features is False
@@ -391,7 +391,7 @@ class TestChangeAnalysis:
         assert analysis.suggested_bump == VersionBumpType.PATCH  # Default
         assert analysis.confidence == 0.0
 
-    def test_suggest_version_bump(version_manager):
+    def test_suggest_version_bump(self):
         """Test version bump suggestion from commit messages."""
         commit_messages = [
             "feat: add user management",
@@ -399,7 +399,7 @@ class TestChangeAnalysis:
             "docs: update API documentation",
         ]
 
-        bump_type, confidence = version_manager.suggest_version_bump(commit_messages)
+        bump_type, confidence = self.suggest_version_bump(commit_messages)
 
         assert bump_type == VersionBumpType.MINOR
         assert confidence > 0.0
@@ -414,28 +414,28 @@ class TestVersionBumping:
         logger = logging.getLogger(__name__)
         return SemanticVersionManager("/tmp", logger)
 
-    def test_bump_version_major(version_manager):
+    def test_bump_version_major(self):
         """Test major version bump."""
         current = SemanticVersion(1, 2, 3)
-        bumped = version_manager.bump_version(current, VersionBumpType.MAJOR)
+        bumped = self.bump_version(current, VersionBumpType.MAJOR)
 
         assert bumped.major == 2
         assert bumped.minor == 0
         assert bumped.patch == 0
 
-    def test_bump_version_minor(version_manager):
+    def test_bump_version_minor(self):
         """Test minor version bump."""
         current = SemanticVersion(1, 2, 3)
-        bumped = version_manager.bump_version(current, VersionBumpType.MINOR)
+        bumped = self.bump_version(current, VersionBumpType.MINOR)
 
         assert bumped.major == 1
         assert bumped.minor == 3
         assert bumped.patch == 0
 
-    def test_bump_version_patch(version_manager):
+    def test_bump_version_patch(self):
         """Test patch version bump."""
         current = SemanticVersion(1, 2, 3)
-        bumped = version_manager.bump_version(current, VersionBumpType.PATCH)
+        bumped = self.bump_version(current, VersionBumpType.PATCH)
 
         assert bumped.major == 1
         assert bumped.minor == 2
@@ -457,18 +457,18 @@ class TestVersionFileUpdates:
         logger = logging.getLogger(__name__)
         return SemanticVersionManager(str(temp_project_dir), logger)
 
-    def test_update_version_file_simple(version_manager, temp_project_dir):
+    def test_update_version_file_simple(self, temp_project_dir):
         """Test updating simple VERSION file."""
         version_file = temp_project_dir / "VERSION"
         version_file.write_text("1.0.0")
 
         new_version = SemanticVersion(1, 1, 0)
-        results = version_manager.update_version_files(new_version, ["VERSION"])
+        results = self.update_version_files(new_version, ["VERSION"])
 
         assert results["VERSION"] is True
         assert version_file.read_text().strip() == "1.1.0"
 
-    def test_update_package_json_version(version_manager, temp_project_dir):
+    def test_update_package_json_version(self, temp_project_dir):
         """Test updating package.json version."""
         package_json = temp_project_dir / "package.json"
         package_data = {
@@ -479,7 +479,7 @@ class TestVersionFileUpdates:
         package_json.write_text(json.dumps(package_data, indent=2))
 
         new_version = SemanticVersion(1, 1, 0)
-        results = version_manager.update_version_files(new_version, ["package.json"])
+        results = self.update_version_files(new_version, ["package.json"])
 
         assert results["package.json"] is True
 
@@ -488,10 +488,10 @@ class TestVersionFileUpdates:
         assert updated_data["version"] == "1.1.0"
         assert updated_data["name"] == "test-package"  # Other fields preserved
 
-    def test_update_version_files_nonexistent(version_manager):
+    def test_update_version_files_nonexistent(self):
         """Test updating non-existent version files."""
         new_version = SemanticVersion(2, 0, 0)
-        results = version_manager.update_version_files(
+        results = self.update_version_files(
             new_version, ["nonexistent.json"]
         )
 

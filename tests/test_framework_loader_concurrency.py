@@ -163,13 +163,13 @@ def test_cache_expiry():
 
     # First call (cache miss)
     start = time.time()
-    caps1 = loader._generate_agent_capabilities_section()
+    loader._generate_agent_capabilities_section()
     time1 = time.time() - start
     print(f"  First call: {time1:.3f}s (cache miss)")
 
     # Immediate second call (cache hit)
     start = time.time()
-    caps2 = loader._generate_agent_capabilities_section()
+    loader._generate_agent_capabilities_section()
     time2 = time.time() - start
     print(f"  Immediate second call: {time2:.3f}s (cache hit)")
 
@@ -179,7 +179,7 @@ def test_cache_expiry():
 
     # Third call (cache expired, should be slow again)
     start = time.time()
-    caps3 = loader._generate_agent_capabilities_section()
+    loader._generate_agent_capabilities_section()
     time3 = time.time() - start
     print(f"  After expiry: {time3:.3f}s (cache miss)")
 

@@ -38,7 +38,7 @@ def demonstrate_pm_hook_system():
 
     # Open dashboard
     dashboard_url = "http://localhost:8765/dashboard?autoconnect=true&port=8765"
-    print(f"\n📊 Opening Socket.IO dashboard...")
+    print("\n📊 Opening Socket.IO dashboard...")
     print(f"   URL: {dashboard_url}")
 
     try:
@@ -108,7 +108,7 @@ def demonstrate_pm_hook_system():
     if success:
         print(f"   ✓ Triggered PM TodoWrite hooks for {len(demo_todos)} todos")
     else:
-        print(f"   ⚠️  PM TodoWrite hooks may not have triggered properly")
+        print("   ⚠️  PM TodoWrite hooks may not have triggered properly")
 
     time.sleep(2)
 

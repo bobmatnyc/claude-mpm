@@ -14,6 +14,7 @@ Target: 40-60% reduction in connection errors through pooling
 
 import argparse
 import asyncio
+import contextlib
 import json
 import logging
 import random
@@ -151,10 +152,8 @@ class ConnectionBenchmark:
             except Exception as e:
                 self.logger.error(f"Test server error: {e}")
             finally:
-                try:
+                with contextlib.suppress(Exception):
                     server_socket.close()
-                except:
-                    pass
 
         # Start server
         server_thread = threading.Thread(target=simple_server, daemon=True)
@@ -409,7 +408,7 @@ class ConnectionBenchmark:
 
             try:
                 # Create Socket.IO client manager
-                client_manager = SocketIOClientManager()
+                SocketIOClientManager()
 
                 # Simulate connection discovery and establishment
                 await asyncio.sleep(random.uniform(0.01, 0.05))
@@ -551,7 +550,7 @@ class ConnectionBenchmark:
             cycle_successes = 0
             cycle_failures = 0
 
-            for conn_id in range(connections_per_cycle):
+            for _conn_id in range(connections_per_cycle):
                 conn_start = time.time()
 
                 try:
@@ -848,7 +847,7 @@ async def main():
     results = await benchmark.run_comprehensive_connection_benchmark()
 
     # Save results
-    output_file = benchmark.save_results(results, args.output)
+    benchmark.save_results(results, args.output)
 
     # Print summary
     benchmark.print_summary(results)

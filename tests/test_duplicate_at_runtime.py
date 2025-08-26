@@ -52,19 +52,19 @@ response_logging:
     print("\n2. Importing HookService...")
     from claude_mpm.services.hook_service import HookService
 
-    hook_service = HookService()
+    HookService()
 
     # Import another service
     print("\n3. Importing EventAggregator...")
     from claude_mpm.services.event_aggregator import EventAggregator
 
-    aggregator = EventAggregator()
+    EventAggregator()
 
     # Import another service that might use Config
     print("\n4. Importing ResponseLoggingManager...")
     from claude_mpm.logging.response_logging import ResponseLoggingManager
 
-    response_manager = ResponseLoggingManager()
+    ResponseLoggingManager()
 
     # Try getting Config again
     print("\n5. Getting Config instance again...")

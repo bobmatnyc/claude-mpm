@@ -46,7 +46,7 @@ def main():
     print("\n" + "=" * 50)
     print("Running actual deployment...")
     results = service.deploy_agents()
-    print(f"\nDeployment results:")
+    print("\nDeployment results:")
     print(f"Deployed: {results['deployed']}")
     print(f"Updated: {results['updated']}")
     print(f"Migrated: {results['migrated']}")

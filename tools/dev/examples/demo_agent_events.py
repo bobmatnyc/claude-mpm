@@ -15,7 +15,7 @@ def main():
     dashboard_path = Path(__file__).parent / "claude_mpm_socketio_dashboard.html"
     dashboard_url = f"file://{dashboard_path}?autoconnect=true&port=8765"
 
-    print(f"\n1. Opening dashboard...")
+    print("\n1. Opening dashboard...")
     webbrowser.open(dashboard_url)
     time.sleep(2)
 
@@ -49,7 +49,7 @@ def main():
         ]
 
         result = subprocess.run(
-            cmd, cwd=Path(__file__).parent.parent, capture_output=True, text=True
+            cmd, cwd=Path(__file__).parent.parent, capture_output=True, text=True, check=False
         )
 
         if result.returncode == 0:

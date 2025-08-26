@@ -91,10 +91,7 @@ class PathResolver(IPathResolver):
             resolved = path.resolve()
 
             # Check if path exists if required
-            if must_exist and not resolved.exists():
-                return False
-
-            return True
+            return not (must_exist and not resolved.exists())
         except (OSError, ValueError):
             return False
 

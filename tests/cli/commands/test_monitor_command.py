@@ -44,10 +44,10 @@ class TestMonitorCommand:
         assert error is None
 
     @patch("claude_mpm.cli.commands.monitor.WebSocketClient")
-    def test_run_monitor_console(mock_ws_client_class):
+    def test_run_monitor_console(self):
         """Test monitoring with console output."""
         mock_client = Mock()
-        mock_ws_client_class.return_value = mock_client
+        self.return_value = mock_client
         mock_client.connect.return_value = True
         mock_client.receive_events.return_value = [
             {"type": "response", "data": "test"},
@@ -66,10 +66,10 @@ class TestMonitorCommand:
             mock_start.assert_called_once_with(args)
 
     @patch("claude_mpm.cli.commands.monitor.WebSocketClient")
-    def test_run_monitor_file_output(mock_ws_client_class):
+    def test_run_monitor_file_output(self):
         """Test monitoring with file output."""
         mock_client = Mock()
-        mock_ws_client_class.return_value = mock_client
+        self.return_value = mock_client
 
         args = Namespace(
             port=8080,
@@ -79,7 +79,7 @@ class TestMonitorCommand:
             format="json",
         )
 
-        with patch("builtins.open", create=True) as mock_open:
+        with patch("builtins.open", create=True):
             with patch.object(self.command, "_start_monitoring") as mock_start:
                 mock_start.return_value = CommandResult.success_result(
                     "Monitoring to file", data={"output_file": "/tmp/monitor.log"}
@@ -110,10 +110,10 @@ class TestMonitorCommand:
             assert result.success is True
 
     @patch("claude_mpm.cli.commands.monitor.WebSocketClient")
-    def test_monitor_connection_error(mock_ws_client_class):
+    def test_monitor_connection_error(self):
         """Test handling connection errors."""
         mock_client = Mock()
-        mock_ws_client_class.return_value = mock_client
+        self.return_value = mock_client
         mock_client.connect.side_effect = ConnectionError("Cannot connect to WebSocket")
 
         args = Namespace(port=8080, filter=None, output="console", format="text")

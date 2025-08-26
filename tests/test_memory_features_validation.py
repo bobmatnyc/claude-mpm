@@ -481,7 +481,7 @@ class MemorySystemValidator:
 
         edge_cases = self.test_results["edge_cases"]
         if edge_cases:
-            for test_name, result in edge_cases.items():
+            for _test_name, result in edge_cases.items():
                 status = result["status"]
                 test_desc = result["test"]
                 print(f"✓ {test_desc}: {status}")

@@ -18,7 +18,7 @@ def convert_agent_to_yaml(agent_path: Path, output_dir: Path):
     agent_name = agent_path.stem.replace("_agent", "").replace("_", "-")
 
     # Read the original agent content
-    with open(agent_path, "r") as f:
+    with open(agent_path) as f:
         content = f.read()
 
     # Extract the agent description from the content
@@ -156,7 +156,7 @@ def main():
     }
 
     for agent_file in system_agents_dir.glob("*.md"):
-        with open(agent_file, "r") as f:
+        with open(agent_file) as f:
             content = f.read()
             # Extract YAML frontmatter
             if content.startswith("---"):
@@ -178,7 +178,7 @@ def main():
     with open(manifest_file, "w") as f:
         yaml.dump(manifest, f, default_flow_style=False)
 
-    print(f"\n✅ Conversion Complete!")
+    print("\n✅ Conversion Complete!")
     print(f"  - Converted: {converted_count} agents")
     print(f"  - System agents: {system_agents_dir}")
     print(f"  - Local deployment: {local_agents_dir}")

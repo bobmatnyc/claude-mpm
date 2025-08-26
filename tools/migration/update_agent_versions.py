@@ -6,7 +6,7 @@ Script to increment minor version for all agents in the system.
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 
 def increment_minor_version(version: str) -> str:
@@ -29,7 +29,7 @@ def update_json_templates(base_path: Path) -> List[Tuple[str, str, str]]:
     updates = []
 
     for json_file in templates_dir.glob("*.json"):
-        with open(json_file, "r") as f:
+        with open(json_file) as f:
             data = json.load(f)
 
         old_version = data.get("agent_version", "0.0.0")
@@ -52,7 +52,7 @@ def update_markdown_agents(base_path: Path) -> List[Tuple[str, str, str]]:
     updates = []
 
     for md_file in agents_dir.glob("*.md"):
-        with open(md_file, "r") as f:
+        with open(md_file) as f:
             content = f.read()
 
         # Find the version in YAML frontmatter
@@ -120,7 +120,7 @@ def generate_summary(
         json_ver = json_versions.get(agent, "N/A")
         md_ver = md_versions.get(agent, "N/A")
 
-        if json_ver != "N/A" and md_ver != "N/A" and json_ver != md_ver:
+        if json_ver != "N/A" and md_ver not in ("N/A", json_ver):
             inconsistencies.append(f"  ⚠️  {agent}: JSON={json_ver}, MD={md_ver}")
         elif json_ver == "N/A" or md_ver == "N/A":
             source = "JSON" if json_ver != "N/A" else "MD"

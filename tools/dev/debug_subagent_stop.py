@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Debug SubagentStop events and understand why agent_type is unknown."""
 
-import json
 import os
 import subprocess
 import sys
@@ -54,7 +53,7 @@ def test_subagent_stop_events():
             cwd=Path(__file__).parent.parent,
             capture_output=True,
             text=True,
-            timeout=45,
+            timeout=45, check=False,
         )
 
         # Look for SubagentStop in stderr (debug output)
@@ -82,7 +81,7 @@ def test_subagent_stop_events():
         / "src/claude_mpm/hooks/claude_hooks/hook_handler.py"
     )
 
-    with open(hook_handler, "r") as f:
+    with open(hook_handler) as f:
         content = f.read()
 
     # Find the SubagentStop handling
@@ -124,7 +123,7 @@ def check_task_tool_correlation():
         cwd=Path(__file__).parent.parent,
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=30, check=False,
     )
 
     print("\nLooking for correlation between:")

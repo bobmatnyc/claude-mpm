@@ -837,11 +837,11 @@ class TestAgentSystemE2E:
 
                 # Simulate production operations
                 agent_id = prod_agents[i % len(prod_agents)][0]
-                prompt = loader.get_agent_prompt(agent_id)
+                loader.get_agent_prompt(agent_id)
 
                 # Validate agent files periodically
                 if i % 20 == 0:
-                    validation_results = validate_agent_files()
+                    validate_agent_files()
 
                 # Simulate cache clearing (like during deployments)
                 if i % 50 == 0:

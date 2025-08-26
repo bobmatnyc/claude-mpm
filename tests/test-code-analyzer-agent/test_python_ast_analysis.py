@@ -173,7 +173,7 @@ def analyze_python_with_ast():
 
         # Count function length
         long_functions = []
-        source_lines = source_code.split("\n")
+        source_code.split("\n")
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 if hasattr(node, "end_lineno"):

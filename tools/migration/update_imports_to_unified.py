@@ -6,10 +6,9 @@ This script systematically updates all import statements across the codebase
 to use the new unified path management and agent registry systems.
 """
 
-import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -18,14 +17,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 IMPORT_REPLACEMENTS = {
     # Path management imports
     "from claude_mpm.core.unified_paths import": "from claude_mpm.core.unified_paths import",
-    "from claude_mpm.core.unified_paths import": "from claude_mpm.core.unified_paths import",
-    "from claude_mpm.core.unified_paths import": "from claude_mpm.core.unified_paths import",
     # Agent registry imports
     "from claude_mpm.core.unified_agent_registry import": "from claude_mpm.core.unified_agent_registry import",
-    "from claude_mpm.core.unified_agent_registry import": "from claude_mpm.core.unified_agent_registry import",
     # Specific function imports that need mapping
-    "get_path_manager()": "get_path_manager()",
-    "get_path_manager()": "get_path_manager()",
     "get_path_manager()": "get_path_manager()",
 }
 
@@ -39,7 +33,6 @@ FUNCTION_MAPPINGS = {
     "get_path_manager().find_file_upwards": "find_file_upwards",
     "get_path_manager().get_package_resource_path": "get_package_resource_path",
     # Agent registry
-    "get_agent_registry()": "get_agent_registry()",
     "get_agent_registry()": "get_agent_registry()",
 }
 
@@ -55,7 +48,7 @@ def update_file_imports(file_path: Path) -> bool:
         True if file was modified, False otherwise
     """
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
         original_content = content
@@ -176,7 +169,7 @@ def main():
         total_modified += tool_modified
 
     print("=" * 50)
-    print(f"Import update complete!")
+    print("Import update complete!")
     print(f"Files processed: {total_processed}")
     print(f"Files modified: {total_modified}")
 

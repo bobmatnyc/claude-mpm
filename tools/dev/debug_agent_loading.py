@@ -4,7 +4,6 @@
 import json
 import sys
 from pathlib import Path
-from pprint import pprint
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -24,7 +23,7 @@ def main():
     if agent_path.exists():
         print(f"   Loading {agent_path.name}...")
         try:
-            with open(agent_path, "r") as f:
+            with open(agent_path) as f:
                 agent_data = json.load(f)
 
             print(f"   Top-level keys: {list(agent_data.keys())}")
@@ -54,17 +53,17 @@ def main():
 
     # Check internal registry structure
     if hasattr(registry, "registry"):
-        print(f"   Has internal registry: Yes")
+        print("   Has internal registry: Yes")
         internal_reg = registry.registry
         print(f"   Internal registry type: {type(internal_reg)}")
 
         # Try to access agents directly
         if hasattr(internal_reg, "_agents"):
-            print(f"   Has _agents attribute: Yes")
+            print("   Has _agents attribute: Yes")
             agents = internal_reg._agents
             print(f"   _agents type: {type(agents)}")
             if agents:
-                first_key = list(agents.keys())[0]
+                first_key = next(iter(agents.keys()))
                 first_agent = agents[first_key]
                 print(f"   First agent type: {type(first_agent)}")
                 print(f"   First agent: {first_agent}")
@@ -78,13 +77,13 @@ def main():
     if isinstance(agents, dict) and agents:
         # Look for the research agent specifically
         research_agent = None
-        for key, agent in agents.items():
+        for _key, agent in agents.items():
             if isinstance(agent, dict) and agent.get("type") == "research":
                 research_agent = agent
                 break
 
         if research_agent:
-            print(f"\n   Research agent structure:")
+            print("\n   Research agent structure:")
             print(f"   Type: {type(research_agent)}")
             print("   Keys:", list(research_agent.keys()))
 
