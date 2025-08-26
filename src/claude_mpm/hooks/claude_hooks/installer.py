@@ -368,27 +368,31 @@ main "$@"
             settings = {}
             self.logger.info("Creating new Claude settings")
 
-        # Configure hooks
-        hook_config = {
-            "matcher": "*",
-            "hooks": [{"type": "command", "command": str(hook_script_path.absolute())}],
-        }
-
         # Update settings
         if "hooks" not in settings:
             settings["hooks"] = {}
 
-        # Add hooks for all event types
-        event_types = [
-            "UserPromptSubmit",
-            "PreToolUse",
-            "PostToolUse",
-            "Stop",
-            "SubagentStop",
-        ]
-
-        for event_type in event_types:
-            settings["hooks"][event_type] = [hook_config]
+        # Hook configuration for each event type
+        hook_command = {"type": "command", "command": str(hook_script_path.absolute())}
+        
+        # Tool-related events need a matcher string
+        tool_events = ["PreToolUse", "PostToolUse"]
+        for event_type in tool_events:
+            settings["hooks"][event_type] = [
+                {
+                    "matcher": "*",  # String value to match all tools
+                    "hooks": [hook_command],
+                }
+            ]
+        
+        # Non-tool events don't need a matcher
+        non_tool_events = ["UserPromptSubmit", "Stop", "SubagentStop", "SubagentStart"]
+        for event_type in non_tool_events:
+            settings["hooks"][event_type] = [
+                {
+                    "hooks": [hook_command],
+                }
+            ]
 
         # Write settings
         with open(self.settings_file, "w") as f:
@@ -457,7 +461,7 @@ main "$@"
                     issues.append("No hooks configured in Claude settings")
                 else:
                     # Check for required event types
-                    required_events = ["Stop", "SubagentStop"]
+                    required_events = ["Stop", "SubagentStop", "SubagentStart", "PreToolUse", "PostToolUse"]
                     for event in required_events:
                         if event not in settings["hooks"]:
                             issues.append(
@@ -502,16 +506,21 @@ main "$@"
                     for event_type in list(settings["hooks"].keys()):
                         hooks = settings["hooks"][event_type]
                         # Filter out claude-mpm hooks
-                        filtered_hooks = [
-                            h
-                            for h in hooks
-                            if not (
-                                isinstance(h, dict)
-                                and h.get("hooks", [{}])[0]
-                                .get("command", "")
-                                .endswith("claude-mpm-hook.sh")
-                            )
-                        ]
+                        filtered_hooks = []
+                        for h in hooks:
+                            # Check if this is a claude-mpm hook
+                            is_claude_mpm = False
+                            if isinstance(h, dict) and "hooks" in h:
+                                # Check each hook command in the hooks array
+                                for hook_cmd in h.get("hooks", []):
+                                    if isinstance(hook_cmd, dict) and hook_cmd.get("type") == "command":
+                                        cmd = hook_cmd.get("command", "")
+                                        if cmd.endswith("claude-mpm-hook.sh"):
+                                            is_claude_mpm = True
+                                            break
+                            
+                            if not is_claude_mpm:
+                                filtered_hooks.append(h)
 
                         if filtered_hooks:
                             settings["hooks"][event_type] = filtered_hooks
