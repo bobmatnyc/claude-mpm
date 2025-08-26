@@ -284,9 +284,11 @@ class SocketIOServer(SocketIOServiceInterface):
         reducing complexity and improving maintainability.
         """
         if not self.core.sio:
-            self.logger.error("Cannot register events - Socket.IO server not initialized")
+            self.logger.error(
+                "Cannot register events - Socket.IO server not initialized"
+            )
             return
-            
+
         # Initialize the event handler registry
         self.event_registry = EventHandlerRegistry(self)
         self.event_registry.initialize()
@@ -299,17 +301,19 @@ class SocketIOServer(SocketIOServiceInterface):
         self.git_handler = self.event_registry.get_handler(GitEventHandler)
 
         self.logger.info("All Socket.IO events registered via handler system")
-    
+
     async def _register_events_async(self):
         """Async version of event registration for calling from async context.
-        
+
         WHY: This allows us to register events from within the async _start_server
         method before the server starts accepting connections.
         """
         if not self.core.sio:
-            self.logger.error("Cannot register events - Socket.IO server not initialized")
+            self.logger.error(
+                "Cannot register events - Socket.IO server not initialized"
+            )
             return
-            
+
         # Initialize the event handler registry
         self.event_registry = EventHandlerRegistry(self)
         self.event_registry.initialize()

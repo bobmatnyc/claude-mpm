@@ -65,7 +65,7 @@ class DirectSocketIORelay:
 
         # Check and log broadcaster availability with retry logic
         broadcaster_available = self._check_broadcaster_with_retry()
-        
+
         logger.info(
             f"[DirectRelay] Server broadcaster available: {broadcaster_available}"
         )
@@ -88,28 +88,28 @@ class DirectSocketIORelay:
         # Mark as connected after successful subscription
         self.connected = broadcaster_available
         logger.info(f"[DirectRelay] Started with connection status: {self.connected}")
-        
+
     def _check_broadcaster_with_retry(self) -> bool:
         """Check broadcaster availability with exponential backoff retry.
-        
+
         Returns:
             True if broadcaster is available, False after max retries
         """
         import time
-        
+
         retry_delay = self.retry_delay
-        
+
         for attempt in range(self.max_retries):
             broadcaster_available = (
                 self.server
                 and hasattr(self.server, "broadcaster")
                 and self.server.broadcaster is not None
             )
-            
+
             if broadcaster_available:
                 self.connection_retries = 0  # Reset counter on success
                 return True
-                
+
             if attempt < self.max_retries - 1:
                 logger.info(
                     f"[DirectRelay] Broadcaster not ready, retry {attempt + 1}/{self.max_retries} "
@@ -121,7 +121,7 @@ class DirectSocketIORelay:
                 logger.error(
                     f"[DirectRelay] Broadcaster not available after {self.max_retries} attempts"
                 )
-                
+
         return False
 
     def _handle_hook_event(self, event_type: str, data: Any):
@@ -209,10 +209,12 @@ class DirectSocketIORelay:
                     # Use the full event_type (e.g., "hook.pre_tool") as the event name
                     # The normalizer handles dotted names and will extract type and subtype correctly
                     try:
-                        self.server.broadcaster.broadcast_event(event_type, broadcast_data)
+                        self.server.broadcaster.broadcast_event(
+                            event_type, broadcast_data
+                        )
                         self.stats["events_relayed"] += 1
                         self.stats["last_relay_time"] = datetime.now().isoformat()
-                        
+
                         # Reset retry counter on successful broadcast
                         if self.connection_retries > 0:
                             self.connection_retries = 0
@@ -228,7 +230,7 @@ class DirectSocketIORelay:
                             f"[DirectRelay] Broadcast failed for {event_type}: {broadcast_error}"
                         )
                         self.stats["events_failed"] += 1
-                        
+
                         # Try to reconnect if broadcast fails
                         if self.connection_retries < self.max_retries:
                             self.connection_retries += 1
@@ -236,10 +238,16 @@ class DirectSocketIORelay:
                             if self.connected:
                                 # Retry the broadcast
                                 try:
-                                    self.server.broadcaster.broadcast_event(event_type, broadcast_data)
+                                    self.server.broadcaster.broadcast_event(
+                                        event_type, broadcast_data
+                                    )
                                     self.stats["events_relayed"] += 1
-                                    self.stats["events_failed"] -= 1  # Undo the failure count
-                                    logger.info(f"[DirectRelay] Retry successful for {event_type}")
+                                    self.stats[
+                                        "events_failed"
+                                    ] -= 1  # Undo the failure count
+                                    logger.info(
+                                        f"[DirectRelay] Retry successful for {event_type}"
+                                    )
                                 except:
                                     pass  # Already counted as failed
                 else:
