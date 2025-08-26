@@ -37,9 +37,12 @@ class DirectSocketIORelay:
             "last_relay_time": None,
         }
         self.debug = logger.isEnabledFor(logging.DEBUG)
+        self.connection_retries = 0
+        self.max_retries = 10
+        self.retry_delay = 1.0  # Start with 1 second
 
     def start(self) -> None:
-        """Start the relay by subscribing to EventBus events."""
+        """Start the relay by subscribing to EventBus events with retry logic."""
         if not self.enabled:
             logger.warning("DirectSocketIORelay is disabled")
             return
@@ -60,12 +63,9 @@ class DirectSocketIORelay:
         # Add debug logging for verification
         logger.info("[DirectRelay] Subscribed to hook.* events on EventBus")
 
-        # Check and log broadcaster availability
-        broadcaster_available = (
-            self.server
-            and hasattr(self.server, "broadcaster")
-            and self.server.broadcaster is not None
-        )
+        # Check and log broadcaster availability with retry logic
+        broadcaster_available = self._check_broadcaster_with_retry()
+        
         logger.info(
             f"[DirectRelay] Server broadcaster available: {broadcaster_available}"
         )
@@ -80,14 +80,49 @@ class DirectSocketIORelay:
                 )
             else:
                 logger.warning(
-                    "[DirectRelay] Server broadcaster is None - events will not be relayed!"
+                    "[DirectRelay] Server broadcaster is None after retries - events will not be relayed!"
                 )
 
         logger.info(f"[DirectRelay] EventBus instance: {self.event_bus is not None}")
 
         # Mark as connected after successful subscription
-        self.connected = True
-        logger.info("[DirectRelay] Started and subscribed to hook events")
+        self.connected = broadcaster_available
+        logger.info(f"[DirectRelay] Started with connection status: {self.connected}")
+        
+    def _check_broadcaster_with_retry(self) -> bool:
+        """Check broadcaster availability with exponential backoff retry.
+        
+        Returns:
+            True if broadcaster is available, False after max retries
+        """
+        import time
+        
+        retry_delay = self.retry_delay
+        
+        for attempt in range(self.max_retries):
+            broadcaster_available = (
+                self.server
+                and hasattr(self.server, "broadcaster")
+                and self.server.broadcaster is not None
+            )
+            
+            if broadcaster_available:
+                self.connection_retries = 0  # Reset counter on success
+                return True
+                
+            if attempt < self.max_retries - 1:
+                logger.info(
+                    f"[DirectRelay] Broadcaster not ready, retry {attempt + 1}/{self.max_retries} "
+                    f"in {retry_delay:.1f}s"
+                )
+                time.sleep(retry_delay)
+                retry_delay = min(retry_delay * 2, 30.0)  # Exponential backoff, max 30s
+            else:
+                logger.error(
+                    f"[DirectRelay] Broadcaster not available after {self.max_retries} attempts"
+                )
+                
+        return False
 
     def _handle_hook_event(self, event_type: str, data: Any):
         """Internal method to handle hook events and broadcast them.
@@ -173,15 +208,40 @@ class DirectSocketIORelay:
 
                     # Use the full event_type (e.g., "hook.pre_tool") as the event name
                     # The normalizer handles dotted names and will extract type and subtype correctly
-                    self.server.broadcaster.broadcast_event(event_type, broadcast_data)
+                    try:
+                        self.server.broadcaster.broadcast_event(event_type, broadcast_data)
+                        self.stats["events_relayed"] += 1
+                        self.stats["last_relay_time"] = datetime.now().isoformat()
+                        
+                        # Reset retry counter on successful broadcast
+                        if self.connection_retries > 0:
+                            self.connection_retries = 0
+                            self.connected = True
+                            logger.info("[DirectRelay] Connection restored")
 
-                    self.stats["events_relayed"] += 1
-                    self.stats["last_relay_time"] = datetime.now().isoformat()
-
-                    if self.debug:
-                        logger.debug(
-                            f"[DirectRelay] Broadcasted hook event: {event_type}"
+                        if self.debug:
+                            logger.debug(
+                                f"[DirectRelay] Broadcasted hook event: {event_type}"
+                            )
+                    except Exception as broadcast_error:
+                        logger.error(
+                            f"[DirectRelay] Broadcast failed for {event_type}: {broadcast_error}"
                         )
+                        self.stats["events_failed"] += 1
+                        
+                        # Try to reconnect if broadcast fails
+                        if self.connection_retries < self.max_retries:
+                            self.connection_retries += 1
+                            self.connected = self._check_broadcaster_with_retry()
+                            if self.connected:
+                                # Retry the broadcast
+                                try:
+                                    self.server.broadcaster.broadcast_event(event_type, broadcast_data)
+                                    self.stats["events_relayed"] += 1
+                                    self.stats["events_failed"] -= 1  # Undo the failure count
+                                    logger.info(f"[DirectRelay] Retry successful for {event_type}")
+                                except:
+                                    pass  # Already counted as failed
                 else:
                     # Enhanced logging when broadcaster is not available
                     logger.warning(
@@ -189,7 +249,7 @@ class DirectSocketIORelay:
                     )
                     if self.server:
                         logger.warning(
-                            f"[DirectRelay] Server exists but broadcaster is None"
+                            "[DirectRelay] Server exists but broadcaster is None"
                         )
                         logger.warning(
                             f"[DirectRelay] Server type: {type(self.server).__name__}"
@@ -202,7 +262,7 @@ class DirectSocketIORelay:
                                 f"[DirectRelay] Broadcaster value: {self.server.broadcaster}"
                             )
                     else:
-                        logger.warning(f"[DirectRelay] Server is None")
+                        logger.warning("[DirectRelay] Server is None")
                     self.stats["events_failed"] += 1
 
         except Exception as e:

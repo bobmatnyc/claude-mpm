@@ -33,20 +33,38 @@ try:
     settings_screen = SettingsScreen("project", Path.cwd())
 
     # Verify they are Container instances
-    assert isinstance(agent_screen, Container), f"AgentManagementScreen should be a Container, got {type(agent_screen)}"
-    assert isinstance(template_screen, Container), f"TemplateEditingScreen should be a Container, got {type(template_screen)}"
-    assert isinstance(behavior_screen, Container), f"BehaviorFilesScreen should be a Container, got {type(behavior_screen)}"
-    assert isinstance(settings_screen, Container), f"SettingsScreen should be a Container, got {type(settings_screen)}"
+    assert isinstance(
+        agent_screen, Container
+    ), f"AgentManagementScreen should be a Container, got {type(agent_screen)}"
+    assert isinstance(
+        template_screen, Container
+    ), f"TemplateEditingScreen should be a Container, got {type(template_screen)}"
+    assert isinstance(
+        behavior_screen, Container
+    ), f"BehaviorFilesScreen should be a Container, got {type(behavior_screen)}"
+    assert isinstance(
+        settings_screen, Container
+    ), f"SettingsScreen should be a Container, got {type(settings_screen)}"
 
     # Verify they are NOT Screen instances
-    assert not isinstance(agent_screen, Screen), "AgentManagementScreen should NOT be a Screen"
-    assert not isinstance(template_screen, Screen), "TemplateEditingScreen should NOT be a Screen"
-    assert not isinstance(behavior_screen, Screen), "BehaviorFilesScreen should NOT be a Screen"
-    assert not isinstance(settings_screen, Screen), "SettingsScreen should NOT be a Screen"
+    assert not isinstance(
+        agent_screen, Screen
+    ), "AgentManagementScreen should NOT be a Screen"
+    assert not isinstance(
+        template_screen, Screen
+    ), "TemplateEditingScreen should NOT be a Screen"
+    assert not isinstance(
+        behavior_screen, Screen
+    ), "BehaviorFilesScreen should NOT be a Screen"
+    assert not isinstance(
+        settings_screen, Screen
+    ), "SettingsScreen should NOT be a Screen"
 
     print("✅ All screens are now Container subclasses (not Screen)")
     print("✅ This should fix the blank screen issue with ContentSwitcher")
-    print("\nThe fix is complete! The screens should now work properly with ContentSwitcher.")
+    print(
+        "\nThe fix is complete! The screens should now work properly with ContentSwitcher."
+    )
 
 except ImportError as e:
     print(f"❌ Import error: {e}")

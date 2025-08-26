@@ -70,11 +70,11 @@ class ClientConnection:
     metrics: ConnectionMetrics = field(default_factory=ConnectionMetrics)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def is_healthy(self, timeout: float = 180.0) -> bool:
+    def is_healthy(self, timeout: float = 90.0) -> bool:
         """Check if connection is healthy based on activity.
-        
+
         Args:
-            timeout: Seconds before considering connection unhealthy (default 180s)
+            timeout: Seconds before considering connection unhealthy (default 90s)
         """
         if self.state != ConnectionState.CONNECTED:
             return False
@@ -91,9 +91,9 @@ class ClientConnection:
             self.connected_at,
         )
 
-        # Add grace period for network hiccups (additional 10% of timeout)
-        grace_period = timeout * 1.1
-        return (now - last_activity) < grace_period
+        # More aggressive timeout for stale detection (no grace period)
+        # This helps identify truly stale connections faster
+        return (now - last_activity) < timeout
 
     def calculate_quality(self) -> float:
         """Calculate connection quality score (0-1)."""
@@ -157,17 +157,19 @@ class ConnectionManager:
             event_ttl: Time-to-live for buffered events in seconds (uses config if None)
         """
         from ....config.socketio_config import CONNECTION_CONFIG
-        
+
         self.logger = get_logger(__name__)
         self.connections: Dict[str, ClientConnection] = {}
         self.client_mapping: Dict[str, str] = {}  # client_id -> current sid
-        
+
         # Use centralized configuration with optional overrides
-        self.max_buffer_size = max_buffer_size or CONNECTION_CONFIG['max_events_buffer']
-        self.event_ttl = event_ttl or CONNECTION_CONFIG['event_ttl']
+        self.max_buffer_size = max_buffer_size or CONNECTION_CONFIG["max_events_buffer"]
+        self.event_ttl = event_ttl or CONNECTION_CONFIG["event_ttl"]
         self.global_sequence = 0
-        self.health_check_interval = CONNECTION_CONFIG['health_check_interval']  # 30 seconds
-        self.stale_timeout = CONNECTION_CONFIG['stale_timeout']  # 180 seconds (was 90)
+        self.health_check_interval = CONNECTION_CONFIG[
+            "health_check_interval"
+        ]  # 30 seconds
+        self.stale_timeout = CONNECTION_CONFIG["stale_timeout"]  # 180 seconds (was 90)
         self.health_task = None
         self._lock = asyncio.Lock()
 
@@ -175,7 +177,7 @@ class ConnectionManager:
         self, sid: str, client_id: Optional[str] = None
     ) -> ClientConnection:
         """
-        Register a new connection or reconnection.
+        Register a new connection or reconnection with retry logic.
 
         Args:
             sid: Socket ID
@@ -184,54 +186,80 @@ class ConnectionManager:
         Returns:
             ClientConnection object
         """
-        async with self._lock:
-            now = time.time()
+        max_retries = 3
+        retry_delay = 0.1  # Start with 100ms
+        
+        for attempt in range(max_retries):
+            try:
+                async with self._lock:
+                    now = time.time()
 
-            # Check if this is a reconnection
-            if client_id and client_id in self.client_mapping:
-                old_sid = self.client_mapping[client_id]
-                if old_sid in self.connections:
-                    old_conn = self.connections[old_sid]
+                    # Check if this is a reconnection
+                    if client_id and client_id in self.client_mapping:
+                        old_sid = self.client_mapping[client_id]
+                        if old_sid in self.connections:
+                            old_conn = self.connections[old_sid]
 
-                    # Create new connection with history
+                            # Create new connection with history
+                            conn = ClientConnection(
+                                sid=sid,
+                                client_id=client_id,
+                                state=ConnectionState.CONNECTED,
+                                connected_at=now,
+                                event_buffer=old_conn.event_buffer,
+                                event_sequence=old_conn.event_sequence,
+                                last_acked_sequence=old_conn.last_acked_sequence,
+                                metrics=old_conn.metrics,
+                            )
+
+                            # Update metrics
+                            conn.metrics.reconnect_count += 1
+                            conn.metrics.connect_count += 1
+                            if old_conn.disconnected_at:
+                                conn.metrics.total_downtime += now - old_conn.disconnected_at
+
+                            # Clean up old connection
+                            del self.connections[old_sid]
+
+                            self.logger.info(
+                                f"Client {client_id} reconnected (new sid: {sid}, "
+                                f"buffered events: {len(conn.event_buffer)})"
+                            )
+                        else:
+                            # No old connection found, create new
+                            client_id = client_id or str(uuid4())
+                            conn = self._create_new_connection(sid, client_id, now)
+                    else:
+                        # New client
+                        client_id = client_id or str(uuid4())
+                        conn = self._create_new_connection(sid, client_id, now)
+
+                    # Register connection with validation
+                    if conn and conn.state == ConnectionState.CONNECTED:
+                        self.connections[sid] = conn
+                        self.client_mapping[client_id] = sid
+                        return conn
+                    else:
+                        raise ValueError(f"Invalid connection state for {sid}")
+                        
+            except Exception as e:
+                self.logger.warning(
+                    f"Failed to register connection {sid} (attempt {attempt + 1}/{max_retries}): {e}"
+                )
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    # Final attempt failed, create minimal connection
+                    self.logger.error(f"All attempts failed for {sid}, creating minimal connection")
                     conn = ClientConnection(
                         sid=sid,
-                        client_id=client_id,
+                        client_id=client_id or str(uuid4()),
                         state=ConnectionState.CONNECTED,
-                        connected_at=now,
-                        event_buffer=old_conn.event_buffer,
-                        event_sequence=old_conn.event_sequence,
-                        last_acked_sequence=old_conn.last_acked_sequence,
-                        metrics=old_conn.metrics,
+                        connected_at=time.time(),
                     )
-
-                    # Update metrics
-                    conn.metrics.reconnect_count += 1
-                    conn.metrics.connect_count += 1
-                    if old_conn.disconnected_at:
-                        conn.metrics.total_downtime += now - old_conn.disconnected_at
-
-                    # Clean up old connection
-                    del self.connections[old_sid]
-
-                    self.logger.info(
-                        f"Client {client_id} reconnected (new sid: {sid}, "
-                        f"buffered events: {len(conn.event_buffer)})"
-                    )
-                else:
-                    # No old connection found, create new
-                    client_id = client_id or str(uuid4())
-                    conn = self._create_new_connection(sid, client_id, now)
-            else:
-                # New client
-                client_id = client_id or str(uuid4())
-                conn = self._create_new_connection(sid, client_id, now)
-
-            # Register connection
-            self.connections[sid] = conn
-            self.client_mapping[client_id] = sid
-
-            return conn
+                    self.connections[sid] = conn
+                    return conn
 
     def _create_new_connection(
         self, sid: str, client_id: str, now: float
@@ -460,7 +488,7 @@ class ConnectionManager:
                             conn.connected_at,
                         )
                         time_since_activity = now - last_activity
-                        
+
                         # Only mark as stale if significantly over timeout (2x)
                         if time_since_activity > (self.stale_timeout * 2):
                             conn.state = ConnectionState.STALE
@@ -476,15 +504,14 @@ class ConnectionManager:
                                 f"Connection {conn.client_id} borderline "
                                 f"(last activity: {time_since_activity:.1f}s ago)"
                             )
-                            
+
                 elif conn.state == ConnectionState.DISCONNECTED:
                     report["disconnected"] += 1
 
                     # Clean up old disconnected connections (be conservative)
-                    if (
-                        conn.disconnected_at
-                        and (now - conn.disconnected_at) > (self.event_ttl * 2)  # Double the TTL
-                    ):
+                    if conn.disconnected_at and (now - conn.disconnected_at) > (
+                        self.event_ttl * 2
+                    ):  # Double the TTL
                         to_clean.append(sid)
 
             # Clean up old connections

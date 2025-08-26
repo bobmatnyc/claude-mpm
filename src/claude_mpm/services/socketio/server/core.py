@@ -160,21 +160,35 @@ class SocketIOServerCore:
         try:
             # Import centralized configuration for consistency
             from ....config.socketio_config import CONNECTION_CONFIG
-            
+
             # Create Socket.IO server with centralized configuration
             # CRITICAL: These values MUST match client settings to prevent disconnections
             self.sio = socketio.AsyncServer(
                 cors_allowed_origins="*",
                 logger=False,  # Disable Socket.IO's own logging
                 engineio_logger=False,
-                ping_interval=CONNECTION_CONFIG['ping_interval'],  # 45 seconds from config
-                ping_timeout=CONNECTION_CONFIG['ping_timeout'],    # 20 seconds from config
-                max_http_buffer_size=CONNECTION_CONFIG['max_http_buffer_size'],  # 100MB from config
+                ping_interval=CONNECTION_CONFIG[
+                    "ping_interval"
+                ],  # 45 seconds from config
+                ping_timeout=CONNECTION_CONFIG[
+                    "ping_timeout"
+                ],  # 20 seconds from config
+                max_http_buffer_size=CONNECTION_CONFIG[
+                    "max_http_buffer_size"
+                ],  # 100MB from config
             )
 
             # Create aiohttp application
             self.app = web.Application()
             self.sio.attach(self.app)
+            
+            # CRITICAL: Register event handlers BEFORE starting the server
+            # This ensures handlers are ready when clients connect
+            if self.main_server and hasattr(self.main_server, '_register_events_async'):
+                self.logger.info("Registering Socket.IO event handlers before server start")
+                await self.main_server._register_events_async()
+            else:
+                self.logger.warning("Main server not available for event registration")
 
             # Setup HTTP API endpoints for receiving events from hook handlers
             self._setup_http_api()
@@ -202,11 +216,14 @@ class SocketIOServerCore:
 
             # Conditionally start heartbeat task based on configuration
             from ....config.socketio_config import CONNECTION_CONFIG
-            if CONNECTION_CONFIG.get('enable_extra_heartbeat', False):
+
+            if CONNECTION_CONFIG.get("enable_extra_heartbeat", False):
                 self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
                 self.logger.info("Started system heartbeat task")
             else:
-                self.logger.info("System heartbeat disabled (using Socket.IO ping/pong instead)")
+                self.logger.info(
+                    "System heartbeat disabled (using Socket.IO ping/pong instead)"
+                )
 
             # Keep the server running
             while self.running:

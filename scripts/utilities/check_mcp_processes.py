@@ -160,7 +160,9 @@ class MCPProcessChecker:
         print("=" * 80)
         print("🔍 MCP Process Status Report")
         print("=" * 80)
-        print(f"Report generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}")
+        print(
+            f"Report generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}"
+        )
         print()
 
         # Check PID files

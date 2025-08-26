@@ -209,11 +209,126 @@ When creating agents, use this structure:
 }
 ```
 
+## Complete Agent JSON Schema
+
+### Required Fields for Deployment
+
+When deploying agents, ensure ALL fields use the correct data types:
+
+```json
+{
+  "agent_id": "custom-agent",                  // Required: unique identifier
+  "version": "1.0.0",                          // Required: semantic version
+  "metadata": {                                // Required: agent metadata
+    "name": "Custom Agent",
+    "description": "Agent description",
+    "tags": ["tag1", "tag2"],                 // MUST be a list, NOT a string!
+    "capabilities": ["capability1", "capability2"]  // MUST be a list!
+  },
+  "capabilities": {                            // Optional but recommended
+    "model": "sonnet",                         // Default: "sonnet"
+    "tools": ["Read", "Write", "Edit"],       // MUST be a list, NOT a JSON string!
+    "resource_tier": "standard"                // Default: "standard"
+  },
+  "specializations": ["spec1", "spec2"],      // Optional: MUST be a list if provided!
+  "when_to_use": ["scenario1", "scenario2"],   // Optional: MUST be a list if provided!
+  "network_access": true,                      // Optional: boolean
+  "temperature": 0.3                           // Optional: float between 0 and 1
+}
+```
+
+### Common Data Type Errors
+
+**❌ WRONG - These will cause deployment errors:**
+```json
+{
+  "tools": '["Read", "Write", "Edit"]',       // String containing JSON - WRONG!
+  "tags": '["tag1", "tag2"]',                  // String containing JSON - WRONG!
+  "specializations": '["spec1", "spec2"]'      // String containing JSON - WRONG!
+}
+```
+
+**✅ CORRECT - Use actual lists/arrays:**
+```json
+{
+  "tools": ["Read", "Write", "Edit"],          // Actual list - CORRECT!
+  "tags": ["tag1", "tag2"],                     // Actual list - CORRECT!
+  "specializations": ["spec1", "spec2"]         // Actual list - CORRECT!
+}
+```
+
+### Available Tools
+
+When specifying tools, use these exact names (case-sensitive):
+
+- **File Operations**: `Read`, `Write`, `Edit`, `MultiEdit`
+- **Search & Navigation**: `Grep`, `Glob`, `LS`
+- **System Operations**: `Bash`, `BashOutput`, `KillBash`
+- **Web Operations**: `WebSearch`, `WebFetch`
+- **Project Management**: `TodoWrite`
+- **Notebook Operations**: `NotebookEdit`
+- **MCP Tools**: Any tools starting with `mcp__` (if available)
+
 ### Version Guidelines
 - Production versions: Use standard semantic versioning (1.0.0, 1.1.0, 2.0.0)
 - Development versions: Use 999.x.x to override all other versions
 - Version determines precedence across ALL sources (project/user/system)
 - Higher version always wins regardless of deployment location
+
+## Common Deployment Errors and Solutions
+
+### 1. TypeError: can only concatenate list (not 'str') to list
+
+**Cause**: The `tools`, `tags`, `capabilities`, or `specializations` field is a JSON string instead of a list.
+
+**Solution**: Ensure all list fields are actual Python lists, not JSON strings:
+```python
+# WRONG
+"tools": '["Read", "Write"]'  # This is a string!
+
+# CORRECT
+"tools": ["Read", "Write"]     # This is a list!
+```
+
+### 2. Version Conflict Errors
+
+**Cause**: An agent with the same ID but higher version exists elsewhere.
+
+**Solution**: 
+- Use version 999.x.x for development to override all versions
+- Check existing versions with `mpm list`
+- Increment version appropriately for production releases
+
+### 3. Missing Required Fields
+
+**Cause**: Agent JSON is missing required fields like `agent_id`, `version`, or `metadata`.
+
+**Solution**: Use the complete schema above and ensure all required fields are present:
+```json
+{
+  "agent_id": "my-agent",     // Required
+  "version": "1.0.0",          // Required
+  "metadata": {               // Required
+    "name": "My Agent",
+    "description": "Description"
+  }
+}
+```
+
+### 4. Invalid Tool Names
+
+**Cause**: Specifying tools that don't exist in the environment.
+
+**Solution**: Use only valid tool names from the Available Tools list above. Check case-sensitivity!
+
+### 5. File Not Found Errors
+
+**Cause**: Agent prompt file doesn't exist at the specified location.
+
+**Solution**: 
+- Place agent files in `.claude/agents/` directory
+- Ensure both JSON and markdown files exist
+- Use matching filenames (e.g., `my-agent.json` and `my-agent.md`)
 
 ## Validation Rules
 
@@ -234,6 +349,32 @@ When creating agents, use this structure:
 - Verify no breaking conflicts
 - Ensure backup of overridden agents
 - Validate against schema if available
+
+### Pre-Deployment Validation Commands
+
+**Test agent configuration before deployment:**
+```bash
+# Validate JSON structure
+mpm validate-agent ./my-agent.json
+
+# Test deployment without applying
+mpm deploy --dry-run ./my-agent.json
+
+# Check for conflicts
+mpm list --show-conflicts my-agent
+```
+
+**Verify agent files:**
+```bash
+# Check both files exist
+ls -la .claude/agents/my-agent.*
+
+# Validate JSON syntax
+python -m json.tool .claude/agents/my-agent.json
+
+# Test agent loading
+mpm test-agent my-agent
+```
 
 ## Error Handling
 

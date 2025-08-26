@@ -33,10 +33,7 @@ for i in range(3):
         "type": "hook",
         "subtype": f"test_{i}",
         "timestamp": datetime.now().isoformat(),
-        "data": {
-            "message": f"Test event {i} from connection pool",
-            "index": i
-        }
+        "data": {"message": f"Test event {i} from connection pool", "index": i},
     }
 
     print(f"Sending event {i}...")

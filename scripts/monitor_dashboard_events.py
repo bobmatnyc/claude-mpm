@@ -45,7 +45,7 @@ def signal_handler(signum, frame):
 def monitor_dashboard_events(server_url="http://localhost:8765"):
     """Monitor events being sent to the dashboard."""
     print("\n🔍 Dashboard Event Monitor")
-    print("="*40)
+    print("=" * 40)
 
     client = connect_and_monitor(server_url, stats)
     if not client:
@@ -72,7 +72,9 @@ def create_event_handlers(client, stats):
 
     @client.on("disconnect")
     def on_disconnect():
-        print(f"\n⚠️ Disconnected from server at {datetime.now(timezone.utc).isoformat()}")
+        print(
+            f"\n⚠️ Disconnected from server at {datetime.now(timezone.utc).isoformat()}"
+        )
 
     @client.on("claude_event")
     def on_claude_event(data):

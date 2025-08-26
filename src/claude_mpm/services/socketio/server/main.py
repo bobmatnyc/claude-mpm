@@ -111,7 +111,8 @@ class SocketIOServer(SocketIOServiceInterface):
             flush=True,
         )
 
-        # Start the core server
+        # CRITICAL: Start the core server first to create sio instance
+        # Event handlers will be registered inside _start_server before accepting connections
         self.core.start_sync()
 
         # Initialize connection manager for robust connection tracking
@@ -163,8 +164,9 @@ class SocketIOServer(SocketIOServiceInterface):
                     self.connection_manager.start_health_monitoring(), self.core.loop
                 )
 
-        # Register events
-        self._register_events()
+        # Register events if not already done in async context
+        if self.core.sio and not self.event_registry:
+            self._register_events()
 
         # Setup EventBus integration
         # WHY: This connects the EventBus to the Socket.IO server, allowing
@@ -281,6 +283,10 @@ class SocketIOServer(SocketIOServiceInterface):
         handlers in a modular way. Each handler focuses on a specific domain,
         reducing complexity and improving maintainability.
         """
+        if not self.core.sio:
+            self.logger.error("Cannot register events - Socket.IO server not initialized")
+            return
+            
         # Initialize the event handler registry
         self.event_registry = EventHandlerRegistry(self)
         self.event_registry.initialize()
@@ -293,6 +299,29 @@ class SocketIOServer(SocketIOServiceInterface):
         self.git_handler = self.event_registry.get_handler(GitEventHandler)
 
         self.logger.info("All Socket.IO events registered via handler system")
+    
+    async def _register_events_async(self):
+        """Async version of event registration for calling from async context.
+        
+        WHY: This allows us to register events from within the async _start_server
+        method before the server starts accepting connections.
+        """
+        if not self.core.sio:
+            self.logger.error("Cannot register events - Socket.IO server not initialized")
+            return
+            
+        # Initialize the event handler registry
+        self.event_registry = EventHandlerRegistry(self)
+        self.event_registry.initialize()
+
+        # Register all events from all handlers
+        self.event_registry.register_all_events()
+
+        # Keep handler instances for HTTP endpoint compatibility
+        self.file_handler = self.event_registry.get_handler(FileEventHandler)
+        self.git_handler = self.event_registry.get_handler(GitEventHandler)
+
+        self.logger.info("All Socket.IO events registered via handler system (async)")
 
     # Delegate broadcasting methods to the broadcaster
     def broadcast_event(self, event_type: str, data: Dict[str, Any]):
