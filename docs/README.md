@@ -27,12 +27,15 @@ Welcome to Claude MPM (Multi-Agent Project Manager) - a framework that extends C
 - **Features & Capabilities**
   - [Memory System](user/03-features/memory-system.md)
   - [Agent Delegation](user/03-features/agent-delegation.md)
+  - [Code Analysis & Visualization](user/03-features/code-analysis.md)
+  - [Mermaid Diagram Generation](user/03-features/mermaid-visualization.md)
   - [Session Logging](user/03-features/session-logging.md)
   - [File Security](user/03-features/file-security.md)
 
 - **Reference & Help**
   - [Configuration Guide](user/04-reference/configuration.md)
   - [Troubleshooting](user/04-reference/troubleshooting.md)
+  - [Mermaid Troubleshooting](user/04-reference/troubleshooting-mermaid.md)
   - [Security Settings](user/04-reference/security-configuration.md)
 
 ### 👨‍💻 **For Developers** - Building with Claude MPM
@@ -55,6 +58,7 @@ Welcome to Claude MPM (Multi-Agent Project Manager) - a framework that extends C
 
 - **Advanced Topics**
   - [Hook System](developer/02-core-components/hook-system.md)
+  - [Code Visualization Guide](developer/02-core-components/code-visualization-guide.md)
   - [Memory System Architecture](developer/08-memory-system/)
   - [Security Framework](developer/09-security/SECURITY.md)
   - [Dashboard Development](developer/11-dashboard/)

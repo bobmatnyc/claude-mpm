@@ -5,6 +5,10 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
+import os
+import getpass
+import platform
+import locale
 
 # Import resource handling for packaged installations
 try:
@@ -995,11 +999,8 @@ class FrameworkLoader:
             # Add dynamic agent capabilities section
             instructions += self._generate_agent_capabilities_section()
 
-            # Add current date for temporal awareness
-            instructions += f"\n\n## Temporal Context\n**Today's Date**: {datetime.now().strftime('%Y-%m-%d')}\n"
-            instructions += (
-                "Apply date awareness to all time-sensitive tasks and decisions.\n"
-            )
+            # Add enhanced temporal and user context for better awareness
+            instructions += self._generate_temporal_user_context()
 
             # Add BASE_PM.md framework requirements AFTER INSTRUCTIONS.md
             if self.framework_content.get("base_pm_instructions"):
@@ -1321,6 +1322,136 @@ Extract tickets from these patterns:
             self._agent_capabilities_cache = result
             self._agent_capabilities_cache_time = current_time
             return result
+
+    def _generate_temporal_user_context(self) -> str:
+        """Generate enhanced temporal and user context for better PM awareness.
+        
+        Returns:
+            str: Formatted context string with datetime, user, and system information
+        """
+        context_lines = ["\n\n## Temporal & User Context\n"]
+        
+        try:
+            # Get current datetime with timezone awareness
+            now = datetime.now()
+            
+            # Try to get timezone info - fallback to UTC offset if timezone name not available
+            try:
+                import time as time_module
+                if hasattr(time_module, 'tzname'):
+                    tz_name = time_module.tzname[time_module.daylight]
+                    tz_offset = time_module.strftime('%z')
+                    if tz_offset:
+                        # Format UTC offset properly (e.g., -0800 to -08:00)
+                        tz_offset = f"{tz_offset[:3]}:{tz_offset[3:]}" if len(tz_offset) >= 4 else tz_offset
+                        tz_info = f"{tz_name} (UTC{tz_offset})"
+                    else:
+                        tz_info = tz_name
+                else:
+                    tz_info = "Local Time"
+            except Exception:
+                tz_info = "Local Time"
+            
+            # Format datetime components
+            date_str = now.strftime('%Y-%m-%d')
+            time_str = now.strftime('%H:%M:%S')
+            day_name = now.strftime('%A')
+            
+            context_lines.append(f"**Current DateTime**: {date_str} {time_str} {tz_info}\n")
+            context_lines.append(f"**Day**: {day_name}\n")
+            
+        except Exception as e:
+            # Fallback to basic date if enhanced datetime fails
+            self.logger.debug(f"Error generating enhanced datetime context: {e}")
+            context_lines.append(f"**Today's Date**: {datetime.now().strftime('%Y-%m-%d')}\n")
+        
+        try:
+            # Get user information with safe fallbacks
+            username = None
+            
+            # Try multiple methods to get username
+            methods = [
+                lambda: os.environ.get('USER'),
+                lambda: os.environ.get('USERNAME'),  # Windows fallback
+                lambda: getpass.getuser(),
+            ]
+            
+            for method in methods:
+                try:
+                    username = method()
+                    if username:
+                        break
+                except Exception:
+                    continue
+            
+            if username:
+                context_lines.append(f"**User**: {username}\n")
+                
+                # Add home directory if available
+                try:
+                    home_dir = os.path.expanduser("~")
+                    if home_dir and home_dir != "~":
+                        context_lines.append(f"**Home Directory**: {home_dir}\n")
+                except Exception:
+                    pass
+            
+        except Exception as e:
+            # User detection is optional, don't fail
+            self.logger.debug(f"Could not detect user information: {e}")
+        
+        try:
+            # Get system information
+            system_info = platform.system()
+            if system_info:
+                # Enhance system name for common platforms
+                system_names = {
+                    'Darwin': 'Darwin (macOS)',
+                    'Linux': 'Linux',
+                    'Windows': 'Windows',
+                }
+                system_display = system_names.get(system_info, system_info)
+                context_lines.append(f"**System**: {system_display}\n")
+                
+                # Add platform version if available
+                try:
+                    platform_version = platform.release()
+                    if platform_version:
+                        context_lines.append(f"**System Version**: {platform_version}\n")
+                except Exception:
+                    pass
+                    
+        except Exception as e:
+            # System info is optional
+            self.logger.debug(f"Could not detect system information: {e}")
+        
+        try:
+            # Add current working directory
+            cwd = os.getcwd()
+            if cwd:
+                context_lines.append(f"**Working Directory**: {cwd}\n")
+        except Exception:
+            pass
+        
+        try:
+            # Add locale information if available
+            current_locale = locale.getlocale()
+            if current_locale and current_locale[0]:
+                context_lines.append(f"**Locale**: {current_locale[0]}\n")
+        except Exception:
+            # Locale is optional
+            pass
+        
+        # Add instruction for applying context
+        context_lines.append(
+            "\nApply temporal and user awareness to all tasks, "
+            "decisions, and interactions.\n"
+        )
+        context_lines.append(
+            "Use this context for personalized responses and "
+            "time-sensitive operations.\n"
+        )
+        
+        return "".join(context_lines)
 
     def _parse_agent_metadata(self, agent_file: Path) -> Optional[Dict[str, Any]]:
         """Parse agent metadata from deployed agent file.

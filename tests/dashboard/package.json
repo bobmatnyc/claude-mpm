@@ -1,0 +1,27 @@
+{
+  "name": "claude-mpm-dashboard-tests",
+  "version": "1.0.0",
+  "description": "Unit tests for Claude MPM dashboard Socket.IO client",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@jest/globals": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "**/*.js",
+      "!**/node_modules/**",
+      "!**/coverage/**"
+    ],
+    "testMatch": [
+      "**/test_*.js",
+      "**/*.test.js"
+    ]
+  }
+}

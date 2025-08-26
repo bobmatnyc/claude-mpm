@@ -25,6 +25,7 @@ from .commands import (  # run_guarded_session is imported lazily to avoid loadi
     manage_agents,
     manage_config,
     manage_configure,
+    manage_debug,
     manage_mcp,
     manage_memory,
     manage_monitor,
@@ -404,6 +405,7 @@ def _execute_command(command: str, args) -> int:
         CLICommands.CLEANUP.value: cleanup_memory,
         CLICommands.MCP.value: manage_mcp,
         CLICommands.DOCTOR.value: run_doctor,
+        "debug": manage_debug,  # Add debug command
     }
 
     # Execute command if found

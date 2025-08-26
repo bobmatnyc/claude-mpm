@@ -1,0 +1,549 @@
+/* Activity Tab Styles for D3.js Tree Visualization */
+
+/* Container and Layout */
+.activity-container {
+    padding: 20px;
+    height: calc(100vh - 280px);
+    display: flex;
+    flex-direction: column;
+}
+
+.activity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.activity-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.activity-controls .btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.activity-controls .btn-sm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+}
+
+.activity-controls select {
+    padding: 6px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 12px;
+    background: white;
+}
+
+.activity-controls input {
+    padding: 6px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 12px;
+    width: 200px;
+}
+
+.activity-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #718096;
+    font-weight: 600;
+}
+
+.stat-value {
+    font-size: 14px;
+    font-weight: bold;
+    color: #2d3748;
+}
+
+/* Tree Container */
+.activity-tree-container {
+    flex: 1;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+    min-height: 400px;
+}
+
+#activity-tree {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+}
+
+/* Ensure SVG fills container */
+#activity-tree svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Tree Legend */
+.tree-legend {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: #4a5568;
+}
+
+.legend-item:last-child {
+    margin-bottom: 0;
+}
+
+.legend-icon {
+    width: 14px;
+    height: 14px;
+    display: inline-block;
+    text-align: center;
+}
+
+.legend-icon.pm {
+    color: #4A90E2;
+}
+
+.legend-icon.todowrite {
+    color: #9B59B6;
+}
+
+.legend-icon.agent {
+    color: #27AE60;
+}
+
+.legend-icon.tool {
+    color: #E67E22;
+}
+
+.legend-icon.file {
+    color: #95A5A6;
+}
+
+/* Breadcrumb */
+.activity-breadcrumb {
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-top: 15px;
+    font-size: 13px;
+    color: #4a5568;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+}
+
+/* D3 Tree Styles */
+.node {
+    cursor: pointer;
+}
+
+.node circle,
+.node-circle {
+    stroke-width: 2px;
+    transition: all 0.3s;
+}
+
+.node rect {
+    stroke-width: 2px;
+    transition: all 0.3s;
+}
+
+.node.pm circle {
+    fill: #4A90E2;
+    stroke: #2E6BC0;
+}
+
+.node.todowrite rect {
+    fill: #9B59B6;
+    stroke: #7E3E93;
+    rx: 4;
+}
+
+.node.agent circle {
+    fill: #27AE60;
+    stroke: #1A8847;
+}
+
+.node.tool circle {
+    fill: #E67E22;
+    stroke: #C35D0B;
+}
+
+.node.file circle,
+.node.command circle {
+    fill: #95A5A6;
+    stroke: #728384;
+    r: 5;
+}
+
+/* Collapsed node indicator */
+.node.collapsed circle {
+    fill: white !important;
+    stroke-width: 3px;
+}
+
+.node.collapsed rect {
+    fill: white !important;
+    stroke-width: 3px;
+}
+
+/* Active/In-progress animation */
+@keyframes pulse {
+    0% { 
+        opacity: 1; 
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.7; 
+        transform: scale(1.1);
+    }
+    100% { 
+        opacity: 1; 
+        transform: scale(1);
+    }
+}
+
+.node.active circle,
+.node.active rect {
+    animation: pulse 2s infinite;
+}
+
+.node.in-progress circle,
+.node.in-progress rect {
+    animation: pulse 1.5s infinite;
+    stroke: #F39C12;
+    stroke-width: 3px;
+}
+
+/* Failed/Error state */
+.node.failed circle,
+.node.failed rect {
+    stroke: #E74C3C !important;
+    stroke-width: 3px;
+    fill: #FFE5E5 !important;
+}
+
+/* Node type specific circle colors */
+.node-circle.pm {
+    fill: #4A90E2;
+    stroke: #2E6BC0;
+}
+
+.node-circle.todowrite {
+    fill: #9B59B6;
+    stroke: #7E3E93;
+}
+
+.node-circle.agent {
+    fill: #27AE60;
+    stroke: #1A8847;
+}
+
+.node-circle.tool {
+    fill: #E67E22;
+    stroke: #C35D0B;
+}
+
+.node-circle.file,
+.node-circle.command,
+.node-circle.url {
+    fill: #95A5A6;
+    stroke: #728384;
+}
+
+/* Pulsing animation for in-progress nodes */
+.node-circle.pulsing {
+    animation: pulse 1.5s infinite;
+}
+
+/* Failed state */
+.node-circle.failed {
+    stroke: #E74C3C !important;
+    stroke-width: 3px;
+    fill: #FFE5E5 !important;
+}
+
+/* Node text */
+.node text {
+    font: 12px 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Node icons and labels */
+.node-icon {
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.node-label {
+    fill: #2d3748;
+    font-size: 12px;
+}
+
+.node.pm text {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.node.todowrite text {
+    font-size: 11px;
+}
+
+/* Node hover effects */
+.node:hover circle,
+.node:hover rect {
+    stroke-width: 3px;
+    filter: brightness(1.1);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Links */
+.link {
+    fill: none;
+    stroke: #cbd5e0;
+    stroke-width: 1.5px;
+    stroke-dasharray: none;
+}
+
+.link.delegation {
+    stroke: #9B59B6;
+    stroke-width: 2px;
+    stroke-dasharray: 5, 3;
+}
+
+/* Tooltip */
+.activity-tooltip {
+    position: absolute;
+    text-align: left;
+    padding: 10px;
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    border-radius: 6px;
+    pointer-events: none;
+    max-width: 300px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+}
+
+.activity-tooltip .tooltip-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.activity-tooltip .tooltip-item {
+    margin: 3px 0;
+}
+
+.activity-tooltip .tooltip-label {
+    color: #9ca3af;
+    margin-right: 5px;
+}
+
+.activity-tooltip .tooltip-value {
+    color: #f3f4f6;
+}
+
+/* Count badges */
+.node-count {
+    fill: #E74C3C;
+    font-size: 10px;
+    font-weight: bold;
+    text-anchor: middle;
+}
+
+.node-badge {
+    fill: #E74C3C;
+    stroke: white;
+    stroke-width: 2px;
+}
+
+/* Search highlighting */
+.node.search-match circle,
+.node.search-match rect {
+    stroke: #F39C12 !important;
+    stroke-width: 4px !important;
+    filter: drop-shadow(0 0 8px rgba(243, 156, 18, 0.6));
+}
+
+/* Zoom controls */
+.zoom-controls {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.zoom-btn {
+    width: 36px;
+    height: 36px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s;
+}
+
+.zoom-btn:hover {
+    background: #f8f9fa;
+    transform: scale(1.1);
+}
+
+/* Expand/Collapse indicators */
+.expand-indicator {
+    fill: #718096;
+    font-size: 14px;
+    font-weight: bold;
+    text-anchor: middle;
+    pointer-events: none;
+}
+
+/* Performance optimization for large trees */
+.node.hidden {
+    display: none;
+}
+
+.link.hidden {
+    display: none;
+}
+
+/* Tree grid background (optional) */
+.tree-grid {
+    stroke: #f0f0f0;
+    stroke-width: 0.5px;
+    fill: none;
+}
+
+/* Time indicators */
+.node-time {
+    fill: #718096;
+    font-size: 10px;
+    font-style: italic;
+}
+
+/* Status indicators */
+.status-indicator {
+    stroke-width: 0;
+}
+
+.status-indicator.pending {
+    fill: #CBD5E0;
+}
+
+.status-indicator.in-progress {
+    fill: #F39C12;
+}
+
+.status-indicator.completed {
+    fill: #27AE60;
+}
+
+.status-indicator.failed {
+    fill: #E74C3C;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .activity-header {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .activity-controls {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    
+    .tree-legend {
+        top: auto;
+        bottom: 15px;
+        right: 15px;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .activity-tree-container {
+        background: #1a202c;
+    }
+    
+    .activity-header {
+        background: #2d3748;
+    }
+    
+    .activity-controls select,
+    .activity-controls input {
+        background: #2d3748;
+        color: #e2e8f0;
+        border-color: #4a5568;
+    }
+    
+    .stat-label {
+        color: #a0aec0;
+    }
+    
+    .stat-value {
+        color: #e2e8f0;
+    }
+    
+    .tree-legend {
+        background: rgba(45, 55, 72, 0.95);
+        border-color: #4a5568;
+    }
+    
+    .legend-item {
+        color: #e2e8f0;
+    }
+    
+    .node text {
+        fill: #e2e8f0;
+    }
+    
+    .link {
+        stroke: #4a5568;
+    }
+}

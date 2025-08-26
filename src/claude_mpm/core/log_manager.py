@@ -102,7 +102,7 @@ class LogManager:
 
         # Base directories
         self.base_log_dir = Path(
-            logging_config.get("base_directory", ".claude-mpm/logs")
+            logging_config.get("base_directory", "logs")
         )
         if not self.base_log_dir.is_absolute():
             self.base_log_dir = Path.cwd() / self.base_log_dir
@@ -352,27 +352,32 @@ class LogManager:
         """
         One-time migration to move existing MPM logs to new subdirectory.
 
-        Moves mpm_*.log files from .claude-mpm/logs/ to .claude-mpm/logs/mpm/
+        Moves mpm_*.log files from .claude-mpm/logs/ to logs/mpm/
         """
         try:
-            old_location = self.base_log_dir
+            # Check both old possible locations
+            old_locations = [
+                Path.cwd() / ".claude-mpm" / "logs",  # Old default location
+                self.base_log_dir  # Current base location (logs/)
+            ]
             new_location = self.base_log_dir / "mpm"
 
-            # Only proceed if old location exists and has MPM logs
-            if not old_location.exists():
-                return
+            # Collect all MPM logs from all old locations
+            all_mpm_logs = []
+            for old_location in old_locations:
+                if old_location.exists() and old_location != new_location:
+                    # Find all MPM log files in this location
+                    mpm_logs = list(old_location.glob("mpm_*.log"))
+                    all_mpm_logs.extend(mpm_logs)
 
-            # Find all MPM log files in the old location
-            mpm_logs = list(old_location.glob("mpm_*.log"))
-
-            if not mpm_logs:
+            if not all_mpm_logs:
                 return  # No logs to migrate
 
             # Ensure new directory exists
             new_location.mkdir(parents=True, exist_ok=True)
 
             migrated_count = 0
-            for log_file in mpm_logs:
+            for log_file in all_mpm_logs:
                 try:
                     # Move file to new location
                     new_path = new_location / log_file.name

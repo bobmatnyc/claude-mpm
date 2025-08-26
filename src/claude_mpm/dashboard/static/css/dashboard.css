@@ -21,6 +21,229 @@ body {
     padding-bottom: 20px; /* Increased space for footer with more breathing room */
 }
 
+/* Sessions Tab Styles */
+.sessions-container {
+    padding: 15px;
+}
+
+.sessions-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 12px;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* System Tab Styles */
+.system-dashboard {
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.system-section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.system-section h3 {
+    margin: 0 0 15px 0;
+    color: #2d3748;
+    font-size: 18px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+
+.system-grid {
+    display: grid;
+    gap: 15px;
+}
+
+.system-card {
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 15px;
+}
+
+.system-metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.system-metric:last-child {
+    border-bottom: none;
+}
+
+.system-label {
+    color: #718096;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.system-value {
+    color: #2d3748;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.system-value.error {
+    color: #f56565;
+}
+
+.system-value.warning {
+    color: #ed8936;
+}
+
+.system-value.success {
+    color: #48bb78;
+}
+
+.event-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.event-stat-item {
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.event-stat-type {
+    color: #4a5568;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.event-stat-count {
+    background: #667eea;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Session Card Styles */
+.session-card {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid #667eea;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.session-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateX(2px);
+}
+
+.session-card.active {
+    border-left-color: #48bb78;
+    background: linear-gradient(to right, #f0fff4, white);
+}
+
+.session-card.completed {
+    border-left-color: #cbd5e0;
+    opacity: 0.8;
+}
+
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.session-id {
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 12px;
+    color: #718096;
+}
+
+.session-status {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.session-status.active {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.session-status.completed {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+.session-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.session-metric {
+    text-align: center;
+}
+
+.session-metric-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.session-metric-label {
+    font-size: 11px;
+    color: #a0aec0;
+    text-transform: uppercase;
+}
+
 /* Footer Styles */
 .footer {
     position: fixed;

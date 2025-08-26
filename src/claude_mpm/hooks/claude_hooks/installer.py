@@ -20,11 +20,11 @@ from ...core.logger import get_logger
 class HookInstaller:
     """Manages installation and configuration of Claude MPM hooks."""
 
-    # Smart hook script template
+    # Note: SMART_HOOK_SCRIPT is deprecated - we now use deployment-root script
+    # Keep for backward compatibility during transition
     SMART_HOOK_SCRIPT = """#!/bin/bash
-# Claude MPM Smart Hook Handler
-# This script dynamically finds and routes hook events to claude-mpm
-# Works with pip installations, local development, and virtual environments
+# DEPRECATED: This script is no longer used
+# Claude MPM now uses deployment-root script at src/claude_mpm/scripts/claude-hook-handler.sh
 
 # Function to find claude-mpm installation
 find_claude_mpm() {
@@ -197,9 +197,13 @@ main "$@"
         """Initialize the hook installer."""
         self.logger = get_logger(__name__)
         self.claude_dir = Path.home() / ".claude"
-        self.hooks_dir = self.claude_dir / "hooks"
+        self.hooks_dir = self.claude_dir / "hooks"  # Kept for backward compatibility
+        # Use settings.json for hooks (Claude Code reads from this file)
         self.settings_file = self.claude_dir / "settings.json"
+        # Keep reference to old file for migration
+        self.old_settings_file = self.claude_dir / "settings.json"
         self._claude_version: Optional[str] = None
+        self._hook_script_path: Optional[Path] = None
 
     def get_claude_version(self) -> Optional[str]:
         """
@@ -286,6 +290,54 @@ main "$@"
 
         return (True, f"Claude Code {version} is compatible with hook monitoring.")
 
+    def get_hook_script_path(self) -> Path:
+        """Get the path to the hook handler script based on installation method.
+        
+        Returns:
+            Path to the claude-hook-handler.sh script
+            
+        Raises:
+            FileNotFoundError: If the script cannot be found
+        """
+        if self._hook_script_path and self._hook_script_path.exists():
+            return self._hook_script_path
+            
+        import claude_mpm
+        
+        # Get the claude_mpm package directory
+        package_dir = Path(claude_mpm.__file__).parent
+        
+        # Check if we're in a development environment (src structure)
+        if 'src/claude_mpm' in str(package_dir):
+            # Development install - script is in src/claude_mpm/scripts
+            script_path = package_dir / 'scripts' / 'claude-hook-handler.sh'
+        else:
+            # Pip install - script should be in package/scripts
+            script_path = package_dir / 'scripts' / 'claude-hook-handler.sh'
+        
+        # Verify the script exists
+        if not script_path.exists():
+            # Try alternative location for editable installs
+            project_root = package_dir.parent.parent
+            alt_path = project_root / 'src' / 'claude_mpm' / 'scripts' / 'claude-hook-handler.sh'
+            if alt_path.exists():
+                script_path = alt_path
+            else:
+                raise FileNotFoundError(
+                    f"Hook handler script not found. Searched:\n"
+                    f"  - {script_path}\n"
+                    f"  - {alt_path}"
+                )
+        
+        # Make sure it's executable
+        if script_path.exists():
+            st = os.stat(script_path)
+            os.chmod(script_path, st.st_mode | stat.S_IEXEC)
+            self._hook_script_path = script_path
+            return script_path
+        
+        raise FileNotFoundError(f"Hook handler script not found at {script_path}")
+
     def install_hooks(self, force: bool = False) -> bool:
         """
         Install Claude MPM hooks.
@@ -315,24 +367,25 @@ main "$@"
                 )
                 return False
 
-            # Create directories
+            # Create Claude directory (hooks_dir no longer needed)
             self.claude_dir.mkdir(exist_ok=True)
-            self.hooks_dir.mkdir(exist_ok=True)
 
-            # Install smart hook script
-            hook_script_path = self.hooks_dir / "claude-mpm-hook.sh"
-            if hook_script_path.exists() and not force:
-                self.logger.info(
-                    "Hook script already exists. Use --force to overwrite."
-                )
-            else:
-                self._install_smart_hook_script(hook_script_path)
+            # Get the deployment-root hook script path
+            try:
+                hook_script_path = self.get_hook_script_path()
+                self.logger.info(f"Using deployment-root hook script: {hook_script_path}")
+            except FileNotFoundError as e:
+                self.logger.error(f"Failed to locate hook script: {e}")
+                return False
 
-            # Update Claude settings
+            # Update Claude settings to use deployment-root script
             self._update_claude_settings(hook_script_path)
 
             # Install commands if available
             self._install_commands()
+            
+            # Clean up old deployed scripts if they exist
+            self._cleanup_old_deployment()
 
             self.logger.info("Hook installation completed successfully!")
             return True
@@ -341,34 +394,66 @@ main "$@"
             self.logger.error(f"Hook installation failed: {e}")
             return False
 
-    def _install_smart_hook_script(self, hook_script_path: Path) -> None:
-        """Install the smart hook script that dynamically finds claude-mpm."""
-        self.logger.info(f"Installing smart hook script to {hook_script_path}")
-
-        # Write the smart hook script
-        with open(hook_script_path, "w") as f:
-            f.write(self.SMART_HOOK_SCRIPT)
-
-        # Make it executable
-        st = os.stat(hook_script_path)
-        os.chmod(hook_script_path, st.st_mode | stat.S_IEXEC)
-
-        self.logger.info("Smart hook script installed and made executable")
+    def _cleanup_old_deployment(self) -> None:
+        """Clean up old deployed hook scripts if they exist."""
+        old_script = self.hooks_dir / "claude-mpm-hook.sh"
+        if old_script.exists():
+            try:
+                old_script.unlink()
+                self.logger.info(f"Removed old deployed script: {old_script}")
+            except Exception as e:
+                self.logger.warning(f"Could not remove old script {old_script}: {e}")
+        
+        # Clean up hooks directory if empty
+        if self.hooks_dir.exists() and not any(self.hooks_dir.iterdir()):
+            try:
+                self.hooks_dir.rmdir()
+                self.logger.info(f"Removed empty hooks directory: {self.hooks_dir}")
+            except Exception as e:
+                self.logger.debug(f"Could not remove hooks directory: {e}")
+    
+    def _cleanup_old_settings(self) -> None:
+        """Remove hooks from old settings.json file if present."""
+        if not self.old_settings_file.exists():
+            return
+            
+        try:
+            with open(self.old_settings_file) as f:
+                old_settings = json.load(f)
+            
+            # Remove hooks section if present
+            if "hooks" in old_settings:
+                del old_settings["hooks"]
+                self.logger.info(f"Removing hooks from {self.old_settings_file}")
+                
+                # Write back the cleaned settings
+                with open(self.old_settings_file, "w") as f:
+                    json.dump(old_settings, f, indent=2)
+                    
+                self.logger.info(f"Cleaned up hooks from {self.old_settings_file}")
+        except Exception as e:
+            self.logger.warning(f"Could not clean up old settings file: {e}")
 
     def _update_claude_settings(self, hook_script_path: Path) -> None:
         """Update Claude settings to use the installed hook."""
         self.logger.info("Updating Claude settings...")
 
-        # Load existing settings or create new
+        # Load existing settings.json or create new
         if self.settings_file.exists():
             with open(self.settings_file) as f:
                 settings = json.load(f)
-            self.logger.info("Found existing Claude settings")
+            self.logger.info(f"Found existing Claude settings at {self.settings_file}")
         else:
             settings = {}
-            self.logger.info("Creating new Claude settings")
+            self.logger.info(f"Creating new Claude settings at {self.settings_file}")
 
-        # Update settings
+        # Preserve existing permissions and mcpServers if present
+        if "permissions" not in settings:
+            settings["permissions"] = {"allow": []}
+        if "enableAllProjectMcpServers" not in settings:
+            settings["enableAllProjectMcpServers"] = False
+        
+        # Update hooks section
         if "hooks" not in settings:
             settings["hooks"] = {}
 
@@ -394,11 +479,14 @@ main "$@"
                 }
             ]
 
-        # Write settings
+        # Write settings to settings.json
         with open(self.settings_file, "w") as f:
             json.dump(settings, f, indent=2)
 
         self.logger.info(f"Updated Claude settings at {self.settings_file}")
+        
+        # Clean up hooks from old settings.json if present
+        self._cleanup_old_settings()
 
     def _install_commands(self) -> None:
         """Install custom commands for Claude Code."""
@@ -440,14 +528,16 @@ main "$@"
             # If version is incompatible, skip other checks as hooks shouldn't be installed
             return False, issues
 
-        # Check hook script exists
-        hook_script_path = self.hooks_dir / "claude-mpm-hook.sh"
-        if not hook_script_path.exists():
-            issues.append(f"Hook script not found at {hook_script_path}")
-
-        # Check hook script is executable
-        elif not os.access(hook_script_path, os.X_OK):
-            issues.append(f"Hook script is not executable: {hook_script_path}")
+        # Check hook script exists at deployment root
+        try:
+            hook_script_path = self.get_hook_script_path()
+            if not hook_script_path.exists():
+                issues.append(f"Hook script not found at {hook_script_path}")
+            # Check hook script is executable
+            elif not os.access(hook_script_path, os.X_OK):
+                issues.append(f"Hook script is not executable: {hook_script_path}")
+        except FileNotFoundError as e:
+            issues.append(str(e))
 
         # Check Claude settings
         if not self.settings_file.exists():
@@ -490,52 +580,53 @@ main "$@"
         try:
             self.logger.info("Uninstalling hooks...")
 
-            # Remove hook script
-            hook_script_path = self.hooks_dir / "claude-mpm-hook.sh"
-            if hook_script_path.exists():
-                hook_script_path.unlink()
-                self.logger.info(f"Removed hook script: {hook_script_path}")
+            # Clean up old deployed scripts if they still exist
+            old_script = self.hooks_dir / "claude-mpm-hook.sh"
+            if old_script.exists():
+                old_script.unlink()
+                self.logger.info(f"Removed old deployed script: {old_script}")
 
-            # Remove from Claude settings
-            if self.settings_file.exists():
-                with open(self.settings_file) as f:
-                    settings = json.load(f)
+            # Remove from Claude settings (both old and new locations)
+            for settings_path in [self.settings_file, self.old_settings_file]:
+                if settings_path.exists():
+                    with open(settings_path) as f:
+                        settings = json.load(f)
 
-                if "hooks" in settings:
-                    # Remove claude-mpm hooks
-                    for event_type in list(settings["hooks"].keys()):
-                        hooks = settings["hooks"][event_type]
-                        # Filter out claude-mpm hooks
-                        filtered_hooks = []
-                        for h in hooks:
-                            # Check if this is a claude-mpm hook
-                            is_claude_mpm = False
-                            if isinstance(h, dict) and "hooks" in h:
-                                # Check each hook command in the hooks array
-                                for hook_cmd in h.get("hooks", []):
-                                    if isinstance(hook_cmd, dict) and hook_cmd.get("type") == "command":
-                                        cmd = hook_cmd.get("command", "")
-                                        if cmd.endswith("claude-mpm-hook.sh"):
-                                            is_claude_mpm = True
-                                            break
-                            
-                            if not is_claude_mpm:
-                                filtered_hooks.append(h)
+                    if "hooks" in settings:
+                        # Remove claude-mpm hooks
+                        for event_type in list(settings["hooks"].keys()):
+                            hooks = settings["hooks"][event_type]
+                            # Filter out claude-mpm hooks
+                            filtered_hooks = []
+                            for h in hooks:
+                                # Check if this is a claude-mpm hook
+                                is_claude_mpm = False
+                                if isinstance(h, dict) and "hooks" in h:
+                                    # Check each hook command in the hooks array
+                                    for hook_cmd in h.get("hooks", []):
+                                        if isinstance(hook_cmd, dict) and hook_cmd.get("type") == "command":
+                                            cmd = hook_cmd.get("command", "")
+                                            if "claude-hook-handler.sh" in cmd or cmd.endswith("claude-mpm-hook.sh"):
+                                                is_claude_mpm = True
+                                                break
+                                
+                                if not is_claude_mpm:
+                                    filtered_hooks.append(h)
 
-                        if filtered_hooks:
-                            settings["hooks"][event_type] = filtered_hooks
-                        else:
-                            del settings["hooks"][event_type]
+                            if filtered_hooks:
+                                settings["hooks"][event_type] = filtered_hooks
+                            else:
+                                del settings["hooks"][event_type]
 
-                    # Clean up empty hooks section
-                    if not settings["hooks"]:
-                        del settings["hooks"]
+                        # Clean up empty hooks section
+                        if not settings["hooks"]:
+                            del settings["hooks"]
 
-                    # Write back settings
-                    with open(self.settings_file, "w") as f:
-                        json.dump(settings, f, indent=2)
+                        # Write back settings
+                        with open(settings_path, "w") as f:
+                            json.dump(settings, f, indent=2)
 
-                    self.logger.info("Removed hooks from Claude settings")
+                        self.logger.info(f"Removed hooks from {settings_path}")
 
             self.logger.info("Hook uninstallation completed")
             return True
@@ -557,29 +648,57 @@ main "$@"
 
         is_valid, issues = self.verify_hooks()
 
-        hook_script_path = self.hooks_dir / "claude-mpm-hook.sh"
+        # Try to get deployment-root script path
+        try:
+            hook_script_path = self.get_hook_script_path()
+            hook_script_str = str(hook_script_path)
+            script_exists = hook_script_path.exists()
+        except FileNotFoundError:
+            hook_script_str = None
+            script_exists = False
 
         status = {
-            "installed": hook_script_path.exists(),
+            "installed": script_exists and self.settings_file.exists(),
             "valid": is_valid,
             "issues": issues,
-            "hook_script": str(hook_script_path) if hook_script_path.exists() else None,
+            "hook_script": hook_script_str,
             "settings_file": (
                 str(self.settings_file) if self.settings_file.exists() else None
             ),
             "claude_version": claude_version,
             "version_compatible": is_compatible,
             "version_message": version_message,
+            "deployment_type": "deployment-root"  # New field to indicate new architecture
         }
 
         # Check Claude settings for hook configuration
+        # Check both settings files to understand current state
+        configured_in_local = False
+        configured_in_old = False
+        
         if self.settings_file.exists():
             try:
                 with open(self.settings_file) as f:
                     settings = json.load(f)
                     if "hooks" in settings:
                         status["configured_events"] = list(settings["hooks"].keys())
+                        configured_in_local = True
             except:
                 pass
+        
+        # Also check old settings file
+        if self.old_settings_file.exists():
+            try:
+                with open(self.old_settings_file) as f:
+                    old_settings = json.load(f)
+                    if "hooks" in old_settings:
+                        status["old_file_has_hooks"] = True
+                        configured_in_old = True
+                        if not configured_in_local:
+                            status["warning"] = "Hooks found in settings.local.json but Claude Code reads from settings.json"
+            except:
+                pass
+        
+        status["settings_location"] = "settings.json" if configured_in_local else "not configured"
 
         return status

@@ -372,6 +372,45 @@ class Dashboard {
             case 'events':
                 // Events tab is handled by EventViewer
                 break;
+            case 'activity':
+                // Trigger Activity tab rendering through the component
+                // Check if ActivityTree class is available (from built module)
+                if (window.ActivityTree && typeof window.ActivityTree === 'function') {
+                    // Create or get instance
+                    if (!window.activityTreeInstance) {
+                        console.log('Creating new ActivityTree instance...');
+                        window.activityTreeInstance = new window.ActivityTree();
+                    }
+                    
+                    // Initialize if needed and render
+                    if (window.activityTreeInstance) {
+                        if (!window.activityTreeInstance.initialized) {
+                            console.log('Initializing ActivityTree...');
+                            window.activityTreeInstance.initialize();
+                        }
+                        
+                        if (typeof window.activityTreeInstance.renderWhenVisible === 'function') {
+                            console.log('Dashboard triggering activity tree render...');
+                            window.activityTreeInstance.renderWhenVisible();
+                        }
+                    }
+                } else if (window.activityTree && typeof window.activityTree === 'function') {
+                    // Fallback to legacy approach if available
+                    const activityTreeInstance = window.activityTree();
+                    if (activityTreeInstance && typeof activityTreeInstance.renderWhenVisible === 'function') {
+                        console.log('Dashboard triggering activity tree render (legacy)...');
+                        activityTreeInstance.renderWhenVisible();
+                    }
+                } else {
+                    // Module not loaded yet, retry after a delay
+                    console.warn('Activity tree component not available, retrying in 100ms...');
+                    setTimeout(() => {
+                        if (this.currentTab === 'activity') {
+                            this.renderCurrentTab();
+                        }
+                    }, 100);
+                }
+                break;
             case 'agents':
                 this.renderAgents();
                 break;

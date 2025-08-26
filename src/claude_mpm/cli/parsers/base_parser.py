@@ -338,6 +338,22 @@ def create_parser(
     except ImportError:
         pass
 
+    # Add debug command parser
+    try:
+        from .debug_parser import add_debug_subparser
+
+        add_debug_subparser(subparsers)
+    except ImportError:
+        pass
+    
+    # Add analyze command parser
+    try:
+        from .analyze_parser import add_analyze_subparser
+        
+        add_analyze_subparser(subparsers)
+    except ImportError:
+        pass
+
     # Import and add additional command parsers from commands module
     try:
         from ..commands.aggregate import add_aggregate_parser

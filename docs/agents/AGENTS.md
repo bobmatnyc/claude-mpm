@@ -69,7 +69,7 @@ Claude MPM includes 15 specialized agents:
 
 #### Code Quality
 - **Refactoring Engineer** - Code refactoring and optimization
-- **Code Analyzer** - Static code analysis with AST and tree-sitter
+- **Code Analyzer** - Static code analysis with AST, tree-sitter, and Mermaid diagram visualization
 
 **Important**: All agents now deploy to project-level `.claude/agents/` directory (changed in v4.0.32+). Project agents in `.claude-mpm/agents/` support **multiple formats** (.json, .yaml, .yml, .md) for flexibility. During deployment, agents are automatically converted to Markdown format with YAML frontmatter and placed in `.claude/agents/` for Claude Code compatibility.
 

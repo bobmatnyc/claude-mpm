@@ -16,13 +16,26 @@ Earlier versions of Claude Code do not support the matcher-based hook configurat
 - You'll see a clear message about the version requirement
 - To enable monitoring, upgrade Claude Code to 1.0.92+
 
+## Architecture (v4.1.8+)
+
+Claude MPM uses a **deployment-root hook architecture** where Claude Code directly calls a script within the claude-mpm installation. See [HOOK_ARCHITECTURE.md](../../docs/developer/HOOK_ARCHITECTURE.md) for details.
+
 ## Structure
 
 ```
 hooks/
-└── claude_hooks/              # Claude Code hook implementation
-    ├── hook_handler.py       # Main Python handler that processes events
-    └── hook_wrapper.sh       # Shell wrapper script (this is what gets installed in ~/.claude/settings.json)
+├── claude_hooks/                      # Claude Code hook implementation
+│   ├── hook_handler.py               # Main Python handler that processes events
+│   ├── installer.py                  # Hook installation and configuration
+│   ├── event_handlers.py             # Event processing logic
+│   ├── memory_integration.py         # Memory system integration
+│   ├── response_tracking.py          # Response tracking
+│   └── services/                     # Service modules
+│       ├── connection_manager.py     # SocketIO/HTTP connections
+│       ├── state_manager.py          # State and delegation tracking
+│       └── subagent_processor.py     # Subagent response processing
+└── scripts/
+    └── claude-hook-handler.sh        # Deployment-root hook script (called by Claude Code)
 ```
 
 ## Claude Code Hooks

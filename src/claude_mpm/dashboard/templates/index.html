@@ -15,6 +15,9 @@
 
     <!-- External Dependencies -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    
+    <!-- D3.js for Activity Tree Visualization -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 
     <!-- Syntax Highlighting - Prism.js -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
@@ -26,6 +29,7 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="/static/css/dashboard.css">
     <link rel="stylesheet" href="/static/css/connection-status.css">
+    <link rel="stylesheet" href="/static/css/activity.css">
 
     <!-- Additional styles for file operations -->
     <style>
@@ -236,10 +240,11 @@
                 <div class="events-container">
                     <!-- Tab Navigation -->
                     <div class="tab-nav">
-                        <button class="tab-button active">📊 Events</button>
-                        <button class="tab-button">🤖 Agents</button>
-                        <button class="tab-button">🔧 Tools</button>
-                        <button class="tab-button">📁 Files</button>
+                        <button class="tab-button active" data-tab="events">📊 Events</button>
+                        <button class="tab-button" data-tab="agents">🤖 Agents</button>
+                        <button class="tab-button" data-tab="tools">🔧 Tools</button>
+                        <button class="tab-button" data-tab="files">📁 Files</button>
+                        <button class="tab-button" data-tab="activity">🌳 Activity</button>
                     </div>
 
                     <!-- Events Tab -->
@@ -316,6 +321,69 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Activity Tab -->
+                    <div class="tab-content" id="activity-tab">
+                        <div class="activity-container">
+                            <div class="activity-header">
+                                <div class="activity-controls">
+                                    <button id="expand-all" class="btn-sm">Expand All</button>
+                                    <button id="collapse-all" class="btn-sm">Collapse All</button>
+                                    <button id="reset-zoom" class="btn-sm">Reset Zoom</button>
+                                    <select id="time-range">
+                                        <option value="all">All Time</option>
+                                        <option value="hour">Last Hour</option>
+                                        <option value="30min" selected>Last 30 Minutes</option>
+                                        <option value="10min">Last 10 Minutes</option>
+                                    </select>
+                                    <input type="text" id="activity-search" placeholder="Search nodes...">
+                                </div>
+                                <div class="activity-stats">
+                                    <span class="stat-item">
+                                        <span class="stat-label">Nodes:</span>
+                                        <span id="node-count" class="stat-value">0</span>
+                                    </span>
+                                    <span class="stat-item">
+                                        <span class="stat-label">Active:</span>
+                                        <span id="active-count" class="stat-value">0</span>
+                                    </span>
+                                    <span class="stat-item">
+                                        <span class="stat-label">Depth:</span>
+                                        <span id="tree-depth" class="stat-value">0</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div id="activity-tree-container" class="activity-tree-container">
+                                <div id="activity-tree"></div>
+                                <div class="tree-legend">
+                                    <div class="legend-item">
+                                        <span class="legend-icon pm">●</span>
+                                        <span>PM</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-icon todowrite">■</span>
+                                        <span>TodoWrite</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-icon agent">●</span>
+                                        <span>Agent</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-icon tool">●</span>
+                                        <span>Tool</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-icon file">●</span>
+                                        <span>File/Command</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="activity-breadcrumb" id="activity-breadcrumb">
+                                PM > Click a node to see path
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -344,5 +412,8 @@
     <!-- JavaScript Modules -->
     <!-- Load bundled dashboard assets (built with Vite) -->
     <script type="module" src="/static/dist/dashboard.js"></script>
+    
+    <!-- Activity Tree Module (from Vite build) -->
+    <script type="module" src="/static/dist/components/activity-tree.js"></script>
 </body>
 </html>
