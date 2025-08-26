@@ -455,7 +455,7 @@ class UnifiedAgentRegistry:
         """Apply tier precedence rules to resolve conflicts."""
         # Group agents by their actual name (without tier suffix)
         agent_groups = {}
-        for registry_key, metadata in self.registry.items():
+        for _registry_key, metadata in self.registry.items():
             # Extract the actual agent name (registry_key is "name_tier")
             agent_name = metadata.name  # Use the actual name from metadata
             if agent_name not in agent_groups:

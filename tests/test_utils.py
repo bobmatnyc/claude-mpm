@@ -304,7 +304,7 @@ class TestClient(Generic[_Request, _ApplicationNone]):
     ) -> None:
         if not isinstance(server, BaseTestServer):
             raise TypeError(
-                "server must be TestServer instance, found type: %r" % type(server)
+                f"server must be TestServer instance, found type: {type(server)!r}"
             )
         self._server = server
         self._loop = loop
@@ -767,5 +767,6 @@ def make_mocked_coro(
         if not inspect.isawaitable(return_value):
             return return_value
         await return_value
+        return None
 
     return mock.Mock(wraps=mock_coro)

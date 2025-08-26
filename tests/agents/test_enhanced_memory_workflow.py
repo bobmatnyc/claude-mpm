@@ -89,7 +89,7 @@ INSTRUCTIONS: Review your project memory above before proceeding. Apply learned 
         "version": agent_data["metadata"]["version"],
     }
 
-    frontmatter_yaml = yaml.dump(frontmatter, default_flow_style=False)
+    yaml.dump(frontmatter, default_flow_style=False)
     print(f"   ✓ Frontmatter includes memories: {frontmatter['memories']}")
 
     # Step 4: Simulate memory update
@@ -181,7 +181,7 @@ INSTRUCTIONS: Review your project memory above before proceeding. Apply learned 
                 lines.append("## Memories")
                 insert_index = len(lines)
 
-            memory_lines = [""] + memory_content.strip().split("\n") + [""]
+            memory_lines = ["", *memory_content.strip().split("\n"), ""]
             for i, memory_line in enumerate(memory_lines):
                 lines.insert(insert_index + i, memory_line)
 

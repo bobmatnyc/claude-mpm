@@ -245,7 +245,7 @@ class TestListingOperations(TestAgentsCommand):
         mock_args.deployed = False
         mock_args.by_tier = False
 
-        with patch("builtins.print") as mock_print:
+        with patch("builtins.print"):
             result = command.run(mock_args)
 
         assert not result.success
@@ -1034,9 +1034,8 @@ class TestIntegrationScenarios:
     @pytest.fixture
     def full_command(self):
         """Create a fully configured command."""
-        cmd = AgentsCommand()
+        return AgentsCommand()
         # Don't mock the deployment service to test full integration
-        return cmd
 
     def test_deploy_then_list_workflow(self, mock_deployment_service):
         """Test deploy followed by list workflow."""

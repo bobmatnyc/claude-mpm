@@ -11,7 +11,7 @@ from pathlib import Path
 class TestInstructionSynthesis:
     """Test the instruction synthesis and concatenation system."""
 
-    def test_instruction_file_loading(tmp_path):
+    def test_instruction_file_loading(self):
         """Test loading of INSTRUCTIONS.md file."""
         # Create test INSTRUCTIONS.md
         instructions_content = """<!-- FRAMEWORK_VERSION: 0009 -->
@@ -28,7 +28,7 @@ class TestInstructionSynthesis:
 - Professional tone
 - Complete implementations
 """
-        instructions_file = tmp_path / "INSTRUCTIONS.md"
+        instructions_file = self / "INSTRUCTIONS.md"
         instructions_file.write_text(instructions_content)
 
         # Load and verify
@@ -37,7 +37,7 @@ class TestInstructionSynthesis:
         assert "FRAMEWORK_VERSION: 0009" in loaded_content
         assert "orchestration and delegation framework" in loaded_content
 
-    def test_todowrite_loading(tmp_path):
+    def test_todowrite_loading(self):
         """Test loading of TODOWRITE.md instructions."""
         todowrite_content = """# TodoWrite Instructions
 
@@ -51,7 +51,7 @@ class TestInstructionSynthesis:
 - in_progress: Currently working
 - completed: Finished and tested
 """
-        todowrite_file = tmp_path / "TODOWRITE.md"
+        todowrite_file = self / "TODOWRITE.md"
         todowrite_file.write_text(todowrite_content)
 
         loaded_content = todowrite_file.read_text()
@@ -59,7 +59,7 @@ class TestInstructionSynthesis:
         assert "Status Management" in loaded_content
         assert "pending" in loaded_content
 
-    def test_memories_loading(tmp_path):
+    def test_memories_loading(self):
         """Test loading of MEMORIES.md file."""
         memories_content = """# Agent Memories
 
@@ -72,7 +72,7 @@ class TestInstructionSynthesis:
 - Forgetting to run tests before commit
 - Not checking for existing implementations
 """
-        memories_file = tmp_path / "MEMORIES.md"
+        memories_file = self / "MEMORIES.md"
         memories_file.write_text(memories_content)
 
         loaded_content = memories_file.read_text()
@@ -80,19 +80,19 @@ class TestInstructionSynthesis:
         assert "semantic versioning" in loaded_content
         assert "Common Mistakes" in loaded_content
 
-    def test_instruction_concatenation_order(tmp_path):
+    def test_instruction_concatenation_order(self):
         """Test that instructions are concatenated in correct order."""
         # Create test files
         instructions = "# INSTRUCTIONS\nCore instructions here."
         todowrite = "# TODOWRITE\nTodo instructions here."
         memories = "# MEMORIES\nMemory content here."
 
-        (tmp_path / "INSTRUCTIONS.md").write_text(instructions)
-        (tmp_path / "TODOWRITE.md").write_text(todowrite)
-        (tmp_path / "MEMORIES.md").write_text(memories)
+        (self / "INSTRUCTIONS.md").write_text(instructions)
+        (self / "TODOWRITE.md").write_text(todowrite)
+        (self / "MEMORIES.md").write_text(memories)
 
         # Simulate concatenation
-        concatenated = self._concatenate_instructions(tmp_path)
+        concatenated = self._concatenate_instructions(self)
 
         # Verify order
         instructions_pos = concatenated.find("Core instructions")
@@ -104,24 +104,24 @@ class TestInstructionSynthesis:
         assert todowrite_pos != -1
         assert memories_pos != -1
 
-    def test_instruction_character_count(tmp_path):
+    def test_instruction_character_count(self):
         """Test that total instruction size is within expected limits."""
         # Create realistic-sized test files
         instructions = "# Instructions\n" + ("x" * 15000)  # ~15K chars
         todowrite = "# TodoWrite\n" + ("y" * 5000)  # ~5K chars
         memories = "# Memories\n" + ("z" * 2000)  # ~2K chars
 
-        (tmp_path / "INSTRUCTIONS.md").write_text(instructions)
-        (tmp_path / "TODOWRITE.md").write_text(todowrite)
-        (tmp_path / "MEMORIES.md").write_text(memories)
+        (self / "INSTRUCTIONS.md").write_text(instructions)
+        (self / "TODOWRITE.md").write_text(todowrite)
+        (self / "MEMORIES.md").write_text(memories)
 
-        concatenated = self._concatenate_instructions(tmp_path)
+        concatenated = self._concatenate_instructions(self)
 
         # Total should be around 22K characters
         total_size = len(concatenated)
         assert 20000 <= total_size <= 25000, f"Unexpected size: {total_size}"
 
-    def test_custom_vs_system_instruction_priority(tmp_path):
+    def test_custom_vs_system_instruction_priority(self):
         """Test that custom instructions override system instructions."""
         # System instructions
         system_instructions = """# System Instructions
@@ -138,8 +138,8 @@ MODEL: opus
 EXTRA_SETTING: custom_value
 """
 
-        (tmp_path / "system_instructions.md").write_text(system_instructions)
-        (tmp_path / "custom_instructions.md").write_text(custom_instructions)
+        (self / "system_instructions.md").write_text(system_instructions)
+        (self / "custom_instructions.md").write_text(custom_instructions)
 
         # Simulate merging with custom priority
         merged = self._merge_instructions(
@@ -152,7 +152,7 @@ EXTRA_SETTING: custom_value
         assert "opus" in merged
         assert "custom_value" in merged
 
-    def test_dynamic_capabilities_injection(tmp_path):
+    def test_dynamic_capabilities_injection(self):
         """Test injection of dynamic capabilities into instructions."""
         base_instructions = """# Agent Instructions
 
@@ -181,20 +181,20 @@ EXTRA_SETTING: custom_value
         assert "## Core Capabilities" in modified
         assert "## END" in modified
 
-    def test_missing_instruction_files_handling(tmp_path):
+    def test_missing_instruction_files_handling(self):
         """Test graceful handling of missing instruction files."""
         # Only create INSTRUCTIONS.md
         instructions = "# Main Instructions\nCore content."
-        (tmp_path / "INSTRUCTIONS.md").write_text(instructions)
+        (self / "INSTRUCTIONS.md").write_text(instructions)
 
         # TODOWRITE.md and MEMORIES.md are missing
-        concatenated = self._concatenate_instructions(tmp_path)
+        concatenated = self._concatenate_instructions(self)
 
         # Should still work with just INSTRUCTIONS.md
         assert "Main Instructions" in concatenated
         assert len(concatenated) > 0
 
-    def test_instruction_validation(tmp_path):
+    def test_instruction_validation(self):
         """Test validation of instruction content."""
         # Create instructions with potential issues
         instructions = """# Instructions
@@ -212,7 +212,7 @@ This section might cause issues.
 <!-- INVALID_MARKER -->
 """
 
-        (tmp_path / "INSTRUCTIONS.md").write_text(instructions)
+        (self / "INSTRUCTIONS.md").write_text(instructions)
 
         # Validate instructions
         errors = self._validate_instructions(instructions)
@@ -221,7 +221,7 @@ This section might cause issues.
         assert isinstance(errors, list)
         # The validator should flag any issues
 
-    def test_instruction_metadata_extraction(tmp_path):
+    def test_instruction_metadata_extraction(self):
         """Test extraction of metadata from instruction files."""
         instructions = """<!-- FRAMEWORK_VERSION: 0010 -->
 <!-- LAST_MODIFIED: 2025-08-11T00:00:00Z -->
@@ -233,7 +233,7 @@ This section might cause issues.
 Content here.
 """
 
-        (tmp_path / "INSTRUCTIONS.md").write_text(instructions)
+        (self / "INSTRUCTIONS.md").write_text(instructions)
 
         metadata = self._extract_metadata(instructions)
 
@@ -242,7 +242,7 @@ Content here.
         assert metadata["author"] == "claude-mpm"
         assert metadata["agent_type"] == "pm"
 
-    def test_instruction_size_optimization(tmp_path):
+    def test_instruction_size_optimization(self):
         """Test optimization of instruction size."""
         # Create verbose instructions
         verbose_instructions = """# Instructions
@@ -279,7 +279,7 @@ Multiple times it repeats. Repeating multiple times.
         assert "## Section 2" in optimized
         assert "## Section 3" in optimized
 
-    def test_instruction_template_variables(tmp_path):
+    def test_instruction_template_variables(self):
         """Test replacement of template variables in instructions."""
         template_instructions = """# {{AGENT_NAME}} Instructions
 
@@ -315,7 +315,7 @@ Temperature: {{TEMPERATURE}}
         assert "opus" in processed
         assert "Pattern detection" in processed
 
-    def test_instruction_checksum_verification(tmp_path):
+    def test_instruction_checksum_verification(self):
         """Test checksum verification for instruction integrity."""
         instructions = """# Instructions
 Critical system instructions that must not be tampered with.

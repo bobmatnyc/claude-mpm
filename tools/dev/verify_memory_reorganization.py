@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Verify memory services reorganization is complete and working."""
 
-import ast
 import sys
 from pathlib import Path
 from typing import List, Tuple
@@ -52,7 +51,7 @@ def check_python_file(file_path: Path) -> List[Tuple[str, str]]:
                     (str(file_path), f"Found old import: {pattern}. {suggestion}")
                 )
 
-    except Exception as e:
+    except Exception:
         # Skip files that can't be read
         pass
 
@@ -127,9 +126,8 @@ def check_all_imports():
         for file_path, issue in all_issues:
             print(f"  - {file_path}: {issue}")
         return False
-    else:
-        print("✓ No old import patterns found")
-        return True
+    print("✓ No old import patterns found")
+    return True
 
 
 def main():

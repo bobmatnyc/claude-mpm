@@ -47,10 +47,10 @@ class TestAggregateCommand:
             assert error is None, f"Command {cmd} should be valid"
 
     @patch("claude_mpm.cli.commands.aggregate.EventAggregator")
-    def test_run_status_command(mock_aggregator_class):
+    def test_run_status_command(self):
         """Test status command showing aggregator status."""
         mock_aggregator = Mock()
-        mock_aggregator_class.return_value = mock_aggregator
+        self.return_value = mock_aggregator
         mock_aggregator.is_running.return_value = True
         mock_aggregator.get_stats.return_value = {
             "events_collected": 1000,
@@ -81,10 +81,10 @@ class TestAggregateCommand:
             mock_show.assert_called_once_with(args)
 
     @patch("claude_mpm.cli.commands.aggregate.EventAggregator")
-    def test_run_start_command(mock_aggregator_class):
+    def test_run_start_command(self):
         """Test starting the aggregator."""
         mock_aggregator = Mock()
-        mock_aggregator_class.return_value = mock_aggregator
+        self.return_value = mock_aggregator
         mock_aggregator.start.return_value = True
 
         args = Namespace(
@@ -103,10 +103,10 @@ class TestAggregateCommand:
             mock_start.assert_called_once_with(args)
 
     @patch("claude_mpm.cli.commands.aggregate.EventAggregator")
-    def test_run_stop_command(mock_aggregator_class):
+    def test_run_stop_command(self):
         """Test stopping the aggregator."""
         mock_aggregator = Mock()
-        mock_aggregator_class.return_value = mock_aggregator
+        self.return_value = mock_aggregator
         mock_aggregator.stop.return_value = True
 
         args = Namespace(aggregate_command="stop", force=False, format="text")
@@ -121,10 +121,10 @@ class TestAggregateCommand:
             mock_stop.assert_called_once_with(args)
 
     @patch("claude_mpm.cli.commands.aggregate.EventAggregator")
-    def test_run_collect_command(mock_aggregator_class):
+    def test_run_collect_command(self):
         """Test collecting events."""
         mock_aggregator = Mock()
-        mock_aggregator_class.return_value = mock_aggregator
+        self.return_value = mock_aggregator
         mock_aggregator.collect_events.return_value = [
             {"timestamp": "2024-01-01 12:00:00", "event": "test_event", "data": {}},
             {"timestamp": "2024-01-01 12:00:01", "event": "another_event", "data": {}},
@@ -154,10 +154,10 @@ class TestAggregateCommand:
             mock_collect.assert_called_once_with(args)
 
     @patch("claude_mpm.cli.commands.aggregate.EventAggregator")
-    def test_run_query_command(mock_aggregator_class):
+    def test_run_query_command(self):
         """Test querying aggregated events."""
         mock_aggregator = Mock()
-        mock_aggregator_class.return_value = mock_aggregator
+        self.return_value = mock_aggregator
 
         args = Namespace(
             aggregate_command="query",
@@ -193,10 +193,10 @@ class TestAggregateCommand:
             mock_query.assert_called_once_with(args)
 
     @patch("claude_mpm.cli.commands.aggregate.EventAggregator")
-    def test_run_clear_command(mock_aggregator_class):
+    def test_run_clear_command(self):
         """Test clearing aggregated data."""
         mock_aggregator = Mock()
-        mock_aggregator_class.return_value = mock_aggregator
+        self.return_value = mock_aggregator
 
         args = Namespace(
             aggregate_command="clear", before_date=None, force=True, format="text"

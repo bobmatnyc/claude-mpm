@@ -66,10 +66,10 @@ class TestAgentTemplateBuilder:
             "configuration_fields": {"model": "haiku", "tools": ["Read", "Write"]},
         }
 
-    def test_initialization(template_builder):
+    def test_initialization(self):
         """Test AgentTemplateBuilder initialization."""
-        assert hasattr(template_builder, "logger")
-        assert template_builder.logger is not None
+        assert hasattr(self, "logger")
+        assert self.logger is not None
 
     def test_build_agent_markdown_basic(
         self, template_builder, sample_template_file, base_agent_data
@@ -164,7 +164,7 @@ class TestAgentTemplateBuilder:
         assert "tools:" in result
         assert "- Read" in result
 
-    def test_merge_narrative_fields(template_builder):
+    def test_merge_narrative_fields(self):
         """Test merging narrative fields."""
         base_data = {
             "when_to_use": ["General tasks"],
@@ -179,7 +179,7 @@ class TestAgentTemplateBuilder:
             "unique_capabilities": ["Test execution"],
         }
 
-        result = template_builder.merge_narrative_fields(base_data, template_data)
+        result = self.merge_narrative_fields(base_data, template_data)
 
         assert "when_to_use" in result
         assert "specialized_knowledge" in result
@@ -192,7 +192,7 @@ class TestAgentTemplateBuilder:
         assert "General tasks" in result["when_to_use"]
         assert "Testing" in result["when_to_use"]
 
-    def test_merge_configuration_fields(template_builder):
+    def test_merge_configuration_fields(self):
         """Test merging configuration fields."""
         base_data = {
             "configuration_fields": {
@@ -209,14 +209,14 @@ class TestAgentTemplateBuilder:
             "tools": ["Read", "Write", "Edit"],  # Direct field should override
         }
 
-        result = template_builder.merge_configuration_fields(base_data, template_data)
+        result = self.merge_configuration_fields(base_data, template_data)
 
         assert result["model"] == "sonnet"  # Template overrides base
         assert result["timeout"] == 300  # Base value preserved
         assert result["max_tokens"] == 4000  # Template value added
         assert result["tools"] == ["Read", "Write", "Edit"]  # Direct field overrides
 
-    def test_extract_agent_metadata(template_builder):
+    def test_extract_agent_metadata(self):
         """Test extracting metadata from template content."""
         template_content = """# Agent Template
 
@@ -233,7 +233,7 @@ class TestAgentTemplateBuilder:
 - Bug detection
 """
 
-        result = template_builder.extract_agent_metadata(template_content)
+        result = self.extract_agent_metadata(template_content)
 
         assert "when_to_use" in result
         assert "specialized_knowledge" in result
@@ -243,20 +243,20 @@ class TestAgentTemplateBuilder:
         assert "Test frameworks" in result["specialized_knowledge"]
         assert "Automated testing" in result["unique_capabilities"]
 
-    def test_format_yaml_list(template_builder):
+    def test_format_yaml_list(self):
         """Test YAML list formatting."""
         items = ["Read", "Write", "Edit"]
-        result = template_builder.format_yaml_list(items, 2)
+        result = self.format_yaml_list(items, 2)
 
         expected = "  - Read\n  - Write\n  - Edit"
         assert result == expected
 
-    def test_format_yaml_list_empty(template_builder):
+    def test_format_yaml_list_empty(self):
         """Test YAML list formatting with empty list."""
-        result = template_builder.format_yaml_list([], 2)
+        result = self.format_yaml_list([], 2)
         assert result == ""
 
-    def test_model_mapping(template_builder, temp_dir, base_agent_data):
+    def test_model_mapping(self, temp_dir, base_agent_data):
         """Test model name mapping."""
         template_data = {
             "name": "test-agent",
@@ -265,7 +265,7 @@ class TestAgentTemplateBuilder:
         template_file = temp_dir / "model_test.json"
         template_file.write_text(json.dumps(template_data))
 
-        result = template_builder.build_agent_markdown(
+        result = self.build_agent_markdown(
             agent_name="test_agent",
             template_path=template_file,
             base_agent_data=base_agent_data,
@@ -273,13 +273,13 @@ class TestAgentTemplateBuilder:
 
         assert "model: sonnet" in result
 
-    def test_fallback_values(template_builder, temp_dir, base_agent_data):
+    def test_fallback_values(self, temp_dir, base_agent_data):
         """Test fallback values when template fields are missing."""
         minimal_template = {"name": "minimal-agent"}
         template_file = temp_dir / "minimal.json"
         template_file.write_text(json.dumps(minimal_template))
 
-        result = template_builder.build_agent_markdown(
+        result = self.build_agent_markdown(
             agent_name="minimal_agent",
             template_path=template_file,
             base_agent_data=base_agent_data,

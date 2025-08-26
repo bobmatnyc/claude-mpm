@@ -6,10 +6,10 @@ This example shows how the framework loader properly loads custom instructions
 from .claude-mpm/ directories while completely ignoring .claude/ directories.
 """
 
-import tempfile
 import os
-from pathlib import Path
 import sys
+import tempfile
+from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -19,22 +19,22 @@ from claude_mpm.core.framework_loader import FrameworkLoader
 
 def demonstrate_custom_instructions():
     """Demonstrate loading custom instructions from .claude-mpm/ directories."""
-    
+
     print("=" * 60)
     print("Claude MPM Custom Instructions Demo")
     print("=" * 60)
-    
+
     # Create a temporary project directory
     with tempfile.TemporaryDirectory() as tmpdir:
         project_dir = Path(tmpdir)
-        
+
         print(f"\nCreating demo project at: {project_dir}")
-        
+
         # Create .claude-mpm directory structure
         claude_mpm_dir = project_dir / ".claude-mpm"
         claude_mpm_dir.mkdir()
-        print(f"✓ Created .claude-mpm/ directory")
-        
+        print("✓ Created .claude-mpm/ directory")
+
         # Create custom INSTRUCTIONS.md
         instructions_path = claude_mpm_dir / "INSTRUCTIONS.md"
         instructions_path.write_text("""# Custom Project PM Instructions
@@ -50,8 +50,8 @@ def demonstrate_custom_instructions():
 - All API changes require Documentation agent updates
 - Performance issues should involve both Engineer and Ops agents
 """)
-        print(f"✓ Created custom INSTRUCTIONS.md")
-        
+        print("✓ Created custom INSTRUCTIONS.md")
+
         # Create custom WORKFLOW.md
         workflow_path = claude_mpm_dir / "WORKFLOW.md"
         workflow_path.write_text("""# Custom Project Workflow
@@ -68,8 +68,8 @@ def demonstrate_custom_instructions():
 - Ops agent runs performance tests
 - Engineer optimizes if needed
 """)
-        print(f"✓ Created custom WORKFLOW.md")
-        
+        print("✓ Created custom WORKFLOW.md")
+
         # Create custom MEMORY.md
         memory_path = claude_mpm_dir / "MEMORY.md"
         memory_path.write_text("""# Custom Memory Instructions
@@ -86,8 +86,8 @@ def demonstrate_custom_instructions():
 3. API breaking changes
 4. Customer-reported issues
 """)
-        print(f"✓ Created custom MEMORY.md")
-        
+        print("✓ Created custom MEMORY.md")
+
         # Create memories directory with PM memories
         memories_dir = claude_mpm_dir / "memories"
         memories_dir.mkdir()
@@ -111,14 +111,14 @@ def demonstrate_custom_instructions():
 - API v1 will be deprecated in Q2
 - Performance issues with large datasets
 """)
-        print(f"✓ Created PM memories")
-        
+        print("✓ Created PM memories")
+
         # Also create a .claude directory to demonstrate it's ignored
         claude_dir = project_dir / ".claude"
         claude_dir.mkdir()
         (claude_dir / "INSTRUCTIONS.md").write_text("THIS SHOULD BE IGNORED")
-        print(f"✓ Created .claude/ directory (will be ignored)")
-        
+        print("✓ Created .claude/ directory (will be ignored)")
+
         # Change to project directory and load framework
         original_cwd = Path.cwd()
         try:
@@ -126,13 +126,13 @@ def demonstrate_custom_instructions():
             print(f"\n{'='*40}")
             print("Loading framework...")
             print(f"{'='*40}\n")
-            
+
             # Initialize framework loader
             loader = FrameworkLoader()
-            
+
             # Display what was loaded
             content = loader.framework_content
-            
+
             print("Loaded Custom Instructions:")
             print("-" * 30)
             if content.get("custom_instructions"):
@@ -140,25 +140,25 @@ def demonstrate_custom_instructions():
                 print(f"  First line: {content['custom_instructions'].split(chr(10))[0]}")
             else:
                 print("✗ No custom instructions loaded")
-            
+
             if content.get("workflow_instructions_level") == "project":
-                print(f"✓ WORKFLOW.md loaded from project level")
+                print("✓ WORKFLOW.md loaded from project level")
                 print(f"  First line: {content['workflow_instructions'].split(chr(10))[0]}")
             else:
                 print(f"ℹ WORKFLOW.md using {content.get('workflow_instructions_level', 'system')} defaults")
-            
+
             if content.get("memory_instructions_level") == "project":
-                print(f"✓ MEMORY.md loaded from project level")
+                print("✓ MEMORY.md loaded from project level")
                 print(f"  First line: {content['memory_instructions'].split(chr(10))[0]}")
             else:
                 print(f"ℹ MEMORY.md using {content.get('memory_instructions_level', 'system')} defaults")
-            
+
             if content.get("actual_memories"):
-                print(f"✓ PM memories loaded")
+                print("✓ PM memories loaded")
                 # Count memory items
                 memory_lines = [l for l in content['actual_memories'].split('\n') if l.strip().startswith('-')]
                 print(f"  Found {len(memory_lines)} memory items")
-            
+
             # Verify .claude/ directory was ignored
             print("\nSecurity Check:")
             print("-" * 30)
@@ -167,12 +167,12 @@ def demonstrate_custom_instructions():
                 print("✗ ERROR: .claude/ directory was read (security issue!)")
             else:
                 print("✓ .claude/ directory correctly ignored")
-            
+
             # Show how custom instructions appear in final output
             print(f"\n{'='*40}")
             print("Custom Instructions in Final Output:")
             print(f"{'='*40}\n")
-            
+
             if "Custom Project PM Instructions" in full_instructions:
                 print("✓ Custom PM instructions integrated")
             if "Custom Project Workflow" in full_instructions:
@@ -181,7 +181,7 @@ def demonstrate_custom_instructions():
                 print("✓ Custom memory instructions integrated")
             if "financial services application" in full_instructions:
                 print("✓ PM memories integrated")
-            
+
             # Display file structure for clarity
             print(f"\n{'='*40}")
             print("Project Structure:")
@@ -197,10 +197,10 @@ def demonstrate_custom_instructions():
 └── .claude/                   ✗ IGNORED
     └── INSTRUCTIONS.md        ✗ Not loaded (correct!)
 """)
-            
+
         finally:
             os.chdir(original_cwd)
-    
+
     print(f"\n{'='*60}")
     print("Demo Complete!")
     print(f"{'='*60}")

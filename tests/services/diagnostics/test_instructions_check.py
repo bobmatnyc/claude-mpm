@@ -181,7 +181,7 @@ class TestInstructionsCheck:
             claude_file.write_text(
                 """
             # Claude Code Guidelines
-            
+
             This file contains multi-agent orchestration rules
             and delegation patterns for the PM.
             """
@@ -192,7 +192,7 @@ class TestInstructionsCheck:
             instructions_file.write_text(
                 """
             # MPM Instructions
-            
+
             Follow these Claude Code development guidelines
             for project structure and coding standards.
             """

@@ -99,7 +99,6 @@ class ResumeTestRunner:
             content = wrapper_script.read_text()
 
             # Find the MPM_FLAGS line
-            mpm_flags_line = None
             for line_no, line in enumerate(content.split("\n"), 1):
                 if (
                     "MPM_FLAGS=" in line
@@ -337,7 +336,7 @@ class ResumeTestRunner:
         for args, expected, description, test_method in test_cases:
             print(f"\n   Testing: {args} -> {expected}")
 
-            cmd = [str(self.project_root / "scripts" / "claude-mpm")] + args
+            cmd = [str(self.project_root / "scripts" / "claude-mpm"), *args]
 
             if test_method == "timeout":
                 # For commands that should pass through, test without --help to avoid interference
@@ -363,7 +362,7 @@ class ResumeTestRunner:
             else:
                 # For MPM commands, add --help for cleaner output
                 returncode, stdout, stderr = self.run_subcommand(
-                    cmd + ["--help"], timeout=5
+                    [*cmd, "--help"], timeout=5
                 )
 
                 if expected == "mpm":

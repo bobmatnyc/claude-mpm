@@ -69,7 +69,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         """Test extraction from simple remember field in JSON response."""
         response = """
         Task completed successfully.
-        
+
         ```json
         {
           "remember": ["This project uses Python 3.11", "Database is PostgreSQL"]
@@ -95,7 +95,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         """Test extraction from Remember field (capital R) in JSON response."""
         response = """
         Analysis complete.
-        
+
         ```json
         {
           "Remember": ["API uses JWT authentication", "Rate limit is 1000 requests/hour"]
@@ -121,7 +121,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         """Test handling of null remember field."""
         response = """
         Task completed.
-        
+
         ```json
         {
           "remember": null
@@ -144,7 +144,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         """Test handling of empty list remember field."""
         response = """
         Task completed.
-        
+
         ```json
         {
           "remember": []
@@ -161,7 +161,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         """Test extraction from memory-update structured format - EXPECTED TO FAIL."""
         response = """
         Task completed.
-        
+
         ```json
         {
           "memory-update": {
@@ -187,7 +187,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
     def test_no_json_response_handling():
         """Test handling of response with no JSON."""
         response = """
-        Task completed successfully. 
+        Task completed successfully.
         Everything looks good to go.
         No memory updates needed.
         """
@@ -201,7 +201,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         """Test handling of invalid JSON in response."""
         response = """
         Task completed.
-        
+
         ```json
         {
           "remember": ["Valid entry"
@@ -218,15 +218,15 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         """Test processing multiple JSON blocks in one response."""
         response = """
         First task completed.
-        
+
         ```json
         {
           "remember": ["First learning"]
         }
         ```
-        
+
         Second task completed.
-        
+
         ```json
         {
           "remember": ["Second learning"]

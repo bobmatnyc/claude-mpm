@@ -254,7 +254,7 @@ async def main():
         server = SocketIOServer(host="localhost", port=8765)
 
         # Start server in background task
-        server_task = asyncio.create_task(asyncio.to_thread(server.start))
+        asyncio.create_task(asyncio.to_thread(server.start))
         await asyncio.sleep(2)  # Give server time to start
 
         print("✅ Server started, running tests...")

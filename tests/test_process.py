@@ -383,10 +383,8 @@ class TestProcess(PsutilTestCase):
         assert tuple(p.ionice()) == (psutil.IOPRIO_CLASS_BE, 7)
         with pytest.raises(ValueError):
             p.ionice(psutil.IOPRIO_CLASS_BE, value=8)
-        try:
+        with contextlib.suppress(psutil.AccessDenied):
             p.ionice(psutil.IOPRIO_CLASS_RT, value=7)
-        except psutil.AccessDenied:
-            pass
         # errs
         with pytest.raises(ValueError, match="ioclass accepts no value"):
             p.ionice(psutil.IOPRIO_CLASS_NONE, 1)
@@ -469,9 +467,8 @@ class TestProcess(PsutilTestCase):
                 f.write(b"X" * 1024)
             # write() or flush() doesn't always cause the exception
             # but close() will.
-            with pytest.raises(OSError) as exc:
-                with open(testfn, "wb") as f:
-                    f.write(b"X" * 1025)
+            with pytest.raises(OSError) as exc, open(testfn, "wb") as f:
+                f.write(b"X" * 1025)
             assert exc.value.errno == errno.EFBIG
         finally:
             p.rlimit(psutil.RLIMIT_FSIZE, (soft, hard))
@@ -837,10 +834,8 @@ class TestProcess(PsutilTestCase):
 
     def test_nice(self):
         def cleanup(init):
-            try:
+            with contextlib.suppress(psutil.AccessDenied):
                 p.nice(init)
-            except psutil.AccessDenied:
-                pass
 
         p = psutil.Process()
         with pytest.raises(TypeError):
@@ -1159,10 +1154,8 @@ class TestProcess(PsutilTestCase):
         # find the process which has the highest number of children
         table = collections.defaultdict(int)
         for p in psutil.process_iter():
-            try:
+            with contextlib.suppress(psutil.Error):
                 table[p.ppid()] += 1
-            except psutil.Error:
-                pass
         # this is the one, now let's make sure there are no duplicates
         pid = max(table.items(), key=lambda x: x[1])[0]
         if LINUX and pid == 0:
@@ -1225,9 +1218,8 @@ class TestProcess(PsutilTestCase):
             "psutil.Process.nice",
             create=True,
             side_effect=psutil.NoSuchProcess(p.pid, "name"),
-        ):
-            with pytest.raises(psutil.NoSuchProcess):
-                p.as_dict(attrs=["nice"])
+        ), pytest.raises(psutil.NoSuchProcess):
+            p.as_dict(attrs=["nice"])
 
         # Test that ZombieProcess is swallowed.
         with mock.patch(

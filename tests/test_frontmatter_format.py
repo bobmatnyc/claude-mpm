@@ -15,7 +15,7 @@ import yaml
 class TestFrontmatterFormat:
     """Test YAML frontmatter structure in deployed agents."""
 
-    def test_frontmatter_structure_valid(tmp_path):
+    def test_frontmatter_structure_valid(self):
         """Test that valid frontmatter is correctly parsed."""
         # Create a valid agent file with proper frontmatter
         agent_content = """---
@@ -31,7 +31,7 @@ model: sonnet
 
 This is the agent content after frontmatter.
 """
-        agent_file = tmp_path / "test_agent.md"
+        agent_file = self / "test_agent.md"
         agent_file.write_text(agent_content)
 
         # Parse the frontmatter
@@ -46,7 +46,7 @@ This is the agent content after frontmatter.
         assert frontmatter["tools"] == "Read, Write, Edit, Grep, Glob, LS"
         assert frontmatter["model"] == "sonnet"
 
-    def test_frontmatter_required_fields(tmp_path):
+    def test_frontmatter_required_fields(self):
         """Test that all required fields are present in frontmatter."""
         required_fields = [
             "name",
@@ -60,7 +60,7 @@ This is the agent content after frontmatter.
         # Test missing each required field
         for missing_field in required_fields:
             agent_content = self._create_agent_content(exclude_field=missing_field)
-            agent_file = tmp_path / f"test_missing_{missing_field}.md"
+            agent_file = self / f"test_missing_{missing_field}.md"
             agent_file.write_text(agent_content)
 
             frontmatter = self._extract_frontmatter(agent_file)
@@ -74,7 +74,7 @@ This is the agent content after frontmatter.
             errors = self._validate_frontmatter(frontmatter)
             assert any(missing_field in error for error in errors)
 
-    def test_frontmatter_version_formats(tmp_path):
+    def test_frontmatter_version_formats(self):
         """Test various version format scenarios."""
         test_cases = [
             ("2.1.0", True, "Valid semantic version"),
@@ -100,7 +100,7 @@ model: sonnet
 
 Test content
 """
-            agent_file = tmp_path / f"test_version_{version.replace('.', '_')}.md"
+            agent_file = self / f"test_version_{version.replace('.', '_')}.md"
             agent_file.write_text(agent_content)
 
             frontmatter = self._extract_frontmatter(agent_file)
@@ -110,7 +110,7 @@ Test content
                 is_valid == should_be_valid
             ), f"Version '{version}' ({description}) validation mismatch"
 
-    def test_frontmatter_tools_format(tmp_path):
+    def test_frontmatter_tools_format(self):
         """Test various tools field formats."""
         test_cases = [
             ("Read, Write, Edit", True, "Comma-separated tools"),
@@ -142,7 +142,7 @@ model: sonnet
 
 Test content
 """
-            agent_file = tmp_path / f"test_tools_{description.replace(' ', '_')}.md"
+            agent_file = self / f"test_tools_{description.replace(' ', '_')}.md"
             agent_file.write_text(agent_content)
 
             frontmatter = self._extract_frontmatter(agent_file)
@@ -159,7 +159,7 @@ Test content
                 is_valid == should_be_valid
             ), f"Tools '{tools}' ({description}) validation mismatch"
 
-    def test_frontmatter_model_values(tmp_path):
+    def test_frontmatter_model_values(self):
         """Test valid model values in frontmatter."""
         valid_models = ["haiku", "sonnet", "opus"]
 
@@ -175,14 +175,14 @@ model: {model}
 
 Test content
 """
-            agent_file = tmp_path / f"test_model_{model}.md"
+            agent_file = self / f"test_model_{model}.md"
             agent_file.write_text(agent_content)
 
             frontmatter = self._extract_frontmatter(agent_file)
             assert frontmatter["model"] == model
             assert frontmatter["model"] in valid_models
 
-    def test_frontmatter_parsing_edge_cases(tmp_path):
+    def test_frontmatter_parsing_edge_cases(self):
         """Test edge cases in frontmatter parsing."""
         # Test with quotes in description
         agent_content = """---
@@ -196,7 +196,7 @@ model: sonnet
 
 Content
 """
-        agent_file = tmp_path / "test_quotes.md"
+        agent_file = self / "test_quotes.md"
         agent_file.write_text(agent_content)
         frontmatter = self._extract_frontmatter(agent_file)
 
@@ -217,7 +217,7 @@ model: sonnet
 
 Content
 """
-        agent_file = tmp_path / "test_colons.md"
+        agent_file = self / "test_colons.md"
         agent_file.write_text(agent_content)
         frontmatter = self._extract_frontmatter(agent_file)
         assert "Agent: Advanced" in frontmatter["description"]
@@ -236,12 +236,12 @@ model: sonnet
 
 Content
 """
-        agent_file = tmp_path / "test_multiline.md"
+        agent_file = self / "test_multiline.md"
         agent_file.write_text(agent_content)
         frontmatter = self._extract_frontmatter(agent_file)
         assert "multiline" in frontmatter["description"]
 
-    def test_frontmatter_separator_detection(tmp_path):
+    def test_frontmatter_separator_detection(self):
         """Test that content after frontmatter separator is correctly identified."""
         agent_content = """---
 name: test_agent
@@ -260,7 +260,7 @@ This is the main content.
 
 This should still be part of content, not frontmatter.
 """
-        agent_file = tmp_path / "test_separator.md"
+        agent_file = self / "test_separator.md"
         agent_file.write_text(agent_content)
 
         # Extract frontmatter and content
@@ -271,7 +271,7 @@ This should still be part of content, not frontmatter.
         assert "This should still be part of content" in content
         assert "---" in content  # The second separator should be in content
 
-    def test_frontmatter_without_separator(tmp_path):
+    def test_frontmatter_without_separator(self):
         """Test handling of files without proper frontmatter separator."""
         agent_content = """name: test_agent
 description: Test agent
@@ -281,7 +281,7 @@ version: 1.0.0
 
 This file has no frontmatter separators.
 """
-        agent_file = tmp_path / "test_no_separator.md"
+        agent_file = self / "test_no_separator.md"
         agent_file.write_text(agent_content)
 
         frontmatter = self._extract_frontmatter(agent_file)
@@ -289,7 +289,7 @@ This file has no frontmatter separators.
         # Should return None or empty dict for invalid format
         assert frontmatter is None or len(frontmatter) == 0
 
-    def test_frontmatter_optional_fields(tmp_path):
+    def test_frontmatter_optional_fields(self):
         """Test optional fields in frontmatter."""
         agent_content = """---
 name: test_agent
@@ -305,7 +305,7 @@ tags: testing, validation, frontmatter
 
 Content
 """
-        agent_file = tmp_path / "test_optional.md"
+        agent_file = self / "test_optional.md"
         agent_file.write_text(agent_content)
 
         frontmatter = self._extract_frontmatter(agent_file)

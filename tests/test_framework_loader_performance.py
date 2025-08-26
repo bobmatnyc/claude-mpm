@@ -52,7 +52,7 @@ def measure_performance():
 
     # Second call (cache hit)
     start = time.time()
-    agents2 = loader._get_deployed_agents()
+    loader._get_deployed_agents()
     second_call = time.time() - start
     print(f"   Second call (cache hit): {second_call:.3f}s")
 
@@ -72,7 +72,7 @@ def measure_performance():
 
     # Second call (cache hit)
     start = time.time()
-    caps2 = loader._generate_agent_capabilities_section()
+    loader._generate_agent_capabilities_section()
     second_call = time.time() - start
     print(f"   Second call (cache hit): {second_call:.3f}s")
 

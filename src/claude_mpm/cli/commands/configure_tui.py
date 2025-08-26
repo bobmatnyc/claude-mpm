@@ -58,7 +58,7 @@ class AgentConfig:
     """Agent configuration model matching the existing implementation."""
 
     def __init__(
-        self, name: str, description: str = "", dependencies: List[str] = None
+        self, name: str, description: str = "", dependencies: Optional[List[str]] = None
     ):
         self.name = name
         self.description = description
@@ -123,7 +123,7 @@ class SimpleAgentManager:
 
                     agent_id = template_data.get("agent_id", template_file.stem)
                     metadata = template_data.get("metadata", {})
-                    name = metadata.get("name", agent_id)
+                    metadata.get("name", agent_id)
                     description = metadata.get(
                         "description", "No description available"
                     )
@@ -225,8 +225,8 @@ class AgentInfo:
         template_path: Path,
         description: str = "",
         version: str = "1.0.0",
-        tools: List[str] = None,
-        model: str = None,
+        tools: Optional[List[str]] = None,
+        model: Optional[str] = None,
     ):
         self.name = name
         self.category = category  # "system", "project", "user"
@@ -1290,7 +1290,7 @@ class ConfigureTUI(App):
     Container {
         background: $surface;
     }
-    
+
     #screen-title {
         text-style: bold;
         text-align: left;
@@ -1301,18 +1301,18 @@ class ConfigureTUI(App):
         margin-bottom: 1;
         border-bottom: solid $primary;
     }
-    
+
     /* Header styles */
     Header {
         background: $primary;
         border-bottom: solid $accent;
     }
-    
+
     /* Main layout */
     #main-layout {
         height: 100%;
     }
-    
+
     /* Sidebar navigation - Clean minimal style */
     #sidebar {
         width: 25;
@@ -1320,7 +1320,7 @@ class ConfigureTUI(App):
         border-right: solid $primary;
         padding: 0;
     }
-    
+
     .sidebar-title {
         text-style: bold;
         padding: 0 1;
@@ -1330,13 +1330,13 @@ class ConfigureTUI(App):
         margin-bottom: 0;
         border-bottom: solid $primary;
     }
-    
+
     #nav-list {
         height: 100%;
         padding: 0;
         margin: 0;
     }
-    
+
     /* Single-line list items with minimal styling */
     #nav-list > ListItem {
         padding: 0 2;
@@ -1344,49 +1344,49 @@ class ConfigureTUI(App):
         height: 1;  /* Single line height */
         background: transparent;
     }
-    
+
     #nav-list > ListItem Label {
         padding: 0;
         margin: 0;
         width: 100%;
     }
-    
+
     /* Hover state - light background */
     #nav-list > ListItem:hover {
         background: $boost;
     }
-    
+
     /* Highlighted/Selected state - accent background */
     #nav-list > ListItem.--highlight {
         background: $accent 30%;
         text-style: bold;
     }
-    
+
     /* Active selected state - primary background with bold text */
     #nav-list > ListItem.active {
         background: $primary 50%;
         text-style: bold;
     }
-    
+
     /* Main content area */
     #content-switcher {
         padding: 1;
         height: 100%;
         width: 100%;
     }
-    
+
     /* Content screens (Containers) */
     #agents, #templates, #behaviors, #settings {
         height: 100%;
         width: 100%;
     }
-    
+
     /* Agent Management simplified layout styles */
     #agent-management-screen {
         height: 100%;
         padding: 1;
     }
-    
+
     #screen-title {
         text-style: bold;
         padding: 0 1;
@@ -1396,7 +1396,7 @@ class ConfigureTUI(App):
         margin-bottom: 1;
         border-bottom: solid $primary;
     }
-    
+
     /* Compact headers for all screens */
     #list-title, #viewer-title, #tree-title, #editor-title {
         text-style: bold;
@@ -1407,44 +1407,44 @@ class ConfigureTUI(App):
         margin-bottom: 1;
         border-bottom: solid $primary;
     }
-    
+
     #agent-search {
         margin-bottom: 1;
         width: 100%;
     }
-    
+
     #agent-list-table {
         height: 20;
         min-height: 15;
         margin-bottom: 1;
         border: solid $primary;
     }
-    
+
     #agent-details {
         padding: 1;
         height: 10;
         border: solid $primary;
         margin-bottom: 1;
     }
-    
+
     #agent-action-buttons {
         height: 3;
         align: center middle;
     }
-    
+
     #agent-action-buttons Button {
         margin: 0 1;
     }
-    
+
     #agent-category-tabs {
         height: 3;
         margin-bottom: 1;
     }
-    
+
     #agent-category-tabs TabPane {
         padding: 0;
     }
-    
+
     #view-properties-dialog {
         align: center middle;
         background: $panel;
@@ -1454,96 +1454,96 @@ class ConfigureTUI(App):
         width: 90%;
         height: 80%;
     }
-    
+
     #properties-title {
         text-style: bold;
         margin-bottom: 1;
     }
-    
+
     #properties-viewer {
         width: 100%;
         height: 100%;
         margin: 1 0;
     }
-    
+
     #properties-buttons {
         align: center middle;
         height: 3;
         margin-top: 1;
     }
-    
+
     /* Template screen styles */
     #template-layout {
         height: 100%;
     }
-    
+
     #template-list-container {
         width: 40%;
         border-right: solid $primary;
         padding-right: 1;
     }
-    
+
     #template-viewer-container {
         width: 60%;
         padding-left: 1;
     }
-    
+
     #template-viewer {
         height: 100%;
     }
-    
+
     #template-actions {
         align: center middle;
         height: 3;
         margin-top: 1;
     }
-    
+
     #template-actions Button {
         margin: 0 1;
     }
-    
+
     /* Behavior screen styles */
     #behavior-layout {
         height: 100%;
     }
-    
+
     #file-tree-container {
         width: 30%;
         border-right: solid $primary;
         padding-right: 1;
     }
-    
+
     #file-editor-container {
         width: 70%;
         padding-left: 1;
     }
-    
+
     #behavior-editor {
         height: 100%;
     }
-    
+
     #behavior-actions {
         align: center middle;
         height: 3;
         margin-top: 1;
     }
-    
+
     #behavior-actions Button {
         margin: 0 1;
     }
-    
+
     /* Settings screen styles */
     #settings-content {
         padding: 2;
         max-width: 80;
     }
-    
+
     .settings-section {
         margin-bottom: 2;
         border: solid $primary;
         padding: 1;
     }
-    
+
     .section-title {
         text-style: bold;
         padding: 0 1;
@@ -1552,26 +1552,26 @@ class ConfigureTUI(App):
         color: $primary;
         border-bottom: solid $primary;
     }
-    
+
     .setting-row {
         align: left middle;
         height: 3;
     }
-    
+
     .setting-label {
         width: 20;
     }
-    
+
     .setting-value {
         width: 40;
         color: $text-muted;
     }
-    
+
     .version-line {
         padding: 0 1;
         margin: 0;
     }
-    
+
     /* Modal dialog styles */
     #confirm-dialog, #edit-dialog {
         align: center middle;
@@ -1580,31 +1580,31 @@ class ConfigureTUI(App):
         padding: 2;
         margin: 4 8;
     }
-    
+
     #confirm-title, #edit-title {
         text-style: bold;
         margin-bottom: 1;
     }
-    
+
     #confirm-message {
         margin-bottom: 2;
     }
-    
+
     #confirm-buttons, #edit-buttons {
         align: center middle;
         height: 3;
     }
-    
+
     #confirm-buttons Button, #edit-buttons Button {
         margin: 0 1;
     }
-    
+
     #template-editor {
         width: 80;
         height: 30;
         margin: 1 0;
     }
-    
+
     /* Footer styles */
     Footer {
         background: $panel;
@@ -1623,7 +1623,7 @@ class ConfigureTUI(App):
         Binding("ctrl+left", "focus_prev_pane", "Prev Pane", show=False),
     ]
 
-    def __init__(self, current_scope: str = "project", project_dir: Path = None):
+    def __init__(self, current_scope: str = "project", project_dir: Optional[Path] = None):
         super().__init__()
         self.current_scope = current_scope
         self.project_dir = project_dir or Path.cwd()
@@ -1644,7 +1644,7 @@ class ConfigureTUI(App):
     def compose(self) -> ComposeResult:
         """Create the main application layout."""
         # Header with version info
-        mpm_version = self.version_service.get_version()
+        self.version_service.get_version()
         yield Header(show_clock=True)
         yield Rule(line_style="heavy")
 
@@ -1912,7 +1912,7 @@ def can_use_tui() -> bool:
 
 
 def launch_tui(
-    current_scope: str = "project", project_dir: Path = None
+    current_scope: str = "project", project_dir: Optional[Path] = None
 ) -> CommandResult:
     """Launch the Textual TUI application."""
     try:

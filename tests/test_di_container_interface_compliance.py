@@ -5,6 +5,7 @@ This test verifies that DIContainer properly implements the IServiceContainer in
 as required by TSK-0063.
 """
 
+import sys
 from typing import Any, List
 
 from claude_mpm.core.container import DIContainer
@@ -254,4 +255,4 @@ if __name__ == "__main__":
     if failed == 0:
         print("All interface compliance tests passed!")
     else:
-        exit(1)
+        sys.exit(1)

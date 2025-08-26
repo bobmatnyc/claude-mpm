@@ -397,7 +397,7 @@ def test_concurrent_protection():
         return
 
     # Try to start second instance
-    result = subprocess.run(
+    subprocess.run(
         [sys.executable, str(DAEMON_SCRIPT), "start"],
         capture_output=True,
         text=True,

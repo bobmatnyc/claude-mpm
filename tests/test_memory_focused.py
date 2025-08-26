@@ -34,7 +34,7 @@ def test_basic_memory_operations():
     try:
         # Test 1: Create initial memory
         print("1. Creating initial memory...")
-        initial_memory = memory_manager.load_agent_memory(agent_id)
+        memory_manager.load_agent_memory(agent_id)
         assert memory_file.exists(), "Memory file should be created"
         print(f"✓ Memory file created: {memory_file}")
 

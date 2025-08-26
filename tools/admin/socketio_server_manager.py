@@ -16,7 +16,7 @@ Features:
 """
 
 import argparse
-import json
+import contextlib
 import os
 import signal
 import subprocess
@@ -70,7 +70,7 @@ class ServerManager:
                         data["pid"] = daemon_pid
                         data["management_style"] = "daemon"
                 return data
-        except Exception as e:
+        except Exception:
             # If HTTP fails, try daemon fallback
             return self._check_daemon_fallback(port)
         return None
@@ -96,7 +96,7 @@ class ServerManager:
 
         return running_servers
 
-    def find_available_port(self, start_port: int = None) -> int:
+    def find_available_port(self, start_port: Optional[int] = None) -> int:
         """Find the next available port for a new server."""
         start_port = start_port or self.base_port
 
@@ -109,7 +109,7 @@ class ServerManager:
         )
 
     def start_server(
-        self, port: int = None, server_id: str = None, host: str = "localhost"
+        self, port: Optional[int] = None, server_id: Optional[str] = None, host: str = "localhost"
     ) -> bool:
         """Start a standalone Socket.IO server with conflict detection."""
 
@@ -148,7 +148,7 @@ class ServerManager:
             print(
                 f"⚠️ Warning: Daemon server is running on port {self.base_port}, you're starting on port {port}"
             )
-            print(f"   This may cause conflicts. Consider stopping daemon first.")
+            print("   This may cause conflicts. Consider stopping daemon first.")
 
         # Try different ways to start the server based on deployment
         success = False
@@ -204,7 +204,7 @@ class ServerManager:
                     if server_id:
                         cmd.extend(["--server-id", server_id])
 
-                    print(f"Starting server using local development mode...")
+                    print("Starting server using local development mode...")
 
                     # Set PYTHONPATH for local development
                     env = os.environ.copy()
@@ -233,21 +233,20 @@ class ServerManager:
 
         if success:
             print(f"✅ Server started successfully on {host}:{port}")
-            print(f"💡 Management commands:")
+            print("💡 Management commands:")
             print(f"   Status: {sys.executable} {__file__} status")
             print(f"   Stop: {sys.executable} {__file__} stop --port {port}")
             return True
-        else:
-            print(f"❌ Failed to start server on {host}:{port}")
-            print(f"💡 Troubleshooting:")
-            print(f"   • Check if port {port} is already in use: lsof -i :{port}")
-            print(f"   • Check server status: {sys.executable} {__file__} status")
-            print(
-                f"   • Try different port: {sys.executable} {__file__} start --port {port + 1}"
-            )
-            return False
+        print(f"❌ Failed to start server on {host}:{port}")
+        print("💡 Troubleshooting:")
+        print(f"   • Check if port {port} is already in use: lsof -i :{port}")
+        print(f"   • Check server status: {sys.executable} {__file__} status")
+        print(
+            f"   • Try different port: {sys.executable} {__file__} start --port {port + 1}"
+        )
+        return False
 
-    def stop_server(self, port: int = None, server_id: str = None) -> bool:
+    def stop_server(self, port: Optional[int] = None, server_id: Optional[str] = None) -> bool:
         """Stop a running Socket.IO server with daemon compatibility."""
 
         if port is None and server_id is None:
@@ -288,10 +287,10 @@ class ServerManager:
                     for i in range(10):
                         time.sleep(1)
                         if not self.get_server_info(port):
-                            print(f"✅ Server stopped successfully")
+                            print("✅ Server stopped successfully")
                             return True
                         if i == 5:  # After 5 seconds, show progress
-                            print(f"⏳ Waiting for server to stop...")
+                            print("⏳ Waiting for server to stop...")
 
                     # Force kill if still running
                     try:
@@ -319,11 +318,11 @@ class ServerManager:
 
         print(f"❌ Failed to stop server on port {port}")
         print(
-            f"💡 Try using the bin/socketio-daemon stop command if this is a daemon-managed server"
+            "💡 Try using the bin/socketio-daemon stop command if this is a daemon-managed server"
         )
         return False
 
-    def restart_server(self, port: int = None, server_id: str = None) -> bool:
+    def restart_server(self, port: Optional[int] = None, server_id: Optional[str] = None) -> bool:
         """Restart a Socket.IO server."""
 
         # Stop the server first
@@ -402,7 +401,7 @@ class ServerManager:
 
             print()
 
-    def health_check(self, port: int = None) -> bool:
+    def health_check(self, port: Optional[int] = None) -> bool:
         """Perform health check on server(s) with management style awareness."""
 
         if port:
@@ -427,41 +426,39 @@ class ServerManager:
                         return False
 
                 return status in ["healthy", "running"]
-            else:
-                print(f"No server found on port {port}")
-                # Try daemon fallback for default port
-                if port == self.base_port:
-                    daemon_info = self._get_daemon_server_info()
-                    if daemon_info:
-                        print(f"  Found daemon server: {daemon_info['server_id']}")
-                        return True
-                return False
-        else:
-            # Check all servers
-            running_servers = self.list_running_servers()
-            if not running_servers:
-                print("No servers running")
-                print(f"💡 Start a server with: {sys.executable} {__file__} start")
-                return False
+            print(f"No server found on port {port}")
+            # Try daemon fallback for default port
+            if port == self.base_port:
+                daemon_info = self._get_daemon_server_info()
+                if daemon_info:
+                    print(f"  Found daemon server: {daemon_info['server_id']}")
+                    return True
+            return False
+        # Check all servers
+        running_servers = self.list_running_servers()
+        if not running_servers:
+            print("No servers running")
+            print(f"💡 Start a server with: {sys.executable} {__file__} start")
+            return False
 
-            all_healthy = True
-            for server in running_servers:
-                port = server["port"]
-                status = server.get("status", "unknown")
-                server_id = server.get("server_id", "unknown")
-                management_style = server.get("management_style", "http")
+        all_healthy = True
+        for server in running_servers:
+            port = server["port"]
+            status = server.get("status", "unknown")
+            server_id = server.get("server_id", "unknown")
+            management_style = server.get("management_style", "http")
 
-                health_status = status in ["healthy", "running"]
-                icon = "✅" if health_status else "❌"
+            health_status = status in ["healthy", "running"]
+            icon = "✅" if health_status else "❌"
 
-                print(
-                    f"{icon} Server {server_id} (port {port}): {status} ({management_style}-managed)"
-                )
+            print(
+                f"{icon} Server {server_id} (port {port}): {status} ({management_style}-managed)"
+            )
 
-                if not health_status:
-                    all_healthy = False
+            if not health_status:
+                all_healthy = False
 
-            return all_healthy
+        return all_healthy
 
     def install_dependencies(self) -> bool:
         """Install required dependencies for Socket.IO server."""
@@ -470,15 +467,14 @@ class ServerManager:
         print("Installing Socket.IO server dependencies...")
 
         try:
-            cmd = [sys.executable, "-m", "pip", "install"] + dependencies
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            cmd = [sys.executable, "-m", "pip", "install", *dependencies]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             if result.returncode == 0:
                 print("✅ Dependencies installed successfully")
                 return True
-            else:
-                print(f"❌ Failed to install dependencies: {result.stderr}")
-                return False
+            print(f"❌ Failed to install dependencies: {result.stderr}")
+            return False
 
         except Exception as e:
             print(f"❌ Error installing dependencies: {e}")
@@ -488,10 +484,9 @@ class ServerManager:
         """Format uptime in a human-readable way."""
         if seconds < 60:
             return f"{seconds:.1f}s"
-        elif seconds < 3600:
+        if seconds < 3600:
             return f"{seconds/60:.1f}m"
-        else:
-            return f"{seconds/3600:.1f}h"
+        return f"{seconds/3600:.1f}h"
 
     def _get_server_stats(self, port: int) -> Optional[Dict]:
         """Get detailed server statistics."""
@@ -516,7 +511,7 @@ class ServerManager:
         """Get PID from daemon PID file."""
         try:
             if self.daemon_pidfile_path.exists():
-                with open(self.daemon_pidfile_path, "r") as f:
+                with open(self.daemon_pidfile_path) as f:
                     content = f.read().strip()
                     if content.isdigit():
                         pid = int(content)
@@ -590,37 +585,33 @@ class ServerManager:
             for i in range(10):
                 time.sleep(1)
                 if not self._validate_pid(daemon_pid):
-                    print(f"✅ Daemon server stopped successfully")
+                    print("✅ Daemon server stopped successfully")
                     # Clean up PID file
-                    try:
+                    with contextlib.suppress(Exception):
                         self.daemon_pidfile_path.unlink(missing_ok=True)
-                    except:
-                        pass
                     return True
                 if i == 5:
-                    print(f"⏳ Waiting for daemon to stop...")
+                    print("⏳ Waiting for daemon to stop...")
 
             # Force kill if still running
             if self._validate_pid(daemon_pid):
-                print(f"⚠️ Force killing daemon server...")
+                print("⚠️ Force killing daemon server...")
                 os.kill(daemon_pid, signal.SIGKILL)
                 time.sleep(1)
                 if not self._validate_pid(daemon_pid):
-                    print(f"✅ Daemon server force stopped")
-                    try:
+                    print("✅ Daemon server force stopped")
+                    with contextlib.suppress(Exception):
                         self.daemon_pidfile_path.unlink(missing_ok=True)
-                    except:
-                        pass
                     return True
 
         except OSError as e:
             print(f"❌ Error stopping daemon server: {e}")
             return False
 
-        print(f"❌ Failed to stop daemon server")
+        print("❌ Failed to stop daemon server")
         return False
 
-    def diagnose_conflicts(self, port: int = None) -> None:
+    def diagnose_conflicts(self, port: Optional[int] = None) -> None:
         """Diagnose server management conflicts and suggest resolutions."""
         if port is None:
             port = self.base_port
@@ -665,12 +656,12 @@ class ServerManager:
                 f"      • Keep HTTP: {sys.executable} {__file__} stop --port {port} (stops daemon)"
             )
             print(
-                f"      • Keep daemon: Stop HTTP server first, then use daemon commands"
+                "      • Keep daemon: Stop HTTP server first, then use daemon commands"
             )
             print()
 
         elif http_server:
-            print(f"✅ HTTP-managed server found")
+            print("✅ HTTP-managed server found")
             print(f"   Server ID: {http_server.get('server_id')}")
             print(f"   PID: {http_server.get('pid')}")
             print(f"   Status: {http_server.get('status')}")
@@ -681,7 +672,7 @@ class ServerManager:
             print()
 
         elif daemon_server:
-            print(f"✅ Daemon-managed server found")
+            print("✅ Daemon-managed server found")
             print(f"   PID: {daemon_server.get('pid')}")
             print(f"   PID file: {self.daemon_pidfile_path}")
             print()

@@ -146,14 +146,14 @@ def main():
         metadata={},
         timestamp=datetime.now(),
     )
-    result = hook_service.execute_pre_delegation_hooks(test_context)
+    hook_service.execute_pre_delegation_hooks(test_context)
     logger.info("Hooks disabled - no execution should occur")
 
     # Re-enable and test memory-specific disabling
     config._config["hooks"]["enabled"] = True
     config._config["memory"]["enabled"] = False
 
-    result = hook_service.execute_pre_delegation_hooks(test_context)
+    hook_service.execute_pre_delegation_hooks(test_context)
     logger.info("Memory disabled - memory hooks should not execute")
 
     # Show final stats

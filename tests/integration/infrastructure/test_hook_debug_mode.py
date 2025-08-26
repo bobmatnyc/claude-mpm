@@ -10,7 +10,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 # Add project root to path so we can import from the project
 project_root = Path(__file__).parent.parent
@@ -18,7 +18,7 @@ sys.path.insert(0, str(project_root / "src"))
 
 
 def run_hook_handler_test(
-    env_value: str = None, test_name: str = "default"
+    env_value: Optional[str] = None, test_name: str = "default"
 ) -> Tuple[bool, str, str]:
     """Run the hook handler with specific environment variable and capture output.
 

@@ -27,7 +27,7 @@ def claude_event(data):
         print(json.dumps(data, indent=2))
 
         event_data = data.get("data", {})
-        print(f"\nExtracted fields:")
+        print("\nExtracted fields:")
         print(f"  - agent_type: {event_data.get('agent_type', 'NOT PROVIDED')}")
         print(f"  - agent_id: {event_data.get('agent_id', 'NOT PROVIDED')}")
         print(f"  - reason: {event_data.get('reason', 'NOT PROVIDED')}")

@@ -125,7 +125,7 @@ class TestRunStartupCheckerIntegration:
         """Test end-to-end warning display from run command."""
         command = RunCommand()
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory():
             # Create a config with issues
             with patch("claude_mpm.core.config.Config") as mock_config_class:
                 mock_config = MagicMock()

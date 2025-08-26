@@ -6,7 +6,6 @@ This example shows how to use the new centralized logging infrastructure
 with consistent patterns across the codebase.
 """
 
-from pathlib import Path
 
 from claude_mpm.core.logging_config import (
     LOGGING_STANDARDS,

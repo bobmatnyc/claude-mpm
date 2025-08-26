@@ -35,7 +35,7 @@ class AgentConfig:
     """Simple agent configuration model."""
 
     def __init__(
-        self, name: str, description: str = "", dependencies: List[str] = None
+        self, name: str, description: str = "", dependencies: Optional[List[str]] = None
     ):
         self.name = name
         self.description = description
@@ -107,7 +107,7 @@ class SimpleAgentManager:
 
                     # Get metadata for display info
                     metadata = template_data.get("metadata", {})
-                    name = metadata.get("name", agent_id)
+                    metadata.get("name", agent_id)
                     description = metadata.get(
                         "description", "No description available"
                     )
@@ -576,16 +576,15 @@ class ConfigureCommand(BaseCommand):
         display_template = template.copy()
         if "instructions" in display_template and isinstance(
             display_template["instructions"], dict
+        ) and (
+            "custom_instructions" in display_template["instructions"]
+            and len(str(display_template["instructions"]["custom_instructions"]))
+            > 200
         ):
-            if (
-                "custom_instructions" in display_template["instructions"]
-                and len(str(display_template["instructions"]["custom_instructions"]))
-                > 200
-            ):
-                display_template["instructions"]["custom_instructions"] = (
-                    display_template["instructions"]["custom_instructions"][:200]
-                    + "..."
-                )
+            display_template["instructions"]["custom_instructions"] = (
+                display_template["instructions"]["custom_instructions"][:200]
+                + "..."
+            )
 
         json_str = json.dumps(display_template, indent=2)
         # Limit display to first 50 lines for readability
@@ -784,11 +783,10 @@ class ConfigureCommand(BaseCommand):
         config_dir.mkdir(parents=True, exist_ok=True)
         custom_path = config_dir / f"{agent.name}.json"
 
-        if custom_path.exists():
-            if not Confirm.ask(
-                "[yellow]Custom template already exists. Overwrite?[/yellow]"
-            ):
-                return
+        if custom_path.exists() and not Confirm.ask(
+            "[yellow]Custom template already exists. Overwrite?[/yellow]"
+        ):
+            return
 
         # Save the template copy
         with open(custom_path, "w") as f:
@@ -1026,16 +1024,20 @@ class ConfigureCommand(BaseCommand):
         claude_version = "Unknown"
         try:
             from ...hooks.claude_hooks.installer import HookInstaller
+
             installer = HookInstaller()
             detected_version = installer.get_claude_version()
             if detected_version:
                 is_compatible, _ = installer.is_version_compatible()
                 claude_version = f"{detected_version} (Claude Code)"
                 if not is_compatible:
-                    claude_version += f" - Monitoring requires {installer.MIN_CLAUDE_VERSION}+"
+                    claude_version += (
+                        f" - Monitoring requires {installer.MIN_CLAUDE_VERSION}+"
+                    )
             else:
                 # Fallback to direct subprocess call
                 import subprocess
+
                 result = subprocess.run(
                     ["claude", "--version"],
                     capture_output=True,
@@ -1211,7 +1213,7 @@ Directory: {self.project_dir}
 
             # Check Claude Code version compatibility first
             is_compatible, version_message = installer.is_version_compatible()
-            self.console.print(f"[cyan]Checking Claude Code version...[/cyan]")
+            self.console.print("[cyan]Checking Claude Code version...[/cyan]")
             self.console.print(version_message)
 
             if not is_compatible:
@@ -1287,16 +1289,20 @@ Directory: {self.project_dir}
 
             # Show Claude Code version and compatibility
             if status.get("claude_version"):
-                self.console.print(
-                    f"Claude Code Version: {status['claude_version']}"
-                )
+                self.console.print(f"Claude Code Version: {status['claude_version']}")
                 if status.get("version_compatible"):
-                    self.console.print("[green]✓[/green] Version compatible with hook monitoring")
+                    self.console.print(
+                        "[green]✓[/green] Version compatible with hook monitoring"
+                    )
                 else:
-                    self.console.print(f"[yellow]⚠[/yellow] {status.get('version_message', 'Version incompatible')}")
+                    self.console.print(
+                        f"[yellow]⚠[/yellow] {status.get('version_message', 'Version incompatible')}"
+                    )
                     self.console.print()
             else:
-                self.console.print("[yellow]Claude Code version could not be detected[/yellow]")
+                self.console.print(
+                    "[yellow]Claude Code version could not be detected[/yellow]"
+                )
             self.console.print()
 
             if status["installed"]:

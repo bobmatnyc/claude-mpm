@@ -4,6 +4,7 @@ Simple test to verify the glob pattern change works correctly.
 Tests the core memory filtering logic without full framework initialization.
 """
 
+import sys
 from pathlib import Path
 
 
@@ -127,10 +128,10 @@ def test_glob_patterns():
 if __name__ == "__main__":
     try:
         success = test_glob_patterns()
-        exit(0 if success else 1)
+        sys.exit(0 if success else 1)
     except Exception as e:
         print(f"\n❌ Test failed with error: {e}")
         import traceback
 
         traceback.print_exc()
-        exit(1)
+        sys.exit(1)

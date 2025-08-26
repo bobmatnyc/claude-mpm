@@ -67,7 +67,7 @@ def generate_test_report():
     """Generate a comprehensive test report."""
     cli_test_dir = Path(__file__).parent
     coverage_file = cli_test_dir / "coverage.json"
-    results_file = cli_test_dir / "test-results.xml"
+    cli_test_dir / "test-results.xml"
 
     report = {
         "timestamp": datetime.now().isoformat(),

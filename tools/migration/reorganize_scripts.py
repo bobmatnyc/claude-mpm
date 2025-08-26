@@ -205,18 +205,18 @@ def reorganize_scripts():
     except Exception as e:
         print(f"⚠ Warning: Could not clean up directories: {e}")
 
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"  Moved: {len(moved_files)} files")
     print(f"  Kept in scripts/: {len(kept_files)} files")
     print(f"  Failed: {len(failed_files)} files")
 
     if kept_files:
-        print(f"\nFiles kept in scripts/:")
+        print("\nFiles kept in scripts/:")
         for filename in sorted(kept_files):
             print(f"  {filename}")
 
     if failed_files:
-        print(f"\nFailed files:")
+        print("\nFailed files:")
         for filename, error in failed_files:
             print(f"  {filename}: {error}")
 

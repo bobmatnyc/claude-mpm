@@ -18,7 +18,7 @@ class TestMemoryPreDelegationHook:
     """Test memory injection before delegation."""
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_injects_memory_into_context(mock_manager_class):
+    def test_injects_memory_into_context(self):
         """Test that agent memory is properly injected into context."""
         # Setup
         mock_manager = Mock()
@@ -30,7 +30,7 @@ class TestMemoryPreDelegationHook:
 ## Common Mistakes to Avoid
 - Don't forget input validation
 """
-        mock_manager_class.return_value = mock_manager
+        self.return_value = mock_manager
 
         hook = MemoryPreDelegationHook()
         context = HookContext(
@@ -55,12 +55,12 @@ class TestMemoryPreDelegationHook:
         mock_manager.load_agent_memory.assert_called_once_with("engineer")
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_handles_string_context(mock_manager_class):
+    def test_handles_string_context(self):
         """Test that hook handles string context properly."""
         # Setup
         mock_manager = Mock()
         mock_manager.load_agent_memory.return_value = "Test memory"
-        mock_manager_class.return_value = mock_manager
+        self.return_value = mock_manager
 
         hook = MemoryPreDelegationHook()
         context = HookContext(
@@ -81,12 +81,12 @@ class TestMemoryPreDelegationHook:
         assert "agent_memory" in result.data["context"]
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_normalizes_agent_names(mock_manager_class):
+    def test_normalizes_agent_names(self):
         """Test various agent name formats are normalized correctly."""
         # Setup
         mock_manager = Mock()
         mock_manager.load_agent_memory.return_value = "Memory"
-        mock_manager_class.return_value = mock_manager
+        self.return_value = mock_manager
 
         hook = MemoryPreDelegationHook()
 
@@ -106,14 +106,14 @@ class TestMemoryPreDelegationHook:
                 timestamp=datetime.now(),
             )
 
-            result = hook.execute(context)
+            hook.execute(context)
 
             # Verify the correct agent_id was used
             mock_manager.load_agent_memory.assert_called_with(expected_id)
             mock_manager.reset_mock()
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_handles_no_agent(mock_manager_class):
+    def test_handles_no_agent(self):
         """Test hook handles missing agent gracefully."""
         hook = MemoryPreDelegationHook()
         context = HookContext(
@@ -129,12 +129,12 @@ class TestMemoryPreDelegationHook:
         assert not result.modified
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_handles_memory_load_failure(mock_manager_class):
+    def test_handles_memory_load_failure(self):
         """Test hook handles memory loading errors gracefully."""
         # Setup
         mock_manager = Mock()
         mock_manager.load_agent_memory.side_effect = Exception("File not found")
-        mock_manager_class.return_value = mock_manager
+        self.return_value = mock_manager
 
         hook = MemoryPreDelegationHook()
         context = HookContext(
@@ -157,11 +157,11 @@ class TestMemoryPostDelegationHook:
     """Test learning extraction after delegation."""
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_extracts_patterns(mock_manager_class):
+    def test_extracts_patterns(self):
         """Test pattern extraction from results."""
         # Setup
         mock_manager = Mock()
-        mock_manager_class.return_value = mock_manager
+        self.return_value = mock_manager
 
         config = Config(config={"memory": {"auto_learning": True}})
 
@@ -217,11 +217,11 @@ class TestMemoryPostDelegationHook:
         assert ("pattern", "Use dependency injection for better testing") in learnings
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_extracts_mistakes(mock_manager_class):
+    def test_extracts_mistakes(self):
         """Test mistake extraction from results."""
         # Setup
         mock_manager = Mock()
-        mock_manager_class.return_value = mock_manager
+        self.return_value = mock_manager
 
         config = Config(config={"memory": {"auto_learning": True}})
 
@@ -278,11 +278,11 @@ class TestMemoryPostDelegationHook:
         assert ("mistake", "Avoid hardcoded test data") in learnings
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_extracts_guidelines(mock_manager_class):
+    def test_extracts_guidelines(self):
         """Test guideline extraction from results."""
         # Setup
         mock_manager = Mock()
-        mock_manager_class.return_value = mock_manager
+        self.return_value = mock_manager
 
         config = Config(config={"memory": {"auto_learning": True}})
 
@@ -317,7 +317,7 @@ class TestMemoryPostDelegationHook:
         )
 
         # Execute
-        result = hook.execute(context)
+        hook.execute(context)
 
         # Verify guidelines were extracted
         calls = mock_manager.add_learning.call_args_list
@@ -329,11 +329,11 @@ class TestMemoryPostDelegationHook:
         assert ("guideline", "Always use type hints in Python code") in learnings
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_respects_auto_learning_config(mock_manager_class):
+    def test_respects_auto_learning_config(self):
         """Test that hook respects auto_learning configuration."""
         # Setup
         mock_manager = Mock()
-        mock_manager_class.return_value = mock_manager
+        self.return_value = mock_manager
 
         # Auto-learning disabled
         config = Config(config={"memory": {"auto_learning": False}})
@@ -358,11 +358,11 @@ class TestMemoryPostDelegationHook:
         mock_manager.add_learning.assert_not_called()
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_respects_agent_specific_config(mock_manager_class):
+    def test_respects_agent_specific_config(self):
         """Test that hook respects agent-specific auto_learning overrides."""
         # Setup
         mock_manager = Mock()
-        mock_manager_class.return_value = mock_manager
+        self.return_value = mock_manager
 
         # Global enabled but agent-specific disabled
         config = Config(
@@ -394,11 +394,11 @@ class TestMemoryPostDelegationHook:
         mock_manager.add_learning.assert_not_called()
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_length_limit(mock_manager_class):
+    def test_length_limit(self):
         """Test that learnings over 100 characters are skipped."""
         # Setup
         mock_manager = Mock()
-        mock_manager_class.return_value = mock_manager
+        self.return_value = mock_manager
 
         config = Config(config={"memory": {"auto_learning": True}})
 
@@ -426,19 +426,19 @@ class TestMemoryPostDelegationHook:
         )
 
         # Execute
-        result = hook.execute(context)
+        hook.execute(context)
 
         # Verify only short learning was stored
         assert mock_manager.add_learning.call_count == 1
         assert mock_manager.add_learning.call_args[0][2] == "Short learning"
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_handles_extraction_errors(mock_manager_class):
+    def test_handles_extraction_errors(self):
         """Test hook handles extraction errors gracefully."""
         # Setup
         mock_manager = Mock()
         mock_manager.add_learning.side_effect = Exception("Storage error")
-        mock_manager_class.return_value = mock_manager
+        self.return_value = mock_manager
 
         config = Config(config={"memory": {"auto_learning": True}})
 

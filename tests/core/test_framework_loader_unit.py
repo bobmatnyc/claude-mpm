@@ -29,21 +29,20 @@ def create_mock_logger():
 @pytest.fixture
 def mock_framework_loader():
     """Create a FrameworkLoader with all dependencies mocked."""
-    with patch("claude_mpm.core.framework_loader.get_logger") as mock_logger:
-        with patch(
-            "claude_mpm.core.framework_loader.AgentRegistryAdapter"
-        ) as mock_registry:
-            mock_logger.return_value = create_mock_logger()
-            mock_registry.return_value = MagicMock()
+    with patch("claude_mpm.core.framework_loader.get_logger") as mock_logger, patch(
+        "claude_mpm.core.framework_loader.AgentRegistryAdapter"
+    ) as mock_registry:
+        mock_logger.return_value = create_mock_logger()
+        mock_registry.return_value = MagicMock()
 
-            from claude_mpm.core.framework_loader import FrameworkLoader
+        from claude_mpm.core.framework_loader import FrameworkLoader
 
-            # Patch _load_framework_content to avoid file loading during init
-            with patch.object(
-                FrameworkLoader, "_load_framework_content", return_value={}
-            ):
-                loader = FrameworkLoader(framework_path=Path("/test"))
-                yield loader
+        # Patch _load_framework_content to avoid file loading during init
+        with patch.object(
+            FrameworkLoader, "_load_framework_content", return_value={}
+        ):
+            loader = FrameworkLoader(framework_path=Path("/test"))
+            yield loader
 
 
 class TestFrameworkLoaderBasics:
@@ -538,7 +537,6 @@ class TestIntegrationScenarios:
 
         # Mock deployed agents
         with patch.object(loader, "_get_deployed_agents", return_value={"engineer"}):
-            content = {}
             # Manually test the memory loading logic
             deployed = loader._get_deployed_agents()
 

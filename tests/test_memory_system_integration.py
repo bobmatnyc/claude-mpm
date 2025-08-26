@@ -70,7 +70,7 @@ class TestMemorySystemIntegration:
 
         # Test creation of new memory file
         agent_id = "test_agent"
-        memory_content = self.memory_manager.load_agent_memory(agent_id)
+        self.memory_manager.load_agent_memory(agent_id)
 
         # Verify file was created
         memory_file = self.memories_dir / f"{agent_id}_memories.md"
@@ -107,7 +107,7 @@ class TestMemorySystemIntegration:
         agent_id = "timestamp_test_agent"
 
         # Create initial memory
-        initial_memory = self.memory_manager.load_agent_memory(agent_id)
+        self.memory_manager.load_agent_memory(agent_id)
         memory_file = self.memories_dir / f"{agent_id}_memories.md"
 
         # Get initial timestamp
@@ -444,11 +444,10 @@ class TestMemorySystemIntegration:
         print("\n=== Test 8: Full End-to-End Memory Flow ===")
 
         agent_id = "e2e_test_agent"
-        session_id = "e2e_session_123"
 
         # Step 1: Initial memory creation
         print("Step 1: Initial memory creation")
-        initial_memory = self.memory_manager.load_agent_memory(agent_id)
+        self.memory_manager.load_agent_memory(agent_id)
         memory_file = self.memories_dir / f"{agent_id}_memories.md"
         assert memory_file.exists(), "Memory file should be created"
         print("✓ Initial memory file created")

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Interactive wrapper for Claude MPM that intercepts /mpm: commands."""
 
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -73,10 +72,10 @@ def main():
             full_prompt = "\n\n".join(conversation_history)
 
             # Send to Claude
-            cmd = cmd_base + ["--print", full_prompt]
+            cmd = [*cmd_base, "--print", full_prompt]
 
             # Run Claude and capture output
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             if result.returncode == 0:
                 response = result.stdout.strip()

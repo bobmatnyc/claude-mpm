@@ -386,7 +386,7 @@ class CacheBenchmark:
             expected_size_mb = sum(size * entries_per_size for size in data_sizes) / (
                 1024 * 1024
             )
-            memory_efficiency = (
+            (
                 (expected_size_mb / memory_growth * 100) if memory_growth > 0 else 0
             )
 
@@ -744,7 +744,7 @@ async def main():
     results = await benchmark.run_comprehensive_cache_benchmark()
 
     # Save results
-    output_file = benchmark.save_results(results, args.output)
+    benchmark.save_results(results, args.output)
 
     # Print summary
     benchmark.print_summary(results)

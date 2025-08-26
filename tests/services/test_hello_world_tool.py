@@ -75,10 +75,10 @@ class TestHelloWorldTool:
     # ============= Simple Greeting Tests =============
 
     @pytest.mark.asyncio
-    async def test_simple_greeting(tool, mock_invocation):
+    async def test_simple_greeting(self, mock_invocation):
         """Test simple greeting mode."""
         invocation = mock_invocation(mode="simple")
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is True
         assert result.data["greeting"] == "Hello World!"
@@ -86,19 +86,19 @@ class TestHelloWorldTool:
         assert "timestamp" in result.data
 
     @pytest.mark.asyncio
-    async def test_simple_greeting_uppercase(tool, mock_invocation):
+    async def test_simple_greeting_uppercase(self, mock_invocation):
         """Test simple greeting with uppercase transformation."""
         invocation = mock_invocation(mode="simple", uppercase=True)
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is True
         assert result.data["greeting"] == "HELLO WORLD!"
 
     @pytest.mark.asyncio
-    async def test_simple_greeting_repeat(tool, mock_invocation):
+    async def test_simple_greeting_repeat(self, mock_invocation):
         """Test simple greeting with repetition."""
         invocation = mock_invocation(mode="simple", repeat=3)
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is True
         assert result.data["greeting"] == "Hello World! Hello World! Hello World!"
@@ -106,35 +106,35 @@ class TestHelloWorldTool:
     # ============= Personalized Greeting Tests =============
 
     @pytest.mark.asyncio
-    async def test_personalized_greeting(tool, mock_invocation):
+    async def test_personalized_greeting(self, mock_invocation):
         """Test personalized greeting mode."""
         invocation = mock_invocation(mode="personalized", name="Alice")
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is True
         assert "Alice" in result.data["greeting"]
         assert "Welcome to the MCP Gateway" in result.data["greeting"]
 
     @pytest.mark.asyncio
-    async def test_personalized_greeting_missing_name(tool, mock_invocation):
+    async def test_personalized_greeting_missing_name(self, mock_invocation):
         """Test personalized greeting without name parameter."""
         invocation = mock_invocation(mode="personalized")
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is False
         assert "validation failed" in result.error
 
     @pytest.mark.asyncio
-    async def test_personalized_greeting_invalid_name(tool, mock_invocation):
+    async def test_personalized_greeting_invalid_name(self, mock_invocation):
         """Test personalized greeting with invalid name format."""
         invocation = mock_invocation(mode="personalized", name="@#$%^")
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is False
         assert "validation failed" in result.error
 
     @pytest.mark.asyncio
-    async def test_personalized_greeting_valid_names(tool, mock_invocation):
+    async def test_personalized_greeting_valid_names(self, mock_invocation):
         """Test personalized greeting with various valid name formats."""
         valid_names = [
             "John",
@@ -147,7 +147,7 @@ class TestHelloWorldTool:
 
         for name in valid_names:
             invocation = mock_invocation(mode="personalized", name=name)
-            result = await tool.invoke(invocation)
+            result = await self.invoke(invocation)
             assert result.success is True
             assert name in result.data["greeting"]
 
@@ -209,22 +209,22 @@ class TestHelloWorldTool:
         assert "World" in result.data["greeting"]
 
     @pytest.mark.asyncio
-    async def test_multi_language_greeting_with_name(tool, mock_invocation):
+    async def test_multi_language_greeting_with_name(self, mock_invocation):
         """Test multi-language greeting with personalized name."""
         invocation = mock_invocation(
             mode="multi_language", language="spanish", name="Carlos"
         )
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is True
         assert "Hola" in result.data["greeting"]
         assert "Carlos" in result.data["greeting"]
 
     @pytest.mark.asyncio
-    async def test_multi_language_default(tool, mock_invocation):
+    async def test_multi_language_default(self, mock_invocation):
         """Test multi-language greeting defaults to English."""
         invocation = mock_invocation(mode="multi_language")
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is True
         assert "Hello" in result.data["greeting"]
@@ -232,10 +232,10 @@ class TestHelloWorldTool:
     # ============= System Info Greeting Tests =============
 
     @pytest.mark.asyncio
-    async def test_system_info_greeting(tool, mock_invocation):
+    async def test_system_info_greeting(self, mock_invocation):
         """Test system info greeting mode."""
         invocation = mock_invocation(mode="system_info")
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is True
         greeting = result.data["greeting"]
@@ -246,12 +246,12 @@ class TestHelloWorldTool:
     # ============= Async Greeting Tests =============
 
     @pytest.mark.asyncio
-    async def test_async_greeting_default_delay(tool, mock_invocation):
+    async def test_async_greeting_default_delay(self, mock_invocation):
         """Test async greeting with default delay."""
         invocation = mock_invocation(mode="async_test")
 
         start = datetime.now()
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
         duration = (datetime.now() - start).total_seconds()
 
         assert result.success is True
@@ -259,12 +259,12 @@ class TestHelloWorldTool:
         assert duration >= 1.0  # Should take at least 1 second
 
     @pytest.mark.asyncio
-    async def test_async_greeting_custom_delay(tool, mock_invocation):
+    async def test_async_greeting_custom_delay(self, mock_invocation):
         """Test async greeting with custom delay."""
         invocation = mock_invocation(mode="async_test", delay_ms=500)
 
         start = datetime.now()
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
         duration = (datetime.now() - start).total_seconds()
 
         assert result.success is True
@@ -273,10 +273,10 @@ class TestHelloWorldTool:
         assert duration < 1.0  # But less than 1 second
 
     @pytest.mark.asyncio
-    async def test_async_greeting_invalid_delay(tool, mock_invocation):
+    async def test_async_greeting_invalid_delay(self, mock_invocation):
         """Test async greeting with invalid delay."""
         invocation = mock_invocation(mode="async_test", delay_ms=10000)
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is False
         assert "validation failed" in result.error
@@ -284,26 +284,26 @@ class TestHelloWorldTool:
     # ============= Error Testing Mode Tests =============
 
     @pytest.mark.asyncio
-    async def test_error_test_validation(tool, mock_invocation):
+    async def test_error_test_validation(self, mock_invocation):
         """Test error simulation for validation errors."""
         invocation = mock_invocation(mode="error_test", error_type="validation")
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is False
         assert "validation error" in result.error.lower()
 
     @pytest.mark.asyncio
-    async def test_error_test_runtime(tool, mock_invocation):
+    async def test_error_test_runtime(self, mock_invocation):
         """Test error simulation for runtime errors."""
         invocation = mock_invocation(mode="error_test", error_type="runtime")
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is False
         assert "runtime error" in result.error.lower()
 
     @pytest.mark.timeout(2)  # Ensure test doesn't hang
     @pytest.mark.asyncio
-    async def test_error_test_timeout(tool, mock_invocation):
+    async def test_error_test_timeout(self, mock_invocation):
         """Test error simulation for timeout errors."""
         invocation = mock_invocation(mode="error_test", error_type="timeout")
 
@@ -313,15 +313,15 @@ class TestHelloWorldTool:
 
             # The tool will catch this and return an error
             with pytest.raises(asyncio.TimeoutError):
-                await tool.invoke(invocation)
+                await self.invoke(invocation)
 
     # ============= Metadata Tests =============
 
     @pytest.mark.asyncio
-    async def test_metadata_included(tool, mock_invocation):
+    async def test_metadata_included(self, mock_invocation):
         """Test that metadata is included when requested."""
         invocation = mock_invocation(mode="simple", include_metadata=True)
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is True
         assert "metadata" in result.data
@@ -332,10 +332,10 @@ class TestHelloWorldTool:
         assert metadata["tool_version"] == "1.0.0"
 
     @pytest.mark.asyncio
-    async def test_metadata_excluded(tool, mock_invocation):
+    async def test_metadata_excluded(self, mock_invocation):
         """Test that metadata is excluded when not requested."""
         invocation = mock_invocation(mode="simple", include_metadata=False)
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is True
         assert "metadata" not in result.data
@@ -343,92 +343,92 @@ class TestHelloWorldTool:
     # ============= Parameter Validation Tests =============
 
     @pytest.mark.asyncio
-    async def test_invalid_mode(tool, mock_invocation):
+    async def test_invalid_mode(self, mock_invocation):
         """Test handling of invalid mode parameter."""
         invocation = mock_invocation(mode="invalid_mode")
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is False
 
     @pytest.mark.asyncio
-    async def test_invalid_repeat_value(tool, mock_invocation):
+    async def test_invalid_repeat_value(self, mock_invocation):
         """Test handling of invalid repeat parameter."""
         invocation = mock_invocation(mode="simple", repeat=20)
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is False
         assert "validation failed" in result.error
 
     @pytest.mark.asyncio
-    async def test_negative_repeat_value(tool, mock_invocation):
+    async def test_negative_repeat_value(self, mock_invocation):
         """Test handling of negative repeat parameter."""
         invocation = mock_invocation(mode="simple", repeat=-1)
-        result = await tool.invoke(invocation)
+        result = await self.invoke(invocation)
 
         assert result.success is False
 
     # ============= Analytics and History Tests =============
 
     @pytest.mark.asyncio
-    async def test_greeting_history_tracking(tool, mock_invocation):
+    async def test_greeting_history_tracking(self, mock_invocation):
         """Test that greeting history is tracked correctly."""
         # Generate several greetings
         modes = ["simple", "simple", "personalized", "multi_language"]
-        for i, mode in enumerate(modes):
+        for _i, mode in enumerate(modes):
             params = {"mode": mode}
             if mode == "personalized":
                 params["name"] = "Test"
             invocation = mock_invocation(**params)
-            await tool.invoke(invocation)
+            await self.invoke(invocation)
 
         # Check history
-        assert len(tool.greeting_history) == 4
-        analytics = tool.get_analytics()
+        assert len(self.greeting_history) == 4
+        analytics = self.get_analytics()
         assert analytics["total_greetings"] == 4
         assert analytics["modes_used"]["simple"] == 2
         assert analytics["modes_used"]["personalized"] == 1
         assert analytics["modes_used"]["multi_language"] == 1
 
     @pytest.mark.asyncio
-    async def test_history_size_limit(tool, mock_invocation):
+    async def test_history_size_limit(self, mock_invocation):
         """Test that greeting history respects size limit."""
-        tool.max_history_size = 5
+        self.max_history_size = 5
 
         # Generate more greetings than the limit
-        for i in range(10):
+        for _i in range(10):
             invocation = mock_invocation(mode="simple")
-            await tool.invoke(invocation)
+            await self.invoke(invocation)
 
         # History should be capped at max_history_size
-        assert len(tool.greeting_history) <= tool.max_history_size
+        assert len(self.greeting_history) <= self.max_history_size
 
     # ============= Metrics Tests =============
 
     @pytest.mark.asyncio
-    async def test_metrics_tracking(tool, mock_invocation):
+    async def test_metrics_tracking(self, mock_invocation):
         """Test that metrics are tracked correctly."""
         # Generate successful invocation
         invocation = mock_invocation(mode="simple")
-        await tool.invoke(invocation)
+        await self.invoke(invocation)
 
-        metrics = tool.get_metrics()
+        metrics = self.get_metrics()
         assert metrics["invocations"] == 1
         assert metrics["successes"] == 1
         assert metrics["failures"] == 0
         assert metrics["average_execution_time"] > 0
 
     @pytest.mark.asyncio
-    async def test_metrics_with_failures(tool, mock_invocation):
+    async def test_metrics_with_failures(self, mock_invocation):
         """Test metrics tracking with failures."""
         # Generate successful invocation
         invocation = mock_invocation(mode="simple")
-        await tool.invoke(invocation)
+        await self.invoke(invocation)
 
         # Generate failed invocation
         invocation = mock_invocation(mode="personalized")  # Missing name
-        await tool.invoke(invocation)
+        await self.invoke(invocation)
 
-        metrics = tool.get_metrics()
+        metrics = self.get_metrics()
         assert metrics["invocations"] == 2
         assert metrics["successes"] == 1
         assert metrics["failures"] == 1
@@ -436,25 +436,25 @@ class TestHelloWorldTool:
     # ============= Shutdown Tests =============
 
     @pytest.mark.asyncio
-    async def test_tool_shutdown(tool, mock_invocation):
+    async def test_tool_shutdown(self, mock_invocation):
         """Test tool shutdown and cleanup."""
         # Generate some greetings
         invocation = mock_invocation(mode="simple")
-        await tool.invoke(invocation)
+        await self.invoke(invocation)
 
-        assert len(tool.greeting_history) > 0
-        assert tool._initialized is True
+        assert len(self.greeting_history) > 0
+        assert self._initialized is True
 
         # Shutdown
-        await tool.shutdown()
+        await self.shutdown()
 
-        assert len(tool.greeting_history) == 0
-        assert tool._initialized is False
+        assert len(self.greeting_history) == 0
+        assert self._initialized is False
 
     # ============= Integration Tests =============
 
     @pytest.mark.asyncio
-    async def test_full_workflow(mock_invocation):
+    async def test_full_workflow(self):
         """Test complete workflow from initialization to shutdown."""
         tool = HelloWorldTool()
 
@@ -472,7 +472,7 @@ class TestHelloWorldTool:
         ]
 
         for params in test_cases:
-            invocation = mock_invocation(**params)
+            invocation = self(**params)
             result = await tool.invoke(invocation)
             assert result.success is True
 

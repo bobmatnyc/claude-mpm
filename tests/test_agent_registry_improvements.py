@@ -82,7 +82,7 @@ def test_agent_registry():
         "architect": "pm-orchestrator-agent.md",
     }
 
-    for json_key, expected_file in expected_mappings.items():
+    for json_key, _expected_file in expected_mappings.items():
         if json_key in agents:
             print(f"   ✓ {json_key} correctly mapped")
         else:

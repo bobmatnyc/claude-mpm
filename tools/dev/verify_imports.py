@@ -6,7 +6,7 @@ Verify that all imports in the codebase follow the standards.
 import ast
 import sys
 from pathlib import Path
-from typing import List, Set, Tuple
+from typing import List
 
 
 class ImportVerifier:
@@ -220,7 +220,7 @@ class ImportVerifier:
                     print(f"  - {issue}")
 
         print(f"\n{'='*60}")
-        print(f"Verification Summary:")
+        print("Verification Summary:")
         print(f"  Total files checked: {len(python_files)}")
         print(f"  Files with issues: {files_with_issues}")
         print(f"  Total issues found: {total_issues}")

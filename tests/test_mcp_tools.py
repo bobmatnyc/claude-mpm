@@ -30,7 +30,7 @@ async def test_tools():
     # Check ticket tools are loaded
     if hasattr(server, "ticket_tools"):
         print(f"\n✅ Ticket tools loaded: {len(server.ticket_tools)} tools")
-        for name in server.ticket_tools.keys():
+        for name in server.ticket_tools:
             print(f"  - {name}")
     else:
         print("\n❌ No ticket tools found")
@@ -55,7 +55,7 @@ async def test_tools():
 
     if hasattr(server, "ticket_tools"):
         print("\nTicket management tools:")
-        for tool_name, tool_adapter in server.ticket_tools.items():
+        for _tool_name, tool_adapter in server.ticket_tools.items():
             tool_def = tool_adapter.get_definition()
             print(f"  - {tool_def.name}: {tool_def.description}")
 

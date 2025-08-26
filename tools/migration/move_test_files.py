@@ -85,12 +85,12 @@ def move_test_files():
         else:
             print(f"⚠ File not found: {source_path}")
 
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"  Moved: {len(moved_files)} files")
     print(f"  Failed: {len(failed_files)} files")
 
     if failed_files:
-        print(f"\nFailed files:")
+        print("\nFailed files:")
         for file_path, error in failed_files:
             print(f"  {file_path}: {error}")
 

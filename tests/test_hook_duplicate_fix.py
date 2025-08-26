@@ -23,7 +23,7 @@ def test_hook_handler():
     event_json = json.dumps(test_event)
 
     # Path to hook handler
-    hook_handler = (
+    (
         Path(__file__).parent.parent
         / "src"
         / "claude_mpm"

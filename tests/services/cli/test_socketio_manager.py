@@ -58,7 +58,7 @@ class TestSocketIOManagerStartStop:
         """Create a SocketIOManager instance with mocked logger."""
         with patch(
             "claude_mpm.services.cli.socketio_manager.get_logger"
-        ) as mock_logger:
+        ):
             manager = SocketIOManager()
             manager.logger = Mock()
             return manager
@@ -528,7 +528,7 @@ class TestSocketIOManagerConcurrency:
 
         # Create threads
         threads = []
-        for i in range(5):
+        for _i in range(5):
             threads.append(threading.Thread(target=start_server))
             threads.append(threading.Thread(target=stop_server))
 

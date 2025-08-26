@@ -197,7 +197,6 @@ class InstructionsCheck(BaseDiagnosticCheck):
             )
 
         # Calculate content hashes
-        content_hashes = {}
         content_snippets = defaultdict(list)
 
         for path in files:
@@ -265,7 +264,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
         for description, occurrences in pattern_occurrences.items():
             if len(occurrences) > 1:
                 files_info = []
-                for path, count, snippet in occurrences:
+                for path, count, _snippet in occurrences:
                     rel_path = (
                         path.relative_to(Path.cwd())
                         if Path.cwd() in path.parents or path.parent == Path.cwd()

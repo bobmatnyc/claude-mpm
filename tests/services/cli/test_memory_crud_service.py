@@ -59,8 +59,7 @@ class TestMemoryCRUDService:
     @pytest.fixture
     def service(self, mock_memory_manager):
         """Create service with mocked memory manager."""
-        service = MemoryCRUDService(memory_manager=mock_memory_manager)
-        return service
+        return MemoryCRUDService(memory_manager=mock_memory_manager)
 
     def test_create_memory_success(self, service, mock_memory_manager):
         """Test successful memory creation."""

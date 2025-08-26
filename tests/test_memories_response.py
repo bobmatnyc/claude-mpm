@@ -53,7 +53,7 @@ def test_memories_field_extraction():
         # Simulate an agent response with MEMORIES field
         agent_response = """
         The task has been completed successfully.
-        
+
         ```json
         {
             "task": "Update memory system",
@@ -64,14 +64,14 @@ def test_memories_field_extraction():
             "remember": null,
             "MEMORIES": [
                 "Complete replacement memory 1",
-                "Complete replacement memory 2", 
+                "Complete replacement memory 2",
                 "Complete replacement memory 3",
                 "Complete replacement memory 4",
                 "Complete replacement memory 5"
             ]
         }
         ```
-        
+
         All done!
         """
 
@@ -125,7 +125,7 @@ def test_memories_field_extraction():
         print("\n\nTesting incremental update with 'remember' field...")
         incremental_response = """
         Another task completed.
-        
+
         ```json
         {
             "task": "Add incremental memory",

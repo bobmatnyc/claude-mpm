@@ -6,7 +6,6 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-import logging
 from pathlib import Path
 
 from claude_mpm.services.agents.deployment import AgentDeploymentService
@@ -30,9 +29,9 @@ def traced_deploy(self, target_dir=None, force_rebuild=False):
     # Check research specifically
     for template in templates:
         if template.stem == "research":
-            print(f"\nTRACE: Processing research template")
+            print("\nTRACE: Processing research template")
             print(f"  Template path: {template}")
-            target_file = target_dir / f"research.md"
+            target_file = target_dir / "research.md"
             print(f"  Target file: {target_file}")
             print(f"  Target exists: {target_file.exists()}")
             print(f"  force_rebuild: {force_rebuild}")
@@ -42,7 +41,7 @@ def traced_deploy(self, target_dir=None, force_rebuild=False):
             print(f"  Initial needs_update: {needs_update}")
 
             if not needs_update and target_file.exists():
-                print(f"  Checking if needs update...")
+                print("  Checking if needs update...")
                 # This is where it should detect migration need
 
     # Call original
@@ -58,7 +57,7 @@ def main():
     service = AgentDeploymentService()
     results = service.deploy_agents(force_rebuild=False)
 
-    print(f"\nFinal results:")
+    print("\nFinal results:")
     print(f"  Updated: {results['updated']}")
     print(f"  Migrated: {results['migrated']}")
     print(f"  Skipped: {results['skipped']}")

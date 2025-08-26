@@ -93,7 +93,7 @@ def deploy_project_agents():
     for json_file in json_files:
         try:
             # Read JSON agent
-            with open(json_file, "r", encoding="utf-8") as f:
+            with open(json_file, encoding="utf-8") as f:
                 agent_data = json.load(f)
 
             # Check if this agent should be excluded
@@ -122,7 +122,7 @@ def deploy_project_agents():
             print(f"  ❌ Failed to deploy {json_file.name}: {e}")
 
     # Summary
-    print(f"\n📊 Deployment Summary:")
+    print("\n📊 Deployment Summary:")
     print(f"  Successfully deployed: {len(deployed)} agents")
     if skipped:
         print(f"  Skipped (excluded): {len(skipped)} agents ({', '.join(skipped)})")

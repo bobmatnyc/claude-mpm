@@ -412,7 +412,7 @@ def test_example():
 
         # Force refresh should bypass cache
         with patch.object(analyzer, "_analyze_config_files") as mock_analyze:
-            result3 = analyzer.analyze_project(force_refresh=True)
+            analyzer.analyze_project(force_refresh=True)
             mock_analyze.assert_called_once()
 
     def test_get_project_context_summary(self, temp_project):

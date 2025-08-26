@@ -281,7 +281,7 @@ class TestInstructionLoadingCore(unittest.TestCase):
                     "claude_mpm.agents.base_agent_loader.load_base_agent_instructions",
                     return_value="Base content",
                 ):
-                    result = prepend_base_instructions(
+                    prepend_base_instructions(
                         "Agent prompt", complexity_score=score
                     )
 

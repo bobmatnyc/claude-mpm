@@ -295,7 +295,7 @@ class AgentMigrator:
 
             try:
                 # Load old agent
-                with open(agent_file, "r") as f:
+                with open(agent_file) as f:
                     old_agent = json.load(f)
 
                 # Migrate to new format
@@ -336,7 +336,7 @@ class AgentMigrator:
 
             except Exception as e:
                 failure_count += 1
-                error_msg = f"{agent_file.name}: Migration failed - {str(e)}"
+                error_msg = f"{agent_file.name}: Migration failed - {e!s}"
                 error_messages.append(error_msg)
                 logger.error(error_msg)
 
@@ -379,7 +379,7 @@ def main():
     success, failure, errors = migrator.migrate_all(dry_run=args.dry_run)
 
     # Report results
-    logger.info(f"\nMigration complete:")
+    logger.info("\nMigration complete:")
     logger.info(f"  Success: {success}")
     logger.info(f"  Failure: {failure}")
 

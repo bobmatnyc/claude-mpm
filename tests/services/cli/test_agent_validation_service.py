@@ -30,14 +30,12 @@ class TestAgentValidationService:
     @pytest.fixture
     def mock_validator(self):
         """Create a mock FrontmatterValidator."""
-        validator = Mock()
-        return validator
+        return Mock()
 
     @pytest.fixture
     def mock_registry(self):
         """Create a mock agent registry."""
-        registry = Mock()
-        return registry
+        return Mock()
 
     @pytest.fixture
     def service(self, mock_validator, mock_registry):
@@ -45,17 +43,16 @@ class TestAgentValidationService:
         with patch(
             "claude_mpm.services.cli.agent_validation_service.FrontmatterValidator",
             return_value=mock_validator,
-        ):
-            with patch(
-                "claude_mpm.services.cli.agent_validation_service.AgentRegistryAdapter"
-            ) as mock_adapter:
-                mock_adapter.return_value.registry = mock_registry
-                service = AgentValidationService()
-                service._registry = (
-                    mock_registry  # Direct assignment to bypass lazy loading
-                )
-                service.validator = mock_validator
-                return service
+        ), patch(
+            "claude_mpm.services.cli.agent_validation_service.AgentRegistryAdapter"
+        ) as mock_adapter:
+            mock_adapter.return_value.registry = mock_registry
+            service = AgentValidationService()
+            service._registry = (
+                mock_registry  # Direct assignment to bypass lazy loading
+            )
+            service.validator = mock_validator
+            return service
 
     def test_implements_interface(self):
         """Test that service implements IAgentValidationService."""
@@ -390,8 +387,7 @@ Agent content here
         with patch(
             "claude_mpm.services.cli.agent_validation_service.AgentRegistryAdapter",
             side_effect=Exception("Init error"),
+        ), pytest.raises(
+            RuntimeError, match="Could not initialize agent registry"
         ):
-            with pytest.raises(
-                RuntimeError, match="Could not initialize agent registry"
-            ):
-                _ = service.registry
+            _ = service.registry

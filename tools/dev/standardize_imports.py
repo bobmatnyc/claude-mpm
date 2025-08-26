@@ -7,7 +7,7 @@ Converts relative imports to absolute imports from claude_mpm package.
 import re
 import sys
 from pathlib import Path
-from typing import List, Set, Tuple
+from typing import List, Tuple
 
 
 class ImportStandardizer:
@@ -62,10 +62,7 @@ class ImportStandardizer:
         base_parts = current_parts[:-level] if level > 0 else current_parts
 
         # Combine with the import parts
-        if import_parts:
-            full_parts = base_parts + import_parts
-        else:
-            full_parts = base_parts
+        full_parts = base_parts + import_parts if import_parts else base_parts
 
         return "claude_mpm." + ".".join(full_parts)
 
@@ -123,9 +120,8 @@ class ImportStandardizer:
 
                 if absolute_path:
                     return f"{indent}{from_keyword}{absolute_path}{import_clause}"
-                else:
-                    issues.append(f"Could not resolve relative import: {relative_path}")
-                    return match.group(0)
+                issues.append(f"Could not resolve relative import: {relative_path}")
+                return match.group(0)
 
             content = relative_import_pattern.sub(replace_relative, content)
 
@@ -138,10 +134,7 @@ class ImportStandardizer:
                 # Always prefer the import with dots (relative import that should be converted)
                 if ".." in import1 or ".." in import2:
                     # Use the one with relative imports and convert it
-                    if ".." in import1:
-                        to_convert = import1
-                    else:
-                        to_convert = import2
+                    to_convert = import1 if ".." in import1 else import2
 
                     # Extract and convert the import
                     rel_match = re.match(
@@ -157,7 +150,7 @@ class ImportStandardizer:
                         if dots == ".." and current_module:
                             parts = current_module.split(".")
                             if len(parts) > 0:
-                                parent = ".".join(parts[:-1])
+                                ".".join(parts[:-1])
                                 if module_path:
                                     absolute_path = f"claude_mpm.{module_path}"
                                 else:
@@ -173,22 +166,21 @@ class ImportStandardizer:
                 # Check which import uses claude_mpm
                 if "claude_mpm" in import1:
                     return f"{indent1}{import1}"
-                elif "claude_mpm" in import2:
+                if "claude_mpm" in import2:
                     return f"{indent1}{import2}"
-                else:
-                    # For simple module imports without claude_mpm, assume first is correct
-                    # This handles cases like "from core.logger import" -> "from claude_mpm.core.logger import"
-                    if "from " in import1 and not import1.startswith("from claude_mpm"):
-                        parts = import1.split("from ", 1)[1].split(" import", 1)
-                        if len(parts) == 2:
-                            module = parts[0].strip()
-                            import_clause = " import" + parts[1]
-                            if module and not module.startswith((".", "claude_mpm")):
-                                return (
-                                    f"{indent1}from claude_mpm.{module}{import_clause}"
-                                )
+                # For simple module imports without claude_mpm, assume first is correct
+                # This handles cases like "from core.logger import" -> "from claude_mpm.core.logger import"
+                if "from " in import1 and not import1.startswith("from claude_mpm"):
+                    parts = import1.split("from ", 1)[1].split(" import", 1)
+                    if len(parts) == 2:
+                        module = parts[0].strip()
+                        import_clause = " import" + parts[1]
+                        if module and not module.startswith((".", "claude_mpm")):
+                            return (
+                                f"{indent1}from claude_mpm.{module}{import_clause}"
+                            )
 
-                    return f"{indent1}{import1}"
+                return f"{indent1}{import1}"
 
             content = try_except_pattern.sub(replace_try_except, content)
 
@@ -265,7 +257,7 @@ class ImportStandardizer:
                 issues_by_file[file_path] = issues
 
         # Report results
-        print(f"\n=== Import Standardization Report ===")
+        print("\n=== Import Standardization Report ===")
         print(f"Files that would be modified: {len(modified_files)}")
         print(f"Files with issues: {len(issues_by_file)}")
 
@@ -290,7 +282,7 @@ class ImportStandardizer:
         if not dry_run:
             print(f"\n✓ Standardized imports in {len(modified_files)} files")
         else:
-            print(f"\nRun with --no-dry-run to apply changes")
+            print("\nRun with --no-dry-run to apply changes")
 
 
 def main():

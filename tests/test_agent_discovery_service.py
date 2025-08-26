@@ -120,15 +120,15 @@ class TestAgentDiscoveryService:
         """Create AgentDiscoveryService instance."""
         return AgentDiscoveryService(temp_templates_dir)
 
-    def test_initialization(temp_templates_dir):
+    def test_initialization(self):
         """Test AgentDiscoveryService initialization."""
-        service = AgentDiscoveryService(temp_templates_dir)
-        assert service.templates_dir == temp_templates_dir
+        service = AgentDiscoveryService(self)
+        assert service.templates_dir == self
         assert hasattr(service, "logger")
 
-    def test_list_available_agents(discovery_service):
+    def test_list_available_agents(self):
         """Test listing available agents."""
-        agents = discovery_service.list_available_agents()
+        agents = self.list_available_agents()
 
         # Should find 3 valid agents (invalid ones filtered out)
         assert len(agents) >= 3
@@ -165,9 +165,9 @@ class TestAgentDiscoveryService:
 
         assert agents == []
 
-    def test_get_filtered_templates_no_exclusions(discovery_service):
+    def test_get_filtered_templates_no_exclusions(self):
         """Test getting filtered templates with no exclusions."""
-        templates = discovery_service.get_filtered_templates([], None)
+        templates = self.get_filtered_templates([], None)
 
         # Should return all valid templates
         assert len(templates) >= 3
@@ -176,17 +176,17 @@ class TestAgentDiscoveryService:
         assert "qa-agent" in template_names
         assert "security-agent" in template_names
 
-    def test_get_filtered_templates_with_exclusions(discovery_service):
+    def test_get_filtered_templates_with_exclusions(self):
         """Test getting filtered templates with exclusions."""
         excluded_agents = ["test-agent", "qa-agent"]
-        templates = discovery_service.get_filtered_templates(excluded_agents, None)
+        templates = self.get_filtered_templates(excluded_agents, None)
 
         template_names = [t.stem for t in templates]
         assert "test-agent" not in template_names
         assert "qa-agent" not in template_names
         assert "security-agent" in template_names
 
-    def test_get_filtered_templates_case_insensitive(discovery_service):
+    def test_get_filtered_templates_case_insensitive(self):
         """Test case-insensitive filtering."""
         config = Mock()
         config.get.side_effect = lambda key, default=None: {
@@ -197,30 +197,30 @@ class TestAgentDiscoveryService:
         }.get(key, default)
 
         excluded_agents = ["TEST-AGENT", "QA-AGENT"]
-        templates = discovery_service.get_filtered_templates(excluded_agents, config)
+        templates = self.get_filtered_templates(excluded_agents, config)
 
         template_names = [t.stem for t in templates]
         assert "test-agent" not in template_names
         assert "qa-agent" not in template_names
         assert "security-agent" in template_names
 
-    def test_find_agent_template_exists(discovery_service):
+    def test_find_agent_template_exists(self):
         """Test finding existing agent template."""
-        template_path = discovery_service.find_agent_template("test-agent")
+        template_path = self.find_agent_template("test-agent")
 
         assert template_path is not None
         assert template_path.name == "test-agent.json"
         assert template_path.exists()
 
-    def test_find_agent_template_not_exists(discovery_service):
+    def test_find_agent_template_not_exists(self):
         """Test finding non-existent agent template."""
-        template_path = discovery_service.find_agent_template("nonexistent-agent")
+        template_path = self.find_agent_template("nonexistent-agent")
 
         assert template_path is None
 
-    def test_get_agent_categories(discovery_service):
+    def test_get_agent_categories(self):
         """Test getting agent categories."""
-        categories = discovery_service.get_agent_categories()
+        categories = self.get_agent_categories()
 
         assert "testing" in categories
         assert "qa" in categories
@@ -232,10 +232,10 @@ class TestAgentDiscoveryService:
         assert "qa-agent" in categories["qa"]
         assert "security-agent" in categories["security"]
 
-    def test_extract_agent_metadata_valid(discovery_service):
+    def test_extract_agent_metadata_valid(self):
         """Test extracting metadata from valid template."""
-        template_file = discovery_service.templates_dir / "test-agent.json"
-        metadata = discovery_service._extract_agent_metadata(template_file)
+        template_file = self.templates_dir / "test-agent.json"
+        metadata = self._extract_agent_metadata(template_file)
 
         assert metadata is not None
         assert metadata["name"] == "test-agent"
@@ -244,24 +244,24 @@ class TestAgentDiscoveryService:
         assert metadata["tools"] == ["Read", "Write"]
         assert metadata["specializations"] == ["testing"]
 
-    def test_extract_agent_metadata_invalid_json(discovery_service):
+    def test_extract_agent_metadata_invalid_json(self):
         """Test extracting metadata from invalid JSON."""
-        template_file = discovery_service.templates_dir / "invalid-agent.json"
-        metadata = discovery_service._extract_agent_metadata(template_file)
+        template_file = self.templates_dir / "invalid-agent.json"
+        metadata = self._extract_agent_metadata(template_file)
 
         assert metadata is None
 
-    def test_is_agent_excluded_explicit(discovery_service):
+    def test_is_agent_excluded_explicit(self):
         """Test explicit agent exclusion."""
         excluded_agents = ["test-agent", "qa-agent"]
 
-        assert discovery_service._is_agent_excluded("test-agent", excluded_agents, None)
-        assert discovery_service._is_agent_excluded("qa-agent", excluded_agents, None)
-        assert not discovery_service._is_agent_excluded(
+        assert self._is_agent_excluded("test-agent", excluded_agents, None)
+        assert self._is_agent_excluded("qa-agent", excluded_agents, None)
+        assert not self._is_agent_excluded(
             "security-agent", excluded_agents, None
         )
 
-    def test_is_agent_excluded_case_insensitive(discovery_service):
+    def test_is_agent_excluded_case_insensitive(self):
         """Test case-insensitive agent exclusion."""
         config = Mock()
         config.get.side_effect = lambda key, default=None: {
@@ -270,58 +270,58 @@ class TestAgentDiscoveryService:
 
         excluded_agents = ["TEST-AGENT"]
 
-        assert discovery_service._is_agent_excluded(
+        assert self._is_agent_excluded(
             "test-agent", excluded_agents, config
         )
-        assert not discovery_service._is_agent_excluded(
+        assert not self._is_agent_excluded(
             "security-agent", excluded_agents, config
         )
 
-    def test_validate_template_file_valid(discovery_service):
+    def test_validate_template_file_valid(self):
         """Test validating valid template file."""
-        template_file = discovery_service.templates_dir / "test-agent.json"
+        template_file = self.templates_dir / "test-agent.json"
 
-        assert discovery_service._validate_template_file(template_file)
+        assert self._validate_template_file(template_file)
 
-    def test_validate_template_file_invalid_json(discovery_service):
+    def test_validate_template_file_invalid_json(self):
         """Test validating invalid JSON template."""
-        template_file = discovery_service.templates_dir / "invalid-agent.json"
+        template_file = self.templates_dir / "invalid-agent.json"
 
-        assert not discovery_service._validate_template_file(template_file)
+        assert not self._validate_template_file(template_file)
 
-    def test_validate_template_file_missing_fields(discovery_service):
+    def test_validate_template_file_missing_fields(self):
         """Test validating template with missing required fields."""
-        template_file = discovery_service.templates_dir / "incomplete-agent.json"
+        template_file = self.templates_dir / "incomplete-agent.json"
 
-        assert not discovery_service._validate_template_file(template_file)
+        assert not self._validate_template_file(template_file)
 
-    def test_is_valid_agent_name(discovery_service):
+    def test_is_valid_agent_name(self):
         """Test agent name validation."""
         # Valid names
-        assert discovery_service._is_valid_agent_name("test-agent")
-        assert discovery_service._is_valid_agent_name("qa-validator")
-        assert discovery_service._is_valid_agent_name("security123")
-        assert discovery_service._is_valid_agent_name("agent")
+        assert self._is_valid_agent_name("test-agent")
+        assert self._is_valid_agent_name("qa-validator")
+        assert self._is_valid_agent_name("security123")
+        assert self._is_valid_agent_name("agent")
 
         # Invalid names
-        assert not discovery_service._is_valid_agent_name("Test-Agent")  # uppercase
-        assert not discovery_service._is_valid_agent_name("test_agent")  # underscore
-        assert not discovery_service._is_valid_agent_name(
+        assert not self._is_valid_agent_name("Test-Agent")  # uppercase
+        assert not self._is_valid_agent_name("test_agent")  # underscore
+        assert not self._is_valid_agent_name(
             "test--agent"
         )  # double hyphen
-        assert not discovery_service._is_valid_agent_name(
+        assert not self._is_valid_agent_name(
             "-test-agent"
         )  # starts with hyphen
-        assert not discovery_service._is_valid_agent_name(
+        assert not self._is_valid_agent_name(
             "test-agent-"
         )  # ends with hyphen
-        assert not discovery_service._is_valid_agent_name(
+        assert not self._is_valid_agent_name(
             "123-agent"
         )  # starts with number
 
-    def test_get_discovery_stats(discovery_service):
+    def test_get_discovery_stats(self):
         """Test getting discovery statistics."""
-        stats = discovery_service.get_discovery_stats()
+        stats = self.get_discovery_stats()
 
         assert "total_templates" in stats
         assert "valid_templates" in stats

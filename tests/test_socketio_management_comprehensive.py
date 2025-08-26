@@ -282,7 +282,7 @@ def test_backward_compatibility(results):
     print("5.1 Testing manager methods...")
     try:
         # These should not raise exceptions
-        servers = manager.list_running_servers()
+        manager.list_running_servers()
         manager.find_available_port()
 
         results.add_test("Manager methods compatibility", True)

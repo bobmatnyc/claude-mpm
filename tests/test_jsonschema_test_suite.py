@@ -22,6 +22,7 @@ def skip(message, **kwargs):
     def skipper(test):
         if all(value == getattr(test, attr) for attr, value in kwargs.items()):
             return message
+        return None
 
     return skipper
 
@@ -29,6 +30,7 @@ def skip(message, **kwargs):
 def ecmascript_regex(test):
     if test.subject == "ecmascript-regex":
         return "ECMA regex support will be added in #1142."
+    return None
 
 
 def missing_format(Validator):

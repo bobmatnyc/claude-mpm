@@ -40,7 +40,7 @@ def test_framework_loader():
     print("\nComponent Loading Status:")
     print("-" * 60)
 
-    for name, (key, value) in components.items():
+    for name, (_key, value) in components.items():
         if value:
             lines = value.strip().split("\n")
             preview = lines[0][:80] if lines else ""

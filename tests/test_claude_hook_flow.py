@@ -8,6 +8,7 @@ CRITICAL: Claude sends events with `hook_event_name` field, NOT `event` or `type
 """
 
 import asyncio
+import sys
 import uuid
 from datetime import datetime
 from typing import Any, Dict
@@ -16,7 +17,7 @@ try:
     import aiohttp
 except ImportError:
     print("Please install required packages: pip install aiohttp")
-    exit(1)
+    sys.exit(1)
 
 
 class ClaudeEventTester:

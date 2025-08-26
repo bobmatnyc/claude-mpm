@@ -37,22 +37,22 @@ class TestRunCommandFixed:
         assert error is None
 
     @patch("claude_mpm.cli.commands.run.run_session_legacy")
-    def test_execute_run_session_success(mock_run_legacy):
+    def test_execute_run_session_success(self):
         """Test successful run session execution."""
         # Mock the legacy function to not actually run
-        mock_run_legacy.return_value = None
+        self.return_value = None
 
         # Test the internal method
         result = self.command._execute_run_session(Namespace())
 
         assert result is True
-        mock_run_legacy.assert_called_once()
+        self.assert_called_once()
 
     @patch("claude_mpm.cli.commands.run.run_session_legacy")
-    def test_execute_run_session_failure(mock_run_legacy):
+    def test_execute_run_session_failure(self):
         """Test run session execution with failure."""
         # Mock the legacy function to raise an exception
-        mock_run_legacy.side_effect = Exception("Test error")
+        self.side_effect = Exception("Test error")
 
         # Test the internal method
         result = self.command._execute_run_session(Namespace())
@@ -60,9 +60,9 @@ class TestRunCommandFixed:
         assert result is False
 
     @patch("claude_mpm.cli.commands.run.run_session_legacy")
-    def test_run_command_success(mock_run_legacy):
+    def test_run_command_success(self):
         """Test complete run command execution."""
-        mock_run_legacy.return_value = None
+        self.return_value = None
 
         args = Namespace(
             logging="INFO",
@@ -82,9 +82,9 @@ class TestRunCommandFixed:
         assert "completed successfully" in result.message
 
     @patch("claude_mpm.cli.commands.run.run_session_legacy")
-    def test_run_command_keyboard_interrupt(mock_run_legacy):
+    def test_run_command_keyboard_interrupt(self):
         """Test handling of keyboard interrupt."""
-        mock_run_legacy.side_effect = KeyboardInterrupt()
+        self.side_effect = KeyboardInterrupt()
 
         args = Namespace()
 
@@ -96,9 +96,9 @@ class TestRunCommandFixed:
         assert "cancelled by user" in result.message
 
     @patch("claude_mpm.cli.commands.run.run_session_legacy")
-    def test_run_command_general_exception(mock_run_legacy):
+    def test_run_command_general_exception(self):
         """Test handling of general exceptions."""
-        mock_run_legacy.side_effect = RuntimeError("Test error")
+        self.side_effect = RuntimeError("Test error")
 
         args = Namespace()
 
@@ -143,34 +143,34 @@ class TestRunCommandFixed:
         assert filtered == ["--model", "claude-3", "chat"]
 
     @patch("claude_mpm.cli.commands.run.RunConfigChecker")
-    def test_check_configuration_health(mock_checker_class):
+    def test_check_configuration_health(self):
         """Test configuration health check."""
         mock_checker = Mock()
-        mock_checker_class.return_value = mock_checker
+        self.return_value = mock_checker
 
         self.command._check_configuration_health()
 
-        mock_checker_class.assert_called_once()
+        self.assert_called_once()
         mock_checker.check_configuration_health.assert_called_once()
 
     @patch("claude_mpm.cli.commands.run.RunConfigChecker")
-    def test_check_claude_json_memory(mock_checker_class):
+    def test_check_claude_json_memory(self):
         """Test Claude JSON memory check."""
         mock_checker = Mock()
-        mock_checker_class.return_value = mock_checker
+        self.return_value = mock_checker
 
         args = Namespace(mpm_resume=True)
 
         self.command._check_claude_json_memory(args)
 
-        mock_checker_class.assert_called_once()
+        self.assert_called_once()
         mock_checker.check_claude_json_memory.assert_called_once_with(args)
 
     @patch("claude_mpm.cli.commands.run.SessionManager")
-    def test_setup_session_management_no_resume(mock_session_manager_class):
+    def test_setup_session_management_no_resume(self):
         """Test session management setup without resume."""
         mock_manager = Mock()
-        mock_session_manager_class.return_value = mock_manager
+        self.return_value = mock_manager
 
         args = Namespace(mpm_resume=False)
 
@@ -181,7 +181,7 @@ class TestRunCommandFixed:
         assert context is None
 
     @patch("claude_mpm.cli.commands.run.SessionManager")
-    def test_setup_session_management_resume_last(mock_session_manager_class):
+    def test_setup_session_management_resume_last(self):
         """Test session management setup with resume last."""
         mock_manager = Mock()
         mock_manager.get_last_interactive_session.return_value = "session123"
@@ -189,7 +189,7 @@ class TestRunCommandFixed:
             "context": "test-context",
             "created_at": "2024-01-01",
         }
-        mock_session_manager_class.return_value = mock_manager
+        self.return_value = mock_manager
 
         args = Namespace(mpm_resume="last")
 
@@ -201,7 +201,7 @@ class TestRunCommandFixed:
 
     @patch("claude_mpm.cli.commands.run.ensure_socketio_dependencies")
     @patch("claude_mpm.cli.commands.run.PortManager")
-    def test_setup_monitoring_disabled(mock_port_manager_class, mock_ensure_deps):
+    def test_setup_monitoring_disabled(self, mock_ensure_deps):
         """Test monitoring setup when disabled."""
         args = Namespace(monitor=False)
 
@@ -216,7 +216,7 @@ class TestRunCommandFixed:
     @patch("claude_mpm.cli.commands.run._start_socketio_server")
     @patch("claude_mpm.cli.commands.run.webbrowser")
     def test_setup_monitoring_enabled(
-        mock_browser, mock_start_server, mock_port_manager_class, mock_ensure_deps
+        self, mock_start_server, mock_port_manager_class, mock_ensure_deps
     ):
         """Test monitoring setup when enabled."""
         mock_ensure_deps.return_value = True
@@ -236,7 +236,7 @@ class TestRunCommandFixed:
         assert monitor_mode is True
         assert port == 8080
         mock_ensure_deps.assert_called_once()
-        mock_browser.open.assert_called_once_with("http://localhost:8080")
+        self.open.assert_called_once_with("http://localhost:8080")
 
     def test_filter_claude_mpm_args_with_values():
         """Test filtering arguments that take values."""

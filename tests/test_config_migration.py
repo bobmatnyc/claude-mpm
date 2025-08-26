@@ -19,6 +19,7 @@ pytestmark = pytest.mark.skip(
     reason="config_migration module was removed in refactoring - functionality integrated elsewhere"
 )
 
+import contextlib
 import json
 import os
 from pathlib import Path
@@ -98,7 +99,7 @@ class TestMigrationDetection:
             migrator.config_dir.mkdir(parents=True)
             migrator.project_json.write_text('{"name": "test"}')
 
-            assert migrator.needs_migration() == True
+            assert migrator.needs_migration()
 
     def test_needs_migration_new_structure_complete():
         """Test detection when new structure is complete."""
@@ -114,7 +115,7 @@ class TestMigrationDetection:
             with open(migrator.new_config_path, "w") as f:
                 yaml.dump(config, f)
 
-            assert migrator.needs_migration() == False
+            assert not migrator.needs_migration()
 
     def test_needs_migration_partial_new_structure():
         """Test detection when new structure is incomplete."""
@@ -131,7 +132,7 @@ class TestMigrationDetection:
             with open(migrator.new_config_path, "w") as f:
                 yaml.dump(config, f)
 
-            assert migrator.needs_migration() == True
+            assert migrator.needs_migration()
 
     def test_needs_migration_corrupted_new_config():
         """Test detection when new config is corrupted."""
@@ -146,7 +147,7 @@ class TestMigrationDetection:
             migrator.claude_mpm_dir.mkdir(parents=True)
             migrator.new_config_path.write_text("invalid: yaml: content:")
 
-            assert migrator.needs_migration() == True
+            assert migrator.needs_migration()
 
 
 class TestMigrationProcess:
@@ -169,7 +170,7 @@ class TestMigrationProcess:
 
             # Perform migration
             success = migrator.migrate()
-            assert success == True
+            assert success
 
             # Verify migrated data
             with open(migrator.new_config_path) as f:
@@ -194,7 +195,7 @@ class TestMigrationProcess:
 
             # Perform migration
             success = migrator.migrate()
-            assert success == True
+            assert success
 
             # Verify migrated data
             with open(migrator.new_config_path) as f:
@@ -220,7 +221,7 @@ class TestMigrationProcess:
 
             # Perform migration
             success = migrator.migrate()
-            assert success == True
+            assert success
 
             # Verify both migrated
             with open(migrator.new_config_path) as f:
@@ -247,15 +248,15 @@ class TestMigrationProcess:
 
             # Perform migration
             success = migrator.migrate()
-            assert success == True
+            assert success
 
             # Verify terminal settings are nested
             with open(migrator.new_config_path) as f:
                 config = yaml.safe_load(f)
 
-            assert config["terminal"]["debug_logging"] == True
-            assert config["terminal"]["use_preexec_fn"] == False
-            assert config["terminal"]["retry_without_preexec"] == True
+            assert config["terminal"]["debug_logging"]
+            assert not config["terminal"]["use_preexec_fn"]
+            assert config["terminal"]["retry_without_preexec"]
 
             # Flat settings should be removed
             assert "terminal_debug_logging" not in config
@@ -277,7 +278,7 @@ class TestDryRun:
 
             # Perform dry run
             success = migrator.migrate(dry_run=True)
-            assert success == True
+            assert success
 
             # Files should not be modified
             assert not migrator.new_config_path.exists()
@@ -377,7 +378,7 @@ class TestBackupAndRestore:
 
             # Restore from backup
             success = migrator.restore_from_backup("project_backup.json")
-            assert success == True
+            assert success
 
             # Verify restored content
             assert migrator.project_json.exists()
@@ -392,7 +393,7 @@ class TestBackupAndRestore:
             migrator = ConfigMigrator(Path(tmpdir))
 
             success = migrator.restore_from_backup("nonexistent.json")
-            assert success == False
+            assert not success
 
 
 class TestRollback:
@@ -414,11 +415,8 @@ class TestRollback:
                 migrator,
                 "_save_consolidated_config",
                 side_effect=Exception("Save failed"),
-            ):
-                try:
-                    migrator.migrate()
-                except ConfigMigrationError:
-                    pass
+            ), contextlib.suppress(ConfigMigrationError):
+                migrator.migrate()
 
             # Original files should still exist (rolled back)
             assert migrator.project_json.exists()
@@ -508,7 +506,7 @@ class TestErrorHandling:
 
             # Should handle gracefully
             success = migrator.migrate()
-            assert success == True
+            assert success
 
             # Should create config with empty project section
             with open(migrator.new_config_path) as f:
@@ -529,9 +527,8 @@ class TestErrorHandling:
 
             with patch(
                 "builtins.open", side_effect=PermissionError("Permission denied")
-            ):
-                with pytest.raises(ConfigMigrationError):
-                    migrator.migrate()
+            ), pytest.raises(ConfigMigrationError):
+                migrator.migrate()
 
     def test_disk_full():
         """Test handling when disk is full."""
@@ -645,7 +642,7 @@ class TestConvenienceFunction:
 
             # Use convenience function
             success = migrate_config(Path(tmpdir))
-            assert success == True
+            assert success
 
             # Verify migration happened
             new_config = Path(tmpdir) / ".claude-mpm" / "config.yaml"
@@ -667,7 +664,7 @@ class TestConvenienceFunction:
 
             # Should return success without doing anything
             success = migrate_config(Path(tmpdir))
-            assert success == True
+            assert success
 
     def test_migrate_config_dry_run():
         """Test convenience function with dry run."""
@@ -679,7 +676,7 @@ class TestConvenienceFunction:
 
             # Dry run should not modify files
             success = migrate_config(Path(tmpdir), dry_run=True)
-            assert success == True
+            assert success
 
             # New config should not exist
             new_config = Path(tmpdir) / ".claude-mpm" / "config.yaml"
@@ -701,7 +698,7 @@ class TestEdgeCases:
 
             # Should migrate successfully
             success = migrator.migrate()
-            assert success == True
+            assert success
 
             # Result should have empty sections
             with open(migrator.new_config_path) as f:
@@ -723,7 +720,7 @@ class TestEdgeCases:
 
             # Should handle large data
             success = migrator.migrate()
-            assert success == True
+            assert success
 
             # Verify data integrity
             with open(migrator.new_config_path) as f:
@@ -746,7 +743,7 @@ class TestEdgeCases:
 
             # Should handle special characters
             success = migrator.migrate()
-            assert success == True
+            assert success
 
     def test_symlinked_config_files():
         """Test migration when config files are symlinks."""
@@ -763,7 +760,7 @@ class TestEdgeCases:
 
             # Should follow symlink and migrate content
             success = migrator.migrate()
-            assert success == True
+            assert success
 
             # Verify content was migrated
             with open(migrator.new_config_path) as f:

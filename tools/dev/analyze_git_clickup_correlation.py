@@ -26,7 +26,7 @@ import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -360,7 +360,7 @@ class DataAnalyzer:
         if self.analysis_data is None:
             self.prepare_analysis_data()
 
-        stats = {
+        return {
             "total_commits": len(self.analysis_data),
             "unique_tickets": self.analysis_data["ticket_id"].nunique(),
             "unique_developers": self.analysis_data["author"].nunique(),
@@ -370,7 +370,7 @@ class DataAnalyzer:
                 "end": self.analysis_data["commit_date"].max().strftime("%Y-%m-%d"),
             },
             "tickets_without_clickup_data": len(
-                [t for t in self.commits_by_ticket.keys() if t not in self.tasks]
+                [t for t in self.commits_by_ticket if t not in self.tasks]
             ),
             "top_contributors": self.analysis_data["author"]
             .value_counts()
@@ -384,7 +384,6 @@ class DataAnalyzer:
             .to_dict(),
         }
 
-        return stats
 
 
 class Visualizer:

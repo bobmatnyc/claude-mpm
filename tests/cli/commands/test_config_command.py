@@ -49,15 +49,15 @@ class TestConfigCommand:
     def test_validate_args_invalid_command():
         """Test validation with invalid config command."""
         args = Namespace(config_command="invalid")
-        error = self.command.validate_args(args)
+        self.command.validate_args(args)
         # Depending on implementation, this might be valid or not
         # Adjust based on actual implementation
 
     @patch("claude_mpm.cli.commands.config.Config")
-    def test_run_default_show(mock_config_class):
+    def test_run_default_show(self):
         """Test default behavior with no command specified."""
         mock_config = Mock()
-        mock_config_class.get_instance.return_value = mock_config
+        self.get_instance.return_value = mock_config
         mock_config.to_dict.return_value = {
             "version": "1.0.0",
             "logging": {"level": "INFO"},
@@ -74,10 +74,10 @@ class TestConfigCommand:
             assert result.success is False
 
     @patch("claude_mpm.cli.commands.config.Config")
-    def test_run_show_command(mock_config_class):
+    def test_run_show_command(self):
         """Test view config command."""
         mock_config = Mock()
-        mock_config_class.get_instance.return_value = mock_config
+        self.get_instance.return_value = mock_config
         mock_config.to_dict.return_value = {
             "version": "1.0.0",
             "logging": {"level": "INFO"},
@@ -168,10 +168,10 @@ class TestConfigCommand:
             mock_list.assert_called_once_with(args)
 
     @patch("claude_mpm.cli.commands.config.ConfigLoader")
-    def test_set_config_implementation(mock_config_loader_class):
+    def test_set_config_implementation(self):
         """Test _set_config implementation details."""
         mock_loader = Mock()
-        mock_config_loader_class.return_value = mock_loader
+        self.return_value = mock_loader
         mock_loader.load_config.return_value = {"logging": {"level": "INFO"}}
 
         args = Namespace(
@@ -186,10 +186,10 @@ class TestConfigCommand:
             assert result.success is True
 
     @patch("claude_mpm.cli.commands.config.ConfigLoader")
-    def test_validate_config_with_errors(mock_config_loader_class):
+    def test_validate_config_with_errors(self):
         """Test validate config with validation errors."""
         mock_loader = Mock()
-        mock_config_loader_class.return_value = mock_loader
+        self.return_value = mock_loader
         mock_loader.validate_config.return_value = False
         mock_loader.validation_errors = [
             "Invalid logging level",
@@ -210,12 +210,12 @@ class TestConfigCommand:
             assert result.data["errors"] is not None
 
     @patch("claude_mpm.cli.commands.config.Path")
-    def test_validate_config_with_file(mock_path_class):
+    def test_validate_config_with_file(self):
         """Test validate config with specific file."""
         mock_path = Mock()
         mock_path.exists.return_value = True
         mock_path.read_text.return_value = '{"version": "1.0.0"}'
-        mock_path_class.return_value = mock_path
+        self.return_value = mock_path
 
         args = Namespace(
             config_command="validate", config_file="/path/to/config.json", format="text"
@@ -292,7 +292,7 @@ class TestConfigCommand:
         with patch.object(
             self.command, "_show_config", side_effect=Exception("Config error")
         ):
-            result = self.command.run(args)
+            self.command.run(args)
 
             # Depending on implementation, this might be caught and handled
             # or propagate. Adjust based on actual implementation

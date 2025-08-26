@@ -151,8 +151,8 @@ class DashboardEventDebugger:
         self.test_start_time = time.time()
 
         # Create event producers
-        hook_producer = HookEventProducer(self.event_bus)
-        system_producer = SystemEventProducer(self.event_bus)
+        HookEventProducer(self.event_bus)
+        SystemEventProducer(self.event_bus)
 
         event_types = [
             ("hook", "user_prompt"),

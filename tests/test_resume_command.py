@@ -46,7 +46,7 @@ def simulate_command_building(resume=False, extra_args=None, launch_method="exec
     if args.resume:
         print("\n2️⃣ Processing --resume flag:")
         if "--resume" not in raw_claude_args:
-            raw_claude_args = ["--resume"] + raw_claude_args
+            raw_claude_args = ["--resume", *raw_claude_args]
             print("   ✅ Added --resume to beginning")
         else:
             print("   ℹ️ --resume already present")

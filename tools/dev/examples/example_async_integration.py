@@ -9,12 +9,10 @@ into the main application for production use.
 import asyncio
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.core.config import Config
 from claude_mpm.hooks.base_hook import (
     HookContext,
     HookResult,
@@ -110,10 +108,9 @@ class ClaudeMPMIntegration:
         )
 
         # Execute pre-delegation hooks (adds timing, etc.)
-        pre_result = await self.hook_service.execute_pre_delegation_hooks_async(context)
+        await self.hook_service.execute_pre_delegation_hooks_async(context)
 
         # Simulate agent processing
-        import time
 
         start = time.time()
         await asyncio.sleep(0.01)  # Simulate work
@@ -127,7 +124,7 @@ class ClaudeMPMIntegration:
         )
 
         # Execute post-delegation hooks (logs response, etc.)
-        post_result = self.hook_service.execute_post_delegation_hooks(context)
+        self.hook_service.execute_post_delegation_hooks(context)
 
         return response
 
@@ -135,7 +132,7 @@ class ClaudeMPMIntegration:
         """Synchronous wrapper for async processing."""
         try:
             # Check if we're already in an event loop
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()
             # If we get here, we're in an async context, create a task
             import concurrent.futures
 
@@ -227,23 +224,23 @@ def demonstrate_configuration():
     from claude_mpm.services.async_session_logger import AsyncSessionLogger
 
     logger1 = AsyncSessionLogger(log_format=LogFormat.JSON, enable_compression=True)
-    print(f"   Format: JSON (gzipped)")
+    print("   Format: JSON (gzipped)")
     print(f"   Session: {logger1.session_id}")
 
     # Example 2: Syslog for production
     print("\n2. Syslog for production:")
     try:
         logger2 = AsyncSessionLogger(log_format=LogFormat.SYSLOG)
-        print(f"   Format: Syslog (OS-native)")
-        print(f"   Ultra-fast kernel-level logging")
+        print("   Format: Syslog (OS-native)")
+        print("   Ultra-fast kernel-level logging")
     except:
         print("   Syslog not available on this system")
 
     # Example 3: Synchronous for debugging
     print("\n3. Synchronous for debugging:")
     logger3 = AsyncSessionLogger(enable_async=False)
-    print(f"   Format: JSON (synchronous)")
-    print(f"   Useful for debugging and testing")
+    print("   Format: JSON (synchronous)")
+    print("   Useful for debugging and testing")
 
     # Cleanup
     for logger in [logger1, logger2, logger3]:

@@ -125,8 +125,7 @@ def test_file_handler_methods():
 
         @pytest.mark.asyncio
         async def test_read():
-            result = await handler._read_file_safely(test_file)
-            return result
+            return await handler._read_file_safely(test_file)
 
         result = asyncio.run(test_read())
 
@@ -142,8 +141,7 @@ def test_file_handler_methods():
         # Test with non-existent file
         @pytest.mark.asyncio
         async def test_nonexistent():
-            result = await handler._read_file_safely("/nonexistent/file.txt")
-            return result
+            return await handler._read_file_safely("/nonexistent/file.txt")
 
         result = asyncio.run(test_nonexistent())
 

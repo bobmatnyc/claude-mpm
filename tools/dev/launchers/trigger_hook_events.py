@@ -92,7 +92,7 @@ def main():
     import requests
 
     try:
-        response = requests.get("http://localhost:8765/socket.io/", timeout=2)
+        requests.get("http://localhost:8765/socket.io/", timeout=2)
         logger.info("✅ Socket.IO server is running")
     except:
         logger.error("❌ Socket.IO server not available at localhost:8765")

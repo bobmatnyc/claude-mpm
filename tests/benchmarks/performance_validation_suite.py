@@ -531,7 +531,7 @@ class PerformanceBenchmarks:
         # Test concurrent connections
         async def test_connection():
             try:
-                client_manager = SocketIOClientManager()
+                SocketIOClientManager()
                 # Simulate connection attempt (without actually connecting to avoid external dependencies)
                 await asyncio.sleep(0.01)  # Simulate connection time
                 return True
@@ -539,7 +539,7 @@ class PerformanceBenchmarks:
                 return False
 
         tasks = []
-        for i in range(samples):
+        for _i in range(samples):
             tasks.append(test_connection())
 
         results = await asyncio.gather(*tasks, return_exceptions=True)

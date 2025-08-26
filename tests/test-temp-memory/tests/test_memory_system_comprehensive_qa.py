@@ -56,7 +56,7 @@ class MemorySystemQATest:
         if cwd:
             os.chdir(cwd)
 
-        cmd = [self.mpm_cmd] + args
+        cmd = [self.mpm_cmd, *args]
         try:
             result = subprocess.run(
                 cmd, capture_output=True, text=True, timeout=30, check=False

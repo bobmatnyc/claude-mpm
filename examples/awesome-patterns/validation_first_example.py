@@ -10,10 +10,8 @@ Key principles:
 4. Use external research after 3 failures
 """
 
-import json
 import sys
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 # Third-party imports
@@ -132,7 +130,7 @@ def run_validation_tests(processor: DataProcessor) -> List[ValidationResult]:
             test1_result.error_message = f"Expected {expected}, got {result}"
 
     except Exception as e:
-        test1_result.error_message = f"Exception: {str(e)}"
+        test1_result.error_message = f"Exception: {e!s}"
 
     all_validation_results.append(test1_result)
 
@@ -161,7 +159,7 @@ def run_validation_tests(processor: DataProcessor) -> List[ValidationResult]:
             test2_result.error_message = f"Expected {expected}, got {result}"
 
     except Exception as e:
-        test2_result.error_message = f"Exception: {str(e)}"
+        test2_result.error_message = f"Exception: {e!s}"
 
     all_validation_results.append(test2_result)
 
@@ -173,13 +171,13 @@ def run_validation_tests(processor: DataProcessor) -> List[ValidationResult]:
     try:
         result = processor.validate_data_integrity(SAMPLE_DATA)
         test3_result.actual = result
-        test3_result.passed = result == True
+        test3_result.passed = result
 
         if not test3_result.passed:
             test3_result.error_message = "Data integrity check failed"
 
     except Exception as e:
-        test3_result.error_message = f"Exception: {str(e)}"
+        test3_result.error_message = f"Exception: {e!s}"
 
     all_validation_results.append(test3_result)
 
@@ -202,7 +200,7 @@ def run_validation_tests(processor: DataProcessor) -> List[ValidationResult]:
             )
 
     except Exception as e:
-        test4_result.error_message = f"Exception: {str(e)}"
+        test4_result.error_message = f"Exception: {e!s}"
 
     all_validation_results.append(test4_result)
 

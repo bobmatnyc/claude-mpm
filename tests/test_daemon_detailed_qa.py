@@ -19,6 +19,8 @@ import psutil
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+import contextlib
+
 from claude_mpm.core.unified_paths import get_project_root
 
 DAEMON_SCRIPT = (
@@ -143,10 +145,8 @@ class DaemonTestManager:
         ]
 
         for file_path in cleanup_files:
-            try:
+            with contextlib.suppress(Exception):
                 (self.deployment_root / file_path).unlink(missing_ok=True)
-            except Exception:
-                pass
 
         # Kill any remaining processes
         try:
@@ -159,10 +159,8 @@ class DaemonTestManager:
             if result.stdout.strip():
                 pids = result.stdout.strip().split("\n")
                 for pid in pids:
-                    try:
+                    with contextlib.suppress(ValueError, ProcessLookupError):
                         os.kill(int(pid), signal.SIGKILL)
-                    except (ValueError, ProcessLookupError):
-                        pass
         except Exception:
             pass
 
@@ -370,11 +368,11 @@ def investigate_config_issue():
                         check=False,
                     )
                     if "Port Range:" in result.stdout:
-                        port_line = [
+                        port_line = next(
                             line
                             for line in result.stdout.split("\n")
                             if "Port Range:" in line
-                        ][0]
+                        )
                         print(f"Status reports: {port_line}")
             else:
                 log_test(
@@ -386,7 +384,7 @@ def investigate_config_issue():
 
             # Clean up for next test
             manager.cleanup()
-            for key in config.keys():
+            for key in config:
                 if key != "expected_range" and key in os.environ:
                     del os.environ[key]
 
@@ -476,7 +474,6 @@ def test_error_handling():
         print("Testing permission error handling...")
 
         # Try to create files in a location that should fail gracefully
-        original_deployment_root = manager.deployment_root
 
         # This should fail but not crash the whole system
         try:
@@ -624,7 +621,7 @@ def test_integration():
             initial_server_pid, _, initial_port = manager.get_daemon_info()
 
             # Restart daemon
-            result = subprocess.run(
+            subprocess.run(
                 [sys.executable, str(DAEMON_SCRIPT), "restart"],
                 capture_output=True,
                 text=True,

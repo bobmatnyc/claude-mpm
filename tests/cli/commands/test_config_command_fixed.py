@@ -114,7 +114,7 @@ class TestConfigCommand:
     @patch("claude_mpm.cli.commands.config.Path")
     @patch("claude_mpm.cli.commands.config.yml.safe_load")
     @patch("builtins.open", new_callable=mock_open, read_data="version: 1.0.0")
-    def test_validate_config_success(mock_file, mock_yaml, mock_path):
+    def test_validate_config_success(self, mock_yaml, mock_path):
         """Test successful config validation."""
         # Setup mocks
         mock_path_instance = Mock()
@@ -132,11 +132,11 @@ class TestConfigCommand:
         assert isinstance(result, CommandResult)
 
     @patch("claude_mpm.cli.commands.config.Path")
-    def test_validate_config_missing_file(mock_path):
+    def test_validate_config_missing_file(self):
         """Test config validation with missing file."""
         mock_path_instance = Mock()
         mock_path_instance.exists.return_value = False
-        mock_path.return_value = mock_path_instance
+        self.return_value = mock_path_instance
 
         args = Namespace(config_command="validate", config_file=None, format="text")
 
@@ -146,7 +146,7 @@ class TestConfigCommand:
         assert result.success is False
 
     @patch("claude_mpm.cli.commands.config.Config")
-    def test_view_config_implementation(mock_config_class):
+    def test_view_config_implementation(self):
         """Test view config implementation."""
         mock_config = Mock()
         mock_config.return_value.get_all.return_value = {
@@ -154,7 +154,7 @@ class TestConfigCommand:
             "logging": {"level": "INFO"},
             "agents": {"enabled": True},
         }
-        mock_config_class.get_instance.return_value = mock_config
+        self.get_instance.return_value = mock_config
 
         args = Namespace(config_command="view", format="json")
 
@@ -163,14 +163,14 @@ class TestConfigCommand:
         assert isinstance(result, CommandResult)
 
     @patch("claude_mpm.cli.commands.config.Config")
-    def test_show_config_status_implementation(mock_config_class):
+    def test_show_config_status_implementation(self):
         """Test show config status implementation."""
         mock_config = Mock()
         mock_config.is_valid.return_value = True
         mock_config.return_value.get_config_file.return_value = Path(
             "/test/config.yaml"
         )
-        mock_config_class.get_instance.return_value = mock_config
+        self.get_instance.return_value = mock_config
 
         args = Namespace(config_command="status", format="text")
 
@@ -192,14 +192,14 @@ class TestConfigCommand:
             assert isinstance(result, CommandResult)
 
     @patch("claude_mpm.cli.commands.config.Config")
-    def test_output_formats(mock_config_class):
+    def test_output_formats(self):
         """Test different output formats."""
         mock_config = Mock()
         mock_config.return_value.get_all.return_value = {
             "version": "1.0.0",
             "logging": {"level": "INFO"},
         }
-        mock_config_class.get_instance.return_value = mock_config
+        self.get_instance.return_value = mock_config
 
         formats = ["json", "yaml", "text"]
 
@@ -213,7 +213,7 @@ class TestConfigCommand:
 
     @patch("claude_mpm.cli.commands.config.yml.safe_load")
     @patch("builtins.open", new_callable=mock_open)
-    def test_validate_config_with_yaml_error(mock_file, mock_yaml):
+    def test_validate_config_with_yaml_error(self, mock_yaml):
         """Test config validation with YAML parsing error."""
         mock_yaml.side_effect = yaml.YAMLError("Invalid YAML")
 

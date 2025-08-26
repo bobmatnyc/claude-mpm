@@ -34,7 +34,7 @@ def capture_startup_logs():
         print("Simulating ClaudeRunner startup...")
 
         # Create runner (it creates its own container internally)
-        runner = ClaudeRunner(
+        ClaudeRunner(
             enable_tickets=False,
             log_level="OFF",
             claude_args=[],
@@ -103,9 +103,8 @@ def analyze_config_loading(logs):
                 "command_handler_service",
                 "session_management_service",
             ]
-        ):
-            if "initializ" in line.lower() or "creating" in line.lower():
-                service_inits.append(line)
+        ) and ("initializ" in line.lower() or "creating" in line.lower()):
+            service_inits.append(line)
 
     if service_inits:
         print(f"\n=== Service Initializations ({len(service_inits)}) ===")

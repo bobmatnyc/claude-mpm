@@ -21,7 +21,6 @@ from claude_mpm.core.exceptions import (
     ConnectionError,
     HookError,
     MemoryError,
-    MPMError,
     ServiceNotFoundError,
     SessionError,
     ValidationError,
@@ -89,9 +88,8 @@ def example_connection_handling():
                         "retry_count": retry_count + 1,
                     },
                 )
-            else:
-                print("Connection successful!")
-                break
+            print("Connection successful!")
+            break
 
         except ConnectionError as e:
             retry_count += 1
@@ -214,8 +212,7 @@ def example_error_groups():
 
         if random.choice([True, False]):
             raise ConfigurationError("Invalid config file")
-        else:
-            raise ValidationError("Schema validation failed")
+        raise ValidationError("Schema validation failed")
 
     try:
         process_configuration()

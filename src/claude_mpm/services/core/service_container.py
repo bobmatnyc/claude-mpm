@@ -244,7 +244,7 @@ class ServiceContainer:
 
         # Check for circular dependencies
         if service_type in self._resolution_stack.stack:
-            raise CircularDependencyError(self._resolution_stack.stack + [service_type])
+            raise CircularDependencyError([*self._resolution_stack.stack, service_type])
 
         try:
             # Add to resolution stack
@@ -287,7 +287,7 @@ class ServiceContainer:
         results = []
 
         with self._lock:
-            for registered_type, descriptor in self._services.items():
+            for registered_type, _descriptor in self._services.items():
                 # Check if registered type is subclass of requested type
                 if self._is_assignable(registered_type, service_type):
                     try:

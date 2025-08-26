@@ -640,25 +640,24 @@ class TestIntegration:
         with patch(
             "claude_mpm.services.infrastructure.monitoring.process.PSUTIL_AVAILABLE",
             True,
-        ):
-            with patch(
-                "claude_mpm.services.infrastructure.monitoring.process.psutil"
-            ) as mock_psutil:
-                mock_process = MagicMock()
-                mock_process.is_running.return_value = True
-                mock_process.status.return_value = "running"
-                mock_process.cpu_percent.return_value = 25.0
-                mock_process.memory_info.return_value = MagicMock(
-                    rss=100 * 1024 * 1024,
-                    vms=200 * 1024 * 1024,
-                )
-                mock_psutil.Process.return_value = mock_process
-                mock_psutil.STATUS_ZOMBIE = "zombie"
-                mock_psutil.STATUS_DEAD = "dead"
-                mock_psutil.STATUS_STOPPED = "stopped"
+        ), patch(
+            "claude_mpm.services.infrastructure.monitoring.process.psutil"
+        ) as mock_psutil:
+            mock_process = MagicMock()
+            mock_process.is_running.return_value = True
+            mock_process.status.return_value = "running"
+            mock_process.cpu_percent.return_value = 25.0
+            mock_process.memory_info.return_value = MagicMock(
+                rss=100 * 1024 * 1024,
+                vms=200 * 1024 * 1024,
+            )
+            mock_psutil.Process.return_value = mock_process
+            mock_psutil.STATUS_ZOMBIE = "zombie"
+            mock_psutil.STATUS_DEAD = "dead"
+            mock_psutil.STATUS_STOPPED = "stopped"
 
-                process_checker = ProcessResourceChecker(12345)
-                monitor.add_checker(process_checker)
+            process_checker = ProcessResourceChecker(12345)
+            monitor.add_checker(process_checker)
 
         # Add network checker
         with patch("socket.socket") as mock_socket_class:

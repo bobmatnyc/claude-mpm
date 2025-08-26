@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Update memory service imports after reorganization."""
 
-import os
 import re
 from pathlib import Path
 

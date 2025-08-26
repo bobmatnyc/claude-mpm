@@ -18,7 +18,6 @@ import psutil
 
 from claude_mpm.utils.subprocess_utils import (
     cleanup_orphaned_processes,
-    get_process_info,
 )
 
 
@@ -60,7 +59,7 @@ def main():
         return
 
     # Clean up processes older than 5 minutes (likely orphaned)
-    print(f"\n🧹 Cleaning up processes older than 5 minutes...")
+    print("\n🧹 Cleaning up processes older than 5 minutes...")
     cleanup_count = cleanup_orphaned_processes("hook_handler.py", max_age_hours=5 / 60)
 
     if cleanup_count > 0:

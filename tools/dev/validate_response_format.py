@@ -3,9 +3,8 @@
 Validate response file format and structure.
 """
 
-import glob
 import json
-import os
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -39,7 +38,7 @@ def validate_response_files(responses_dir):
 
         try:
             # Check if file is valid JSON
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             # Check required fields
@@ -98,7 +97,7 @@ def validate_response_files(responses_dir):
                 continue
 
             # Success validation
-            print(f"  ✅ Valid response file")
+            print("  ✅ Valid response file")
             print(f"     Agent: {data['agent']}")
             print(f"     Session: {data['session_id']}")
             print(f"     Request length: {len(data['request'])} chars")
@@ -118,7 +117,7 @@ def validate_response_files(responses_dir):
             print(f"  ❌ Error reading file: {e}")
 
     print("\n" + "=" * 60)
-    print(f"📊 Validation Summary:")
+    print("📊 Validation Summary:")
     print(f"  Total files: {total_count}")
     print(f"  Valid files: {valid_count}")
     print(f"  Invalid files: {total_count - valid_count}")
@@ -133,7 +132,7 @@ def check_file_naming_convention(responses_dir):
     responses_dir = Path(responses_dir)
     response_files = list(responses_dir.glob("*.json"))
 
-    print(f"\n🏷️  Checking file naming convention...")
+    print("\n🏷️  Checking file naming convention...")
 
     valid_names = 0
 
@@ -177,7 +176,7 @@ def analyze_agent_distribution(responses_dir):
 
     for file_path in response_files:
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             agent = data.get("agent", "unknown")
@@ -190,12 +189,12 @@ def analyze_agent_distribution(responses_dir):
         except:
             continue
 
-    print(f"\n📈 Agent Distribution:")
+    print("\n📈 Agent Distribution:")
     for agent, count in sorted(agent_counts.items()):
         print(f"  {agent}: {count} responses")
 
     if event_types:
-        print(f"\n📋 Event Type Distribution:")
+        print("\n📋 Event Type Distribution:")
         for event_type, count in sorted(event_types.items()):
             print(f"  {event_type}: {count} events")
 
@@ -216,14 +215,14 @@ if __name__ == "__main__":
     analyze_agent_distribution(responses_dir)
 
     # Overall result
-    print(f"\n🎯 Overall Validation Result:")
+    print("\n🎯 Overall Validation Result:")
     if format_valid and naming_valid:
         print("✅ All validation checks PASSED")
-        exit(0)
+        sys.exit(0)
     else:
         print("❌ Some validation checks FAILED")
         if not format_valid:
             print("  - Response format validation failed")
         if not naming_valid:
             print("  - File naming convention validation failed")
-        exit(1)
+        sys.exit(1)

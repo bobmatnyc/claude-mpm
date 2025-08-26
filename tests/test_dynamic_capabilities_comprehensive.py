@@ -348,14 +348,14 @@ def test_performance_requirements():
 
         # Time generation
         gen_start = time.time()
-        content = generator.generate_capabilities_section(agents)
+        generator.generate_capabilities_section(agents)
         gen_time = time.time() - gen_start
 
         # Time full assembly
         assembler = ContentAssembler()
         assembly_start = time.time()
         test_content = "Test {{capabilities-list}} content"
-        processed = assembler.apply_template_variables(test_content)
+        assembler.apply_template_variables(test_content)
         assembly_time = time.time() - assembly_start
 
         total_time = disc_time + gen_time + assembly_time

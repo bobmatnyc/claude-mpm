@@ -28,7 +28,7 @@ def test_hook_events():
         print("✅ Socket.IO server is running")
 
     # Create a test hook data structure
-    test_hook_data = {
+    {
         "action": "hook",
         "hook": {
             "type": "test",

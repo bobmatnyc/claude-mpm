@@ -29,7 +29,7 @@ for todo in test_todos:
 
     if has_prefix:
         print(f"Todo: '{todo}'")
-        print(f"  Already has prefix: Yes")
+        print("  Already has prefix: Yes")
     else:
         # Try to determine agent based on keywords
         todo_lower = todo.lower()

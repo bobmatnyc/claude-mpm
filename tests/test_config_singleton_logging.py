@@ -108,14 +108,14 @@ class TestConfigSingletonLogging(unittest.TestCase):
 
         try:
             # Create initial Config
-            config1 = Config()
+            Config()
 
             # Clear the log
             log_capture.truncate(0)
             log_capture.seek(0)
 
             # Try to create with different config_file
-            config2 = Config(config_file="different.yaml")
+            Config(config_file="different.yaml")
 
             # Check for debug message about ignoring the parameter
             log_output = log_capture.getvalue()

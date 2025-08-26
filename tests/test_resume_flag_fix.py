@@ -60,18 +60,18 @@ def test_argument_parsing():
     # Test 1: --resume without command (defaults to run)
     args = parser.parse_args(["--resume"])
     assert hasattr(args, "resume"), "Parser should have resume attribute"
-    assert args.resume == True, f"resume should be True, got: {args.resume}"
+    assert args.resume, f"resume should be True, got: {args.resume}"
     print("✓ --resume parsed at top level")
 
     # Test 2: run command with --resume
     args = parser.parse_args(["run", "--resume"])
     assert hasattr(args, "resume"), "Parser should have resume attribute"
-    assert args.resume == True, f"resume should be True, got: {args.resume}"
+    assert args.resume, f"resume should be True, got: {args.resume}"
     print("✓ 'run --resume' parsed correctly")
 
     # Test 3: --resume with --mpm-resume
     args = parser.parse_args(["--resume", "--mpm-resume", "last"])
-    assert args.resume == True, f"resume should be True, got: {args.resume}"
+    assert args.resume, f"resume should be True, got: {args.resume}"
     assert (
         args.mpm_resume == "last"
     ), f"mpm_resume should be 'last', got: {args.mpm_resume}"

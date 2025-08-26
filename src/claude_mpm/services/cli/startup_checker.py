@@ -176,17 +176,7 @@ class StartupCheckerService(IStartupChecker):
 
         try:
             # Check Python version
-            import sys
 
-            if sys.version_info < (3, 8):
-                warnings.append(
-                    StartupWarning(
-                        category="environment",
-                        message=f"Python {sys.version_info.major}.{sys.version_info.minor} detected",
-                        suggestion="Python 3.8+ is recommended for optimal performance",
-                        severity="info",
-                    )
-                )
 
             # Check for common missing directories
             warnings.extend(self._check_required_directories())

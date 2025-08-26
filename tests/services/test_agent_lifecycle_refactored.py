@@ -598,7 +598,7 @@ class TestAgentLifecycleManager:
             )
 
             # Delete agent
-            result = await lifecycle_manager.delete_agent("backup_agent")
+            await lifecycle_manager.delete_agent("backup_agent")
 
             # Verify backup was attempted
             mock_path_ops.safe_copy.assert_called()

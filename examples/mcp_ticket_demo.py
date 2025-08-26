@@ -118,7 +118,7 @@ async def demo_ticket_tools():
 
     print("\nResponse:")
     if result.success:
-        print(f"  ✅ Success! Retrieved ticket list")
+        print("  ✅ Success! Retrieved ticket list")
         print(f"  Execution time: {result.execution_time:.2f}s")
         # The actual format depends on aitrackdown's output
         if "raw_output" in result.data:
@@ -146,7 +146,7 @@ async def demo_ticket_tools():
 
     print("\nResponse:")
     if result.success:
-        print(f"  ✅ Success! Search completed")
+        print("  ✅ Success! Search completed")
         print(f"  Execution time: {result.execution_time:.2f}s")
         if "raw_output" in result.data:
             print(f"  Found results for query: '{result.data.get('query', '')}'")

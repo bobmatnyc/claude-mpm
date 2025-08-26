@@ -18,7 +18,7 @@ class TestClaudeRunnerInitialization:
 
     @patch("claude_mpm.core.claude_runner.get_container")
     @patch("claude_mpm.core.claude_runner.Config")
-    def test_init_basic(mock_config, mock_get_container):
+    def test_init_basic(self, mock_get_container):
         """Test basic ClaudeRunner initialization."""
         # Setup mocks
         mock_container = Mock()
@@ -53,7 +53,7 @@ class TestClaudeRunnerInitialization:
         ]
 
         mock_config_instance = Mock()
-        mock_config.return_value = mock_config_instance
+        self.return_value = mock_config_instance
         mock_config_instance.get.return_value = {"enabled": False}
 
         # Test initialization
@@ -72,7 +72,7 @@ class TestClaudeRunnerInitialization:
 
     @patch("claude_mpm.core.claude_runner.get_container")
     @patch("claude_mpm.core.claude_runner.Config")
-    def test_init_with_websocket(mock_config, mock_get_container):
+    def test_init_with_websocket(self, mock_get_container):
         """Test initialization with WebSocket enabled."""
         mock_container = Mock()
         mock_get_container.return_value = mock_container
@@ -106,7 +106,7 @@ class TestClaudeRunnerInitialization:
         ]
 
         mock_config_instance = Mock()
-        mock_config.return_value = mock_config_instance
+        self.return_value = mock_config_instance
         mock_config_instance.get.return_value = {"enabled": False}
 
         runner = ClaudeRunner(enable_websocket=True, websocket_port=9000)
@@ -116,7 +116,7 @@ class TestClaudeRunnerInitialization:
 
     @patch("claude_mpm.core.claude_runner.get_container")
     @patch("claude_mpm.core.claude_runner.Config")
-    def test_init_service_registration(mock_config, mock_get_container):
+    def test_init_service_registration(self, mock_get_container):
         """Test that services are properly registered during initialization."""
         mock_container = Mock()
         mock_get_container.return_value = mock_container
@@ -154,7 +154,7 @@ class TestClaudeRunnerInitialization:
         ]
 
         mock_config_instance = Mock()
-        mock_config.return_value = mock_config_instance
+        self.return_value = mock_config_instance
         mock_config_instance.get.return_value = {"enabled": False}
 
         with patch.dict("os.environ", {"CLAUDE_MPM_USER_PWD": "/test/dir"}):
@@ -217,11 +217,11 @@ class TestClaudeRunnerAgentCapabilities:
 
             return ClaudeRunner()
 
-    def test_generate_deployed_agent_capabilities_success(runner):
+    def test_generate_deployed_agent_capabilities_success(self):
         """Test successful agent capabilities generation delegation to service."""
         # Mock the agent capabilities service
-        runner.agent_capabilities_service = Mock()
-        runner.agent_capabilities_service.generate_deployed_agent_capabilities.return_value = """
+        self.agent_capabilities_service = Mock()
+        self.agent_capabilities_service.generate_deployed_agent_capabilities.return_value = """
 ## Available Agent Capabilities
 
 You have the following specialized agents available for delegation:
@@ -232,19 +232,19 @@ You have the following specialized agents available for delegation:
 **Total Available Agents**: 1
 """
 
-        result = runner._generate_deployed_agent_capabilities()
+        result = self._generate_deployed_agent_capabilities()
 
         assert "Available Agent Capabilities" in result
         assert "Test Agent" in result
         assert "Development Agents" in result
         assert "Total Available Agents" in result
-        runner.agent_capabilities_service.generate_deployed_agent_capabilities.assert_called_once()
+        self.agent_capabilities_service.generate_deployed_agent_capabilities.assert_called_once()
 
-    def test_generate_deployed_agent_capabilities_no_agents(runner):
+    def test_generate_deployed_agent_capabilities_no_agents(self):
         """Test capabilities generation when no agents are found."""
         # Mock the agent capabilities service to return fallback
-        runner.agent_capabilities_service = Mock()
-        runner.agent_capabilities_service.generate_deployed_agent_capabilities.return_value = """
+        self.agent_capabilities_service = Mock()
+        self.agent_capabilities_service.generate_deployed_agent_capabilities.return_value = """
 ## Available Agent Capabilities
 
 You have the following specialized agents available for delegation:
@@ -253,34 +253,34 @@ You have the following specialized agents available for delegation:
 - **Research Agent**: Investigation and analysis
 """
 
-        result = runner._generate_deployed_agent_capabilities()
+        result = self._generate_deployed_agent_capabilities()
 
         # Should return fallback capabilities with default agents
         assert "Available Agent Capabilities" in result
         assert "Engineer Agent" in result  # Default fallback includes these
         assert "Research Agent" in result
-        runner.agent_capabilities_service.generate_deployed_agent_capabilities.assert_called_once()
+        self.agent_capabilities_service.generate_deployed_agent_capabilities.assert_called_once()
 
-    def test_agent_capabilities_service_fallback(runner):
+    def test_agent_capabilities_service_fallback(self):
         """Test fallback when agent capabilities service is not available."""
         # Set service to None to test fallback
-        runner.agent_capabilities_service = None
+        self.agent_capabilities_service = None
 
-        result = runner._generate_deployed_agent_capabilities()
+        result = self._generate_deployed_agent_capabilities()
 
         # Should return fallback capabilities
         assert "Available Agent Capabilities" in result
         assert "Engineer Agent" in result
         assert "Research Agent" in result
 
-    def test_agent_capabilities_service_initialization(runner):
+    def test_agent_capabilities_service_initialization(self):
         """Test that agent capabilities service is properly initialized."""
         # The service should be initialized during ClaudeRunner construction
-        assert hasattr(runner, "agent_capabilities_service")
+        assert hasattr(self, "agent_capabilities_service")
         # Service might be None if initialization failed, but attribute should exist
         assert (
-            runner.agent_capabilities_service is not None
-            or runner.agent_capabilities_service is None
+            self.agent_capabilities_service is not None
+            or self.agent_capabilities_service is None
         )
 
 
@@ -332,33 +332,33 @@ class TestClaudeRunnerSystemInstructions:
 
             return ClaudeRunner()
 
-    def test_load_system_instructions_success(runner):
+    def test_load_system_instructions_success(self):
         """Test successful system instructions loading delegation to service."""
         mock_instructions = "# System Instructions\nYou are Claude Code."
 
         # Mock the system instructions service
-        runner.system_instructions_service = Mock()
-        runner.system_instructions_service.load_system_instructions.return_value = (
+        self.system_instructions_service = Mock()
+        self.system_instructions_service.load_system_instructions.return_value = (
             mock_instructions
         )
 
-        result = runner._load_system_instructions()
+        result = self._load_system_instructions()
 
         assert result == mock_instructions
-        runner.system_instructions_service.load_system_instructions.assert_called_once()
+        self.system_instructions_service.load_system_instructions.assert_called_once()
 
-    def test_load_system_instructions_not_found(runner):
+    def test_load_system_instructions_not_found(self):
         """Test system instructions loading when service returns None."""
         # Mock the system instructions service to return None
-        runner.system_instructions_service = Mock()
-        runner.system_instructions_service.load_system_instructions.return_value = None
+        self.system_instructions_service = Mock()
+        self.system_instructions_service.load_system_instructions.return_value = None
 
-        result = runner._load_system_instructions()
+        result = self._load_system_instructions()
 
         assert result is None
-        runner.system_instructions_service.load_system_instructions.assert_called_once()
+        self.system_instructions_service.load_system_instructions.assert_called_once()
 
-    def test_strip_metadata_comments(runner):
+    def test_strip_metadata_comments(self):
         """Test HTML metadata comment stripping delegation to service."""
         content_with_comments = """
         <!-- metadata: test -->
@@ -375,21 +375,21 @@ class TestClaudeRunnerSystemInstructions:
         """
 
         # Mock the system instructions service
-        runner.system_instructions_service = Mock()
-        runner.system_instructions_service.strip_metadata_comments.return_value = (
+        self.system_instructions_service = Mock()
+        self.system_instructions_service.strip_metadata_comments.return_value = (
             expected_result
         )
 
-        result = runner._strip_metadata_comments(content_with_comments)
+        result = self._strip_metadata_comments(content_with_comments)
 
         assert result == expected_result
-        runner.system_instructions_service.strip_metadata_comments.assert_called_once_with(
+        self.system_instructions_service.strip_metadata_comments.assert_called_once_with(
             content_with_comments
         )
         assert "Some instructions" in result
         assert "More content" in result
 
-    def test_process_base_pm_content(runner):
+    def test_process_base_pm_content(self):
         """Test BASE_PM.md content processing delegation to service."""
         base_content = """
         # Base PM Content
@@ -404,38 +404,38 @@ class TestClaudeRunnerSystemInstructions:
         """
 
         # Mock the system instructions service
-        runner.system_instructions_service = Mock()
-        runner.system_instructions_service.process_base_pm_content.return_value = (
+        self.system_instructions_service = Mock()
+        self.system_instructions_service.process_base_pm_content.return_value = (
             expected_result
         )
 
-        result = runner._process_base_pm_content(base_content)
+        result = self._process_base_pm_content(base_content)
 
         assert result == expected_result
-        runner.system_instructions_service.process_base_pm_content.assert_called_once_with(
+        self.system_instructions_service.process_base_pm_content.assert_called_once_with(
             base_content
         )
 
-    def test_create_system_prompt(runner):
+    def test_create_system_prompt(self):
         """Test system prompt creation delegation to service."""
-        runner.system_instructions = "Test instructions"
+        self.system_instructions = "Test instructions"
 
         # Mock the system instructions service
-        runner.system_instructions_service = Mock()
-        runner.system_instructions_service.create_system_prompt.return_value = (
+        self.system_instructions_service = Mock()
+        self.system_instructions_service.create_system_prompt.return_value = (
             "Test instructions"
         )
 
-        result = runner._create_system_prompt()
+        result = self._create_system_prompt()
 
         assert result == "Test instructions"
-        runner.system_instructions_service.create_system_prompt.assert_called_once_with(
+        self.system_instructions_service.create_system_prompt.assert_called_once_with(
             "Test instructions"
         )
 
         # Test fallback when no instructions - returns default context
-        runner.system_instructions = None
-        result = runner._create_system_prompt()
+        self.system_instructions = None
+        result = self._create_system_prompt()
         assert result is not None
         assert len(result) > 0  # Should return some default content
 
@@ -491,36 +491,36 @@ class TestClaudeRunnerAgentDeployment:
             runner.deployment_service = mock_deployment_service
             return runner
 
-    def test_setup_agents_success(runner):
+    def test_setup_agents_success(self):
         """Test successful agent setup."""
         # Mock the deployment service to return expected format
-        runner.deployment_service.deploy_agents.return_value = {
+        self.deployment_service.deploy_agents.return_value = {
             "deployed": ["agent1", "agent2", "agent3"],  # List of deployed agents
             "updated": [],
             "skipped": [],
             "errors": [],
         }
 
-        result = runner.setup_agents()
+        result = self.setup_agents()
 
         assert result is True
-        runner.deployment_service.deploy_agents.assert_called_once()
+        self.deployment_service.deploy_agents.assert_called_once()
 
-    def test_setup_agents_failure(runner):
+    def test_setup_agents_failure(self):
         """Test agent setup failure."""
-        runner.deployment_service.deploy_agents.side_effect = Exception("Deploy failed")
+        self.deployment_service.deploy_agents.side_effect = Exception("Deploy failed")
 
-        result = runner.setup_agents()
+        result = self.setup_agents()
 
         assert result is False
 
-    def test_ensure_project_agents_success(runner, tmp_path):
+    def test_ensure_project_agents_success(self, tmp_path):
         """Test successful project agent ensuring."""
         # Use a real temporary directory that exists
         test_project = tmp_path / "test_project"
         test_project.mkdir()
 
-        runner.deployment_service.deploy_agents.return_value = {
+        self.deployment_service.deploy_agents.return_value = {
             "deployed": ["agent1", "agent2", "agent3"],
             "updated": [],
             "skipped": [],
@@ -528,19 +528,19 @@ class TestClaudeRunnerAgentDeployment:
         }
 
         with patch.dict("os.environ", {"CLAUDE_MPM_USER_PWD": str(test_project)}):
-            result = runner.ensure_project_agents()
+            result = self.ensure_project_agents()
 
             assert result is True
-            runner.deployment_service.deploy_agents.assert_called()
+            self.deployment_service.deploy_agents.assert_called()
 
-    def test_deploy_project_agents_to_claude_no_agents(runner, tmp_path):
+    def test_deploy_project_agents_to_claude_no_agents(self, tmp_path):
         """Test project agent deployment when no agents exist."""
         # Setup test environment with no agents
         project_dir = tmp_path / "project"
         project_dir.mkdir()
 
         with patch.dict("os.environ", {"CLAUDE_MPM_USER_PWD": str(project_dir)}):
-            result = runner.deploy_project_agents_to_claude()
+            result = self.deploy_project_agents_to_claude()
 
             # Should return True when no agents to deploy
             assert result is True
@@ -594,67 +594,67 @@ class TestClaudeRunnerSubprocessManagement:
 
             return ClaudeRunner(launch_method="subprocess")
 
-    def test_launch_subprocess_interactive_success(runner):
+    def test_launch_subprocess_interactive_success(self):
         """Test successful subprocess launching delegation to service."""
         cmd = ["claude", "--test"]
         env = {"TEST": "value"}
 
         # Mock the subprocess launcher service
-        runner.subprocess_launcher_service = Mock()
+        self.subprocess_launcher_service = Mock()
 
-        runner._launch_subprocess_interactive(cmd, env)
+        self._launch_subprocess_interactive(cmd, env)
 
         # Verify delegation to service
-        runner.subprocess_launcher_service.launch_subprocess_interactive.assert_called_once_with(
+        self.subprocess_launcher_service.launch_subprocess_interactive.assert_called_once_with(
             cmd, env
         )
 
-    def test_launch_subprocess_interactive_with_websocket(runner):
+    def test_launch_subprocess_interactive_with_websocket(self):
         """Test subprocess launching delegation with WebSocket integration."""
-        runner.websocket_server = Mock()
+        self.websocket_server = Mock()
 
         cmd = ["claude"]
         env = {}
 
         # Mock the subprocess launcher service
-        runner.subprocess_launcher_service = Mock()
+        self.subprocess_launcher_service = Mock()
 
-        runner._launch_subprocess_interactive(cmd, env)
+        self._launch_subprocess_interactive(cmd, env)
 
         # Verify delegation to service
-        runner.subprocess_launcher_service.launch_subprocess_interactive.assert_called_once_with(
+        self.subprocess_launcher_service.launch_subprocess_interactive.assert_called_once_with(
             cmd, env
         )
 
-    def test_launch_subprocess_interactive_basic_setup(runner):
+    def test_launch_subprocess_interactive_basic_setup(self):
         """Test basic subprocess setup delegation to service."""
         cmd = ["claude"]
         env = {}
 
         # Mock the subprocess launcher service
-        runner.subprocess_launcher_service = Mock()
+        self.subprocess_launcher_service = Mock()
 
         # Should complete without error
-        runner._launch_subprocess_interactive(cmd, env)
+        self._launch_subprocess_interactive(cmd, env)
 
         # Verify delegation to service
-        runner.subprocess_launcher_service.launch_subprocess_interactive.assert_called_once_with(
+        self.subprocess_launcher_service.launch_subprocess_interactive.assert_called_once_with(
             cmd, env
         )
 
-    def test_launch_subprocess_interactive_service_unavailable(runner):
+    def test_launch_subprocess_interactive_service_unavailable(self):
         """Test subprocess launching when service is unavailable."""
         cmd = ["claude"]
         env = {}
 
         # Set service to None to test fallback
-        runner.subprocess_launcher_service = None
+        self.subprocess_launcher_service = None
 
         # Should raise RuntimeError when service is not available
         with pytest.raises(
             RuntimeError, match="Subprocess launcher service not available"
         ):
-            runner._launch_subprocess_interactive(cmd, env)
+            self._launch_subprocess_interactive(cmd, env)
 
 
 class TestClaudeRunnerSessionManagement:
@@ -719,50 +719,50 @@ class TestClaudeRunnerSessionManagement:
             runner.utility_service = mock_utility_service
             return runner
 
-    def test_run_interactive_success(runner):
+    def test_run_interactive_success(self):
         """Test successful interactive session execution."""
         # Mock the session management service
         mock_session_service = Mock()
-        runner.session_management_service = mock_session_service
+        self.session_management_service = mock_session_service
 
         # Should not raise exception
-        runner.run_interactive("test context")
+        self.run_interactive("test context")
 
         # Verify the session management service was called
         mock_session_service.run_interactive_session.assert_called_once_with(
             "test context"
         )
 
-    def test_run_interactive_initialization_failure(runner):
+    def test_run_interactive_initialization_failure(self):
         """Test interactive session when service is not available."""
         # Don't set session_management_service (it should be None)
-        runner.session_management_service = None
+        self.session_management_service = None
 
         # Should not raise exception, just log error
-        runner.run_interactive("test context")
+        self.run_interactive("test context")
 
         # No assertions needed - just verify it doesn't crash
 
-    def test_run_oneshot_success(runner):
+    def test_run_oneshot_success(self):
         """Test successful oneshot session execution."""
         # Mock the session management service
         mock_session_service = Mock()
         mock_session_service.run_oneshot_session.return_value = True
-        runner.session_management_service = mock_session_service
+        self.session_management_service = mock_session_service
 
-        result = runner.run_oneshot("test prompt", "test context")
+        result = self.run_oneshot("test prompt", "test context")
 
         assert result is True
         mock_session_service.run_oneshot_session.assert_called_once_with(
             "test prompt", "test context"
         )
 
-    def test_run_oneshot_mmp_command(runner):
+    def test_run_oneshot_mmp_command(self):
         """Test oneshot session when service is not available."""
         # Don't set session_management_service (it should be None)
-        runner.session_management_service = None
+        self.session_management_service = None
 
-        result = runner.run_oneshot("/mpm:test")
+        result = self.run_oneshot("/mpm:test")
 
         assert result is False  # Should return False when service not available
 
@@ -829,72 +829,72 @@ class TestClaudeRunnerUtilityMethods:
             runner.utility_service = mock_utility_service
             return runner
 
-    def test_extract_tickets_disabled(runner):
+    def test_extract_tickets_disabled(self):
         """Test that ticket extraction is disabled."""
         # Ticket extraction is disabled - should not raise exception
-        runner._extract_tickets("test text")
+        self._extract_tickets("test text")
 
         # Verify ticket manager is None (disabled)
-        assert runner.ticket_manager is None
+        assert self.ticket_manager is None
 
-    def test_contains_delegation(runner):
+    def test_contains_delegation(self):
         """Test delegation detection in text."""
         # Test that the method exists and runs
-        result1 = runner._contains_delegation(
+        result1 = self._contains_delegation(
             "I'll delegate this to the code-analyzer agent"
         )
-        result2 = runner._contains_delegation("I'll handle this myself")
+        result2 = self._contains_delegation("I'll handle this myself")
 
         # The method should return boolean values
         assert isinstance(result1, bool)
         assert isinstance(result2, bool)
 
-    def test_extract_agent_from_response(runner):
+    def test_extract_agent_from_response(self):
         """Test agent name extraction from delegation response."""
         # Test that the method exists and runs
-        result1 = runner._extract_agent_from_response(
+        result1 = self._extract_agent_from_response(
             "I'll use the code-analyzer agent"
         )
-        result2 = runner._extract_agent_from_response("No agent mentioned here")
+        result2 = self._extract_agent_from_response("No agent mentioned here")
 
         # The method should return string or None
         assert result1 is None or isinstance(result1, str)
         assert result2 is None or isinstance(result2, str)
 
-    def test_handle_mpm_command(runner):
+    def test_handle_mpm_command(self):
         """Test MPM command handling."""
         # Test that the method exists and runs
-        result1 = runner._handle_mpm_command("/mpm:version")
-        result2 = runner._handle_mpm_command("/mpm:invalid")
+        result1 = self._handle_mpm_command("/mpm:version")
+        result2 = self._handle_mpm_command("/mpm:invalid")
 
         # The method should return boolean values
         assert isinstance(result1, bool)
         assert isinstance(result2, bool)
 
-    def test_log_session_event(runner):
+    def test_log_session_event(self):
         """Test session event logging delegation to utility service."""
-        runner.session_log_file = Path("/tmp/test.log")
+        self.session_log_file = Path("/tmp/test.log")
         event_data = {"event": "test", "data": "value"}
 
         # Test that the method delegates to the utility service
-        runner._log_session_event(event_data)
+        self._log_session_event(event_data)
 
         # Verify the utility service was called with the correct parameters
-        runner.utility_service.log_session_event.assert_called_once_with(
-            runner.session_log_file, event_data
+        self.utility_service.log_session_event.assert_called_once_with(
+            self.session_log_file, event_data
         )
 
-    def test_log_session_event_no_file(runner):
+    def test_log_session_event_no_file(self):
         """Test session event logging when no log file."""
-        runner.session_log_file = None
+        self.session_log_file = None
 
         # Should not raise exception
-        runner._log_session_event({"event": "test"})
+        self._log_session_event({"event": "test"})
 
-    def test_get_version(runner):
+    def test_get_version(self):
         """Test version detection."""
         # Test that the method exists and returns a version string
-        version = runner._get_version()
+        version = self._get_version()
 
         assert isinstance(version, str)
         assert len(version) > 0

@@ -115,7 +115,7 @@ def test_memory_system_comprehensive():
             # Create response with memories
             response = f"""
             Task completed successfully.
-            
+
             ```json
             {{
                 "status": "completed",

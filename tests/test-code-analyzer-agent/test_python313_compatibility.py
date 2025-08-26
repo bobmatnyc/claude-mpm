@@ -241,9 +241,9 @@ def test_import_performance():
             from tree_sitter import Language
 
             if module_name == "tree_sitter_typescript":
-                lang = Language(module.language_typescript())
+                Language(module.language_typescript())
             else:
-                lang = Language(module.language())
+                Language(module.language())
 
             creation_time = time.time() - start_time
             print(f"   ✅ Language object created in {creation_time:.3f}s")

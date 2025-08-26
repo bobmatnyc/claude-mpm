@@ -23,9 +23,9 @@ from .run import run_session
 from .tickets import list_tickets, manage_tickets
 
 __all__ = [
+    "AnalyzeCodeCommand",
     "aggregate_command",
     "analyze_command",
-    "AnalyzeCodeCommand",
     "cleanup_memory",
     "list_tickets",
     "manage_agent_manager",

@@ -55,7 +55,7 @@ def main():
             cwd=Path(__file__).parent.parent,
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=30, check=False,
         )
 
         time.sleep(1)

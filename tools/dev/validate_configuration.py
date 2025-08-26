@@ -20,8 +20,6 @@ USAGE:
 """
 
 import argparse
-import json
-import os
 import re
 import sys
 from pathlib import Path
@@ -42,7 +40,6 @@ except ImportError:
     sys.exit(1)
 
 from claude_mpm.core.config import Config
-from claude_mpm.utils.config_manager import ConfigurationManager
 
 
 class ConfigurationValidator:
@@ -87,7 +84,7 @@ class ConfigurationValidator:
             return False, None
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             # Check for common YAML mistakes before parsing
@@ -134,7 +131,7 @@ class ConfigurationValidator:
 
                 # Try to provide context
                 try:
-                    with open(file_path, "r") as f:
+                    with open(file_path) as f:
                         lines = f.readlines()
                         if mark.line < len(lines):
                             self.errors.append(
@@ -329,7 +326,7 @@ class ConfigurationValidator:
                     print(f"  {key}: {value}")
 
             if self.verbose:
-                print(f"✓ Configuration loads successfully with Config class")
+                print("✓ Configuration loads successfully with Config class")
 
             return True
 
@@ -371,7 +368,7 @@ class ConfigurationValidator:
                 print("✗ Configuration structure validation failed")
 
         # Step 3: Validate loading with Config class
-        loading_valid = self.validate_config_loading(file_path)
+        self.validate_config_loading(file_path)
 
         # Return True only if no errors
         return len(self.errors) == 0
@@ -399,7 +396,7 @@ class ConfigurationValidator:
 
         # Print suggestions
         if self.suggestions:
-            print(f"\n💡 SUGGESTIONS:")
+            print("\n💡 SUGGESTIONS:")
             for suggestion in self.suggestions:
                 print(f"  → {suggestion}")
 
@@ -409,17 +406,16 @@ class ConfigurationValidator:
                 f"\n❌ Configuration validation FAILED with {len(self.errors)} error(s)"
             )
             return 1
-        elif self.warnings and strict:
+        if self.warnings and strict:
             print(
                 f"\n⚠️  Configuration has {len(self.warnings)} warning(s) (strict mode)"
             )
             return 2
-        elif self.warnings:
+        if self.warnings:
             print(f"\n✅ Configuration is valid with {len(self.warnings)} warning(s)")
             return 0
-        else:
-            print(f"\n✅ Configuration is VALID")
-            return 0
+        print("\n✅ Configuration is VALID")
+        return 0
 
 
 def main():
@@ -477,10 +473,9 @@ def main():
             return 1
 
         return 0 if all_valid else 1
-    else:
-        # Validate single file
-        valid = validator.validate_file(args.config)
-        return validator.print_results(args.strict)
+    # Validate single file
+    valid = validator.validate_file(args.config)
+    return validator.print_results(args.strict)
 
 
 if __name__ == "__main__":

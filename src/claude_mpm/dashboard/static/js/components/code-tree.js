@@ -526,7 +526,9 @@ class CodeTree {
             this.requestTimeout = null;
         }
         
-        this.updateProgress(0, `Analyzing ${data.total_files || 0} files...`);
+        const message = `Analyzing ${data.total_files || 0} files...`;
+        this.updateProgress(0, message);
+        this.updateTicker(message, 'progress');
         this.showNotification('Analysis started - building tree in real-time...', 'info');
     }
 
@@ -535,7 +537,9 @@ class CodeTree {
      */
     handleFileStart(data) {
         console.log('Analyzing file:', data.path);
-        this.updateProgress(data.progress || 0, `Analyzing: ${data.path}`);
+        const message = `Analyzing: ${data.path}`;
+        this.updateProgress(data.progress || 0, message);
+        this.updateTicker(`📄 ${data.path}`, 'file');
         
         // Add file node to tree
         const fileNode = {
@@ -586,6 +590,17 @@ class CodeTree {
      */
     handleNodeFound(data) {
         console.log('Node found:', data);
+        
+        // Update ticker with node discovery
+        const icons = {
+            'function': '⚡',
+            'class': '🏛️',
+            'method': '🔧',
+            'module': '📦'
+        };
+        const icon = icons[data.type] || '📌';
+        const nodeName = data.name || 'unnamed';
+        this.updateTicker(`${icon} ${nodeName}`, 'node');
         
         // Create node object
         const node = {
@@ -669,6 +684,8 @@ class CodeTree {
         }
         
         // Show completion message
+        const completeMessage = `✅ Complete: ${this.stats.files} files, ${this.stats.functions} functions, ${this.stats.classes} classes`;
+        this.updateTicker(completeMessage, 'progress');
         this.showNotification('Analysis complete', 'success');
     }
 
@@ -686,7 +703,9 @@ class CodeTree {
         this.resetAnalysisState();
         
         // Show error message
-        this.showNotification(`Analysis failed: ${data.message || 'Unknown error'}`, 'error');
+        const errorMessage = data.message || 'Unknown error';
+        this.updateTicker(`❌ ${errorMessage}`, 'error');
+        this.showNotification(`Analysis failed: ${errorMessage}`, 'error');
     }
     
     /**
@@ -1097,9 +1116,37 @@ class CodeTree {
             current = current.parent;
         }
         
-        const breadcrumb = document.getElementById('code-breadcrumb');
-        if (breadcrumb) {
-            breadcrumb.textContent = path.join(' > ');
+        const breadcrumbContent = document.getElementById('breadcrumb-content');
+        if (breadcrumbContent) {
+            breadcrumbContent.textContent = path.join(' > ');
+            breadcrumbContent.className = 'ticker-file';
+        }
+    }
+    
+    /**
+     * Update ticker with event
+     */
+    updateTicker(message, type = 'info') {
+        const breadcrumbContent = document.getElementById('breadcrumb-content');
+        if (breadcrumbContent) {
+            // Add class based on type
+            let className = '';
+            switch(type) {
+                case 'file': className = 'ticker-file'; break;
+                case 'node': className = 'ticker-node'; break;
+                case 'progress': className = 'ticker-progress'; break;
+                case 'error': className = 'ticker-error'; break;
+                default: className = '';
+            }
+            
+            breadcrumbContent.textContent = message;
+            breadcrumbContent.className = className + ' ticker-event';
+            
+            // Trigger animation
+            breadcrumbContent.style.animation = 'none';
+            setTimeout(() => {
+                breadcrumbContent.style.animation = '';
+            }, 10);
         }
     }
 

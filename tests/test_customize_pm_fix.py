@@ -40,7 +40,7 @@ def test_customize_pm_location():
 
             # Run the customize-pm command
             cmd = AgentManagerCommand()
-            result = cmd.run(args)
+            cmd.run(args)
 
             # Check that the file was created in the right place
             expected_file = Path(tmpdir) / ".claude-mpm" / "INSTRUCTIONS.md"

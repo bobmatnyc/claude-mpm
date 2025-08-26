@@ -153,7 +153,7 @@ class StartupBenchmark:
             self.logger.info(f"  Testing command: {' '.join(cmd)}")
 
             for i in range(samples):
-                full_command = [str(self.claude_mpm_script)] + cmd
+                full_command = [str(self.claude_mpm_script), *cmd]
                 measurement = self.measure_process_startup(full_command)
                 measurements.append(measurement)
 
@@ -428,7 +428,7 @@ async def main():
     results = await benchmark.run_comprehensive_benchmark(args.samples)
 
     # Save results
-    output_file = benchmark.save_results(results, args.output)
+    benchmark.save_results(results, args.output)
 
     # Print summary
     benchmark.print_summary(results)

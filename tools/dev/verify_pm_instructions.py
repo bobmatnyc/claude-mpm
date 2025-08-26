@@ -48,7 +48,7 @@ def verify_pm_instructions():
         if "agent" in aid or aid in ["engineer", "data-engineer", "version-control"]
     ]
 
-    print(f"\nAll agent IDs found in PM instructions:")
+    print("\nAll agent IDs found in PM instructions:")
     for aid in sorted(set(agent_like_ids)):
         print(f"  - {aid}")
 
@@ -57,7 +57,7 @@ def verify_pm_instructions():
     lines = pm_instructions.split("\n")
     task_examples = []
 
-    for i, line in enumerate(lines):
+    for _i, line in enumerate(lines):
         if "subagent_type" in line:
             task_examples.append(line.strip())
 

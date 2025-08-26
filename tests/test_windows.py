@@ -6,6 +6,7 @@
 
 """Windows specific tests."""
 
+import contextlib
 import datetime
 import glob
 import os
@@ -714,6 +715,7 @@ class RemoteProcessTestCase(PsutilTestCase):
             proc.wait()
             if output == str(not IS_64BIT):
                 return filename
+        return None
 
     test_args = ["-c", "import sys; sys.stdin.read()"]
 
@@ -733,10 +735,10 @@ class RemoteProcessTestCase(PsutilTestCase):
         env = os.environ.copy()
         env["THINK_OF_A_NUMBER"] = str(os.getpid())
         self.proc32 = self.spawn_testproc(
-            [self.python32] + self.test_args, env=env, stdin=subprocess.PIPE
+            [self.python32, *self.test_args], env=env, stdin=subprocess.PIPE
         )
         self.proc64 = self.spawn_testproc(
-            [self.python64] + self.test_args, env=env, stdin=subprocess.PIPE
+            [self.python64, *self.test_args], env=env, stdin=subprocess.PIPE
         )
 
     def tearDown(self):
@@ -770,10 +772,8 @@ class RemoteProcessTestCase(PsutilTestCase):
 
     def test_environ_64(self):
         p = psutil.Process(self.proc64.pid)
-        try:
+        with contextlib.suppress(psutil.AccessDenied):
             p.environ()
-        except psutil.AccessDenied:
-            pass
 
 
 # ===================================================================
@@ -844,28 +844,24 @@ class TestServices(PsutilTestCase):
         exc.winerror = ERROR_SERVICE_DOES_NOT_EXIST
         with mock.patch(
             "psutil._psplatform.cext.winservice_query_status", side_effect=exc
-        ):
-            with pytest.raises(psutil.NoSuchProcess):
-                service.status()
+        ), pytest.raises(psutil.NoSuchProcess):
+            service.status()
         with mock.patch(
             "psutil._psplatform.cext.winservice_query_config", side_effect=exc
-        ):
-            with pytest.raises(psutil.NoSuchProcess):
-                service.username()
+        ), pytest.raises(psutil.NoSuchProcess):
+            service.username()
 
         # test AccessDenied
         exc = OSError(0, "msg", 0)
         exc.winerror = ERROR_ACCESS_DENIED
         with mock.patch(
             "psutil._psplatform.cext.winservice_query_status", side_effect=exc
-        ):
-            with pytest.raises(psutil.AccessDenied):
-                service.status()
+        ), pytest.raises(psutil.AccessDenied):
+            service.status()
         with mock.patch(
             "psutil._psplatform.cext.winservice_query_config", side_effect=exc
-        ):
-            with pytest.raises(psutil.AccessDenied):
-                service.username()
+        ), pytest.raises(psutil.AccessDenied):
+            service.username()
 
         # test __str__ and __repr__
         assert service.name() in str(service)

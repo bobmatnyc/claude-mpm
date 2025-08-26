@@ -12,9 +12,7 @@ Run this script to apply the memory leak fixes to your claude-mpm installation.
 """
 
 import json
-import os
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
@@ -34,9 +32,8 @@ def backup_file(file_path):
         shutil.copy2(file_path, backup_path)
         print(f"✅ Created backup: {backup_path}")
         return backup_path
-    else:
-        print(f"ℹ️  Backup already exists: {backup_path}")
-        return backup_path
+    print(f"ℹ️  Backup already exists: {backup_path}")
+    return backup_path
 
 
 def apply_hook_handler_fix(root_dir):
@@ -49,13 +46,13 @@ def apply_hook_handler_fix(root_dir):
         print(f"❌ Hook handler not found at {hook_handler_path}")
         return False
 
-    print(f"\n📝 Fixing hook handler memory leaks...")
+    print("\n📝 Fixing hook handler memory leaks...")
 
     # Backup the original file
     backup_file(hook_handler_path)
 
     # Read the original file
-    with open(hook_handler_path, "r") as f:
+    with open(hook_handler_path) as f:
         content = f.read()
 
     # Apply fixes

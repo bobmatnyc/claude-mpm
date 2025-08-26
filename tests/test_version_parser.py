@@ -198,7 +198,7 @@ version = "1.5.3"
             time.sleep(1.1)
 
             # Third call should hit the source again
-            version3 = self.parser.get_current_version()
+            self.parser.get_current_version()
             self.assertEqual(mock_git.call_count, 2)
 
     def test_prerelease_filtering():

@@ -14,7 +14,6 @@ WHY this diagnostic:
 - Provides detailed timing information
 """
 
-import asyncio
 import json
 import sys
 import time
@@ -246,10 +245,7 @@ class DiagnosticSocketIOServer:
 
 def main():
     """Main diagnostic entry point."""
-    if len(sys.argv) > 1:
-        port = int(sys.argv[1])
-    else:
-        port = 8765
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
 
     server = DiagnosticSocketIOServer(port=port)
     server.run()

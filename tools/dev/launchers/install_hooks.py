@@ -33,8 +33,7 @@ def detect_package_origin():
         # PyPI packages are typically in site-packages
         if "site-packages" in str(package_path):
             return "pypi", package_path
-        else:
-            return "unknown", package_path
+        return "unknown", package_path
     except ImportError:
         pass
 
@@ -48,21 +47,21 @@ def find_hook_files():
     if origin == "local":
         # Development environment
         hook_dir = base_path / "src" / "claude_mpm" / "hooks" / "claude_hooks"
-        print(f"📦 Package origin: Local development")
+        print("📦 Package origin: Local development")
     elif origin == "npm":
         # npm installation
         hook_dir = base_path / "dist" / "claude_mpm" / "hooks" / "claude_hooks"
         if not hook_dir.exists():
             # Try alternative npm structure
             hook_dir = base_path / "src" / "claude_mpm" / "hooks" / "claude_hooks"
-        print(f"📦 Package origin: npm")
+        print("📦 Package origin: npm")
     elif origin == "pypi":
         # PyPI installation
         hook_dir = base_path / "hooks" / "claude_hooks"
-        print(f"📦 Package origin: PyPI")
+        print("📦 Package origin: PyPI")
     else:
         # Unknown, try to find it
-        print(f"📦 Package origin: Unknown, searching...")
+        print("📦 Package origin: Unknown, searching...")
         possible_locations = [
             Path(sys.prefix)
             / "lib"
@@ -109,7 +108,7 @@ def install_hooks():
 
         st = os.stat(hook_wrapper)
         os.chmod(hook_wrapper, st.st_mode | stat.S_IEXEC)
-        print(f"✓ Made hook wrapper executable")
+        print("✓ Made hook wrapper executable")
 
     # Get absolute path to hook wrapper
     hook_wrapper = hook_dir / "hook_wrapper.sh"
@@ -125,7 +124,7 @@ def install_hooks():
 
     # Load existing settings or create new
     if settings_file.exists():
-        with open(settings_file, "r") as f:
+        with open(settings_file) as f:
             settings = json.load(f)
         print("✓ Found existing Claude settings")
     else:

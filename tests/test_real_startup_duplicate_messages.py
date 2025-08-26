@@ -10,8 +10,7 @@ from pathlib import Path
 def count_success_messages(output):
     """Count how many times the success message appears."""
     lines = output.split("\n")
-    count = sum(1 for line in lines if "Successfully loaded configuration" in line)
-    return count
+    return sum(1 for line in lines if "Successfully loaded configuration" in line)
 
 
 def test_with_real_cli():
@@ -127,7 +126,7 @@ config1 = Config()
 from claude_mpm.services.hook_service import HookService
 hook_service = HookService()
 
-# Import via another service  
+# Import via another service
 from claude_mpm.utils.runner_config import RunnerConfiguration
 runner_config = RunnerConfiguration()
 

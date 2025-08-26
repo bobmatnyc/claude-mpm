@@ -23,7 +23,7 @@ def fix_import_syntax(file_path: Path) -> bool:
         True if file was modified, False otherwise
     """
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
         original_content = content
@@ -135,7 +135,7 @@ def main():
                 total_fixed += 1
 
     print("=" * 40)
-    print(f"Import syntax fix complete!")
+    print("Import syntax fix complete!")
     print(f"Files fixed: {total_fixed}")
 
     return 0

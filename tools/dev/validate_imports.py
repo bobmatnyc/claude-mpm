@@ -9,7 +9,7 @@ import ast
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Tuple
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -28,7 +28,7 @@ def find_python_files(directory: Path) -> List[Path]:
 def extract_imports(file_path: Path) -> List[str]:
     """Extract import statements from a Python file."""
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
         tree = ast.parse(content)
@@ -151,16 +151,16 @@ def validate_imports():
             failed_imports[import_stmt].append((Path("COMPATIBILITY"), error))
 
     # Summary
-    print(f"\n📊 Import Validation Summary:")
-    print(f"-" * 30)
+    print("\n📊 Import Validation Summary:")
+    print("-" * 30)
     print(f"Total imports tested: {total_imports}")
     print(f"Successful imports: {success_count}")
     print(f"Failed imports: {total_imports - success_count}")
     print(f"Success rate: {(success_count/total_imports)*100:.1f}%")
 
     if failed_imports:
-        print(f"\n❌ Failed Import Details:")
-        print(f"-" * 25)
+        print("\n❌ Failed Import Details:")
+        print("-" * 25)
         for import_stmt, failures in failed_imports.items():
             print(f"\n{import_stmt}")
             for file_path, error in failures:
@@ -168,8 +168,8 @@ def validate_imports():
                 print(f"  Error: {error}")
 
     # Recommendations
-    print(f"\n💡 Recommendations:")
-    print(f"-" * 18)
+    print("\n💡 Recommendations:")
+    print("-" * 18)
 
     if failed_imports:
         print("1. Fix broken direct imports by updating to new service structure")

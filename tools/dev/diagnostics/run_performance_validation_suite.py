@@ -11,8 +11,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, Optional
 
 # Add the src directory to Python path
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -55,7 +54,7 @@ class PerformanceValidationSuite:
                 [sys.executable, script_path],
                 capture_output=True,
                 text=True,
-                timeout=300,
+                timeout=300, check=False,
             )  # 5 minute timeout
             end_time = time.time()
 
@@ -89,7 +88,7 @@ class PerformanceValidationSuite:
         except subprocess.TimeoutExpired:
             return {
                 "status": "timeout",
-                "error": f"Test script timed out after 5 minutes",
+                "error": "Test script timed out after 5 minutes",
                 "test_category": test_category,
             }
         except Exception as e:
@@ -377,13 +376,13 @@ class PerformanceValidationSuite:
                 f"Batch Processing: {'✅ Working' if any('Event batching' in imp for imp in metrics['performance_improvements_validated']) else '❌ Issues'}",
                 f"Integration: {'✅ Working' if any('integration' in imp.lower() for imp in metrics['performance_improvements_validated']) else '❌ Issues'}",
                 "",
-                f"Full test results saved to: /tmp/performance_validation_results.json",
+                "Full test results saved to: /tmp/performance_validation_results.json",
             ]
         )
 
         return "\n".join(report_lines)
 
-    def save_results(self, filepath: str = None):
+    def save_results(self, filepath: Optional[str] = None):
         """Save detailed results to JSON file."""
         if filepath is None:
             filepath = "/tmp/performance_validation_results.json"

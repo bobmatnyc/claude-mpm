@@ -17,7 +17,7 @@ class ListViewTest(App):
         border-right: solid $primary;
         padding: 1;
     }
-    
+
     #output {
         padding: 1;
     }

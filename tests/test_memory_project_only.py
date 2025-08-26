@@ -72,7 +72,7 @@ def test_memory_project_only():
         print("\n4. Testing memory extraction...")
         test_response = """
         Task completed successfully.
-        
+
         ```json
         {
             "status": "completed",

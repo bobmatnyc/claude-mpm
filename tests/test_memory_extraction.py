@@ -21,10 +21,10 @@ def test_memory_extraction():
     # Test agent response with remember field
     test_response = """
     I've completed the analysis of the codebase.
-    
+
     ## Summary
     The project uses a service-oriented architecture with clear separation of concerns.
-    
+
     ```json
     {
       "task_completed": true,
@@ -61,7 +61,7 @@ def test_memory_extraction():
     # Test with null remember field
     test_response_null = """
     Task completed without new learnings.
-    
+
     ```json
     {
       "task_completed": true,
@@ -85,7 +85,7 @@ def test_memory_extraction():
     # Test adding more memories
     test_response_2 = """
     Found more patterns.
-    
+
     ```json
     {
       "task_completed": true,

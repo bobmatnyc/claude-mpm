@@ -100,7 +100,7 @@ class TestCommandSeparation(unittest.TestCase):
         spec = importlib.util.spec_from_file_location(
             "run_guarded", self.run_guarded_module_path
         )
-        run_guarded_module = importlib.util.module_from_spec(spec)
+        importlib.util.module_from_spec(spec)
 
         # Check that MemoryAwareClaudeRunner is imported
         with open(self.run_guarded_module_path) as f:

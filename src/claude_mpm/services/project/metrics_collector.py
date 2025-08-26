@@ -166,7 +166,7 @@ class MetricsCollectorService:
 
         for file_path in self._iter_code_files():
             try:
-                size = file_path.stat().st_size
+                file_path.stat().st_size
                 lines = len(
                     file_path.read_text(encoding="utf-8", errors="ignore").splitlines()
                 )
@@ -377,7 +377,7 @@ class MetricsCollectorService:
 
         # Count directories
         dir_count = 0
-        for dirpath, dirnames, _ in self.working_directory.walk():
+        for _dirpath, dirnames, _ in self.working_directory.walk():
             dirnames[:] = [d for d in dirnames if d not in self.EXCLUDE_DIRS]
             dir_count += len(dirnames)
 
@@ -404,7 +404,4 @@ class MetricsCollectorService:
     def _should_analyze_file(self, file_path: Path) -> bool:
         """Check if a file should be analyzed."""
         # Skip files in excluded directories
-        for part in file_path.parts:
-            if part in self.EXCLUDE_DIRS:
-                return False
-        return True
+        return all(part not in self.EXCLUDE_DIRS for part in file_path.parts)

@@ -43,7 +43,7 @@ def test_no_automatic_deployment():
         logger.info(
             "Testing deploy_agents() - should NOT create system instructions..."
         )
-        results = service.deploy_agents(force_rebuild=False)
+        service.deploy_agents(force_rebuild=False)
 
         # Check that .claude directory doesn't have system instructions
         instructions_in_claude = [
@@ -65,7 +65,7 @@ def test_no_automatic_deployment():
 
         # Test explicit deployment
         logger.info("\nTesting explicit deployment to .claude-mpm/...")
-        deploy_results = service.deploy_system_instructions_explicit(
+        service.deploy_system_instructions_explicit(
             target_dir=claude_mpm_dir, force_rebuild=True
         )
 

@@ -33,9 +33,9 @@ class TestRunCommandMigration:
         assert result is None  # No validation errors
 
     @patch("claude_mpm.cli.commands.run.RunCommand._execute_run_session")
-    def test_run_success(mock_execute):
+    def test_run_success(self):
         """Test successful run execution."""
-        mock_execute.return_value = True
+        self.return_value = True
         args = Namespace(logging="OFF")
 
         result = self.command.run(args)
@@ -46,9 +46,9 @@ class TestRunCommandMigration:
         assert "successfully" in result.message
 
     @patch("claude_mpm.cli.commands.run.RunCommand._execute_run_session")
-    def test_run_failure(mock_execute):
+    def test_run_failure(self):
         """Test failed run execution."""
-        mock_execute.return_value = False
+        self.return_value = False
         args = Namespace(logging="OFF")
 
         result = self.command.run(args)
@@ -59,9 +59,9 @@ class TestRunCommandMigration:
         assert "failed" in result.message
 
     @patch("claude_mpm.cli.commands.run.RunCommand._execute_run_session")
-    def test_run_keyboard_interrupt(mock_execute):
+    def test_run_keyboard_interrupt(self):
         """Test handling of keyboard interrupt."""
-        mock_execute.side_effect = KeyboardInterrupt()
+        self.side_effect = KeyboardInterrupt()
         args = Namespace(logging="OFF")
 
         result = self.command.run(args)
@@ -72,21 +72,21 @@ class TestRunCommandMigration:
         assert "cancelled" in result.message
 
     @patch("claude_mpm.cli.commands.run.run_session_legacy")
-    def test_execute_run_session_delegates_to_legacy(mock_legacy):
+    def test_execute_run_session_delegates_to_legacy(self):
         """Test that _execute_run_session delegates to legacy function."""
         args = Namespace(logging="OFF")
-        mock_legacy.return_value = None
+        self.return_value = None
 
         result = self.command._execute_run_session(args)
 
         assert result is True
-        mock_legacy.assert_called_once_with(args)
+        self.assert_called_once_with(args)
 
     @patch("claude_mpm.cli.commands.run.run_session_legacy")
-    def test_execute_run_session_handles_legacy_exception(mock_legacy):
+    def test_execute_run_session_handles_legacy_exception(self):
         """Test that _execute_run_session handles legacy function exceptions."""
         args = Namespace(logging="OFF")
-        mock_legacy.side_effect = Exception("Legacy error")
+        self.side_effect = Exception("Legacy error")
 
         result = self.command._execute_run_session(args)
 
@@ -115,33 +115,33 @@ class TestRunCommandHelperMethods:
         self.command = RunCommand()
 
     @patch("claude_mpm.cli.commands.run_config_checker.RunConfigChecker")
-    def test_check_configuration_health(mock_checker_class):
+    def test_check_configuration_health(self):
         """Test configuration health check."""
         mock_checker = Mock()
-        mock_checker_class.return_value = mock_checker
+        self.return_value = mock_checker
 
         self.command._check_configuration_health()
 
-        mock_checker_class.assert_called_once_with(self.command.logger)
+        self.assert_called_once_with(self.command.logger)
         mock_checker.check_configuration_health.assert_called_once()
 
     @patch("claude_mpm.cli.commands.run_config_checker.RunConfigChecker")
-    def test_check_claude_json_memory(mock_checker_class):
+    def test_check_claude_json_memory(self):
         """Test Claude JSON memory check."""
         mock_checker = Mock()
-        mock_checker_class.return_value = mock_checker
+        self.return_value = mock_checker
         args = Namespace()
 
         self.command._check_claude_json_memory(args)
 
-        mock_checker_class.assert_called_once_with(self.command.logger)
+        self.assert_called_once_with(self.command.logger)
         mock_checker.check_claude_json_memory.assert_called_once_with(args)
 
     @patch("claude_mpm.core.session_manager.SessionManager")
-    def test_setup_session_management_no_resume(mock_session_manager_class):
+    def test_setup_session_management_no_resume(self):
         """Test session management setup without resume."""
         mock_session_manager = Mock()
-        mock_session_manager_class.return_value = mock_session_manager
+        self.return_value = mock_session_manager
         args = Namespace()
 
         result = self.command._setup_session_management(args)
@@ -161,16 +161,16 @@ class TestRunCommandHelperMethods:
         assert websocket_port == 8765
 
     @patch("claude_mpm.core.claude_runner.ClaudeRunner")
-    def test_setup_claude_runner(mock_claude_runner_class):
+    def test_setup_claude_runner(self):
         """Test Claude runner setup."""
         mock_runner = Mock()
-        mock_claude_runner_class.return_value = mock_runner
+        self.return_value = mock_runner
         args = Namespace(logging="OFF")
 
         result = self.command._setup_claude_runner(args, False, 8765)
 
         assert result == mock_runner
-        mock_claude_runner_class.assert_called_once()
+        self.assert_called_once()
 
     def test_is_socketio_server_running_false():
         """Test Socket.IO server running check when not running."""

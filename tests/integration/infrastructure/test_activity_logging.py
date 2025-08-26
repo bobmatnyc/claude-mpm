@@ -24,16 +24,16 @@ def test_configuration():
 
     # Check old response logging is disabled
     assert (
-        config.get("response_logging.enabled", True) == False
+        not config.get("response_logging.enabled", True)
     ), "Response logging should be disabled"
     assert (
-        config.get("response_tracking.enabled", True) == False
+        not config.get("response_tracking.enabled", True)
     ), "Response tracking should be disabled"
     print("✅ Old response logging disabled")
 
     # Check event aggregator is enabled
     assert (
-        config.get("event_aggregator.enabled", False) == True
+        config.get("event_aggregator.enabled", False)
     ), "Event aggregator should be enabled"
     print("✅ Event aggregator enabled")
 

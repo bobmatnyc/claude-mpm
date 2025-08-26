@@ -62,11 +62,7 @@ class MemoryFormatService:
             line = line.strip()
             # Skip headers, empty lines, and metadata
             if (
-                not line
-                or line.startswith("#")
-                or line.startswith("Last Updated:")
-                or line.startswith("**")
-                or line == "---"
+                not line or line.startswith(("#", "Last Updated:", "**")) or line == "---"
             ):
                 continue
 

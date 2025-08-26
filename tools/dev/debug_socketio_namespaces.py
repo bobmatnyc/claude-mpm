@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Debug Socket.IO namespace connections."""
 
-import asyncio
+import contextlib
 import sys
 import time
 from pathlib import Path
@@ -89,10 +89,8 @@ def test_namespace_connections():
             except Exception as e:
                 print(f"  ❌ {namespace}: FAILED - {e}")
                 results[namespace] = False
-                try:
+                with contextlib.suppress(Exception):
                     sio.disconnect()
-                except:
-                    pass
 
         # Summary
         print(f"\n{'='*50}")

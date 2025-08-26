@@ -8,7 +8,6 @@ feature for the --monitor flag, showing users what to expect.
 USAGE: python scripts/demo_monitor_installation.py
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -16,11 +15,9 @@ from pathlib import Path
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-from claude_mpm.core.logger import get_logger
 from claude_mpm.utils.dependency_manager import (
     check_dependency,
     check_virtual_environment,
-    ensure_socketio_dependencies,
 )
 
 
@@ -88,9 +85,9 @@ def demo_monitor_installation():
     print("🔧 Technical Details:")
     print(f"   • Virtual Environment: {'Yes' if is_venv else 'No'}")
     print(f"   • Python: {sys.executable}")
-    print(f"   • Install Method: subprocess with pip")
-    print(f"   • Timeout: 5 minutes per installation")
-    print(f"   • Error Handling: Graceful fallback with clear messages")
+    print("   • Install Method: subprocess with pip")
+    print("   • Timeout: 5 minutes per installation")
+    print("   • Error Handling: Graceful fallback with clear messages")
 
 
 if __name__ == "__main__":

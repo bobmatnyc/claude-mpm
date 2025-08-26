@@ -140,7 +140,7 @@ def create_test_html():
 
     events = create_test_events()
 
-    html_content = f"""
+    return f"""
 <!DOCTYPE html>
 <html>
 <head>
@@ -323,7 +323,6 @@ def create_test_html():
 </html>
     """
 
-    return html_content
 
 
 if __name__ == "__main__":
