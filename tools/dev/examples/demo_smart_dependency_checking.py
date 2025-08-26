@@ -12,7 +12,6 @@ demonstrating the key features:
 
 import json
 import os
-import shutil
 import sys
 import tempfile
 import time
@@ -20,6 +19,8 @@ from pathlib import Path
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+import contextlib
 
 from claude_mpm.utils.agent_dependency_loader import AgentDependencyLoader
 from claude_mpm.utils.dependency_cache import SmartDependencyChecker
@@ -144,13 +145,13 @@ def demo_scenario_4():
     context = EnvironmentContext.detect_execution_context()
     can_prompt, reason = EnvironmentContext.should_prompt_for_dependencies()
 
-    print(f"\n🖥️  Current Environment:")
+    print("\n🖥️  Current Environment:")
     print(f"   → TTY: {context['is_tty']}")
     print(f"   → CI: {context['is_ci']}")
     print(f"   → Docker: {context['is_docker']}")
     print(f"   → Interactive: {context['is_interactive']}")
 
-    print(f"\n💬 Prompting Decision:")
+    print("\n💬 Prompting Decision:")
     print(f"   → Will prompt: {can_prompt}")
     print(f"   → Reason: {reason}")
 
@@ -160,7 +161,7 @@ def demo_scenario_4():
     # CI environment
     os.environ["CI"] = "true"
     can_prompt_ci, reason_ci = EnvironmentContext.should_prompt_for_dependencies()
-    print(f"\n   In CI Environment:")
+    print("\n   In CI Environment:")
     print(f"   → Will prompt: {can_prompt_ci}")
     print(f"   → Reason: {reason_ci}")
     del os.environ["CI"]
@@ -169,7 +170,7 @@ def demo_scenario_4():
     can_prompt_force, reason_force = EnvironmentContext.should_prompt_for_dependencies(
         force_prompt=True
     )
-    print(f"\n   With --force-prompt flag:")
+    print("\n   With --force-prompt flag:")
     print(f"   → Will prompt: {can_prompt_force}")
     print(f"   → Reason: {reason_force}")
 
@@ -285,10 +286,8 @@ def setup_demo_environment(tmpdir, num_agents=3):
 
     # Return cleanup function to be called after each scenario
     def cleanup():
-        try:
+        with contextlib.suppress(Exception):
             os.chdir(original_cwd)
-        except:
-            pass
 
     return agents_dir, cleanup
 

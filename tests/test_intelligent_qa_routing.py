@@ -53,9 +53,11 @@ def test_qa_agent_selection_logic():
     ]
 
     def select_qa_agent(
-        implementation_context, available_agents=["qa", "api_qa", "web_qa"]
+        implementation_context, available_agents=None
     ):
         """Simulate the QA agent selection logic."""
+        if available_agents is None:
+            available_agents = ["qa", "api_qa", "web_qa"]
         backend_keywords = [
             "api",
             "endpoint",

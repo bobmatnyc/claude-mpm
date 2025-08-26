@@ -30,7 +30,7 @@ def test_memory_edge_cases():
     temp_user_dir = tempfile.mkdtemp(prefix="test_user_edge_")
 
     try:
-        project_memories_dir = Path(temp_project_dir) / ".claude-mpm" / "memories"
+        Path(temp_project_dir) / ".claude-mpm" / "memories"
         user_memories_dir = Path(temp_user_dir) / ".claude-mpm" / "memories"
 
         print(f"Project directory: {temp_project_dir}")
@@ -126,7 +126,7 @@ def test_memory_edge_cases():
         # Test standard JSON format
         standard_response = """
         Task complete.
-        
+
         ```json
         {
             "remember": [
@@ -144,7 +144,7 @@ def test_memory_edge_cases():
         # Test with null remember
         null_response = """
         Task complete.
-        
+
         ```json
         {
             "remember": null
@@ -160,7 +160,7 @@ def test_memory_edge_cases():
         # Test with empty list
         empty_response = """
         Task complete.
-        
+
         ```json
         {
             "remember": []

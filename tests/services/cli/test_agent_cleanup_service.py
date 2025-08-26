@@ -67,8 +67,7 @@ class TestAgentCleanupService:
     @pytest.fixture
     def cleanup_service(self, mock_deployment_service):
         """Create a cleanup service with mocked dependencies."""
-        service = AgentCleanupService(deployment_service=mock_deployment_service)
-        return service
+        return AgentCleanupService(deployment_service=mock_deployment_service)
 
     def test_interface_compliance(self):
         """Test that AgentCleanupService implements IAgentCleanupService."""

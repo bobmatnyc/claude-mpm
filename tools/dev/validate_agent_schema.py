@@ -12,11 +12,11 @@ def validate_agent_template(template_path: Path, schema_path: Path) -> bool:
     """Validate an agent template against the schema."""
     try:
         # Load template
-        with open(template_path, "r") as f:
+        with open(template_path) as f:
             template = json.load(f)
 
         # Load schema
-        with open(schema_path, "r") as f:
+        with open(schema_path) as f:
             schema = json.load(f)
 
         # Validate

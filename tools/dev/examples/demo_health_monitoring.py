@@ -65,7 +65,7 @@ async def demonstrate_health_monitoring():
     health_config = config.get_health_monitoring_config()
     health_config["check_interval"] = 2  # Fast interval for demo
 
-    print(f"Health monitoring configuration:")
+    print("Health monitoring configuration:")
     print(json.dumps(health_config, indent=2))
     print()
 
@@ -126,7 +126,7 @@ async def demonstrate_recovery_system():
     recovery_config = config.get_recovery_config()
     recovery_config["min_recovery_interval"] = 0  # Allow immediate recovery for demo
 
-    print(f"Recovery configuration:")
+    print("Recovery configuration:")
     print(json.dumps(recovery_config, indent=2))
     print()
 

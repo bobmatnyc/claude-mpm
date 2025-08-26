@@ -92,9 +92,9 @@ def main():
     )
 
     try:
-        eng_prompt = get_engineer_agent_prompt()
-        qa_prompt = get_qa_agent_prompt()
-        res_prompt = get_research_agent_prompt()
+        get_engineer_agent_prompt()
+        get_qa_agent_prompt()
+        get_research_agent_prompt()
 
         print("   ✓ get_engineer_agent_prompt() works")
         print("   ✓ get_qa_agent_prompt() works")

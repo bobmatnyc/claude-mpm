@@ -17,7 +17,7 @@ def update_imports(file_path: Path, dry_run: bool = False) -> Tuple[bool, List[s
     Returns:
         Tuple of (was_modified, changes_made)
     """
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         content = f.read()
 
     original_content = content
@@ -96,7 +96,7 @@ def main():
     # Skip the new logger.py file and this script
     logger_file = src_dir / "claude_mpm" / "core" / "logger.py"
     this_script = Path(__file__)
-    python_files = [f for f in python_files if f != logger_file and f != this_script]
+    python_files = [f for f in python_files if f not in (logger_file, this_script)]
 
     print(f"\nFound {len(python_files)} Python files to check")
 

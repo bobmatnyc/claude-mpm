@@ -138,7 +138,7 @@ async def test_mcp_server():
 
     # Test tools/list request (simulated)
     request = {"jsonrpc": "2.0", "id": "1", "method": "tools/list", "params": {}}
-    response = await server.handle_request(request)
+    await server.handle_request(request)
     print("✓ Handled tools/list request")
 
     # Get server metrics

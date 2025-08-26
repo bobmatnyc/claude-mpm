@@ -42,14 +42,12 @@ Created: 2025-08-12
 import argparse
 import hashlib
 import json
-import os
 import re
 import sys
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
-from urllib.parse import urlparse
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -279,7 +277,7 @@ class DocumentationAuditor:
                         str(subdir),
                         None,
                         f"Directory should follow lowercase-with-hyphens naming: {subdir.name}",
-                        f"Consider renaming to follow convention",
+                        "Consider renaming to follow convention",
                     )
 
     def _audit_numbered_directories(self):
@@ -429,16 +427,14 @@ class DocumentationAuditor:
                 for line_num, line in enumerate(lines, 1):
                     links = re.findall(self.link_pattern, line)
 
-                    for link_text, link_url in links:
+                    for _link_text, link_url in links:
                         # Skip external links
                         if link_url.startswith(("http://", "https://", "mailto:", "#")):
                             continue
 
                         # Check internal links
                         if (
-                            link_url.startswith("./")
-                            or link_url.startswith("../")
-                            or not link_url.startswith("/")
+                            link_url.startswith(("./", "../")) or not link_url.startswith("/")
                         ):
                             target_path = (md_file.parent / link_url).resolve()
                             if not target_path.exists():
@@ -712,9 +708,7 @@ def main():
             print(f"\nRun with --fix to auto-fix {summary.fixable_issues} issues")
 
     # Exit with appropriate code
-    if args.strict and not summary.deployment_ready:
-        sys.exit(1)
-    elif summary.errors > 0:
+    if (args.strict and not summary.deployment_ready) or summary.errors > 0:
         sys.exit(1)
     else:
         sys.exit(0)

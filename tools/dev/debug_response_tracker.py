@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Debug Response Tracker Configuration"""
 
-import os
 import sys
 from pathlib import Path
 

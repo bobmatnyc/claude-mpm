@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Migration script to help transition from HTTP-based hooks to JSON-RPC hooks."""
 
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -28,19 +27,18 @@ def stop_hook_service():
     # Try to find and kill the process
     try:
         result = subprocess.run(
-            ["pgrep", "-f", "hook_service.py"], capture_output=True, text=True
+            ["pgrep", "-f", "hook_service.py"], capture_output=True, text=True, check=False
         )
 
         if result.returncode == 0:
             pids = result.stdout.strip().split("\n")
             for pid in pids:
                 if pid:
-                    subprocess.run(["kill", pid])
+                    subprocess.run(["kill", pid], check=False)
                     print(f"  Stopped process {pid}")
             return True
-        else:
-            print("  No hook service process found")
-            return False
+        print("  No hook service process found")
+        return False
     except Exception as e:
         print(f"  Error stopping service: {e}")
         return False
@@ -56,16 +54,15 @@ def test_json_rpc_hooks():
         health = client.health_check()
 
         if health["status"] == "healthy":
-            print(f"  ✓ JSON-RPC hooks are working")
+            print("  ✓ JSON-RPC hooks are working")
             print(f"  ✓ Found {health['hook_count']} hooks")
 
             # Test execution
             results = client.execute_submit_hook("test prompt")
             print(f"  ✓ Successfully executed {len(results)} hooks")
             return True
-        else:
-            print(f"  ✗ Health check failed: {health}")
-            return False
+        print(f"  ✗ Health check failed: {health}")
+        return False
     except Exception as e:
         print(f"  ✗ Error testing JSON-RPC hooks: {e}")
         return False

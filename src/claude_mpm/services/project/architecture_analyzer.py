@@ -224,7 +224,7 @@ class ArchitectureAnalyzerService:
         existing_dirs = set()
 
         # Collect all directory names
-        for dirpath, dirnames, _ in self.working_directory.walk():
+        for _dirpath, dirnames, _ in self.working_directory.walk():
             for dirname in dirnames:
                 if not dirname.startswith("."):
                     existing_dirs.add(dirname.lower())

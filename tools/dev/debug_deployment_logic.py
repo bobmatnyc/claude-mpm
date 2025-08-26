@@ -45,7 +45,7 @@ def check_research_agent():
     print("\n=== Deployment Logic Trace ===")
 
     # Simulate what happens in deploy_agents
-    target_dir = Path.home() / ".claude" / "agents"
+    Path.home() / ".claude" / "agents"
     template_dir = (
         Path(__file__).parent.parent / "src" / "claude_mpm" / "agents" / "templates"
     )

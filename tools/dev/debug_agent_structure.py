@@ -9,7 +9,6 @@ from pprint import pprint
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.agent_registry import AgentRegistryAdapter
-from claude_mpm.core.unified_paths import get_path_manager
 
 
 def main():

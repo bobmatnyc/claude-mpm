@@ -139,7 +139,7 @@ class TestResumeFlagVerification(unittest.TestCase):
         # Step 1: Add --resume if flag is set
         if True:  # Simulating args.resume = True
             if "--resume" not in raw_args:
-                raw_args = ["--resume"] + raw_args
+                raw_args = ["--resume", *raw_args]
 
         # Step 2: Filter MPM args
         filtered = filter_claude_mpm_args(raw_args)

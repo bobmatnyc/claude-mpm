@@ -192,7 +192,7 @@ class TestDIContainer:
         container.register_scoped(IScopedService, ScopedService)
 
         # Create first scope
-        with container.create_scope() as scope1:
+        with container.create_scope():
             service1 = container.get(IScopedService)
             service2 = container.get(IScopedService)
 
@@ -201,7 +201,7 @@ class TestDIContainer:
             first_id = service1.get_id()
 
         # Create second scope
-        with container.create_scope() as scope2:
+        with container.create_scope():
             service3 = container.get(IScopedService)
             service4 = container.get(IScopedService)
 
@@ -330,7 +330,7 @@ class TestDIContainer:
         )
 
         # Resolve services
-        logger = container.get(ILogger)
+        container.get(ILogger)
         database = container.get(IDatabase)
         database.connect()
 
@@ -420,7 +420,7 @@ class TestDIContainer:
         container.register_scoped(DisposableScoped, DisposableScoped)
 
         # Create scope and resolve service
-        with container.create_scope() as scope:
+        with container.create_scope():
             service = container.get(DisposableScoped)
             assert not service.disposed
 

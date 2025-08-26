@@ -36,7 +36,7 @@ def test_mcp_server():
                 # We found JSON or no more lines
                 if line and line.strip().startswith("{"):
                     # Put it back if it's JSON
-                    proc.stdout = [line] + proc.stdout.readlines()
+                    proc.stdout = [line, *proc.stdout.readlines()]
                 break
             print(f"  Server: {line.strip()}")
 

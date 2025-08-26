@@ -82,26 +82,25 @@ class TestMCPInstallConfig(unittest.TestCase):
 
             with patch.object(
                 self.installer, "_get_claude_config_path", return_value=config_path
+            ), patch.object(
+                self.installer,
+                "_find_claude_mpm_executable",
+                return_value="/usr/local/bin/claude-mpm",
             ):
-                with patch.object(
-                    self.installer,
-                    "_find_claude_mpm_executable",
-                    return_value="/usr/local/bin/claude-mpm",
-                ):
 
-                    success = self.installer._configure_claude_desktop(force=True)
+                success = self.installer._configure_claude_desktop(force=True)
 
-                    self.assertTrue(success)
+                self.assertTrue(success)
 
-                    # Verify configuration
-                    with open(config_path) as f:
-                        config = json.load(f)
+                # Verify configuration
+                with open(config_path) as f:
+                    config = json.load(f)
 
-                    mcp_config = config["mcpServers"]["claude-mpm-gateway"]
-                    self.assertEqual(mcp_config["command"], "/usr/local/bin/claude-mpm")
-                    self.assertEqual(mcp_config["args"], ["mcp", "server"])
-                    self.assertIn("PYTHONPATH", mcp_config["env"])
-                    self.assertEqual(mcp_config["env"]["MCP_MODE"], "production")
+                mcp_config = config["mcpServers"]["claude-mpm-gateway"]
+                self.assertEqual(mcp_config["command"], "/usr/local/bin/claude-mpm")
+                self.assertEqual(mcp_config["args"], ["mcp", "server"])
+                self.assertIn("PYTHONPATH", mcp_config["env"])
+                self.assertEqual(mcp_config["env"]["MCP_MODE"], "production")
 
     def test_configure_with_python_module():
         """Test configuration when using Python -m claude_mpm."""
@@ -110,28 +109,27 @@ class TestMCPInstallConfig(unittest.TestCase):
 
             with patch.object(
                 self.installer, "_get_claude_config_path", return_value=config_path
+            ), patch.object(
+                self.installer,
+                "_find_claude_mpm_executable",
+                return_value=sys.executable,
             ):
-                with patch.object(
-                    self.installer,
-                    "_find_claude_mpm_executable",
-                    return_value=sys.executable,
-                ):
 
-                    success = self.installer._configure_claude_desktop(force=True)
+                success = self.installer._configure_claude_desktop(force=True)
 
-                    self.assertTrue(success)
+                self.assertTrue(success)
 
-                    # Verify configuration
-                    with open(config_path) as f:
-                        config = json.load(f)
+                # Verify configuration
+                with open(config_path) as f:
+                    config = json.load(f)
 
-                    mcp_config = config["mcpServers"]["claude-mpm-gateway"]
-                    self.assertEqual(mcp_config["command"], sys.executable)
-                    self.assertEqual(
-                        mcp_config["args"], ["-m", "claude_mpm", "mcp", "server"]
-                    )
-                    self.assertIn("PYTHONPATH", mcp_config["env"])
-                    self.assertEqual(mcp_config["env"]["MCP_MODE"], "production")
+                mcp_config = config["mcpServers"]["claude-mpm-gateway"]
+                self.assertEqual(mcp_config["command"], sys.executable)
+                self.assertEqual(
+                    mcp_config["args"], ["-m", "claude_mpm", "mcp", "server"]
+                )
+                self.assertIn("PYTHONPATH", mcp_config["env"])
+                self.assertEqual(mcp_config["env"]["MCP_MODE"], "production")
 
     def test_never_uses_script_path():
         """Test that configuration never uses the old scripts/mcp_server.py path."""
@@ -148,32 +146,31 @@ class TestMCPInstallConfig(unittest.TestCase):
             for test_path in test_paths:
                 with patch.object(
                     self.installer, "_get_claude_config_path", return_value=config_path
+                ), patch.object(
+                    self.installer,
+                    "_find_claude_mpm_executable",
+                    return_value=test_path,
                 ):
-                    with patch.object(
-                        self.installer,
-                        "_find_claude_mpm_executable",
-                        return_value=test_path,
-                    ):
 
-                        success = self.installer._configure_claude_desktop(force=True)
-                        self.assertTrue(success)
+                    success = self.installer._configure_claude_desktop(force=True)
+                    self.assertTrue(success)
 
-                        # Verify configuration never contains script path
-                        with open(config_path) as f:
-                            config_json = f.read()
+                    # Verify configuration never contains script path
+                    with open(config_path) as f:
+                        config_json = f.read()
 
-                        self.assertNotIn("mcp_server.py", config_json)
-                        self.assertNotIn("scripts/", config_json)
+                    self.assertNotIn("mcp_server.py", config_json)
+                    self.assertNotIn("scripts/", config_json)
 
-                        # Verify it uses proper command
-                        config = json.loads(config_json)
-                        mcp_config = config["mcpServers"]["claude-mpm-gateway"]
+                    # Verify it uses proper command
+                    config = json.loads(config_json)
+                    mcp_config = config["mcpServers"]["claude-mpm-gateway"]
 
-                        # Command should either be claude-mpm executable or python
-                        self.assertTrue(
-                            "claude-mpm" in mcp_config["command"]
-                            or "python" in mcp_config["command"].lower()
-                        )
+                    # Command should either be claude-mpm executable or python
+                    self.assertTrue(
+                        "claude-mpm" in mcp_config["command"]
+                        or "python" in mcp_config["command"].lower()
+                    )
 
 
 if __name__ == "__main__":

@@ -66,7 +66,7 @@ class TestPipxPathDetectionFix(unittest.TestCase):
             PathContext.detect_deployment_context.cache_clear()
             os.environ["CLAUDE_MPM_DEV_MODE"] = value
 
-            with patch("claude_mpm.core.unified_paths.Path") as mock_path:
+            with patch("claude_mpm.core.unified_paths.Path"):
                 # Mock a pipx installation
                 mock_module = MagicMock()
                 mock_module.__file__ = "/Users/masa/.local/pipx/venvs/claude-mpm/lib/python3.13/site-packages/claude_mpm/__init__.py"
@@ -97,9 +97,7 @@ class TestPipxPathDetectionFix(unittest.TestCase):
                         return True
                     if "src/claude_mpm" in path_str and "claude-mpm" in path_str:
                         return True
-                    if "scripts/claude-mpm" in path_str:
-                        return True
-                    return False
+                    return "scripts/claude-mpm" in path_str
 
                 mock_exists.side_effect = exists_side_effect
 
@@ -164,9 +162,7 @@ class TestPipxPathDetectionFix(unittest.TestCase):
                     path_str = str(self)
                     if "claude-mpm/src/claude_mpm" in path_str:
                         return True
-                    if "claude-mpm/pyproject.toml" in path_str:
-                        return True
-                    return False
+                    return "claude-mpm/pyproject.toml" in path_str
 
                 mock_exists.side_effect = exists_side_effect
 
@@ -197,13 +193,12 @@ class TestPipxPathDetectionFix(unittest.TestCase):
             new_callable=lambda: MagicMock(
                 return_value=Path("/Users/masa/Projects/claude-mpm")
             ),
-        ):
-            with patch.object(Path, "exists", return_value=True):
-                # Should return src/claude_mpm
-                pkg_root = pm.package_root
-                self.assertEqual(
-                    pkg_root, Path("/Users/masa/Projects/claude-mpm/src/claude_mpm")
-                )
+        ), patch.object(Path, "exists", return_value=True):
+            # Should return src/claude_mpm
+            pkg_root = pm.package_root
+            self.assertEqual(
+                pkg_root, Path("/Users/masa/Projects/claude-mpm/src/claude_mpm")
+            )
 
 
 if __name__ == "__main__":

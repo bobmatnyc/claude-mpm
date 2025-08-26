@@ -519,15 +519,65 @@
 }
 
 /* Breadcrumb */
+/* Breadcrumb Ticker */
 .code-breadcrumb {
-    padding: 10px 15px;
-    background: white;
+    padding: 8px 12px;
+    background: linear-gradient(90deg, #f8f9fa, white);
     border-radius: 6px;
     margin-top: 15px;
-    font-size: 13px;
+    font-size: 12px;
     color: #4a5568;
     font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    position: relative;
+    min-height: 32px;
+}
+
+.breadcrumb-ticker {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    transition: all 0.3s ease-out;
+}
+
+#breadcrumb-content {
+    display: inline-block;
+    font-size: 11px;
+    color: #475569;
+    transition: opacity 0.3s;
+}
+
+/* Event type styling in ticker */
+.ticker-event {
+    animation: slideIn 0.3s ease-in;
+}
+
+.ticker-file {
+    color: #3b82f6;
+}
+
+.ticker-node {
+    color: #10b981;
+}
+
+.ticker-progress {
+    color: #8b5cf6;
+}
+
+.ticker-error {
+    color: #ef4444;
+}
+
+@keyframes slideIn {
+    from { 
+        opacity: 0; 
+        transform: translateX(-10px);
+    }
+    to { 
+        opacity: 1; 
+        transform: translateX(0);
+    }
 }
 
 /* D3 Tree Styles */

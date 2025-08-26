@@ -47,7 +47,7 @@ def test_thread_safety():
         thread.join()
 
     # Check results
-    unique_ids = set(id_val for _, id_val in configs)
+    unique_ids = {id_val for _, id_val in configs}
 
     print("\n=== THREAD SAFETY TEST ===")
     print(f"Created {len(configs)} Config instances in threads")

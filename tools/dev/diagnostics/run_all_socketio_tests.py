@@ -31,7 +31,7 @@ def run_test_script(script_name, description):
         result = subprocess.run(
             [sys.executable, str(script_path)],
             cwd=Path(__file__).parent.parent,
-            timeout=120,  # 2 minute timeout per test
+            timeout=120, check=False,  # 2 minute timeout per test
         )
 
         end_time = time.time()
@@ -40,9 +40,8 @@ def run_test_script(script_name, description):
         if result.returncode == 0:
             print(f"✅ {description}: PASSED ({duration:.1f}s)")
             return True
-        else:
-            print(f"❌ {description}: FAILED ({duration:.1f}s)")
-            return False
+        print(f"❌ {description}: FAILED ({duration:.1f}s)")
+        return False
 
     except subprocess.TimeoutExpired:
         print(f"⏱️  {description}: TIMEOUT (exceeded 2 minutes)")
@@ -103,14 +102,13 @@ def main():
         print("\n🎉 ALL TESTS PASSED!")
         print("✅ Socket.IO auto-deployment is working correctly")
         return True
-    elif passed >= len(tests) - 1:
+    if passed >= len(tests) - 1:
         print(f"\n⚠️  MOSTLY PASSED ({passed}/{len(tests)})")
         print("✅ Socket.IO auto-deployment is mostly working")
         return True
-    else:
-        print(f"\n❌ MULTIPLE FAILURES ({failed}/{len(tests)} failed)")
-        print("🔧 Socket.IO auto-deployment needs attention")
-        return False
+    print(f"\n❌ MULTIPLE FAILURES ({failed}/{len(tests)} failed)")
+    print("🔧 Socket.IO auto-deployment needs attention")
+    return False
 
 
 if __name__ == "__main__":

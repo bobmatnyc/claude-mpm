@@ -345,26 +345,25 @@ def create_parser(
         add_debug_subparser(subparsers)
     except ImportError:
         pass
-    
+
     # Add analyze command parser
     try:
         from .analyze_parser import add_analyze_subparser
-        
+
         add_analyze_subparser(subparsers)
     except ImportError:
         pass
-    
+
     # Add analyze-code command parser
     try:
         from .analyze_code_parser import AnalyzeCodeParser
-        
+
         parser_obj = AnalyzeCodeParser()
         analyze_code_parser = subparsers.add_parser(
-            'analyze-code',
-            help=parser_obj.help_text
+            "analyze-code", help=parser_obj.help_text
         )
         parser_obj.add_arguments(analyze_code_parser)
-        analyze_code_parser.set_defaults(command='analyze-code')
+        analyze_code_parser.set_defaults(command="analyze-code")
     except ImportError:
         pass
 

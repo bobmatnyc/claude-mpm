@@ -43,11 +43,10 @@ def debug_qa():
             print(f"Line {i}: ENDED capabilities section: {line}")
             continue
 
-        if in_capabilities_section:
-            if line.startswith("### "):
-                print(f"Line {i}: Agent found: {line}")
-                if "qa" in line.lower():
-                    qa_found.append((i, line))
+        if in_capabilities_section and line.startswith("### "):
+            print(f"Line {i}: Agent found: {line}")
+            if "qa" in line.lower():
+                qa_found.append((i, line))
 
     print(f"\nQA agents found: {len(qa_found)}")
     for i, line in qa_found:

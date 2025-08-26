@@ -38,7 +38,7 @@ def test_full_startup_sequence():
     Config.reset_singleton()
 
     # Create runner which should initialize everything
-    runner = ClaudeRunner(
+    ClaudeRunner(
         enable_tickets=False,
         log_level="OFF",
         claude_args=[],
@@ -104,7 +104,7 @@ def test_parallel_initialization():
 
     # Create multiple threads that all try to create Config
     threads = []
-    for i in range(5):
+    for _i in range(5):
         t = threading.Thread(target=create_config)
         threads.append(t)
         t.start()

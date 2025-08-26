@@ -52,125 +52,125 @@ class TestMCPLockManagement:
 
         return manager
 
-    def test_stale_lock_detection(manager):
+    def test_stale_lock_detection(self):
         """Test that stale locks are properly detected."""
         # Create a lock file with a non-existent PID
         dead_pid = 99999
-        manager.lock_file.write_text(str(dead_pid))
+        self.lock_file.write_text(str(dead_pid))
 
         # Should detect and clean stale lock
-        assert manager._check_and_clean_stale_lock() == True
-        assert not manager.lock_file.exists()
+        assert self._check_and_clean_stale_lock()
+        assert not self.lock_file.exists()
 
-    def test_valid_lock_preserved(manager):
+    def test_valid_lock_preserved(self):
         """Test that valid locks are not removed."""
         # Create a lock file with current process PID
         current_pid = os.getpid()
-        manager.lock_file.write_text(str(current_pid))
+        self.lock_file.write_text(str(current_pid))
 
         # Should not clean valid lock
-        assert manager._check_and_clean_stale_lock() == False
-        assert manager.lock_file.exists()
-        assert manager.lock_file.read_text() == str(current_pid)
+        assert not self._check_and_clean_stale_lock()
+        assert self.lock_file.exists()
+        assert self.lock_file.read_text() == str(current_pid)
 
-    def test_empty_lock_cleanup(manager):
+    def test_empty_lock_cleanup(self):
         """Test that empty lock files are cleaned up."""
         # Create an empty lock file
-        manager.lock_file.touch()
+        self.lock_file.touch()
 
         # Should clean empty lock
-        assert manager._check_and_clean_stale_lock() == True
-        assert not manager.lock_file.exists()
+        assert self._check_and_clean_stale_lock()
+        assert not self.lock_file.exists()
 
-    def test_invalid_pid_cleanup(manager):
+    def test_invalid_pid_cleanup(self):
         """Test that lock files with invalid PIDs are cleaned up."""
         # Create a lock file with invalid PID
-        manager.lock_file.write_text("not_a_pid")
+        self.lock_file.write_text("not_a_pid")
 
         # Should clean invalid lock
-        assert manager._check_and_clean_stale_lock() == True
-        assert not manager.lock_file.exists()
+        assert self._check_and_clean_stale_lock()
+        assert not self.lock_file.exists()
 
-    def test_instance_file_cleanup_with_lock(manager):
+    def test_instance_file_cleanup_with_lock(self):
         """Test that instance files are cleaned when lock is stale."""
         # Create matching lock and instance files with dead PID
         dead_pid = 99999
-        manager.lock_file.write_text(str(dead_pid))
+        self.lock_file.write_text(str(dead_pid))
 
         instance_data = {"pid": dead_pid, "gateway_name": "test", "version": "1.0.0"}
-        manager.instance_file.write_text(json.dumps(instance_data))
+        self.instance_file.write_text(json.dumps(instance_data))
 
         # Should clean both files
-        assert manager._check_and_clean_stale_lock() == True
-        assert not manager.lock_file.exists()
-        assert not manager.instance_file.exists()
+        assert self._check_and_clean_stale_lock()
+        assert not self.lock_file.exists()
+        assert not self.instance_file.exists()
 
-    def test_acquire_lock_with_stale(manager):
+    def test_acquire_lock_with_stale(self):
         """Test acquiring lock when stale lock exists."""
         # Create a stale lock
         dead_pid = 99999
-        manager.lock_file.write_text(str(dead_pid))
+        self.lock_file.write_text(str(dead_pid))
 
         # Should acquire lock after cleaning stale
-        assert manager.acquire_lock() == True
-        assert manager.lock_file.exists()
+        assert self.acquire_lock()
+        assert self.lock_file.exists()
 
         # Lock should contain our PID
-        lock_pid = int(manager.lock_file.read_text())
+        lock_pid = int(self.lock_file.read_text())
         assert lock_pid == os.getpid()
 
-    def test_concurrent_lock_attempt(manager):
+    def test_concurrent_lock_attempt(self):
         """Test that concurrent lock attempts are properly handled."""
         # First manager acquires lock
-        assert manager.acquire_lock() == True
+        assert self.acquire_lock()
 
         # Second manager should fail to acquire
         manager2 = MCPGatewayManager()
-        manager2.state_dir = manager.state_dir
-        manager2.lock_file = manager.lock_file
-        manager2.instance_file = manager.instance_file
+        manager2.state_dir = self.state_dir
+        manager2.lock_file = self.lock_file
+        manager2.instance_file = self.instance_file
 
-        assert manager2.acquire_lock() == False
+        assert not manager2.acquire_lock()
 
         # Release first lock
-        manager.release_lock()
+        self.release_lock()
 
         # Now second manager should succeed
-        assert manager2.acquire_lock() == True
+        assert manager2.acquire_lock()
 
-    def test_get_running_instance_info(manager):
+    def test_get_running_instance_info(self):
         """Test getting info about running instances."""
         # No instance file
-        assert manager.get_running_instance_info() is None
+        assert self.get_running_instance_info() is None
 
         # Create instance file with current PID
         instance_data = {"pid": os.getpid(), "gateway_name": "test", "version": "1.0.0"}
-        manager.instance_file.write_text(json.dumps(instance_data))
+        self.instance_file.write_text(json.dumps(instance_data))
 
         # Should return instance info
-        info = manager.get_running_instance_info()
+        info = self.get_running_instance_info()
         assert info is not None
         assert info["pid"] == os.getpid()
         assert info["gateway_name"] == "test"
 
         # Create instance file with dead PID
         instance_data["pid"] = 99999
-        manager.instance_file.write_text(json.dumps(instance_data))
+        self.instance_file.write_text(json.dumps(instance_data))
 
         # Should return None and clean up file
-        info = manager.get_running_instance_info()
+        info = self.get_running_instance_info()
         assert info is None
-        assert not manager.instance_file.exists()
+        assert not self.instance_file.exists()
 
     @pytest.mark.asyncio
-    async def test_start_gateway_with_stale_lock(manager):
+    async def test_start_gateway_with_stale_lock(self):
         """Test starting gateway when stale lock exists."""
         # Create a stale lock
         dead_pid = 99999
-        manager.lock_file.write_text(str(dead_pid))
+        self.lock_file.write_text(str(dead_pid))
 
         # Mock the gateway components
-        with patch.object(manager, "_load_default_tools", return_value=None):
+        with patch.object(self, "_load_default_tools", return_value=None):
             with patch(
                 "claude_mpm.services.mcp_gateway.manager.MCPConfiguration"
             ) as mock_config:
@@ -200,29 +200,29 @@ class TestMCPLockManagement:
                         mock_gateway.return_value = mock_gateway_instance
 
                         # Start should succeed after cleaning stale lock
-                        result = await manager.start_gateway("test", "1.0.0")
-                        assert result == True
+                        result = await self.start_gateway("test", "1.0.0")
+                        assert result
 
                         # Lock should be acquired with our PID
-                        assert manager.lock_file.exists()
-                        lock_pid = int(manager.lock_file.read_text())
+                        assert self.lock_file.exists()
+                        lock_pid = int(self.lock_file.read_text())
                         assert lock_pid == os.getpid()
 
-    def test_cleanup_on_signal(manager):
+    def test_cleanup_on_signal(self):
         """Test cleanup on termination signal."""
         # Acquire lock and create instance file
-        manager.acquire_lock()
-        manager.save_instance_info()
+        self.acquire_lock()
+        self.save_instance_info()
 
-        assert manager.lock_file.exists()
-        assert manager.instance_file.exists()
+        assert self.lock_file.exists()
+        assert self.instance_file.exists()
 
         # Simulate cleanup
-        manager.cleanup()
+        self.cleanup()
 
         # Files should be removed
-        assert not manager.lock_file.exists()
-        assert not manager.instance_file.exists()
+        assert not self.lock_file.exists()
+        assert not self.instance_file.exists()
 
 
 class TestMCPLockCleaner:
@@ -255,11 +255,11 @@ class TestMCPLockCleaner:
 
         # Current process should exist
         exists, message = cleaner.check_process_exists(os.getpid())
-        assert exists == True
+        assert exists
 
         # Non-existent process
         exists, message = cleaner.check_process_exists(99999)
-        assert exists == False
+        assert not exists
         assert "does not exist" in message.lower()
 
 

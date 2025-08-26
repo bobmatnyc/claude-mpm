@@ -23,7 +23,7 @@ class TestSchemaIntegration:
         """Create an agent loader instance."""
         return AgentLoader()
 
-    def test_all_agents_load_successfully(agents_dir):
+    def test_all_agents_load_successfully(self):
         """Test that all agents load with the new schema."""
         loader = AgentLoader()
         agents = loader.list_agents()
@@ -47,10 +47,10 @@ class TestSchemaIntegration:
         for expected_id in expected_agents:
             assert expected_id in loaded_ids, f"Agent {expected_id} not found"
 
-    def test_agent_deployment_with_new_format(agent_loader):
+    def test_agent_deployment_with_new_format(self):
         """Test deploying agents with new format."""
         # Get engineer agent
-        agent = agent_loader.get_agent("engineer")
+        agent = self.get_agent("engineer")
         assert agent is not None
 
         # Verify deployment format
@@ -64,10 +64,10 @@ class TestSchemaIntegration:
         assert "goal" not in agent
         assert "backstory" not in agent
 
-    def test_task_tool_with_standardized_agents(agents_dir):
+    def test_task_tool_with_standardized_agents(self):
         """Test Task tool integration with standardized agents."""
         # Load QA agent
-        with open(agents_dir / "qa.json") as f:
+        with open(self / "qa.json") as f:
             qa_agent = json.load(f)
 
         # Simulate Task tool usage
@@ -89,7 +89,7 @@ class TestSchemaIntegration:
     def test_hook_service_with_standardized_agents():
         """Test hook service integration."""
         # This tests that agents work with hook system
-        hook_service = HookService()
+        HookService()
 
         # Hook service should be able to work with new agent format
         agent_data = {
@@ -104,10 +104,10 @@ class TestSchemaIntegration:
         # (Would need actual hook service methods here)
         assert agent_data["id"] == "test_hook_agent"
 
-    def test_cli_with_standardized_agents(tmp_path):
+    def test_cli_with_standardized_agents(self):
         """Test CLI integration with standardized agents."""
         # Create a test script to verify CLI works
-        test_script = tmp_path / "test_cli.py"
+        test_script = self / "test_cli.py"
         test_script.write_text(
             """
 import sys
@@ -136,11 +136,11 @@ for agent in agents:
         assert "engineer" in result.stdout
         assert "qa" in result.stdout
 
-    def test_model_compatibility_enforcement(agents_dir):
+    def test_model_compatibility_enforcement(self):
         """Test that model compatibility rules are enforced."""
         # Check Opus agents have premium tier
         opus_agents = []
-        for agent_file in agents_dir.glob("*.json"):
+        for agent_file in self.glob("*.json"):
             if agent_file.name == "agent_schema.json":
                 continue
 
@@ -154,11 +154,11 @@ for agent in agents:
                     agent["resource_tier"] == "premium"
                 ), f"Agent {agent['id']} uses Opus but not premium tier"
 
-    def test_resource_tier_distribution(agents_dir):
+    def test_resource_tier_distribution(self):
         """Test resource tier distribution across agents."""
         tier_counts = {"basic": 0, "standard": 0, "premium": 0}
 
-        for agent_file in agents_dir.glob("*.json"):
+        for agent_file in self.glob("*.json"):
             if agent_file.name == "agent_schema.json":
                 continue
 
@@ -176,9 +176,9 @@ for agent in agents:
 
         print(f"Resource tier distribution: {tier_counts}")
 
-    def test_agent_instructions_quality(agents_dir):
+    def test_agent_instructions_quality(self):
         """Test that agent instructions meet quality standards."""
-        for agent_file in agents_dir.glob("*.json"):
+        for agent_file in self.glob("*.json"):
             if agent_file.name == "agent_schema.json":
                 continue
 
@@ -202,12 +202,12 @@ for agent in agents:
             assert "goal:" not in instructions.lower()
             assert "backstory:" not in instructions.lower()
 
-    def test_concurrent_agent_loading(agents_dir):
+    def test_concurrent_agent_loading(self):
         """Test concurrent agent loading with new schema."""
         import concurrent.futures
 
         def load_agents():
-            loader = AgentLoader(agents_dir=str(agents_dir))
+            loader = AgentLoader(agents_dir=str(self))
             return loader.load_agents()
 
         # Load agents concurrently
@@ -219,7 +219,7 @@ for agent in agents:
         assert all(len(r) >= 8 for r in results)
         assert all(r[0]["id"] == results[0][0]["id"] for r in results)
 
-    def test_error_handling_invalid_agents(tmp_path):
+    def test_error_handling_invalid_agents(self):
         """Test error handling for invalid agents."""
         # Create an invalid agent
         invalid_agent = {
@@ -231,12 +231,12 @@ for agent in agents:
             "resource_tier": "invalid-tier",
         }
 
-        invalid_path = tmp_path / "invalid.json"
+        invalid_path = self / "invalid.json"
         with open(invalid_path, "w") as f:
             json.dump(invalid_agent, f)
 
         # Should handle error gracefully
-        loader = AgentLoader(agents_dir=str(tmp_path))
+        loader = AgentLoader(agents_dir=str(self))
 
         # Should either skip invalid agent or raise clear error
         try:

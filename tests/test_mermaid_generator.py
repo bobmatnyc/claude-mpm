@@ -5,8 +5,8 @@ Tests for MermaidGeneratorService
 Comprehensive test suite for the Mermaid diagram generation service.
 """
 
+
 import pytest
-from unittest.mock import Mock, patch
 
 from claude_mpm.services.visualization.mermaid_generator import (
     DiagramConfig,
@@ -17,14 +17,14 @@ from claude_mpm.services.visualization.mermaid_generator import (
 
 class TestMermaidGeneratorService:
     """Test suite for MermaidGeneratorService."""
-    
+
     @pytest.fixture
     def service(self):
         """Create a service instance for testing."""
         service = MermaidGeneratorService()
         service.initialize()
         return service
-        
+
     @pytest.fixture
     def sample_analysis_results(self):
         """Sample analysis results for testing."""
@@ -40,7 +40,7 @@ class TestMermaidGeneratorService:
                         "file": "src/cli.py",
                         "function": "run_cli",
                         "line": 15,
-                    }
+                    },
                 ],
                 "web": [
                     {
@@ -48,7 +48,7 @@ class TestMermaidGeneratorService:
                         "function": "create_app",
                         "line": 10,
                     }
-                ]
+                ],
             },
             "dependencies": {
                 "src.main": ["os", "sys", "src.utils"],
@@ -63,7 +63,7 @@ class TestMermaidGeneratorService:
                 "src/utils.py": [
                     {"module": "logging"},
                     {"from": "json", "import": "dumps"},
-                ]
+                ],
             },
             "classes": {
                 "MyClass": {
@@ -78,14 +78,14 @@ class TestMermaidGeneratorService:
                             "name": "process",
                             "parameters": ["data: str"],
                             "return_type": "bool",
-                            "visibility": "+"
+                            "visibility": "+",
                         },
                         {
                             "name": "_validate",
                             "parameters": [],
                             "return_type": "None",
-                            "visibility": "-"
-                        }
+                            "visibility": "-",
+                        },
                     ],
                     "associations": ["Helper"],
                 },
@@ -97,40 +97,38 @@ class TestMermaidGeneratorService:
                             "name": "abstract_method",
                             "parameters": [],
                             "return_type": "None",
-                            "visibility": "+"
+                            "visibility": "+",
                         }
-                    ]
+                    ],
                 },
                 "Helper": {
                     "attributes": [
                         {"name": "config", "type": "dict"},
                     ],
-                    "methods": [
-                        {"name": "assist", "parameters": ["task: str"]}
-                    ]
-                }
+                    "methods": [{"name": "assist", "parameters": ["task: str"]}],
+                },
             },
             "functions": {
                 "main": {
                     "calls": ["parse_args", "run_app", "cleanup"],
                     "parameters": [],
-                    "return_type": "int"
+                    "return_type": "int",
                 },
                 "parse_args": {
                     "calls": ["argparse.ArgumentParser"],
                     "parameters": [],
-                    "return_type": "Namespace"
+                    "return_type": "Namespace",
                 },
                 "run_app": {
                     "calls": ["initialize", "process_data", "save_results"],
                     "parameters": ["args: Namespace"],
-                    "return_type": "None"
+                    "return_type": "None",
                 },
                 "cleanup": {
                     "calls": ["close_connections"],
                     "parameters": [],
-                    "return_type": "None"
-                }
+                    "return_type": "None",
+                },
             },
             "call_graph": {
                 "main": [
@@ -142,31 +140,29 @@ class TestMermaidGeneratorService:
                     {"function": "initialize", "count": 1},
                     {"function": "process_data", "count": 3},
                     {"function": "save_results", "count": 1},
-                ]
-            }
+                ],
+            },
         }
-        
+
     def test_service_initialization(self, service):
         """Test service initialization."""
         assert service.is_initialized
         assert not service.is_shutdown
         assert service.service_name == "MermaidGeneratorService"
-        
+
     def test_service_shutdown(self, service):
         """Test service shutdown."""
         service.shutdown()
         assert service.is_shutdown
         assert len(service._node_id_cache) == 0
-        
+
     def test_generate_entry_points_diagram(self, service, sample_analysis_results):
         """Test entry points diagram generation."""
         config = DiagramConfig(title="Test Entry Points")
         diagram = service.generate_diagram(
-            DiagramType.ENTRY_POINTS,
-            sample_analysis_results,
-            config
+            DiagramType.ENTRY_POINTS, sample_analysis_results, config
         )
-        
+
         assert "flowchart TB" in diagram
         assert "Test Entry Points" in diagram
         assert "main.py::main" in diagram
@@ -174,39 +170,30 @@ class TestMermaidGeneratorService:
         assert "app.py::create_app" in diagram
         assert "Application Start" in diagram
         assert "subgraph" in diagram
-        
+
     def test_generate_module_deps_diagram(self, service, sample_analysis_results):
         """Test module dependencies diagram generation."""
-        config = DiagramConfig(
-            title="Test Dependencies",
-            include_external=False
-        )
+        config = DiagramConfig(title="Test Dependencies", include_external=False)
         diagram = service.generate_diagram(
-            DiagramType.MODULE_DEPS,
-            sample_analysis_results,
-            config
+            DiagramType.MODULE_DEPS, sample_analysis_results, config
         )
-        
+
         assert "flowchart TB" in diagram
         assert "Test Dependencies" in diagram
         assert "main" in diagram
         assert "utils" in diagram
         assert "cli" in diagram
         assert "-->" in diagram  # Import arrows
-        
+
     def test_generate_class_hierarchy_diagram(self, service, sample_analysis_results):
         """Test class hierarchy diagram generation."""
         config = DiagramConfig(
-            title="Test Class Hierarchy",
-            show_parameters=True,
-            show_return_types=True
+            title="Test Class Hierarchy", show_parameters=True, show_return_types=True
         )
         diagram = service.generate_diagram(
-            DiagramType.CLASS_HIERARCHY,
-            sample_analysis_results,
-            config
+            DiagramType.CLASS_HIERARCHY, sample_analysis_results, config
         )
-        
+
         assert "classDiagram" in diagram
         assert "Test Class Hierarchy" in diagram
         assert "class MyClass" in diagram
@@ -216,16 +203,14 @@ class TestMermaidGeneratorService:
         assert "+process(data: str): bool" in diagram
         assert "BaseClass <|-- MyClass" in diagram  # Inheritance
         assert "MyClass --> Helper" in diagram  # Association
-        
+
     def test_generate_call_graph_diagram(self, service, sample_analysis_results):
         """Test call graph diagram generation."""
         config = DiagramConfig(title="Test Call Graph")
         diagram = service.generate_diagram(
-            DiagramType.CALL_GRAPH,
-            sample_analysis_results,
-            config
+            DiagramType.CALL_GRAPH, sample_analysis_results, config
         )
-        
+
         assert "flowchart TB" in diagram
         assert "Test Call Graph" in diagram
         assert "main" in diagram
@@ -233,39 +218,27 @@ class TestMermaidGeneratorService:
         assert "run_app" in diagram
         assert "cleanup" in diagram
         assert "-->|2|" in diagram  # Call count label
-        
+
     def test_empty_analysis_results(self, service):
         """Test handling of empty analysis results."""
         empty_results = {}
-        
+
         # Entry points
-        diagram = service.generate_diagram(
-            DiagramType.ENTRY_POINTS,
-            empty_results
-        )
+        diagram = service.generate_diagram(DiagramType.ENTRY_POINTS, empty_results)
         assert "No entry points found" in diagram
-        
+
         # Module deps
-        diagram = service.generate_diagram(
-            DiagramType.MODULE_DEPS,
-            empty_results
-        )
+        diagram = service.generate_diagram(DiagramType.MODULE_DEPS, empty_results)
         assert "No dependencies found" in diagram
-        
+
         # Class hierarchy
-        diagram = service.generate_diagram(
-            DiagramType.CLASS_HIERARCHY,
-            empty_results
-        )
+        diagram = service.generate_diagram(DiagramType.CLASS_HIERARCHY, empty_results)
         assert "No classes found" in diagram
-        
+
         # Call graph
-        diagram = service.generate_diagram(
-            DiagramType.CALL_GRAPH,
-            empty_results
-        )
+        diagram = service.generate_diagram(DiagramType.CALL_GRAPH, empty_results)
         assert "No functions found" in diagram
-        
+
     def test_node_id_sanitization(self, service):
         """Test node ID sanitization."""
         test_cases = [
@@ -285,11 +258,13 @@ class TestMermaidGeneratorService:
             ("@#$%^&*()", "node"),  # All special chars
             ("__multiple___underscores__", "multiple_underscores"),
         ]
-        
+
         for input_id, expected in test_cases:
             result = service._sanitize_node_id(input_id)
-            assert result == expected, f"Failed for '{input_id}': got '{result}', expected '{expected}'"
-            
+            assert (
+                result == expected
+            ), f"Failed for '{input_id}': got '{result}', expected '{expected}'"
+
     def test_label_escaping(self, service):
         """Test label escaping for special characters."""
         test_cases = [
@@ -304,11 +279,13 @@ class TestMermaidGeneratorService:
             ("with|pipe", "with&#124;pipe"),
             ("a" * 60, "a" * 47 + "..."),  # Long label truncation
         ]
-        
+
         for input_label, expected in test_cases:
             result = service._escape_label(input_label)
-            assert result == expected, f"Failed for '{input_label}': got '{result}', expected '{expected}'"
-            
+            assert (
+                result == expected
+            ), f"Failed for '{input_label}': got '{result}', expected '{expected}'"
+
     def test_module_name_extraction(self, service):
         """Test module name extraction from paths."""
         test_cases = [
@@ -321,36 +298,56 @@ class TestMermaidGeneratorService:
             ("module", "module"),
             ("", "module"),
         ]
-        
+
         for input_path, expected in test_cases:
             result = service._extract_module_name(input_path)
-            assert result == expected, f"Failed for '{input_path}': got '{result}', expected '{expected}'"
-            
+            assert (
+                result == expected
+            ), f"Failed for '{input_path}': got '{result}', expected '{expected}'"
+
     def test_external_module_detection(self, service):
         """Test detection of external modules."""
         external_modules = [
-            "os", "sys", "re", "json", "typing",
-            "numpy", "pandas", "matplotlib",
-            "requests", "flask", "django",
-            "pytest", "unittest",
-            "logging", "asyncio",
-            "boto3", "azure",
-            "_internal", "_private",
+            "os",
+            "sys",
+            "re",
+            "json",
+            "typing",
+            "numpy",
+            "pandas",
+            "matplotlib",
+            "requests",
+            "flask",
+            "django",
+            "pytest",
+            "unittest",
+            "logging",
+            "asyncio",
+            "boto3",
+            "azure",
+            "_internal",
+            "_private",
             "package-1.2.3",
         ]
-        
+
         internal_modules = [
-            "myapp", "src.utils", "app.models",
-            "__main__", "__init__",
-            "custom_module", "my_package.submodule",
+            "myapp",
+            "src.utils",
+            "app.models",
+            "__main__",
+            "__init__",
+            "custom_module",
+            "my_package.submodule",
         ]
-        
+
         for module in external_modules:
             assert service._is_external_module(module), f"'{module}' should be external"
-            
+
         for module in internal_modules:
-            assert not service._is_external_module(module), f"'{module}' should be internal"
-            
+            assert not service._is_external_module(
+                module
+            ), f"'{module}' should be internal"
+
     def test_mermaid_syntax_validation(self, service):
         """Test Mermaid syntax validation."""
         # Valid diagrams
@@ -360,12 +357,12 @@ class TestMermaidGeneratorService:
             "sequenceDiagram\n    A->>B: Hello",
             "graph LR\n    A[Node A] --> B[Node B]",
         ]
-        
+
         for diagram in valid_diagrams:
             is_valid, error = service.validate_mermaid_syntax(diagram)
             assert is_valid, f"Diagram should be valid: {error}"
             assert error is None
-            
+
         # Invalid diagrams
         invalid_diagrams = [
             ("", "Empty diagram"),
@@ -373,14 +370,19 @@ class TestMermaidGeneratorService:
             ("flowchart TD\n    A[Open --> B", "Unbalanced brackets"),
             ("flowchart TD\n    A(Open --> B", "Unbalanced parentheses"),
             ("classDiagram\n    class A {\n        method()", "Unbalanced braces"),
-            ("flowchart TD\n    subgraph sub\n    A --> B", "Unmatched subgraph blocks"),
+            (
+                "flowchart TD\n    subgraph sub\n    A --> B",
+                "Unmatched subgraph blocks",
+            ),
         ]
-        
+
         for diagram, expected_error in invalid_diagrams:
             is_valid, error = service.validate_mermaid_syntax(diagram)
-            assert not is_valid, f"Diagram should be invalid"
-            assert expected_error in error, f"Expected '{expected_error}' in error message, got '{error}'"
-            
+            assert not is_valid, "Diagram should be invalid"
+            assert (
+                expected_error in error
+            ), f"Expected '{expected_error}' in error message, got '{error}'"
+
     def test_diagram_with_metadata(self, service):
         """Test formatting diagram with metadata."""
         diagram = "flowchart TD\n    A --> B"
@@ -392,11 +394,11 @@ class TestMermaidGeneratorService:
                 "nodes": 10,
                 "edges": 15,
                 "depth": 3,
-            }
+            },
         }
-        
+
         formatted = service.format_diagram_with_metadata(diagram, metadata)
-        
+
         assert "%% Diagram Metadata" in formatted
         assert "%% Generated: 2024-01-01 12:00:00" in formatted
         assert "%% Source: test.py" in formatted
@@ -406,14 +408,14 @@ class TestMermaidGeneratorService:
         assert "%%   edges: 15" in formatted
         assert "%%   depth: 3" in formatted
         assert diagram in formatted
-        
+
     def test_unique_node_ids(self, service):
         """Test that node IDs are unique for different identifiers and consistent for same."""
         # Test that the same identifier always returns the same ID
         id1 = service._get_node_id("test")
         id2 = service._get_node_id("test")
         assert id1 == id2, "Same identifier should return same ID"
-        
+
         # Test that similar but different identifiers get unique IDs
         identifiers = [
             "test",
@@ -422,7 +424,7 @@ class TestMermaidGeneratorService:
             "test.1",  # Will sanitize to test_1, so needs unique ID
             "test/1",  # Will sanitize to test_1, so needs unique ID
         ]
-        
+
         ids_map = {}
         for identifier in identifiers:
             node_id = service._get_node_id(identifier)
@@ -431,15 +433,17 @@ class TestMermaidGeneratorService:
             else:
                 # Same identifier should always return same ID
                 assert ids_map[identifier] == node_id
-        
+
         # Different identifiers should have unique IDs
         unique_ids = list(ids_map.values())
-        assert len(unique_ids) == len(set(unique_ids)), f"Different identifiers should have unique IDs: {ids_map}"
-        
+        assert len(unique_ids) == len(
+            set(unique_ids)
+        ), f"Different identifiers should have unique IDs: {ids_map}"
+
     def test_diagram_config_defaults(self):
         """Test DiagramConfig default values."""
         config = DiagramConfig()
-        
+
         assert config.title is None
         assert config.direction == "TB"
         assert config.theme == "default"
@@ -447,7 +451,7 @@ class TestMermaidGeneratorService:
         assert config.include_external is False
         assert config.show_parameters is True
         assert config.show_return_types is True
-        
+
     def test_diagram_config_custom(self):
         """Test DiagramConfig with custom values."""
         config = DiagramConfig(
@@ -457,9 +461,9 @@ class TestMermaidGeneratorService:
             max_depth=3,
             include_external=True,
             show_parameters=False,
-            show_return_types=False
+            show_return_types=False,
         )
-        
+
         assert config.title == "Custom Title"
         assert config.direction == "LR"
         assert config.theme == "dark"
@@ -467,7 +471,7 @@ class TestMermaidGeneratorService:
         assert config.include_external is True
         assert config.show_parameters is False
         assert config.show_return_types is False
-        
+
     def test_class_name_sanitization(self, service):
         """Test class name sanitization for class diagrams."""
         test_cases = [
@@ -479,29 +483,25 @@ class TestMermaidGeneratorService:
             ("@#$%^", "Class"),
             ("", "Class"),
         ]
-        
+
         for input_name, expected in test_cases:
             result = service._sanitize_class_name(input_name)
-            assert result == expected, f"Failed for '{input_name}': got '{result}', expected '{expected}'"
-            
+            assert (
+                result == expected
+            ), f"Failed for '{input_name}': got '{result}', expected '{expected}'"
+
     def test_service_not_initialized(self):
         """Test that service raises error when not initialized."""
         service = MermaidGeneratorService()
-        
+
         with pytest.raises(RuntimeError, match="Service not initialized"):
-            service.generate_diagram(
-                DiagramType.ENTRY_POINTS,
-                {}
-            )
-            
+            service.generate_diagram(DiagramType.ENTRY_POINTS, {})
+
     def test_invalid_diagram_type(self, service):
         """Test handling of invalid diagram type."""
         with pytest.raises(ValueError, match="Unsupported diagram type"):
-            service.generate_diagram(
-                "invalid_type",  # Not a valid DiagramType
-                {}
-            )
-            
+            service.generate_diagram("invalid_type", {})  # Not a valid DiagramType
+
     def test_complex_nested_structure(self, service):
         """Test handling of complex nested analysis results."""
         complex_results = {
@@ -512,25 +512,23 @@ class TestMermaidGeneratorService:
                         {"name": f"method_{i}"} for i in range(20)  # Many methods
                     ],
                     "attributes": [
-                        {"name": f"attr_{i}", "type": "Any"} for i in range(20)  # Many attributes
-                    ]
+                        {"name": f"attr_{i}", "type": "Any"}
+                        for i in range(20)  # Many attributes
+                    ],
                 },
                 "B": {"bases": ["D"]},
                 "C": {"bases": ["D"]},
                 "D": {"bases": []},
             }
         }
-        
-        diagram = service.generate_diagram(
-            DiagramType.CLASS_HIERARCHY,
-            complex_results
-        )
-        
+
+        diagram = service.generate_diagram(DiagramType.CLASS_HIERARCHY, complex_results)
+
         # Should limit methods and attributes to 10 each
         assert "method_0" in diagram
         assert "method_9" in diagram
         assert "method_10" not in diagram  # Should be truncated
-        
+
         assert "attr_0" in diagram
         assert "attr_9" in diagram
         assert "attr_10" not in diagram  # Should be truncated

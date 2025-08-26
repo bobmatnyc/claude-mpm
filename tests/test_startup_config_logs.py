@@ -27,13 +27,13 @@ def test_service_initialization():
     )
 
     print("1. Creating RunnerConfigurationService...")
-    runner_config = RunnerConfigurationService()
+    RunnerConfigurationService()
 
     print("\n2. Creating HookService...")
-    hook_service = HookService()
+    HookService()
 
     print("\n3. Creating SubprocessLauncherService...")
-    subprocess_service = SubprocessLauncherService()
+    SubprocessLauncherService()
 
     print("\n4. Creating another Config instance directly...")
     config = Config()

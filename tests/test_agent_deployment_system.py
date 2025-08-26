@@ -36,7 +36,7 @@ class TestAgentDeployment:
 
         return AgentDeploymentService(templates_dir, base_agent_path)
 
-    def test_version_field_generation_semantic(deployment_service, tmp_path):
+    def test_version_field_generation_semantic(self, tmp_path):
         """Test that semantic version format is generated correctly."""
         # Create test agent template
         templates_dir = tmp_path / "templates"
@@ -52,7 +52,7 @@ class TestAgentDeployment:
 
         # Deploy agents
         target_dir = tmp_path / "deployed"
-        results = deployment_service.deploy_agents(target_dir)
+        self.deploy_agents(target_dir)
 
         # Check deployed agent
         deployed_file = target_dir / "test_agent.md"
@@ -62,7 +62,7 @@ class TestAgentDeployment:
         assert "version: 2.1.0" in content
         assert "base_version: 1.0.0" in content
 
-    def test_base_version_field_inclusion(deployment_service, tmp_path):
+    def test_base_version_field_inclusion(self, tmp_path):
         """Test that base_version field is always included."""
         templates_dir = tmp_path / "templates"
 
@@ -80,7 +80,7 @@ class TestAgentDeployment:
 
         # Deploy
         target_dir = tmp_path / "deployed"
-        results = deployment_service.deploy_agents(target_dir)
+        self.deploy_agents(target_dir)
 
         # Verify all agents have base_version
         for i in range(3):
@@ -88,7 +88,7 @@ class TestAgentDeployment:
             content = deployed_file.read_text()
             assert "base_version: 1.0.0" in content
 
-    def test_agent_count_exactly_ten(deployment_service, tmp_path):
+    def test_agent_count_exactly_ten(self, tmp_path):
         """Test that exactly 10 agents are deployed (excluding filtered files)."""
         templates_dir = tmp_path / "templates"
 
@@ -125,7 +125,7 @@ class TestAgentDeployment:
 
         # Deploy
         target_dir = tmp_path / "deployed"
-        results = deployment_service.deploy_agents(target_dir)
+        results = self.deploy_agents(target_dir)
 
         # Should deploy exactly 10 agents
         assert len(results["deployed"]) == 10
@@ -137,7 +137,7 @@ class TestAgentDeployment:
         assert not (target_dir / "MEMORIES.md").exists()
         assert not (target_dir / "TODOWRITE.md").exists()
 
-    def test_filtering_non_agent_files(deployment_service, tmp_path):
+    def test_filtering_non_agent_files(self, tmp_path):
         """Test that non-agent files are properly filtered."""
         templates_dir = tmp_path / "templates"
 
@@ -166,7 +166,7 @@ class TestAgentDeployment:
 
         # Deploy
         target_dir = tmp_path / "deployed"
-        results = deployment_service.deploy_agents(target_dir)
+        results = self.deploy_agents(target_dir)
 
         # Only valid_agent should be deployed
         assert len(results["deployed"]) == 1
@@ -177,7 +177,7 @@ class TestAgentDeployment:
             md_name = filename.replace(".json", ".md")
             assert not (target_dir / md_name).exists()
 
-    def test_version_migration_detection(deployment_service, tmp_path):
+    def test_version_migration_detection(self, tmp_path):
         """Test detection and migration from old version formats."""
         templates_dir = tmp_path / "templates"
         target_dir = tmp_path / "deployed"
@@ -208,7 +208,7 @@ Old agent content
         (templates_dir / "test_agent.json").write_text(json.dumps(new_template))
 
         # Deploy (should detect migration needed)
-        results = deployment_service.deploy_agents(target_dir)
+        results = self.deploy_agents(target_dir)
 
         # Check migration occurred
         assert len(results["migrated"]) == 1
@@ -220,7 +220,7 @@ Old agent content
         assert "version: 2.5.0" in updated_content
         assert "0002-0005" not in updated_content
 
-    def test_force_rebuild_option(deployment_service, tmp_path):
+    def test_force_rebuild_option(self, tmp_path):
         """Test that force_rebuild bypasses version checking."""
         templates_dir = tmp_path / "templates"
         target_dir = tmp_path / "deployed"
@@ -235,20 +235,20 @@ Old agent content
         (templates_dir / "test_agent.json").write_text(json.dumps(template))
 
         # First deployment
-        results1 = deployment_service.deploy_agents(target_dir)
+        results1 = self.deploy_agents(target_dir)
         assert len(results1["deployed"]) == 1
 
         # Second deployment without force (should skip)
-        results2 = deployment_service.deploy_agents(target_dir, force_rebuild=False)
+        results2 = self.deploy_agents(target_dir, force_rebuild=False)
         assert len(results2["skipped"]) == 1
         assert len(results2["deployed"]) == 0
 
         # Third deployment with force (should update)
-        results3 = deployment_service.deploy_agents(target_dir, force_rebuild=True)
+        results3 = self.deploy_agents(target_dir, force_rebuild=True)
         assert len(results3["updated"]) == 1
         assert len(results3["skipped"]) == 0
 
-    def test_metadata_field_extraction(deployment_service, tmp_path):
+    def test_metadata_field_extraction(self, tmp_path):
         """Test extraction of metadata fields from templates."""
         templates_dir = tmp_path / "templates"
 
@@ -274,7 +274,7 @@ Old agent content
 
         # Deploy
         target_dir = tmp_path / "deployed"
-        results = deployment_service.deploy_agents(target_dir)
+        self.deploy_agents(target_dir)
 
         # Check deployed content
         deployed_file = target_dir / "research.md"
@@ -287,7 +287,7 @@ Old agent content
         assert "tools: Read, Grep, WebSearch" in content
         assert "model: opus" in content
 
-    def test_deployment_metrics_collection(deployment_service, tmp_path):
+    def test_deployment_metrics_collection(self, tmp_path):
         """Test that deployment metrics are properly collected."""
         templates_dir = tmp_path / "templates"
 
@@ -303,7 +303,7 @@ Old agent content
 
         # Deploy
         target_dir = tmp_path / "deployed"
-        results = deployment_service.deploy_agents(target_dir)
+        results = self.deploy_agents(target_dir)
 
         # Check metrics in results
         assert "metrics" in results
@@ -318,11 +318,11 @@ Old agent content
         assert len(metrics["agent_timings"]) == 5
 
         # Get service metrics
-        service_metrics = deployment_service.get_deployment_metrics()
+        service_metrics = self.get_deployment_metrics()
         assert service_metrics["total_deployments"] == 1
         assert service_metrics["successful_deployments"] == 1
 
-    def test_yaml_to_md_conversion(deployment_service, tmp_path):
+    def test_yaml_to_md_conversion(self, tmp_path):
         """Test conversion of existing YAML files to MD format."""
         target_dir = tmp_path / "deployed"
         target_dir.mkdir()
@@ -351,7 +351,7 @@ Agent instructions in YAML format.
         (templates_dir / "old_agent.json").write_text(json.dumps(template))
 
         # Deploy (should convert YAML to MD)
-        results = deployment_service.deploy_agents(target_dir)
+        results = self.deploy_agents(target_dir)
 
         # Check conversion
         assert len(results["converted"]) == 1
@@ -362,7 +362,7 @@ Agent instructions in YAML format.
         assert (target_dir / "old_agent.yaml.backup").exists()
         assert not yaml_file.exists()  # Original should be removed
 
-    def test_error_handling_invalid_template(deployment_service, tmp_path):
+    def test_error_handling_invalid_template(self, tmp_path):
         """Test error handling for invalid agent templates."""
         templates_dir = tmp_path / "templates"
 
@@ -387,7 +387,7 @@ Agent instructions in YAML format.
 
         # Deploy
         target_dir = tmp_path / "deployed"
-        results = deployment_service.deploy_agents(target_dir)
+        results = self.deploy_agents(target_dir)
 
         # Both minimal and valid should deploy, invalid JSON should error
         assert len(results["deployed"]) == 2
@@ -398,10 +398,10 @@ Agent instructions in YAML format.
         assert len(results["errors"]) == 1
         assert "invalid_agent" in results["errors"][0]
 
-    def test_environment_variable_setup(deployment_service):
+    def test_environment_variable_setup(self):
         """Test setting of Claude environment variables."""
         with patch.dict(os.environ, {}, clear=True):
-            env_vars = deployment_service.set_claude_environment()
+            env_vars = self.set_claude_environment()
 
             # Check required environment variables
             assert "CLAUDE_CONFIG_DIR" in env_vars
@@ -413,7 +413,7 @@ Agent instructions in YAML format.
             assert os.environ.get("CLAUDE_MAX_PARALLEL_SUBAGENTS") == "10"
             assert os.environ.get("CLAUDE_TIMEOUT") == "600000"
 
-    def test_deployment_verification(deployment_service, tmp_path):
+    def test_deployment_verification(self, tmp_path):
         """Test post-deployment verification."""
         templates_dir = tmp_path / "templates"
         target_dir = tmp_path / ".claude"
@@ -429,13 +429,13 @@ Agent instructions in YAML format.
             }
             (templates_dir / f"{name}.json").write_text(json.dumps(template))
 
-        deployment_service.deploy_agents(agents_dir)
+        self.deploy_agents(agents_dir)
 
         # Set environment variables for verification
-        deployment_service.set_claude_environment(target_dir)
+        self.set_claude_environment(target_dir)
 
         # Verify deployment
-        verification = deployment_service.verify_deployment(target_dir)
+        verification = self.verify_deployment(target_dir)
 
         assert len(verification["agents_found"]) == 2
         assert len(verification["warnings"]) == 0

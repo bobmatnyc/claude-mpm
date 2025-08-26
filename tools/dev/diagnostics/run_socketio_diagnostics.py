@@ -17,7 +17,6 @@ WHY this orchestrated approach:
 - Gives actionable recommendations
 """
 
-import os
 import subprocess
 import sys
 import threading
@@ -25,7 +24,6 @@ import time
 import webbrowser
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
 
 # Add the project root to Python path for imports
 project_root = Path(__file__).parent.parent
@@ -117,15 +115,14 @@ class SocketIODiagnosticRunner:
                 self.server_output_thread.start()
 
                 return True
-            else:
-                # Server exited immediately
-                output = (
-                    self.server_process.stdout.read()
-                    if self.server_process.stdout
-                    else "No output"
-                )
-                print(f"❌ Diagnostic server failed to start: {output}")
-                return False
+            # Server exited immediately
+            output = (
+                self.server_process.stdout.read()
+                if self.server_process.stdout
+                else "No output"
+            )
+            print(f"❌ Diagnostic server failed to start: {output}")
+            return False
 
         except Exception as e:
             print(f"❌ Failed to start diagnostic server: {e}")
@@ -168,7 +165,7 @@ class SocketIODiagnosticRunner:
                 [sys.executable, str(script_path)],
                 capture_output=True,
                 text=True,
-                timeout=60,
+                timeout=60, check=False,
             )
 
             print("📋 Connection & Auth Test Output:")
@@ -221,7 +218,7 @@ class SocketIODiagnosticRunner:
                 [sys.executable, str(script_path), "--continuous", "10"],
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=30, check=False,
             )
 
             print("📋 Hook Handler Test Output:")
@@ -275,7 +272,7 @@ class SocketIODiagnosticRunner:
                 [sys.executable, str(script_path), "--port", "8766", "--events", "5"],
                 capture_output=True,
                 text=True,
-                timeout=120,
+                timeout=120, check=False,
             )
 
             print("📋 End-to-End Test Output:")
@@ -351,19 +348,19 @@ class SocketIODiagnosticRunner:
         total_tests = len(self.test_results)
         passed_tests = sum(1 for r in self.test_results.values() if r["success"])
 
-        print(f"📈 OVERALL RESULTS:")
+        print("📈 OVERALL RESULTS:")
         print(f"   Tests run: {total_tests}")
         print(f"   Passed: {passed_tests}")
         print(f"   Failed: {total_tests - passed_tests}")
 
         # Individual test results
-        print(f"\n📋 INDIVIDUAL TEST RESULTS:")
+        print("\n📋 INDIVIDUAL TEST RESULTS:")
         for test_name, result in self.test_results.items():
             status = "✅ PASS" if result["success"] else "❌ FAIL"
             print(f"   {test_name}: {status}")
 
         # Specific diagnostics and recommendations
-        print(f"\n🔍 DIAGNOSTIC CONCLUSIONS:")
+        print("\n🔍 DIAGNOSTIC CONCLUSIONS:")
 
         # Connection issues
         conn_auth = self.test_results.get("connection_auth", {})
@@ -398,7 +395,7 @@ class SocketIODiagnosticRunner:
             print("      - Issue may be in the actual claude-mpm integration")
 
         # Next steps
-        print(f"\n🎯 RECOMMENDED NEXT STEPS:")
+        print("\n🎯 RECOMMENDED NEXT STEPS:")
 
         if not conn_auth.get("success"):
             print("   1. Fix basic connectivity issues first")

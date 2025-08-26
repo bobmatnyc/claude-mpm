@@ -17,11 +17,11 @@ The script handles:
 """
 
 import argparse
-import os
 import socket
 import sys
 import webbrowser
 from pathlib import Path
+from typing import Optional
 
 # Get script directory for relative paths
 SCRIPT_DIR = Path(__file__).parent
@@ -53,7 +53,7 @@ def find_running_server():
     return None
 
 
-def open_monitor(port: int = None):
+def open_monitor(port: Optional[int] = None):
     """Open the monitoring dashboard in browser.
 
     WHY: Users need easy access to the monitoring dashboard. This function
@@ -81,7 +81,7 @@ def open_monitor(port: int = None):
         if port:
             print(f"📊 Monitor will connect to Socket.IO server on port {port}")
         else:
-            print(f"📊 Monitor opened - you can specify server port in the UI")
+            print("📊 Monitor opened - you can specify server port in the UI")
 
     except Exception as e:
         print(f"⚠️  Failed to open browser automatically: {e}")

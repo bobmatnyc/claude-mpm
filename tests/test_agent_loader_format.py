@@ -9,7 +9,7 @@ from claude_mpm.agents.agent_loader import load_agent_prompt_from_md
 class TestAgentLoaderFormats:
     """Test agent_loader handles different JSON formats correctly."""
 
-    def test_narrative_fields_format(tmp_path):
+    def test_narrative_fields_format(self):
         """Test loading from new narrative_fields.instructions format."""
         # Create a test agent with new format
         test_agent = {
@@ -25,7 +25,7 @@ class TestAgentLoaderFormats:
         }
 
         # Write to temp file
-        agent_file = tmp_path / "test_agent.json"
+        agent_file = self / "test_agent.json"
         agent_file.write_text(json.dumps(test_agent, indent=2))
 
         # Mock the AGENT_MAPPINGS and AGENT_TEMPLATES_DIR
@@ -36,7 +36,7 @@ class TestAgentLoaderFormats:
 
         try:
             loader.AGENT_MAPPINGS = {"test": "test_agent.json"}
-            loader.AGENT_TEMPLATES_DIR = tmp_path
+            loader.AGENT_TEMPLATES_DIR = self
 
             # Load the agent
             content = load_agent_prompt_from_md("test", force_reload=True)
@@ -49,7 +49,7 @@ class TestAgentLoaderFormats:
             loader.AGENT_MAPPINGS = original_mappings
             loader.AGENT_TEMPLATES_DIR = original_dir
 
-    def test_old_content_format(tmp_path):
+    def test_old_content_format(self):
         """Test loading from old content field format (backward compatibility)."""
         # Create a test agent with old format
         test_agent = {
@@ -63,7 +63,7 @@ class TestAgentLoaderFormats:
         }
 
         # Write to temp file
-        agent_file = tmp_path / "test_old_agent.json"
+        agent_file = self / "test_old_agent.json"
         agent_file.write_text(json.dumps(test_agent, indent=2))
 
         # Mock the AGENT_MAPPINGS and AGENT_TEMPLATES_DIR
@@ -74,7 +74,7 @@ class TestAgentLoaderFormats:
 
         try:
             loader.AGENT_MAPPINGS = {"test_old": "test_old_agent.json"}
-            loader.AGENT_TEMPLATES_DIR = tmp_path
+            loader.AGENT_TEMPLATES_DIR = self
 
             # Load the agent
             content = load_agent_prompt_from_md("test_old", force_reload=True)
@@ -87,7 +87,7 @@ class TestAgentLoaderFormats:
             loader.AGENT_MAPPINGS = original_mappings
             loader.AGENT_TEMPLATES_DIR = original_dir
 
-    def test_instructions_field_format(tmp_path):
+    def test_instructions_field_format(self):
         """Test loading from instructions field at root level."""
         # Create a test agent with instructions at root
         test_agent = {
@@ -101,7 +101,7 @@ class TestAgentLoaderFormats:
         }
 
         # Write to temp file
-        agent_file = tmp_path / "test_instructions_agent.json"
+        agent_file = self / "test_instructions_agent.json"
         agent_file.write_text(json.dumps(test_agent, indent=2))
 
         # Mock the AGENT_MAPPINGS and AGENT_TEMPLATES_DIR
@@ -114,7 +114,7 @@ class TestAgentLoaderFormats:
             loader.AGENT_MAPPINGS = {
                 "test_instructions": "test_instructions_agent.json"
             }
-            loader.AGENT_TEMPLATES_DIR = tmp_path
+            loader.AGENT_TEMPLATES_DIR = self
 
             # Load the agent
             content = load_agent_prompt_from_md("test_instructions", force_reload=True)
@@ -127,7 +127,7 @@ class TestAgentLoaderFormats:
             loader.AGENT_MAPPINGS = original_mappings
             loader.AGENT_TEMPLATES_DIR = original_dir
 
-    def test_missing_content_returns_none(tmp_path):
+    def test_missing_content_returns_none(self):
         """Test that missing content/instructions returns None."""
         # Create a test agent with no content
         test_agent = {
@@ -140,7 +140,7 @@ class TestAgentLoaderFormats:
         }
 
         # Write to temp file
-        agent_file = tmp_path / "test_empty_agent.json"
+        agent_file = self / "test_empty_agent.json"
         agent_file.write_text(json.dumps(test_agent, indent=2))
 
         # Mock the AGENT_MAPPINGS and AGENT_TEMPLATES_DIR
@@ -151,7 +151,7 @@ class TestAgentLoaderFormats:
 
         try:
             loader.AGENT_MAPPINGS = {"test_empty": "test_empty_agent.json"}
-            loader.AGENT_TEMPLATES_DIR = tmp_path
+            loader.AGENT_TEMPLATES_DIR = self
 
             # Load the agent
             content = load_agent_prompt_from_md("test_empty", force_reload=True)
@@ -170,7 +170,7 @@ class TestAgentLoaderFormats:
         )
 
         # Test each real agent
-        for agent_name in AGENT_MAPPINGS.keys():
+        for agent_name in AGENT_MAPPINGS:
             content = load_agent_prompt_from_md(agent_name, force_reload=True)
             assert content is not None, f"Failed to load {agent_name} agent"
             assert len(content) > 0, f"Empty content for {agent_name} agent"

@@ -211,7 +211,7 @@ def test_memory_injection_with_deployment_check():
 
     # Check 1: Non-deployed agents are skipped
     non_deployed_found = []
-    for memory_file, agent_name, is_deployed, source in memories_to_check:
+    for memory_file, agent_name, is_deployed, _source in memories_to_check:
         if not is_deployed:
             non_deployed_found.append(agent_name)
             # This should have been skipped
@@ -231,7 +231,7 @@ def test_memory_injection_with_deployment_check():
         )
 
     # Check 2: Deployed agents are loaded
-    for memory_file, agent_name, is_deployed, source in memories_to_check:
+    for memory_file, agent_name, is_deployed, _source in memories_to_check:
         if is_deployed:
             # This should have been loaded
             if agent_name not in content.get("agent_memories", {}):

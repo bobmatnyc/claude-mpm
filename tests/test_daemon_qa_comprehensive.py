@@ -29,6 +29,8 @@ import psutil
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+import contextlib
+
 from claude_mpm.core.unified_paths import get_project_root
 
 # Test configuration
@@ -160,10 +162,8 @@ def cleanup_daemon():
         if result.stdout.strip():
             pids = result.stdout.strip().split("\n")
             for pid in pids:
-                try:
+                with contextlib.suppress(ValueError, ProcessLookupError):
                     os.kill(int(pid), signal.SIGKILL)
-                except (ValueError, ProcessLookupError):
-                    pass
     except Exception:
         pass
 
@@ -177,10 +177,8 @@ def cleanup_daemon():
     ]
 
     for file_path in cleanup_files:
-        try:
+        with contextlib.suppress(Exception):
             (deployment_root / file_path).unlink(missing_ok=True)
-        except Exception:
-            pass
 
 
 def is_process_alive(pid: int) -> bool:
@@ -330,7 +328,7 @@ def test_crash_recovery():
         )
 
     # Test 2: Multiple crash recovery
-    for i in range(3):
+    for _i in range(3):
         pid = get_daemon_pid()
         if pid > 0:
             try:
@@ -583,7 +581,7 @@ def test_process_management():
     first_pid = get_daemon_pid()
 
     # Try to start second instance
-    result = run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
+    run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
     second_pid = get_daemon_pid()
 
     if first_pid > 0 and second_pid == first_pid:
@@ -651,7 +649,7 @@ def test_error_handling():
         os.chmod(read_only_dir, 0o444)  # Read-only
 
         # This should fail gracefully
-        result = run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
+        run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
         # Even if it fails, it should not crash the whole system
         log_test(
             "Permission error handling",
@@ -747,13 +745,13 @@ def test_performance_load():
             supervisor_proc = psutil.Process(supervisor_pid)
 
             initial_server_memory = server_proc.memory_info().rss
-            initial_supervisor_memory = supervisor_proc.memory_info().rss
+            supervisor_proc.memory_info().rss
 
             # Wait and check again
             time.sleep(5)
 
             final_server_memory = server_proc.memory_info().rss
-            final_supervisor_memory = supervisor_proc.memory_info().rss
+            supervisor_proc.memory_info().rss
 
             memory_growth = (
                 (final_server_memory - initial_server_memory) / 1024 / 1024
@@ -800,7 +798,7 @@ def test_integration():
         # Test wrapper with hardened daemon
         os.environ["SOCKETIO_USE_HARDENED"] = "true"
 
-        result = run_subcommand([sys.executable, str(wrapper_script), "start"])
+        run_subcommand([sys.executable, str(wrapper_script), "start"])
         time.sleep(3)
 
         if get_daemon_pid() > 0:
@@ -811,7 +809,7 @@ def test_integration():
                 "Integration",
             )
 
-            result = run_subcommand([sys.executable, str(wrapper_script), "stop"])
+            run_subcommand([sys.executable, str(wrapper_script), "stop"])
             time.sleep(2)
 
             if get_daemon_pid() == 0:

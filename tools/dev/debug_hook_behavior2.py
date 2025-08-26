@@ -47,8 +47,8 @@ for case in edge_cases:
     try:
         normalized = AgentNameNormalizer.normalize(case or "")
         prefix = AgentNameNormalizer.to_todo_prefix(case or "")
-        print(f"  {str(case):20} -> {normalized:20} -> {prefix}")
+        print(f"  {case!s:20} -> {normalized:20} -> {prefix}")
     except Exception as e:
-        print(f"  {str(case):20} -> Error: {e}")
+        print(f"  {case!s:20} -> Error: {e}")
 
 print("\nDebug complete!")

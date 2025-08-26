@@ -126,7 +126,6 @@ class ConnectionAuthDiagnostic:
             )
 
             connected = False
-            auth_data_received = None
 
             @client.event
             def connect():

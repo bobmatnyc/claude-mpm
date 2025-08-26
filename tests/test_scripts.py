@@ -7,6 +7,7 @@
 """Test various scripts."""
 
 import ast
+import contextlib
 import os
 import shutil
 import stat
@@ -82,7 +83,7 @@ class TestExampleScripts(PsutilTestCase):
 
     @pytest.mark.skipif(not POSIX, reason="POSIX only")
     def test_executable(self):
-        for root, dirs, files in os.walk(SCRIPTS_DIR):
+        for root, _dirs, files in os.walk(SCRIPTS_DIR):
             for file in files:
                 if file.endswith(".py"):
                     path = os.path.join(root, file)
@@ -197,10 +198,8 @@ class TestInternalScripts(PsutilTestCase):
     @pytest.mark.skipif(CI_TESTING, reason="not on CI")
     def test_import_all(self):
         for path in self.ls():
-            try:
+            with contextlib.suppress(SystemExit):
                 import_module_by_path(path)
-            except SystemExit:
-                pass
 
 
 # ===================================================================

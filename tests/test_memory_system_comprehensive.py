@@ -168,7 +168,7 @@ class MemorySystemTester:
             # Mock agent response with memory
             mock_response = """
             Agent completed the task successfully.
-            
+
             ```json
             {
                 "remember": [
@@ -177,7 +177,7 @@ class MemorySystemTester:
                 ]
             }
             ```
-            
+
             Task complete.
             """
 

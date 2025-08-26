@@ -253,7 +253,7 @@ class CacheManager(ICacheManager):
         with self._lock:
             current_time = time.time()
 
-            stats = {
+            return {
                 "capabilities": {
                     "cached": self._capabilities_cache is not None,
                     "age": (
@@ -308,4 +308,3 @@ class CacheManager(ICacheManager):
                 "fs_cache": self._fs_cache.get_stats() if self._fs_cache else {},
             }
 
-            return stats

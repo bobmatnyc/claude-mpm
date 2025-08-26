@@ -72,7 +72,7 @@ def test_memory_project_directory_only():
         print("\n3. Testing memory extraction...")
         mock_response = """
         Task complete.
-        
+
         ```json
         {
             "remember": [

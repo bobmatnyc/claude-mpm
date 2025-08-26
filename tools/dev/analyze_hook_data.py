@@ -3,7 +3,6 @@
 
 import json
 import time
-from datetime import datetime
 
 import socketio
 
@@ -33,7 +32,7 @@ def history(data):
             event_types[event_type] = []
         event_types[event_type].append(event)
 
-    print(f"\nEvent type summary:")
+    print("\nEvent type summary:")
     for event_type, type_events in sorted(event_types.items()):
         print(f"  {event_type}: {len(type_events)} events")
 

@@ -117,49 +117,47 @@ class TestOutputStyleManager:
 
     def test_save_output_style():
         """Test saving output style to file."""
-        with tmp_path as tmpdir:
-            with patch("subprocess.run") as mock_run:
-                mock_result = MagicMock()
-                mock_result.returncode = 0
-                mock_result.stdout = "Claude 1.0.83"
-                mock_run.return_value = mock_result
+        with tmp_path as tmpdir, patch("subprocess.run") as mock_run:
+            mock_result = MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = "Claude 1.0.83"
+            mock_run.return_value = mock_result
 
-                manager = OutputStyleManager()
-                # Override the path to use temp directory
-                manager.mpm_output_style_path = Path(tmpdir) / "OUTPUT_STYLE.md"
+            manager = OutputStyleManager()
+            # Override the path to use temp directory
+            manager.mpm_output_style_path = Path(tmpdir) / "OUTPUT_STYLE.md"
 
-                content = "Test output style content"
-                saved_path = manager.save_output_style(content)
+            content = "Test output style content"
+            saved_path = manager.save_output_style(content)
 
-                assert saved_path.exists()
-                assert saved_path.read_text() == content
+            assert saved_path.exists()
+            assert saved_path.read_text() == content
 
     def test_deploy_output_style_success():
         """Test successful deployment to Claude Code."""
-        with tmp_path as tmpdir:
-            with patch("subprocess.run") as mock_run:
-                mock_result = MagicMock()
-                mock_result.returncode = 0
-                mock_result.stdout = "Claude 1.0.83"
-                mock_run.return_value = mock_result
+        with tmp_path as tmpdir, patch("subprocess.run") as mock_run:
+            mock_result = MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = "Claude 1.0.83"
+            mock_run.return_value = mock_result
 
-                manager = OutputStyleManager()
-                # Override paths to use temp directory
-                manager.output_style_dir = Path(tmpdir) / "output-styles"
-                manager.output_style_path = manager.output_style_dir / "claude-mpm.md"
-                manager.settings_file = Path(tmpdir) / "settings.json"
+            manager = OutputStyleManager()
+            # Override paths to use temp directory
+            manager.output_style_dir = Path(tmpdir) / "output-styles"
+            manager.output_style_path = manager.output_style_dir / "claude-mpm.md"
+            manager.settings_file = Path(tmpdir) / "settings.json"
 
-                content = "Test output style content"
-                deployed = manager.deploy_output_style(content)
+            content = "Test output style content"
+            deployed = manager.deploy_output_style(content)
 
-                assert deployed is True
-                assert manager.output_style_path.exists()
-                assert manager.output_style_path.read_text() == content
+            assert deployed is True
+            assert manager.output_style_path.exists()
+            assert manager.output_style_path.read_text() == content
 
-                # Check settings were updated
-                assert manager.settings_file.exists()
-                settings = json.loads(manager.settings_file.read_text())
-                assert settings["activeOutputStyle"] == "claude-mpm"
+            # Check settings were updated
+            assert manager.settings_file.exists()
+            settings = json.loads(manager.settings_file.read_text())
+            assert settings["activeOutputStyle"] == "claude-mpm"
 
     def test_deploy_output_style_unsupported_version():
         """Test deployment fails for older Claude versions."""

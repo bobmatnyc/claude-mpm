@@ -18,7 +18,6 @@ The script handles:
 """
 
 import argparse
-import os
 import signal
 import sys
 import time
@@ -72,10 +71,9 @@ def check_dashboard_availability(port: int):
     if modular_dashboard.exists():
         print(f"✓ Modular dashboard found at {modular_dashboard}")
         return True
-    else:
-        print(f"⚠️  Modular dashboard not found at {modular_dashboard}")
-        print(f"   Expected path: {modular_dashboard}")
-        return False
+    print(f"⚠️  Modular dashboard not found at {modular_dashboard}")
+    print(f"   Expected path: {modular_dashboard}")
+    return False
 
 
 def check_server_running(port: int) -> bool:
@@ -130,20 +128,19 @@ def start_python_server(port: int, daemon: bool = False) -> Optional:
             server.start()
             print(f"🚀 Python Socket.IO server started on port {port}")
             return server.thread
-        else:
-            # Start and block
-            print(f"🚀 Starting Python Socket.IO server on port {port}")
-            server.start()
+        # Start and block
+        print(f"🚀 Starting Python Socket.IO server on port {port}")
+        server.start()
 
-            # Keep alive until interrupted
-            try:
-                while server.running:
-                    time.sleep(1)
-            except KeyboardInterrupt:
-                print("\\n🛑 Shutting down Python server...")
-                server.stop()
+        # Keep alive until interrupted
+        try:
+            while server.running:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\\n🛑 Shutting down Python server...")
+            server.stop()
 
-            return None
+        return None
 
     except Exception as e:
         print(f"❌ Failed to start Python server: {e}")
@@ -260,7 +257,7 @@ Examples:
             open_dashboard(args.port, args.no_browser)
 
             if args.daemon and server_thread:
-                print(f"🔄 Python server running in background")
+                print("🔄 Python server running in background")
                 print(f"   Dashboard: http://localhost:{args.port}/dashboard")
         else:
             print("❌ Failed to start Socket.IO server")

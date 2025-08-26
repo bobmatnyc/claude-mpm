@@ -435,8 +435,7 @@ class TestFakePytest(PsutilTestCase):
         suite = unittest.TestSuite()
         suite.addTest(klass)
         runner = unittest.TextTestRunner()
-        result = runner.run(suite)
-        return result
+        return runner.run(suite)
 
     def test_raises(self):
         with fake_pytest.raises(ZeroDivisionError) as cm:
@@ -566,4 +565,4 @@ class TestTestingUtils(PsutilTestCase):
 class TestOtherUtils(PsutilTestCase):
     def test_is_namedtuple(self):
         assert is_namedtuple(collections.namedtuple("foo", "a b c")(1, 2, 3))
-        assert not is_namedtuple(tuple())
+        assert not is_namedtuple(())

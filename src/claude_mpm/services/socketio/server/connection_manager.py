@@ -10,6 +10,7 @@ of client states, proper event delivery, and automatic recovery mechanisms.
 """
 
 import asyncio
+import contextlib
 import time
 from collections import deque
 from dataclasses import dataclass, field
@@ -148,7 +149,7 @@ class ConnectionManager:
     - Automatic event replay on reconnection
     """
 
-    def __init__(self, max_buffer_size: int = None, event_ttl: int = None):
+    def __init__(self, max_buffer_size: Optional[int] = None, event_ttl: Optional[int] = None):
         """
         Initialize connection manager with centralized configuration.
 
@@ -263,6 +264,7 @@ class ConnectionManager:
                     )
                     self.connections[sid] = conn
                     return conn
+        return None
 
     def _create_new_connection(
         self, sid: str, client_id: str, now: float
@@ -434,10 +436,8 @@ class ConnectionManager:
         """Stop the health monitoring task."""
         if self.health_task:
             self.health_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self.health_task
-            except asyncio.CancelledError:
-                pass
             self.health_task = None
             self.logger.info("Stopped connection health monitoring")
 

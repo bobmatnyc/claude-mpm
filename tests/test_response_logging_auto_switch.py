@@ -55,7 +55,7 @@ response_logging:
 
     @patch("claude_mpm.core.claude_runner.os.execvpe")
     @patch("claude_mpm.core.claude_runner.subprocess.Popen")
-    def test_exec_mode_when_response_logging_disabled(mock_popen, mock_execvpe):
+    def test_exec_mode_when_response_logging_disabled(self, mock_execvpe):
         """Test that exec mode is used when response logging is disabled."""
         # Create config with response logging disabled
         config = self.create_config(response_logging_enabled=False)
@@ -82,7 +82,7 @@ response_logging:
 
         # Verify exec was called (not subprocess)
         mock_execvpe.assert_called_once()
-        mock_popen.assert_not_called()
+        self.assert_not_called()
 
     @patch("claude_mpm.core.claude_runner.ClaudeRunner._launch_subprocess_interactive")
     @patch("claude_mpm.core.claude_runner.os.execvpe")
@@ -106,12 +106,11 @@ response_logging:
         )
 
         # Capture print output
-        with patch("builtins.print") as mock_print:
-            with patch(
-                "claude_mpm.core.claude_runner.ClaudeRunner._create_system_prompt",
-                return_value="test prompt",
-            ):
-                runner.run_interactive()
+        with patch("builtins.print") as mock_print, patch(
+            "claude_mpm.core.claude_runner.ClaudeRunner._create_system_prompt",
+            return_value="test prompt",
+        ):
+            runner.run_interactive()
 
         # Verify subprocess was called (not exec)
         mock_subprocess.assert_called_once()
@@ -130,7 +129,7 @@ response_logging:
 
     @patch("claude_mpm.core.claude_runner.os.execvpe")
     @patch("claude_mpm.core.claude_runner.ClaudeRunner._launch_subprocess_interactive")
-    def test_manual_override_with_exec_flag(mock_subprocess, mock_execvpe):
+    def test_manual_override_with_exec_flag(self, mock_execvpe):
         """Test that --launch-method exec overrides auto-switch."""
         # Create config with response logging enabled
         config = self.create_config(response_logging_enabled=True)
@@ -148,19 +147,18 @@ response_logging:
         # Simulate user explicitly requesting exec mode
         # (In real usage, this would be set via --launch-method exec)
         # The auto-switch should still happen since response logging is enabled
-        with patch("builtins.print") as mock_print:
-            with patch(
-                "claude_mpm.core.claude_runner.ClaudeRunner._create_system_prompt",
-                return_value="test prompt",
-            ):
-                runner.run_interactive()
+        with patch("builtins.print"), patch(
+            "claude_mpm.core.claude_runner.ClaudeRunner._create_system_prompt",
+            return_value="test prompt",
+        ):
+            runner.run_interactive()
 
         # With our fix, subprocess should be called when response logging is enabled
-        mock_subprocess.assert_called_once()
+        self.assert_called_once()
         mock_execvpe.assert_not_called()
 
     @patch("claude_mpm.core.claude_runner.ClaudeRunner._launch_subprocess_interactive")
-    def test_subprocess_mode_preserves_response_logging(mock_subprocess):
+    def test_subprocess_mode_preserves_response_logging(self):
         """Test that subprocess mode properly collects output for response logging."""
         # Create config with response logging enabled
         config = self.create_config(response_logging_enabled=True)
@@ -182,8 +180,8 @@ response_logging:
             runner.run_interactive()
 
         # Verify subprocess was called with correct arguments
-        mock_subprocess.assert_called_once()
-        call_args = mock_subprocess.call_args
+        self.assert_called_once()
+        call_args = self.call_args
 
         # Verify the command includes the claude executable
         cmd = call_args[0][0]
@@ -234,12 +232,11 @@ response_logging:
         # Run interactive mode
         with patch(
             "claude_mpm.core.claude_runner.ClaudeRunner._launch_subprocess_interactive"
+        ), patch(
+            "claude_mpm.core.claude_runner.ClaudeRunner._create_system_prompt",
+            return_value="test prompt",
         ):
-            with patch(
-                "claude_mpm.core.claude_runner.ClaudeRunner._create_system_prompt",
-                return_value="test prompt",
-            ):
-                runner.run_interactive()
+            runner.run_interactive()
 
         # Verify logging of the auto-switch
         runner.project_logger.log_system.assert_any_call(

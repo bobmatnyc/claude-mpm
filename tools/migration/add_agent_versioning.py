@@ -13,7 +13,7 @@ templates_dir = (
 )
 
 # Process each agent template (skip README.md)
-agent_files = [f for f in templates_dir.glob("*_agent.md")]
+agent_files = list(templates_dir.glob("*_agent.md"))
 
 for agent_file in agent_files:
     content = agent_file.read_text()

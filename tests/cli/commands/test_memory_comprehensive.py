@@ -695,7 +695,7 @@ class TestLegacyFunctions:
         def mock_glob(pattern):
             if pattern == "*_memories.md":
                 return [mock_file]
-            if pattern == "*_agent.md" or pattern == "*.md":
+            if pattern in {"*_agent.md", "*.md"}:
                 return []
             return []
 

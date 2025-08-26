@@ -6,7 +6,6 @@ This script shows how to use the MermaidGeneratorService to generate
 various types of Mermaid diagrams from code analysis results.
 """
 
-import json
 from pathlib import Path
 
 from claude_mpm.services.visualization import (
@@ -18,15 +17,15 @@ from claude_mpm.services.visualization import (
 
 def main():
     """Run example Mermaid diagram generation."""
-    
+
     # Initialize the service
     service = MermaidGeneratorService()
     if not service.initialize():
         print("Failed to initialize MermaidGeneratorService")
         return
-        
+
     print("MermaidGeneratorService initialized successfully\n")
-    
+
     # Example analysis results (would typically come from Code Analyzer agent)
     analysis_results = {
         "entry_points": {
@@ -40,7 +39,7 @@ def main():
                     "file": "src/claude_mpm/cli/parser.py",
                     "function": "parse_args",
                     "line": 15,
-                }
+                },
             ],
             "web": [
                 {
@@ -48,10 +47,15 @@ def main():
                     "function": "create_app",
                     "line": 25,
                 }
-            ]
+            ],
         },
         "dependencies": {
-            "claude_mpm.cli.main": ["os", "sys", "claude_mpm.core", "claude_mpm.services"],
+            "claude_mpm.cli.main": [
+                "os",
+                "sys",
+                "claude_mpm.core",
+                "claude_mpm.services",
+            ],
             "claude_mpm.core": ["logging", "pathlib", "json"],
             "claude_mpm.services": ["claude_mpm.core", "asyncio"],
         },
@@ -66,17 +70,21 @@ def main():
                 "methods": [
                     {
                         "name": "generate_diagram",
-                        "parameters": ["diagram_type: DiagramType", "analysis_results: Dict", "config: DiagramConfig"],
+                        "parameters": [
+                            "diagram_type: DiagramType",
+                            "analysis_results: Dict",
+                            "config: DiagramConfig",
+                        ],
                         "return_type": "str",
-                        "visibility": "+"
+                        "visibility": "+",
                     },
                     {
                         "name": "_sanitize_node_id",
                         "parameters": ["identifier: str"],
                         "return_type": "str",
-                        "visibility": "-"
-                    }
-                ]
+                        "visibility": "-",
+                    },
+                ],
             },
             "SyncBaseService": {
                 "is_abstract": True,
@@ -89,15 +97,15 @@ def main():
                         "name": "initialize",
                         "parameters": [],
                         "return_type": "bool",
-                        "visibility": "+"
+                        "visibility": "+",
                     },
                     {
                         "name": "shutdown",
                         "parameters": [],
                         "return_type": "None",
-                        "visibility": "+"
-                    }
-                ]
+                        "visibility": "+",
+                    },
+                ],
             },
             "DiagramConfig": {
                 "attributes": [
@@ -105,30 +113,30 @@ def main():
                     {"name": "direction", "type": "str"},
                     {"name": "theme", "type": "str"},
                 ],
-                "methods": []
-            }
+                "methods": [],
+            },
         },
         "functions": {
             "main": {
                 "calls": ["parse_args", "initialize_services", "run_command"],
                 "parameters": [],
-                "return_type": "int"
+                "return_type": "int",
             },
             "parse_args": {
                 "calls": ["ArgumentParser.parse_args"],
                 "parameters": [],
-                "return_type": "Namespace"
+                "return_type": "Namespace",
             },
             "initialize_services": {
                 "calls": ["ServiceContainer.register", "ServiceContainer.resolve"],
                 "parameters": ["config: Dict"],
-                "return_type": "bool"
+                "return_type": "bool",
             },
             "run_command": {
                 "calls": ["CommandHandler.execute"],
                 "parameters": ["args: Namespace"],
-                "return_type": "int"
-            }
+                "return_type": "int",
+            },
         },
         "call_graph": {
             "main": [
@@ -139,10 +147,10 @@ def main():
             "initialize_services": [
                 {"function": "ServiceContainer.register", "count": 5},
                 {"function": "ServiceContainer.resolve", "count": 3},
-            ]
-        }
+            ],
+        },
     }
-    
+
     # Generate different types of diagrams
     diagram_types = [
         (DiagramType.ENTRY_POINTS, "Application Entry Points"),
@@ -150,12 +158,12 @@ def main():
         (DiagramType.CLASS_HIERARCHY, "Class Hierarchy"),
         (DiagramType.CALL_GRAPH, "Function Call Graph"),
     ]
-    
+
     for diagram_type, title in diagram_types:
         print(f"\n{'=' * 60}")
         print(f"Generating {title}")
-        print('=' * 60)
-        
+        print("=" * 60)
+
         config = DiagramConfig(
             title=title,
             direction="TB",  # Top to Bottom
@@ -163,23 +171,19 @@ def main():
             show_return_types=True,
             include_external=False,  # Don't show external modules in deps
         )
-        
+
         try:
-            diagram = service.generate_diagram(
-                diagram_type,
-                analysis_results,
-                config
-            )
-            
+            diagram = service.generate_diagram(diagram_type, analysis_results, config)
+
             # Validate the generated diagram
             is_valid, error = service.validate_mermaid_syntax(diagram)
             if is_valid:
-                print(f"✓ Valid Mermaid syntax generated")
+                print("✓ Valid Mermaid syntax generated")
             else:
                 print(f"✗ Invalid syntax: {error}")
-                
+
             # Show a preview of the diagram
-            lines = diagram.split('\n')
+            lines = diagram.split("\n")
             preview_lines = lines[:20] if len(lines) > 20 else lines
             print("\nDiagram preview:")
             print("-" * 40)
@@ -187,15 +191,15 @@ def main():
                 print(line)
             if len(lines) > 20:
                 print(f"... ({len(lines) - 20} more lines)")
-                
+
             # Save to file
             output_dir = Path("output/diagrams")
             output_dir.mkdir(parents=True, exist_ok=True)
-            
+
             output_file = output_dir / f"{diagram_type.value}.mmd"
             output_file.write_text(diagram)
             print(f"\n✓ Saved to: {output_file}")
-            
+
             # Add metadata
             metadata = {
                 "timestamp": "2024-01-01 12:00:00",
@@ -205,25 +209,24 @@ def main():
                     "lines": len(lines),
                     "nodes": diagram.count("[") + diagram.count("{"),
                     "edges": diagram.count("-->") + diagram.count("<|--"),
-                }
+                },
             }
-            
+
             diagram_with_metadata = service.format_diagram_with_metadata(
-                diagram,
-                metadata
+                diagram, metadata
             )
-            
+
             metadata_file = output_dir / f"{diagram_type.value}_with_metadata.mmd"
             metadata_file.write_text(diagram_with_metadata)
             print(f"✓ Saved with metadata to: {metadata_file}")
-            
+
         except Exception as e:
             print(f"✗ Error generating diagram: {e}")
-            
+
     # Shutdown the service
     service.shutdown()
     print("\n✓ Service shutdown complete")
-    
+
     print("\n" + "=" * 60)
     print("Example complete!")
     print("\nYou can view the generated Mermaid diagrams in:")

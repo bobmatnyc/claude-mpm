@@ -36,7 +36,7 @@ class TestTicketCreateTool:
     """Test the ticket creation tool."""
 
     @pytest.mark.asyncio
-    async def test_create_task_success(mock_subprocess):
+    async def test_create_task_success(self):
         """Test successful task creation."""
         # Setup mock process
         mock_process = AsyncMock()
@@ -45,7 +45,7 @@ class TestTicketCreateTool:
             b"Created ticket: TSK-0001\nTask 'Test task' created successfully",
             b"",
         )
-        mock_subprocess.return_value = mock_process
+        self.return_value = mock_process
 
         # Create tool and invocation
         tool = TicketCreateTool()
@@ -70,8 +70,8 @@ class TestTicketCreateTool:
         assert "Created ticket" in result.data["message"]
 
         # Verify CLI command
-        mock_subprocess.assert_called_once()
-        cmd_args = mock_subprocess.call_args[0]
+        self.assert_called_once()
+        cmd_args = self.call_args[0]
         assert cmd_args[0] == "aitrackdown"
         assert cmd_args[1] == "create"
         assert cmd_args[2] == "task"
@@ -80,13 +80,13 @@ class TestTicketCreateTool:
         assert "--priority" in cmd_args
 
     @pytest.mark.asyncio
-    async def test_create_with_tags(mock_subprocess):
+    async def test_create_with_tags(self):
         """Test creating a ticket with tags."""
         # Setup mock process
         mock_process = AsyncMock()
         mock_process.returncode = 0
         mock_process.communicate.return_value = (b"Created ticket: ISS-0001", b"")
-        mock_subprocess.return_value = mock_process
+        self.return_value = mock_process
 
         # Create tool and invocation
         tool = TicketCreateTool()
@@ -107,19 +107,19 @@ class TestTicketCreateTool:
         assert result.data["ticket_id"] == "ISS-0001"
 
         # Verify tags were passed correctly
-        cmd_args = mock_subprocess.call_args[0]
+        cmd_args = self.call_args[0]
         assert "--tags" in cmd_args
         tags_idx = cmd_args.index("--tags")
         assert cmd_args[tags_idx + 1] == "bug,ui,critical"
 
     @pytest.mark.asyncio
-    async def test_create_failure(mock_subprocess):
+    async def test_create_failure(self):
         """Test handling of creation failure."""
         # Setup mock process with error
         mock_process = AsyncMock()
         mock_process.returncode = 1
         mock_process.communicate.return_value = (b"", b"Error: Invalid ticket type")
-        mock_subprocess.return_value = mock_process
+        self.return_value = mock_process
 
         # Create tool and invocation
         tool = TicketCreateTool()
@@ -140,7 +140,7 @@ class TestTicketListTool:
     """Test the ticket listing tool."""
 
     @pytest.mark.asyncio
-    async def test_list_json_output(mock_subprocess):
+    async def test_list_json_output(self):
         """Test listing tickets with JSON output."""
         # Setup mock process
         mock_tickets = [
@@ -150,7 +150,7 @@ class TestTicketListTool:
         mock_process = AsyncMock()
         mock_process.returncode = 0
         mock_process.communicate.return_value = (json.dumps(mock_tickets).encode(), b"")
-        mock_subprocess.return_value = mock_process
+        self.return_value = mock_process
 
         # Create tool and invocation
         tool = TicketListTool()
@@ -169,7 +169,7 @@ class TestTicketListTool:
         assert result.metadata["count"] == 2
 
         # Verify CLI command
-        cmd_args = mock_subprocess.call_args[0]
+        cmd_args = self.call_args[0]
         assert "--limit" in cmd_args
         assert "--format" in cmd_args
         assert "json" in cmd_args
@@ -177,7 +177,7 @@ class TestTicketListTool:
         assert "task" in cmd_args
 
     @pytest.mark.asyncio
-    async def test_list_text_fallback(mock_subprocess):
+    async def test_list_text_fallback(self):
         """Test fallback to text parsing when JSON fails."""
         # Setup mock process with non-JSON output
         mock_process = AsyncMock()
@@ -186,7 +186,7 @@ class TestTicketListTool:
             b"TSK-0001: Task 1\nTSK-0002: Task 2",
             b"",
         )
-        mock_subprocess.return_value = mock_process
+        self.return_value = mock_process
 
         # Create tool and invocation
         tool = TicketListTool()
@@ -205,7 +205,7 @@ class TestTicketUpdateTool:
     """Test the ticket update tool."""
 
     @pytest.mark.asyncio
-    async def test_update_status(mock_subprocess):
+    async def test_update_status(self):
         """Test updating ticket status."""
         # Setup mock process
         mock_process = AsyncMock()
@@ -214,7 +214,7 @@ class TestTicketUpdateTool:
             b"Ticket TSK-0001 transitioned to in_progress",
             b"",
         )
-        mock_subprocess.return_value = mock_process
+        self.return_value = mock_process
 
         # Create tool and invocation
         tool = TicketUpdateTool()
@@ -236,7 +236,7 @@ class TestTicketUpdateTool:
         assert "status" in result.data["updated_fields"]
 
         # Verify CLI command
-        cmd_args = mock_subprocess.call_args[0]
+        cmd_args = self.call_args[0]
         assert cmd_args[0] == "aitrackdown"
         assert cmd_args[1] == "transition"
         assert cmd_args[2] == "TSK-0001"
@@ -244,7 +244,7 @@ class TestTicketUpdateTool:
         assert "--comment" in cmd_args
 
     @pytest.mark.asyncio
-    async def test_update_priority(mock_subprocess):
+    async def test_update_priority(self):
         """Test updating ticket priority."""
         # Setup mock process
         mock_process = AsyncMock()
@@ -253,7 +253,7 @@ class TestTicketUpdateTool:
             b"Ticket TSK-0001 priority updated to high",
             b"",
         )
-        mock_subprocess.return_value = mock_process
+        self.return_value = mock_process
 
         # Create tool and invocation
         tool = TicketUpdateTool()
@@ -270,7 +270,7 @@ class TestTicketUpdateTool:
         assert "priority" in result.data["updated_fields"]
 
         # Verify CLI command uses update for priority
-        cmd_args = mock_subprocess.call_args[0]
+        cmd_args = self.call_args[0]
         assert cmd_args[0] == "aitrackdown"
         assert cmd_args[1] == "update"
         assert cmd_args[2] == "TSK-0001"
@@ -278,7 +278,7 @@ class TestTicketUpdateTool:
         assert "high" in cmd_args
 
     @pytest.mark.asyncio
-    async def test_update_no_fields(mock_subprocess):
+    async def test_update_no_fields(self):
         """Test error when no update fields provided."""
         # Create tool and invocation
         tool = TicketUpdateTool()
@@ -298,7 +298,7 @@ class TestTicketViewTool:
     """Test the ticket view tool."""
 
     @pytest.mark.asyncio
-    async def test_view_json_format(mock_subprocess):
+    async def test_view_json_format(self):
         """Test viewing ticket with JSON format."""
         # Setup mock process
         mock_ticket = {
@@ -310,7 +310,7 @@ class TestTicketViewTool:
         mock_process = AsyncMock()
         mock_process.returncode = 0
         mock_process.communicate.return_value = (json.dumps(mock_ticket).encode(), b"")
-        mock_subprocess.return_value = mock_process
+        self.return_value = mock_process
 
         # Create tool and invocation
         tool = TicketViewTool()
@@ -329,7 +329,7 @@ class TestTicketViewTool:
         assert result.metadata["ticket_id"] == "TSK-0001"
 
         # Verify CLI command
-        cmd_args = mock_subprocess.call_args[0]
+        cmd_args = self.call_args[0]
         assert cmd_args[0] == "aitrackdown"
         assert cmd_args[1] == "view"
         assert cmd_args[2] == "TSK-0001"
@@ -341,7 +341,7 @@ class TestTicketSearchTool:
     """Test the ticket search tool."""
 
     @pytest.mark.asyncio
-    async def test_search_with_filters(mock_subprocess):
+    async def test_search_with_filters(self):
         """Test searching tickets with filters."""
         # Setup mock process
         mock_results = [
@@ -351,7 +351,7 @@ class TestTicketSearchTool:
         mock_process = AsyncMock()
         mock_process.returncode = 0
         mock_process.communicate.return_value = (json.dumps(mock_results).encode(), b"")
-        mock_subprocess.return_value = mock_process
+        self.return_value = mock_process
 
         # Create tool and invocation
         tool = TicketSearchTool()
@@ -369,7 +369,7 @@ class TestTicketSearchTool:
         assert result.metadata["query"] == "bug"
 
         # Verify CLI command
-        cmd_args = mock_subprocess.call_args[0]
+        cmd_args = self.call_args[0]
         assert cmd_args[0] == "aitrackdown"
         assert cmd_args[1] == "search"
         assert cmd_args[2] == "bug"

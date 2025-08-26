@@ -142,7 +142,7 @@ class TestServiceContainerIntegration:
     def test_container_registration_info(self):
         """Test getting registration information from container."""
         container = ServiceContainer()
-        loader = FrameworkLoader(service_container=container)
+        FrameworkLoader(service_container=container)
 
         # Get registration info
         info = container.get_registration_info()

@@ -6,10 +6,8 @@ WHY: This script helps us understand exactly where "Unknown" values are being se
 and why the HUD button is not being enabled properly.
 """
 
-import json
 import os
 import sys
-import time
 from pathlib import Path
 
 # Add src to path
@@ -34,7 +32,7 @@ def analyze_session_data():
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             cwd=current_dir,
             capture_output=True,
-            text=True,
+            text=True, check=False,
         )
         if result.returncode == 0:
             current_branch = result.stdout.strip()
@@ -92,7 +90,7 @@ def analyze_session_data():
     for item in checklist:
         print(f"  {item}")
 
-    print(f"\n" + "=" * 60)
+    print("\n" + "=" * 60)
     print("NEXT STEPS")
     print("=" * 60)
     print("1. Run: python scripts/test_debug_fixes.py")

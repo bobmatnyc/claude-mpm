@@ -284,8 +284,8 @@ def test_concurrent_cache_access():
         try:
             for i in range(10):
                 # Mix of cache operations
-                deployed = loader._get_deployed_agents()
-                capabilities = loader._generate_agent_capabilities_section()
+                loader._get_deployed_agents()
+                loader._generate_agent_capabilities_section()
                 content = {}
                 loader._load_actual_memories(content)
 

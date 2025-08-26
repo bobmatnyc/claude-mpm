@@ -19,17 +19,17 @@ def check_settings_file():
     """Check if hooks are configured in the correct settings file."""
     settings_local = Path.home() / ".claude" / "settings.local.json"
     settings_old = Path.home() / ".claude" / "settings.json"
-    
+
     print("=" * 60)
     print("HOOK CONFIGURATION CHECK")
     print("=" * 60)
-    
+
     # Check settings.local.json (the correct file)
     if settings_local.exists():
         print(f"✓ Found settings.local.json at: {settings_local}")
         with open(settings_local) as f:
             config = json.load(f)
-        
+
         if "hooks" in config:
             print("✓ Hooks section found in settings.local.json")
             print("\nConfigured events:")
@@ -47,20 +47,20 @@ def check_settings_file():
             print("✗ No hooks section in settings.local.json")
     else:
         print(f"✗ settings.local.json not found at: {settings_local}")
-    
+
     # Check old settings.json
     print("\n" + "-" * 40)
     if settings_old.exists():
         with open(settings_old) as f:
             old_config = json.load(f)
-        
+
         if "hooks" in old_config:
             print("⚠️  WARNING: Found hooks in settings.json (wrong file)")
             print("   Claude Code reads hooks from settings.local.json")
             print("   Run: python -m claude_mpm configure --install-hooks --force")
         else:
             print("✓ No hooks in settings.json (correct)")
-    
+
     return settings_local.exists() and "hooks" in config
 
 
@@ -69,15 +69,15 @@ def check_hook_script():
     print("\n" + "=" * 60)
     print("HOOK HANDLER SCRIPT CHECK")
     print("=" * 60)
-    
+
     # Try to find the script path from settings
     settings_local = Path.home() / ".claude" / "settings.local.json"
     script_path = None
-    
+
     if settings_local.exists():
         with open(settings_local) as f:
             config = json.load(f)
-        
+
         # Extract script path from hooks configuration
         if "hooks" in config:
             for event_hooks in config["hooks"].values():
@@ -89,30 +89,29 @@ def check_hook_script():
                                 break
                 if script_path:
                     break
-    
+
     if script_path and script_path.exists():
         print(f"✓ Hook script found at: {script_path}")
-        
+
         # Check if executable
         if os.access(script_path, os.X_OK):
             print("✓ Script is executable")
         else:
             print("✗ Script is not executable")
             print(f"  Fix with: chmod +x {script_path}")
-        
+
         # Check script content
         with open(script_path) as f:
             content = f.read()
-        
+
         if "claude_mpm.hooks.claude_hooks.hook_handler" in content:
             print("✓ Script contains correct hook handler reference")
         else:
             print("⚠️  Script may not have correct handler reference")
-        
+
         return True
-    else:
-        print("✗ Hook script not found")
-        return False
+    print("✗ Hook script not found")
+    return False
 
 
 def check_socketio_server():
@@ -120,24 +119,20 @@ def check_socketio_server():
     print("\n" + "=" * 60)
     print("SOCKETIO SERVER CHECK")
     print("=" * 60)
-    
+
     try:
         # Check if port 8765 is listening
         result = subprocess.run(
-            ["lsof", "-i", ":8765"],
-            capture_output=True,
-            text=True,
-            check=False
+            ["lsof", "-i", ":8765"], capture_output=True, text=True, check=False
         )
-        
+
         if result.returncode == 0:
             print("✓ SocketIO server is running on port 8765")
             print("  Dashboard URL: http://localhost:8765")
             return True
-        else:
-            print("✗ SocketIO server is not running")
-            print("  Start with: python -m claude_mpm monitor")
-            return False
+        print("✗ SocketIO server is not running")
+        print("  Start with: python -m claude_mpm monitor")
+        return False
     except Exception as e:
         print(f"⚠️  Could not check server status: {e}")
         return False
@@ -148,24 +143,24 @@ def main():
     print("\n" + "=" * 60)
     print("CLAUDE MPM HOOK VERIFICATION")
     print("=" * 60)
-    
+
     all_good = True
-    
+
     # Run checks
     if not check_settings_file():
         all_good = False
-    
+
     if not check_hook_script():
         all_good = False
-    
+
     if not check_socketio_server():
         all_good = False
-    
+
     # Summary
     print("\n" + "=" * 60)
     print("SUMMARY")
     print("=" * 60)
-    
+
     if all_good:
         print("✅ All checks passed!")
         print("\nHooks are properly configured. When you use tools in Claude Code:")
@@ -179,7 +174,7 @@ def main():
         print("  python -m claude_mpm configure --install-hooks --force")
         print("\nTo start the monitoring server:")
         print("  python -m claude_mpm monitor")
-    
+
     return 0 if all_good else 1
 
 

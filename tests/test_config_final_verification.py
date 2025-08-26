@@ -28,9 +28,9 @@ def main():
     from claude_mpm.services.hook_service import HookService
     from claude_mpm.services.response_tracker import ResponseTracker
 
-    hook = HookService()
-    aggregator = EventAggregator()
-    response_tracker = ResponseTracker()
+    HookService()
+    EventAggregator()
+    ResponseTracker()
     config = Config()
 
     # Verify singleton
@@ -110,11 +110,11 @@ print(f"Success messages: {success_count}")
     Config.reset_singleton()
 
     # Create first instance
-    config1 = Config()
+    Config()
     flag_after_first = Config._success_logged
 
     # Create second instance
-    config2 = Config()
+    Config()
     flag_after_second = Config._success_logged
 
     print(f"   ✓ Flag after first instance: {flag_after_first}")

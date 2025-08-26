@@ -16,7 +16,6 @@ The aggregator will:
 4. Save sessions as JSON documents in .claude-mpm/sessions/
 """
 
-import os
 import signal
 import sys
 import time
@@ -27,7 +26,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.event_aggregator import (
-    EventAggregator,
     aggregator_status,
     start_aggregator,
     stop_aggregator,
@@ -144,13 +142,13 @@ def main():
                 if current_time - last_status_time >= status_interval:
                     status = aggregator_status()
                     if status["total_events"] > 0:
-                        print(f"\n📊 Status Update:")
+                        print("\n📊 Status Update:")
                         print(f"   Events captured: {status['total_events']}")
                         print(f"   Active sessions: {status['active_sessions']}")
                         print(f"   Completed sessions: {status['sessions_completed']}")
 
                         if status["active_session_ids"]:
-                            print(f"   Active session IDs:")
+                            print("   Active session IDs:")
                             for sid in status["active_session_ids"][:3]:
                                 print(f"     - {sid}")
                             if len(status["active_session_ids"]) > 3:

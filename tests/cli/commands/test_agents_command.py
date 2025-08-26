@@ -54,9 +54,9 @@ class TestAgentsCommand:
         mock_get_versions.assert_called_once()
 
     @patch("claude_mpm.cli.commands.agents.get_agent_versions_display")
-    def test_run_default_json_format(mock_get_versions):
+    def test_run_default_json_format(self):
         """Test default behavior with JSON format."""
-        mock_get_versions.return_value = "Agent: test-agent v1.0.0"
+        self.return_value = "Agent: test-agent v1.0.0"
 
         args = Namespace(format="json")
 
@@ -69,9 +69,9 @@ class TestAgentsCommand:
         assert result.data["has_agents"] is True
 
     @patch("claude_mpm.cli.commands.agents.get_agent_versions_display")
-    def test_run_default_no_agents(mock_get_versions):
+    def test_run_default_no_agents(self):
         """Test default behavior when no agents are deployed."""
-        mock_get_versions.return_value = None
+        self.return_value = None
 
         args = Namespace(format="json")
 
@@ -241,9 +241,9 @@ class TestAgentsCommand:
             assert "Error" in result.message or "error" in result.message
 
     @patch.object(AgentsCommand, "deployment_service", new_callable=lambda: Mock())
-    def test_list_agents_implementation(mock_deployment_service):
+    def test_list_agents_implementation(self):
         """Test _list_agents implementation."""
-        mock_deployment_service.list_deployed_agents.return_value = [
+        self.list_deployed_agents.return_value = [
             {"name": "agent1", "version": "1.0.0"},
             {"name": "agent2", "version": "2.0.0"},
         ]

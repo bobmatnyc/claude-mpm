@@ -377,7 +377,7 @@ class TestAgentListingService:
 
         # Clear cache and call again
         service.clear_cache()
-        agents3 = service.list_system_agents()
+        service.list_system_agents()
         assert service.deployment_service.list_available_agents.call_count == 2
 
     def test_cache_ttl(self, service):
@@ -386,14 +386,14 @@ class TestAgentListingService:
         service._cache_ttl = 0.1
 
         # First call
-        agents1 = service.list_system_agents()
+        service.list_system_agents()
         assert service.deployment_service.list_available_agents.call_count == 1
 
         # Wait for cache to expire
         time.sleep(0.2)
 
         # Should hit service again
-        agents2 = service.list_system_agents()
+        service.list_system_agents()
         assert service.deployment_service.list_available_agents.call_count == 2
 
     def test_cache_key_separation(self, service):

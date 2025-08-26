@@ -4,9 +4,6 @@ Monitor Socket.IO events while running a Claude session
 """
 
 import json
-import subprocess
-import sys
-import threading
 import time
 
 import socketio

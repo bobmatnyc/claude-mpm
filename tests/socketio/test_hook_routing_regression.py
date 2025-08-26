@@ -354,12 +354,11 @@ class TestHookRoutingRegression(unittest.TestCase):
                 if (
                     hasattr(self.mock_server, "event_registry")
                     and self.mock_server.event_registry
-                ):
-                    if hasattr(self.mock_server.event_registry, "handlers"):
-                        for handler in self.mock_server.event_registry.handlers:
-                            if handler.__class__.__name__ == "HookEventHandler":
-                                hook_handler = handler
-                                break
+                ) and hasattr(self.mock_server.event_registry, "handlers"):
+                    for handler in self.mock_server.event_registry.handlers:
+                        if handler.__class__.__name__ == "HookEventHandler":
+                            hook_handler = handler
+                            break
 
                 if hook_handler and hasattr(hook_handler, "process_hook_event"):
                     # Let the hook handler process this event
@@ -495,12 +494,11 @@ class TestHookRoutingIntegration(unittest.TestCase):
                 if (
                     hasattr(self.mock_server, "event_registry")
                     and self.mock_server.event_registry
-                ):
-                    if hasattr(self.mock_server.event_registry, "handlers"):
-                        for handler in self.mock_server.event_registry.handlers:
-                            if handler.__class__.__name__ == "HookEventHandler":
-                                hook_handler = handler
-                                break
+                ) and hasattr(self.mock_server.event_registry, "handlers"):
+                    for handler in self.mock_server.event_registry.handlers:
+                        if handler.__class__.__name__ == "HookEventHandler":
+                            hook_handler = handler
+                            break
 
                 if hook_handler and hasattr(hook_handler, "process_hook_event"):
                     await hook_handler.process_hook_event(data)

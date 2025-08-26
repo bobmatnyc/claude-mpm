@@ -16,6 +16,8 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+import contextlib
+
 from claude_mpm.core.unified_paths import get_project_root
 
 DAEMON_SCRIPT = (
@@ -82,10 +84,8 @@ class DaemonTestManager:
                     self.daemon_process.terminate()
                     self.daemon_process.wait(timeout=5)
                 except:
-                    try:
+                    with contextlib.suppress(Exception):
                         self.daemon_process.kill()
-                    except:
-                        pass
                 self.daemon_process = None
 
     def get_daemon_info(self):
@@ -154,10 +154,8 @@ class DaemonTestManager:
         ]
 
         for file_path in cleanup_files:
-            try:
+            with contextlib.suppress(Exception):
                 (self.deployment_root / file_path).unlink(missing_ok=True)
-            except Exception:
-                pass
 
         # Kill any remaining processes
         try:
@@ -170,10 +168,8 @@ class DaemonTestManager:
             if result.stdout.strip():
                 pids = result.stdout.strip().split("\n")
                 for pid in pids:
-                    try:
+                    with contextlib.suppress(ValueError, ProcessLookupError):
                         os.kill(int(pid), signal.SIGKILL)
-                    except (ValueError, ProcessLookupError):
-                        pass
         except Exception:
             pass
 

@@ -324,10 +324,9 @@ class AgentValidationService(IAgentValidationService):
                 if fix_result.warnings:
                     total_issues += len(fix_result.warnings)
 
-                if fix_result.corrections:
-                    if not dry_run:
-                        total_fixed += len(fix_result.corrections)
-                        agents_fixed.append(agent_id)
+                if fix_result.corrections and not dry_run:
+                    total_fixed += len(fix_result.corrections)
+                    agents_fixed.append(agent_id)
 
             return {
                 "success": True,

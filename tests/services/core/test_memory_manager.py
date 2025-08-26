@@ -368,13 +368,12 @@ class TestMemoryManager:
             with patch(
                 "claude_mpm.services.core.memory_manager.Path.home",
                 return_value=Path(tmpdir) / "user",
+            ), patch(
+                "claude_mpm.services.core.memory_manager.Path.cwd",
+                return_value=Path(tmpdir) / "project",
             ):
-                with patch(
-                    "claude_mpm.services.core.memory_manager.Path.cwd",
-                    return_value=Path(tmpdir) / "project",
-                ):
-                    # Load memories
-                    result = memory_manager.load_memories()
+                # Load memories
+                result = memory_manager.load_memories()
 
             # Verify project overrides user for common items
             assert "actual_memories" in result

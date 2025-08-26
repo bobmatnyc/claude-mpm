@@ -63,7 +63,6 @@ def test_config_singleton():
     Config.reset_singleton()
 
     # Track Config instances
-    config_instances = []
 
     # Test 1: Direct Config instantiation
     print("Test 1: Direct Config instantiation")
@@ -132,7 +131,7 @@ def test_config_singleton():
 
     if services:
         # Sample a few services
-        for module_name, class_name, service_class in services[:5]:
+        for module_name, class_name, _service_class in services[:5]:
             print(f"  - {module_name}.{class_name}")
 
     return True
@@ -159,9 +158,9 @@ def check_log_messages():
     logger.setLevel(logging.DEBUG)
 
     # Create multiple Config instances
-    config1 = Config()
-    config2 = Config()
-    config3 = Config()
+    Config()
+    Config()
+    Config()
 
     # Check logs
     logs = log_buffer.getvalue()

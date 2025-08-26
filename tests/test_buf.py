@@ -41,13 +41,13 @@ class TestBuf(TestBase):
 
             # begin access can revive it, if the offset is suitable
             offset = 100
-            assert buf.begin_access(c, fc.size) == False
-            assert buf.begin_access(c, offset) == True
+            assert not buf.begin_access(c, fc.size)
+            assert buf.begin_access(c, offset)
             assert len(buf) == fc.size - offset
             assert buf.cursor().is_valid()
 
             # empty begin access keeps it valid on the same path, but alters the offset
-            assert buf.begin_access() == True
+            assert buf.begin_access()
             assert len(buf) == fc.size
             assert buf.cursor().is_valid()
 
@@ -67,7 +67,7 @@ class TestBuf(TestBase):
             assert buf.cursor().is_associated()  # but it remains associated
 
             # an empty begin access fixes it up again
-            assert buf.begin_access() == True and buf.cursor().is_valid()
+            assert buf.begin_access() and buf.cursor().is_valid()
             del buf  # ends access automatically
             del c
 

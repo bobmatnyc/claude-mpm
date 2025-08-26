@@ -21,6 +21,8 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from typing import Optional
+
 from claude_mpm.core.framework_loader import FrameworkLoader
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
 
@@ -43,7 +45,7 @@ class MemoryV3_9_0_Tester:
         self.test_results.append(result)
         print(result)
 
-    def create_temp_project(self, project_memory_content: str = None) -> Path:
+    def create_temp_project(self, project_memory_content: Optional[str] = None) -> Path:
         """Create a temporary project with optional project-specific memory."""
         temp_dir = Path(tmp_path)
         self.temp_dirs.append(temp_dir)
@@ -415,7 +417,7 @@ This is project-specific memory that should override system memory.
             )
 
             large_save_success = memory_manager.save_memory("research", large_content)
-            large_load = memory_manager.load_memory("research")
+            memory_manager.load_memory("research")
             large_operations_time = time.time() - start_time
 
             self.log_result(
@@ -437,7 +439,7 @@ This is project-specific memory that should override system memory.
 
             # Test 4: Cross-reference analysis performance
             start_time = time.time()
-            cross_refs = memory_manager.cross_reference_memories()
+            memory_manager.cross_reference_memories()
             cross_ref_time = time.time() - start_time
 
             self.log_result(
@@ -470,7 +472,7 @@ This is project-specific memory that should override system memory.
 
             # Test 2: Very long content
             very_long_content = "x" * 10000  # 10KB single item
-            long_content_success = memory_manager.add_learning(
+            memory_manager.add_learning(
                 "engineer", "pattern", very_long_content
             )
 

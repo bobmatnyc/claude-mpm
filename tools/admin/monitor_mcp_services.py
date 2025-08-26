@@ -7,7 +7,6 @@ automatically restarting them on failure and preventing port conflicts.
 """
 
 import argparse
-import json
 import logging
 import os
 import signal
@@ -19,7 +18,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from threading import Event, Thread
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import psutil
 import requests
@@ -48,7 +47,7 @@ class ServiceConfig:
 class MCPServiceMonitor:
     """Monitor and manage MCP services."""
 
-    def __init__(self, config_path: str, log_dir: str = None):
+    def __init__(self, config_path: str, log_dir: Optional[str] = None):
         self.config_path = Path(config_path)
         self.log_dir = Path(log_dir) if log_dir else Path.home() / ".mcp" / "logs"
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -88,7 +87,7 @@ class MCPServiceMonitor:
     def load_config(self):
         """Load service configurations from YAML file."""
         try:
-            with open(self.config_path, "r") as f:
+            with open(self.config_path) as f:
                 config = yaml.safe_load(f)
 
             for service_name, service_config in config["services"].items():
@@ -140,7 +139,7 @@ class MCPServiceMonitor:
             # Try using lsof as a fallback
             try:
                 result = subprocess.run(
-                    ["lsof", "-ti", f":{port}"], capture_output=True, text=True
+                    ["lsof", "-ti", f":{port}"], capture_output=True, text=True, check=False
                 )
                 if result.returncode == 0 and result.stdout.strip():
                     return int(result.stdout.strip().split("\n")[0])
@@ -287,8 +286,7 @@ class MCPServiceMonitor:
                         consecutive_failures = 0
                         time.sleep(10)  # Health check interval
                         continue
-                    else:
-                        self.logger.warning(f"{service_name} health check failed")
+                    self.logger.warning(f"{service_name} health check failed")
 
                 # Service is not running or unhealthy
                 consecutive_failures += 1

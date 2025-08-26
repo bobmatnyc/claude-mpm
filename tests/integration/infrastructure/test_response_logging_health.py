@@ -31,6 +31,8 @@ from typing import Any, Dict, Tuple
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+import contextlib
+
 from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 from claude_mpm.services.claude_session_logger import ClaudeSessionLogger
 from claude_mpm.services.response_tracker import ResponseTracker
@@ -415,10 +417,8 @@ class ResponseLoggingHealthChecker:
                     print("  ✓ Response logging working correctly")
 
                     # Clean up test file
-                    try:
+                    with contextlib.suppress(Exception):
                         log_path.unlink()
-                    except:
-                        pass
                 else:
                     self.results[check_name] = {
                         "status": "error",
@@ -471,18 +471,17 @@ class ResponseLoggingHealthChecker:
                     issues.append(f"Cannot create directory: {e}")
 
             # Check write permissions
-            if session_dir.exists():
-                if not os.access(session_dir, os.W_OK):
-                    issues.append(f"Directory not writable: {session_dir}")
-                    if self.auto_fix:
-                        try:
-                            session_dir.chmod(0o755)
-                            issues.append("Fixed directory permissions")
-                            self.fixes_applied.append(
-                                f"Fixed permissions for {session_dir}"
-                            )
-                        except Exception as e:
-                            issues.append(f"Cannot fix permissions: {e}")
+            if session_dir.exists() and not os.access(session_dir, os.W_OK):
+                issues.append(f"Directory not writable: {session_dir}")
+                if self.auto_fix:
+                    try:
+                        session_dir.chmod(0o755)
+                        issues.append("Fixed directory permissions")
+                        self.fixes_applied.append(
+                            f"Fixed permissions for {session_dir}"
+                        )
+                    except Exception as e:
+                        issues.append(f"Cannot fix permissions: {e}")
 
             if not issues:
                 self.results[check_name] = {

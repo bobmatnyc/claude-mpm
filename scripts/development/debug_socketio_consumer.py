@@ -193,7 +193,7 @@ class SocketIODebugConsumer:
             return EventSource.HOOK.value
         if event_name.startswith("test."):
             return EventSource.TEST.value
-        if event_name.startswith("agent.") or event_name.startswith("subagent."):
+        if event_name.startswith(("agent.", "subagent.")):
             return EventSource.AGENT.value
         if event_name in ["system.heartbeat", "session.started", "session.ended"]:
             return EventSource.SYSTEM.value

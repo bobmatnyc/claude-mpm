@@ -81,6 +81,7 @@ WHY conditional imports:
 # Import EventBus availability flag for backward compatibility with tests
 try:
     from claude_mpm.services.event_bus import EventBus
+
     EVENTBUS_AVAILABLE = True
 except ImportError:
     EVENTBUS_AVAILABLE = False
@@ -122,38 +123,38 @@ MIN_CLAUDE_VERSION = "1.0.92"
 def check_claude_version() -> Tuple[bool, Optional[str]]:
     """
     Verify Claude Code version compatibility for hook support.
-    
+
     Executes 'claude --version' command to detect installed version and
     compares against minimum required version for hook functionality.
-    
+
     Version Checking Logic:
     1. Execute 'claude --version' with timeout
     2. Parse version string using regex
     3. Compare against MIN_CLAUDE_VERSION (1.0.92)
     4. Return compatibility status and detected version
-    
+
     WHY this check is critical:
     - Hook support was added in Claude Code v1.0.92
     - Earlier versions don't understand matcher-based hooks
     - Prevents cryptic errors from unsupported configurations
     - Allows graceful fallback or user notification
-    
+
     Error Handling:
     - Command timeout after 5 seconds
     - Subprocess errors caught and logged
     - Invalid version formats handled gracefully
     - Returns (False, None) on any failure
-    
+
     Performance Notes:
     - Subprocess call has ~100ms overhead
     - Result should be cached by caller
     - Only called during initialization
-    
+
     Returns:
-        Tuple[bool, Optional[str]]: 
+        Tuple[bool, Optional[str]]:
             - bool: True if version is compatible
             - str|None: Detected version string, None if detection failed
-            
+
     Examples:
         >>> is_compatible, version = check_claude_version()
         >>> if not is_compatible:
@@ -168,29 +169,29 @@ def check_claude_version() -> Tuple[bool, Optional[str]]:
             timeout=5,
             check=False,
         )
-        
+
         if result.returncode == 0:
             version_text = result.stdout.strip()
             # Extract version number (e.g., "1.0.92 (Claude Code)" -> "1.0.92")
             match = re.match(r"^([\d\.]+)", version_text)
             if match:
                 version = match.group(1)
-                
+
                 # Compare versions
                 def parse_version(v: str):
                     try:
                         return [int(x) for x in v.split(".")]
                     except (ValueError, AttributeError):
                         return [0]
-                
+
                 current = parse_version(version)
                 required = parse_version(MIN_CLAUDE_VERSION)
-                
+
                 # Check if current version meets minimum
                 for i in range(max(len(current), len(required))):
                     curr_part = current[i] if i < len(current) else 0
                     req_part = required[i] if i < len(required) else 0
-                    
+
                     if curr_part < req_part:
                         if DEBUG:
                             print(
@@ -199,14 +200,16 @@ def check_claude_version() -> Tuple[bool, Optional[str]]:
                                 file=sys.stderr,
                             )
                         return False, version
-                    elif curr_part > req_part:
+                    if curr_part > req_part:
                         return True, version
-                
+
                 return True, version
     except Exception as e:
         if DEBUG:
-            print(f"Warning: Could not detect Claude Code version: {e}", file=sys.stderr)
-    
+            print(
+                f"Warning: Could not detect Claude Code version: {e}", file=sys.stderr
+            )
+
     return False, None
 
 
@@ -367,8 +370,10 @@ class ClaudeHookHandler:
             parsed = json.loads(event_data)
             # Debug: Log the actual event format we receive
             if DEBUG:
-                print(f"Received event with keys: {list(parsed.keys())}", file=sys.stderr)
-                for key in ['hook_event_name', 'event', 'type', 'event_type']:
+                print(
+                    f"Received event with keys: {list(parsed.keys())}", file=sys.stderr
+                )
+                for key in ["hook_event_name", "event", "type", "event_type"]:
                     if key in parsed:
                         print(f"  {key} = '{parsed[key]}'", file=sys.stderr)
             return parsed
@@ -393,14 +398,14 @@ class ClaudeHookHandler:
         """
         # Try multiple field names for compatibility
         hook_type = (
-            event.get("hook_event_name") or 
-            event.get("event") or 
-            event.get("type") or 
-            event.get("event_type") or 
-            event.get("hook_event_type") or
-            "unknown"
+            event.get("hook_event_name")
+            or event.get("event")
+            or event.get("type")
+            or event.get("event_type")
+            or event.get("hook_event_type")
+            or "unknown"
         )
-        
+
         # Log the actual event structure for debugging
         if DEBUG and hook_type == "unknown":
             print(f"Unknown event format, keys: {list(event.keys())}", file=sys.stderr)
@@ -474,7 +479,7 @@ def main():
     """Entry point with singleton pattern and proper cleanup."""
     global _global_handler
     _continue_printed = False  # Track if we've already printed continue
-    
+
     # Check Claude Code version compatibility first
     is_compatible, version = check_claude_version()
     if not is_compatible:

@@ -114,9 +114,8 @@ def remove_ticketing_sections(content):
 
     # Clean up excessive newlines
     content = re.sub(r"\n{4,}", "\n\n\n", content)
-    content = re.sub(r"\n{3,}$", "\n", content)
+    return re.sub(r"\n{3,}$", "\n", content)
 
-    return content
 
 
 # Process each agent template

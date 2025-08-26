@@ -10,8 +10,6 @@ This example demonstrates how to use the DI container to:
 """
 
 import asyncio
-from pathlib import Path
-from typing import Optional
 
 # Import DI components
 from claude_mpm.core import (
@@ -19,7 +17,6 @@ from claude_mpm.core import (
     DIContainer,
     InjectableService,
     ServiceLifetime,
-    get_service_registry,
 )
 
 
@@ -137,13 +134,12 @@ async def main():
         print("   🏭 Factory creating NotificationService...")
 
         # Could add custom logic here
-        service = NotificationService(
+        return NotificationService(
             name="factory_notification",
             config=container.resolve(Config),
             email_service=container.resolve(IEmailService),
             template_engine=container.resolve(ITemplateEngine),
         )
-        return service
 
     # Register with factory
     container.register_factory(

@@ -236,7 +236,7 @@ def test_mcp_imports():
         print("   ✅ All MCP imports successful")
 
         # Test gateway instantiation
-        gateway = MCPGateway("test-gateway")
+        MCPGateway("test-gateway")
         print("   ✅ MCP gateway instantiation successful")
         return True
 

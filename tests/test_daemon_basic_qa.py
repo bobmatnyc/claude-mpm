@@ -15,6 +15,8 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+import contextlib
+
 from claude_mpm.core.unified_paths import get_project_root
 
 DAEMON_SCRIPT = (
@@ -53,10 +55,8 @@ def cleanup_daemon():
     ]
 
     for file_path in cleanup_files:
-        try:
+        with contextlib.suppress(Exception):
             (deployment_root / file_path).unlink(missing_ok=True)
-        except Exception:
-            pass
 
 
 def get_daemon_info():
@@ -300,7 +300,7 @@ def test_concurrent_protection():
         return
 
     # Try to start second instance
-    result = subprocess.run(
+    subprocess.run(
         [sys.executable, str(DAEMON_SCRIPT), "start"],
         capture_output=True,
         text=True,

@@ -45,7 +45,7 @@ def test_direct_agent_delegation():
             cwd=Path(__file__).parent.parent,
             capture_output=True,
             text=True,
-            timeout=45,
+            timeout=45, check=False,
         )
 
         # Check output for Task tool usage
@@ -98,7 +98,7 @@ Use the Task tool with:
         cwd=Path(__file__).parent.parent,
         capture_output=True,
         text=True,
-        timeout=60,
+        timeout=60, check=False,
     )
 
     if result.returncode == 0:
@@ -120,7 +120,7 @@ def check_dashboard_code():
 
     dashboard_path = Path(__file__).parent / "claude_mpm_socketio_dashboard.html"
 
-    with open(dashboard_path, "r") as f:
+    with open(dashboard_path) as f:
         content = f.read()
 
     # Check renderAgents function

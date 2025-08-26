@@ -34,7 +34,7 @@ def test_task_workflow():
     print(f"Created task: {task.id} - Status: {task.status}")
 
     # Add initial comment
-    comment1 = CommentModel(
+    CommentModel(
         id="COM-100",
         parent_id=task.id,
         parent_type="task",
@@ -59,7 +59,7 @@ def test_task_workflow():
                 task.resolution_comment = "Task completed"
 
             # Add comment at this stage
-            comment = CommentModel(
+            CommentModel(
                 id=f"COM-{101 + transitions.index((new_status, resolution, comment_text))}",
                 parent_id=task.id,
                 parent_type="task",
@@ -113,7 +113,7 @@ def test_issue_workflow():
                     issue.resolution_comment = comment_text
 
             # Add comment
-            comment = CommentModel(
+            CommentModel(
                 id=f"COM-{200 + transitions.index((new_status, resolution, comment_text))}",
                 parent_id=issue.id,
                 parent_type="issue",
@@ -180,7 +180,7 @@ def test_bug_workflow_with_reopen():
                     bug.reopen_count = getattr(bug, "reopen_count", 0) + 1
 
             # Add comment
-            comment = CommentModel(
+            CommentModel(
                 id=f"COM-{300 + len(transitions)}",
                 parent_id=bug.id,
                 parent_type="bug",
@@ -231,7 +231,7 @@ def test_epic_workflow():
             can_transition, error = epic.can_transition_to("in_progress")
             if can_transition:
                 epic.status = "in_progress"
-                comment = CommentModel(
+                CommentModel(
                     id="COM-400",
                     parent_id=epic.id,
                     parent_type="epic",
@@ -249,7 +249,7 @@ def test_epic_workflow():
             epic.status = new_status
 
             # Add comment
-            comment = CommentModel(
+            CommentModel(
                 id=f"COM-{401 + transitions.index((new_status, resolution, comment_text))}",
                 parent_id=epic.id,
                 parent_type="epic",
@@ -295,7 +295,7 @@ def test_pr_workflow():
             pr.status = new_status
 
             # Add comment
-            comment = CommentModel(
+            CommentModel(
                 id=f"COM-{500 + transitions.index((new_status, resolution, comment_text))}",
                 parent_id=pr.id,
                 parent_type="pr",

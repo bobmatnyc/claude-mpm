@@ -68,8 +68,8 @@ Task completed.
 """
 
     # Add same memory twice
-    result1 = manager.extract_and_update_memory(test_agent_dup, duplicate_response)
-    result2 = manager.extract_and_update_memory(test_agent_dup, duplicate_response)
+    manager.extract_and_update_memory(test_agent_dup, duplicate_response)
+    manager.extract_and_update_memory(test_agent_dup, duplicate_response)
 
     memory = manager.load_agent_memory(test_agent_dup)
     duplicate_count = memory.count("This is a test memory item")

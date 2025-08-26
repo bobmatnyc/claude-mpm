@@ -41,7 +41,7 @@ def measure_cold_start():
 
     # Simulate agent invocation that triggers MCP
     cmd = [sys.executable, "-m", "claude_mpm", "run", "engineer", "--help"]
-    result = subprocess.run(
+    subprocess.run(
         cmd, capture_output=True, text=True, cwd=project_root, check=False
     )
 
@@ -80,7 +80,7 @@ def measure_warm_start():
 
     # Simulate agent invocation
     cmd = [sys.executable, "-m", "claude_mpm", "run", "engineer", "--help"]
-    result = subprocess.run(
+    subprocess.run(
         cmd, capture_output=True, text=True, cwd=project_root, check=False
     )
 
@@ -105,7 +105,7 @@ def measure_process_pool_efficiency():
 
         # Simulate agent invocation
         cmd = [sys.executable, "-m", "claude_mpm", "run", "engineer", "--help"]
-        result = subprocess.run(
+        subprocess.run(
             cmd, capture_output=True, text=True, cwd=project_root, check=False
         )
 

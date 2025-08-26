@@ -1791,6 +1791,7 @@ class ValidatorTestMixin(MetaSchemaTestsMixin):
                 raise bad
             # pragma: no cover
             self.fail(f"What is {value}? [Baby Don't Hurt Me]")
+            return None
 
         validator = self.Validator(
             {"format": "foo"},
@@ -1922,7 +1923,7 @@ class ValidatorTestMixin(MetaSchemaTestsMixin):
 
         class LegacyRefResolver:
             @contextmanager
-            def resolving(this, ref):
+            def resolving(self, ref):
                 self.assertEqual(ref, "the ref")
                 yield {"type": "integer"}
 

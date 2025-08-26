@@ -154,7 +154,7 @@ Follow these guidelines for all tasks.
         assert isinstance(env_vars, dict)
         assert len(env_vars) > 0
         # Should set environment variables
-        for key, value in env_vars.items():
+        for key, _value in env_vars.items():
             assert key in [
                 "CLAUDE_CONFIG_DIR",
                 "CLAUDE_MAX_PARALLEL_SUBAGENTS",
@@ -184,7 +184,7 @@ Follow these guidelines for all tasks.
     def test_reset_metrics(self, deployment_service):
         """Test resetting deployment metrics."""
         # Get initial metrics
-        initial_metrics = deployment_service.get_deployment_metrics()
+        deployment_service.get_deployment_metrics()
 
         # Reset metrics
         deployment_service.reset_metrics()

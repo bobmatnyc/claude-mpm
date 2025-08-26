@@ -31,7 +31,7 @@ class TestResponseTrackerBasics:
         """Test that initialization creates the responses directory."""
         with tmp_path as tmpdir:
             base_dir = Path(tmpdir) / "test_responses"
-            tracker = ResponseTracker(base_dir)
+            ResponseTracker(base_dir)
 
             assert base_dir.exists()
             assert base_dir.is_dir()

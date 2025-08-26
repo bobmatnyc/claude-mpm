@@ -16,7 +16,6 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import List, Optional
 
 from .code_tree_analyzer import CodeTreeAnalyzer
 
@@ -26,73 +25,59 @@ def parse_arguments():
     parser = argparse.ArgumentParser(
         description="Analyze code structure and emit events"
     )
-    
+
     parser.add_argument(
-        "--path",
-        type=str,
-        required=True,
-        help="Directory path to analyze"
+        "--path", type=str, required=True, help="Directory path to analyze"
     )
-    
+
     parser.add_argument(
         "--languages",
         type=str,
-        help="Comma-separated list of languages to include (e.g., python,javascript)"
+        help="Comma-separated list of languages to include (e.g., python,javascript)",
     )
-    
+
     parser.add_argument(
-        "--max-depth",
-        type=int,
-        help="Maximum directory depth to traverse"
+        "--max-depth", type=int, help="Maximum directory depth to traverse"
     )
-    
+
     parser.add_argument(
         "--ignore",
         action="append",
-        help="Patterns to ignore (can be specified multiple times)"
+        help="Patterns to ignore (can be specified multiple times)",
     )
-    
+
     parser.add_argument(
-        "--emit-events",
-        action="store_true",
-        help="Enable Socket.IO event emission"
+        "--emit-events", action="store_true", help="Enable Socket.IO event emission"
     )
-    
+
     parser.add_argument(
         "--output-format",
         choices=["json", "json-stream", "summary"],
         default="summary",
-        help="Output format (default: summary)"
+        help="Output format (default: summary)",
     )
-    
+
     parser.add_argument(
-        "--output-file",
-        type=str,
-        help="Output file path (stdout if not specified)"
+        "--output-file", type=str, help="Output file path (stdout if not specified)"
     )
-    
+
     parser.add_argument(
-        "--cache-dir",
-        type=str,
-        help="Directory for caching analysis results"
+        "--cache-dir", type=str, help="Directory for caching analysis results"
     )
-    
+
     return parser.parse_args()
 
 
 def emit_json_event(event_type: str, data: dict, file=None):
     """Emit a JSON event to stdout or file.
-    
+
     Args:
         event_type: Type of event
         data: Event data
         file: Output file handle (stdout if None)
     """
-    event = {
-        "type": event_type,
-        "data": data
-    }
-    
+    event = {"type": event_type, "data": data}
+
     output = json.dumps(event)
     if file:
         file.write(output + "\n")
@@ -104,65 +89,66 @@ def emit_json_event(event_type: str, data: dict, file=None):
 def main():
     """Main entry point for the analyzer CLI."""
     args = parse_arguments()
-    
+
     # Parse path
     path = Path(args.path).resolve()
     if not path.exists():
-        emit_json_event("code:analysis:error", {
-            "message": f"Path does not exist: {args.path}"
-        })
+        emit_json_event(
+            "code:analysis:error", {"message": f"Path does not exist: {args.path}"}
+        )
         sys.exit(1)
-        
+
     if not path.is_dir():
-        emit_json_event("code:analysis:error", {
-            "message": f"Path is not a directory: {args.path}"
-        })
+        emit_json_event(
+            "code:analysis:error", {"message": f"Path is not a directory: {args.path}"}
+        )
         sys.exit(1)
-    
+
     # Parse languages
     languages = None
     if args.languages:
         languages = [lang.strip() for lang in args.languages.split(",")]
-    
+
     # Parse cache directory
     cache_dir = None
     if args.cache_dir:
         cache_dir = Path(args.cache_dir)
-    
+
     # Open output file if specified
     output_file = None
     if args.output_file:
         try:
             output_file = open(args.output_file, "w")
         except Exception as e:
-            emit_json_event("code:analysis:error", {
-                "message": f"Failed to open output file: {e}"
-            })
+            emit_json_event(
+                "code:analysis:error", {"message": f"Failed to open output file: {e}"}
+            )
             sys.exit(1)
-    
+
     try:
         # Create analyzer
-        analyzer = CodeTreeAnalyzer(
-            emit_events=args.emit_events,
-            cache_dir=cache_dir
-        )
-        
+        analyzer = CodeTreeAnalyzer(emit_events=args.emit_events, cache_dir=cache_dir)
+
         # Emit start event for JSON stream format
         if args.output_format == "json-stream":
-            emit_json_event("code:analysis:start", {
-                "path": str(path),
-                "languages": languages,
-                "max_depth": args.max_depth
-            }, output_file)
-        
+            emit_json_event(
+                "code:analysis:start",
+                {
+                    "path": str(path),
+                    "languages": languages,
+                    "max_depth": args.max_depth,
+                },
+                output_file,
+            )
+
         # Run analysis
         result = analyzer.analyze_directory(
             directory=path,
             languages=languages,
             ignore_patterns=args.ignore,
-            max_depth=args.max_depth
+            max_depth=args.max_depth,
         )
-        
+
         # Output results based on format
         if args.output_format == "json":
             # Full JSON output
@@ -171,14 +157,15 @@ def main():
                 output_file.write(output)
             else:
                 print(output)
-                
+
         elif args.output_format == "json-stream":
             # Streaming JSON events (already emitted during analysis)
-            emit_json_event("code:analysis:complete", {
-                "path": str(path),
-                "stats": result.get("stats", {})
-            }, output_file)
-            
+            emit_json_event(
+                "code:analysis:complete",
+                {"path": str(path), "stats": result.get("stats", {})},
+                output_file,
+            )
+
         else:  # summary
             # Human-readable summary
             stats = result.get("stats", {})
@@ -199,19 +186,19 @@ Duration: {stats.get('duration', 0):.2f}s
                 output_file.write(summary)
             else:
                 print(summary)
-                
+
     except KeyboardInterrupt:
-        emit_json_event("code:analysis:cancelled", {
-            "message": "Analysis cancelled by user"
-        }, output_file)
+        emit_json_event(
+            "code:analysis:cancelled",
+            {"message": "Analysis cancelled by user"},
+            output_file,
+        )
         sys.exit(130)
-        
+
     except Exception as e:
-        emit_json_event("code:analysis:error", {
-            "message": str(e)
-        }, output_file)
+        emit_json_event("code:analysis:error", {"message": str(e)}, output_file)
         sys.exit(1)
-        
+
     finally:
         if output_file:
             output_file.close()

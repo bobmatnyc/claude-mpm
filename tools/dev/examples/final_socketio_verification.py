@@ -43,7 +43,7 @@ def run_final_verification():
         return False
 
     # Step 2: Start event monitor
-    print(f"\n📊 Step 2: Starting event monitor...")
+    print("\n📊 Step 2: Starting event monitor...")
     events_received = []
     monitor_connected = False
 
@@ -96,7 +96,7 @@ def run_final_verification():
         monitor_thread = None
 
     # Step 3: Test hook handler events
-    print(f"\n🧪 Step 3: Testing hook handler events...")
+    print("\n🧪 Step 3: Testing hook handler events...")
 
     # Set up environment
     env = os.environ.copy()
@@ -153,7 +153,7 @@ def run_final_verification():
                 text=True,
                 capture_output=True,
                 env=env,
-                timeout=5,
+                timeout=5, check=False,
             )
 
             if result.returncode == 0:
@@ -168,14 +168,14 @@ def run_final_verification():
             print(f"   ❌ Hook {i}/3 error: {e}")
 
     # Step 4: Wait for event processing and check results
-    print(f"\n⏳ Step 4: Waiting for event processing...")
+    print("\n⏳ Step 4: Waiting for event processing...")
     time.sleep(5)  # Wait for batch processing
 
     if monitor_thread:
         monitor_thread.join(timeout=2)
 
     # Step 5: Check connection pool stats
-    print(f"\n📊 Step 5: Checking connection pool statistics...")
+    print("\n📊 Step 5: Checking connection pool statistics...")
     try:
         from claude_mpm.core.socketio_pool import get_connection_pool
 
@@ -196,9 +196,9 @@ def run_final_verification():
         pool_working = False
 
     # Final assessment
-    print(f"\n" + "=" * 60)
-    print(f"🎯 FINAL RESULTS:")
-    print(f"   Server running: ✅")
+    print("\n" + "=" * 60)
+    print("🎯 FINAL RESULTS:")
+    print("   Server running: ✅")
     print(f"   Monitor connected: {'✅' if monitor_connected else '❌'}")
     print(f"   Hook handlers: {successful_hooks}/3 successful")
     print(f"   Events received: {len(events_received)}")
@@ -217,29 +217,29 @@ def run_final_verification():
     )
 
     if overall_success:
-        print(f"\n✅ Socket.IO hook integration is WORKING!")
-        print(f"\nTo use with Claude:")
-        print(f"1. Ensure Socket.IO server is running:")
-        print(f"   python -m claude_mpm.services.socketio_server &")
-        print(f"")
-        print(f"2. Set environment variables (if needed):")
-        print(f"   export CLAUDE_MPM_HOOK_DEBUG=true")
-        print(f"   export CLAUDE_MPM_SOCKETIO_PORT=8765")
-        print(f"")
-        print(f"3. Run Claude with monitoring:")
-        print(f"   ./scripts/claude-mpm run -i 'your prompt' --monitor")
-        print(f"")
-        print(f"4. View events in dashboard:")
-        print(f"   http://localhost:8765/dashboard")
+        print("\n✅ Socket.IO hook integration is WORKING!")
+        print("\nTo use with Claude:")
+        print("1. Ensure Socket.IO server is running:")
+        print("   python -m claude_mpm.services.socketio_server &")
+        print("")
+        print("2. Set environment variables (if needed):")
+        print("   export CLAUDE_MPM_HOOK_DEBUG=true")
+        print("   export CLAUDE_MPM_SOCKETIO_PORT=8765")
+        print("")
+        print("3. Run Claude with monitoring:")
+        print("   ./scripts/claude-mpm run -i 'your prompt' --monitor")
+        print("")
+        print("4. View events in dashboard:")
+        print("   http://localhost:8765/dashboard")
 
     else:
-        print(f"\n❌ Some issues remain:")
+        print("\n❌ Some issues remain:")
         if successful_hooks < 3:
-            print(f"   - Hook handlers not executing properly")
+            print("   - Hook handlers not executing properly")
         if not pool_working:
-            print(f"   - Connection pool has issues")
+            print("   - Connection pool has issues")
         if len(events_received) == 0 and monitor_connected:
-            print(f"   - Events not reaching Socket.IO server")
+            print("   - Events not reaching Socket.IO server")
 
     return overall_success
 
@@ -249,7 +249,7 @@ def main():
     try:
         return run_final_verification()
     except KeyboardInterrupt:
-        print(f"\n⚠️ Verification interrupted by user")
+        print("\n⚠️ Verification interrupted by user")
         return False
     except Exception as e:
         print(f"\n❌ Verification failed: {e}")

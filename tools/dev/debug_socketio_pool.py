@@ -4,7 +4,6 @@ Debug the Socket.IO connection pool to see why events aren't being sent.
 """
 
 import asyncio
-import json
 import os
 import sys
 import time
@@ -49,12 +48,12 @@ def debug_connection_pool():
 
         # Get initial stats
         stats = pool.get_stats()
-        print(f"\n📊 Initial pool stats:")
+        print("\n📊 Initial pool stats:")
         for key, value in stats.items():
             print(f"   {key}: {value}")
 
         # Test direct event emission
-        print(f"\n🧪 Testing direct event emission...")
+        print("\n🧪 Testing direct event emission...")
 
         test_data = {
             "event_type": "debug_test",
@@ -73,12 +72,12 @@ def debug_connection_pool():
 
         # Check updated stats
         updated_stats = pool.get_stats()
-        print(f"\n📊 Updated pool stats:")
+        print("\n📊 Updated pool stats:")
         for key, value in updated_stats.items():
             print(f"   {key}: {value}")
 
         # Check connection pool internal state
-        print(f"\n🔍 Pool internal state:")
+        print("\n🔍 Pool internal state:")
         print(f"   Available connections: {len(pool.available_connections)}")
         print(f"   Active connections: {len(pool.active_connections)}")
         print(f"   Connection stats: {len(pool.connection_stats)}")
@@ -88,7 +87,7 @@ def debug_connection_pool():
         print(f"   Circuit breaker failures: {pool.circuit_breaker.failure_count}")
 
         # Try to manually process batch
-        print(f"\n🧪 Testing manual batch processing...")
+        print("\n🧪 Testing manual batch processing...")
         if pool.batch_queue:
             print(f"   Found {len(pool.batch_queue)} events in queue")
             # Get the current batch
@@ -105,7 +104,7 @@ def debug_connection_pool():
 
         # Final stats
         final_stats = pool.get_stats()
-        print(f"\n📊 Final pool stats:")
+        print("\n📊 Final pool stats:")
         for key, value in final_stats.items():
             print(f"   {key}: {value}")
 
@@ -113,7 +112,7 @@ def debug_connection_pool():
         events_sent = final_stats.get("total_events_sent", 0)
         errors = final_stats.get("total_errors", 0)
 
-        print(f"\n🎯 Results:")
+        print("\n🎯 Results:")
         print(f"   Events sent: {events_sent}")
         print(f"   Errors: {errors}")
         print(f"   Circuit breaker: {final_stats.get('circuit_state', 'unknown')}")
@@ -168,8 +167,7 @@ def test_simple_socketio_client():
                 return False
 
         # Run the async test
-        result = asyncio.run(test_client())
-        return result
+        return asyncio.run(test_client())
 
     except ImportError:
         print("❌ Socket.IO not available")

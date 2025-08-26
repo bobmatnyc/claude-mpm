@@ -13,7 +13,7 @@ import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -32,7 +32,7 @@ class SimpleMCPClient:
         return self.request_id
 
     async def send_request(
-        self, method: str, params: Dict[str, Any] = None
+        self, method: str, params: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Send a JSON-RPC request to the server."""
         request = {"jsonrpc": "2.0", "id": self.get_next_id(), "method": method}
@@ -51,8 +51,7 @@ class SimpleMCPClient:
             raise Exception("No response from server")
 
         try:
-            response = json.loads(response_line.decode().strip())
-            return response
+            return json.loads(response_line.decode().strip())
         except json.JSONDecodeError:
             raise Exception(f"Invalid JSON response: {response_line.decode()}")
 

@@ -129,18 +129,17 @@ class DashboardMonitor:
         }
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    f"{self.base_url}/api/events",
-                    json=test_event,
-                    headers={"Content-Type": "application/json"},
-                ) as response:
-                    if response.status == 204:
-                        print("✅ HTTP endpoint test successful (204 No Content)")
-                        return True
-                    text = await response.text()
-                    print(f"❌ HTTP endpoint returned {response.status}: {text}")
-                    return False
+            async with aiohttp.ClientSession() as session, session.post(
+                f"{self.base_url}/api/events",
+                json=test_event,
+                headers={"Content-Type": "application/json"},
+            ) as response:
+                if response.status == 204:
+                    print("✅ HTTP endpoint test successful (204 No Content)")
+                    return True
+                text = await response.text()
+                print(f"❌ HTTP endpoint returned {response.status}: {text}")
+                return False
         except Exception as e:
             print(f"❌ Failed to test HTTP endpoint: {e}")
             return False

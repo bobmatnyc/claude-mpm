@@ -205,7 +205,7 @@ Task completed.
         return False
 
     # Add same memory second time
-    success2 = manager.extract_and_update_memory(test_agent, duplicate_response)
+    manager.extract_and_update_memory(test_agent, duplicate_response)
 
     # Check memory content
     memory_content = manager.load_agent_memory(test_agent)

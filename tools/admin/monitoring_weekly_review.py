@@ -2,7 +2,6 @@
 """Weekly monitoring system review and planning tool."""
 
 import json
-import os
 import subprocess
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -14,12 +13,12 @@ def get_git_stats():
     try:
         # Get commits from last 7 days
         cmd = "git log --since='7 days ago' --pretty=format:'%h|%an|%s' --grep='monitor\\|dashboard\\|socketio\\|websocket'"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=False)
         commits = result.stdout.strip().split("\n") if result.stdout else []
 
         # Get changed files
         cmd = "git diff --name-only HEAD~7 HEAD | grep -E '(monitor|dashboard|socketio|websocket)'"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=False)
         changed_files = result.stdout.strip().split("\n") if result.stdout else []
 
         return {
@@ -48,7 +47,7 @@ def analyze_health_reports():
         report_file = reports_dir / f"health_report_{date}.json"
 
         if report_file.exists():
-            with open(report_file, "r") as f:
+            with open(report_file) as f:
                 report = json.load(f)
                 health_data["total_checks"] += report["summary"]["total"]
                 health_data["failures"] += report["summary"]["failed"]

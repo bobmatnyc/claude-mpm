@@ -118,6 +118,7 @@ def test_agent_deduplication():
         return False
 
     print("\n=== ALL TESTS PASSED ===")
+    return None
 
 
 if __name__ == "__main__":

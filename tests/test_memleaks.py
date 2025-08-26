@@ -15,6 +15,7 @@ because of how its JIT handles memory, so tests are skipped.
 """
 
 
+import contextlib
 import functools
 import os
 import platform
@@ -281,10 +282,8 @@ class TestTerminatedProcessLeaks(TestProcessObjectLeaks):
         terminate(cls.subp)
 
     def call(self, fun):
-        try:
+        with contextlib.suppress(psutil.NoSuchProcess):
             fun()
-        except psutil.NoSuchProcess:
-            pass
 
     if WINDOWS:
 

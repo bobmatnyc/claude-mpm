@@ -16,11 +16,10 @@ import argparse
 import json
 import os
 import platform
-import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Tuple
 
 
 class SocketIOInstaller:
@@ -78,15 +77,14 @@ class SocketIOInstaller:
         print("Installing required dependencies...")
 
         try:
-            cmd = [self.python_executable, "-m", "pip", "install"] + missing_packages
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            cmd = [self.python_executable, "-m", "pip", "install", *missing_packages]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             if result.returncode == 0:
                 print("✅ Dependencies installed successfully")
                 return True
-            else:
-                print(f"❌ Failed to install dependencies: {result.stderr}")
-                return False
+            print(f"❌ Failed to install dependencies: {result.stderr}")
+            return False
 
         except Exception as e:
             print(f"❌ Error installing dependencies: {e}")
@@ -132,13 +130,12 @@ exec "{self.python_executable}" -m claude_mpm.services.standalone_socketio_serve
 
         if self.platform == "linux":
             return self._create_systemd_service(user_mode)
-        elif self.platform == "darwin":
+        if self.platform == "darwin":
             return self._create_launchd_service()
-        elif self.platform == "windows":
+        if self.platform == "windows":
             return self._create_windows_service()
-        else:
-            print(f"⚠️ Service installation not supported on {self.platform}")
-            return False
+        print(f"⚠️ Service installation not supported on {self.platform}")
+        return False
 
     def _create_systemd_service(self, user_mode: bool) -> bool:
         """Create systemd service file for Linux."""
@@ -331,12 +328,12 @@ pause
                 SocketIOClientManager,
             )
 
-            client_manager = SocketIOClientManager()
+            SocketIOClientManager()
 
             # Test configuration
             from claude_mpm.config.socketio_config import get_config
 
-            config = get_config()
+            get_config()
 
             print("✅ Server module loads correctly")
             print("✅ Client manager loads correctly")

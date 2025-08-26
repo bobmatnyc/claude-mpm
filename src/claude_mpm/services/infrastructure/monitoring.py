@@ -47,22 +47,22 @@ from .monitoring import (  # noqa: F401; New service-based API; Base components;
 )
 
 __all__ = [
-    # New service-based API
-    "ResourceMonitorService",
-    "ProcessHealthService",
-    "ServiceHealthService",
-    "NetworkHealthService",
-    "MonitoringAggregatorService",
-    # Base components
-    "HealthStatus",
-    "HealthMetric",
+    "AdvancedHealthMonitor",
     "HealthCheckResult",
     "HealthChecker",
+    "HealthMetric",
+    # Base components
+    "HealthStatus",
+    "MonitoringAggregatorService",
+    "NetworkConnectivityChecker",
+    "NetworkHealthService",
+    "ProcessHealthService",
     # Legacy compatibility
     "ProcessResourceChecker",
-    "NetworkConnectivityChecker",
+    # New service-based API
+    "ResourceMonitorService",
     "ServiceHealthChecker",
-    "AdvancedHealthMonitor",
+    "ServiceHealthService",
 ]
 
 # Module metadata

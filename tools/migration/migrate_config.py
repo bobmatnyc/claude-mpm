@@ -80,9 +80,8 @@ def main():
             print(f"  Backup location: {migrator.backup_dir}")
             print("\nYou can now delete the old configuration files if desired.")
             return 0
-        else:
-            print("\n✗ Migration failed. Please check the logs.")
-            return 1
+        print("\n✗ Migration failed. Please check the logs.")
+        return 1
 
     except ConfigMigrationError as e:
         print(f"\n✗ Migration error: {e}")
