@@ -30,6 +30,7 @@
     <link rel="stylesheet" href="/static/css/dashboard.css">
     <link rel="stylesheet" href="/static/css/connection-status.css">
     <link rel="stylesheet" href="/static/css/activity.css">
+    <link rel="stylesheet" href="/static/css/code-tree.css">
 
     <!-- Additional styles for file operations -->
     <style>
@@ -245,6 +246,7 @@
                         <button class="tab-button" data-tab="tools">🔧 Tools</button>
                         <button class="tab-button" data-tab="files">📁 Files</button>
                         <button class="tab-button" data-tab="activity">🌳 Activity</button>
+                        <button class="tab-button" data-tab="code">🧬 Code</button>
                     </div>
 
                     <!-- Events Tab -->
@@ -384,7 +386,100 @@
                         </div>
                     </div>
 
+                    <!-- Code Tab -->
+                    <div class="tab-content" id="code-tab">
+                        <div class="code-container">
+                            <!-- Compact header with all controls in one line -->
+                            <div class="code-header-compact">
+                                <div class="header-left">
+                                    <input type="text" id="analysis-path" placeholder="Path" value="." class="path-input-compact">
+                                    <button id="analyze-code" class="btn-compact btn-primary">🔍</button>
+                                    <button id="cancel-analysis" class="btn-compact btn-danger" style="display: none;">✕</button>
+                                    <button id="code-expand-all" class="btn-compact" title="Expand All">⊕</button>
+                                    <button id="code-collapse-all" class="btn-compact" title="Collapse All">⊖</button>
+                                    <button id="code-reset-zoom" class="btn-compact" title="Reset Zoom">⟲</button>
+                                    <button id="code-toggle-legend" class="btn-compact" title="Toggle Legend">ℹ️</button>
+                                </div>
+                                <div class="header-center">
+                                    <span class="stat-compact">📁 <span id="file-count">0</span></span>
+                                    <span class="stat-compact">🏛️ <span id="class-count">0</span></span>
+                                    <span class="stat-compact">⚡ <span id="function-count">0</span></span>
+                                    <span class="stat-compact">📝 <span id="line-count">0</span></span>
+                                </div>
+                                <div class="header-right">
+                                    <select id="language-filter" class="select-compact">
+                                        <option value="all">All</option>
+                                        <option value="python">Python</option>
+                                        <option value="javascript">JS</option>
+                                        <option value="typescript">TS</option>
+                                    </select>
+                                    <input type="text" id="code-search" placeholder="Search..." class="search-compact">
+                                </div>
+                            </div>
+                            <!-- Collapsible advanced options -->
+                            <details class="code-advanced-options">
+                                <summary>Advanced Options</summary>
+                                <div class="advanced-content">
+                                    <div class="option-group">
+                                        <label>Languages:</label>
+                                        <label><input type="checkbox" class="language-checkbox" value="python" checked> Python</label>
+                                        <label><input type="checkbox" class="language-checkbox" value="javascript" checked> JS</label>
+                                        <label><input type="checkbox" class="language-checkbox" value="typescript"> TS</label>
+                                    </div>
+                                    <div class="option-group">
+                                        <label>Depth: <input type="number" id="max-depth" min="1" max="10" value="5" class="input-compact"></label>
+                                        <label>Ignore: <input type="text" id="ignore-patterns" placeholder="test*, *.spec.js" class="input-compact"></label>
+                                    </div>
+                                </div>
+                            </details>
+                            <div id="code-tree-container" class="code-tree-container">
+                                <div id="code-tree"></div>
+                                <!-- Collapsible legend -->
+                                <div class="tree-legend collapsed" id="tree-legend" style="display: none;">
+                                    <button class="legend-close" onclick="document.getElementById('tree-legend').style.display='none'">✕</button>
+                                    <div class="legend-content">
+                                        <div class="legend-column">
+                                            <div class="legend-item"><span class="legend-icon">📦</span> Module</div>
+                                            <div class="legend-item"><span class="legend-icon">🏛️</span> Class</div>
+                                            <div class="legend-item"><span class="legend-icon">⚡</span> Function</div>
+                                            <div class="legend-item"><span class="legend-icon">🔧</span> Method</div>
+                                        </div>
+                                        <div class="legend-column">
+                                            <div class="legend-item"><span class="legend-icon complexity-low">●</span> Low</div>
+                                            <div class="legend-item"><span class="legend-icon complexity-medium">●</span> Med</div>
+                                            <div class="legend-item"><span class="legend-icon complexity-high">●</span> High</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="code-breadcrumb" id="code-breadcrumb">
+                                Project > Click a node to see path
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Code Viewer Modal -->
+    <div id="code-viewer-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="code-viewer-title">Code Viewer</h2>
+                <button class="close" onclick="closeCodeViewer()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <pre><code id="code-viewer-content"></code></pre>
+            </div>
+            <div class="modal-footer">
+                <div class="code-viewer-info">
+                    <span id="code-viewer-path"></span>
+                    <span id="code-viewer-lines"></span>
+                    <span id="code-viewer-language"></span>
+                </div>
+                <button onclick="closeCodeViewer()">Close</button>
             </div>
         </div>
     </div>
@@ -406,6 +501,14 @@
                 <span class="footer-label">Branch:</span>
                 <span class="footer-value" id="footer-git-branch">Unknown</span>
             </div>
+            <!-- Analysis Status (hidden by default) -->
+            <div class="footer-item" id="footer-analysis-container" style="display: none;">
+                <span class="footer-divider">|</span>
+                <span class="footer-label">Analysis:</span>
+                <span class="footer-value" id="footer-analysis-status">
+                    <span class="analysis-progress" id="footer-analysis-progress"></span>
+                </span>
+            </div>
         </div>
     </div>
 
@@ -415,5 +518,9 @@
     
     <!-- Activity Tree Module (from Vite build) -->
     <script type="module" src="/static/dist/components/activity-tree.js"></script>
+    
+    <!-- Code Tree Module (from Vite build) -->
+    <script type="module" src="/static/dist/components/code-tree.js"></script>
+    <script type="module" src="/static/dist/components/code-viewer.js"></script>
 </body>
 </html>

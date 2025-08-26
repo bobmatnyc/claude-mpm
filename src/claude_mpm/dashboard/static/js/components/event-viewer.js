@@ -110,6 +110,17 @@ class EventViewer {
         }
 
         this.filteredEvents = this.events.filter(event => {
+            // Filter out info level log messages
+            if (event.type === 'log' && event.data && event.data.level === 'info') {
+                return false;
+            }
+            
+            // Filter out code analysis events (they're shown in footer status bar)
+            if (event.type === 'code' || 
+                (event.type === 'unknown' && event.originalEventName && event.originalEventName.startsWith('code:'))) {
+                return false;
+            }
+            
             // Search filter
             if (this.searchFilter) {
                 const searchableText = [

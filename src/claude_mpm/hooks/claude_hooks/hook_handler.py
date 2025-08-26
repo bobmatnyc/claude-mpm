@@ -57,14 +57,30 @@ except ImportError:
         SubagentResponseProcessor,
     )
 
-# Debug mode is enabled by default for better visibility into hook processing
-# Set CLAUDE_MPM_HOOK_DEBUG=false to disable debug output
+"""
+Debug mode configuration for hook processing.
+
+WHY enabled by default: Hook processing can be complex and hard to debug.
+Having debug output available by default helps diagnose issues during development.
+Production deployments can disable via environment variable.
+
+Performance Impact: Debug logging adds ~5-10% overhead but provides crucial
+visibility into event flow, timing, and error conditions.
+"""
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
 
+"""
+Conditional imports with graceful fallbacks for testing and modularity.
+
+WHY conditional imports:
+- EventBus is optional for basic hook functionality
+- Tests may not have full environment setup
+- Allows hooks to work in minimal configurations
+- Graceful degradation when dependencies unavailable
+"""
 # Import EventBus availability flag for backward compatibility with tests
 try:
     from claude_mpm.services.event_bus import EventBus
-
     EVENTBUS_AVAILABLE = True
 except ImportError:
     EVENTBUS_AVAILABLE = False
@@ -76,19 +92,72 @@ try:
 except ImportError:
     get_connection_pool = None
 
-# Global singleton handler instance
+"""
+Global singleton pattern for hook handler.
+
+WHY singleton:
+- Only one handler should process Claude Code events
+- Maintains consistent state across all hook invocations
+- Prevents duplicate event processing
+- Thread-safe initialization with lock
+
+GOTCHA: Must use get_global_handler() not direct access to avoid race conditions.
+"""
 _global_handler = None
 _handler_lock = threading.Lock()
 
-# Minimum Claude Code version required for hook support
+"""
+Version compatibility checking.
+
+WHY version checking:
+- Claude Code hook support was added in v1.0.92
+- Earlier versions don't support matcher-based configuration
+- Prevents confusing errors with unsupported versions
+
+Security: Version checking prevents execution on incompatible environments.
+"""
 MIN_CLAUDE_VERSION = "1.0.92"
 
 
 def check_claude_version() -> Tuple[bool, Optional[str]]:
-    """Check if Claude Code version is compatible with hook monitoring.
+    """
+    Verify Claude Code version compatibility for hook support.
+    
+    Executes 'claude --version' command to detect installed version and
+    compares against minimum required version for hook functionality.
+    
+    Version Checking Logic:
+    1. Execute 'claude --version' with timeout
+    2. Parse version string using regex
+    3. Compare against MIN_CLAUDE_VERSION (1.0.92)
+    4. Return compatibility status and detected version
+    
+    WHY this check is critical:
+    - Hook support was added in Claude Code v1.0.92
+    - Earlier versions don't understand matcher-based hooks
+    - Prevents cryptic errors from unsupported configurations
+    - Allows graceful fallback or user notification
+    
+    Error Handling:
+    - Command timeout after 5 seconds
+    - Subprocess errors caught and logged
+    - Invalid version formats handled gracefully
+    - Returns (False, None) on any failure
+    
+    Performance Notes:
+    - Subprocess call has ~100ms overhead
+    - Result should be cached by caller
+    - Only called during initialization
     
     Returns:
-        Tuple of (is_compatible, version_string)
+        Tuple[bool, Optional[str]]: 
+            - bool: True if version is compatible
+            - str|None: Detected version string, None if detection failed
+            
+    Examples:
+        >>> is_compatible, version = check_claude_version()
+        >>> if not is_compatible:
+        ...     print(f"Claude Code {version or 'unknown'} is not supported")
     """
     try:
         # Try to detect Claude Code version

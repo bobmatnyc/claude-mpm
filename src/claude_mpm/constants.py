@@ -39,6 +39,7 @@ class CLICommands(str, Enum):
     CONFIGURE = "configure"
     AGGREGATE = "aggregate"
     ANALYZE = "analyze"
+    ANALYZE_CODE = "analyze-code"
     CLEANUP = "cleanup-memory"
     MCP = "mcp"
     DOCTOR = "doctor"

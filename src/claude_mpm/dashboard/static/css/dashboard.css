@@ -279,6 +279,28 @@ body {
     font-weight: 500;
 }
 
+/* Analysis status in footer */
+#footer-analysis-container {
+    display: flex;
+    align-items: center;
+}
+
+.analysis-progress {
+    color: #3b82f6;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 400px;
+    display: inline-block;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
 .footer-value {
     color: #e2e8f0;
     font-family: 'Monaco', 'Consolas', monospace;

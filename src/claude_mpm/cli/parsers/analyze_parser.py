@@ -141,12 +141,7 @@ def add_analyze_subparser(subparsers):
         help="Save analysis output to file"
     )
     
-    output_group.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Show detailed analysis progress"
-    )
+    # Note: --verbose/-v is already defined in base_parser, so removed to avoid conflict
     
     # Import the command function
     from ..commands.analyze import analyze_command
