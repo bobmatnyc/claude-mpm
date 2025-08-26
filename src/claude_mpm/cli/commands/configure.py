@@ -1022,20 +1022,29 @@ class ConfigureCommand(BaseCommand):
         mpm_version = self.version_service.get_version()
         build_number = self.version_service.get_build_number()
 
-        # Try to get Claude Code version
+        # Try to get Claude Code version using the installer's method
         claude_version = "Unknown"
         try:
-            import subprocess
-
-            result = subprocess.run(
-                ["claude", "--version"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-                check=False,
-            )
-            if result.returncode == 0:
-                claude_version = result.stdout.strip()
+            from ...hooks.claude_hooks.installer import HookInstaller
+            installer = HookInstaller()
+            detected_version = installer.get_claude_version()
+            if detected_version:
+                is_compatible, _ = installer.is_version_compatible()
+                claude_version = f"{detected_version} (Claude Code)"
+                if not is_compatible:
+                    claude_version += f" - Monitoring requires {installer.MIN_CLAUDE_VERSION}+"
+            else:
+                # Fallback to direct subprocess call
+                import subprocess
+                result = subprocess.run(
+                    ["claude", "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                    check=False,
+                )
+                if result.returncode == 0:
+                    claude_version = result.stdout.strip()
         except:
             pass
 
@@ -1200,7 +1209,27 @@ Directory: {self.project_dir}
 
             installer = HookInstaller()
 
-            # Check current status first
+            # Check Claude Code version compatibility first
+            is_compatible, version_message = installer.is_version_compatible()
+            self.console.print(f"[cyan]Checking Claude Code version...[/cyan]")
+            self.console.print(version_message)
+
+            if not is_compatible:
+                self.console.print(
+                    "\n[yellow]⚠ Hook monitoring is not available for your Claude Code version.[/yellow]"
+                )
+                self.console.print(
+                    "The dashboard and other features will work without real-time monitoring."
+                )
+                self.console.print(
+                    f"\n[dim]To enable monitoring, upgrade Claude Code to version {installer.MIN_CLAUDE_VERSION} or higher.[/dim]"
+                )
+                return CommandResult.success_result(
+                    "Version incompatible with hook monitoring",
+                    data={"compatible": False, "message": version_message},
+                )
+
+            # Check current status
             status = installer.get_status()
             if status["installed"] and not force:
                 self.console.print("[yellow]Hooks are already installed.[/yellow]")
@@ -1255,6 +1284,20 @@ Directory: {self.project_dir}
             status = installer.get_status()
 
             self.console.print("[bold]Hook Installation Status[/bold]\n")
+
+            # Show Claude Code version and compatibility
+            if status.get("claude_version"):
+                self.console.print(
+                    f"Claude Code Version: {status['claude_version']}"
+                )
+                if status.get("version_compatible"):
+                    self.console.print("[green]✓[/green] Version compatible with hook monitoring")
+                else:
+                    self.console.print(f"[yellow]⚠[/yellow] {status.get('version_message', 'Version incompatible')}")
+                    self.console.print()
+            else:
+                self.console.print("[yellow]Claude Code version could not be detected[/yellow]")
+            self.console.print()
 
             if status["installed"]:
                 self.console.print(
