@@ -173,35 +173,64 @@ class SocketIOServer(SocketIOServiceInterface):
             f"[{datetime.now().isoformat()}] Setting up EventBus integration...",
             flush=True,
         )
-        try:
-            self.eventbus_integration = EventBusIntegration(self)
+
+        # CRITICAL: Ensure broadcaster is fully initialized before setting up EventBus
+        # The relay needs the broadcaster to be ready to relay events
+        if not self.broadcaster:
+            self.logger.error(
+                "Broadcaster not initialized - cannot setup EventBus integration"
+            )
             print(
-                f"[{datetime.now().isoformat()}] EventBusIntegration instance created",
+                f"[{datetime.now().isoformat()}] ERROR: Broadcaster not initialized",
+                flush=True,
+            )
+        else:
+            print(
+                f"[{datetime.now().isoformat()}] Broadcaster ready, proceeding with EventBus setup",
                 flush=True,
             )
 
-            if self.eventbus_integration.setup(self.port):
-                self.logger.info("EventBus integration setup successful")
+            try:
+                self.eventbus_integration = EventBusIntegration(self)
                 print(
-                    f"[{datetime.now().isoformat()}] EventBus integration setup successful",
+                    f"[{datetime.now().isoformat()}] EventBusIntegration instance created",
                     flush=True,
                 )
-            else:
-                self.logger.warning("EventBus integration setup failed or disabled")
-                print(
-                    f"[{datetime.now().isoformat()}] EventBus integration setup failed or disabled",
-                    flush=True,
-                )
-        except Exception as e:
-            self.logger.error(f"Failed to setup EventBus integration: {e}")
-            print(
-                f"[{datetime.now().isoformat()}] Failed to setup EventBus integration: {e}",
-                flush=True,
-            )
-            import traceback
 
-            traceback.print_exc()
-            self.eventbus_integration = None
+                if self.eventbus_integration.setup(self.port):
+                    self.logger.info("EventBus integration setup successful")
+                    print(
+                        f"[{datetime.now().isoformat()}] EventBus integration setup successful",
+                        flush=True,
+                    )
+
+                    # Verify relay is connected and has broadcaster
+                    if (
+                        hasattr(self.eventbus_integration, "relay")
+                        and self.eventbus_integration.relay
+                    ):
+                        relay_stats = self.eventbus_integration.relay.get_stats()
+                        self.logger.info(f"EventBus relay stats: {relay_stats}")
+                        print(
+                            f"[{datetime.now().isoformat()}] EventBus relay stats: {relay_stats}",
+                            flush=True,
+                        )
+                else:
+                    self.logger.warning("EventBus integration setup failed or disabled")
+                    print(
+                        f"[{datetime.now().isoformat()}] EventBus integration setup failed or disabled",
+                        flush=True,
+                    )
+            except Exception as e:
+                self.logger.error(f"Failed to setup EventBus integration: {e}")
+                print(
+                    f"[{datetime.now().isoformat()}] Failed to setup EventBus integration: {e}",
+                    flush=True,
+                )
+                import traceback
+
+                traceback.print_exc()
+                self.eventbus_integration = None
 
         # Update running state
         self.running = self.core.running

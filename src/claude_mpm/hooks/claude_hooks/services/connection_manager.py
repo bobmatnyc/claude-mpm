@@ -170,11 +170,28 @@ class ConnectionManagerService:
                 # Publish to EventBus with topic format: hook.{event}
                 topic = f"hook.{event}"
                 self.event_bus.publish(topic, claude_event_data)
+
+                # Enhanced verification logging
                 if DEBUG:
                     print(f"✅ Published to EventBus: {topic}", file=sys.stderr)
+                    # Get EventBus stats to verify publication
+                    if hasattr(self.event_bus, "get_stats"):
+                        stats = self.event_bus.get_stats()
+                        print(
+                            f"📊 EventBus stats after publish: {stats}", file=sys.stderr
+                        )
+                    # Log the number of data keys being published
+                    if isinstance(claude_event_data, dict):
+                        print(
+                            f"📦 Published data keys: {list(claude_event_data.keys())}",
+                            file=sys.stderr,
+                        )
             except Exception as e:
                 if DEBUG:
                     print(f"⚠️ Failed to publish to EventBus: {e}", file=sys.stderr)
+                    import traceback
+
+                    traceback.print_exc(file=sys.stderr)
 
         # Warn if neither method is available
         if not self.connection_pool and not self.event_bus and DEBUG:

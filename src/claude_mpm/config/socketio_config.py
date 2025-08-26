@@ -10,6 +10,8 @@ WHY configuration management:
 - Supports multiple deployment scenarios (local, PyPI, Docker, etc.)
 - Provides environment-specific defaults
 - Allows runtime configuration overrides
+
+CRITICAL: Ping/pong settings MUST match between client and server to prevent disconnections!
 """
 
 import os
@@ -18,6 +20,33 @@ from typing import Any, Dict, List, Optional
 
 # Import constants for default values
 from claude_mpm.core.constants import NetworkConfig, RetryConfig, SystemLimits
+
+# Connection stability settings - MUST be consistent between client and server
+CONNECTION_CONFIG = {
+    # Ping/pong intervals (milliseconds for client, seconds for server)
+    'ping_interval_ms': 45000,     # 45 seconds (for client JavaScript)
+    'ping_interval': 45,            # 45 seconds (for server Python)
+    'ping_timeout_ms': 20000,       # 20 seconds (for client JavaScript)  
+    'ping_timeout': 20,             # 20 seconds (for server Python)
+    
+    # Connection management
+    'stale_timeout': 180,           # 3 minutes before considering connection stale
+    'health_check_interval': 30,    # Health check every 30 seconds
+    'event_ttl': 300,              # Keep events for 5 minutes for replay
+    
+    # Client reconnection settings
+    'reconnection_attempts': 5,     # Number of reconnection attempts
+    'reconnection_delay': 1000,     # Initial delay in ms
+    'reconnection_delay_max': 5000, # Maximum delay in ms
+    
+    # Feature flags
+    'enable_extra_heartbeat': False,  # Disable redundant heartbeats
+    'enable_health_monitoring': True,  # Enable connection health monitoring
+    
+    # Buffer settings
+    'max_events_buffer': 1000,      # Maximum events to buffer per client
+    'max_http_buffer_size': 1e8,    # 100MB max buffer for large payloads
+}
 
 
 @dataclass
@@ -29,11 +58,11 @@ class SocketIOConfig:
     port: int = NetworkConfig.DEFAULT_DASHBOARD_PORT
     server_id: Optional[str] = None
 
-    # Connection settings
+    # Connection settings - Use centralized config for consistency
     cors_allowed_origins: str = "*"  # Configure properly for production
-    ping_timeout: int = NetworkConfig.PING_TIMEOUT_STANDARD
-    ping_interval: int = NetworkConfig.PING_INTERVAL_STANDARD
-    max_http_buffer_size: int = 1000000
+    ping_timeout: int = CONNECTION_CONFIG['ping_timeout']  # 20 seconds
+    ping_interval: int = CONNECTION_CONFIG['ping_interval']  # 45 seconds
+    max_http_buffer_size: int = int(CONNECTION_CONFIG['max_http_buffer_size'])
 
     # Compatibility settings
     min_client_version: str = "0.7.0"

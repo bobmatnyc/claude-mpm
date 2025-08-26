@@ -38,10 +38,10 @@ class SocketClient {
         this.eventQueue = [];
         this.maxQueueSize = 100;
         
-        // Retry configuration
+        // Retry configuration - Match server settings
         this.retryAttempts = 0;
-        this.maxRetryAttempts = 3;
-        this.retryDelays = [1000, 2000, 4000]; // Exponential backoff
+        this.maxRetryAttempts = 5;  // Increased from 3 to 5 for better stability
+        this.retryDelays = [1000, 2000, 3000, 4000, 5000]; // Exponential backoff with 5 attempts
         this.pendingEmissions = new Map(); // Track pending emissions for retry
         
         // Health monitoring
@@ -98,12 +98,12 @@ class SocketClient {
             reconnection: true,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
-            reconnectionAttempts: Infinity,  // Keep trying indefinitely
-            timeout: 20000,  // Increase connection timeout
+            reconnectionAttempts: 5,  // Try 5 times then stop (was Infinity which can cause issues)
+            timeout: 20000,  // Connection timeout
             forceNew: true,
             transports: ['websocket', 'polling'],
-            pingInterval: 25000,  // Match server setting
-            pingTimeout: 60000    // Match server setting
+            pingInterval: 45000,  // CRITICAL: Must match server's 45 seconds
+            pingTimeout: 20000    // CRITICAL: Must match server's 20 seconds
         });
 
         this.setupSocketHandlers();
@@ -143,16 +143,21 @@ class SocketClient {
         });
 
         this.socket.on('disconnect', (reason) => {
-            console.log('Disconnected from server:', reason);
+            // Enhanced logging for debugging disconnection issues
+            const disconnectInfo = {
+                reason: reason,
+                timestamp: new Date().toISOString(),
+                wasConnected: this.isConnected,
+                uptimeSeconds: this.lastConnectTime ? ((Date.now() - this.lastConnectTime) / 1000).toFixed(1) : 0,
+                lastPing: this.lastPingTime ? ((Date.now() - this.lastPingTime) / 1000).toFixed(1) + 's ago' : 'never',
+                lastPong: this.lastPongTime ? ((Date.now() - this.lastPongTime) / 1000).toFixed(1) + 's ago' : 'never'
+            };
+            
+            console.log('Disconnected from server:', disconnectInfo);
+            
             this.isConnected = false;
             this.isConnecting = false;
             this.disconnectTime = Date.now();
-            
-            // Calculate uptime
-            if (this.lastConnectTime) {
-                const uptime = (Date.now() - this.lastConnectTime) / 1000;
-                console.log(`Connection uptime was ${uptime.toFixed(1)}s`);
-            }
             
             this.notifyConnectionStatus(`Disconnected: ${reason}`, 'disconnected');
 
@@ -161,8 +166,21 @@ class SocketClient {
                 callback(reason)
             );
             
-            // Start auto-reconnect if it was an unexpected disconnect
-            if (reason === 'transport close' || reason === 'ping timeout') {
+            // Detailed reason analysis for auto-reconnect decision
+            const reconnectReasons = [
+                'transport close',      // Network issue
+                'ping timeout',         // Server not responding
+                'transport error',      // Connection error
+                'io server disconnect', // Server initiated disconnect (might be restart)
+            ];
+            
+            if (reconnectReasons.includes(reason)) {
+                console.log(`Auto-reconnect triggered for reason: ${reason}`);
+                this.scheduleReconnect();
+            } else if (reason === 'io client disconnect') {
+                console.log('Client-initiated disconnect, not auto-reconnecting');
+            } else {
+                console.log(`Unknown disconnect reason: ${reason}, attempting reconnect anyway`);
                 this.scheduleReconnect();
             }
         });
@@ -220,6 +238,12 @@ class SocketClient {
                 timestamp: data.timestamp,
                 client_time: Date.now()
             });
+        });
+        
+        // Track pong responses from server
+        this.socket.on('pong', (data) => {
+            this.lastPongTime = Date.now();
+            // console.log('Received pong from server');
         });
         
         // Session and event handlers (legacy/fallback)
