@@ -1,7 +1,7 @@
 {
   "name": "Engineer Agent",
   "description": "Clean architecture specialist with code reduction focus and dependency injection",
-  "schema_version": "1.2.0",
+  "schema_version": "1.3.0",
   "agent_id": "engineer",
   "agent_version": "3.8.0",
   "template_version": "2.2.0",

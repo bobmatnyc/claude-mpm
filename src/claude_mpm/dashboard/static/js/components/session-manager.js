@@ -65,6 +65,8 @@ class SessionManager {
     setupSocketListeners() {
         // Listen for socket event updates
         this.socketClient.onEventUpdate((events, sessions) => {
+            // Log the sessions data to debug
+            console.log('[SESSION-MANAGER] Received sessions update:', sessions);
             this.sessions = sessions;
             this.updateSessionSelect();
             // Update footer info when new events arrive
@@ -90,9 +92,28 @@ class SessionManager {
         // Store current selection
         const currentSelection = sessionSelect.value;
 
-        // Clear existing options except default ones
+        // Get the default working directory from various sources
+        let defaultWorkingDir = '/Users/masa/Projects/claude-mpm';
+        
+        // Try to get from working directory manager
+        if (window.dashboard && window.dashboard.workingDirectoryManager) {
+            defaultWorkingDir = window.dashboard.workingDirectoryManager.getDefaultWorkingDir();
+        } else {
+            // Fallback: Try to get from header display element
+            const headerWorkingDir = document.getElementById('working-dir-path');
+            if (headerWorkingDir?.textContent?.trim()) {
+                const headerPath = headerWorkingDir.textContent.trim();
+                if (headerPath !== 'Loading...' && headerPath !== 'Unknown') {
+                    defaultWorkingDir = headerPath;
+                }
+            }
+        }
+        
+        console.log('[SESSION-MANAGER] Using default working directory:', defaultWorkingDir);
+
+        // Update "All Sessions" option to show working directory
         sessionSelect.innerHTML = `
-            <option value="">All Sessions</option>
+            <option value="">${defaultWorkingDir} | All Sessions</option>
         `;
 
         // Add sessions from the sessions map
@@ -108,8 +129,23 @@ class SessionManager {
                 const startTime = new Date(session.startTime || session.last_activity).toLocaleString();
                 const eventCount = session.eventCount || session.event_count || 0;
                 const isActive = session.id === this.currentSessionId;
-
-                option.textContent = `${session.id.substring(0, 8)}... (${eventCount} events, ${startTime})${isActive ? ' [ACTIVE]' : ''}`;
+                
+                // Extract working directory from session or events
+                let workingDir = session.working_directory || session.workingDirectory || '';
+                
+                // Log for debugging
+                console.log(`[SESSION-DROPDOWN] Session ${session.id.substring(0, 8)} working_directory:`, workingDir);
+                
+                if (!workingDir) {
+                    const sessionData = this.extractSessionInfoFromEvents(session.id);
+                    workingDir = sessionData.workingDir || defaultWorkingDir;
+                    console.log(`[SESSION-DROPDOWN] Extracted working directory from events:`, workingDir);
+                }
+                
+                // Format display: working_directory | session_id...
+                const shortId = session.id.substring(0, 8);
+                const dirDisplay = workingDir || defaultWorkingDir;
+                option.textContent = `${dirDisplay} | ${shortId}...${isActive ? ' [ACTIVE]' : ''}`;
                 sessionSelect.appendChild(option);
             });
         }

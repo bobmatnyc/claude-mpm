@@ -177,6 +177,10 @@ class ClaudeHookHandler:
         self.delegation_requests = self.state_manager.delegation_requests
         self.pending_prompts = self.state_manager.pending_prompts
 
+        # Initialize git branch cache (used by event_handlers)
+        self._git_branch_cache = {}
+        self._git_branch_cache_time = {}
+
     def handle(self):
         """Process hook event with minimal overhead and timeout protection.
 

@@ -1,0 +1,23 @@
+%% Diagram Metadata
+%% Generated: 2024-01-01 12:00:00
+%% Source: example_analysis
+%% Type: module_deps
+%% Statistics:
+%%   lines: 14
+%%   nodes: 3
+%%   edges: 0
+
+flowchart TB
+    %% Module Dependencies
+
+    claude_mpm_services[claude_mpm.services]
+    claude_mpm_core[claude_mpm.core]
+    claude_mpm_cli_main[claude_mpm.cli.main]
+
+    claude_mpm_cli_main -.-> claude_mpm_core
+    claude_mpm_cli_main -.-> claude_mpm_services
+    claude_mpm_services -.-> claude_mpm_core
+
+    classDef internal fill:#87CEEB,stroke:#333,stroke-width:2px
+    classDef external fill:#FFB6C1,stroke:#333,stroke-width:1px
+    class claude_mpm_services,claude_mpm_cli_main,claude_mpm_core internal
