@@ -533,6 +533,24 @@ class Config:
                 "exclude_dependencies": False,  # Whether to exclude agent dependencies too
                 "case_sensitive": False,  # Whether agent name matching is case-sensitive
             },
+            # Instruction reinforcement system configuration
+            "instruction_reinforcement": {
+                "enabled": True,
+                "test_mode": True,
+                "injection_interval": 5,
+                "test_messages": [
+                    "[TEST-REMINDER] This is an injected instruction reminder",
+                    "[PM-INSTRUCTION] Remember to delegate all work to agents",
+                    "[PM-INSTRUCTION] Do not use Edit, Write, or Bash tools directly",
+                    "[PM-INSTRUCTION] Your role is orchestration and coordination",
+                ],
+                "production_messages": [
+                    "[PM-REMINDER] Delegate implementation tasks to specialized agents",
+                    "[PM-REMINDER] Use Task tool for all work delegation",
+                    "[PM-REMINDER] Focus on orchestration, not implementation",
+                    "[PM-REMINDER] Your role is coordination and management",
+                ],
+            },
         }
 
         # Apply defaults for missing keys

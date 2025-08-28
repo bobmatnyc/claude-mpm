@@ -85,38 +85,33 @@ class GitignoreManager:
         ".Trashes/",
         "desktop.ini",
     ]
-    
+
     # Additional patterns to hide dotfiles (when enabled)
     DOTFILE_PATTERNS = [
         ".*",  # All dotfiles
         ".*/",  # All dot directories
     ]
-    
+
     # Important files/directories to always show
     DOTFILE_EXCEPTIONS = {
         # Removed .gitignore from exceptions - it should be hidden by default
-        ".env.example", 
+        ".env.example",
         ".env.sample",
         ".gitlab-ci.yml",
         ".travis.yml",
         ".dockerignore",
         ".editorconfig",
         ".eslintrc",
-        ".prettierrc"
+        ".prettierrc",
         # Removed .github from exceptions - it should be hidden by default
     }
 
-    def __init__(self, show_hidden_files: bool = False):
-        """Initialize the GitignoreManager.
-        
-        Args:
-            show_hidden_files: Whether to show hidden files/directories
-        """
+    def __init__(self):
+        """Initialize the GitignoreManager."""
         self.logger = get_logger(__name__)
         self._pathspec_cache: Dict[str, Any] = {}
         self._gitignore_cache: Dict[str, List[str]] = {}
         self._use_pathspec = PATHSPEC_AVAILABLE
-        self.show_hidden_files = show_hidden_files
 
         if not self._use_pathspec:
             self.logger.warning(
@@ -134,7 +129,7 @@ class GitignoreManager:
         """
         # Always include default patterns
         patterns = self.DEFAULT_PATTERNS.copy()
-        
+
         # Don't add dotfile patterns here - handle them separately in should_ignore
         # This prevents exceptions from being overridden by the .* pattern
 
@@ -157,22 +152,18 @@ class GitignoreManager:
         """
         # Get the filename
         filename = path.name
-        
+
         # 1. ALWAYS hide system files regardless of settings
-        ALWAYS_HIDE = {'.DS_Store', 'Thumbs.db', '.pyc', '.pyo', '.pyd'}
-        if filename in ALWAYS_HIDE or filename.endswith(('.pyc', '.pyo', '.pyd')):
+        ALWAYS_HIDE = {".DS_Store", "Thumbs.db", ".pyc", ".pyo", ".pyd"}
+        if filename in ALWAYS_HIDE or filename.endswith((".pyc", ".pyo", ".pyd")):
             return True
-        
-        # 2. Check dotfiles BEFORE exceptions
-        if filename.startswith('.'):
-            # If showing hidden files, show all dotfiles
-            if self.show_hidden_files:
-                return False  # Show the dotfile
-            else:
-                # Hide all dotfiles except those in the exceptions list
-                # This means: return True (ignore) if NOT in exceptions
-                return filename not in self.DOTFILE_EXCEPTIONS
-            
+
+        # 2. Check dotfiles - ALWAYS filter them out (except exceptions)
+        if filename.startswith("."):
+            # Hide all dotfiles except those in the exceptions list
+            # This means: return True (ignore) if NOT in exceptions
+            return filename not in self.DOTFILE_EXCEPTIONS
+
         # Get or create PathSpec for this working directory
         pathspec_obj = self._get_pathspec(working_dir)
 
@@ -181,10 +172,12 @@ class GitignoreManager:
             try:
                 rel_path = path.relative_to(working_dir)
                 rel_path_str = str(rel_path)
-                
+
                 # For directories, also check with trailing slash
                 if path.is_dir():
-                    return pathspec_obj.match_file(rel_path_str) or pathspec_obj.match_file(rel_path_str + '/')
+                    return pathspec_obj.match_file(
+                        rel_path_str
+                    ) or pathspec_obj.match_file(rel_path_str + "/")
                 else:
                     return pathspec_obj.match_file(rel_path_str)
             except ValueError:
@@ -292,28 +285,24 @@ class GitignoreManager:
         """
         path_str = str(path)
         path_name = path.name
-        
+
         # 1. ALWAYS hide system files regardless of settings
-        ALWAYS_HIDE = {'.DS_Store', 'Thumbs.db', '.pyc', '.pyo', '.pyd'}
-        if path_name in ALWAYS_HIDE or path_name.endswith(('.pyc', '.pyo', '.pyd')):
+        ALWAYS_HIDE = {".DS_Store", "Thumbs.db", ".pyc", ".pyo", ".pyd"}
+        if path_name in ALWAYS_HIDE or path_name.endswith((".pyc", ".pyo", ".pyd")):
             return True
-        
-        # 2. Check dotfiles BEFORE exceptions
-        if path_name.startswith('.'):
-            # If showing hidden files, check exceptions
-            if self.show_hidden_files:
-                return False  # Show the dotfile
-            else:
-                # Only show if in exceptions list
-                return path_name not in self.DOTFILE_EXCEPTIONS
+
+        # 2. Check dotfiles - ALWAYS filter them out (except exceptions)
+        if path_name.startswith("."):
+            # Only show if in exceptions list
+            return path_name not in self.DOTFILE_EXCEPTIONS
 
         patterns = self.get_ignore_patterns(working_dir)
-        
+
         for pattern in patterns:
             # Skip dotfile patterns since we already handled them above
             if pattern in [".*", ".*/"]:
                 continue
-                
+
             # Simple pattern matching
             if pattern.endswith("/"):
                 # Directory pattern
@@ -801,11 +790,51 @@ class CodeTreeAnalyzer:
 
     # Define code file extensions at class level for directory filtering
     CODE_EXTENSIONS = {
-        '.py', '.js', '.ts', '.tsx', '.jsx', '.java', '.cpp', '.c', '.h', '.hpp',
-        '.cs', '.go', '.rs', '.rb', '.php', '.swift', '.kt', '.scala', '.r',
-        '.m', '.mm', '.sh', '.bash', '.zsh', '.fish', '.ps1', '.bat', '.cmd',
-        '.sql', '.html', '.css', '.scss', '.sass', '.less', '.xml', '.json',
-        '.yaml', '.yml', '.toml', '.ini', '.cfg', '.conf', '.md', '.rst', '.txt'
+        ".py",
+        ".js",
+        ".ts",
+        ".tsx",
+        ".jsx",
+        ".java",
+        ".cpp",
+        ".c",
+        ".h",
+        ".hpp",
+        ".cs",
+        ".go",
+        ".rs",
+        ".rb",
+        ".php",
+        ".swift",
+        ".kt",
+        ".scala",
+        ".r",
+        ".m",
+        ".mm",
+        ".sh",
+        ".bash",
+        ".zsh",
+        ".fish",
+        ".ps1",
+        ".bat",
+        ".cmd",
+        ".sql",
+        ".html",
+        ".css",
+        ".scss",
+        ".sass",
+        ".less",
+        ".xml",
+        ".json",
+        ".yaml",
+        ".yml",
+        ".toml",
+        ".ini",
+        ".cfg",
+        ".conf",
+        ".md",
+        ".rst",
+        ".txt",
     }
 
     # File extensions to language mapping
@@ -824,7 +853,6 @@ class CodeTreeAnalyzer:
         emit_events: bool = True,
         cache_dir: Optional[Path] = None,
         emitter: Optional[CodeTreeEventEmitter] = None,
-        show_hidden_files: bool = False,
     ):
         """Initialize the code tree analyzer.
 
@@ -832,15 +860,13 @@ class CodeTreeAnalyzer:
             emit_events: Whether to emit Socket.IO events
             cache_dir: Directory for caching analysis results
             emitter: Optional event emitter to use (creates one if not provided)
-            show_hidden_files: Whether to show hidden files/directories (default False - hide dotfiles)
         """
         self.logger = get_logger(__name__)
         self.emit_events = emit_events
         self.cache_dir = cache_dir or Path.home() / ".claude-mpm" / "code-cache"
-        self.show_hidden_files = show_hidden_files
 
-        # Initialize gitignore manager with hidden files setting (default False)
-        self.gitignore_manager = GitignoreManager(show_hidden_files=show_hidden_files)
+        # Initialize gitignore manager (always filters dotfiles)
+        self.gitignore_manager = GitignoreManager()
         self._last_working_dir = None
 
         # Use provided emitter or create one
@@ -1134,33 +1160,52 @@ class CodeTreeAnalyzer:
         except Exception as e:
             self.logger.warning(f"Failed to save cache: {e}")
 
-    def has_code_files(self, directory: Path, depth: int = 5, current_depth: int = 0) -> bool:
+    def has_code_files(
+        self, directory: Path, depth: int = 5, current_depth: int = 0
+    ) -> bool:
         """Check if directory contains code files up to 5 levels deep.
-        
+
         Args:
             directory: Directory to check
             depth: Maximum depth to search
             current_depth: Current recursion depth
-            
+
         Returns:
             True if directory contains code files within depth levels
         """
         if current_depth >= depth:
             return False
-        
+
         # Skip checking these directories entirely
-        SKIP_DIRS = {'node_modules', '__pycache__', '.git', '.venv', 'venv', 'dist', 'build', 
-                     '.tox', 'htmlcov', '.pytest_cache', '.mypy_cache', 'coverage', 
-                     '.idea', '.vscode', 'env', '.coverage', '__MACOSX', '.ipynb_checkpoints'}
+        SKIP_DIRS = {
+            "node_modules",
+            "__pycache__",
+            ".git",
+            ".venv",
+            "venv",
+            "dist",
+            "build",
+            ".tox",
+            "htmlcov",
+            ".pytest_cache",
+            ".mypy_cache",
+            "coverage",
+            ".idea",
+            ".vscode",
+            "env",
+            ".coverage",
+            "__MACOSX",
+            ".ipynb_checkpoints",
+        }
         if directory.name in SKIP_DIRS:
             return False
-        
+
         try:
             for item in directory.iterdir():
                 # Skip hidden items in scan
-                if item.name.startswith('.'):
+                if item.name.startswith("."):
                     continue
-                    
+
                 if item.is_file():
                     # Check if it's a code file
                     ext = item.suffix.lower()
@@ -1171,7 +1216,7 @@ class CodeTreeAnalyzer:
                         return True
         except (PermissionError, OSError):
             pass
-        
+
         return False
 
     def discover_top_level(
@@ -1190,18 +1235,22 @@ class CodeTreeAnalyzer:
         # NOT the current working directory. This ensures we only show items
         # within the requested directory, not parent directories.
         working_dir = Path(directory).absolute()
-        
+
         # Emit discovery start event
         if self.emitter:
             from datetime import datetime
-            self.emitter.emit('info', {
-                'type': 'discovery.start',
-                'action': 'scanning_directory',
-                'path': str(directory),
-                'message': f'Starting discovery of {directory.name}',
-                'timestamp': datetime.now().isoformat()
-            })
-        
+
+            self.emitter.emit(
+                "info",
+                {
+                    "type": "discovery.start",
+                    "action": "scanning_directory",
+                    "path": str(directory),
+                    "message": f"Starting discovery of {directory.name}",
+                    "timestamp": datetime.now().isoformat(),
+                },
+            )
+
         result = {
             "path": str(directory),
             "name": directory.name,
@@ -1219,19 +1268,23 @@ class CodeTreeAnalyzer:
             files_count = 0
             dirs_count = 0
             ignored_count = 0
-            
+
             for item in directory.iterdir():
                 # Use gitignore manager for filtering with the directory as working dir
                 if self.gitignore_manager.should_ignore(item, directory):
                     if self.emitter:
                         from datetime import datetime
-                        self.emitter.emit('info', {
-                            'type': 'filter.gitignore',
-                            'path': str(item),
-                            'reason': 'gitignore pattern',
-                            'message': f'Ignored by gitignore: {item.name}',
-                            'timestamp': datetime.now().isoformat()
-                        })
+
+                        self.emitter.emit(
+                            "info",
+                            {
+                                "type": "filter.gitignore",
+                                "path": str(item),
+                                "reason": "gitignore pattern",
+                                "message": f"Ignored by gitignore: {item.name}",
+                                "timestamp": datetime.now().isoformat(),
+                            },
+                        )
                     ignored_count += 1
                     continue
 
@@ -1239,13 +1292,17 @@ class CodeTreeAnalyzer:
                 if ignore_patterns and any(p in str(item) for p in ignore_patterns):
                     if self.emitter:
                         from datetime import datetime
-                        self.emitter.emit('info', {
-                            'type': 'filter.pattern',
-                            'path': str(item),
-                            'reason': 'custom pattern',
-                            'message': f'Ignored by pattern: {item.name}',
-                            'timestamp': datetime.now().isoformat()
-                        })
+
+                        self.emitter.emit(
+                            "info",
+                            {
+                                "type": "filter.pattern",
+                                "path": str(item),
+                                "reason": "custom pattern",
+                                "message": f"Ignored by pattern: {item.name}",
+                                "timestamp": datetime.now().isoformat(),
+                            },
+                        )
                     ignored_count += 1
                     continue
 
@@ -1254,38 +1311,39 @@ class CodeTreeAnalyzer:
                     if not self.has_code_files(item, depth=5):
                         if self.emitter:
                             from datetime import datetime
-                            self.emitter.emit('info', {
-                                'type': 'filter.no_code',
-                                'path': str(item.name),
-                                'reason': 'no code files',
-                                'message': f'Skipped directory without code: {item.name}',
-                                'timestamp': datetime.now().isoformat()
-                            })
+
+                            self.emitter.emit(
+                                "info",
+                                {
+                                    "type": "filter.no_code",
+                                    "path": str(item.name),
+                                    "reason": "no code files",
+                                    "message": f"Skipped directory without code: {item.name}",
+                                    "timestamp": datetime.now().isoformat(),
+                                },
+                            )
                         ignored_count += 1
                         continue
-                    
-                    # Directory - just mark as unexplored
-                    # CRITICAL FIX: Use relative path from working directory
-                    # This prevents the frontend from showing parent directories
-                    try:
-                        relative_path = item.relative_to(working_dir)
-                        path_str = str(relative_path)
-                    except ValueError:
-                        # If somehow the item is outside working_dir, skip it
-                        self.logger.warning(f"Directory outside working dir: {item}")
-                        continue
-                    
+
+                    # Directory - return just the item name
+                    # The frontend will construct the full path by combining parent path with child name
+                    path_str = item.name
+
                     # Emit directory found event
                     if self.emitter:
                         from datetime import datetime
-                        self.emitter.emit('info', {
-                            'type': 'discovery.directory',
-                            'path': str(item),
-                            'message': f'Found directory: {item.name}',
-                            'timestamp': datetime.now().isoformat()
-                        })
+
+                        self.emitter.emit(
+                            "info",
+                            {
+                                "type": "discovery.directory",
+                                "path": str(item),
+                                "message": f"Found directory: {item.name}",
+                                "timestamp": datetime.now().isoformat(),
+                            },
+                        )
                     dirs_count += 1
-                    
+
                     child = {
                         "path": path_str,
                         "name": item.name,
@@ -1300,33 +1358,35 @@ class CodeTreeAnalyzer:
 
                 elif item.is_file():
                     # Check if it's a supported code file or a special file we want to show
-                    if item.suffix in self.supported_extensions or item.name in ['.gitignore', '.env.example', '.env.sample']:
+                    if item.suffix in self.supported_extensions or item.name in [
+                        ".gitignore",
+                        ".env.example",
+                        ".env.sample",
+                    ]:
                         # File - mark for lazy analysis
                         language = self._get_language(item)
-                        
-                        # CRITICAL FIX: Use relative path from working directory
-                        # This prevents the frontend from showing parent directories
-                        try:
-                            relative_path = item.relative_to(working_dir)
-                            path_str = str(relative_path)
-                        except ValueError:
-                            # If somehow the item is outside working_dir, skip it
-                            self.logger.warning(f"File outside working dir: {item}")
-                            continue
-                        
+
+                        # File path should be just the item name
+                        # The frontend will construct the full path by combining parent path with child name
+                        path_str = item.name
+
                         # Emit file found event
                         if self.emitter:
                             from datetime import datetime
-                            self.emitter.emit('info', {
-                                'type': 'discovery.file',
-                                'path': str(item),
-                                'language': language,
-                                'size': item.stat().st_size,
-                                'message': f'Found file: {item.name} ({language})',
-                                'timestamp': datetime.now().isoformat()
-                            })
+
+                            self.emitter.emit(
+                                "info",
+                                {
+                                    "type": "discovery.file",
+                                    "path": str(item),
+                                    "language": language,
+                                    "size": item.stat().st_size,
+                                    "message": f"Found file: {item.name} ({language})",
+                                    "timestamp": datetime.now().isoformat(),
+                                },
+                            )
                         files_count += 1
-                        
+
                         child = {
                             "path": path_str,
                             "name": item.name,
@@ -1350,17 +1410,21 @@ class CodeTreeAnalyzer:
         # Emit discovery complete event with stats
         if self.emitter:
             from datetime import datetime
-            self.emitter.emit('info', {
-                'type': 'discovery.complete',
-                'path': str(directory),
-                'stats': {
-                    'files': files_count,
-                    'directories': dirs_count,
-                    'ignored': ignored_count
+
+            self.emitter.emit(
+                "info",
+                {
+                    "type": "discovery.complete",
+                    "path": str(directory),
+                    "stats": {
+                        "files": files_count,
+                        "directories": dirs_count,
+                        "ignored": ignored_count,
+                    },
+                    "message": f"Discovery complete: {files_count} files, {dirs_count} directories, {ignored_count} ignored",
+                    "timestamp": datetime.now().isoformat(),
                 },
-                'message': f'Discovery complete: {files_count} files, {dirs_count} directories, {ignored_count} ignored',
-                'timestamp': datetime.now().isoformat()
-            })
+            )
 
         return result
 
@@ -1386,7 +1450,8 @@ class CodeTreeAnalyzer:
             self._last_working_dir = directory.parent
 
         # The discover_top_level method will emit all the INFO events
-        return self.discover_top_level(directory, ignore_patterns)
+        result = self.discover_top_level(directory, ignore_patterns)
+        return result
 
     def analyze_file(self, file_path: str) -> Dict[str, Any]:
         """Analyze a specific file and return its AST structure.
@@ -1407,13 +1472,17 @@ class CodeTreeAnalyzer:
         # Emit analysis start event
         if self.emitter:
             from datetime import datetime
-            self.emitter.emit('info', {
-                'type': 'analysis.start',
-                'file': str(path),
-                'language': language,
-                'message': f'Analyzing: {path.name}',
-                'timestamp': datetime.now().isoformat()
-            })
+
+            self.emitter.emit(
+                "info",
+                {
+                    "type": "analysis.start",
+                    "file": str(path),
+                    "language": language,
+                    "message": f"Analyzing: {path.name}",
+                    "timestamp": datetime.now().isoformat(),
+                },
+            )
 
         # Check cache
         file_hash = self._get_file_hash(path)
@@ -1423,22 +1492,30 @@ class CodeTreeAnalyzer:
             nodes = self.cache[cache_key]
             if self.emitter:
                 from datetime import datetime
-                self.emitter.emit('info', {
-                    'type': 'cache.hit',
-                    'file': str(path),
-                    'message': f'Using cached analysis for {path.name}',
-                    'timestamp': datetime.now().isoformat()
-                })
+
+                self.emitter.emit(
+                    "info",
+                    {
+                        "type": "cache.hit",
+                        "file": str(path),
+                        "message": f"Using cached analysis for {path.name}",
+                        "timestamp": datetime.now().isoformat(),
+                    },
+                )
         else:
             # Analyze file
             if self.emitter:
                 from datetime import datetime
-                self.emitter.emit('info', {
-                    'type': 'cache.miss',
-                    'file': str(path),
-                    'message': f'Cache miss, analyzing fresh: {path.name}',
-                    'timestamp': datetime.now().isoformat()
-                })
+
+                self.emitter.emit(
+                    "info",
+                    {
+                        "type": "cache.miss",
+                        "file": str(path),
+                        "message": f"Cache miss, analyzing fresh: {path.name}",
+                        "timestamp": datetime.now().isoformat(),
+                    },
+                )
 
             if language == "python":
                 analyzer = self.python_analyzer
@@ -1448,17 +1525,21 @@ class CodeTreeAnalyzer:
                 analyzer = self.generic_analyzer
 
             start_time = time.time()
-            
+
             # Emit parsing event
             if self.emitter:
                 from datetime import datetime
-                self.emitter.emit('info', {
-                    'type': 'analysis.parse',
-                    'file': str(path),
-                    'message': f'Parsing file content: {path.name}',
-                    'timestamp': datetime.now().isoformat()
-                })
-            
+
+                self.emitter.emit(
+                    "info",
+                    {
+                        "type": "analysis.parse",
+                        "file": str(path),
+                        "message": f"Parsing file content: {path.name}",
+                        "timestamp": datetime.now().isoformat(),
+                    },
+                )
+
             nodes = analyzer.analyze_file(path) if analyzer else []
             duration = time.time() - start_time
 
@@ -1470,31 +1551,35 @@ class CodeTreeAnalyzer:
             classes_count = 0
             functions_count = 0
             methods_count = 0
-            
+
             for node in nodes:
                 # Only include main structural elements
                 if not self._is_internal_node(node):
                     # Emit found element event
                     if self.emitter:
                         from datetime import datetime
-                        self.emitter.emit('info', {
-                            'type': f'analysis.{node.node_type}',
-                            'name': node.name,
-                            'file': str(path),
-                            'line_start': node.line_start,
-                            'complexity': node.complexity,
-                            'message': f'Found {node.node_type}: {node.name}',
-                            'timestamp': datetime.now().isoformat()
-                        })
-                        
+
+                        self.emitter.emit(
+                            "info",
+                            {
+                                "type": f"analysis.{node.node_type}",
+                                "name": node.name,
+                                "file": str(path),
+                                "line_start": node.line_start,
+                                "complexity": node.complexity,
+                                "message": f"Found {node.node_type}: {node.name}",
+                                "timestamp": datetime.now().isoformat(),
+                            },
+                        )
+
                         # Count node types
-                        if node.node_type == 'class':
+                        if node.node_type == "class":
                             classes_count += 1
-                        elif node.node_type == 'function':
+                        elif node.node_type == "function":
                             functions_count += 1
-                        elif node.node_type == 'method':
+                        elif node.node_type == "method":
                             methods_count += 1
-                    
+
                     filtered_nodes.append(
                         {
                             "name": node.name,
@@ -1510,20 +1595,24 @@ class CodeTreeAnalyzer:
             # Emit analysis complete event with stats
             if self.emitter:
                 from datetime import datetime
-                self.emitter.emit('info', {
-                    'type': 'analysis.complete',
-                    'file': str(path),
-                    'stats': {
-                        'classes': classes_count,
-                        'functions': functions_count,
-                        'methods': methods_count,
-                        'total_nodes': len(filtered_nodes)
+
+                self.emitter.emit(
+                    "info",
+                    {
+                        "type": "analysis.complete",
+                        "file": str(path),
+                        "stats": {
+                            "classes": classes_count,
+                            "functions": functions_count,
+                            "methods": methods_count,
+                            "total_nodes": len(filtered_nodes),
+                        },
+                        "duration": duration,
+                        "message": f"Analysis complete: {classes_count} classes, {functions_count} functions, {methods_count} methods",
+                        "timestamp": datetime.now().isoformat(),
                     },
-                    'duration': duration,
-                    'message': f'Analysis complete: {classes_count} classes, {functions_count} functions, {methods_count} methods',
-                    'timestamp': datetime.now().isoformat()
-                })
-                
+                )
+
                 self.emitter.emit_file_analyzed(file_path, filtered_nodes, duration)
 
         return {

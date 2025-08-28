@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 
 from ..core.hook_manager import get_hook_manager
 from ..core.logger import get_logger
+from .instruction_reinforcement_hook import get_instruction_reinforcement_hook
 
 
 class PMHookInterceptor:
@@ -31,10 +32,15 @@ class PMHookInterceptor:
     - Provides real-time event streaming for PM operations
     """
 
-    def __init__(self):
+    def __init__(self, instruction_reinforcement_config=None):
         self.logger = get_logger("pm_hook_interceptor")
         self.hook_manager = get_hook_manager()
         self._in_intercept = threading.local()  # Prevent recursion
+
+        # Initialize instruction reinforcement hook
+        self.instruction_reinforcement_hook = get_instruction_reinforcement_hook(
+            instruction_reinforcement_config
+        )
 
     def intercept_todowrite(self, original_function):
         """Decorator to intercept TodoWrite calls and trigger hooks.
@@ -58,12 +64,29 @@ class PMHookInterceptor:
                 # Extract todos from arguments
                 todos = self._extract_todos_from_args(args, kwargs)
 
+                # Apply instruction reinforcement hook (modify parameters if needed)
+                params = {"todos": todos}
+                modified_params = (
+                    self.instruction_reinforcement_hook.intercept_todowrite(params)
+                )
+                modified_todos = modified_params.get("todos", todos)
+
+                # Update args/kwargs with potentially modified todos
+                if modified_todos != todos:
+                    args, kwargs = self._update_args_with_todos(
+                        args, kwargs, modified_todos
+                    )
+                    self.logger.debug(
+                        f"Applied instruction reinforcement: {len(modified_todos)} todos"
+                    )
+
                 # Trigger pre-tool hook
                 self.hook_manager.trigger_pre_tool_hook(
-                    "TodoWrite", {"todos": todos, "source": "PM", "intercepted": True}
+                    "TodoWrite",
+                    {"todos": modified_todos, "source": "PM", "intercepted": True},
                 )
 
-                # Call the original function
+                # Call the original function with potentially modified arguments
                 result = original_function(*args, **kwargs)
 
                 # Trigger post-tool hook
@@ -71,14 +94,18 @@ class PMHookInterceptor:
                     "TodoWrite",
                     0,
                     {
-                        "todos_count": len(todos) if todos else 0,
+                        "todos_count": len(modified_todos) if modified_todos else 0,
+                        "original_todos_count": len(todos) if todos else 0,
                         "source": "PM",
                         "success": True,
+                        "instruction_reinforcement_applied": len(modified_todos)
+                        != len(todos),
                     },
                 )
 
                 self.logger.debug(
-                    f"Successfully intercepted TodoWrite with {len(todos) if todos else 0} todos"
+                    f"Successfully intercepted TodoWrite with {len(modified_todos) if modified_todos else 0} todos "
+                    f"(original: {len(todos) if todos else 0})"
                 )
 
                 return result
@@ -118,6 +145,39 @@ class PMHookInterceptor:
                     return arg
 
         return []
+
+    def _update_args_with_todos(
+        self, args, kwargs, modified_todos: List[Dict[str, Any]]
+    ):
+        """Update function arguments with modified todos list.
+
+        Args:
+            args: Original positional arguments
+            kwargs: Original keyword arguments
+            modified_todos: Modified todos list to inject
+
+        Returns:
+            Tuple of (updated_args, updated_kwargs)
+        """
+        # Update kwargs if todos was passed as keyword argument
+        if "todos" in kwargs:
+            kwargs = kwargs.copy()
+            kwargs["todos"] = modified_todos
+            return args, kwargs
+
+        # Update positional args if todos was passed positionally
+        args_list = list(args)
+        for i, arg in enumerate(args_list):
+            if isinstance(arg, list) and arg and isinstance(arg[0], dict):
+                # Check if this looks like a todos list
+                if "content" in arg[0] or "id" in arg[0]:
+                    args_list[i] = modified_todos
+                    return tuple(args_list), kwargs
+
+        # If we can't find where todos was passed, add as keyword argument
+        kwargs = kwargs.copy()
+        kwargs["todos"] = modified_todos
+        return args, kwargs
 
     def trigger_manual_todowrite_hooks(self, todos: List[Dict[str, Any]]):
         """Manually trigger TodoWrite hooks for given todos.
@@ -169,16 +229,37 @@ class PMHookInterceptor:
             self.logger.error(f"Error manually triggering TodoWrite hooks: {e}")
             return False
 
+    def get_instruction_reinforcement_metrics(self) -> Dict[str, Any]:
+        """Get metrics from the instruction reinforcement hook.
+
+        Returns:
+            Dictionary containing reinforcement metrics
+        """
+        return self.instruction_reinforcement_hook.get_metrics()
+
+    def reset_instruction_reinforcement_counters(self):
+        """Reset instruction reinforcement counters."""
+        self.instruction_reinforcement_hook.reset_counters()
+        self.logger.info("Reset instruction reinforcement counters via PM interceptor")
+
 
 # Global instance
 _pm_hook_interceptor: Optional[PMHookInterceptor] = None
 
 
-def get_pm_hook_interceptor() -> PMHookInterceptor:
-    """Get the global PM hook interceptor instance."""
+def get_pm_hook_interceptor(instruction_reinforcement_config=None) -> PMHookInterceptor:
+    """Get the global PM hook interceptor instance.
+
+    Args:
+        instruction_reinforcement_config: Configuration for instruction reinforcement hook
+                                        (only used on first initialization)
+
+    Returns:
+        PMHookInterceptor instance
+    """
     global _pm_hook_interceptor
     if _pm_hook_interceptor is None:
-        _pm_hook_interceptor = PMHookInterceptor()
+        _pm_hook_interceptor = PMHookInterceptor(instruction_reinforcement_config)
     return _pm_hook_interceptor
 
 
@@ -215,3 +296,19 @@ def simulate_pm_todowrite_operation(todos: List[Dict[str, Any]]):
 
     # Log completion
     logger.info("PM TodoWrite simulation completed")
+
+
+def get_instruction_reinforcement_metrics() -> Dict[str, Any]:
+    """Get instruction reinforcement metrics from the global PM hook interceptor.
+
+    Returns:
+        Dictionary containing reinforcement metrics
+    """
+    interceptor = get_pm_hook_interceptor()
+    return interceptor.get_instruction_reinforcement_metrics()
+
+
+def reset_instruction_reinforcement_counters():
+    """Reset instruction reinforcement counters in the global PM hook interceptor."""
+    interceptor = get_pm_hook_interceptor()
+    interceptor.reset_instruction_reinforcement_counters()
