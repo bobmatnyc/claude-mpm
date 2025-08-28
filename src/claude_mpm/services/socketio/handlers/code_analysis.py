@@ -13,7 +13,6 @@ DESIGN DECISIONS:
 """
 
 import asyncio
-import logging
 import uuid
 from pathlib import Path
 from typing import Any, Dict
@@ -220,11 +219,11 @@ class CodeAnalysisEventHandler(BaseEventHandler):
         # SECURITY: Validate the requested path
         # Allow access to the explicitly chosen working directory and its subdirectories
         requested_path = Path(path).absolute()
-        
+
         # For now, we trust the frontend to send valid paths
         # In production, you might want to maintain a server-side list of allowed directories
         # or implement a more sophisticated permission system
-        
+
         # Basic sanity checks are done below after creating the Path object
 
         ignore_patterns = data.get("ignore_patterns", [])
@@ -386,11 +385,11 @@ class CodeAnalysisEventHandler(BaseEventHandler):
         # SECURITY: Validate the requested path
         # Allow access to the explicitly chosen working directory and its subdirectories
         requested_path = Path(path).absolute()
-        
+
         # For now, we trust the frontend to send valid paths
         # In production, you might want to maintain a server-side list of allowed directories
         # or implement a more sophisticated permission system
-        
+
         # Basic sanity checks
         if not requested_path.exists():
             self.logger.warning(f"Path does not exist: {path}")
@@ -404,7 +403,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 room=sid,
             )
             return
-        
+
         if not requested_path.is_dir():
             self.logger.warning(f"Path is not a directory: {path}")
             await self.server.core.sio.emit(
@@ -457,9 +456,11 @@ class CodeAnalysisEventHandler(BaseEventHandler):
 
             # Discover directory
             result = self.code_analyzer.discover_directory(path, ignore_patterns)
-            
+
             # Log what we're sending
-            self.logger.info(f"Discovery result for {path}: {len(result.get('children', []))} children found")
+            self.logger.info(
+                f"Discovery result for {path}: {len(result.get('children', []))} children found"
+            )
             self.logger.debug(f"Full result: {result}")
 
             # Send result with correct event name (using colons, not dots!)
@@ -526,7 +527,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
         # SECURITY: Validate the requested file path
         # Allow access to files within the explicitly chosen working directory
         requested_path = Path(path).absolute()
-        
+
         # Basic sanity checks
         if not requested_path.exists():
             self.logger.warning(f"File does not exist: {path}")
@@ -540,7 +541,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 room=sid,
             )
             return
-        
+
         if not requested_path.is_file():
             self.logger.warning(f"Path is not a file: {path}")
             await self.server.core.sio.emit(

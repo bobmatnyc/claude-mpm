@@ -178,8 +178,7 @@ class GitignoreManager:
                     return pathspec_obj.match_file(
                         rel_path_str
                     ) or pathspec_obj.match_file(rel_path_str + "/")
-                else:
-                    return pathspec_obj.match_file(rel_path_str)
+                return pathspec_obj.match_file(rel_path_str)
             except ValueError:
                 # Path is outside working directory
                 return False

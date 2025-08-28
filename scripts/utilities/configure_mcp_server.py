@@ -203,7 +203,7 @@ def save_config(config, config_path):
     config_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Write configuration with nice formatting
-    with config_path.open(, "w") as f:
+    with config_path.open("w") as f:
         json.dump(config, f, indent=2)
 
     print(f"\n✅ Configuration saved to {config_path}")

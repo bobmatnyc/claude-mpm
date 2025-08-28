@@ -192,14 +192,14 @@ class AgentTemplateBuilder:
 
         # Build YAML frontmatter using Claude Code's minimal format
         # ONLY include fields that Claude Code recognizes
-        # 
+        #
         # REMOVED FIELDS for Claude Code compatibility:
         # - model, color, version, type, source, author
         # These fields caused Claude Code to silently fail agent discovery
-        # 
+        #
         # CLAUDE CODE COMPATIBLE FORMAT:
         # - name: kebab-case agent name (required)
-        # - description: when/why to use this agent (required) 
+        # - description: when/why to use this agent (required)
         # - tools: comma-separated tool list (optional, only if restricting)
         frontmatter_lines = [
             "---",

@@ -6,8 +6,7 @@ metrics, and error cases when the hook implementation is added.
 """
 
 import time
-from datetime import datetime, timedelta
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -523,8 +522,7 @@ class TestInstructionReinforcementHook:
             current_count = self.mock_handler.call_count
 
             # Verify injections are happening
-            if current_count > last_injection_count:
-                last_injection_count = current_count
+            last_injection_count = max(last_injection_count, current_count)
 
             # Verify hook is still running
             assert self.hook.is_running is True

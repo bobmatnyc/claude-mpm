@@ -9,9 +9,10 @@ and viewing current configuration.
 import argparse
 import json
 import sys
-import yaml
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict
+
+import yaml
 
 # Add src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -53,11 +54,11 @@ def load_config_file() -> Dict[str, Any]:
         return {}
 
     try:
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             if config_path.suffix == ".json":
                 return json.load(f)
-            else:  # YAML
-                return yaml.safe_load(f) or {}
+            # YAML
+            return yaml.safe_load(f) or {}
     except Exception as e:
         print(f"Error reading config file {config_path}: {e}")
         return {}
