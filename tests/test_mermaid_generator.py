@@ -5,7 +5,6 @@ Tests for MermaidGeneratorService
 Comprehensive test suite for the Mermaid diagram generation service.
 """
 
-
 import pytest
 
 from claude_mpm.services.visualization.mermaid_generator import (

@@ -25,12 +25,8 @@ class TestConfigNoDuplicateLogging(TestCase):
         """Test that 'Successfully loaded configuration' appears only once."""
         with self.assertLogs("claude_mpm.core.config", level=logging.INFO) as cm:
             # Create multiple Config instances
-            Config(
-                config_file=Path.cwd() / ".claude-mpm" / "configuration.yaml"
-            )
-            Config(
-                config_file=Path.cwd() / ".claude-mpm" / "configuration.yaml"
-            )
+            Config(config_file=Path.cwd() / ".claude-mpm" / "configuration.yaml")
+            Config(config_file=Path.cwd() / ".claude-mpm" / "configuration.yaml")
             Config()
 
             # Count success messages

@@ -389,12 +389,9 @@
                     <!-- Code Tab -->
                     <div class="tab-content" id="code-tab">
                         <div class="code-container">
-                            <!-- Compact header with all controls in one line -->
+                            <!-- Simplified header with controls -->
                             <div class="code-header-compact">
                                 <div class="header-left">
-                                    <input type="text" id="analysis-path" placeholder="Path" value="." class="path-input-compact">
-                                    <button id="analyze-code" class="btn-compact btn-primary">🔍</button>
-                                    <button id="cancel-analysis" class="btn-compact btn-danger" style="display: none;">✕</button>
                                     <button id="code-expand-all" class="btn-compact" title="Expand All">⊕</button>
                                     <button id="code-collapse-all" class="btn-compact" title="Collapse All">⊖</button>
                                     <button id="code-reset-zoom" class="btn-compact" title="Reset Zoom">⟲</button>
@@ -416,22 +413,23 @@
                                     <input type="text" id="code-search" placeholder="Search..." class="search-compact">
                                 </div>
                             </div>
-                            <!-- Collapsible advanced options -->
-                            <details class="code-advanced-options">
-                                <summary>Advanced Options</summary>
+                            <!-- Advanced options - visible by default -->
+                            <div class="code-advanced-options-visible">
                                 <div class="advanced-content">
                                     <div class="option-group">
                                         <label>Languages:</label>
                                         <label><input type="checkbox" class="language-checkbox" value="python" checked> Python</label>
                                         <label><input type="checkbox" class="language-checkbox" value="javascript" checked> JS</label>
-                                        <label><input type="checkbox" class="language-checkbox" value="typescript"> TS</label>
+                                        <label><input type="checkbox" class="language-checkbox" value="typescript" checked> TS</label>
                                     </div>
                                     <div class="option-group">
-                                        <label>Depth: <input type="number" id="max-depth" min="1" max="10" value="5" class="input-compact"></label>
-                                        <label>Ignore: <input type="text" id="ignore-patterns" placeholder="test*, *.spec.js" class="input-compact"></label>
+                                        <label>Ignore: <input type="text" id="ignore-patterns" placeholder="test*, *.spec.js, node_modules" class="input-compact" style="width: 200px;"></label>
+                                    </div>
+                                    <div class="option-group">
+                                        <label><input type="checkbox" id="show-hidden-files"> Show hidden files (dotfiles)</label>
                                     </div>
                                 </div>
-                            </details>
+                            </div>
                             <div id="code-tree-container" class="code-tree-container">
                                 <div id="code-tree"></div>
                                 <!-- Collapsible legend -->

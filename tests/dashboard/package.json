@@ -8,8 +8,9 @@
     "test:coverage": "jest --coverage"
   },
   "devDependencies": {
+    "@jest/globals": "^29.7.0",
     "jest": "^29.7.0",
-    "@jest/globals": "^29.7.0"
+    "jest-environment-jsdom": "^30.0.5"
   },
   "jest": {
     "testEnvironment": "jsdom",

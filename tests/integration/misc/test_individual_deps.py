@@ -50,7 +50,6 @@ def test_package_crypto_dep(package_name):
         return "cryptography" in result.stdout.lower()
 
 
-
 # Test suspicious packages
 suspicious_packages = [
     "ydata-profiling",

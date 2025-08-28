@@ -475,11 +475,10 @@ class SocketClient {
                 return;
             }
             
-            // Check if this is a code analysis event - if so, don't add to events list
-            // Code analysis events are handled by the code-tree component and shown in the footer
+            // Code analysis events are now allowed to flow through to the events list for troubleshooting
+            // They will appear in both the Events tab and the Code tab
             if (validatedEvent.type && validatedEvent.type.startsWith('code:')) {
-                console.log('Code analysis event received via claude_event, not adding to events list:', validatedEvent.type);
-                return;
+                console.log('Code analysis event received via claude_event, adding to events list for troubleshooting:', validatedEvent.type);
             }
             
             // Transform event to match expected format (for backward compatibility)
@@ -551,46 +550,55 @@ class SocketClient {
             this.addEvent({ type: 'log', subtype: 'entry', timestamp: new Date().toISOString(), data });
         });
 
-        // Code analysis events - don't add to event list, just pass through
-        // These are handled by the code-tree component and shown in the footer
+        // Code analysis events - now allowed to flow through for troubleshooting
+        // These are ALSO handled by the code-tree component and shown in the footer
+        // They will appear in both places: Events tab (for troubleshooting) and Code tab (for visualization)
         this.socket.on('code:analysis:queued', (data) => {
-            // Don't add to events list - handled by code-tree component
-            console.log('Code analysis queued event received, not adding to events list');
+            // Add to events list for troubleshooting
+            console.log('Code analysis queued event received, adding to events list for troubleshooting');
+            this.addEvent({ type: 'code', subtype: 'analysis:queued', timestamp: new Date().toISOString(), data });
         });
         
         this.socket.on('code:analysis:accepted', (data) => {
-            // Don't add to events list
-            console.log('Code analysis accepted event received, not adding to events list');
+            // Add to events list for troubleshooting
+            console.log('Code analysis accepted event received, adding to events list for troubleshooting');
+            this.addEvent({ type: 'code', subtype: 'analysis:accepted', timestamp: new Date().toISOString(), data });
         });
         
         this.socket.on('code:analysis:start', (data) => {
-            // Don't add to events list
-            console.log('Code analysis start event received, not adding to events list');
+            // Add to events list for troubleshooting
+            console.log('Code analysis start event received, adding to events list for troubleshooting');
+            this.addEvent({ type: 'code', subtype: 'analysis:start', timestamp: new Date().toISOString(), data });
         });
         
         this.socket.on('code:analysis:complete', (data) => {
-            // Don't add to events list
-            console.log('Code analysis complete event received, not adding to events list');
+            // Add to events list for troubleshooting
+            console.log('Code analysis complete event received, adding to events list for troubleshooting');
+            this.addEvent({ type: 'code', subtype: 'analysis:complete', timestamp: new Date().toISOString(), data });
         });
         
         this.socket.on('code:analysis:error', (data) => {
-            // Don't add to events list
-            console.log('Code analysis error event received, not adding to events list');
+            // Add to events list for troubleshooting
+            console.log('Code analysis error event received, adding to events list for troubleshooting');
+            this.addEvent({ type: 'code', subtype: 'analysis:error', timestamp: new Date().toISOString(), data });
         });
         
         this.socket.on('code:file:start', (data) => {
-            // Don't add to events list
-            console.log('Code file start event received, not adding to events list');
+            // Add to events list for troubleshooting
+            console.log('Code file start event received, adding to events list for troubleshooting');
+            this.addEvent({ type: 'code', subtype: 'file:start', timestamp: new Date().toISOString(), data });
         });
         
         this.socket.on('code:node:found', (data) => {
-            // Don't add to events list
-            console.log('Code node found event received, not adding to events list');
+            // Add to events list for troubleshooting
+            console.log('Code node found event received, adding to events list for troubleshooting');
+            this.addEvent({ type: 'code', subtype: 'node:found', timestamp: new Date().toISOString(), data });
         });
         
         this.socket.on('code:analysis:progress', (data) => {
-            // Don't add to events list
-            console.log('Code analysis progress event received, not adding to events list');
+            // Add to events list for troubleshooting
+            console.log('Code analysis progress event received, adding to events list for troubleshooting');
+            this.addEvent({ type: 'code', subtype: 'analysis:progress', timestamp: new Date().toISOString(), data });
         });
 
         this.socket.on('history', (data) => {
@@ -1082,6 +1090,7 @@ class SocketClient {
         // 1. Hook events: { type: 'hook.pre_tool', timestamp: '...', data: {...} }
         // 2. Legacy events: { event: 'TestStart', timestamp: '...', ... }
         // 3. Standard events: { type: 'session', subtype: 'started', ... }
+        // 4. Normalized events: { type: 'code', subtype: 'progress', ... } - already normalized, keep as-is
 
         if (!eventData) {
             return eventData; // Return as-is if null/undefined
@@ -1089,8 +1098,26 @@ class SocketClient {
 
         let transformedEvent = { ...eventData };
 
+        // Check if event is already normalized (has both type and subtype as separate fields)
+        // This prevents double-transformation of events that were normalized on the backend
+        const isAlreadyNormalized = eventData.type && eventData.subtype && 
+                                   !eventData.type.includes('.') && 
+                                   !eventData.type.includes(':');
+
+        if (isAlreadyNormalized) {
+            // Event is already properly normalized from backend, just preserve it
+            // Store a composite originalEventName for display if needed
+            if (!transformedEvent.originalEventName) {
+                if (eventData.subtype === 'generic' || eventData.type === eventData.subtype) {
+                    transformedEvent.originalEventName = eventData.type;
+                } else {
+                    transformedEvent.originalEventName = `${eventData.type}.${eventData.subtype}`;
+                }
+            }
+            // Return early to avoid further transformation
+        }
         // Handle legacy format with 'event' field but no 'type'
-        if (!eventData.type && eventData.event) {
+        else if (!eventData.type && eventData.event) {
             // Map common event names to proper type/subtype
             const eventName = eventData.event;
             
@@ -1121,8 +1148,10 @@ class SocketClient {
             
             // Remove the 'event' field to avoid confusion
             delete transformedEvent.event;
+            // Store original event name for display purposes
+            transformedEvent.originalEventName = eventName;
         }
-        // Handle standard format with 'type' field
+        // Handle standard format with 'type' field that needs transformation
         else if (eventData.type) {
             const type = eventData.type;
             
@@ -1131,30 +1160,43 @@ class SocketClient {
                 const subtype = type.substring(5); // Remove 'hook.' prefix
                 transformedEvent.type = 'hook';
                 transformedEvent.subtype = subtype;
+                transformedEvent.originalEventName = type;
             }
             // Transform 'code:*' events to proper code type
+            // Handle multi-level subtypes like 'code:analysis:queued'
             else if (type.startsWith('code:')) {
                 transformedEvent.type = 'code';
-                transformedEvent.subtype = type.substring(5); // Remove 'code:' prefix
+                // Replace colons with underscores in subtype for consistency
+                const subtypePart = type.substring(5); // Remove 'code:' prefix
+                transformedEvent.subtype = subtypePart.replace(/:/g, '_');
+                transformedEvent.originalEventName = type;
             }
             // Transform other dotted types like 'session.started' -> type: 'session', subtype: 'started'
             else if (type.includes('.')) {
                 const [mainType, ...subtypeParts] = type.split('.');
                 transformedEvent.type = mainType;
                 transformedEvent.subtype = subtypeParts.join('.');
+                transformedEvent.originalEventName = type;
+            }
+            // Transform any remaining colon-separated types generically
+            else if (type.includes(':')) {
+                const parts = type.split(':', 2); // Split into max 2 parts
+                transformedEvent.type = parts[0];
+                // Replace any remaining colons with underscores in subtype
+                transformedEvent.subtype = parts.length > 1 ? parts[1].replace(/:/g, '_') : 'generic';
+                transformedEvent.originalEventName = type;
+            }
+            // If type doesn't need transformation but has no subtype, set a default
+            else if (!eventData.subtype) {
+                transformedEvent.subtype = 'generic';
+                transformedEvent.originalEventName = type;
             }
         }
         // If no type and no event field, mark as unknown
         else {
             transformedEvent.type = 'unknown';
             transformedEvent.subtype = '';
-        }
-
-        // Store original event name for display purposes (before any transformation)
-        if (!eventData.type && eventData.event) {
-            transformedEvent.originalEventName = eventData.event;
-        } else if (eventData.type) {
-            transformedEvent.originalEventName = eventData.type;
+            transformedEvent.originalEventName = 'unknown';
         }
 
         // Extract and flatten data fields to top level for dashboard compatibility

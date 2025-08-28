@@ -7,10 +7,11 @@ WHY: Provides incremental event emission for real-time code tree visualization
 in the dashboard. Uses Socket.IO to stream events as code is analyzed.
 
 DESIGN DECISIONS:
+- Support lazy loading with directory discovery
+- Emit events only for structural elements (directories, files, main functions)
+- Filter out internal functions and handlers
 - Batch events for performance (emit every 10 nodes or 100ms)
-- Include progress tracking for large codebases
-- Use structured event format for dashboard consumption
-- Support resumable processing with event checkpoints
+- Use clean event subtypes without colons
 """
 
 import json
@@ -28,6 +29,8 @@ try:
 except ImportError:
     SOCKETIO_AVAILABLE = False
     socketio = None
+
+from pathlib import Path
 
 from ..core.logging_config import get_logger
 
@@ -62,14 +65,15 @@ class CodeTreeEventEmitter:
     the tree building incrementally, providing feedback for large codebases.
     """
 
-    # Event types
-    EVENT_FILE_START = "code:file:start"
-    EVENT_FILE_COMPLETE = "code:file:complete"
+    # Event types - using underscores for clean subtypes
+    EVENT_DIRECTORY_DISCOVERED = "code:directory:discovered"
+    EVENT_FILE_DISCOVERED = "code:file:discovered"
+    EVENT_FILE_ANALYZED = "code:file:analyzed"
     EVENT_NODE_FOUND = "code:node:found"
     EVENT_ANALYSIS_START = "code:analysis:start"
     EVENT_ANALYSIS_COMPLETE = "code:analysis:complete"
-    EVENT_PROGRESS = "code:progress"
-    EVENT_ERROR = "code:error"
+    EVENT_PROGRESS = "code:analysis:progress"
+    EVENT_ERROR = "code:analysis:error"
 
     def __init__(
         self,
@@ -223,29 +227,110 @@ class CodeTreeEventEmitter:
         else:
             self._emit_event(event)
 
-    def emit_file_start(self, file_path: str, language: Optional[str] = None):
-        """Emit file processing start event."""
+    def emit_directory_discovered(self, dir_path: str, children: List[Dict[str, Any]]):
+        """Emit directory discovery event."""
         self.emit(
-            self.EVENT_FILE_START,
-            {"file": file_path, "language": language or "unknown"},
+            self.EVENT_DIRECTORY_DISCOVERED,
+            {
+                "path": dir_path,
+                "name": Path(dir_path).name,
+                "children": children,
+                "type": "directory",
+            },
+        )
+
+    def emit_file_discovered(
+        self, file_path: str, language: Optional[str] = None, size: int = 0
+    ):
+        """Emit file discovery event."""
+        self.emit(
+            self.EVENT_FILE_DISCOVERED,
+            {
+                "path": file_path,
+                "name": Path(file_path).name,
+                "language": language or "unknown",
+                "size": size,
+                "type": "file",
+            },
+        )
+
+    def emit_file_start(self, file_path: str, language: Optional[str] = None):
+        """Emit file analysis start event.
+
+        WHY: Signals the beginning of file analysis for progress tracking.
+        """
+        self.emit(
+            "code:file_start",
+            {
+                "path": file_path,
+                "name": Path(file_path).name,
+                "language": language or "unknown",
+                "type": "file",
+                "status": "analyzing",
+            },
         )
 
     def emit_file_complete(
         self, file_path: str, nodes_count: int = 0, duration: float = 0
     ):
-        """Emit file processing complete event."""
+        """Emit file analysis complete event.
+
+        WHY: Signals completion of file analysis with summary statistics.
+        """
+        self.emit(
+            "code:file_complete",
+            {
+                "path": file_path,
+                "name": Path(file_path).name,
+                "nodes_count": nodes_count,
+                "duration": duration,
+                "type": "file",
+                "status": "complete",
+            },
+        )
+
+    def emit_file_analyzed(
+        self, file_path: str, nodes: List[Dict[str, Any]], duration: float = 0
+    ):
+        """Emit file analysis complete event."""
         self.stats["files_processed"] += 1
         self.emit(
-            self.EVENT_FILE_COMPLETE,
-            {"file": file_path, "nodes_count": nodes_count, "duration": duration},
+            self.EVENT_FILE_ANALYZED,
+            {
+                "path": file_path,
+                "nodes": nodes,
+                "nodes_count": len(nodes),
+                "duration": duration,
+            },
         )
 
     def emit_node(self, node: CodeNodeEvent):
-        """Emit code node discovery event (batched)."""
+        """Emit code node discovery event (batched).
+
+        Filters out internal functions and handlers.
+        """
+        # Filter out internal handler functions
+        if self._is_internal_function(node.name):
+            return
+
         self.stats["nodes_found"] += 1
         # In stdout mode, don't batch - emit immediately for real-time updates
         batch_mode = not self.use_stdout
         self.emit(self.EVENT_NODE_FOUND, node.to_dict(), batch=batch_mode)
+
+    def _is_internal_function(self, name: str) -> bool:
+        """Check if function is an internal handler that should be filtered."""
+        internal_patterns = [
+            "handle",  # Event handlers
+            "on_",  # Event callbacks
+            "_",  # Private methods
+            "get_",  # Simple getters
+            "set_",  # Simple setters
+            "__",  # Python magic methods
+        ]
+
+        name_lower = name.lower()
+        return any(name_lower.startswith(pattern) for pattern in internal_patterns)
 
     def emit_progress(self, current: int, total: int, message: str = ""):
         """Emit progress update event."""
@@ -266,6 +351,19 @@ class CodeTreeEventEmitter:
 
     def _emit_event(self, event: Dict[str, Any]):
         """Emit a single event."""
+
+        # Convert datetime objects to ISO strings for JSON serialization
+        def convert_datetime(obj):
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            if isinstance(obj, dict):
+                return {k: convert_datetime(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [convert_datetime(item) for item in obj]
+            return obj
+
+        event = convert_datetime(event)
+
         if self.use_stdout:
             # Emit to stdout as JSON for subprocess communication
             print(json.dumps(event), flush=True)

@@ -387,7 +387,5 @@ Agent content here
         with patch(
             "claude_mpm.services.cli.agent_validation_service.AgentRegistryAdapter",
             side_effect=Exception("Init error"),
-        ), pytest.raises(
-            RuntimeError, match="Could not initialize agent registry"
-        ):
+        ), pytest.raises(RuntimeError, match="Could not initialize agent registry"):
             _ = service.registry

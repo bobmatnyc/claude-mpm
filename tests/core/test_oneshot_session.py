@@ -132,9 +132,7 @@ class TestOneshotSession:
         """Test basic infrastructure setup."""
         with patch.object(
             self, "_prepare_environment", return_value={"ENV": "test"}
-        ), patch.object(
-            self, "_build_command", return_value=["claude", "--test"]
-        ):
+        ), patch.object(self, "_build_command", return_value=["claude", "--test"]):
             result = self.setup_infrastructure()
 
             assert result == {
@@ -199,9 +197,7 @@ class TestOneshotSession:
         ), patch.object(self, "_notify_execution_start"), patch.object(
             self, "_run_subprocess", return_value=(True, "success response")
         ):
-            success, response = self.execute_command(
-                prompt, context, infrastructure
-            )
+            success, response = self.execute_command(prompt, context, infrastructure)
 
             assert success is True
             assert response == "success response"
@@ -211,13 +207,9 @@ class TestOneshotSession:
         prompt = "test prompt"
         infrastructure = {"cmd": ["claude"], "env": {}}
 
-        with patch.object(
-            self, "_build_final_command"
-        ) as mock_build, patch.object(
+        with patch.object(self, "_build_final_command") as mock_build, patch.object(
             self, "_notify_execution_start"
-        ), patch.object(
-            self, "_run_subprocess", return_value=(True, "response")
-        ):
+        ), patch.object(self, "_run_subprocess", return_value=(True, "response")):
             self.execute_command(prompt, None, infrastructure)
 
             mock_build.assert_called_once_with(prompt, None, infrastructure)
@@ -228,14 +220,10 @@ class TestOneshotSession:
         context = "test context"
         infrastructure = {"cmd": ["claude"]}
 
-        with patch.object(
-            self, "_get_simple_context", return_value="simple context"
-        ):
+        with patch.object(self, "_get_simple_context", return_value="simple context"):
             self.runner._create_system_prompt.return_value = "system prompt"
 
-            result = self._build_final_command(
-                prompt, context, infrastructure
-            )
+            result = self._build_final_command(prompt, context, infrastructure)
 
             expected = [
                 "claude",
@@ -251,9 +239,7 @@ class TestOneshotSession:
         prompt = "test prompt"
         infrastructure = {"cmd": ["claude"]}
 
-        with patch.object(
-            self, "_get_simple_context", return_value="simple context"
-        ):
+        with patch.object(self, "_get_simple_context", return_value="simple context"):
             self.runner._create_system_prompt.return_value = (
                 "simple context"  # Same as simple context
             )
@@ -469,8 +455,8 @@ class TestOneshotSession:
         """Test session cleanup with errors."""
         self.original_cwd = "/nonexistent"
         self.runner.project_logger = Mock()
-        self.runner.project_logger.get_session_summary.side_effect = (
-            Exception("test error")
+        self.runner.project_logger.get_session_summary.side_effect = Exception(
+            "test error"
         )
 
         # Should not raise exception despite errors

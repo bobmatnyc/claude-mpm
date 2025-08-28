@@ -35,6 +35,7 @@ from .commands import (  # run_guarded_session is imported lazily to avoid loadi
     show_info,
 )
 from .commands.analyze_code import manage_analyze_code
+from .commands.dashboard import manage_dashboard
 from .parser import create_parser, preprocess_args
 from .utils import ensure_directories, setup_logging
 
@@ -389,6 +390,14 @@ def _execute_command(command: str, args) -> int:
 
         result = execute_run_guarded(args)
         return result if result is not None else 0
+    
+    # Handle mpm-init command with lazy import
+    if command == "mpm-init":
+        # Lazy import to avoid loading unless needed
+        from .commands.mpm_init_handler import manage_mpm_init
+
+        result = manage_mpm_init(args)
+        return result if result is not None else 0
 
     # Map stable commands to their implementations
     command_map = {
@@ -400,6 +409,7 @@ def _execute_command(command: str, args) -> int:
         CLICommands.AGENT_MANAGER.value: manage_agent_manager,
         CLICommands.MEMORY.value: manage_memory,
         CLICommands.MONITOR.value: manage_monitor,
+        CLICommands.DASHBOARD.value: manage_dashboard,
         CLICommands.CONFIG.value: manage_config,
         CLICommands.CONFIGURE.value: manage_configure,
         CLICommands.AGGREGATE.value: aggregate_command,
@@ -408,6 +418,7 @@ def _execute_command(command: str, args) -> int:
         CLICommands.MCP.value: manage_mcp,
         CLICommands.DOCTOR.value: run_doctor,
         "debug": manage_debug,  # Add debug command
+        "mpm-init": None,  # Will be handled separately with lazy import
     }
 
     # Execute command if found

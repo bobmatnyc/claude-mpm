@@ -59,6 +59,7 @@ class EventType(Enum):
     PERFORMANCE = "performance"  # Performance metrics
     CLAUDE = "claude"  # Claude process events
     TEST = "test"  # Test events
+    CODE = "code"  # Code analysis events
     TOOL = "tool"  # Tool events
     SUBAGENT = "subagent"  # Subagent events
 
@@ -351,6 +352,41 @@ class EventNormalizer:
                 event_type.value if isinstance(event_type, EventType) else event_type
             ), subtype
 
+        # Handle colon-separated event names (e.g., "code:analysis:queued", "code:progress")
+        # These are commonly used by the code analysis system
+        if ":" in event_name:
+            parts = event_name.split(":", 2)  # Split into max 3 parts
+            if len(parts) >= 2:
+                type_part = parts[0].lower()
+                # For events like "code:analysis:queued", combine the last parts as subtype
+                # Replace colons with underscores for clean subtypes
+                if len(parts) == 3:
+                    subtype_part = f"{parts[1]}_{parts[2]}"
+                else:
+                    subtype_part = parts[1].replace(":", "_")
+
+                # Map the type part to known types
+                if type_part in [
+                    "code",  # Code analysis events
+                    "hook",
+                    "session",
+                    "file",
+                    "system",
+                    "connection",
+                    "memory",
+                    "git",
+                    "todo",
+                    "ticket",
+                    "agent",
+                    "claude",
+                    "error",
+                    "performance",
+                    "test",
+                    "tool",
+                    "subagent",
+                ]:
+                    return type_part, subtype_part
+
         # Handle dotted event names (e.g., "connection.status", "session.started")
         if "." in event_name:
             parts = event_name.split(".", 1)
@@ -442,6 +478,34 @@ class EventNormalizer:
             if "inject" in event_lower:
                 return EventType.MEMORY.value, "injected"
             return EventType.MEMORY.value, "generic"
+
+        # Code analysis events - using underscores for clean subtypes
+        if "code" in event_lower:
+            if "analysis" in event_lower:
+                if "queue" in event_lower:
+                    return EventType.CODE.value, "analysis_queued"
+                if "start" in event_lower:
+                    return EventType.CODE.value, "analysis_start"
+                if "complete" in event_lower:
+                    return EventType.CODE.value, "analysis_complete"
+                if "error" in event_lower:
+                    return EventType.CODE.value, "analysis_error"
+                if "cancel" in event_lower:
+                    return EventType.CODE.value, "analysis_cancelled"
+                return EventType.CODE.value, "analysis_generic"
+            if "progress" in event_lower:
+                return EventType.CODE.value, "progress"
+            if "file" in event_lower:
+                if "discovered" in event_lower:
+                    return EventType.CODE.value, "file_discovered"
+                if "analyzed" in event_lower:
+                    return EventType.CODE.value, "file_analyzed"
+                return EventType.CODE.value, "file_complete"
+            if "directory" in event_lower:
+                return EventType.CODE.value, "directory_discovered"
+            if "node" in event_lower:
+                return EventType.CODE.value, "node_found"
+            return EventType.CODE.value, "generic"
 
         # Default to unknown with lowercase subtype
         return "unknown", event_name.lower() if event_name else ""

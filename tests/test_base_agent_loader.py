@@ -100,9 +100,7 @@ class TestBaseAgentLoading:
 
     def test_malformed_json_handling():
         """Test handling of malformed JSON in base agent file."""
-        with patch(
-            "builtins.open", mock_open(read_data='{"invalid": json}')
-        ), patch(
+        with patch("builtins.open", mock_open(read_data='{"invalid": json}')), patch(
             "claude_mpm.agents.base_agent_loader._get_base_agent_file"
         ) as mock_get_file:
             mock_path = MagicMock()

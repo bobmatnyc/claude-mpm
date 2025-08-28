@@ -53,16 +53,16 @@ class TestDaemonProcessManagement:
             "claude_mpm.scripts.socketio_daemon.LOG_FILE", mock_paths["log_file"]
         ), patch(
             "claude_mpm.scripts.socketio_daemon.is_running", return_value=False
-        ), patch("os.fork", return_value=12345) as mock_fork, patch(
+        ), patch(
+            "os.fork", return_value=12345
+        ) as mock_fork, patch(
             "claude_mpm.scripts.socketio_daemon.PortManager"
         ) as mock_pm:
             # Setup port manager
             mock_pm_instance = MagicMock()
             mock_pm_instance.find_available_port.return_value = 8765
             mock_pm_instance.get_instance_by_port.return_value = None
-            mock_pm_instance.register_instance.return_value = (
-                "instance-123"
-            )
+            mock_pm_instance.register_instance.return_value = "instance-123"
             mock_pm.return_value = mock_pm_instance
 
             # Mock sys.exit to prevent test termination
@@ -77,9 +77,7 @@ class TestDaemonProcessManagement:
             # Verify port manager operations
             mock_pm_instance.cleanup_dead_instances.assert_called_once()
             mock_pm_instance.find_available_port.assert_called_once()
-            mock_pm_instance.register_instance.assert_called_with(
-                8765, 12345
-            )
+            mock_pm_instance.register_instance.assert_called_with(8765, 12345)
 
     def test_daemon_start_when_already_running(self, mock_paths):
         """
@@ -93,15 +91,15 @@ class TestDaemonProcessManagement:
             "claude_mpm.scripts.socketio_daemon.PID_FILE", mock_paths["pid_file"]
         ), patch(
             "claude_mpm.scripts.socketio_daemon.is_running", return_value=True
-        ), patch("builtins.print") as mock_print:
+        ), patch(
+            "builtins.print"
+        ) as mock_print:
             from claude_mpm.scripts import socketio_daemon
 
             socketio_daemon.start_server()
 
             # Should print already running message
-            mock_print.assert_any_call(
-                "Socket.IO daemon server is already running."
-            )
+            mock_print.assert_any_call("Socket.IO daemon server is already running.")
 
     def test_daemon_stop_when_running(self, mock_paths):
         """
@@ -118,7 +116,9 @@ class TestDaemonProcessManagement:
         ), patch(
             "claude_mpm.scripts.socketio_daemon.is_running",
             side_effect=[True, False],
-        ), patch("os.kill") as mock_kill:
+        ), patch(
+            "os.kill"
+        ) as mock_kill:
             from claude_mpm.scripts import socketio_daemon
 
             socketio_daemon.stop_server()
@@ -197,7 +197,9 @@ class TestPortManagement:
 
             with patch(
                 "claude_mpm.scripts.socketio_daemon.is_running", return_value=False
-            ), patch("os.fork", return_value=0):  # Child process
+            ), patch(
+                "os.fork", return_value=0
+            ):  # Child process
                 with patch("os.setsid"):
                     with patch("builtins.open", mock_open()):
                         with patch(
@@ -217,9 +219,7 @@ class TestPortManagement:
                                     pass
 
                             # Verify server was created with selected port
-                            mock_server.assert_called_with(
-                                host="localhost", port=8767
-                            )
+                            mock_server.assert_called_with(host="localhost", port=8767)
 
     def test_port_conflict_detection(self):
         """

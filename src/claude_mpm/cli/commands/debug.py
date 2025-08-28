@@ -389,7 +389,6 @@ def debug_agents(args, logger):
             # List deployed agents
             from pathlib import Path
 
-
             print("\n🤖 Deployed Agents:")
             print("=" * 60)
 

@@ -72,9 +72,7 @@ class TestBaseEventHandler:
         self.sio.emit = AsyncMock()
         self.clients = {"sid1", "sid2", "sid3"}
 
-        await self.broadcast_event(
-            "test_event", {"data": "test"}, skip_sid="sid2"
-        )
+        await self.broadcast_event("test_event", {"data": "test"}, skip_sid="sid2")
 
         # Should emit to each client except the skipped one
         expected_calls = [
@@ -272,9 +270,7 @@ class TestConnectionEventHandler:
         ]
         self.event_history.extend(test_events)
 
-        await self._send_event_history(
-            "test-sid", event_types=["file_write"], limit=10
-        )
+        await self._send_event_history("test-sid", event_types=["file_write"], limit=10)
 
         # Should emit only file_write events
         self.sio.emit.assert_called_once()
@@ -453,9 +449,7 @@ class TestGitEventHandler:
 
         with patch("os.getcwd", return_value="/current/dir"):
             for invalid_state in invalid_states:
-                result = self._sanitize_working_dir(
-                    invalid_state, "test_operation"
-                )
+                result = self._sanitize_working_dir(invalid_state, "test_operation")
                 assert result == "/current/dir"
 
     def test_sanitize_working_dir_valid_path(self):
@@ -725,9 +719,7 @@ class TestFileEventHandler:
         with patch(
             "claude_mpm.deployment_paths.get_project_root", return_value=str(tmp_path)
         ):
-            result = await self._read_file_safely(
-                str(nonexistent_file), str(tmp_path)
-            )
+            result = await self._read_file_safely(str(nonexistent_file), str(tmp_path))
 
             assert result["success"] is False
             assert "does not exist" in result["error"]

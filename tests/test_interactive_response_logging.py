@@ -113,9 +113,13 @@ class TestInteractiveResponseLogging(unittest.TestCase):
         self.assertIsNotNone(session.session_id)
 
         # Verify session ID was set in tracker if enabled
-        if session.response_tracker and session.response_tracker.enabled and (
-            hasattr(session.response_tracker, "session_logger")
-            and session.response_tracker.session_logger
+        if (
+            session.response_tracker
+            and session.response_tracker.enabled
+            and (
+                hasattr(session.response_tracker, "session_logger")
+                and session.response_tracker.session_logger
+            )
         ):
             self.assertEqual(
                 session.response_tracker.session_logger.session_id,
@@ -143,9 +147,13 @@ class TestInteractiveResponseLogging(unittest.TestCase):
         session_id = session.session_id
 
         # Verify session ID is set
-        if session.response_tracker and session.response_tracker.enabled and (
-            hasattr(session.response_tracker, "session_logger")
-            and session.response_tracker.session_logger
+        if (
+            session.response_tracker
+            and session.response_tracker.enabled
+            and (
+                hasattr(session.response_tracker, "session_logger")
+                and session.response_tracker.session_logger
+            )
         ):
             self.assertEqual(
                 session.response_tracker.session_logger.session_id, session_id
@@ -155,9 +163,13 @@ class TestInteractiveResponseLogging(unittest.TestCase):
         session.cleanup_interactive_session()
 
         # Verify session ID was cleared
-        if session.response_tracker and session.response_tracker.enabled and (
-            hasattr(session.response_tracker, "session_logger")
-            and session.response_tracker.session_logger
+        if (
+            session.response_tracker
+            and session.response_tracker.enabled
+            and (
+                hasattr(session.response_tracker, "session_logger")
+                and session.response_tracker.session_logger
+            )
         ):
             self.assertIsNone(session.response_tracker.session_logger.session_id)
 

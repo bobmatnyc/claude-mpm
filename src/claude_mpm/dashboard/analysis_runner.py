@@ -239,17 +239,30 @@ class CodeAnalysisRunner:
 
             # Build command
             cmd = self._build_command(request)
+            self.logger.info(f"Starting analysis subprocess: {' '.join(cmd)}")
 
             # Start subprocess
-            self.current_process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-                universal_newlines=True,
-                env=self._get_subprocess_env(),
-            )
+            try:
+                self.current_process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    bufsize=1,
+                    universal_newlines=True,
+                    env=self._get_subprocess_env(),
+                )
+                self.logger.debug(
+                    f"Subprocess started with PID: {self.current_process.pid}"
+                )
+            except FileNotFoundError as e:
+                raise subprocess.SubprocessError(
+                    f"Python executable not found: {cmd[0]}"
+                ) from e
+            except Exception as e:
+                raise subprocess.SubprocessError(
+                    f"Failed to start subprocess: {e}"
+                ) from e
 
             # Process output
             self._process_output(request)
@@ -275,20 +288,34 @@ class CodeAnalysisRunner:
                     },
                 )
             else:
-                # Failure
-                self.stats["analyses_failed"] += 1
-                stderr = (
-                    self.current_process.stderr.read()
-                    if self.current_process.stderr
-                    else ""
-                )
-                self._emit_error(
-                    request.request_id,
-                    f"Analysis failed with code {return_code}: {stderr}",
-                )
+                # Failure - capture any remaining stderr
+                stderr_output = ""
+                if self.current_process.stderr:
+                    try:
+                        # Read any remaining stderr output
+                        stderr_lines = []
+                        for line in self.current_process.stderr:
+                            stderr_lines.append(line.strip())
+                        stderr_output = "\n".join(stderr_lines)
+                    except Exception as e:
+                        stderr_output = f"Failed to read stderr: {e}"
 
+                self.stats["analyses_failed"] += 1
+                error_msg = f"Analysis failed with code {return_code}"
+                if stderr_output:
+                    error_msg += f": {stderr_output}"
+
+                self.logger.error(f"Subprocess failed: {error_msg}")
+                self._emit_error(request.request_id, error_msg)
+
+        except subprocess.SubprocessError as e:
+            self.logger.error(f"Subprocess error for request {request.request_id}: {e}")
+            self.stats["analyses_failed"] += 1
+            self._emit_error(request.request_id, f"Failed to start analyzer: {e}")
         except Exception as e:
-            self.logger.error(f"Error processing request {request.request_id}: {e}")
+            self.logger.error(
+                f"Error processing request {request.request_id}: {e}", exc_info=True
+            )
             self.stats["analyses_failed"] += 1
             self._emit_error(request.request_id, str(e))
 
@@ -308,16 +335,16 @@ class CodeAnalysisRunner:
         # Get Python executable
         python_exe = sys.executable
 
-        # Build command - use the tools module as a runnable module
+        # Build command - use the CLI analyze-code command
         cmd = [
             python_exe,
             "-m",
-            "claude_mpm.tools",
-            "--path",
+            "claude_mpm",
+            "analyze-code",
             request.path,
             "--emit-events",
-            "--output-format",
-            "json-stream",
+            "--output",
+            "json",
         ]
 
         # Add optional parameters

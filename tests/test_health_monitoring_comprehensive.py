@@ -807,9 +807,7 @@ class TestSocketIOServerIntegration:
     )
     def test_server_health_monitoring_initialization():
         """Test that server initializes health monitoring when available."""
-        with patch(
-            "claude_mpm.services.socketio_server.AdvancedHealthMonitor"
-        ), patch(
+        with patch("claude_mpm.services.socketio_server.AdvancedHealthMonitor"), patch(
             "claude_mpm.services.socketio_server.RecoveryManager"
         ):
             server = SocketIOServer(host="localhost", port=8765)

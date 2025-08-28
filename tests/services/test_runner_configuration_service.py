@@ -158,9 +158,7 @@ class TestRunnerConfigurationService:
         ) as mock_get_logger:
             mock_get_logger.return_value = mock_logger
 
-            result = self.initialize_response_logger(
-                mock_config, mock_project_logger
-            )
+            result = self.initialize_response_logger(mock_config, mock_project_logger)
 
             assert result == mock_logger
             mock_get_logger.assert_called_once_with(mock_config)
@@ -318,9 +316,7 @@ class TestRunnerConfigurationService:
 
         config_data = {"enable_tickets": True, "launch_method": "exec"}
 
-        result = self.create_session_log_file(
-            mock_project_logger, "INFO", config_data
-        )
+        result = self.create_session_log_file(mock_project_logger, "INFO", config_data)
 
         assert result == tmp_path / "system.jsonl"
 
@@ -333,9 +329,7 @@ class TestRunnerConfigurationService:
 
         # The current implementation doesn't actually check for permission errors
         # It just returns the path. This test verifies the current behavior.
-        result = self.create_session_log_file(
-            mock_project_logger, "INFO", config_data
-        )
+        result = self.create_session_log_file(mock_project_logger, "INFO", config_data)
 
         # Current implementation returns the path regardless of permissions
         assert result == Path("/nonexistent/path/system.jsonl")

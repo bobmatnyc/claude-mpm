@@ -852,9 +852,7 @@ class TestClaudeRunnerUtilityMethods:
     def test_extract_agent_from_response(self):
         """Test agent name extraction from delegation response."""
         # Test that the method exists and runs
-        result1 = self._extract_agent_from_response(
-            "I'll use the code-analyzer agent"
-        )
+        result1 = self._extract_agent_from_response("I'll use the code-analyzer agent")
         result2 = self._extract_agent_from_response("No agent mentioned here")
 
         # The method should return string or None

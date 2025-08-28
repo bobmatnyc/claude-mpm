@@ -52,7 +52,9 @@ def create_correct_event(event_name: str, data: Optional[dict] = None) -> dict:
     }
 
 
-async def send_test_event(event_name: str, data: Optional[dict] = None, port: int = 8765):
+async def send_test_event(
+    event_name: str, data: Optional[dict] = None, port: int = 8765
+):
     """Send a single test event to verify format."""
     event = create_correct_event(event_name, data)
 

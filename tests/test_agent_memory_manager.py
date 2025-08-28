@@ -98,9 +98,7 @@ class TestAgentMemoryManager:
             self.add_learning("qa", "mistake", f"Mistake number {i}")
 
         # Add one more - should remove the oldest
-        self.add_learning(
-            "qa", "mistake", "New mistake that should replace oldest"
-        )
+        self.add_learning("qa", "mistake", "New mistake that should replace oldest")
 
         # Verify total count is still 15
         memory = self.load_agent_memory("qa")
@@ -129,7 +127,11 @@ class TestAgentMemoryManager:
         assert "AAA..." in memory
         assert (
             len(
-                next(line for line in memory.split("\n") if line.strip().startswith("- A"))
+                next(
+                    line
+                    for line in memory.split("\n")
+                    if line.strip().startswith("- A")
+                )
             )
             <= 122
         )  # "- " prefix
@@ -210,9 +212,7 @@ class TestAgentMemoryManager:
         ]
 
         for learning_type, expected_section in mappings:
-            self.add_learning(
-                "test", learning_type, f"Test {learning_type} content"
-            )
+            self.add_learning("test", learning_type, f"Test {learning_type} content")
 
         memory = self.load_agent_memory("test")
 

@@ -177,7 +177,6 @@ class StartupCheckerService(IStartupChecker):
         try:
             # Check Python version
 
-
             # Check for common missing directories
             warnings.extend(self._check_required_directories())
 

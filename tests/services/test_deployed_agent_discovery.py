@@ -149,9 +149,7 @@ class TestDeployedAgentDiscovery:
 
     def test_discover_deployed_agents_with_error(self):
         """Test discovery handles registry errors gracefully."""
-        self.agent_registry.list_agents.side_effect = Exception(
-            "Registry error"
-        )
+        self.agent_registry.list_agents.side_effect = Exception("Registry error")
 
         agents = self.discover_deployed_agents()
 

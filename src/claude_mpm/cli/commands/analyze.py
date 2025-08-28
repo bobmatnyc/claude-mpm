@@ -306,7 +306,8 @@ class AnalyzeCommand(BaseCommand):
                     text=True,
                     cwd=str(args.target),
                     env=env,
-                    timeout=600, check=False,  # 10 minute timeout
+                    timeout=600,
+                    check=False,  # 10 minute timeout
                 )
 
                 if result.returncode != 0:
