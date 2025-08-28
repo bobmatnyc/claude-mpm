@@ -107,9 +107,7 @@ class TestMCPSummarizerTool:
     @pytest.mark.asyncio
     async def test_empty_content(self):
         """Test handling of empty content."""
-        result = await self._summarize_content(
-            content="", style="brief", max_length=50
-        )
+        result = await self._summarize_content(content="", style="brief", max_length=50)
 
         assert result == "No content provided to summarize."
 

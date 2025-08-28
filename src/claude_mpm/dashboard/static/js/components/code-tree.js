@@ -22,9 +22,12 @@ class CodeTree {
             methods: 0,
             lines: 0
         };
-        this.margin = {top: 20, right: 150, bottom: 20, left: 150};
+        // Radial layout settings
+        this.isRadialLayout = true;  // Toggle for radial vs linear layout
+        this.margin = {top: 20, right: 20, bottom: 20, left: 20};
         this.width = 960 - this.margin.left - this.margin.right;
         this.height = 600 - this.margin.top - this.margin.bottom;
+        this.radius = Math.min(this.width, this.height) / 2;
         this.nodeId = 0;
         this.duration = 750;
         this.languageFilter = 'all';
@@ -34,16 +37,17 @@ class CodeTree {
         this.analyzing = false;
         this.selectedNode = null;
         this.socket = null;
+        this.autoDiscovered = false;  // Track if auto-discovery has been done
+        this.zoom = null;  // Store zoom behavior
+        this.activeNode = null;  // Track currently active node
+        this.loadingNodes = new Set();  // Track nodes that are loading
     }
 
     /**
      * Initialize the code tree visualization
      */
     initialize() {
-        console.log('CodeTree.initialize() called');
-        
         if (this.initialized) {
-            console.log('Code tree already initialized');
             return;
         }
         
@@ -53,8 +57,6 @@ class CodeTree {
             return;
         }
         
-        console.log('Code tree container found:', this.container);
-        
         // Check if tab is visible
         const tabPanel = document.getElementById('code-tab');
         if (!tabPanel) {
@@ -62,303 +64,169 @@ class CodeTree {
             return;
         }
         
-        console.log('Code tab panel found, active:', tabPanel.classList.contains('active'));
+        // Check if working directory is set
+        const workingDir = this.getWorkingDirectory();
+        if (!workingDir || workingDir === 'Loading...' || workingDir === 'Not selected') {
+            this.showNoWorkingDirectoryMessage();
+            this.initialized = true;
+            return;
+        }
         
         // Initialize always
         this.setupControls();
         this.initializeTreeData();
         this.subscribeToEvents();
         
+        // Set initial status message
+        const breadcrumbContent = document.getElementById('breadcrumb-content');
+        if (breadcrumbContent && !this.analyzing) {
+            this.updateActivityTicker('Loading project structure...', 'info');
+        }
+        
         // Only create visualization if tab is visible
         if (tabPanel.classList.contains('active')) {
-            console.log('Tab is active, creating visualization');
             this.createVisualization();
             if (this.root && this.svg) {
                 this.update(this.root);
             }
-        } else {
-            console.log('Tab is not active, deferring visualization');
+            // Auto-discover root level when tab is active
+            this.autoDiscoverRootLevel();
         }
         
         this.initialized = true;
-        console.log('Code tree initialization complete');
     }
 
     /**
      * Render visualization when tab becomes visible
      */
     renderWhenVisible() {
-        console.log('CodeTree.renderWhenVisible() called');
-        console.log('Current state - initialized:', this.initialized, 'svg:', !!this.svg);
+        // Check if working directory is set
+        const workingDir = this.getWorkingDirectory();
+        if (!workingDir || workingDir === 'Loading...' || workingDir === 'Not selected') {
+            this.showNoWorkingDirectoryMessage();
+            return;
+        }
+        
+        // If no directory message is shown, remove it
+        this.removeNoWorkingDirectoryMessage();
         
         if (!this.initialized) {
-            console.log('Not initialized, calling initialize()');
             this.initialize();
             return;
         }
         
         if (!this.svg) {
-            console.log('No SVG found, creating visualization');
             this.createVisualization();
             if (this.svg && this.treeGroup) {
-                console.log('SVG created, updating tree');
                 this.update(this.root);
-            } else {
-                console.log('Failed to create SVG or treeGroup');
             }
         } else {
-            console.log('SVG exists, forcing update');
             // Force update with current data
             if (this.root && this.svg) {
                 this.update(this.root);
             }
         }
+        
+        // Auto-discover root level if not done yet
+        if (!this.autoDiscovered) {
+            this.autoDiscoverRootLevel();
+        }
     }
 
     /**
-     * Setup control handlers
+     * Set up control event handlers
      */
     setupControls() {
-        // Analyze button
-        const analyzeBtn = document.getElementById('analyze-code');
-        if (analyzeBtn) {
-            analyzeBtn.addEventListener('click', () => this.startAnalysis());
+        // Remove analyze and cancel button handlers since they're no longer in the UI
+
+        const languageFilter = document.getElementById('language-filter');
+        if (languageFilter) {
+            languageFilter.addEventListener('change', (e) => {
+                this.languageFilter = e.target.value;
+                this.filterTree();
+            });
+        }
+
+        const searchBox = document.getElementById('code-search');
+        if (searchBox) {
+            searchBox.addEventListener('input', (e) => {
+                this.searchTerm = e.target.value.toLowerCase();
+                this.filterTree();
+            });
+        }
+
+        const expandBtn = document.getElementById('code-expand-all');
+        if (expandBtn) {
+            expandBtn.addEventListener('click', () => this.expandAll());
         }
         
-        // Cancel button
-        const cancelBtn = document.getElementById('cancel-analysis');
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', () => this.cancelAnalysis());
+        const collapseBtn = document.getElementById('code-collapse-all');
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', () => this.collapseAll());
         }
-
-        // Expand all button
-        const expandAllBtn = document.getElementById('code-expand-all');
-        if (expandAllBtn) {
-            expandAllBtn.addEventListener('click', () => this.expandAll());
-        }
-
-        // Collapse all button
-        const collapseAllBtn = document.getElementById('code-collapse-all');
-        if (collapseAllBtn) {
-            collapseAllBtn.addEventListener('click', () => this.collapseAll());
-        }
-
-        // Reset zoom button
+        
         const resetZoomBtn = document.getElementById('code-reset-zoom');
         if (resetZoomBtn) {
             resetZoomBtn.addEventListener('click', () => this.resetZoom());
         }
         
-        // Toggle legend button
         const toggleLegendBtn = document.getElementById('code-toggle-legend');
         if (toggleLegendBtn) {
             toggleLegendBtn.addEventListener('click', () => this.toggleLegend());
         }
-
-        // Language filter
-        const languageFilter = document.getElementById('language-filter');
-        if (languageFilter) {
-            languageFilter.addEventListener('change', (e) => {
-                this.languageFilter = e.target.value;
-                this.filterByLanguage();
+        
+        // Listen for show hidden files toggle
+        const showHiddenFilesCheckbox = document.getElementById('show-hidden-files');
+        if (showHiddenFilesCheckbox) {
+            showHiddenFilesCheckbox.addEventListener('change', () => {
+                // Clear tree and re-discover with new settings
+                this.autoDiscovered = false;
+                this.initializeTreeData();
+                this.autoDiscoverRootLevel();
+                this.showNotification(
+                    showHiddenFilesCheckbox.checked ? 'Showing hidden files' : 'Hiding hidden files', 
+                    'info'
+                );
             });
         }
-
-        // Search input
-        const searchInput = document.getElementById('code-search');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                this.searchTerm = e.target.value.toLowerCase();
-                this.highlightSearchResults();
-            });
-        }
-    }
-
-    /**
-     * Create D3 visualization
-     */
-    createVisualization() {
-        console.log('Creating code tree visualization');
         
-        // Check if D3 is available
-        if (typeof d3 === 'undefined') {
-            console.error('D3.js is not loaded! Cannot create code tree visualization.');
-            return;
-        }
-        
-        console.log('D3 is available:', typeof d3);
-        
-        const container = document.getElementById('code-tree');
-        if (!container) {
-            console.error('Code tree div not found');
-            return;
-        }
-        
-        console.log('Code tree div found:', container);
-        
-        // Create root if it doesn't exist
-        if (!this.root && this.treeData) {
-            console.log('Creating D3 hierarchy from tree data');
-            this.root = d3.hierarchy(this.treeData);
-            this.root.x0 = this.height / 2;
-            this.root.y0 = 0;
-        }
-
-        // Clear any existing SVG
-        d3.select(container).selectAll("*").remove();
-
-        // Get container dimensions
-        const rect = container.getBoundingClientRect();
-        this.width = rect.width - this.margin.left - this.margin.right;
-        this.height = Math.max(500, rect.height) - this.margin.top - this.margin.bottom;
-
-        // Create SVG
-        this.svg = d3.select(container)
-            .append('svg')
-            .attr('width', '100%')
-            .attr('height', '100%')
-            .attr('viewBox', `0 0 ${rect.width} ${rect.height}`)
-            .call(d3.zoom()
-                .scaleExtent([0.1, 3])
-                .on('zoom', (event) => {
-                    this.treeGroup.attr('transform', event.transform);
-                }));
-
-        this.treeGroup = this.svg.append('g')
-            .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
-
-        // Create tree layout
-        this.treeLayout = d3.tree()
-            .size([this.height, this.width]);
-
-        // Create tooltip
-        this.tooltip = d3.select('body').append('div')
-            .attr('class', 'code-tooltip')
-            .style('opacity', 0);
-    }
-
-    /**
-     * Initialize tree data structure
-     */
-    initializeTreeData() {
-        console.log('Initializing tree data...');
-        
-        this.treeData = {
-            name: 'Project Root',
-            type: 'module',
-            path: '/',
-            complexity: 0,
-            children: []
-        };
-
-        // Only create D3 hierarchy if D3 is available
-        if (typeof d3 !== 'undefined') {
-            this.root = d3.hierarchy(this.treeData);
-            this.root.x0 = this.height / 2;
-            this.root.y0 = 0;
-            console.log('Tree root created:', this.root);
-        } else {
-            console.warn('D3 not available yet, deferring hierarchy creation');
-            this.root = null;
-        }
-    }
-
-    /**
-     * Subscribe to Socket.IO events
-     */
-    subscribeToEvents() {
-        // Try multiple socket sources
-        this.getSocket();
-        
-        if (this.socket) {
-            console.log('CodeTree: Socket available, subscribing to events');
-            
-            // Code analysis events - match the server-side event names
-            this.socket.on('code:analysis:start', (data) => this.handleAnalysisStart(data));
-            this.socket.on('code:analysis:accepted', (data) => this.handleAnalysisAccepted(data));
-            this.socket.on('code:analysis:queued', (data) => this.handleAnalysisQueued(data));
-            this.socket.on('code:analysis:cancelled', (data) => this.handleAnalysisCancelled(data));
-            this.socket.on('code:analysis:progress', (data) => this.handleProgress(data));
-            this.socket.on('code:analysis:complete', (data) => this.handleAnalysisComplete(data));
-            this.socket.on('code:analysis:error', (data) => this.handleAnalysisError(data));
-            
-            // File and node events
-            this.socket.on('code:file:start', (data) => this.handleFileStart(data));
-            this.socket.on('code:file:complete', (data) => this.handleFileComplete(data));
-            this.socket.on('code:node:found', (data) => this.handleNodeFound(data));
-        } else {
-            console.warn('CodeTree: Socket not available yet, will retry on analysis');
-        }
+        // Listen for working directory changes
+        document.addEventListener('workingDirectoryChanged', (e) => {
+            console.log('Working directory changed to:', e.detail.directory);
+            this.onWorkingDirectoryChanged(e.detail.directory);
+        });
     }
     
     /**
-     * Get socket connection from available sources
+     * Handle working directory change
      */
-    getSocket() {
-        // Try multiple sources for the socket
-        if (!this.socket) {
-            // Try window.socket first (most common)
-            if (window.socket) {
-                this.socket = window.socket;
-                console.log('CodeTree: Using window.socket');
-            }
-            // Try from dashboard's socketClient
-            else if (window.dashboard?.socketClient?.socket) {
-                this.socket = window.dashboard.socketClient.socket;
-                console.log('CodeTree: Using dashboard.socketClient.socket');
-            }
-            // Try from socketClient directly
-            else if (window.socketClient?.socket) {
-                this.socket = window.socketClient.socket;
-                console.log('CodeTree: Using socketClient.socket');
-            }
-        }
-        return this.socket;
-    }
-
-    /**
-     * Start code analysis
-     */
-    startAnalysis() {
-        if (this.analyzing) {
-            console.log('Analysis already in progress');
-            return;
-        }
-
-        console.log('Starting code analysis...');
-        
-        // Ensure socket is available
-        this.getSocket();
-        if (!this.socket) {
-            console.error('Socket not available');
-            this.showNotification('Cannot connect to server. Please check connection.', 'error');
+    onWorkingDirectoryChanged(newDirectory) {
+        if (!newDirectory || newDirectory === 'Loading...' || newDirectory === 'Not selected') {
+            // Show no directory message
+            this.showNoWorkingDirectoryMessage();
+            // Reset tree state
+            this.autoDiscovered = false;
+            this.analyzing = false;
+            this.nodes.clear();
+            this.stats = {
+                files: 0,
+                classes: 0,
+                functions: 0,
+                methods: 0,
+                lines: 0
+            };
+            this.updateStats();
             return;
         }
         
-        // Re-subscribe to events if needed (in case socket reconnected)
-        if (!this.socket._callbacks || !this.socket._callbacks['code:analysis:start']) {
-            console.log('Re-subscribing to code analysis events');
-            this.subscribeToEvents();
-        }
+        // Remove any no directory message
+        this.removeNoWorkingDirectoryMessage();
         
-        this.analyzing = true;
+        // Reset discovery state for new directory
+        this.autoDiscovered = false;
+        this.analyzing = false;
         
-        // Update button state - but keep it responsive
-        const analyzeBtn = document.getElementById('analyze-code');
-        const cancelBtn = document.getElementById('cancel-analysis');
-        if (analyzeBtn) {
-            analyzeBtn.textContent = 'Analyzing...';
-            analyzeBtn.classList.add('analyzing');
-        }
-        if (cancelBtn) {
-            cancelBtn.style.display = 'inline-block';
-        }
-        
-        // Show analysis status in footer
-        this.showFooterAnalysisStatus('Starting analysis...');
-        
-        // Reset tree but keep visualization
-        this.initializeTreeData();
+        // Clear existing data
         this.nodes.clear();
         this.stats = {
             files: 0,
@@ -367,259 +235,737 @@ class CodeTree {
             methods: 0,
             lines: 0
         };
-        this.updateStats();
         
-        // Create visualization if not already created
-        if (!this.svg) {
-            this.createVisualization();
-        }
-        
-        // Initial tree update with empty root
-        if (this.root && this.svg) {
+        // Re-initialize with new directory
+        this.initializeTreeData();
+        if (this.svg) {
             this.update(this.root);
         }
         
-        // Get analysis parameters from UI
-        const pathInput = document.getElementById('analysis-path');
-        let path = pathInput?.value?.trim();
-        
-        // Use working directory if no path specified
-        if (!path || path === '') {
-            // Try to get working directory from various sources
-            path = window.workingDirectory || 
-                   window.dashboard?.workingDirectory || 
-                   window.socketClient?.sessions?.values()?.next()?.value?.working_directory ||
-                   '.';
-            
-            // Update the input field with the detected path
-            if (pathInput && path !== '.') {
-                pathInput.value = path;
-            }
+        // Check if Code tab is currently active
+        const tabPanel = document.getElementById('code-tab');
+        if (tabPanel && tabPanel.classList.contains('active')) {
+            // Auto-discover in the new directory
+            this.autoDiscoverRootLevel();
         }
         
-        const languages = this.getSelectedLanguages();
-        const maxDepth = parseInt(document.getElementById('max-depth')?.value) || null;
-        const ignorePatterns = this.getIgnorePatterns();
-        
-        // Generate request ID
-        const requestId = this.generateRequestId();
-        this.currentRequestId = requestId;
-        
-        // Build request payload
-        const requestPayload = {
-            request_id: requestId,
-            path: path,
-            languages: languages.length > 0 ? languages : null,
-            max_depth: maxDepth,
-            ignore_patterns: ignorePatterns.length > 0 ? ignorePatterns : null
-        };
-        
-        console.log('Emitting code:analyze:request with payload:', requestPayload);
-        
-        // Request analysis from server
-        this.socket.emit('code:analyze:request', requestPayload);
-        
-        // Set a longer safety timeout (60 seconds) for truly stuck requests
-        // This is just a safety net - normal cancellation flow should work
-        this.requestTimeout = setTimeout(() => {
-            if (this.analyzing && this.currentRequestId === requestId) {
-                console.warn('Analysis appears stuck after 60 seconds');
-                this.showNotification('Analysis is taking longer than expected. You can cancel if needed.', 'warning');
-                // Don't auto-reset, let user decide to cancel
-            }
-        }, 60000); // 60 second safety timeout
+        this.updateStats();
     }
-    
+
     /**
-     * Cancel current analysis
+     * Show loading spinner
      */
-    cancelAnalysis() {
-        if (!this.analyzing) {
+    showLoading() {
+        let loadingDiv = document.getElementById('code-tree-loading');
+        if (!loadingDiv) {
+            // Create loading element if it doesn't exist
+            const container = document.getElementById('code-tree-container');
+            if (container) {
+                loadingDiv = document.createElement('div');
+                loadingDiv.id = 'code-tree-loading';
+                loadingDiv.innerHTML = `
+                    <div class="code-tree-spinner"></div>
+                    <div class="code-tree-loading-text">Analyzing code structure...</div>
+                `;
+                container.appendChild(loadingDiv);
+            }
+        }
+        if (loadingDiv) {
+            loadingDiv.classList.remove('hidden');
+        }
+    }
+
+    /**
+     * Hide loading spinner
+     */
+    hideLoading() {
+        const loadingDiv = document.getElementById('code-tree-loading');
+        if (loadingDiv) {
+            loadingDiv.classList.add('hidden');
+        }
+    }
+
+    /**
+     * Create the D3.js visualization
+     */
+    createVisualization() {
+        if (typeof d3 === 'undefined') {
+            console.error('D3.js is not loaded');
+            return;
+        }
+
+        const container = d3.select('#code-tree-container');
+        container.selectAll('*').remove();
+
+        if (!container || !container.node()) {
+            console.error('Code tree container not found');
+            return;
+        }
+
+        // Calculate dimensions
+        const containerNode = container.node();
+        const containerWidth = containerNode.clientWidth || 960;
+        const containerHeight = containerNode.clientHeight || 600;
+
+        this.width = containerWidth - this.margin.left - this.margin.right;
+        this.height = containerHeight - this.margin.top - this.margin.bottom;
+        this.radius = Math.min(this.width, this.height) / 2;
+
+        // Create SVG
+        this.svg = container.append('svg')
+            .attr('width', containerWidth)
+            .attr('height', containerHeight);
+
+        // Create tree group with appropriate centering
+        const centerX = containerWidth / 2;
+        const centerY = containerHeight / 2;
+        
+        // Different initial positioning for different layouts
+        if (this.isRadialLayout) {
+            // Radial: center in the middle of the canvas
+            this.treeGroup = this.svg.append('g')
+                .attr('transform', `translate(${centerX},${centerY})`);
+        } else {
+            // Linear: start from left with some margin
+            this.treeGroup = this.svg.append('g')
+                .attr('transform', `translate(${this.margin.left + 100},${centerY})`);
+        }
+
+        // Create tree layout with improved spacing
+        if (this.isRadialLayout) {
+            // Use d3.cluster for better radial distribution
+            this.treeLayout = d3.cluster()
+                .size([2 * Math.PI, this.radius - 100])
+                .separation((a, b) => {
+                    // Enhanced separation for radial layout
+                    if (a.parent == b.parent) {
+                        // Base separation on tree depth for better spacing
+                        const depthFactor = Math.max(1, 4 - a.depth);
+                        // Increase spacing for nodes with many siblings
+                        const siblingCount = a.parent ? (a.parent.children?.length || 1) : 1;
+                        const siblingFactor = siblingCount > 5 ? 2 : (siblingCount > 3 ? 1.5 : 1);
+                        // More spacing at outer levels where circumference is larger
+                        const radiusFactor = 1 + (a.depth * 0.2);
+                        return (depthFactor * siblingFactor) / (a.depth || 1) * radiusFactor;
+                    } else {
+                        // Different parents - ensure enough space
+                        return 4 / (a.depth || 1);
+                    }
+                });
+        } else {
+            // Linear layout with dynamic sizing based on node count
+            // Use nodeSize for consistent spacing regardless of tree size
+            this.treeLayout = d3.tree()
+                .nodeSize([30, 200])  // Fixed spacing: 30px vertical, 200px horizontal
+                .separation((a, b) => {
+                    // Consistent separation for linear layout
+                    if (a.parent == b.parent) {
+                        // Same parent - standard spacing
+                        return 1;
+                    } else {
+                        // Different parents - slightly more space
+                        return 1.5;
+                    }
+                });
+        }
+
+        // Add zoom behavior with proper transform handling
+        this.zoom = d3.zoom()
+            .scaleExtent([0.1, 10])
+            .on('zoom', (event) => {
+                if (this.isRadialLayout) {
+                    // Radial: maintain center point
+                    this.treeGroup.attr('transform', 
+                        `translate(${centerX + event.transform.x},${centerY + event.transform.y}) scale(${event.transform.k})`);
+                } else {
+                    // Linear: maintain left margin
+                    this.treeGroup.attr('transform', 
+                        `translate(${this.margin.left + 100 + event.transform.x},${centerY + event.transform.y}) scale(${event.transform.k})`);
+                }
+            });
+
+        this.svg.call(this.zoom);
+
+        // Add controls overlay
+        this.addVisualizationControls();
+
+        // Create tooltip
+        this.tooltip = d3.select('body').append('div')
+            .attr('class', 'code-tree-tooltip')
+            .style('opacity', 0)
+            .style('position', 'absolute')
+            .style('background', 'rgba(0, 0, 0, 0.8)')
+            .style('color', 'white')
+            .style('padding', '8px')
+            .style('border-radius', '4px')
+            .style('font-size', '12px')
+            .style('pointer-events', 'none');
+    }
+
+    /**
+     * Initialize tree data structure
+     */
+    initializeTreeData() {
+        const workingDir = this.getWorkingDirectory();
+        const dirName = workingDir ? workingDir.split('/').pop() || 'Project Root' : 'Project Root';
+        const path = workingDir || '.';
+        
+        this.treeData = {
+            name: dirName,
+            path: path,
+            type: 'root',
+            children: [],
+            loaded: false,
+            expanded: true  // Start expanded
+        };
+
+        if (typeof d3 !== 'undefined') {
+            this.root = d3.hierarchy(this.treeData);
+            this.root.x0 = this.height / 2;
+            this.root.y0 = 0;
+        }
+    }
+
+    /**
+     * Subscribe to code analysis events
+     */
+    subscribeToEvents() {
+        if (!this.socket) {
+            if (window.socket) {
+                this.socket = window.socket;
+                this.setupEventHandlers();
+            } else if (window.dashboard?.socketClient?.socket) {
+                this.socket = window.dashboard.socketClient.socket;
+                this.setupEventHandlers();
+            } else if (window.socketClient?.socket) {
+                this.socket = window.socketClient.socket;
+                this.setupEventHandlers();
+            }
+        }
+    }
+
+    /**
+     * Automatically discover root-level objects when tab opens
+     */
+    autoDiscoverRootLevel() {
+        if (this.autoDiscovered || this.analyzing) {
             return;
         }
         
-        console.log('Cancelling analysis...');
+        // Update activity ticker
+        this.updateActivityTicker('🔍 Discovering project structure...', 'info');
         
-        if (this.socket && this.currentRequestId) {
-            this.socket.emit('code:analyze:cancel', {
-                request_id: this.currentRequestId
-            });
+        // Get working directory
+        const workingDir = this.getWorkingDirectory();
+        if (!workingDir || workingDir === 'Loading...' || workingDir === 'Not selected') {
+            console.warn('Cannot auto-discover: no working directory set');
+            this.showNoWorkingDirectoryMessage();
+            return;
         }
         
-        this.resetAnalysisState();
-    }
-    
-    /**
-     * Reset analysis state
-     */
-    resetAnalysisState() {
-        this.analyzing = false;
-        this.currentRequestId = null;
-        
-        // Clear any timeouts
-        if (this.requestTimeout) {
-            clearTimeout(this.requestTimeout);
-            this.requestTimeout = null;
+        // Ensure we have an absolute path
+        if (!workingDir.startsWith('/') && !workingDir.match(/^[A-Z]:\\/)) {
+            console.error('Working directory is not absolute:', workingDir);
+            this.showNotification('Invalid working directory path', 'error');
+            return;
         }
         
-        // Update button state
-        const analyzeBtn = document.getElementById('analyze-code');
-        const cancelBtn = document.getElementById('cancel-analysis');
-        if (analyzeBtn) {
-            analyzeBtn.disabled = false;
-            analyzeBtn.textContent = 'Analyze';
-            analyzeBtn.classList.remove('analyzing');
-        }
-        if (cancelBtn) {
-            cancelBtn.style.display = 'none';
+        console.log('Auto-discovering root level for:', workingDir);
+        
+        this.autoDiscovered = true;
+        this.analyzing = true;
+        
+        // Clear any existing nodes
+        this.nodes.clear();
+        this.stats = {
+            files: 0,
+            classes: 0,
+            functions: 0,
+            methods: 0,
+            lines: 0
+        };
+        
+        // Subscribe to events if not already done
+        if (this.socket && !this.socket.hasListeners('code:node:found')) {
+            this.setupEventHandlers();
         }
         
-        // Hide analysis status in footer
-        this.hideFooterAnalysisStatus();
-    }
-    
-    /**
-     * Generate unique request ID
-     */
-    generateRequestId() {
-        return `analysis-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    }
-    
-    /**
-     * Get selected languages from UI
-     */
-    getSelectedLanguages() {
-        const languages = [];
-        const checkboxes = document.querySelectorAll('.language-checkbox:checked');
-        checkboxes.forEach(cb => {
-            languages.push(cb.value);
+        // Update tree data with working directory as the root
+        const dirName = workingDir.split('/').pop() || 'Project Root';
+        this.treeData = {
+            name: dirName,
+            path: workingDir,
+            type: 'root',
+            children: [],
+            loaded: false,
+            expanded: true  // Start expanded to show discovered items
+        };
+        
+        if (typeof d3 !== 'undefined') {
+            this.root = d3.hierarchy(this.treeData);
+            this.root.x0 = this.height / 2;
+            this.root.y0 = 0;
+        }
+        
+        // Update UI
+        this.showLoading();
+        this.updateBreadcrumb(`Discovering structure in ${dirName}...`, 'info');
+        
+        // Get selected languages from checkboxes
+        const selectedLanguages = [];
+        document.querySelectorAll('.language-checkbox:checked').forEach(cb => {
+            selectedLanguages.push(cb.value);
         });
-        return languages;
+        
+        // Get ignore patterns
+        const ignorePatterns = document.getElementById('ignore-patterns')?.value || '';
+        
+        // Get show hidden files setting
+        const showHiddenFiles = document.getElementById('show-hidden-files')?.checked || false;
+        
+        // Debug logging
+        console.log('[DEBUG] Show hidden files checkbox value:', showHiddenFiles);
+        console.log('[DEBUG] Checkbox element:', document.getElementById('show-hidden-files'));
+        
+        // Request top-level discovery with working directory
+        const requestPayload = {
+            path: workingDir,  // Use working directory instead of '.'
+            depth: 'top_level',
+            languages: selectedLanguages,
+            ignore_patterns: ignorePatterns,
+            show_hidden_files: showHiddenFiles
+        };
+        
+        console.log('[DEBUG] Sending discovery request with payload:', requestPayload);
+        
+        if (this.socket) {
+            this.socket.emit('code:discover:top_level', requestPayload);
+        }
+        
+        // Update stats display
+        this.updateStats();
     }
     
     /**
-     * Get ignore patterns from UI
+     * Legacy analyzeCode method - redirects to auto-discovery
      */
-    getIgnorePatterns() {
-        const patterns = [];
-        const input = document.getElementById('ignore-patterns');
-        if (input && input.value) {
-            patterns.push(...input.value.split(',').map(p => p.trim()).filter(p => p));
+    analyzeCode() {
+        if (this.analyzing) {
+            return;
         }
-        return patterns;
+
+        // Redirect to auto-discovery
+        this.autoDiscoverRootLevel();
+    }
+
+    /**
+     * Cancel ongoing analysis - removed since we no longer have a cancel button
+     */
+    cancelAnalysis() {
+        this.analyzing = false;
+        this.hideLoading();
+
+        if (this.socket) {
+            this.socket.emit('code:analysis:cancel');
+        }
+
+        this.updateBreadcrumb('Analysis cancelled', 'warning');
+        this.showNotification('Analysis cancelled', 'warning');
+        this.addEventToDisplay('Analysis cancelled', 'warning');
+    }
+
+    /**
+     * Create the events display area
+     */
+    createEventsDisplay() {
+        let eventsContainer = document.getElementById('analysis-events');
+        if (!eventsContainer) {
+            const treeContainer = document.getElementById('code-tree-container');
+            if (treeContainer) {
+                eventsContainer = document.createElement('div');
+                eventsContainer.id = 'analysis-events';
+                eventsContainer.className = 'analysis-events';
+                eventsContainer.style.display = 'none';
+                treeContainer.appendChild(eventsContainer);
+            }
+        }
+    }
+
+    /**
+     * Clear the events display
+     */
+    clearEventsDisplay() {
+        const eventsContainer = document.getElementById('analysis-events');
+        if (eventsContainer) {
+            eventsContainer.innerHTML = '';
+            eventsContainer.style.display = 'block';
+        }
+    }
+
+    /**
+     * Add an event to the display
+     */
+    addEventToDisplay(message, type = 'info') {
+        const eventsContainer = document.getElementById('analysis-events');
+        if (eventsContainer) {
+            const eventEl = document.createElement('div');
+            eventEl.className = 'analysis-event';
+            eventEl.style.borderLeftColor = type === 'warning' ? '#f59e0b' : 
+                                          type === 'error' ? '#ef4444' : '#3b82f6';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            eventEl.innerHTML = `<span style="color: #718096;">[${timestamp}]</span> ${message}`;
+            
+            eventsContainer.appendChild(eventEl);
+            // Auto-scroll to bottom
+            eventsContainer.scrollTop = eventsContainer.scrollHeight;
+        }
+    }
+
+    /**
+     * Setup Socket.IO event handlers
+     */
+    setupEventHandlers() {
+        if (!this.socket) return;
+
+        // Analysis lifecycle events
+        this.socket.on('code:analysis:accepted', (data) => this.onAnalysisAccepted(data));
+        this.socket.on('code:analysis:queued', (data) => this.onAnalysisQueued(data));
+        this.socket.on('code:analysis:start', (data) => this.onAnalysisStart(data));
+        this.socket.on('code:analysis:complete', (data) => this.onAnalysisComplete(data));
+        this.socket.on('code:analysis:cancelled', (data) => this.onAnalysisCancelled(data));
+        this.socket.on('code:analysis:error', (data) => this.onAnalysisError(data));
+
+        // Node discovery events
+        this.socket.on('code:directory:discovered', (data) => this.onDirectoryDiscovered(data));
+        this.socket.on('code:file:discovered', (data) => this.onFileDiscovered(data));
+        this.socket.on('code:file:analyzed', (data) => this.onFileAnalyzed(data));
+        this.socket.on('code:node:found', (data) => this.onNodeFound(data));
+
+        // Progress updates
+        this.socket.on('code:analysis:progress', (data) => this.onProgressUpdate(data));
+        
+        // Lazy loading responses
+        this.socket.on('code:directory:contents', (data) => {
+            // Update the requested directory with its contents
+            if (data.path) {
+                const node = this.findNodeByPath(data.path);
+                if (node && data.children) {
+                    // Find D3 node and remove loading pulse
+                    const d3Node = this.findD3NodeByPath(data.path);
+                    if (d3Node && this.loadingNodes.has(data.path)) {
+                        this.removeLoadingPulse(d3Node);
+                    }
+                    node.children = data.children.map(child => ({
+                        ...child,
+                        loaded: child.type === 'directory' ? false : undefined,
+                        analyzed: child.type === 'file' ? false : undefined,
+                        expanded: false,
+                        children: []
+                    }));
+                    node.loaded = true;
+                    
+                    // Update D3 hierarchy
+                    if (this.root && this.svg) {
+                        this.root = d3.hierarchy(this.treeData);
+                        this.root.x0 = this.height / 2;
+                        this.root.y0 = 0;
+                        this.update(this.root);
+                    }
+                    
+                    // Update stats based on discovered contents
+                    if (data.stats) {
+                        this.stats.files += data.stats.files || 0;
+                        this.stats.directories += data.stats.directories || 0;
+                        this.updateStats();
+                    }
+                    
+                    this.updateBreadcrumb(`Loaded ${data.path}`, 'success');
+                    this.hideLoading();
+                }
+            }
+        });
+        
+        // Top level discovery response
+        this.socket.on('code:top_level:discovered', (data) => {
+            if (data.items && Array.isArray(data.items)) {
+                // Add discovered items to the root node
+                this.treeData.children = data.items.map(item => ({
+                    name: item.name,
+                    path: item.path,
+                    type: item.type,
+                    language: item.type === 'file' ? this.detectLanguage(item.path) : undefined,
+                    size: item.size,
+                    lines: item.lines,
+                    loaded: item.type === 'directory' ? false : undefined,
+                    analyzed: item.type === 'file' ? false : undefined,
+                    expanded: false,
+                    children: []
+                }));
+                
+                this.treeData.loaded = true;
+                
+                // Update stats
+                if (data.stats) {
+                    this.stats = { ...this.stats, ...data.stats };
+                    this.updateStats();
+                }
+                
+                // Update D3 hierarchy
+                if (typeof d3 !== 'undefined') {
+                    this.root = d3.hierarchy(this.treeData);
+                    this.root.x0 = this.height / 2;
+                    this.root.y0 = 0;
+                    if (this.svg) {
+                        this.update(this.root);
+                    }
+                }
+                
+                this.analyzing = false;
+                this.hideLoading();
+                this.updateBreadcrumb(`Discovered ${data.items.length} root items`, 'success');
+                this.showNotification(`Found ${data.items.length} items in project root`, 'success');
+            }
+        });
     }
 
     /**
      * Handle analysis start event
      */
-    handleAnalysisStart(data) {
-        console.log('Code analysis started:', data);
+    onAnalysisStart(data) {
+        this.analyzing = true;
+        const message = data.message || 'Starting code analysis...';
         
-        // Only handle if this is for our current request
-        if (data.request_id && data.request_id !== this.currentRequestId) {
-            return;
+        // Update activity ticker
+        this.updateActivityTicker('🚀 Starting analysis...', 'info');
+        
+        this.updateBreadcrumb(message, 'info');
+        this.addEventToDisplay(`🚀 ${message}`, 'info');
+        
+        // Initialize or clear the tree
+        if (!this.treeData || this.treeData.children.length === 0) {
+            this.initializeTreeData();
         }
         
-        // Clear request timeout since we got a response
-        if (this.requestTimeout) {
-            clearTimeout(this.requestTimeout);
-            this.requestTimeout = null;
-        }
-        
-        const message = `Analyzing ${data.total_files || 0} files...`;
-        this.updateProgress(0, message);
-        this.updateTicker(message, 'progress');
-        this.showNotification('Analysis started - building tree in real-time...', 'info');
-    }
-
-    /**
-     * Handle file start event
-     */
-    handleFileStart(data) {
-        console.log('Analyzing file:', data.path);
-        const message = `Analyzing: ${data.path}`;
-        this.updateProgress(data.progress || 0, message);
-        this.updateTicker(`📄 ${data.path}`, 'file');
-        
-        // Add file node to tree
-        const fileNode = {
-            name: data.name || data.path.split('/').pop(),
-            type: 'file',
-            path: data.path,
-            language: data.language,
-            children: []
+        // Reset stats
+        this.stats = { 
+            files: 0, 
+            classes: 0, 
+            functions: 0, 
+            methods: 0, 
+            lines: 0 
         };
-        
-        this.addNodeToTree(fileNode, data.path);
-        this.stats.files++;
         this.updateStats();
-        
-        // Incremental tree update - update visualization as files are discovered
-        if (this.svg && this.root) {
-            // Throttle updates to avoid performance issues
-            if (!this.updateThrottleTimer) {
-                this.updateThrottleTimer = setTimeout(() => {
-                    this.update(this.root);
-                    this.updateThrottleTimer = null;
-                }, 100); // Update every 100ms max
-            }
-        }
     }
 
     /**
-     * Handle file complete event
+     * Handle directory discovered event
      */
-    handleFileComplete(data) {
-        console.log('File analysis complete:', data.path);
+    onDirectoryDiscovered(data) {
+        // Update activity ticker first
+        this.updateActivityTicker(`📁 Discovered: ${data.name || 'directory'}`);
         
-        // Update the file node if we have stats
-        if (data.stats) {
-            const fileNode = this.nodes.get(data.path);
-            if (fileNode) {
-                fileNode.stats = data.stats;
-                if (data.stats.lines) {
-                    this.stats.lines += data.stats.lines;
-                    this.updateStats();
+        // Add to events display
+        this.addEventToDisplay(`📁 Found ${(data.children || []).length} items in: ${data.name || data.path}`, 'info');
+        
+        // Find the node that was clicked to trigger this discovery
+        const node = this.findNodeByPath(data.path);
+        if (node && data.children) {
+            // Update the node with discovered children
+            node.children = data.children.map(child => ({
+                name: child.name,
+                path: child.path,
+                type: child.type,
+                loaded: child.type === 'directory' ? false : undefined,
+                analyzed: child.type === 'file' ? false : undefined,
+                expanded: false,
+                children: child.type === 'directory' ? [] : undefined,
+                size: child.size,
+                has_code: child.has_code
+            }));
+            node.loaded = true;
+            node.expanded = true;
+            
+            // Find D3 node and remove loading pulse
+            const d3Node = this.findD3NodeByPath(data.path);
+            if (d3Node) {
+                // Remove loading animation
+                if (this.loadingNodes.has(data.path)) {
+                    this.removeLoadingPulse(d3Node);
+                }
+                
+                // Expand the node in D3
+                if (d3Node.data) {
+                    d3Node.data.children = node.children;
+                    d3Node._children = null;
                 }
             }
+            
+            // Update D3 hierarchy and redraw
+            if (this.root && this.svg) {
+                this.root = d3.hierarchy(this.treeData);
+                this.update(this.root);
+            }
+            
+            this.updateBreadcrumb(`Loaded ${node.children.length} items from ${node.name}`, 'success');
+            this.updateStats();
+        } else if (!node) {
+            // This might be a top-level directory discovery
+            const pathParts = data.path ? data.path.split('/').filter(p => p) : [];
+            const isTopLevel = pathParts.length === 1;
+            
+            if (isTopLevel || data.forceAdd) {
+                const dirNode = {
+                    name: data.name || pathParts[pathParts.length - 1] || 'Unknown',
+                    path: data.path,
+                    type: 'directory',
+                    children: [],
+                    loaded: false,
+                    expanded: false,
+                    stats: data.stats || {}
+                };
+                
+                this.addNodeToTree(dirNode, data.parent || '');
+                this.updateBreadcrumb(`Discovered: ${data.path}`, 'info');
+            }
+        }
+    }
+
+    /**
+     * Handle file discovered event
+     */
+    onFileDiscovered(data) {
+        // Update activity ticker
+        const fileName = data.name || (data.path ? data.path.split('/').pop() : 'file');
+        this.updateActivityTicker(`📄 Found: ${fileName}`);
+        
+        // Add to events display
+        this.addEventToDisplay(`📄 Discovered: ${data.path || 'Unknown file'}`, 'info');
+        
+        const pathParts = data.path ? data.path.split('/').filter(p => p) : [];
+        const parentPath = pathParts.slice(0, -1).join('/');
+        
+        const fileNode = {
+            name: data.name || pathParts[pathParts.length - 1] || 'Unknown',
+            path: data.path,
+            type: 'file',
+            language: data.language || this.detectLanguage(data.path),
+            size: data.size || 0,
+            lines: data.lines || 0,
+            children: [],
+            analyzed: false
+        };
+        
+        this.addNodeToTree(fileNode, parentPath);
+        this.stats.files++;
+        this.updateStats();
+        this.updateBreadcrumb(`Found: ${data.path}`, 'info');
+    }
+
+    /**
+     * Handle file analyzed event
+     */
+    onFileAnalyzed(data) {
+        // Remove loading pulse if this file was being analyzed
+        const d3Node = this.findD3NodeByPath(data.path);
+        if (d3Node && this.loadingNodes.has(data.path)) {
+            this.removeLoadingPulse(d3Node);
+        }
+        // Update activity ticker
+        if (data.path) {
+            const fileName = data.path.split('/').pop();
+            this.updateActivityTicker(`🔍 Analyzed: ${fileName}`);
+        }
+        
+        const fileNode = this.findNodeByPath(data.path);
+        if (fileNode) {
+            fileNode.analyzed = true;
+            fileNode.complexity = data.complexity || 0;
+            fileNode.lines = data.lines || 0;
+            
+            // Add code elements as children
+            if (data.elements && Array.isArray(data.elements)) {
+                fileNode.children = data.elements.map(elem => ({
+                    name: elem.name,
+                    type: elem.type.toLowerCase(),
+                    path: `${data.path}#${elem.name}`,
+                    line: elem.line,
+                    complexity: elem.complexity || 1,
+                    docstring: elem.docstring || '',
+                    children: elem.methods ? elem.methods.map(m => ({
+                        name: m.name,
+                        type: 'method',
+                        path: `${data.path}#${elem.name}.${m.name}`,
+                        line: m.line,
+                        complexity: m.complexity || 1,
+                        docstring: m.docstring || ''
+                    })) : []
+                }));
+            }
+            
+            // Update stats
+            if (data.stats) {
+                this.stats.classes += data.stats.classes || 0;
+                this.stats.functions += data.stats.functions || 0;
+                this.stats.methods += data.stats.methods || 0;
+                this.stats.lines += data.stats.lines || 0;
+            }
+            
+            this.updateStats();
+            if (this.root) {
+                this.update(this.root);
+            }
+            
+            this.updateBreadcrumb(`Analyzed: ${data.path}`, 'success');
         }
     }
 
     /**
      * Handle node found event
      */
-    handleNodeFound(data) {
-        console.log('Node found:', data);
+    onNodeFound(data) {
+        // Add to events display with appropriate icon
+        const typeIcon = data.type === 'class' ? '🏛️' : 
+                        data.type === 'function' ? '⚡' : 
+                        data.type === 'method' ? '🔧' : '📦';
+        this.addEventToDisplay(`${typeIcon} Found ${data.type || 'node'}: ${data.name || 'Unknown'}`);
         
-        // Update ticker with node discovery
-        const icons = {
-            'function': '⚡',
-            'class': '🏛️',
-            'method': '🔧',
-            'module': '📦'
+        // Extract node info
+        const nodeInfo = {
+            name: data.name || 'Unknown',
+            type: (data.type || 'unknown').toLowerCase(),
+            path: data.path || '',
+            line: data.line || 0,
+            complexity: data.complexity || 1,
+            docstring: data.docstring || ''
         };
-        const icon = icons[data.type] || '📌';
-        const nodeName = data.name || 'unnamed';
-        this.updateTicker(`${icon} ${nodeName}`, 'node');
-        
-        // Create node object
-        const node = {
-            name: data.name,
-            type: data.type, // module, class, function, method
-            path: data.path,
-            line: data.line,
-            complexity: data.complexity || 0,
-            docstring: data.docstring,
-            params: data.params,
-            returns: data.returns,
-            children: []
+
+        // Map event types to our internal types
+        const typeMapping = {
+            'class': 'class',
+            'function': 'function',
+            'method': 'method',
+            'module': 'module',
+            'file': 'file',
+            'directory': 'directory'
         };
-        
-        // Add to tree
-        this.addNodeToTree(node, data.parent_path || data.path);
-        
-        // Update stats
-        switch (data.type) {
+
+        nodeInfo.type = typeMapping[nodeInfo.type] || nodeInfo.type;
+
+        // Determine parent path
+        let parentPath = '';
+        if (data.parent_path) {
+            parentPath = data.parent_path;
+        } else if (data.file_path) {
+            parentPath = data.file_path;
+        } else if (nodeInfo.path.includes('/')) {
+            const parts = nodeInfo.path.split('/');
+            parts.pop();
+            parentPath = parts.join('/');
+        }
+
+        // Update stats based on node type
+        switch(nodeInfo.type) {
             case 'class':
                 this.stats.classes++;
                 break;
@@ -629,419 +975,670 @@ class CodeTree {
             case 'method':
                 this.stats.methods++;
                 break;
+            case 'file':
+                this.stats.files++;
+                break;
         }
-        
-        if (data.lines) {
-            this.stats.lines += data.lines;
-        }
-        
+
+        // Add node to tree
+        this.addNodeToTree(nodeInfo, parentPath);
         this.updateStats();
-        
-        // Incremental tree update - batch updates for performance
-        if (this.svg && this.root) {
-            // Clear existing throttle timer
-            if (this.updateThrottleTimer) {
-                clearTimeout(this.updateThrottleTimer);
-            }
-            
-            // Set new throttle timer - batch multiple nodes together
-            this.updateThrottleTimer = setTimeout(() => {
-                this.update(this.root);
-                this.updateThrottleTimer = null;
-            }, 200); // Update every 200ms max for node additions
-        }
+
+        // Show progress in breadcrumb
+        const elementType = nodeInfo.type.charAt(0).toUpperCase() + nodeInfo.type.slice(1);
+        this.updateBreadcrumb(`Found ${elementType}: ${nodeInfo.name}`, 'info');
     }
 
     /**
      * Handle progress update
      */
-    handleProgress(data) {
-        this.updateProgress(data.percentage, data.message);
+    onProgressUpdate(data) {
+        const progress = data.progress || 0;
+        const message = data.message || `Processing... ${progress}%`;
+        
+        this.updateBreadcrumb(message, 'info');
+        
+        // Update progress bar if it exists
+        const progressBar = document.querySelector('.code-tree-progress');
+        if (progressBar) {
+            progressBar.style.width = `${progress}%`;
+        }
     }
 
     /**
-     * Handle analysis complete
+     * Handle analysis complete event
      */
-    handleAnalysisComplete(data) {
-        console.log('Code analysis complete:', data);
+    onAnalysisComplete(data) {
+        this.analyzing = false;
+        this.hideLoading();
         
-        // Only handle if this is for our current request
-        if (data.request_id && data.request_id !== this.currentRequestId) {
-            return;
-        }
+        // Update activity ticker
+        this.updateActivityTicker('✅ Ready', 'success');
         
-        this.resetAnalysisState();
-        
-        // Final tree update
-        if (this.svg) {
+        // Add completion event
+        this.addEventToDisplay('✅ Analysis complete!', 'success');
+
+        // Update tree visualization
+        if (this.root && this.svg) {
             this.update(this.root);
         }
-        
-        // Update final stats
+
+        // Update stats from completion data
         if (data.stats) {
-            this.stats = {...this.stats, ...data.stats};
+            this.stats = { ...this.stats, ...data.stats };
             this.updateStats();
         }
-        
-        // Show completion message
-        const completeMessage = `✅ Complete: ${this.stats.files} files, ${this.stats.functions} functions, ${this.stats.classes} classes`;
-        this.updateTicker(completeMessage, 'progress');
-        this.showNotification('Analysis complete', 'success');
+
+        const message = data.message || `Analysis complete: ${this.stats.files} files, ${this.stats.classes} classes, ${this.stats.functions} functions`;
+        this.updateBreadcrumb(message, 'success');
+        this.showNotification(message, 'success');
     }
 
     /**
      * Handle analysis error
      */
-    handleAnalysisError(data) {
-        console.error('Code analysis error:', data);
-        
-        // Only handle if this is for our current request
-        if (data.request_id && data.request_id !== this.currentRequestId) {
-            return;
-        }
-        
-        this.resetAnalysisState();
-        
-        // Show error message
-        const errorMessage = data.message || 'Unknown error';
-        this.updateTicker(`❌ ${errorMessage}`, 'error');
-        this.showNotification(`Analysis failed: ${errorMessage}`, 'error');
+    onAnalysisError(data) {
+        this.analyzing = false;
+        this.hideLoading();
+
+        const message = data.message || data.error || 'Analysis failed';
+        this.updateBreadcrumb(message, 'error');
+        this.showNotification(message, 'error');
+    }
+
+    /**
+     * Handle analysis accepted
+     */
+    onAnalysisAccepted(data) {
+        const message = data.message || 'Analysis request accepted';
+        this.updateBreadcrumb(message, 'info');
+    }
+
+    /**
+     * Handle analysis queued
+     */
+    onAnalysisQueued(data) {
+        const position = data.position || 0;
+        const message = `Analysis queued (position ${position})`;
+        this.updateBreadcrumb(message, 'warning');
+        this.showNotification(message, 'info');
     }
     
     /**
-     * Handle analysis accepted event
+     * Handle INFO events for granular work tracking
      */
-    handleAnalysisAccepted(data) {
-        console.log('Analysis request accepted:', data);
+    onInfoEvent(data) {
+        // Log to console for debugging
+        console.log('[INFO]', data.type, data.message);
         
-        if (data.request_id === this.currentRequestId) {
-            // Clear timeout since server responded
-            if (this.requestTimeout) {
-                clearTimeout(this.requestTimeout);
-                this.requestTimeout = null;
+        // Update breadcrumb for certain events
+        if (data.type && data.type.startsWith('discovery.')) {
+            // Discovery events
+            if (data.type === 'discovery.start') {
+                this.updateBreadcrumb(data.message, 'info');
+            } else if (data.type === 'discovery.complete') {
+                this.updateBreadcrumb(data.message, 'success');
+                // Show stats if available
+                if (data.stats) {
+                    console.log('[DISCOVERY STATS]', data.stats);
+                }
+            } else if (data.type === 'discovery.directory' || data.type === 'discovery.file') {
+                // Quick flash of discovery events
+                this.updateBreadcrumb(data.message, 'info');
             }
-            this.showNotification('Analysis request accepted by server', 'info');
+        } else if (data.type && data.type.startsWith('analysis.')) {
+            // Analysis events
+            if (data.type === 'analysis.start') {
+                this.updateBreadcrumb(data.message, 'info');
+            } else if (data.type === 'analysis.complete') {
+                this.updateBreadcrumb(data.message, 'success');
+                // Show stats if available
+                if (data.stats) {
+                    const statsMsg = `Found: ${data.stats.classes || 0} classes, ${data.stats.functions || 0} functions, ${data.stats.methods || 0} methods`;
+                    console.log('[ANALYSIS STATS]', statsMsg);
+                }
+            } else if (data.type === 'analysis.class' || data.type === 'analysis.function' || data.type === 'analysis.method') {
+                // Show found elements briefly
+                this.updateBreadcrumb(data.message, 'info');
+            } else if (data.type === 'analysis.parse') {
+                this.updateBreadcrumb(data.message, 'info');
+            }
+        } else if (data.type && data.type.startsWith('filter.')) {
+            // Filter events - optionally show in debug mode
+            if (window.debugMode || this.showFilterEvents) {
+                console.debug('[FILTER]', data.type, data.path, data.reason);
+                if (this.showFilterEvents) {
+                    this.updateBreadcrumb(data.message, 'warning');
+                }
+            }
+        } else if (data.type && data.type.startsWith('cache.')) {
+            // Cache events
+            if (data.type === 'cache.hit') {
+                console.debug('[CACHE HIT]', data.file);
+                if (this.showCacheEvents) {
+                    this.updateBreadcrumb(data.message, 'info');
+                }
+            } else if (data.type === 'cache.miss') {
+                console.debug('[CACHE MISS]', data.file);
+            }
         }
-    }
-    
-    /**
-     * Handle analysis queued event
-     */
-    handleAnalysisQueued(data) {
-        console.log('Analysis queued:', data);
         
-        if (data.request_id === this.currentRequestId) {
-            this.showNotification(`Analysis queued (position: ${data.queue_size || 1})`, 'info');
+        // Optionally add to an event log display if enabled
+        if (this.eventLogEnabled && data.message) {
+            this.addEventToDisplay(data);
         }
     }
     
     /**
-     * Handle analysis cancelled event
+     * Add event to display log (if we have one)
      */
-    handleAnalysisCancelled(data) {
-        console.log('Analysis cancelled:', data);
-        
-        if (!data.request_id || data.request_id === this.currentRequestId) {
-            this.resetAnalysisState();
-            this.showNotification('Analysis cancelled', 'warning');
+    addEventToDisplay(data) {
+        // Could be implemented to show events in a dedicated log area
+        // For now, just maintain a recent events list
+        if (!this.recentEvents) {
+            this.recentEvents = [];
         }
+        
+        this.recentEvents.unshift({
+            timestamp: data.timestamp || new Date().toISOString(),
+            type: data.type,
+            message: data.message,
+            data: data
+        });
+        
+        // Keep only last 100 events
+        if (this.recentEvents.length > 100) {
+            this.recentEvents.pop();
+        }
+        
+        // Could update a UI element here if we had an event log display
+        console.log('[EVENT LOG]', data.type, data.message);
     }
-    
+
     /**
-     * Show notification message
+     * Handle analysis cancelled
+     */
+    onAnalysisCancelled(data) {
+        this.analyzing = false;
+        this.hideLoading();
+        const message = data.message || 'Analysis cancelled';
+        this.updateBreadcrumb(message, 'warning');
+    }
+
+    /**
+     * Show notification toast
      */
     showNotification(message, type = 'info') {
-        console.log(`CodeTree notification: ${message} (${type})`);
+        const notification = document.createElement('div');
+        notification.className = `code-tree-notification ${type}`;
+        notification.textContent = message;
         
-        // Try to find existing notification area in the Code tab
-        let notification = document.querySelector('#code-tab .notification-area');
-        
-        // If not found, create one in the Code tab
-        if (!notification) {
-            const codeTab = document.getElementById('code-tab');
-            if (!codeTab) {
-                console.error('Code tab not found for notification');
-                return;
+        // Change from appending to container to positioning absolutely within it
+        const container = document.getElementById('code-tree-container');
+        if (container) {
+            // Position relative to the container
+            notification.style.position = 'absolute';
+            notification.style.top = '10px';
+            notification.style.right = '10px';
+            notification.style.zIndex = '1000';
+            
+            // Ensure container is positioned
+            if (!container.style.position || container.style.position === 'static') {
+                container.style.position = 'relative';
             }
             
-            notification = document.createElement('div');
-            notification.className = 'notification-area';
-            notification.style.cssText = `
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                max-width: 400px;
-                z-index: 1000;
-                padding: 12px 16px;
-                border-radius: 4px;
-                font-size: 14px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                transition: opacity 0.3s ease;
-            `;
-            codeTab.insertBefore(notification, codeTab.firstChild);
-        }
-        
-        // Set colors based on type
-        const colors = {
-            info: { bg: '#e3f2fd', text: '#1976d2', border: '#90caf9' },
-            success: { bg: '#e8f5e9', text: '#388e3c', border: '#81c784' },
-            warning: { bg: '#fff3e0', text: '#f57c00', border: '#ffb74d' },
-            error: { bg: '#ffebee', text: '#d32f2f', border: '#ef5350' }
-        };
-        
-        const color = colors[type] || colors.info;
-        notification.style.backgroundColor = color.bg;
-        notification.style.color = color.text;
-        notification.style.border = `1px solid ${color.border}`;
-        
-        // Set message
-        notification.textContent = message;
-        notification.style.display = 'block';
-        notification.style.opacity = '1';
-        
-        // Clear existing timeout
-        if (this.notificationTimeout) {
-            clearTimeout(this.notificationTimeout);
-        }
-        
-        // Auto-hide after 5 seconds
-        this.notificationTimeout = setTimeout(() => {
-            notification.style.opacity = '0';
+            container.appendChild(notification);
+            
+            // Animate out after 3 seconds
             setTimeout(() => {
-                notification.style.display = 'none';
-            }, 300);
-        }, 5000);
+                notification.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
     }
 
     /**
      * Add node to tree structure
      */
-    addNodeToTree(node, parentPath) {
-        // Find parent in tree
-        let parent = this.findNodeByPath(parentPath);
-        if (!parent) {
-            parent = this.treeData;
-        }
-        
-        // Check if node already exists (avoid duplicates)
-        if (this.nodes.has(node.path)) {
-            console.log('Node already exists:', node.path);
+    addNodeToTree(nodeInfo, parentPath = '') {
+        // CRITICAL: Validate that nodeInfo.path doesn't contain absolute paths
+        // The backend should only send relative paths now
+        if (nodeInfo.path && nodeInfo.path.startsWith('/')) {
+            console.error('Absolute path detected in node, skipping:', nodeInfo.path);
             return;
         }
         
-        // Add node to parent's children
-        if (!parent.children) {
-            parent.children = [];
+        // Also validate parent path
+        if (parentPath && parentPath.startsWith('/')) {
+            console.error('Absolute path detected in parent, skipping:', parentPath);
+            return;
         }
-        parent.children.push(node);
         
-        // Store node reference
-        this.nodes.set(node.path, node);
+        // Find parent node
+        let parentNode = this.treeData;
         
-        // Update hierarchy only if D3 is available
-        if (typeof d3 !== 'undefined') {
-            // Preserve expanded/collapsed state
-            const oldExpandedNodes = new Set();
-            if (this.root) {
-                this.root.descendants().forEach(d => {
-                    if (d.children) {
-                        oldExpandedNodes.add(d.data.path);
-                    }
-                });
+        if (parentPath) {
+            parentNode = this.findNodeByPath(parentPath);
+            if (!parentNode) {
+                // CRITICAL: Do NOT create parent structure if it doesn't exist
+                // This prevents creating nodes above the working directory
+                console.warn('Parent node not found, skipping node creation:', parentPath);
+                console.warn('Attempted to add node:', nodeInfo);
+                return;
             }
-            
-            // Create new hierarchy
+        }
+
+        // Check if node already exists
+        const existingNode = parentNode.children?.find(c => 
+            c.path === nodeInfo.path || 
+            (c.name === nodeInfo.name && c.type === nodeInfo.type)
+        );
+
+        if (existingNode) {
+            // Update existing node
+            Object.assign(existingNode, nodeInfo);
+            return;
+        }
+
+        // Add new node
+        if (!parentNode.children) {
+            parentNode.children = [];
+        }
+        
+        // Ensure the node has a children array
+        if (!nodeInfo.children) {
+            nodeInfo.children = [];
+        }
+        
+        parentNode.children.push(nodeInfo);
+
+        // Store node reference for quick access
+        this.nodes.set(nodeInfo.path, nodeInfo);
+
+        // Update tree if initialized
+        if (this.root && this.svg) {
+            // Recreate hierarchy with new data
             this.root = d3.hierarchy(this.treeData);
             this.root.x0 = this.height / 2;
             this.root.y0 = 0;
             
-            // Restore expanded state
-            this.root.descendants().forEach(d => {
-                if (oldExpandedNodes.has(d.data.path) && d._children) {
-                    d.children = d._children;
-                    d._children = null;
-                }
-            });
-        }
-    }
-
-    /**
-     * Find node by path
-     */
-    findNodeByPath(path) {
-        return this.nodes.get(path);
-    }
-
-    /**
-     * Update progress in footer
-     */
-    updateProgress(percentage, message) {
-        const footerStatus = document.getElementById('footer-analysis-progress');
-        if (footerStatus) {
-            // Format the message with percentage if available
-            let statusText = message || 'Analyzing...';
-            if (percentage > 0) {
-                statusText = `[${Math.round(percentage)}%] ${statusText}`;
+            // Update only if we have a reasonable number of nodes to avoid performance issues
+            if (this.nodes.size < 1000) {
+                this.update(this.root);
+            } else if (this.nodes.size % 100 === 0) {
+                // Update every 100 nodes for large trees
+                this.update(this.root);
             }
-            footerStatus.textContent = statusText;
         }
+    }
+
+    /**
+     * Find node by path in tree
+     */
+    findNodeByPath(path, node = null) {
+        if (!node) {
+            node = this.treeData;
+        }
+
+        if (node.path === path) {
+            return node;
+        }
+
+        if (node.children) {
+            for (const child of node.children) {
+                const found = this.findNodeByPath(path, child);
+                if (found) {
+                    return found;
+                }
+            }
+        }
+
+        return null;
     }
     
     /**
-     * Show analysis status in footer
+     * Find D3 hierarchy node by path
      */
-    showFooterAnalysisStatus(message) {
-        const container = document.getElementById('footer-analysis-container');
-        const progress = document.getElementById('footer-analysis-progress');
-        
-        if (container) {
-            container.style.display = 'flex';
-        }
-        
-        if (progress) {
-            progress.textContent = message || 'Analyzing...';
-            // Add pulsing animation
-            progress.style.animation = 'pulse 1.5s ease-in-out infinite';
-        }
-    }
-    
-    /**
-     * Hide analysis status in footer
-     */
-    hideFooterAnalysisStatus() {
-        const container = document.getElementById('footer-analysis-container');
-        const progress = document.getElementById('footer-analysis-progress');
-        
-        if (container) {
-            // Fade out after a brief delay
-            setTimeout(() => {
-                container.style.display = 'none';
-            }, 2000);
-        }
-        
-        if (progress) {
-            progress.style.animation = 'none';
-        }
+    findD3NodeByPath(path) {
+        if (!this.root) return null;
+        return this.root.descendants().find(d => d.data.path === path);
     }
 
     /**
      * Update statistics display
      */
     updateStats() {
-        const fileCount = document.getElementById('file-count');
-        const classCount = document.getElementById('class-count');
-        const functionCount = document.getElementById('function-count');
-        const lineCount = document.getElementById('line-count');
-        
-        if (fileCount) fileCount.textContent = this.stats.files;
-        if (classCount) classCount.textContent = this.stats.classes;
-        if (functionCount) functionCount.textContent = this.stats.functions;
-        if (lineCount) lineCount.textContent = this.stats.lines;
+        // Update stats display - use correct IDs from HTML
+        const statsElements = {
+            'file-count': this.stats.files,
+            'class-count': this.stats.classes,
+            'function-count': this.stats.functions,
+            'line-count': this.stats.lines
+        };
+
+        for (const [id, value] of Object.entries(statsElements)) {
+            const elem = document.getElementById(id);
+            if (elem) {
+                elem.textContent = value.toLocaleString();
+            }
+        }
+
+        // Update progress text
+        const progressText = document.getElementById('code-progress-text');
+        if (progressText) {
+            const statusText = this.analyzing ? 
+                `Analyzing... ${this.stats.files} files processed` : 
+                `Ready - ${this.stats.files} files in tree`;
+            progressText.textContent = statusText;
+        }
     }
 
     /**
-     * Update tree visualization
+     * Update breadcrumb trail
+     */
+    updateBreadcrumb(message, type = 'info') {
+        const breadcrumbContent = document.getElementById('breadcrumb-content');
+        if (breadcrumbContent) {
+            breadcrumbContent.textContent = message;
+            breadcrumbContent.className = `breadcrumb-${type}`;
+        }
+    }
+
+    /**
+     * Detect language from file extension
+     */
+    detectLanguage(filePath) {
+        const ext = filePath.split('.').pop().toLowerCase();
+        const languageMap = {
+            'py': 'python',
+            'js': 'javascript',
+            'ts': 'typescript',
+            'jsx': 'javascript',
+            'tsx': 'typescript',
+            'java': 'java',
+            'cpp': 'cpp',
+            'c': 'c',
+            'cs': 'csharp',
+            'rb': 'ruby',
+            'go': 'go',
+            'rs': 'rust',
+            'php': 'php',
+            'swift': 'swift',
+            'kt': 'kotlin',
+            'scala': 'scala',
+            'r': 'r',
+            'sh': 'bash',
+            'ps1': 'powershell'
+        };
+        return languageMap[ext] || 'unknown';
+    }
+
+    /**
+     * Add visualization controls for layout toggle
+     */
+    addVisualizationControls() {
+        const controls = this.svg.append('g')
+            .attr('class', 'viz-controls')
+            .attr('transform', 'translate(10, 10)');
+            
+        // Add layout toggle button
+        const toggleButton = controls.append('g')
+            .attr('class', 'layout-toggle')
+            .style('cursor', 'pointer')
+            .on('click', () => this.toggleLayout());
+            
+        toggleButton.append('rect')
+            .attr('width', 120)
+            .attr('height', 30)
+            .attr('rx', 5)
+            .attr('fill', '#3b82f6')
+            .attr('opacity', 0.8);
+            
+        toggleButton.append('text')
+            .attr('x', 60)
+            .attr('y', 20)
+            .attr('text-anchor', 'middle')
+            .attr('fill', 'white')
+            .style('font-size', '12px')
+            .text(this.isRadialLayout ? 'Switch to Linear' : 'Switch to Radial');
+    }
+    
+    /**
+     * Toggle between radial and linear layouts
+     */
+    toggleLayout() {
+        this.isRadialLayout = !this.isRadialLayout;
+        this.createVisualization();
+        if (this.root) {
+            this.update(this.root);
+        }
+        this.showNotification(
+            this.isRadialLayout ? 'Switched to radial layout' : 'Switched to linear layout',
+            'info'
+        );
+    }
+
+    /**
+     * Convert radial coordinates to Cartesian
+     */
+    radialPoint(x, y) {
+        return [(y = +y) * Math.cos(x -= Math.PI / 2), y * Math.sin(x)];
+    }
+
+    /**
+     * Update D3 tree visualization
      */
     update(source) {
-        if (!this.svg || !this.treeGroup) {
+        if (!this.treeLayout || !this.treeGroup || !source) {
             return;
         }
 
-        // Compute new tree layout
+        // Compute the new tree layout
         const treeData = this.treeLayout(this.root);
         const nodes = treeData.descendants();
-        const links = treeData.links();
+        const links = treeData.descendants().slice(1);
 
-        // Normalize for fixed-depth
-        nodes.forEach(d => {
-            d.y = d.depth * 180;
-        });
+        if (this.isRadialLayout) {
+            // Radial layout adjustments
+            nodes.forEach(d => {
+                // Store original x,y for transitions
+                if (d.x0 === undefined) {
+                    d.x0 = d.x;
+                    d.y0 = d.y;
+                }
+            });
+        } else {
+            // Linear layout with nodeSize doesn't need manual normalization
+            // The tree layout handles spacing automatically
+        }
 
         // Update nodes
-        const node = this.treeGroup.selectAll('g.code-node')
+        const node = this.treeGroup.selectAll('g.node')
             .data(nodes, d => d.id || (d.id = ++this.nodeId));
 
         // Enter new nodes
         const nodeEnter = node.enter().append('g')
-            .attr('class', d => `code-node ${d.data.type} complexity-${this.getComplexityLevel(d.data.complexity)}`)
-            .attr('transform', d => `translate(${source.y0},${source.x0})`)
-            .on('click', (event, d) => this.toggleNode(event, d))
+            .attr('class', 'node')
+            .attr('transform', d => {
+                if (this.isRadialLayout) {
+                    const [x, y] = this.radialPoint(source.x0 || 0, source.y0 || 0);
+                    return `translate(${x},${y})`;
+                } else {
+                    return `translate(${source.y0},${source.x0})`;
+                }
+            })
+            .on('click', (event, d) => this.onNodeClick(event, d));
+
+        // Add circles for nodes
+        nodeEnter.append('circle')
+            .attr('class', 'node-circle')
+            .attr('r', 1e-6)
+            .style('fill', d => this.getNodeColor(d))
+            .style('stroke', d => this.getNodeStrokeColor(d))
+            .style('stroke-width', 2)
             .on('mouseover', (event, d) => this.showTooltip(event, d))
             .on('mouseout', () => this.hideTooltip());
 
-        // Add circles
-        nodeEnter.append('circle')
-            .attr('r', 1e-6)
-            .style('fill', d => d._children ? '#e2e8f0' : this.getNodeColor(d.data.type));
-
-        // Add text labels
+        // Add labels for nodes with smart positioning
         nodeEnter.append('text')
+            .attr('class', 'node-label')
             .attr('dy', '.35em')
-            .attr('x', d => d.children || d._children ? -13 : 13)
-            .attr('text-anchor', d => d.children || d._children ? 'end' : 'start')
-            .text(d => d.data.name)
-            .style('fill-opacity', 1e-6);
+            .attr('x', d => {
+                if (this.isRadialLayout) {
+                    // For radial layout, initial position
+                    return 0;
+                } else {
+                    // Linear layout: standard positioning
+                    return d.children || d._children ? -13 : 13;
+                }
+            })
+            .attr('text-anchor', d => {
+                if (this.isRadialLayout) {
+                    return 'start';  // Will be adjusted in update
+                } else {
+                    // Linear layout: standard anchoring
+                    return d.children || d._children ? 'end' : 'start';
+                }
+            })
+            .text(d => {
+                // Truncate long names
+                const maxLength = 20;
+                const name = d.data.name || '';
+                return name.length > maxLength ? 
+                       name.substring(0, maxLength - 3) + '...' : name;
+            })
+            .style('fill-opacity', 1e-6)
+            .style('font-size', '12px')
+            .style('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
+            .style('text-shadow', '1px 1px 2px rgba(255,255,255,0.8), -1px -1px 2px rgba(255,255,255,0.8)');
 
-        // Add icons
+        // Add icons for node types
         nodeEnter.append('text')
             .attr('class', 'node-icon')
             .attr('dy', '.35em')
             .attr('x', 0)
             .attr('text-anchor', 'middle')
-            .text(d => this.getNodeIcon(d.data.type))
-            .style('font-size', '16px');
+            .text(d => this.getNodeIcon(d))
+            .style('font-size', '10px')
+            .style('fill', 'white');
 
-        // Transition nodes to their new position
+        // Transition to new positions
         const nodeUpdate = nodeEnter.merge(node);
 
         nodeUpdate.transition()
             .duration(this.duration)
-            .attr('transform', d => `translate(${d.y},${d.x})`);
+            .attr('transform', d => {
+                if (this.isRadialLayout) {
+                    const [x, y] = this.radialPoint(d.x, d.y);
+                    return `translate(${x},${y})`;
+                } else {
+                    return `translate(${d.y},${d.x})`;
+                }
+            });
 
-        nodeUpdate.select('circle')
+        nodeUpdate.select('circle.node-circle')
             .attr('r', 8)
-            .style('fill', d => d._children ? '#e2e8f0' : this.getNodeColor(d.data.type));
+            .style('fill', d => this.getNodeColor(d))
+            .style('stroke', d => this.getNodeStrokeColor(d))
+            .attr('cursor', 'pointer');
 
-        nodeUpdate.select('text')
-            .style('fill-opacity', 1);
+        // Update text labels with proper rotation for radial layout
+        const isRadial = this.isRadialLayout;  // Capture the layout type
+        nodeUpdate.select('text.node-label')
+            .style('fill-opacity', 1)
+            .style('fill', '#333')
+            .each(function(d) {
+                const selection = d3.select(this);
+                
+                if (isRadial) {
+                    // For radial layout, apply rotation and positioning
+                    const angle = (d.x * 180 / Math.PI) - 90;  // Convert to degrees
+                    
+                    // Determine if text should be flipped (left side of circle)
+                    const shouldFlip = angle > 90 || angle < -90;
+                    
+                    // Calculate text position and rotation
+                    if (shouldFlip) {
+                        // Text on left side - rotate 180 degrees to read properly
+                        selection
+                            .attr('transform', `rotate(${angle + 180})`)
+                            .attr('x', -15)  // Negative offset for flipped text
+                            .attr('text-anchor', 'end')
+                            .attr('dy', '.35em');
+                    } else {
+                        // Text on right side - normal orientation
+                        selection
+                            .attr('transform', `rotate(${angle})`)
+                            .attr('x', 15)  // Positive offset for normal text
+                            .attr('text-anchor', 'start')
+                            .attr('dy', '.35em');
+                    }
+                } else {
+                    // Linear layout - no rotation needed
+                    selection
+                        .attr('transform', null)
+                        .attr('x', d.children || d._children ? -13 : 13)
+                        .attr('text-anchor', d.children || d._children ? 'end' : 'start')
+                        .attr('dy', '.35em');
+                }
+            });
 
         // Remove exiting nodes
         const nodeExit = node.exit().transition()
             .duration(this.duration)
-            .attr('transform', d => `translate(${source.y},${source.x})`)
+            .attr('transform', d => {
+                if (this.isRadialLayout) {
+                    const [x, y] = this.radialPoint(source.x, source.y);
+                    return `translate(${x},${y})`;
+                } else {
+                    return `translate(${source.y},${source.x})`;
+                }
+            })
             .remove();
 
         nodeExit.select('circle')
             .attr('r', 1e-6);
 
-        nodeExit.select('text')
+        nodeExit.select('text.node-label')
+            .style('fill-opacity', 1e-6);
+        
+        nodeExit.select('text.node-icon')
             .style('fill-opacity', 1e-6);
 
         // Update links
-        const link = this.treeGroup.selectAll('path.code-link')
-            .data(links, d => d.target.id);
+        const link = this.treeGroup.selectAll('path.link')
+            .data(links, d => d.id);
 
         // Enter new links
         const linkEnter = link.enter().insert('path', 'g')
-            .attr('class', 'code-link')
+            .attr('class', 'link')
             .attr('d', d => {
                 const o = {x: source.x0, y: source.y0};
-                return this.diagonal(o, o);
-            });
+                return this.isRadialLayout ? 
+                    this.radialDiagonal(o, o) : 
+                    this.diagonal(o, o);
+            })
+            .style('fill', 'none')
+            .style('stroke', '#ccc')
+            .style('stroke-width', 2);
 
-        // Transition links to their new position
+        // Transition to new positions
         const linkUpdate = linkEnter.merge(link);
 
         linkUpdate.transition()
             .duration(this.duration)
-            .attr('d', d => this.diagonal(d.source, d.target));
+            .attr('d', d => this.isRadialLayout ? 
+                this.radialDiagonal(d, d.parent) : 
+                this.diagonal(d, d.parent));
 
         // Remove exiting links
         link.exit().transition()
             .duration(this.duration)
             .attr('d', d => {
                 const o = {x: source.x, y: source.y};
-                return this.diagonal(o, o);
+                return this.isRadialLayout ? 
+                    this.radialDiagonal(o, o) : 
+                    this.diagonal(o, o);
             })
             .remove();
 
@@ -1053,139 +1650,462 @@ class CodeTree {
     }
 
     /**
-     * Create diagonal path for links
+     * Center the view on a specific node (Linear layout)
      */
-    diagonal(source, target) {
-        return `M ${source.y} ${source.x}
-                C ${(source.y + target.y) / 2} ${source.x},
-                  ${(source.y + target.y) / 2} ${target.x},
-                  ${target.y} ${target.x}`;
+    centerOnNode(d) {
+        if (!this.svg || !this.zoom) return;
+        
+        const transform = d3.zoomTransform(this.svg.node());
+        const x = -d.y * transform.k + this.width / 2;
+        const y = -d.x * transform.k + this.height / 2;
+        
+        this.svg.transition()
+            .duration(750)
+            .call(
+                this.zoom.transform,
+                d3.zoomIdentity
+                    .translate(x, y)
+                    .scale(transform.k)
+            );
     }
-
+    
     /**
-     * Toggle node expansion/collapse
+     * Center the view on a specific node (Radial layout)
      */
-    toggleNode(event, d) {
-        if (d.children) {
-            d._children = d.children;
-            d.children = null;
-        } else {
-            d.children = d._children;
-            d._children = null;
-        }
+    centerOnNodeRadial(d) {
+        if (!this.svg || !this.zoom) return;
         
-        this.update(d);
+        // Use the same radialPoint function for consistency
+        const [x, y] = this.radialPoint(d.x, d.y);
         
-        // Update breadcrumb
-        this.updateBreadcrumb(d);
+        // Get current transform
+        const transform = d3.zoomTransform(this.svg.node());
         
-        // Mark as selected
-        this.selectNode(d);
+        // Calculate translation to center the node
+        // The tree is already centered at width/2, height/2 via transform
+        // So we need to adjust relative to that center
+        const targetX = this.width / 2 - x * transform.k;
+        const targetY = this.height / 2 - y * transform.k;
         
-        // Show code viewer if it's a code node
-        if (d.data.type !== 'module' && d.data.type !== 'file') {
-            this.showCodeViewer(d.data);
-        }
+        // Apply smooth transition to center the node
+        this.svg.transition()
+            .duration(750)
+            .call(
+                this.zoom.transform,
+                d3.zoomIdentity
+                    .translate(targetX, targetY)
+                    .scale(transform.k)
+            );
     }
-
+    
     /**
-     * Select a node
+     * Highlight the active node with larger icon
      */
-    selectNode(node) {
-        // Remove previous selection
-        if (this.selectedNode) {
-            d3.select(this.selectedNode).classed('selected', false);
-        }
+    highlightActiveNode(d) {
+        // Reset all nodes to normal size and clear parent context
+        this.treeGroup.selectAll('circle.node-circle')
+            .transition()
+            .duration(300)
+            .attr('r', 8)
+            .classed('active', false)
+            .classed('parent-context', false)
+            .style('stroke', null)
+            .style('stroke-width', null)
+            .style('opacity', null);
         
-        // Add selection to new node
-        this.selectedNode = node;
-        if (node) {
-            d3.select(node).classed('selected', true);
-        }
+        // Find and increase size of clicked node - use data matching
+        this.treeGroup.selectAll('g.node')
+            .filter(node => node === d)
+            .select('circle.node-circle')
+            .transition()
+            .duration(300)
+            .attr('r', 12)  // Larger radius
+            .classed('active', true)
+            .style('stroke', '#3b82f6')
+            .style('stroke-width', 3);
+        
+        // Store active node
+        this.activeNode = d;
     }
-
+    
     /**
-     * Update breadcrumb navigation
+     * Add pulsing animation for loading state
      */
-    updateBreadcrumb(node) {
-        const path = [];
-        let current = node;
+    addLoadingPulse(d) {
+        // Use consistent selection pattern
+        const node = this.treeGroup.selectAll('g.node')
+            .filter(node => node === d)
+            .select('circle.node-circle');
         
-        while (current) {
-            path.unshift(current.data.name);
-            current = current.parent;
-        }
+        // Add to loading set
+        this.loadingNodes.add(d.data.path);
         
-        const breadcrumbContent = document.getElementById('breadcrumb-content');
-        if (breadcrumbContent) {
-            breadcrumbContent.textContent = path.join(' > ');
-            breadcrumbContent.className = 'ticker-file';
+        // Add pulsing class and orange color
+        node.classed('loading-pulse', true)
+            .style('fill', '#fb923c');  // Orange color for loading
+        
+        // Create pulse animation
+        const pulseAnimation = () => {
+            if (!this.loadingNodes.has(d.data.path)) return;
+            
+            node.transition()
+                .duration(600)
+                .attr('r', 14)
+                .style('opacity', 0.6)
+                .transition()
+                .duration(600)
+                .attr('r', 10)
+                .style('opacity', 1)
+                .on('end', () => {
+                    if (this.loadingNodes.has(d.data.path)) {
+                        pulseAnimation(); // Continue pulsing
+                    }
+                });
+        };
+        
+        pulseAnimation();
+    }
+    
+    /**
+     * Remove pulsing animation when loading complete
+     */
+    removeLoadingPulse(d) {
+        // Remove from loading set
+        this.loadingNodes.delete(d.data.path);
+        
+        // Use consistent selection pattern
+        const node = this.treeGroup.selectAll('g.node')
+            .filter(node => node === d)
+            .select('circle.node-circle');
+        
+        node.classed('loading-pulse', false)
+            .interrupt() // Stop animation
+            .transition()
+            .duration(300)
+            .attr('r', this.activeNode === d ? 12 : 8)
+            .style('opacity', 1)
+            .style('fill', d => this.getNodeColor(d));  // Restore original color
+    }
+    
+    /**
+     * Show parent node alongside for context
+     */
+    showWithParent(d) {
+        if (!d.parent) return;
+        
+        // Make parent more visible
+        const parentNode = this.treeGroup.selectAll('g.node')
+            .filter(node => node === d.parent);
+        
+        // Highlight parent with different style
+        parentNode.select('circle.node-circle')
+            .classed('parent-context', true)
+            .style('stroke', '#10b981')
+            .style('stroke-width', 3)
+            .style('opacity', 0.8);
+        
+        // For radial, adjust zoom to show both parent and clicked node
+        if (this.isRadialLayout && d.parent) {
+            // Calculate bounding box including parent and immediate children
+            const nodes = [d, d.parent];
+            if (d.children) nodes.push(...d.children);
+            else if (d._children) nodes.push(...d._children);
+            
+            const angles = nodes.map(n => n.x);
+            const radii = nodes.map(n => n.y);
+            
+            const minAngle = Math.min(...angles);
+            const maxAngle = Math.max(...angles);
+            const maxRadius = Math.max(...radii);
+            
+            // Zoom to fit parent and children
+            const angleSpan = maxAngle - minAngle;
+            const scale = Math.min(
+                angleSpan > 0 ? (Math.PI * 2) / (angleSpan * 2) : 2.5,  // Fit angle span
+                this.width / (2 * maxRadius),      // Fit radius
+                2.5  // Max zoom
+            );
+            
+            // Calculate center angle and radius
+            const centerAngle = (minAngle + maxAngle) / 2;
+            const centerRadius = maxRadius / 2;
+            const centerX = centerRadius * Math.cos(centerAngle - Math.PI / 2);
+            const centerY = centerRadius * Math.sin(centerAngle - Math.PI / 2);
+            
+            this.svg.transition()
+                .duration(750)
+                .call(
+                    this.zoom.transform,
+                    d3.zoomIdentity
+                        .translate(this.width / 2 - centerX * scale, this.height / 2 - centerY * scale)
+                        .scale(scale)
+                );
         }
     }
     
     /**
-     * Update ticker with event
+     * Handle node click - implement lazy loading with enhanced visual feedback
      */
-    updateTicker(message, type = 'info') {
-        const breadcrumbContent = document.getElementById('breadcrumb-content');
-        if (breadcrumbContent) {
-            // Add class based on type
-            let className = '';
-            switch(type) {
-                case 'file': className = 'ticker-file'; break;
-                case 'node': className = 'ticker-node'; break;
-                case 'progress': className = 'ticker-progress'; break;
-                case 'error': className = 'ticker-error'; break;
-                default: className = '';
+    onNodeClick(event, d) {
+        event.stopPropagation();
+        
+        // Center on clicked node
+        if (this.isRadialLayout) {
+            this.centerOnNodeRadial(d);
+        } else {
+            this.centerOnNode(d);
+        }
+        
+        // Highlight with larger icon
+        this.highlightActiveNode(d);
+        
+        // Show parent context
+        this.showWithParent(d);
+        
+        // Get selected languages from checkboxes
+        const selectedLanguages = [];
+        document.querySelectorAll('.language-checkbox:checked').forEach(cb => {
+            selectedLanguages.push(cb.value);
+        });
+        
+        // Get ignore patterns
+        const ignorePatterns = document.getElementById('ignore-patterns')?.value || '';
+        
+        // Get show hidden files setting
+        const showHiddenFiles = document.getElementById('show-hidden-files')?.checked || false;
+        
+        // For directories that haven't been loaded yet, request discovery
+        if (d.data.type === 'directory' && !d.data.loaded) {
+            // Add pulsing animation
+            this.addLoadingPulse(d);
+            
+            // Ensure path is absolute or relative to working directory
+            const fullPath = this.ensureFullPath(d.data.path);
+            
+            // Request directory contents via Socket.IO
+            if (this.socket) {
+                this.socket.emit('code:discover:directory', {
+                    path: fullPath,
+                    depth: 1,  // Only get immediate children
+                    languages: selectedLanguages,
+                    ignore_patterns: ignorePatterns,
+                    show_hidden_files: showHiddenFiles
+                });
+                
+                // Mark as loading to prevent duplicate requests
+                d.data.loaded = 'loading';
+                this.updateBreadcrumb(`Loading ${d.data.name}...`, 'info');
+                this.showNotification(`Loading directory: ${d.data.name}`, 'info');
+            }
+        } 
+        // For files that haven't been analyzed, request analysis
+        else if (d.data.type === 'file' && !d.data.analyzed) {
+            // Only analyze files of selected languages
+            const fileLanguage = this.detectLanguage(d.data.path);
+            if (!selectedLanguages.includes(fileLanguage) && fileLanguage !== 'unknown') {
+                this.showNotification(`Skipping ${d.data.name} - ${fileLanguage} not selected`, 'warning');
+                return;
             }
             
-            breadcrumbContent.textContent = message;
-            breadcrumbContent.className = className + ' ticker-event';
+            // Add pulsing animation
+            this.addLoadingPulse(d);
             
-            // Trigger animation
-            breadcrumbContent.style.animation = 'none';
-            setTimeout(() => {
-                breadcrumbContent.style.animation = '';
-            }, 10);
+            // Ensure path is absolute or relative to working directory
+            const fullPath = this.ensureFullPath(d.data.path);
+            
+            // Get current show_hidden_files setting
+            const showHiddenFilesCheckbox = document.getElementById('show-hidden-files');
+            const showHiddenFiles = showHiddenFilesCheckbox ? showHiddenFilesCheckbox.checked : false;
+            
+            if (this.socket) {
+                this.socket.emit('code:analyze:file', {
+                    path: fullPath,
+                    show_hidden_files: showHiddenFiles
+                });
+                
+                d.data.analyzed = 'loading';
+                this.updateBreadcrumb(`Analyzing ${d.data.name}...`, 'info');
+                this.showNotification(`Analyzing: ${d.data.name}`, 'info');
+            }
         }
+        // Toggle children visibility for already loaded nodes
+        else if (d.children || d._children) {
+            if (d.children) {
+                d._children = d.children;
+                d.children = null;
+                d.data.expanded = false;
+            } else {
+                d.children = d._children;
+                d._children = null;
+                d.data.expanded = true;
+            }
+            this.update(d);
+        }
+        
+        // Update selection
+        this.selectedNode = d;
+        this.highlightNode(d);
     }
-
+    
     /**
-     * Show code viewer for a node
+     * Ensure path is absolute or relative to working directory
      */
-    showCodeViewer(nodeData) {
-        // Emit event to open code viewer
-        if (window.CodeViewer) {
-            window.CodeViewer.show(nodeData);
+    ensureFullPath(path) {
+        if (!path) return path;
+        
+        // If already absolute, return as is
+        if (path.startsWith('/')) {
+            return path;
         }
+        
+        // Get working directory
+        const workingDir = this.getWorkingDirectory();
+        if (!workingDir) {
+            return path;
+        }
+        
+        // If path is relative, make it relative to working directory
+        if (path === '.' || path === workingDir) {
+            return workingDir;
+        }
+        
+        // Combine working directory with relative path
+        return `${workingDir}/${path}`.replace(/\/+/g, '/');
     }
 
     /**
-     * Show tooltip
+     * Highlight selected node
+     */
+    highlightNode(node) {
+        // Remove previous highlights
+        this.treeGroup.selectAll('circle.node-circle')
+            .style('stroke-width', 2)
+            .classed('selected', false);
+
+        // Highlight selected node
+        this.treeGroup.selectAll('circle.node-circle')
+            .filter(d => d === node)
+            .style('stroke-width', 4)
+            .classed('selected', true);
+    }
+
+    /**
+     * Create diagonal path for links
+     */
+    diagonal(s, d) {
+        return `M ${s.y} ${s.x}
+                C ${(s.y + d.y) / 2} ${s.x},
+                  ${(s.y + d.y) / 2} ${d.x},
+                  ${d.y} ${d.x}`;
+    }
+    
+    /**
+     * Create radial diagonal path for links
+     */
+    radialDiagonal(s, d) {
+        const path = d3.linkRadial()
+            .angle(d => d.x)
+            .radius(d => d.y);
+        return path({source: s, target: d});
+    }
+
+    /**
+     * Get node color based on type and complexity
+     */
+    getNodeColor(d) {
+        const type = d.data.type;
+        const complexity = d.data.complexity || 1;
+
+        // Base colors by type
+        const baseColors = {
+            'root': '#6B7280',
+            'directory': '#3B82F6',
+            'file': '#10B981',
+            'module': '#8B5CF6',
+            'class': '#F59E0B',
+            'function': '#EF4444',
+            'method': '#EC4899'
+        };
+
+        const baseColor = baseColors[type] || '#6B7280';
+
+        // Adjust brightness based on complexity (higher complexity = darker)
+        if (complexity > 10) {
+            return d3.color(baseColor).darker(0.5);
+        } else if (complexity > 5) {
+            return d3.color(baseColor).darker(0.25);
+        }
+        
+        return baseColor;
+    }
+
+    /**
+     * Get node stroke color
+     */
+    getNodeStrokeColor(d) {
+        if (d.data.loaded === 'loading' || d.data.analyzed === 'loading') {
+            return '#FCD34D';  // Yellow for loading
+        }
+        if (d.data.type === 'directory' && !d.data.loaded) {
+            return '#94A3B8';  // Gray for unloaded
+        }
+        if (d.data.type === 'file' && !d.data.analyzed) {
+            return '#CBD5E1';  // Light gray for unanalyzed
+        }
+        return this.getNodeColor(d);
+    }
+
+    /**
+     * Get icon for node type
+     */
+    getNodeIcon(d) {
+        const icons = {
+            'root': '📦',
+            'directory': '📁',
+            'file': '📄',
+            'module': '📦',
+            'class': 'C',
+            'function': 'ƒ',
+            'method': 'm'
+        };
+        return icons[d.data.type] || '•';
+    }
+
+    /**
+     * Show tooltip on hover
      */
     showTooltip(event, d) {
         if (!this.tooltip) return;
+
+        const info = [];
+        info.push(`<strong>${d.data.name}</strong>`);
+        info.push(`Type: ${d.data.type}`);
         
-        let content = `<strong>${d.data.name}</strong><br/>`;
-        content += `Type: ${d.data.type}<br/>`;
-        
+        if (d.data.language) {
+            info.push(`Language: ${d.data.language}`);
+        }
         if (d.data.complexity) {
-            content += `Complexity: ${d.data.complexity}<br/>`;
+            info.push(`Complexity: ${d.data.complexity}`);
+        }
+        if (d.data.lines) {
+            info.push(`Lines: ${d.data.lines}`);
+        }
+        if (d.data.path) {
+            info.push(`Path: ${d.data.path}`);
         }
         
-        if (d.data.line) {
-            content += `Line: ${d.data.line}<br/>`;
+        // Special messages for lazy-loaded nodes
+        if (d.data.type === 'directory' && !d.data.loaded) {
+            info.push('<em>Click to explore contents</em>');
+        } else if (d.data.type === 'file' && !d.data.analyzed) {
+            info.push('<em>Click to analyze file</em>');
         }
-        
-        if (d.data.docstring) {
-            content += `<em>${d.data.docstring.substring(0, 100)}...</em>`;
-        }
-        
+
         this.tooltip.transition()
             .duration(200)
             .style('opacity', .9);
-        
-        this.tooltip.html(content)
+
+        this.tooltip.html(info.join('<br>'))
             .style('left', (event.pageX + 10) + 'px')
             .style('top', (event.pageY - 28) + 'px');
     }
@@ -1194,101 +2114,214 @@ class CodeTree {
      * Hide tooltip
      */
     hideTooltip() {
-        if (this.tooltip) {
-            this.tooltip.transition()
-                .duration(500)
-                .style('opacity', 0);
-        }
+        if (!this.tooltip) return;
+        
+        this.tooltip.transition()
+            .duration(500)
+            .style('opacity', 0);
     }
 
     /**
-     * Get node color based on type
+     * Filter tree based on language and search
      */
-    getNodeColor(type) {
-        const colors = {
-            module: '#8b5cf6',
-            file: '#6366f1',
-            class: '#3b82f6',
-            function: '#f59e0b',
-            method: '#10b981'
-        };
-        return colors[type] || '#718096';
+    filterTree() {
+        if (!this.root) return;
+
+        // Apply filters
+        this.root.descendants().forEach(d => {
+            d.data._hidden = false;
+
+            // Language filter
+            if (this.languageFilter !== 'all') {
+                if (d.data.type === 'file' && d.data.language !== this.languageFilter) {
+                    d.data._hidden = true;
+                }
+            }
+
+            // Search filter
+            if (this.searchTerm) {
+                if (!d.data.name.toLowerCase().includes(this.searchTerm)) {
+                    d.data._hidden = true;
+                }
+            }
+        });
+
+        // Update display
+        this.update(this.root);
     }
 
     /**
-     * Get node icon based on type
-     */
-    getNodeIcon(type) {
-        const icons = {
-            module: '📦',
-            file: '📄',
-            class: '🏛️',
-            function: '⚡',
-            method: '🔧'
-        };
-        return icons[type] || '📌';
-    }
-
-    /**
-     * Get complexity level
-     */
-    getComplexityLevel(complexity) {
-        if (complexity <= 5) return 'low';
-        if (complexity <= 10) return 'medium';
-        return 'high';
-    }
-
-    /**
-     * Expand all nodes
+     * Expand all nodes in the tree
      */
     expandAll() {
-        this.expand(this.root);
+        if (!this.root) return;
+        
+        // Recursively expand all nodes
+        const expandRecursive = (node) => {
+            if (node._children) {
+                node.children = node._children;
+                node._children = null;
+            }
+            if (node.children) {
+                node.children.forEach(expandRecursive);
+            }
+        };
+        
+        expandRecursive(this.root);
         this.update(this.root);
+        this.showNotification('All nodes expanded', 'info');
     }
 
     /**
-     * Expand node recursively
-     */
-    expand(node) {
-        if (node._children) {
-            node.children = node._children;
-            node._children = null;
-        }
-        if (node.children) {
-            node.children.forEach(child => this.expand(child));
-        }
-    }
-
-    /**
-     * Collapse all nodes
+     * Collapse all nodes in the tree
      */
     collapseAll() {
-        this.collapse(this.root);
+        if (!this.root) return;
+        
+        // Recursively collapse all nodes except root
+        const collapseRecursive = (node) => {
+            if (node.children) {
+                node._children = node.children;
+                node.children = null;
+            }
+            if (node._children) {
+                node._children.forEach(collapseRecursive);
+            }
+        };
+        
+        this.root.children?.forEach(collapseRecursive);
         this.update(this.root);
+        this.showNotification('All nodes collapsed', 'info');
     }
 
     /**
-     * Collapse node recursively
-     */
-    collapse(node) {
-        if (node.children) {
-            node._children = node.children;
-            node.children.forEach(child => this.collapse(child));
-            node.children = null;
-        }
-    }
-
-    /**
-     * Reset zoom
+     * Reset zoom to fit the tree
      */
     resetZoom() {
-        if (this.svg) {
+        if (!this.svg || !this.zoom) return;
+        
+        // Reset to identity transform for radial layout (centered)
+        this.svg.transition()
+            .duration(750)
+            .call(
+                this.zoom.transform,
+                d3.zoomIdentity
+            );
+        
+        this.showNotification('Zoom reset', 'info');
+    }
+
+    /**
+     * Focus on a specific node and its subtree
+     */
+    focusOnNode(node) {
+        if (!this.svg || !this.zoom || !node) return;
+        
+        // Get all descendants of this node
+        const descendants = node.descendants ? node.descendants() : [node];
+        
+        if (this.isRadialLayout) {
+            // For radial layout, calculate the bounding box in polar coordinates
+            const angles = descendants.map(d => d.x);
+            const radii = descendants.map(d => d.y);
+            
+            const minAngle = Math.min(...angles);
+            const maxAngle = Math.max(...angles);
+            const minRadius = Math.min(...radii);
+            const maxRadius = Math.max(...radii);
+            
+            // Convert polar bounds to Cartesian for centering
+            const centerAngle = (minAngle + maxAngle) / 2;
+            const centerRadius = (minRadius + maxRadius) / 2;
+            
+            // Convert to Cartesian coordinates
+            const centerX = centerRadius * Math.cos(centerAngle - Math.PI / 2);
+            const centerY = centerRadius * Math.sin(centerAngle - Math.PI / 2);
+            
+            // Calculate the span for zoom scale
+            const angleSpan = maxAngle - minAngle;
+            const radiusSpan = maxRadius - minRadius;
+            
+            // Calculate scale to fit the subtree
+            // Use angle span to determine scale (radial layout specific)
+            let scale = 1;
+            if (angleSpan > 0 && radiusSpan > 0) {
+                // Scale based on the larger dimension
+                const angleFactor = Math.PI * 2 / angleSpan;  // Full circle / angle span
+                const radiusFactor = this.radius / radiusSpan;
+                scale = Math.min(angleFactor, radiusFactor, 3);  // Max zoom of 3x
+                scale = Math.max(scale, 1);  // Min zoom of 1x
+            }
+            
+            // Animate the zoom and center
             this.svg.transition()
                 .duration(750)
-                .call(d3.zoom().transform, d3.zoomIdentity);
+                .call(
+                    this.zoom.transform,
+                    d3.zoomIdentity
+                        .translate(this.width/2 - centerX * scale, this.height/2 - centerY * scale)
+                        .scale(scale)
+                );
+                
+        } else {
+            // For linear/tree layout
+            const xValues = descendants.map(d => d.x);
+            const yValues = descendants.map(d => d.y);
+            
+            const minX = Math.min(...xValues);
+            const maxX = Math.max(...xValues);
+            const minY = Math.min(...yValues);
+            const maxY = Math.max(...yValues);
+            
+            // Calculate center
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+            
+            // Calculate bounds
+            const width = maxX - minX;
+            const height = maxY - minY;
+            
+            // Calculate scale to fit
+            const padding = 100;
+            let scale = 1;
+            if (width > 0 && height > 0) {
+                const scaleX = (this.width - padding) / width;
+                const scaleY = (this.height - padding) / height;
+                scale = Math.min(scaleX, scaleY, 2.5);  // Max zoom of 2.5x
+                scale = Math.max(scale, 0.5);  // Min zoom of 0.5x
+            }
+            
+            // Animate zoom to focus
+            this.svg.transition()
+                .duration(750)
+                .call(
+                    this.zoom.transform,
+                    d3.zoomIdentity
+                        .translate(this.width/2 - centerX * scale, this.height/2 - centerY * scale)
+                        .scale(scale)
+                );
         }
+        
+        // Update breadcrumb with focused path
+        const path = this.getNodePath(node);
+        this.updateBreadcrumb(`Focused: ${path}`, 'info');
     }
     
+    /**
+     * Get the full path of a node
+     */
+    getNodePath(node) {
+        const path = [];
+        let current = node;
+        while (current) {
+            if (current.data && current.data.name) {
+                path.unshift(current.data.name);
+            }
+            current = current.parent;
+        }
+        return path.join(' / ');
+    }
+
     /**
      * Toggle legend visibility
      */
@@ -1304,54 +2337,199 @@ class CodeTree {
     }
 
     /**
-     * Filter nodes by language
+     * Get the current working directory
      */
-    filterByLanguage() {
-        // Implementation for language filtering
-        console.log('Filtering by language:', this.languageFilter);
-        // This would filter the tree data and update visualization
-        this.update(this.root);
+    getWorkingDirectory() {
+        // Try to get from dashboard's working directory manager
+        if (window.dashboard && window.dashboard.workingDirectoryManager) {
+            return window.dashboard.workingDirectoryManager.getCurrentWorkingDir();
+        }
+        
+        // Fallback to checking the DOM element
+        const workingDirPath = document.getElementById('working-dir-path');
+        if (workingDirPath) {
+            const pathText = workingDirPath.textContent.trim();
+            if (pathText && pathText !== 'Loading...' && pathText !== 'Not selected') {
+                return pathText;
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Show a message when no working directory is selected
+     */
+    showNoWorkingDirectoryMessage() {
+        const container = document.getElementById('code-tree-container');
+        if (!container) return;
+        
+        // Remove any existing message
+        this.removeNoWorkingDirectoryMessage();
+        
+        // Hide loading if shown
+        this.hideLoading();
+        
+        // Create message element
+        const messageDiv = document.createElement('div');
+        messageDiv.id = 'no-working-dir-message';
+        messageDiv.className = 'no-working-dir-message';
+        messageDiv.innerHTML = `
+            <div class="message-icon">📁</div>
+            <h3>No Working Directory Selected</h3>
+            <p>Please select a working directory from the top menu to analyze code.</p>
+            <button id="select-working-dir-btn" class="btn btn-primary">
+                Select Working Directory
+            </button>
+        `;
+        messageDiv.style.cssText = `
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+        
+        // Style the message elements
+        const messageIcon = messageDiv.querySelector('.message-icon');
+        if (messageIcon) {
+            messageIcon.style.cssText = 'font-size: 48px; margin-bottom: 16px; opacity: 0.5;';
+        }
+        
+        const h3 = messageDiv.querySelector('h3');
+        if (h3) {
+            h3.style.cssText = 'margin: 16px 0; color: #333; font-size: 20px;';
+        }
+        
+        const p = messageDiv.querySelector('p');
+        if (p) {
+            p.style.cssText = 'margin: 16px 0; color: #666; font-size: 14px;';
+        }
+        
+        const button = messageDiv.querySelector('button');
+        if (button) {
+            button.style.cssText = `
+                margin-top: 20px;
+                padding: 10px 20px;
+                background: #3b82f6;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                transition: background 0.2s;
+            `;
+            button.addEventListener('mouseenter', () => {
+                button.style.background = '#2563eb';
+            });
+            button.addEventListener('mouseleave', () => {
+                button.style.background = '#3b82f6';
+            });
+            button.addEventListener('click', () => {
+                // Trigger working directory selection
+                const changeDirBtn = document.getElementById('change-dir-btn');
+                if (changeDirBtn) {
+                    changeDirBtn.click();
+                } else if (window.dashboard && window.dashboard.workingDirectoryManager) {
+                    window.dashboard.workingDirectoryManager.showChangeDirDialog();
+                }
+            });
+        }
+        
+        container.appendChild(messageDiv);
+        
+        // Update breadcrumb
+        this.updateBreadcrumb('Please select a working directory', 'warning');
+    }
+    
+    /**
+     * Remove the no working directory message
+     */
+    removeNoWorkingDirectoryMessage() {
+        const message = document.getElementById('no-working-dir-message');
+        if (message) {
+            message.remove();
+        }
+    }
+    
+    /**
+     * Export tree data
+     */
+    exportTree() {
+        const exportData = {
+            timestamp: new Date().toISOString(),
+            workingDirectory: this.getWorkingDirectory(),
+            stats: this.stats,
+            tree: this.treeData
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], 
+                             {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `code-tree-${Date.now()}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        this.showNotification('Tree exported successfully', 'success');
     }
 
     /**
-     * Highlight search results
+     * Update activity ticker with real-time messages
      */
-    highlightSearchResults() {
-        if (!this.treeGroup) return;
-        
-        // Clear previous highlights
-        this.treeGroup.selectAll('.code-node').classed('highlighted', false);
-        
-        if (!this.searchTerm) return;
-        
-        // Highlight matching nodes
-        this.treeGroup.selectAll('.code-node').each((d, i, nodes) => {
-            if (d.data.name.toLowerCase().includes(this.searchTerm)) {
-                d3.select(nodes[i]).classed('highlighted', true);
+    updateActivityTicker(message, type = 'info') {
+        const breadcrumb = document.getElementById('breadcrumb-content');
+        if (breadcrumb) {
+            // Add spinning icon for loading states
+            const icon = type === 'info' && message.includes('...') ? '⟳ ' : '';
+            breadcrumb.innerHTML = `${icon}${message}`;
+            breadcrumb.className = `breadcrumb-${type}`;
+        }
+    }
+    
+    /**
+     * Update ticker message
+     */
+    updateTicker(message, type = 'info') {
+        const ticker = document.getElementById('code-tree-ticker');
+        if (ticker) {
+            ticker.textContent = message;
+            ticker.className = `ticker ticker-${type}`;
+            
+            // Auto-hide after 5 seconds for non-error messages
+            if (type !== 'error') {
+                setTimeout(() => {
+                    ticker.style.opacity = '0';
+                    setTimeout(() => {
+                        ticker.style.opacity = '1';
+                        ticker.textContent = '';
+                    }, 300);
+                }, 5000);
             }
-        });
+        }
     }
 }
 
-// Export for use in dashboard
-if (typeof window !== 'undefined') {
-    window.CodeTree = CodeTree;
-    
-    // Initialize when DOM is ready
-    document.addEventListener('DOMContentLoaded', () => {
-        const codeTree = new CodeTree();
-        window.codeTree = codeTree;
-        
-        // Listen for tab switches to initialize when Code tab is activated
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', () => {
-                if (button.getAttribute('data-tab') === 'code') {
-                    console.log('Code tab activated, initializing tree...');
-                    codeTree.renderWhenVisible();
-                }
-            });
-        });
-    });
-}
+// Export for use in other modules
+window.CodeTree = CodeTree;
 
-export default CodeTree;
+// Auto-initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if we're on a page with code tree container
+    if (document.getElementById('code-tree-container')) {
+        window.codeTree = new CodeTree();
+        
+        // Listen for tab changes to initialize when code tab is selected
+        document.addEventListener('click', (e) => {
+            if (e.target.matches('[data-tab="code"]')) {
+                setTimeout(() => {
+                    if (window.codeTree && !window.codeTree.initialized) {
+                        window.codeTree.initialize();
+                    } else if (window.codeTree) {
+                        window.codeTree.renderWhenVisible();
+                    }
+                }, 100);
+            }
+        });
+    }
+});

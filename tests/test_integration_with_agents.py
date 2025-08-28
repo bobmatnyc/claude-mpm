@@ -325,7 +325,6 @@ def test_metadata_handling():
             ),
         ]
 
-
         for req_summary, response, metadata, _expected_prefix in test_cases:
             logger.log_response(req_summary, response, metadata)
 

@@ -854,9 +854,7 @@ class TestMemoryUtilitiesAndRouting:
 
     def test_output_single_agent_raw_json_format(self):
         """Test _output_single_agent_raw outputs valid JSON."""
-        self.load_agent_memory.return_value = (
-            "# Test Memory\n- Test item"
-        )
+        self.load_agent_memory.return_value = "# Test Memory\n- Test item"
 
         with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _output_single_agent_raw("engineer", self)
@@ -887,9 +885,7 @@ class TestMemoryUtilitiesAndRouting:
         mock_file2.stem = "qa_memories"
 
         self.memories_dir.glob.return_value = [mock_file1, mock_file2]
-        self.load_agent_memory.side_effect = (
-            lambda agent: f"# {agent} Memory"
-        )
+        self.load_agent_memory.side_effect = lambda agent: f"# {agent} Memory"
 
         with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _output_all_memories_raw(self)
@@ -1072,9 +1068,7 @@ class TestMemoryViewCommand:
 
     def test_view_memory_file_not_found(self):
         """Test viewing memory when file doesn't exist."""
-        self.load_agent_memory.side_effect = FileNotFoundError(
-            "File not found"
-        )
+        self.load_agent_memory.side_effect = FileNotFoundError("File not found")
 
         args = Namespace(agent_id="missing")
 
@@ -1260,9 +1254,7 @@ class TestMemoryBuildCommand:
 
     def test_build_memory_error_handling(self):
         """Test build memory error handling."""
-        self.build_memories_from_docs.side_effect = Exception(
-            "Build error"
-        )
+        self.build_memories_from_docs.side_effect = Exception("Build error")
 
         args = Namespace(force_rebuild=False)
 

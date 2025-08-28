@@ -39,7 +39,6 @@ class EventViewer {
 
         // Subscribe to socket events
         this.socketClient.onEventUpdate((events, sessions) => {
-            console.log('EventViewer received event update:', events?.length || 0, 'events');
             // Ensure we always have a valid events array
             this.events = Array.isArray(events) ? events : [];
             this.updateDisplay();
@@ -76,7 +75,6 @@ class EventViewer {
     setupKeyboardNavigation() {
         // Keyboard navigation is now handled by Dashboard.setupUnifiedKeyboardNavigation()
         // This method is kept for backward compatibility but does nothing
-        console.log('EventViewer: Keyboard navigation handled by unified Dashboard system');
     }
 
     /**
@@ -110,18 +108,10 @@ class EventViewer {
         }
 
         this.filteredEvents = this.events.filter(event => {
-            // Filter out info level log messages
-            if (event.type === 'log' && event.data && event.data.level === 'info') {
-                return false;
-            }
+            // NO AUTOMATIC FILTERING - All events are shown by default for complete visibility
+            // Users can apply their own filters using the search and type filter controls
             
-            // Filter out code analysis events (they're shown in footer status bar)
-            if (event.type === 'code' || 
-                (event.type === 'unknown' && event.originalEventName && event.originalEventName.startsWith('code:'))) {
-                return false;
-            }
-            
-            // Search filter
+            // User-controlled search filter
             if (this.searchFilter) {
                 const searchableText = [
                     event.type || '',
@@ -134,7 +124,7 @@ class EventViewer {
                 }
             }
 
-            // Type filter - now handles full hook types (like "hook.user_prompt") and main types
+            // User-controlled type filter - handles full hook types (like "hook.user_prompt") and main types
             if (this.typeFilter) {
                 // Use the same logic as formatEventType to get the full event type
                 const eventType = event.type && event.type.trim() !== '' ? event.type : '';
@@ -144,13 +134,14 @@ class EventViewer {
                 }
             }
 
-            // Session filter
+            // User-controlled session filter
             if (this.sessionFilter && this.sessionFilter !== '') {
                 if (!event.data || event.data.session_id !== this.sessionFilter) {
                     return false;
                 }
             }
 
+            // Allow all events through unless filtered by user controls
             return true;
         });
 
@@ -222,7 +213,6 @@ class EventViewer {
      * Update the display with current events
      */
     updateDisplay() {
-        console.log('EventViewer updating display with', this.events?.length || 0, 'events');
         this.updateEventTypeDropdown();
         this.applyFilters();
     }
@@ -233,6 +223,9 @@ class EventViewer {
     renderEvents() {
         const eventsList = document.getElementById('events-list');
         if (!eventsList) return;
+
+        // Check if user is at bottom BEFORE rendering (for autoscroll decision)
+        const wasAtBottom = (eventsList.scrollTop + eventsList.clientHeight >= eventsList.scrollHeight - 10);
 
         if (this.filteredEvents.length === 0) {
             eventsList.innerHTML = `
@@ -281,9 +274,12 @@ class EventViewer {
             window.dashboard.tabNavigation.events.items = this.filteredEventElements;
         }
 
-        // Auto-scroll to bottom if enabled
-        if (this.autoScroll && this.filteredEvents.length > 0) {
-            eventsList.scrollTop = eventsList.scrollHeight;
+        // Auto-scroll only if user was already at bottom before rendering
+        if (this.filteredEvents.length > 0 && wasAtBottom && this.autoScroll) {
+            // Use requestAnimationFrame to ensure DOM has updated
+            requestAnimationFrame(() => {
+                eventsList.scrollTop = eventsList.scrollHeight;
+            });
         }
     }
 
@@ -337,6 +333,8 @@ class EventViewer {
                 return this.formatMemoryEvent(event);
             case 'log':
                 return this.formatLogEvent(event);
+            case 'code':
+                return this.formatCodeEvent(event);
             default:
                 return this.formatGenericEvent(event);
         }
@@ -478,6 +476,47 @@ class EventViewer {
         const message = data.message || '';
         const truncated = message.length > 80 ? message.substring(0, 80) + '...' : message;
         return `<strong>[${level.toUpperCase()}]</strong> ${truncated}`;
+    }
+
+    /**
+     * Format code analysis event data
+     */
+    formatCodeEvent(event) {
+        const data = event.data || {};
+        
+        // Handle different code event subtypes
+        if (event.subtype === 'progress') {
+            const message = data.message || 'Processing...';
+            const percentage = data.percentage;
+            if (percentage !== undefined) {
+                return `<strong>Progress:</strong> ${message} (${Math.round(percentage)}%)`;
+            }
+            return `<strong>Progress:</strong> ${message}`;
+        } else if (event.subtype === 'analysis:queued') {
+            return `<strong>Queued:</strong> Analysis for ${data.path || 'Unknown path'}`;
+        } else if (event.subtype === 'analysis:start') {
+            return `<strong>Started:</strong> Analyzing ${data.path || 'Unknown path'}`;
+        } else if (event.subtype === 'analysis:complete') {
+            const duration = data.duration ? ` (${data.duration.toFixed(2)}s)` : '';
+            return `<strong>Complete:</strong> Analysis finished${duration}`;
+        } else if (event.subtype === 'analysis:error') {
+            return `<strong>Error:</strong> ${data.message || 'Analysis failed'}`;
+        } else if (event.subtype === 'analysis:cancelled') {
+            return `<strong>Cancelled:</strong> Analysis stopped for ${data.path || 'Unknown path'}`;
+        } else if (event.subtype === 'file:start') {
+            return `<strong>File:</strong> Processing ${data.file || 'Unknown file'}`;
+        } else if (event.subtype === 'file:complete') {
+            const nodes = data.nodes_count !== undefined ? ` (${data.nodes_count} nodes)` : '';
+            return `<strong>File done:</strong> ${data.file || 'Unknown file'}${nodes}`;
+        } else if (event.subtype === 'node:found') {
+            return `<strong>Node:</strong> Found ${data.node_type || 'element'} "${data.name || 'unnamed'}"`;
+        } else if (event.subtype === 'error') {
+            return `<strong>Error:</strong> ${data.error || 'Unknown error'} in ${data.file || 'file'}`;
+        }
+        
+        // Generic fallback for code events
+        const json = JSON.stringify(data);
+        return `<strong>Code:</strong> ${json.length > 100 ? json.substring(0, 100) + '...' : json}`;
     }
 
     /**

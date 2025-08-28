@@ -113,9 +113,7 @@ class TestConcurrentAgentDeployment:
         def deploy_agents():
             """Deploy agents in a separate thread."""
             try:
-                return deployment_service.deploy_agents(
-                    target_dir, force_rebuild=True
-                )
+                return deployment_service.deploy_agents(target_dir, force_rebuild=True)
             except Exception as e:
                 return {"error": str(e)}
 
@@ -246,9 +244,7 @@ class TestConcurrentAgentDeployment:
             loop = asyncio.get_event_loop()
             return await loop.run_in_executor(
                 None,
-                lambda: self.deploy_agents(
-                    target_dir, force_rebuild=True
-                ),
+                lambda: self.deploy_agents(target_dir, force_rebuild=True),
             )
 
         # Launch multiple async deployments
@@ -339,9 +335,7 @@ class TestPartialDeploymentFailures:
             result = deployment_service.deploy_agents(target_dir, force_rebuild=True)
 
             # Should have errors in the result or empty deployed list
-            (
-                len(result.get("errors", [])) > 0 or len(result.get("deployed", [])) < 3
-            )
+            (len(result.get("errors", [])) > 0 or len(result.get("deployed", [])) < 3)
 
         # Verify partial deployment state
         assert len(write_attempts) >= 1  # Some write attempts were made
@@ -419,9 +413,7 @@ class TestPartialDeploymentFailures:
             # Deployment should complete without network dependencies
             # (Agent deployment is primarily local file operations)
             try:
-                result = self.deploy_agents(
-                    target_dir, force_rebuild=True
-                )
+                result = self.deploy_agents(target_dir, force_rebuild=True)
 
                 # Verify deployment succeeded despite network issues
                 assert isinstance(result, dict)
@@ -653,9 +645,7 @@ This is the backup version of agent {i}.
         assert isinstance(cleanup_result, dict)
 
         # Redeploy after cleanup
-        deployment_service.deploy_agents(
-            target_dir, force_rebuild=True
-        )
+        deployment_service.deploy_agents(target_dir, force_rebuild=True)
 
         # Verify state consistency
         final_status = deployment_service.get_deployment_status()
@@ -753,9 +743,7 @@ class TestEdgeCasesAndIntegration:
         target_dir = tmp_path / "deployed"
 
         # Deploy with empty templates directory
-        result = self.deploy_agents(
-            target_dir, force_rebuild=True
-        )
+        result = self.deploy_agents(target_dir, force_rebuild=True)
 
         # Should handle empty deployment gracefully
         assert isinstance(result, dict)

@@ -297,9 +297,7 @@ class TestRunCommand:
     @patch("claude_mpm.cli.commands.run.list_agent_versions_at_startup")
     @patch("claude_mpm.cli.commands.run.subprocess.run")
     @patch("claude_mpm.cli.commands.run.Config")
-    def test_run_with_no_native_agents(
-        self, mock_subprocess, mock_list_agents
-    ):
+    def test_run_with_no_native_agents(self, mock_subprocess, mock_list_agents):
         """Test running with native agents disabled."""
         mock_config = Mock()
         mock_config.ensure_paths.return_value = None

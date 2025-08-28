@@ -149,7 +149,9 @@ class ConnectionManager:
     - Automatic event replay on reconnection
     """
 
-    def __init__(self, max_buffer_size: Optional[int] = None, event_ttl: Optional[int] = None):
+    def __init__(
+        self, max_buffer_size: Optional[int] = None, event_ttl: Optional[int] = None
+    ):
         """
         Initialize connection manager with centralized configuration.
 

@@ -393,13 +393,25 @@ class Dashboard {
                             console.log('Dashboard triggering activity tree render...');
                             window.activityTreeInstance.renderWhenVisible();
                         }
+                        
+                        // Force show to ensure the tree is visible
+                        if (typeof window.activityTreeInstance.forceShow === 'function') {
+                            console.log('Dashboard forcing activity tree to show...');
+                            window.activityTreeInstance.forceShow();
+                        }
                     }
                 } else if (window.activityTree && typeof window.activityTree === 'function') {
                     // Fallback to legacy approach if available
                     const activityTreeInstance = window.activityTree();
-                    if (activityTreeInstance && typeof activityTreeInstance.renderWhenVisible === 'function') {
-                        console.log('Dashboard triggering activity tree render (legacy)...');
-                        activityTreeInstance.renderWhenVisible();
+                    if (activityTreeInstance) {
+                        if (typeof activityTreeInstance.renderWhenVisible === 'function') {
+                            console.log('Dashboard triggering activity tree render (legacy)...');
+                            activityTreeInstance.renderWhenVisible();
+                        }
+                        if (typeof activityTreeInstance.forceShow === 'function') {
+                            console.log('Dashboard forcing activity tree to show (legacy)...');
+                            activityTreeInstance.forceShow();
+                        }
                     }
                 } else {
                     // Module not loaded yet, retry after a delay

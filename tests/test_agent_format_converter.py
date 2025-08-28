@@ -121,9 +121,7 @@ instructions: |
   This is a test agent.
   It performs testing tasks."""
 
-        md_content = self.convert_yaml_content_to_md(
-            yaml_content, "test-agent"
-        )
+        md_content = self.convert_yaml_content_to_md(yaml_content, "test-agent")
 
         # Check that it starts with YAML frontmatter
         assert md_content.startswith("---\n")
@@ -293,9 +291,7 @@ instructions: |
   This is the instruction text.
   It has multiple lines."""
 
-        instructions = self._extract_instructions_from_yaml(
-            yaml_content, "test-agent"
-        )
+        instructions = self._extract_instructions_from_yaml(yaml_content, "test-agent")
 
         assert "This is the instruction text." in instructions
         assert "It has multiple lines." in instructions
@@ -321,9 +317,7 @@ description: "This is a very long description that could serve as instructions f
 description: "Short desc"
 """
 
-        instructions = self._extract_instructions_from_yaml(
-            yaml_content, "test-agent"
-        )
+        instructions = self._extract_instructions_from_yaml(yaml_content, "test-agent")
 
         assert "Test-Agent Agent" in instructions
         assert "specialized functionality" in instructions

@@ -16,6 +16,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [4.1.11] - 2025-08-27
+
+### Added
+- **MPM-Init Command**: New `claude-mpm mpm-init` command for project initialization
+  - Delegates to Agentic Coder Optimizer agent for comprehensive project setup
+  - Creates CLAUDE.md documentation optimized for AI agents
+  - Establishes single-path workflows (ONE way to do ANYTHING)
+  - Configures development tools (linting, formatting, testing)
+  - Initializes memory systems for project knowledge
+  - Supports project types (web, api, cli, library, etc.) and frameworks
+  - Includes `--use-venv` flag to bypass mamba/conda environment issues
+  - Comprehensive documentation in `docs/user/commands/mpm-init.md`
+
+- **Git Branding Customization**: Automatic Claude MPM branding for commits and PRs
+  - Custom git hooks replace Claude Code references with Claude MPM
+  - New emoji 🤖👥 representing AI orchestrating a team
+  - Updates repository URL to correct GitHub project
+  - Wrapper scripts for git and GitHub CLI operations
+  - Documentation in `docs/user/claude-mpm-branding.md`
+
+### Changed
+- **Git Commit Messages**: Now use 🤖👥 emoji and link to github.com/bobmatnyc/claude-mpm
+
+### Fixed
+- **MPM-Init Environment Issues**: Added automatic fallback to Python venv when mamba/conda fails
+- **MPM-Init Command Construction**: Corrected argument ordering and removed invalid --agent flag
+- **MPM-Init Prompt Passing**: Fixed "filename too long" error by using temporary files
+
 ## [4.1.10] - 2025-08-26
 
 ### Fixed

@@ -1066,9 +1066,7 @@ class TestIntegration:
             with patch("sys.stdout", new_callable=StringIO):
                 # Process multiple events
                 for _i, event in enumerate(events):
-                    with patch.object(
-                        handler, "_read_hook_event", return_value=event
-                    ):
+                    with patch.object(handler, "_read_hook_event", return_value=event):
                         handler.handle()
 
         # Cleanup should have been called at least once

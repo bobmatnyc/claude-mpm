@@ -23,6 +23,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 try:
+    import pathspec
+
+    PATHSPEC_AVAILABLE = True
+except ImportError:
+    PATHSPEC_AVAILABLE = False
+    pathspec = None
+
+try:
     import tree_sitter
     import tree_sitter_javascript
     import tree_sitter_python
@@ -35,6 +43,305 @@ except ImportError:
 
 from ..core.logging_config import get_logger
 from .code_tree_events import CodeNodeEvent, CodeTreeEventEmitter
+
+
+class GitignoreManager:
+    """Manages .gitignore pattern matching for file filtering.
+
+    WHY: Properly respecting .gitignore patterns ensures we don't analyze
+    or display files that should be ignored in the repository.
+    """
+
+    # Default patterns that should always be ignored
+    DEFAULT_PATTERNS = [
+        ".git/",
+        "__pycache__/",
+        "*.pyc",
+        "*.pyo",
+        ".DS_Store",
+        ".pytest_cache/",
+        ".mypy_cache/",
+        "dist/",
+        "build/",
+        "*.egg-info/",
+        ".coverage",
+        ".tox/",
+        "htmlcov/",
+        ".idea/",
+        ".vscode/",
+        "*.swp",
+        "*.swo",
+        "*~",
+        "Thumbs.db",
+        "node_modules/",
+        ".venv/",
+        "venv/",
+        "env/",
+        ".env",
+        "*.log",
+        ".ipynb_checkpoints/",
+        "__MACOSX/",
+        ".Spotlight-V100/",
+        ".Trashes/",
+        "desktop.ini",
+    ]
+    
+    # Additional patterns to hide dotfiles (when enabled)
+    DOTFILE_PATTERNS = [
+        ".*",  # All dotfiles
+        ".*/",  # All dot directories
+    ]
+    
+    # Important files/directories to always show
+    DOTFILE_EXCEPTIONS = {
+        # Removed .gitignore from exceptions - it should be hidden by default
+        ".env.example", 
+        ".env.sample",
+        ".gitlab-ci.yml",
+        ".travis.yml",
+        ".dockerignore",
+        ".editorconfig",
+        ".eslintrc",
+        ".prettierrc"
+        # Removed .github from exceptions - it should be hidden by default
+    }
+
+    def __init__(self, show_hidden_files: bool = False):
+        """Initialize the GitignoreManager.
+        
+        Args:
+            show_hidden_files: Whether to show hidden files/directories
+        """
+        self.logger = get_logger(__name__)
+        self._pathspec_cache: Dict[str, Any] = {}
+        self._gitignore_cache: Dict[str, List[str]] = {}
+        self._use_pathspec = PATHSPEC_AVAILABLE
+        self.show_hidden_files = show_hidden_files
+
+        if not self._use_pathspec:
+            self.logger.warning(
+                "pathspec library not available - using basic pattern matching"
+            )
+
+    def get_ignore_patterns(self, working_dir: Path) -> List[str]:
+        """Get all ignore patterns for a directory.
+
+        Args:
+            working_dir: The working directory to search for .gitignore files
+
+        Returns:
+            Combined list of ignore patterns from all sources
+        """
+        # Always include default patterns
+        patterns = self.DEFAULT_PATTERNS.copy()
+        
+        # Don't add dotfile patterns here - handle them separately in should_ignore
+        # This prevents exceptions from being overridden by the .* pattern
+
+        # Find and parse .gitignore files
+        gitignore_files = self._find_gitignore_files(working_dir)
+        for gitignore_file in gitignore_files:
+            patterns.extend(self._parse_gitignore(gitignore_file))
+
+        return patterns
+
+    def should_ignore(self, path: Path, working_dir: Path) -> bool:
+        """Check if a path should be ignored based on patterns.
+
+        Args:
+            path: The path to check
+            working_dir: The working directory (for relative path calculation)
+
+        Returns:
+            True if the path should be ignored
+        """
+        # Get the filename
+        filename = path.name
+        
+        # 1. ALWAYS hide system files regardless of settings
+        ALWAYS_HIDE = {'.DS_Store', 'Thumbs.db', '.pyc', '.pyo', '.pyd'}
+        if filename in ALWAYS_HIDE or filename.endswith(('.pyc', '.pyo', '.pyd')):
+            return True
+        
+        # 2. Check dotfiles BEFORE exceptions
+        if filename.startswith('.'):
+            # If showing hidden files, show all dotfiles
+            if self.show_hidden_files:
+                return False  # Show the dotfile
+            else:
+                # Hide all dotfiles except those in the exceptions list
+                # This means: return True (ignore) if NOT in exceptions
+                return filename not in self.DOTFILE_EXCEPTIONS
+            
+        # Get or create PathSpec for this working directory
+        pathspec_obj = self._get_pathspec(working_dir)
+
+        if pathspec_obj:
+            # Use pathspec for accurate matching
+            try:
+                rel_path = path.relative_to(working_dir)
+                rel_path_str = str(rel_path)
+                
+                # For directories, also check with trailing slash
+                if path.is_dir():
+                    return pathspec_obj.match_file(rel_path_str) or pathspec_obj.match_file(rel_path_str + '/')
+                else:
+                    return pathspec_obj.match_file(rel_path_str)
+            except ValueError:
+                # Path is outside working directory
+                return False
+        else:
+            # Fallback to basic pattern matching
+            return self._basic_should_ignore(path, working_dir)
+
+    def _get_pathspec(self, working_dir: Path) -> Optional[Any]:
+        """Get or create a PathSpec object for the working directory.
+
+        Args:
+            working_dir: The working directory
+
+        Returns:
+            PathSpec object or None if not available
+        """
+        if not self._use_pathspec:
+            return None
+
+        cache_key = str(working_dir)
+        if cache_key not in self._pathspec_cache:
+            patterns = self.get_ignore_patterns(working_dir)
+            try:
+                self._pathspec_cache[cache_key] = pathspec.PathSpec.from_lines(
+                    "gitwildmatch", patterns
+                )
+            except Exception as e:
+                self.logger.warning(f"Failed to create PathSpec: {e}")
+                return None
+
+        return self._pathspec_cache[cache_key]
+
+    def _find_gitignore_files(self, working_dir: Path) -> List[Path]:
+        """Find all .gitignore files in the directory tree.
+
+        Args:
+            working_dir: The directory to search
+
+        Returns:
+            List of .gitignore file paths
+        """
+        gitignore_files = []
+
+        # Check for .gitignore in working directory
+        main_gitignore = working_dir / ".gitignore"
+        if main_gitignore.exists():
+            gitignore_files.append(main_gitignore)
+
+        # Also check parent directories up to repository root
+        current = working_dir
+        while current != current.parent:
+            parent_gitignore = current.parent / ".gitignore"
+            if parent_gitignore.exists():
+                gitignore_files.append(parent_gitignore)
+
+            # Stop if we find a .git directory (repository root)
+            if (current / ".git").exists():
+                break
+
+            current = current.parent
+
+        return gitignore_files
+
+    def _parse_gitignore(self, gitignore_path: Path) -> List[str]:
+        """Parse a .gitignore file and return patterns.
+
+        Args:
+            gitignore_path: Path to .gitignore file
+
+        Returns:
+            List of patterns from the file
+        """
+        cache_key = str(gitignore_path)
+
+        # Check cache
+        if cache_key in self._gitignore_cache:
+            return self._gitignore_cache[cache_key]
+
+        patterns = []
+        try:
+            with open(gitignore_path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    # Skip empty lines and comments
+                    if line and not line.startswith("#"):
+                        patterns.append(line)
+
+            self._gitignore_cache[cache_key] = patterns
+        except Exception as e:
+            self.logger.warning(f"Failed to parse {gitignore_path}: {e}")
+
+        return patterns
+
+    def _basic_should_ignore(self, path: Path, working_dir: Path) -> bool:
+        """Basic pattern matching fallback when pathspec is not available.
+
+        Args:
+            path: The path to check
+            working_dir: The working directory
+
+        Returns:
+            True if the path should be ignored
+        """
+        path_str = str(path)
+        path_name = path.name
+        
+        # 1. ALWAYS hide system files regardless of settings
+        ALWAYS_HIDE = {'.DS_Store', 'Thumbs.db', '.pyc', '.pyo', '.pyd'}
+        if path_name in ALWAYS_HIDE or path_name.endswith(('.pyc', '.pyo', '.pyd')):
+            return True
+        
+        # 2. Check dotfiles BEFORE exceptions
+        if path_name.startswith('.'):
+            # If showing hidden files, check exceptions
+            if self.show_hidden_files:
+                return False  # Show the dotfile
+            else:
+                # Only show if in exceptions list
+                return path_name not in self.DOTFILE_EXCEPTIONS
+
+        patterns = self.get_ignore_patterns(working_dir)
+        
+        for pattern in patterns:
+            # Skip dotfile patterns since we already handled them above
+            if pattern in [".*", ".*/"]:
+                continue
+                
+            # Simple pattern matching
+            if pattern.endswith("/"):
+                # Directory pattern
+                if path.is_dir() and path_name == pattern[:-1]:
+                    return True
+            elif pattern.startswith("*."):
+                # Extension pattern
+                if path_name.endswith(pattern[1:]):
+                    return True
+            elif "*" in pattern:
+                # Wildcard pattern (simplified)
+                import fnmatch
+
+                if fnmatch.fnmatch(path_name, pattern):
+                    return True
+            elif pattern in path_str:
+                # Substring match
+                return True
+            elif path_name == pattern:
+                # Exact match
+                return True
+
+        return False
+
+    def clear_cache(self):
+        """Clear all caches."""
+        self._pathspec_cache.clear()
+        self._gitignore_cache.clear()
 
 
 @dataclass
@@ -325,7 +632,8 @@ class MultiLanguageAnalyzer:
                     parser = tree_sitter.Parser(lang_obj)
                 self.parsers[lang] = parser
             except (ImportError, AttributeError) as e:
-                self.logger.warning(f"Language parser not available for {lang}: {e}")
+                # Silently skip unavailable parsers - will fall back to basic file discovery
+                self.logger.debug(f"Language parser not available for {lang}: {e}")
 
     def analyze_file(self, file_path: Path, language: str) -> List[CodeNode]:
         """Analyze a file using tree-sitter.
@@ -338,7 +646,10 @@ class MultiLanguageAnalyzer:
             List of code nodes found in the file
         """
         if language not in self.parsers:
-            self.logger.warning(f"No parser available for language: {language}")
+            # No parser available - return empty list to fall back to basic discovery
+            self.logger.debug(
+                f"No parser available for language: {language}, using basic file discovery"
+            )
             return []
 
         nodes = []
@@ -488,6 +799,15 @@ class CodeTreeAnalyzer:
     languages, handling caching and incremental processing.
     """
 
+    # Define code file extensions at class level for directory filtering
+    CODE_EXTENSIONS = {
+        '.py', '.js', '.ts', '.tsx', '.jsx', '.java', '.cpp', '.c', '.h', '.hpp',
+        '.cs', '.go', '.rs', '.rb', '.php', '.swift', '.kt', '.scala', '.r',
+        '.m', '.mm', '.sh', '.bash', '.zsh', '.fish', '.ps1', '.bat', '.cmd',
+        '.sql', '.html', '.css', '.scss', '.sass', '.less', '.xml', '.json',
+        '.yaml', '.yml', '.toml', '.ini', '.cfg', '.conf', '.md', '.rst', '.txt'
+    }
+
     # File extensions to language mapping
     LANGUAGE_MAP = {
         ".py": "python",
@@ -499,23 +819,45 @@ class CodeTreeAnalyzer:
         ".cjs": "javascript",
     }
 
-    def __init__(self, emit_events: bool = True, cache_dir: Optional[Path] = None):
+    def __init__(
+        self,
+        emit_events: bool = True,
+        cache_dir: Optional[Path] = None,
+        emitter: Optional[CodeTreeEventEmitter] = None,
+        show_hidden_files: bool = False,
+    ):
         """Initialize the code tree analyzer.
 
         Args:
             emit_events: Whether to emit Socket.IO events
             cache_dir: Directory for caching analysis results
+            emitter: Optional event emitter to use (creates one if not provided)
+            show_hidden_files: Whether to show hidden files/directories (default False - hide dotfiles)
         """
         self.logger = get_logger(__name__)
         self.emit_events = emit_events
         self.cache_dir = cache_dir or Path.home() / ".claude-mpm" / "code-cache"
+        self.show_hidden_files = show_hidden_files
 
-        # Initialize event emitter - use stdout mode for subprocess communication
-        self.emitter = CodeTreeEventEmitter(use_stdout=True) if emit_events else None
+        # Initialize gitignore manager with hidden files setting (default False)
+        self.gitignore_manager = GitignoreManager(show_hidden_files=show_hidden_files)
+        self._last_working_dir = None
+
+        # Use provided emitter or create one
+        if emitter:
+            self.emitter = emitter
+        elif emit_events:
+            self.emitter = CodeTreeEventEmitter(use_stdout=True)
+        else:
+            self.emitter = None
 
         # Initialize language analyzers
         self.python_analyzer = PythonAnalyzer(self.emitter)
         self.multi_lang_analyzer = MultiLanguageAnalyzer(self.emitter)
+
+        # For JavaScript/TypeScript
+        self.javascript_analyzer = self.multi_lang_analyzer
+        self.generic_analyzer = self.multi_lang_analyzer
 
         # Cache for processed files
         self.cache = {}
@@ -554,8 +896,14 @@ class CodeTreeAnalyzer:
                 continue
 
             for file_path in directory.rglob(f"*{ext}"):
-                # Apply ignore patterns
-                if self._should_ignore(file_path, ignore_patterns):
+                # Use gitignore manager for filtering with directory as working dir
+                if self.gitignore_manager.should_ignore(file_path, directory):
+                    continue
+
+                # Also check additional patterns
+                if ignore_patterns and any(
+                    p in str(file_path) for p in ignore_patterns
+                ):
                     continue
 
                 # Check max depth
@@ -589,6 +937,12 @@ class CodeTreeAnalyzer:
                     nodes = self.python_analyzer.analyze_file(file_path)
                 else:
                     nodes = self.multi_lang_analyzer.analyze_file(file_path, language)
+
+                    # If no nodes found and we have a valid language, emit basic file info
+                    if not nodes and language != "unknown":
+                        self.logger.debug(
+                            f"No AST nodes found for {file_path}, using basic discovery"
+                        )
 
                 # Cache results
                 self.cache[cache_key] = nodes
@@ -642,26 +996,29 @@ class CodeTreeAnalyzer:
         return {"tree": tree, "nodes": all_nodes, "stats": stats}
 
     def _should_ignore(self, file_path: Path, patterns: Optional[List[str]]) -> bool:
-        """Check if file should be ignored."""
-        if not patterns:
-            patterns = []
+        """Check if file should be ignored.
 
-        # Default ignore patterns
-        default_ignores = [
-            "__pycache__",
-            ".git",
-            "node_modules",
-            ".venv",
-            "venv",
-            "dist",
-            "build",
-            ".pytest_cache",
-            ".mypy_cache",
-        ]
+        Uses GitignoreManager for proper pattern matching.
+        """
+        # Get the working directory (use parent for files, self for directories)
+        if file_path.is_file():
+            working_dir = file_path.parent
+        else:
+            # For directories during discovery, use the parent
+            working_dir = (
+                file_path.parent if file_path.parent != file_path else Path.cwd()
+            )
 
-        all_patterns = default_ignores + patterns
+        # Use gitignore manager for checking
+        if self.gitignore_manager.should_ignore(file_path, working_dir):
+            return True
 
-        return any(pattern in str(file_path) for pattern in all_patterns)
+        # Also check any additional patterns provided
+        if patterns:
+            path_str = str(file_path)
+            return any(pattern in path_str for pattern in patterns)
+
+        return False
 
     def _get_file_hash(self, file_path: Path) -> str:
         """Get hash of file contents for caching."""
@@ -776,3 +1133,464 @@ class CodeTreeAnalyzer:
             self.logger.info(f"Saved cache with {len(self.cache)} entries")
         except Exception as e:
             self.logger.warning(f"Failed to save cache: {e}")
+
+    def has_code_files(self, directory: Path, depth: int = 5, current_depth: int = 0) -> bool:
+        """Check if directory contains code files up to 5 levels deep.
+        
+        Args:
+            directory: Directory to check
+            depth: Maximum depth to search
+            current_depth: Current recursion depth
+            
+        Returns:
+            True if directory contains code files within depth levels
+        """
+        if current_depth >= depth:
+            return False
+        
+        # Skip checking these directories entirely
+        SKIP_DIRS = {'node_modules', '__pycache__', '.git', '.venv', 'venv', 'dist', 'build', 
+                     '.tox', 'htmlcov', '.pytest_cache', '.mypy_cache', 'coverage', 
+                     '.idea', '.vscode', 'env', '.coverage', '__MACOSX', '.ipynb_checkpoints'}
+        if directory.name in SKIP_DIRS:
+            return False
+        
+        try:
+            for item in directory.iterdir():
+                # Skip hidden items in scan
+                if item.name.startswith('.'):
+                    continue
+                    
+                if item.is_file():
+                    # Check if it's a code file
+                    ext = item.suffix.lower()
+                    if ext in self.CODE_EXTENSIONS:
+                        return True
+                elif item.is_dir() and current_depth < depth - 1:
+                    if self.has_code_files(item, depth, current_depth + 1):
+                        return True
+        except (PermissionError, OSError):
+            pass
+        
+        return False
+
+    def discover_top_level(
+        self, directory: Path, ignore_patterns: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Discover only top-level directories and files for lazy loading.
+
+        Args:
+            directory: Root directory to discover
+            ignore_patterns: Patterns to ignore
+
+        Returns:
+            Dictionary with top-level structure
+        """
+        # CRITICAL FIX: Use the directory parameter as the base for relative paths
+        # NOT the current working directory. This ensures we only show items
+        # within the requested directory, not parent directories.
+        working_dir = Path(directory).absolute()
+        
+        # Emit discovery start event
+        if self.emitter:
+            from datetime import datetime
+            self.emitter.emit('info', {
+                'type': 'discovery.start',
+                'action': 'scanning_directory',
+                'path': str(directory),
+                'message': f'Starting discovery of {directory.name}',
+                'timestamp': datetime.now().isoformat()
+            })
+        
+        result = {
+            "path": str(directory),
+            "name": directory.name,
+            "type": "directory",
+            "children": [],
+        }
+
+        try:
+            # Clear cache if working directory changed
+            if self._last_working_dir != directory:
+                self.gitignore_manager.clear_cache()
+                self._last_working_dir = directory
+
+            # Get immediate children only (no recursion)
+            files_count = 0
+            dirs_count = 0
+            ignored_count = 0
+            
+            for item in directory.iterdir():
+                # Use gitignore manager for filtering with the directory as working dir
+                if self.gitignore_manager.should_ignore(item, directory):
+                    if self.emitter:
+                        from datetime import datetime
+                        self.emitter.emit('info', {
+                            'type': 'filter.gitignore',
+                            'path': str(item),
+                            'reason': 'gitignore pattern',
+                            'message': f'Ignored by gitignore: {item.name}',
+                            'timestamp': datetime.now().isoformat()
+                        })
+                    ignored_count += 1
+                    continue
+
+                # Also check additional patterns if provided
+                if ignore_patterns and any(p in str(item) for p in ignore_patterns):
+                    if self.emitter:
+                        from datetime import datetime
+                        self.emitter.emit('info', {
+                            'type': 'filter.pattern',
+                            'path': str(item),
+                            'reason': 'custom pattern',
+                            'message': f'Ignored by pattern: {item.name}',
+                            'timestamp': datetime.now().isoformat()
+                        })
+                    ignored_count += 1
+                    continue
+
+                if item.is_dir():
+                    # Only include directories that contain code files (5-level deep scan)
+                    if not self.has_code_files(item, depth=5):
+                        if self.emitter:
+                            from datetime import datetime
+                            self.emitter.emit('info', {
+                                'type': 'filter.no_code',
+                                'path': str(item.name),
+                                'reason': 'no code files',
+                                'message': f'Skipped directory without code: {item.name}',
+                                'timestamp': datetime.now().isoformat()
+                            })
+                        ignored_count += 1
+                        continue
+                    
+                    # Directory - just mark as unexplored
+                    # CRITICAL FIX: Use relative path from working directory
+                    # This prevents the frontend from showing parent directories
+                    try:
+                        relative_path = item.relative_to(working_dir)
+                        path_str = str(relative_path)
+                    except ValueError:
+                        # If somehow the item is outside working_dir, skip it
+                        self.logger.warning(f"Directory outside working dir: {item}")
+                        continue
+                    
+                    # Emit directory found event
+                    if self.emitter:
+                        from datetime import datetime
+                        self.emitter.emit('info', {
+                            'type': 'discovery.directory',
+                            'path': str(item),
+                            'message': f'Found directory: {item.name}',
+                            'timestamp': datetime.now().isoformat()
+                        })
+                    dirs_count += 1
+                    
+                    child = {
+                        "path": path_str,
+                        "name": item.name,
+                        "type": "directory",
+                        "discovered": False,
+                        "children": [],
+                    }
+                    result["children"].append(child)
+
+                    if self.emitter:
+                        self.emitter.emit_directory_discovered(path_str, [])
+
+                elif item.is_file():
+                    # Check if it's a supported code file or a special file we want to show
+                    if item.suffix in self.supported_extensions or item.name in ['.gitignore', '.env.example', '.env.sample']:
+                        # File - mark for lazy analysis
+                        language = self._get_language(item)
+                        
+                        # CRITICAL FIX: Use relative path from working directory
+                        # This prevents the frontend from showing parent directories
+                        try:
+                            relative_path = item.relative_to(working_dir)
+                            path_str = str(relative_path)
+                        except ValueError:
+                            # If somehow the item is outside working_dir, skip it
+                            self.logger.warning(f"File outside working dir: {item}")
+                            continue
+                        
+                        # Emit file found event
+                        if self.emitter:
+                            from datetime import datetime
+                            self.emitter.emit('info', {
+                                'type': 'discovery.file',
+                                'path': str(item),
+                                'language': language,
+                                'size': item.stat().st_size,
+                                'message': f'Found file: {item.name} ({language})',
+                                'timestamp': datetime.now().isoformat()
+                            })
+                        files_count += 1
+                        
+                        child = {
+                            "path": path_str,
+                            "name": item.name,
+                            "type": "file",
+                            "language": language,
+                            "size": item.stat().st_size,
+                            "analyzed": False,
+                        }
+                        result["children"].append(child)
+
+                        if self.emitter:
+                            self.emitter.emit_file_discovered(
+                                path_str, language, item.stat().st_size
+                            )
+
+        except PermissionError as e:
+            self.logger.warning(f"Permission denied accessing {directory}: {e}")
+            if self.emitter:
+                self.emitter.emit_error(str(directory), f"Permission denied: {e}")
+
+        # Emit discovery complete event with stats
+        if self.emitter:
+            from datetime import datetime
+            self.emitter.emit('info', {
+                'type': 'discovery.complete',
+                'path': str(directory),
+                'stats': {
+                    'files': files_count,
+                    'directories': dirs_count,
+                    'ignored': ignored_count
+                },
+                'message': f'Discovery complete: {files_count} files, {dirs_count} directories, {ignored_count} ignored',
+                'timestamp': datetime.now().isoformat()
+            })
+
+        return result
+
+    def discover_directory(
+        self, dir_path: str, ignore_patterns: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Discover contents of a specific directory for lazy loading.
+
+        Args:
+            dir_path: Directory path to discover
+            ignore_patterns: Patterns to ignore
+
+        Returns:
+            Dictionary with directory contents
+        """
+        directory = Path(dir_path)
+        if not directory.exists() or not directory.is_dir():
+            return {"error": f"Invalid directory: {dir_path}"}
+
+        # Clear cache if working directory changed
+        if self._last_working_dir != directory.parent:
+            self.gitignore_manager.clear_cache()
+            self._last_working_dir = directory.parent
+
+        # The discover_top_level method will emit all the INFO events
+        return self.discover_top_level(directory, ignore_patterns)
+
+    def analyze_file(self, file_path: str) -> Dict[str, Any]:
+        """Analyze a specific file and return its AST structure.
+
+        Args:
+            file_path: Path to file to analyze
+
+        Returns:
+            Dictionary with file analysis results
+        """
+        path = Path(file_path)
+        if not path.exists() or not path.is_file():
+            return {"error": f"Invalid file: {file_path}"}
+
+        # Get language first (needed for return statement)
+        language = self._get_language(path)
+
+        # Emit analysis start event
+        if self.emitter:
+            from datetime import datetime
+            self.emitter.emit('info', {
+                'type': 'analysis.start',
+                'file': str(path),
+                'language': language,
+                'message': f'Analyzing: {path.name}',
+                'timestamp': datetime.now().isoformat()
+            })
+
+        # Check cache
+        file_hash = self._get_file_hash(path)
+        cache_key = f"{file_path}:{file_hash}"
+
+        if cache_key in self.cache:
+            nodes = self.cache[cache_key]
+            if self.emitter:
+                from datetime import datetime
+                self.emitter.emit('info', {
+                    'type': 'cache.hit',
+                    'file': str(path),
+                    'message': f'Using cached analysis for {path.name}',
+                    'timestamp': datetime.now().isoformat()
+                })
+        else:
+            # Analyze file
+            if self.emitter:
+                from datetime import datetime
+                self.emitter.emit('info', {
+                    'type': 'cache.miss',
+                    'file': str(path),
+                    'message': f'Cache miss, analyzing fresh: {path.name}',
+                    'timestamp': datetime.now().isoformat()
+                })
+
+            if language == "python":
+                analyzer = self.python_analyzer
+            elif language == "javascript" or language == "typescript":
+                analyzer = self.javascript_analyzer
+            else:
+                analyzer = self.generic_analyzer
+
+            start_time = time.time()
+            
+            # Emit parsing event
+            if self.emitter:
+                from datetime import datetime
+                self.emitter.emit('info', {
+                    'type': 'analysis.parse',
+                    'file': str(path),
+                    'message': f'Parsing file content: {path.name}',
+                    'timestamp': datetime.now().isoformat()
+                })
+            
+            nodes = analyzer.analyze_file(path) if analyzer else []
+            duration = time.time() - start_time
+
+            # Cache results
+            self.cache[cache_key] = nodes
+
+            # Filter internal functions before emitting
+            filtered_nodes = []
+            classes_count = 0
+            functions_count = 0
+            methods_count = 0
+            
+            for node in nodes:
+                # Only include main structural elements
+                if not self._is_internal_node(node):
+                    # Emit found element event
+                    if self.emitter:
+                        from datetime import datetime
+                        self.emitter.emit('info', {
+                            'type': f'analysis.{node.node_type}',
+                            'name': node.name,
+                            'file': str(path),
+                            'line_start': node.line_start,
+                            'complexity': node.complexity,
+                            'message': f'Found {node.node_type}: {node.name}',
+                            'timestamp': datetime.now().isoformat()
+                        })
+                        
+                        # Count node types
+                        if node.node_type == 'class':
+                            classes_count += 1
+                        elif node.node_type == 'function':
+                            functions_count += 1
+                        elif node.node_type == 'method':
+                            methods_count += 1
+                    
+                    filtered_nodes.append(
+                        {
+                            "name": node.name,
+                            "type": node.node_type,
+                            "line_start": node.line_start,
+                            "line_end": node.line_end,
+                            "complexity": node.complexity,
+                            "has_docstring": node.has_docstring,
+                            "signature": node.signature,
+                        }
+                    )
+
+            # Emit analysis complete event with stats
+            if self.emitter:
+                from datetime import datetime
+                self.emitter.emit('info', {
+                    'type': 'analysis.complete',
+                    'file': str(path),
+                    'stats': {
+                        'classes': classes_count,
+                        'functions': functions_count,
+                        'methods': methods_count,
+                        'total_nodes': len(filtered_nodes)
+                    },
+                    'duration': duration,
+                    'message': f'Analysis complete: {classes_count} classes, {functions_count} functions, {methods_count} methods',
+                    'timestamp': datetime.now().isoformat()
+                })
+                
+                self.emitter.emit_file_analyzed(file_path, filtered_nodes, duration)
+
+        return {
+            "path": file_path,
+            "language": language,
+            "nodes": (
+                filtered_nodes
+                if "filtered_nodes" in locals()
+                else [
+                    {
+                        "name": n.name,
+                        "type": n.node_type,
+                        "line_start": n.line_start,
+                        "line_end": n.line_end,
+                        "complexity": n.complexity,
+                        "has_docstring": n.has_docstring,
+                        "signature": n.signature,
+                    }
+                    for n in nodes
+                    if not self._is_internal_node(n)
+                ]
+            ),
+        }
+
+    def _is_internal_node(self, node: CodeNode) -> bool:
+        """Check if node is an internal function that should be filtered."""
+        # Filter patterns for internal functions
+        internal_patterns = [
+            "handle",  # Event handlers
+            "on_",  # Event callbacks
+            "_",  # Private methods
+            "get_",  # Simple getters
+            "set_",  # Simple setters
+            "__",  # Python magic methods
+        ]
+
+        name_lower = node.name.lower()
+
+        # Don't filter classes or important public methods
+        if node.node_type == "class":
+            return False
+
+        # Check patterns
+        for pattern in internal_patterns:
+            if name_lower.startswith(pattern):
+                # Exception: include __init__ methods
+                if node.name == "__init__":
+                    return False
+                return True
+
+        return False
+
+    @property
+    def supported_extensions(self):
+        """Get list of supported file extensions."""
+        return {".py", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"}
+
+    def _get_language(self, file_path: Path) -> str:
+        """Determine language from file extension."""
+        ext = file_path.suffix.lower()
+        language_map = {
+            ".py": "python",
+            ".js": "javascript",
+            ".jsx": "javascript",
+            ".ts": "typescript",
+            ".tsx": "typescript",
+            ".mjs": "javascript",
+            ".cjs": "javascript",
+        }
+        return language_map.get(ext, "unknown")

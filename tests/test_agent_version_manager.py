@@ -138,19 +138,13 @@ class TestAgentVersionManager:
         <!-- BASE_AGENT_VERSION: 3 -->
         """
 
-        agent_version = self.extract_version_from_content(
-            content, "AGENT_VERSION:"
-        )
+        agent_version = self.extract_version_from_content(content, "AGENT_VERSION:")
         assert agent_version == 5
 
-        base_version = self.extract_version_from_content(
-            content, "BASE_AGENT_VERSION:"
-        )
+        base_version = self.extract_version_from_content(content, "BASE_AGENT_VERSION:")
         assert base_version == 3
 
-        missing_version = self.extract_version_from_content(
-            content, "MISSING:"
-        )
+        missing_version = self.extract_version_from_content(content, "MISSING:")
         assert missing_version == 0
 
     def test_extract_version_from_frontmatter_semantic(self):

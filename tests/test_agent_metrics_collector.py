@@ -183,9 +183,7 @@ class TestAgentMetricsCollector:
         self.track_validation_time("qa-agent", 30.0)
 
         # Validation times are stored internally
-        validation_times = self._deployment_metrics[
-            "template_validation_times"
-        ]
+        validation_times = self._deployment_metrics["template_validation_times"]
         assert validation_times["test-agent"] == 25.5
         assert validation_times["qa-agent"] == 30.0
 

@@ -51,6 +51,12 @@ class ActivityTree {
             }
         }
         
+        // Clear any existing text content that might be in the container
+        if (this.container.textContent && this.container.textContent.trim()) {
+            console.log('Clearing existing text content from container:', this.container.textContent);
+            this.container.textContent = '';
+        }
+        
         console.log('Activity tree container found:', this.container);
         
         // Check if the container is visible before initializing
@@ -63,6 +69,10 @@ class ActivityTree {
         // Initialize even if tab is not active, but don't render until visible
         if (!tabPanel.classList.contains('active')) {
             console.log('Activity tab not active, initializing but deferring render');
+            // Clear any text content that might be showing
+            if (this.container.textContent && this.container.textContent.trim()) {
+                this.container.textContent = '';
+            }
             // Set up basic structure but defer visualization
             this.setupControls();
             this.initializeTreeData();
@@ -71,16 +81,33 @@ class ActivityTree {
             return;
         }
 
+        // Clear container before creating visualization
+        if (this.container.textContent && this.container.textContent.trim()) {
+            console.log('Clearing container text before creating visualization');
+            this.container.textContent = '';
+        }
+        
         this.setupControls();
         this.createVisualization();
         
         if (!this.svg || !this.treeGroup) {
             console.error('Failed to create D3 visualization elements');
+            // Show error message in container
+            if (this.container) {
+                this.container.innerHTML = '<div style="padding: 20px; text-align: center; color: #e53e3e;">⚠️ Failed to create visualization. Please refresh the page.</div>';
+            }
             return;
         }
         
         this.initializeTreeData();
-        this.update(this.root);
+        
+        // Only update if we have a valid root
+        if (this.root) {
+            this.update(this.root);
+        } else {
+            console.warn('Root not created, skipping initial update');
+        }
+        
         this.subscribeToEvents();
         
         this.initialized = true;
@@ -88,10 +115,62 @@ class ActivityTree {
     }
 
     /**
+     * Force show the tree visualization
+     */
+    forceShow() {
+        console.log('ActivityTree.forceShow() called');
+        
+        // Ensure container is available
+        if (!this.container) {
+            this.container = document.getElementById('activity-tree-container') || document.getElementById('activity-tree');
+            if (!this.container) {
+                console.error('Cannot find activity tree container');
+                return;
+            }
+        }
+        
+        // Clear any text content
+        if (this.container.textContent && this.container.textContent.trim()) {
+            console.log('Clearing text from container:', this.container.textContent);
+            this.container.innerHTML = '';
+        }
+        
+        // Create visualization if needed
+        if (!this.svg) {
+            this.createVisualization();
+        }
+        
+        // Initialize tree data if needed
+        if (!this.root) {
+            this.initializeTreeData();
+        }
+        
+        // Update the tree
+        if (this.root && this.svg && this.treeGroup) {
+            this.update(this.root);
+        }
+        
+        // Ensure the SVG is visible
+        if (this.svg) {
+            const svgNode = this.svg.node();
+            if (svgNode) {
+                svgNode.style.display = 'block';
+                svgNode.style.visibility = 'visible';
+            }
+        }
+    }
+    
+    /**
      * Render the visualization when tab becomes visible (called when switching to Activity tab)
      */
     renderWhenVisible() {
         console.log('ActivityTree.renderWhenVisible() called');
+        
+        // Ensure the container is clean
+        if (this.container && this.container.textContent && this.container.textContent.trim() && !this.svg) {
+            console.log('Clearing text content before rendering:', this.container.textContent);
+            this.container.textContent = '';
+        }
         
         if (!this.initialized) {
             console.log('Not initialized yet, calling initialize...');
@@ -103,8 +182,14 @@ class ActivityTree {
         if (!this.svg) {
             console.log('Creating deferred visualization...');
             this.createVisualization();
-            if (this.svg && this.treeGroup) {
+            if (this.svg && this.treeGroup && this.root) {
                 this.update(this.root);
+            } else if (!this.root) {
+                console.warn('No root node available, initializing tree data...');
+                this.initializeTreeData();
+                if (this.root && this.svg && this.treeGroup) {
+                    this.update(this.root);
+                }
             }
         }
         
@@ -112,6 +197,12 @@ class ActivityTree {
         if (this.root && this.svg) {
             console.log('Updating tree with current data...');
             this.update(this.root);
+        } else {
+            console.warn('Cannot update tree - missing components:', {
+                hasRoot: !!this.root,
+                hasSvg: !!this.svg,
+                hasTreeGroup: !!this.treeGroup
+            });
         }
     }
 
@@ -163,6 +254,10 @@ class ActivityTree {
         // Check if D3 is available
         if (typeof d3 === 'undefined') {
             console.error('D3.js is not loaded! Cannot create activity tree visualization.');
+            // Try to display an error message in the container
+            if (this.container) {
+                this.container.innerHTML = '<div style="padding: 20px; text-align: center; color: #e53e3e;">⚠️ D3.js is not loaded. Cannot create visualization.</div>';
+            }
             return;
         }
 
@@ -173,8 +268,8 @@ class ActivityTree {
 
         console.log('Creating D3 visualization with dimensions:', { width: this.width, height: this.height });
 
-        // Clear any existing SVG
-        d3.select(this.container).select('svg').remove();
+        // Clear any existing content (including text)
+        d3.select(this.container).selectAll('*').remove();
 
         // Create SVG
         this.svg = d3.select(this.container)
@@ -230,6 +325,10 @@ class ActivityTree {
         // Check if D3 is available
         if (typeof d3 === 'undefined') {
             console.error('ActivityTree: D3 is not available - cannot create hierarchy!');
+            // Try to display an error message
+            if (this.container) {
+                this.container.innerHTML = '<div style="padding: 20px; text-align: center; color: #e53e3e;">⚠️ Waiting for D3.js to load...</div>';
+            }
             return;
         }
 
@@ -238,6 +337,9 @@ class ActivityTree {
         this.root.y0 = 0;
         
         console.log('ActivityTree: Root node created:', this.root);
+        
+        // Update stats immediately after creating root
+        this.updateStats();
     }
 
     /**
@@ -665,23 +767,74 @@ class ActivityTree {
     update(source) {
         console.log('ActivityTree: update() called with source:', source);
         
+        // Check if D3 is available
+        if (typeof d3 === 'undefined') {
+            console.error('ActivityTree: Cannot update - D3.js not loaded');
+            return;
+        }
+        
         // Check if visualization is ready
         if (!this.svg || !this.treeGroup) {
             console.warn('ActivityTree: Cannot update - SVG not initialized');
-            return;
+            // Try to create visualization if container exists
+            if (this.container) {
+                console.log('Attempting to create visualization from update()');
+                this.createVisualization();
+                // Check again after creation attempt
+                if (!this.svg || !this.treeGroup) {
+                    console.error('Failed to create visualization in update()');
+                    return;
+                }
+            } else {
+                return;
+            }
         }
         
         if (!this.treeLayout) {
             console.warn('ActivityTree: Cannot update - tree layout not initialized');
+            // Try to create tree layout
+            if (typeof d3 !== 'undefined') {
+                this.treeLayout = d3.tree().size([this.height, this.width]);
+                console.log('Created tree layout in update()');
+            } else {
+                return;
+            }
+        }
+        
+        // Ensure source has valid data
+        if (!source || !source.data) {
+            console.error('ActivityTree: Invalid source in update()', source);
+            return;
+        }
+        
+        // Ensure we have a valid root
+        if (!this.root) {
+            console.error('ActivityTree: No root node available for update');
             return;
         }
         
         // Compute the new tree layout
-        const treeData = this.treeLayout(this.root);
+        let treeData;
+        try {
+            treeData = this.treeLayout(this.root);
+        } catch (error) {
+            console.error('ActivityTree: Error computing tree layout:', error);
+            return;
+        }
+        
         const nodes = treeData.descendants();
         const links = treeData.links();
         
         console.log(`ActivityTree: Updating tree with ${nodes.length} nodes`);
+        
+        // Check if we actually have the tree container
+        if (nodes.length === 1 && this.container) {
+            // Only root node exists, ensure container shows the tree
+            const svgElement = this.container.querySelector('svg');
+            if (!svgElement) {
+                console.warn('SVG element not found in container after update');
+            }
+        }
 
         // Normalize for fixed-depth
         nodes.forEach((d) => {
@@ -969,13 +1122,33 @@ class ActivityTree {
      * Update statistics
      */
     updateStats() {
+        // Check if we have a valid root node
+        if (!this.root || !this.root.data) {
+            console.warn('ActivityTree: Cannot update stats - root not initialized');
+            // Set default values
+            const nodeCountEl = document.getElementById('node-count');
+            const activeCountEl = document.getElementById('active-count');
+            const depthEl = document.getElementById('tree-depth');
+            
+            if (nodeCountEl) nodeCountEl.textContent = '1';
+            if (activeCountEl) activeCountEl.textContent = '0';
+            if (depthEl) depthEl.textContent = '0';
+            return;
+        }
+        
         const nodeCount = this.countNodes(this.root);
         const activeCount = this.countActiveNodes(this.root.data);
         const depth = this.getTreeDepth(this.root);
 
-        document.getElementById('node-count').textContent = nodeCount;
-        document.getElementById('active-count').textContent = activeCount;
-        document.getElementById('tree-depth').textContent = depth;
+        const nodeCountEl = document.getElementById('node-count');
+        const activeCountEl = document.getElementById('active-count');
+        const depthEl = document.getElementById('tree-depth');
+        
+        if (nodeCountEl) nodeCountEl.textContent = nodeCount;
+        if (activeCountEl) activeCountEl.textContent = activeCount;
+        if (depthEl) depthEl.textContent = depth;
+        
+        console.log(`ActivityTree: Stats updated - Nodes: ${nodeCount}, Active: ${activeCount}, Depth: ${depth}`);
     }
 
     /**
@@ -1081,6 +1254,14 @@ const setupActivityTreeListeners = () => {
             // Store instance globally for dashboard access
             window.activityTreeInstance = activityTree;
         }
+        
+        // Ensure the container is ready and clear any text
+        const container = document.getElementById('activity-tree-container') || document.getElementById('activity-tree');
+        if (container && container.textContent && container.textContent.trim()) {
+            console.log('Clearing text from activity tree container before init:', container.textContent);
+            container.textContent = '';
+        }
+        
         // Always try to initialize when tab becomes active, even if instance exists
         // Small delay to ensure DOM is ready and tab is visible
         setTimeout(() => {
@@ -1097,9 +1278,13 @@ const setupActivityTreeListeners = () => {
             if (tabName === 'activity') {
                 console.log('Activity tab button clicked, initializing tree...');
                 initializeActivityTree();
-                // Also call renderWhenVisible to ensure proper rendering
+                // Also call renderWhenVisible and forceShow to ensure proper rendering
                 if (activityTree) {
-                    setTimeout(() => activityTree.renderWhenVisible(), 150);
+                    setTimeout(() => {
+                        activityTree.renderWhenVisible();
+                        // Force show to ensure SVG is visible
+                        activityTree.forceShow();
+                    }, 150);
                 }
             }
         });
@@ -1110,9 +1295,13 @@ const setupActivityTreeListeners = () => {
         if (e.detail && e.detail.newTab === 'activity') {
             console.log('Tab changed to activity, initializing tree...');
             initializeActivityTree();
-            // Also call renderWhenVisible to ensure proper rendering
+            // Also call renderWhenVisible and forceShow to ensure proper rendering
             if (activityTree) {
-                setTimeout(() => activityTree.renderWhenVisible(), 150);
+                setTimeout(() => {
+                    activityTree.renderWhenVisible();
+                    // Force show to ensure SVG is visible
+                    activityTree.forceShow();
+                }, 150);
             }
         }
     });
@@ -1120,7 +1309,17 @@ const setupActivityTreeListeners = () => {
     // Check if activity tab is already active on load
     const activeTab = document.querySelector('.tab-button.active');
     if (activeTab && activeTab.getAttribute('data-tab') === 'activity') {
+        console.log('Activity tab is active on load, initializing tree...');
         initializeActivityTree();
+    }
+    
+    // Also check the tab panel directly
+    const activityPanel = document.getElementById('activity-tab');
+    if (activityPanel && activityPanel.classList.contains('active')) {
+        console.log('Activity panel is active on load, initializing tree...');
+        if (!activityTree) {
+            initializeActivityTree();
+        }
     }
 
     // Export for debugging

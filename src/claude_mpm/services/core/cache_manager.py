@@ -307,4 +307,3 @@ class CacheManager(ICacheManager):
                 },
                 "fs_cache": self._fs_cache.get_stats() if self._fs_cache else {},
             }
-

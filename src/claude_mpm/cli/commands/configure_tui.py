@@ -1623,7 +1623,9 @@ class ConfigureTUI(App):
         Binding("ctrl+left", "focus_prev_pane", "Prev Pane", show=False),
     ]
 
-    def __init__(self, current_scope: str = "project", project_dir: Optional[Path] = None):
+    def __init__(
+        self, current_scope: str = "project", project_dir: Optional[Path] = None
+    ):
         super().__init__()
         self.current_scope = current_scope
         self.project_dir = project_dir or Path.cwd()

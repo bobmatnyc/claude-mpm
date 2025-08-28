@@ -386,9 +386,7 @@ class CacheBenchmark:
             expected_size_mb = sum(size * entries_per_size for size in data_sizes) / (
                 1024 * 1024
             )
-            (
-                (expected_size_mb / memory_growth * 100) if memory_growth > 0 else 0
-            )
+            ((expected_size_mb / memory_growth * 100) if memory_growth > 0 else 0)
 
             return CacheTestResult(
                 test_name="Memory Efficiency",
