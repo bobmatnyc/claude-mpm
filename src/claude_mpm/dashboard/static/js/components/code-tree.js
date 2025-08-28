@@ -175,24 +175,8 @@ class CodeTree {
             toggleLegendBtn.addEventListener('click', () => this.toggleLegend());
         }
         
-        // Listen for show hidden files toggle
-        const showHiddenFilesCheckbox = document.getElementById('show-hidden-files');
-        if (showHiddenFilesCheckbox) {
-            showHiddenFilesCheckbox.addEventListener('change', () => {
-                // Clear tree and re-discover with new settings
-                this.autoDiscovered = false;
-                this.initializeTreeData();
-                this.autoDiscoverRootLevel();
-                this.showNotification(
-                    showHiddenFilesCheckbox.checked ? 'Showing hidden files' : 'Hiding hidden files', 
-                    'info'
-                );
-            });
-        }
-        
         // Listen for working directory changes
         document.addEventListener('workingDirectoryChanged', (e) => {
-            console.log('Working directory changed to:', e.detail.directory);
             this.onWorkingDirectoryChanged(e.detail.directory);
         });
     }
@@ -403,16 +387,30 @@ class CodeTree {
     }
 
     /**
+     * Clear all D3 visualization elements
+     */
+    clearD3Visualization() {
+        if (this.treeGroup) {
+            // Remove all existing nodes and links
+            this.treeGroup.selectAll('g.node').remove();
+            this.treeGroup.selectAll('path.link').remove();
+        }
+        // Reset node ID counter for proper tracking
+        this.nodeId = 0;
+    }
+    
+    /**
      * Initialize tree data structure
      */
     initializeTreeData() {
         const workingDir = this.getWorkingDirectory();
         const dirName = workingDir ? workingDir.split('/').pop() || 'Project Root' : 'Project Root';
-        const path = workingDir || '.';
         
+        // Use '.' as the root path for consistency with relative path handling
+        // The actual working directory is retrieved via getWorkingDirectory() when needed
         this.treeData = {
             name: dirName,
-            path: path,
+            path: '.',  // Always use '.' for root to simplify path handling
             type: 'root',
             children: [],
             loaded: false,
@@ -470,7 +468,6 @@ class CodeTree {
             return;
         }
         
-        console.log('Auto-discovering root level for:', workingDir);
         
         this.autoDiscovered = true;
         this.analyzing = true;
@@ -494,7 +491,7 @@ class CodeTree {
         const dirName = workingDir.split('/').pop() || 'Project Root';
         this.treeData = {
             name: dirName,
-            path: workingDir,
+            path: '.',  // Use '.' for root to maintain consistency with relative path handling
             type: 'root',
             children: [],
             loaded: false,
@@ -520,12 +517,7 @@ class CodeTree {
         // Get ignore patterns
         const ignorePatterns = document.getElementById('ignore-patterns')?.value || '';
         
-        // Get show hidden files setting
-        const showHiddenFiles = document.getElementById('show-hidden-files')?.checked || false;
-        
-        // Debug logging
-        console.log('[DEBUG] Show hidden files checkbox value:', showHiddenFiles);
-        console.log('[DEBUG] Checkbox element:', document.getElementById('show-hidden-files'));
+        // Enhanced debug logging
         
         // Request top-level discovery with working directory
         const requestPayload = {
@@ -533,10 +525,10 @@ class CodeTree {
             depth: 'top_level',
             languages: selectedLanguages,
             ignore_patterns: ignorePatterns,
-            show_hidden_files: showHiddenFiles
+            request_id: `discover_${Date.now()}`  // Add request ID for tracking
         };
         
-        console.log('[DEBUG] Sending discovery request with payload:', requestPayload);
+        // Sending top-level discovery request
         
         if (this.socket) {
             this.socket.emit('code:discover:top_level', requestPayload);
@@ -637,6 +629,7 @@ class CodeTree {
         this.socket.on('code:analysis:error', (data) => this.onAnalysisError(data));
 
         // Node discovery events
+        this.socket.on('code:top_level:discovered', (data) => this.onTopLevelDiscovered(data));
         this.socket.on('code:directory:discovered', (data) => this.onDirectoryDiscovered(data));
         this.socket.on('code:file:discovered', (data) => this.onFileDiscovered(data));
         this.socket.on('code:file:analyzed', (data) => this.onFileAnalyzed(data));
@@ -649,27 +642,73 @@ class CodeTree {
         this.socket.on('code:directory:contents', (data) => {
             // Update the requested directory with its contents
             if (data.path) {
-                const node = this.findNodeByPath(data.path);
+                // Convert absolute path back to relative path to match tree nodes
+                let searchPath = data.path;
+                const workingDir = this.getWorkingDirectory();
+                if (workingDir && searchPath.startsWith(workingDir)) {
+                    // Remove working directory prefix to get relative path
+                    searchPath = searchPath.substring(workingDir.length).replace(/^\//, '');
+                    // If empty after removing prefix, it's the root
+                    if (!searchPath) {
+                        searchPath = '.';
+                    }
+                }
+                
+                const node = this.findNodeByPath(searchPath);
                 if (node && data.children) {
-                    // Find D3 node and remove loading pulse
-                    const d3Node = this.findD3NodeByPath(data.path);
-                    if (d3Node && this.loadingNodes.has(data.path)) {
+                    // Find D3 node and remove loading pulse (use searchPath, not data.path)
+                    const d3Node = this.findD3NodeByPath(searchPath);
+                    if (d3Node && this.loadingNodes.has(searchPath)) {
                         this.removeLoadingPulse(d3Node);
                     }
-                    node.children = data.children.map(child => ({
-                        ...child,
-                        loaded: child.type === 'directory' ? false : undefined,
-                        analyzed: child.type === 'file' ? false : undefined,
-                        expanded: false,
-                        children: []
-                    }));
+                    node.children = data.children.map(child => {
+                        // Construct full path for child by combining parent path with child name
+                        // The backend now returns just the item name, not the full path
+                        let childPath;
+                        if (searchPath === '.' || searchPath === '') {
+                            // Root level - child path is just the name
+                            childPath = child.name || child.path;
+                        } else {
+                            // Subdirectory - combine parent path with child name
+                            // Use child.name (backend returns just the name) or fallback to child.path
+                            const childName = child.name || child.path;
+                            childPath = `${searchPath}/${childName}`;
+                        }
+                        
+                        return {
+                            ...child,
+                            path: childPath,  // Override with constructed path
+                            loaded: child.type === 'directory' ? false : undefined,
+                            analyzed: child.type === 'file' ? false : undefined,
+                            expanded: false,
+                            children: []
+                        };
+                    });
                     node.loaded = true;
+                    node.expanded = true; // Mark as expanded to show children
                     
-                    // Update D3 hierarchy
+                    // Update D3 hierarchy and make sure the node is expanded
                     if (this.root && this.svg) {
+                        // Store old root to preserve expansion state
+                        const oldRoot = this.root;
+                        
+                        // Recreate hierarchy with updated data
                         this.root = d3.hierarchy(this.treeData);
                         this.root.x0 = this.height / 2;
                         this.root.y0 = 0;
+                        
+                        // Preserve expansion state from old tree
+                        this.preserveExpansionState(oldRoot, this.root);
+                        
+                        // Find the D3 node again after hierarchy recreation
+                        const updatedD3Node = this.findD3NodeByPath(searchPath);
+                        if (updatedD3Node) {
+                            // Ensure children are visible (not collapsed)
+                            updatedD3Node.children = updatedD3Node._children || updatedD3Node.children;
+                            updatedD3Node._children = null;
+                            updatedD3Node.data.expanded = true;
+                        }
+                        
                         this.update(this.root);
                     }
                     
@@ -689,6 +728,7 @@ class CodeTree {
         // Top level discovery response
         this.socket.on('code:top_level:discovered', (data) => {
             if (data.items && Array.isArray(data.items)) {
+                
                 // Add discovered items to the root node
                 this.treeData.children = data.items.map(item => ({
                     name: item.name,
@@ -713,9 +753,14 @@ class CodeTree {
                 
                 // Update D3 hierarchy
                 if (typeof d3 !== 'undefined') {
+                    // Clear any existing nodes before creating new ones
+                    this.clearD3Visualization();
+                    
+                    // Create new hierarchy
                     this.root = d3.hierarchy(this.treeData);
                     this.root.x0 = this.height / 2;
                     this.root.y0 = 0;
+                    
                     if (this.svg) {
                         this.update(this.root);
                     }
@@ -759,6 +804,77 @@ class CodeTree {
     }
 
     /**
+     * Handle top-level discovery event (initial root directory scan)
+     */
+    onTopLevelDiscovered(data) {
+        // Received top-level discovery response
+        
+        // Update activity ticker
+        this.updateActivityTicker(`📁 Discovered ${(data.items || []).length} top-level items`, 'success');
+        
+        // Add to events display
+        this.addEventToDisplay(`📁 Found ${(data.items || []).length} top-level items in project root`, 'info');
+        
+        // The root node (with path '.') should receive the children
+        const rootNode = this.findNodeByPath('.');
+        
+        console.log('🔎 Looking for root node with path ".", found:', rootNode ? {
+            name: rootNode.name,
+            path: rootNode.path,
+            currentChildren: rootNode.children ? rootNode.children.length : 0
+        } : 'NOT FOUND');
+        
+        if (rootNode && data.items) {
+            console.log('🌳 Populating root node with children');
+            
+            // Update the root node with discovered children
+            rootNode.children = data.items.map(child => {
+                // Items at root level get their name as the path
+                const childPath = child.name;
+                
+                console.log(`  Adding child: ${child.name} with path: ${childPath}`);
+                
+                return {
+                    name: child.name,
+                    path: childPath,  // Just the name for top-level items
+                    type: child.type,
+                    loaded: child.type === 'directory' ? false : undefined,
+                    analyzed: child.type === 'file' ? false : undefined,
+                    expanded: false,
+                    children: child.type === 'directory' ? [] : undefined,
+                    size: child.size,
+                    has_code: child.has_code
+                };
+            });
+            
+            rootNode.loaded = true;
+            rootNode.expanded = true;
+            
+            // Update D3 hierarchy and render
+            if (this.root && this.svg) {
+                // Recreate hierarchy with new data
+                this.root = d3.hierarchy(this.treeData);
+                this.root.x0 = this.height / 2;
+                this.root.y0 = 0;
+                
+                // Update the tree visualization
+                this.update(this.root);
+            }
+            
+            // Hide loading and show success
+            this.hideLoading();
+            this.updateBreadcrumb(`Discovered ${data.items.length} items`, 'success');
+            this.showNotification(`Found ${data.items.length} top-level items`, 'success');
+        } else {
+            console.error('❌ Could not find root node to populate');
+            this.showNotification('Failed to populate root directory', 'error');
+        }
+        
+        // Mark analysis as complete
+        this.analyzing = false;
+    }
+    
+    /**
      * Handle directory discovered event
      */
     onDirectoryDiscovered(data) {
@@ -768,48 +884,106 @@ class CodeTree {
         // Add to events display
         this.addEventToDisplay(`📁 Found ${(data.children || []).length} items in: ${data.name || data.path}`, 'info');
         
+        console.log('📥 Received directory discovery:', {
+            path: data.path,
+            name: data.name,
+            childrenCount: (data.children || []).length,
+            children: (data.children || []).map(c => ({ name: c.name, type: c.type })),
+            workingDir: this.getWorkingDirectory()
+        });
+        
+        // Convert absolute path back to relative path to match tree nodes
+        let searchPath = data.path;
+        const workingDir = this.getWorkingDirectory();
+        if (workingDir && searchPath.startsWith(workingDir)) {
+            // Remove working directory prefix to get relative path
+            searchPath = searchPath.substring(workingDir.length).replace(/^\//, '');
+            // If empty after removing prefix, it's the root
+            if (!searchPath) {
+                searchPath = '.';
+            }
+        }
+        
+        console.log('🔎 Searching for node with path:', searchPath);
+        
         // Find the node that was clicked to trigger this discovery
-        const node = this.findNodeByPath(data.path);
+        const node = this.findNodeByPath(searchPath);
+        
+        // Located target node for expansion
+        
         if (node && data.children) {
             // Update the node with discovered children
-            node.children = data.children.map(child => ({
-                name: child.name,
-                path: child.path,
-                type: child.type,
-                loaded: child.type === 'directory' ? false : undefined,
-                analyzed: child.type === 'file' ? false : undefined,
-                expanded: false,
-                children: child.type === 'directory' ? [] : undefined,
-                size: child.size,
-                has_code: child.has_code
-            }));
+            node.children = data.children.map(child => {
+                // Construct full path for child by combining parent path with child name
+                // The backend now returns just the item name, not the full path
+                let childPath;
+                if (searchPath === '.' || searchPath === '') {
+                    // Root level - child path is just the name
+                    childPath = child.name || child.path;
+                } else {
+                    // Subdirectory - combine parent path with child name
+                    // Use child.name (backend returns just the name) or fallback to child.path
+                    const childName = child.name || child.path;
+                    childPath = `${searchPath}/${childName}`;
+                }
+                
+                return {
+                    name: child.name,
+                    path: childPath,  // Use constructed path instead of child.path
+                    type: child.type,
+                    loaded: child.type === 'directory' ? false : undefined,
+                    analyzed: child.type === 'file' ? false : undefined,
+                    expanded: false,
+                    children: child.type === 'directory' ? [] : undefined,
+                    size: child.size,
+                    has_code: child.has_code
+                };
+            });
             node.loaded = true;
             node.expanded = true;
             
-            // Find D3 node and remove loading pulse
-            const d3Node = this.findD3NodeByPath(data.path);
+            // Find D3 node and remove loading pulse (use searchPath, not data.path)
+            const d3Node = this.findD3NodeByPath(searchPath);
             if (d3Node) {
                 // Remove loading animation
-                if (this.loadingNodes.has(data.path)) {
+                if (this.loadingNodes.has(searchPath)) {
                     this.removeLoadingPulse(d3Node);
-                }
-                
-                // Expand the node in D3
-                if (d3Node.data) {
-                    d3Node.data.children = node.children;
-                    d3Node._children = null;
                 }
             }
             
-            // Update D3 hierarchy and redraw
+            // Update D3 hierarchy and redraw with expanded node
             if (this.root && this.svg) {
+                // Store old root to preserve expansion state
+                const oldRoot = this.root;
+                
+                // Recreate hierarchy with updated data
                 this.root = d3.hierarchy(this.treeData);
+                
+                // Restore positions for smooth animation
+                this.root.x0 = this.height / 2;
+                this.root.y0 = 0;
+                
+                // Preserve expansion state from old tree
+                this.preserveExpansionState(oldRoot, this.root);
+                
+                // Find the D3 node again after hierarchy recreation
+                const updatedD3Node = this.findD3NodeByPath(searchPath);
+                if (updatedD3Node && updatedD3Node.data.children && updatedD3Node.data.children.length > 0) {
+                    // Ensure the node is expanded to show children
+                    updatedD3Node.children = updatedD3Node._children || updatedD3Node.children;
+                    updatedD3Node._children = null;
+                    // Mark data as expanded
+                    updatedD3Node.data.expanded = true;
+                }
+                
                 this.update(this.root);
             }
             
             this.updateBreadcrumb(`Loaded ${node.children.length} items from ${node.name}`, 'success');
             this.updateStats();
         } else if (!node) {
+            this.logAllPaths(this.treeData);
+        } else if (node && !data.children) {
             // This might be a top-level directory discovery
             const pathParts = data.path ? data.path.split('/').filter(p => p) : [];
             const isTopLevel = pathParts.length === 1;
@@ -1069,7 +1243,6 @@ class CodeTree {
      */
     onInfoEvent(data) {
         // Log to console for debugging
-        console.log('[INFO]', data.type, data.message);
         
         // Update breadcrumb for certain events
         if (data.type && data.type.startsWith('discovery.')) {
@@ -1080,7 +1253,6 @@ class CodeTree {
                 this.updateBreadcrumb(data.message, 'success');
                 // Show stats if available
                 if (data.stats) {
-                    console.log('[DISCOVERY STATS]', data.stats);
                 }
             } else if (data.type === 'discovery.directory' || data.type === 'discovery.file') {
                 // Quick flash of discovery events
@@ -1095,7 +1267,6 @@ class CodeTree {
                 // Show stats if available
                 if (data.stats) {
                     const statsMsg = `Found: ${data.stats.classes || 0} classes, ${data.stats.functions || 0} functions, ${data.stats.methods || 0} methods`;
-                    console.log('[ANALYSIS STATS]', statsMsg);
                 }
             } else if (data.type === 'analysis.class' || data.type === 'analysis.function' || data.type === 'analysis.method') {
                 // Show found elements briefly
@@ -1152,7 +1323,6 @@ class CodeTree {
         }
         
         // Could update a UI element here if we had an event log display
-        console.log('[EVENT LOG]', data.type, data.message);
     }
 
     /**
@@ -1278,6 +1448,8 @@ class CodeTree {
     findNodeByPath(path, node = null) {
         if (!node) {
             node = this.treeData;
+            // Searching for node by path
+            // Root node identified
         }
 
         if (node.path === path) {
@@ -1293,7 +1465,22 @@ class CodeTree {
             }
         }
 
+        if (!node.parent) {
+            // Node path not found in current tree structure
+        }
         return null;
+    }
+    
+    /**
+     * Helper to log all paths in tree for debugging
+     */
+    logAllPaths(node, indent = '') {
+        console.log(`${indent}${node.path} (${node.name})`);
+        if (node.children) {
+            for (const child of node.children) {
+                this.logAllPaths(child, indent + '  ');
+            }
+        }
     }
     
     /**
@@ -1302,6 +1489,30 @@ class CodeTree {
     findD3NodeByPath(path) {
         if (!this.root) return null;
         return this.root.descendants().find(d => d.data.path === path);
+    }
+    
+    /**
+     * Preserve expansion state when recreating hierarchy
+     */
+    preserveExpansionState(oldRoot, newRoot) {
+        if (!oldRoot || !newRoot) return;
+        
+        // Create a map of expanded nodes from the old tree
+        const expansionMap = new Map();
+        oldRoot.descendants().forEach(node => {
+            if (node.data.expanded || (node.children && !node._children)) {
+                expansionMap.set(node.data.path, true);
+            }
+        });
+        
+        // Apply expansion state to new tree
+        newRoot.descendants().forEach(node => {
+            if (expansionMap.has(node.data.path)) {
+                node.children = node._children || node.children;
+                node._children = null;
+                node.data.expanded = true;
+            }
+        });
     }
 
     /**
@@ -1655,9 +1866,18 @@ class CodeTree {
     centerOnNode(d) {
         if (!this.svg || !this.zoom) return;
         
-        const transform = d3.zoomTransform(this.svg.node());
-        const x = -d.y * transform.k + this.width / 2;
-        const y = -d.x * transform.k + this.height / 2;
+        // Get current transform or use default zoom level
+        const currentTransform = d3.zoomTransform(this.svg.node());
+        // Zoom in to 2x for better focus on clicked node
+        const targetScale = currentTransform.k < 2 ? 2 : currentTransform.k;
+        
+        // Account for the initial tree group offset
+        const initialOffsetX = this.margin.left + 100;
+        const initialOffsetY = this.height / 2;
+        
+        // Calculate position to center the node accounting for the tree group's transform
+        const x = initialOffsetX - d.y * targetScale + this.width / 2;
+        const y = initialOffsetY - d.x * targetScale + this.height / 2;
         
         this.svg.transition()
             .duration(750)
@@ -1665,7 +1885,7 @@ class CodeTree {
                 this.zoom.transform,
                 d3.zoomIdentity
                     .translate(x, y)
-                    .scale(transform.k)
+                    .scale(targetScale)
             );
     }
     
@@ -1678,23 +1898,29 @@ class CodeTree {
         // Use the same radialPoint function for consistency
         const [x, y] = this.radialPoint(d.x, d.y);
         
-        // Get current transform
-        const transform = d3.zoomTransform(this.svg.node());
+        // Get current transform or use default zoom level
+        const currentTransform = d3.zoomTransform(this.svg.node());
+        // Zoom in to 2x for better focus on clicked node
+        const targetScale = currentTransform.k < 2 ? 2 : currentTransform.k;
+        
+        // Account for the initial tree group centering
+        const centerX = this.width / 2;
+        const centerY = this.height / 2;
         
         // Calculate translation to center the node
-        // The tree is already centered at width/2, height/2 via transform
-        // So we need to adjust relative to that center
-        const targetX = this.width / 2 - x * transform.k;
-        const targetY = this.height / 2 - y * transform.k;
+        // The tree group is centered at centerX, centerY
+        // We need to offset by the node's position scaled
+        const targetX = centerX - x * targetScale;
+        const targetY = centerY - y * targetScale;
         
-        // Apply smooth transition to center the node
+        // Apply smooth transition to center the node with zoom
         this.svg.transition()
             .duration(750)
             .call(
                 this.zoom.transform,
                 d3.zoomIdentity
                     .translate(targetX, targetY)
-                    .scale(transform.k)
+                    .scale(targetScale)
             );
     }
     
@@ -1703,26 +1929,50 @@ class CodeTree {
      */
     highlightActiveNode(d) {
         // Reset all nodes to normal size and clear parent context
-        this.treeGroup.selectAll('circle.node-circle')
+        // First clear classes on the selection
+        const allCircles = this.treeGroup.selectAll('circle.node-circle');
+        allCircles
+            .classed('active', false)
+            .classed('parent-context', false);
+        
+        // Then apply transition separately
+        allCircles
             .transition()
             .duration(300)
             .attr('r', 8)
-            .classed('active', false)
-            .classed('parent-context', false)
             .style('stroke', null)
             .style('stroke-width', null)
             .style('opacity', null);
         
+        // Reset all labels to normal
+        this.treeGroup.selectAll('text.node-label')
+            .style('font-weight', 'normal')
+            .style('font-size', '12px');
+        
         // Find and increase size of clicked node - use data matching
-        this.treeGroup.selectAll('g.node')
+        // Make the size increase MUCH more dramatic: 8 -> 20 (2.5x the size)
+        const activeNodeCircle = this.treeGroup.selectAll('g.node')
             .filter(node => node === d)
-            .select('circle.node-circle')
+            .select('circle.node-circle');
+        
+        // First set the class (not part of transition)
+        activeNodeCircle.classed('active', true);
+        
+        // Then apply the transition with styles - MUCH LARGER
+        activeNodeCircle
             .transition()
             .duration(300)
-            .attr('r', 12)  // Larger radius
-            .classed('active', true)
+            .attr('r', 20)  // Much larger radius (2.5x)
             .style('stroke', '#3b82f6')
-            .style('stroke-width', 3);
+            .style('stroke-width', 5)  // Thicker border
+            .style('filter', 'drop-shadow(0 0 15px rgba(59, 130, 246, 0.6))');  // Stronger glow effect
+        
+        // Also make the label bold
+        this.treeGroup.selectAll('g.node')
+            .filter(node => node === d)
+            .select('text.node-label')
+            .style('font-weight', 'bold')
+            .style('font-size', '14px');  // Slightly larger text
         
         // Store active node
         this.activeNode = d;
@@ -1740,9 +1990,9 @@ class CodeTree {
         // Add to loading set
         this.loadingNodes.add(d.data.path);
         
-        // Add pulsing class and orange color
-        node.classed('loading-pulse', true)
-            .style('fill', '#fb923c');  // Orange color for loading
+        // Add pulsing class and orange color - separate operations
+        node.classed('loading-pulse', true);
+        node.style('fill', '#fb923c');  // Orange color for loading
         
         // Create pulse animation
         const pulseAnimation = () => {
@@ -1778,11 +2028,14 @@ class CodeTree {
             .filter(node => node === d)
             .select('circle.node-circle');
         
-        node.classed('loading-pulse', false)
-            .interrupt() // Stop animation
+        // Clear class first
+        node.classed('loading-pulse', false);
+        
+        // Then interrupt and transition
+        node.interrupt() // Stop animation
             .transition()
             .duration(300)
-            .attr('r', this.activeNode === d ? 12 : 8)
+            .attr('r', this.activeNode === d ? 20 : 8)  // Use 20 for active node
             .style('opacity', 1)
             .style('fill', d => this.getNodeColor(d));  // Restore original color
     }
@@ -1797,9 +2050,10 @@ class CodeTree {
         const parentNode = this.treeGroup.selectAll('g.node')
             .filter(node => node === d.parent);
         
-        // Highlight parent with different style
-        parentNode.select('circle.node-circle')
-            .classed('parent-context', true)
+        // Highlight parent with different style - separate class from styles
+        const parentCircle = parentNode.select('circle.node-circle');
+        parentCircle.classed('parent-context', true);
+        parentCircle
             .style('stroke', '#10b981')
             .style('stroke-width', 3)
             .style('opacity', 0.8);
@@ -1847,56 +2101,163 @@ class CodeTree {
      * Handle node click - implement lazy loading with enhanced visual feedback
      */
     onNodeClick(event, d) {
-        event.stopPropagation();
+        // Handle node click interaction
         
-        // Center on clicked node
-        if (this.isRadialLayout) {
-            this.centerOnNodeRadial(d);
+        // Check event parameter
+        if (event) {
+            try {
+                if (typeof event.stopPropagation === 'function') {
+                    event.stopPropagation();
+                } else {
+                }
+            } catch (error) {
+                console.error('[CodeTree] ERROR calling stopPropagation:', error);
+            }
         } else {
-            this.centerOnNode(d);
         }
         
-        // Highlight with larger icon
-        this.highlightActiveNode(d);
+        // Check d parameter structure
+        if (!d) {
+            console.error('[CodeTree] ERROR: d is null/undefined, cannot continue');
+            return;
+        }
         
-        // Show parent context
-        this.showWithParent(d);
+        if (!d.data) {
+            console.error('[CodeTree] ERROR: d.data is null/undefined, cannot continue');
+            return;
+        }
+        
+            hasName: d.data.hasOwnProperty('name'),
+            hasPath: d.data.hasOwnProperty('path'),
+            hasType: d.data.hasOwnProperty('type'),
+            hasLoaded: d.data.hasOwnProperty('loaded'),
+            name: d.data.name,
+            path: d.data.path,
+            type: d.data.type,
+            loaded: d.data.loaded
+        });
+        
+        // Node interaction detected
+        
+        // === PHASE 1: Immediate Visual Effects (Synchronous) ===
+        // These execute immediately before any async operations
+        
+        
+        // Center on clicked node (immediate visual effect)
+        try {
+            if (this.isRadialLayout) {
+                if (typeof this.centerOnNodeRadial === 'function') {
+                    this.centerOnNodeRadial(d);
+                } else {
+                    console.error('[CodeTree] centerOnNodeRadial is not a function!');
+                }
+            } else {
+                if (typeof this.centerOnNode === 'function') {
+                    this.centerOnNode(d);
+                } else {
+                    console.error('[CodeTree] centerOnNode is not a function!');
+                }
+            }
+        } catch (error) {
+            console.error('[CodeTree] ERROR during centering:', error, error.stack);
+        }
+        
+        
+        // Highlight with larger icon (immediate visual effect)
+        try {
+            if (typeof this.highlightActiveNode === 'function') {
+                this.highlightActiveNode(d);
+            } else {
+                console.error('[CodeTree] highlightActiveNode is not a function!');
+            }
+        } catch (error) {
+            console.error('[CodeTree] ERROR during highlightActiveNode:', error, error.stack);
+        }
+        
+        
+        // Show parent context (immediate visual effect)
+        try {
+            if (typeof this.showWithParent === 'function') {
+                this.showWithParent(d);
+            } else {
+                console.error('[CodeTree] showWithParent is not a function!');
+            }
+        } catch (error) {
+            console.error('[CodeTree] ERROR during showWithParent:', error, error.stack);
+        }
+        
+        
+        // Add pulsing animation immediately for directories
+        
+        if (d.data.type === 'directory' && !d.data.loaded) {
+            try {
+                if (typeof this.addLoadingPulse === 'function') {
+                    this.addLoadingPulse(d);
+                } else {
+                    console.error('[CodeTree] addLoadingPulse is not a function!');
+                }
+            } catch (error) {
+                console.error('[CodeTree] ERROR during addLoadingPulse:', error, error.stack);
+            }
+        } else {
+        }
+        
+        
+        // === PHASE 2: Prepare Data (Synchronous) ===
+        
         
         // Get selected languages from checkboxes
         const selectedLanguages = [];
-        document.querySelectorAll('.language-checkbox:checked').forEach(cb => {
+        const checkboxes = document.querySelectorAll('.language-checkbox:checked');
+        checkboxes.forEach(cb => {
             selectedLanguages.push(cb.value);
         });
         
         // Get ignore patterns
-        const ignorePatterns = document.getElementById('ignore-patterns')?.value || '';
+        const ignorePatternsElement = document.getElementById('ignore-patterns');
+        const ignorePatterns = ignorePatternsElement?.value || '';
         
-        // Get show hidden files setting
-        const showHiddenFiles = document.getElementById('show-hidden-files')?.checked || false;
+        
+        // === PHASE 3: Async Operations (Delayed) ===
+        // Add a small delay to ensure visual effects are rendered first
+        
+            type: d.data.type,
+            loaded: d.data.loaded,
+            typeIsDirectory: d.data.type === 'directory',
+            loadedIsFalsy: !d.data.loaded,
+            willRequestDiscovery: (d.data.type === 'directory' && !d.data.loaded)
+        });
         
         // For directories that haven't been loaded yet, request discovery
         if (d.data.type === 'directory' && !d.data.loaded) {
-            // Add pulsing animation
-            this.addLoadingPulse(d);
+            // Mark as loading immediately to prevent duplicate requests
+            d.data.loaded = 'loading';
             
             // Ensure path is absolute or relative to working directory
             const fullPath = this.ensureFullPath(d.data.path);
             
-            // Request directory contents via Socket.IO
-            if (this.socket) {
-                this.socket.emit('code:discover:directory', {
-                    path: fullPath,
-                    depth: 1,  // Only get immediate children
-                    languages: selectedLanguages,
-                    ignore_patterns: ignorePatterns,
-                    show_hidden_files: showHiddenFiles
-                });
+            // Sending discovery request for child content
+            
+            // Store reference to the D3 node for later expansion
+            const clickedD3Node = d;
+            
+            // Delay the socket request to ensure visual effects are rendered
+            setTimeout(() => {
                 
-                // Mark as loading to prevent duplicate requests
-                d.data.loaded = 'loading';
-                this.updateBreadcrumb(`Loading ${d.data.name}...`, 'info');
-                this.showNotification(`Loading directory: ${d.data.name}`, 'info');
-            }
+                // Request directory contents via Socket.IO
+                if (this.socket) {
+                    this.socket.emit('code:discover:directory', {
+                        path: fullPath,
+                        depth: 1,  // Only get immediate children
+                        languages: selectedLanguages,
+                        ignore_patterns: ignorePatterns
+                    });
+                    
+                    this.updateBreadcrumb(`Loading ${d.data.name}...`, 'info');
+                    this.showNotification(`Loading directory: ${d.data.name}`, 'info');
+                } else {
+                }
+            }, 100);  // 100ms delay to ensure visual effects render first
         } 
         // For files that haven't been analyzed, request analysis
         else if (d.data.type === 'file' && !d.data.analyzed) {
@@ -1907,28 +2268,54 @@ class CodeTree {
                 return;
             }
             
-            // Add pulsing animation
+            // Add pulsing animation immediately
             this.addLoadingPulse(d);
+            
+            // Mark as loading immediately
+            d.data.analyzed = 'loading';
             
             // Ensure path is absolute or relative to working directory
             const fullPath = this.ensureFullPath(d.data.path);
             
-            // Get current show_hidden_files setting
-            const showHiddenFilesCheckbox = document.getElementById('show-hidden-files');
-            const showHiddenFiles = showHiddenFilesCheckbox ? showHiddenFilesCheckbox.checked : false;
-            
-            if (this.socket) {
-                this.socket.emit('code:analyze:file', {
-                    path: fullPath,
-                    show_hidden_files: showHiddenFiles
-                });
+            // Delay the socket request to ensure visual effects are rendered
+            setTimeout(() => {
                 
-                d.data.analyzed = 'loading';
-                this.updateBreadcrumb(`Analyzing ${d.data.name}...`, 'info');
-                this.showNotification(`Analyzing: ${d.data.name}`, 'info');
-            }
+                if (this.socket) {
+                    this.socket.emit('code:analyze:file', {
+                        path: fullPath
+                    });
+                    
+                    this.updateBreadcrumb(`Analyzing ${d.data.name}...`, 'info');
+                    this.showNotification(`Analyzing: ${d.data.name}`, 'info');
+                }
+            }, 100);  // 100ms delay to ensure visual effects render first
         }
         // Toggle children visibility for already loaded nodes
+        else if (d.data.type === 'directory' && d.data.loaded === true) {
+            // Directory is loaded, toggle expansion
+            if (d.children) {
+                // Collapse - hide children
+                d._children = d.children;
+                d.children = null;
+                d.data.expanded = false;
+            } else if (d._children) {
+                // Expand - show children
+                d.children = d._children;
+                d._children = null;
+                d.data.expanded = true;
+            } else if (d.data.children && d.data.children.length > 0) {
+                // Children exist in data but not in D3 node, recreate hierarchy
+                this.root = d3.hierarchy(this.treeData);
+                const updatedD3Node = this.findD3NodeByPath(d.data.path);
+                if (updatedD3Node) {
+                    updatedD3Node.children = updatedD3Node._children || updatedD3Node.children;
+                    updatedD3Node._children = null;
+                    updatedD3Node.data.expanded = true;
+                }
+            }
+            this.update(this.root);
+        }
+        // Also handle other nodes that might have children
         else if (d.children || d._children) {
             if (d.children) {
                 d._children = d.children;
@@ -1940,37 +2327,58 @@ class CodeTree {
                 d.data.expanded = true;
             }
             this.update(d);
+        } else {
         }
         
         // Update selection
         this.selectedNode = d;
-        this.highlightNode(d);
+        try {
+            this.highlightNode(d);
+        } catch (error) {
+            console.error('[CodeTree] ERROR during highlightNode:', error);
+        }
+        
     }
     
     /**
      * Ensure path is absolute or relative to working directory
      */
     ensureFullPath(path) {
+        console.log('🔗 ensureFullPath called with:', path);
+        
         if (!path) return path;
         
         // If already absolute, return as is
         if (path.startsWith('/')) {
+            console.log('  → Already absolute, returning:', path);
             return path;
         }
         
         // Get working directory
         const workingDir = this.getWorkingDirectory();
+        console.log('  → Working directory:', workingDir);
+        
         if (!workingDir) {
+            console.log('  → No working directory, returning original:', path);
             return path;
         }
         
-        // If path is relative, make it relative to working directory
-        if (path === '.' || path === workingDir) {
+        // Special handling for root path
+        if (path === '.') {
+            console.log('  → Root path detected, returning working dir:', workingDir);
+            return workingDir;
+        }
+        
+        // If path equals working directory, return as is
+        if (path === workingDir) {
+            console.log('  → Path equals working directory, returning:', workingDir);
             return workingDir;
         }
         
         // Combine working directory with relative path
-        return `${workingDir}/${path}`.replace(/\/+/g, '/');
+        const result = `${workingDir}/${path}`.replace(/\/+/g, '/');
+        console.log('  → Combining with working dir, result:', result);
+        return result;
     }
 
     /**
@@ -2532,4 +2940,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-});
+});/* Cache buster: 1756393851 */

@@ -16,6 +16,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [4.1.12] - 2025-08-28
+
+### Added
+- **PM Instruction Reinforcement System**: Advanced instruction drift prevention system
+  - Comprehensive monitoring of PM behavior through specialized Hook Service
+  - Automatic detection of instruction deviations and compliance violations  
+  - Real-time feedback mechanism to reinforce proper PM adherence
+  - Enhanced Claude Code integration with improved hook monitoring
+  - Systematic prevention of PM agents ignoring core instructions
+
+### Changed
+- **Dashboard UI Improvements**: Enhanced code tree visualization and component responsiveness
+- **Configuration Management**: Improved system configuration validation and error handling
+- **Code Tree Analysis**: Better filtering and visualization of project structures
+
+### Fixed
+- **Test Infrastructure**: Comprehensive test cleanup and organization improvements
+- **Documentation Structure**: Fixed inconsistencies in project documentation
+- **Code Quality**: Resolved linting issues and improved code consistency
+
 ## [4.1.11] - 2025-08-27
 
 ### Added

@@ -425,9 +425,6 @@
                                     <div class="option-group">
                                         <label>Ignore: <input type="text" id="ignore-patterns" placeholder="test*, *.spec.js, node_modules" class="input-compact" style="width: 200px;"></label>
                                     </div>
-                                    <div class="option-group">
-                                        <label><input type="checkbox" id="show-hidden-files"> Show hidden files (dotfiles)</label>
-                                    </div>
                                 </div>
                             </div>
                             <div id="code-tree-container" class="code-tree-container">
@@ -513,14 +510,24 @@
     </div>
 
     <!-- JavaScript Modules -->
-    <!-- Load bundled dashboard assets (built with Vite) -->
-    <script type="module" src="/static/dist/dashboard.js"></script>
-    
-    <!-- Activity Tree Module (from Vite build) -->
-    <script type="module" src="/static/dist/components/activity-tree.js"></script>
-    
-    <!-- Code Tree Module (from Vite build) -->
-    <script type="module" src="/static/dist/components/code-tree.js"></script>
-    <script type="module" src="/static/dist/components/code-viewer.js"></script>
+    <!-- Load bundled dashboard assets (built with Vite) - with timestamp cache busting -->
+    <script type="module">
+        // Add timestamp-based cache busting to all module imports
+        const timestamp = Date.now();
+        const modules = [
+            '/static/dist/dashboard.js',
+            '/static/dist/components/activity-tree.js',
+            '/static/dist/components/code-tree.js',
+            '/static/dist/components/code-viewer.js'
+        ];
+        
+        // Dynamically import each module with cache busting
+        modules.forEach(modulePath => {
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = `${modulePath}?t=${timestamp}`;
+            document.body.appendChild(script);
+        });
+    </script>
 </body>
 </html>

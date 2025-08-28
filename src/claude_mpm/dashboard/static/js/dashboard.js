@@ -163,14 +163,22 @@ class Dashboard {
         // Set the socket client for receiving updates
         this.buildTracker.setSocketClient(this.socketClient);
         
-        // Mount to header - find the best location
-        const headerTitle = document.querySelector('.header-title');
-        if (headerTitle) {
-            // Insert after the title and status badge
-            this.buildTracker.mount(headerTitle);
-        } else {
-            console.warn('Could not find header-title element for build tracker');
-        }
+        // Mount to header with retry logic for DOM readiness
+        const mountBuildTracker = () => {
+            const headerTitle = document.querySelector('.header-title');
+            if (headerTitle) {
+                // Insert after the title and status badge
+                this.buildTracker.mount(headerTitle);
+                console.log('BuildTracker mounted successfully');
+            } else {
+                console.warn('Header-title element not found for build tracker, will retry');
+                // Retry after a short delay if DOM is still being constructed
+                setTimeout(mountBuildTracker, 100);
+            }
+        };
+        
+        // Try to mount immediately, with retry logic if needed
+        mountBuildTracker();
         
         // Make available globally for debugging
         window.buildTracker = this.buildTracker;
@@ -1080,14 +1088,11 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
             working_dir: workingDir
         });
 
-        console.log('📄 File viewer request sent:', {
-            filePath,
-            workingDir
-        });
+        // File viewer request sent
 
         // Wait for response
         const result = await responsePromise;
-        console.log('📦 File content received:', result);
+        // File content received successfully
 
         // Hide loading
         modal.querySelector('.file-viewer-loading').style.display = 'none';
@@ -1143,7 +1148,7 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
 }
 
 function displayFileContent(modal, result) {
-    console.log('📝 displayFileContent called with:', result);
+    // Display file content in modal
     const contentArea = modal.querySelector('.file-viewer-content-area');
     const extensionElement = modal.querySelector('.file-extension');
     const encodingElement = modal.querySelector('.file-encoding');
@@ -1157,7 +1162,7 @@ function displayFileContent(modal, result) {
 
     // Update content with basic syntax highlighting
     if (codeElement && result.content) {
-        console.log('💡 Setting file content, length:', result.content.length);
+        // Setting file content
         codeElement.innerHTML = highlightCode(result.content, result.extension);
 
         // Force scrolling to work by setting explicit heights
@@ -1175,12 +1180,7 @@ function displayFileContent(modal, result) {
 
                 const availableHeight = modalHeight - headerHeight - toolbarHeight - 40; // 40px for padding
 
-                console.log('🎯 Setting file viewer scroll height:', {
-                    modalHeight,
-                    headerHeight,
-                    toolbarHeight,
-                    availableHeight
-                });
+                // Setting file viewer scroll height
 
                 wrapper.style.maxHeight = `${availableHeight}px`;
                 wrapper.style.overflowY = 'auto';
@@ -1193,7 +1193,7 @@ function displayFileContent(modal, result) {
     // Show content area
     if (contentArea) {
         contentArea.style.display = 'block';
-        console.log('✅ File content area displayed');
+        // File content area displayed
     }
 }
 
@@ -1533,7 +1533,7 @@ async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
                 throw new Error(`Server health check failed: ${healthResponse.status} ${healthResponse.statusText}`);
             }
 
-            console.log('✅ Server health check passed');
+            // Server health check passed
         } catch (healthError) {
             throw new Error(`Cannot reach server at localhost:${port}. Health check failed: ${healthError.message}`);
         }
@@ -1553,17 +1553,17 @@ async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
         }
 
         const result = await response.json();
-        console.log('📦 Git diff response:', result);
+        // Git diff response received
 
         // Hide loading
         modal.querySelector('.git-diff-loading').style.display = 'none';
 
         if (result.success) {
-            console.log('📊 Displaying successful git diff');
+            // Displaying successful git diff
             // Show successful diff
             displayGitDiff(modal, result);
         } else {
-            console.log('⚠️ Displaying git diff error:', result);
+            // Displaying git diff error
             // Show error
             displayGitDiffError(modal, result);
         }
@@ -1661,18 +1661,13 @@ function highlightGitDiff(diffText) {
 }
 
 function displayGitDiff(modal, result) {
-    console.log('📝 displayGitDiff called with:', result);
+    // Display git diff content
     const contentArea = modal.querySelector('.git-diff-content-area');
     const commitHashElement = modal.querySelector('.commit-hash');
     const methodElement = modal.querySelector('.diff-method');
     const codeElement = modal.querySelector('.git-diff-code');
 
-    console.log('🔍 Elements found:', {
-        contentArea: !!contentArea,
-        commitHashElement: !!commitHashElement,
-        methodElement: !!methodElement,
-        codeElement: !!codeElement
-    });
+    // Elements found for diff display
 
     // Update metadata
     if (commitHashElement) commitHashElement.textContent = `Commit: ${result.commit_hash}`;
@@ -1680,7 +1675,7 @@ function displayGitDiff(modal, result) {
 
     // Update diff content with basic syntax highlighting
     if (codeElement && result.diff) {
-        console.log('💡 Setting diff content, length:', result.diff.length);
+        // Setting diff content
         codeElement.innerHTML = highlightGitDiff(result.diff);
 
         // Force scrolling to work by setting explicit heights
@@ -1698,12 +1693,7 @@ function displayGitDiff(modal, result) {
 
                 const availableHeight = modalHeight - headerHeight - toolbarHeight - 40; // 40px for padding
 
-                console.log('🎯 Setting explicit scroll height:', {
-                    modalHeight,
-                    headerHeight,
-                    toolbarHeight,
-                    availableHeight
-                });
+                // Setting explicit scroll height
 
                 wrapper.style.maxHeight = `${availableHeight}px`;
                 wrapper.style.overflowY = 'auto';
@@ -1716,7 +1706,7 @@ function displayGitDiff(modal, result) {
     // Show content area
     if (contentArea) {
         contentArea.style.display = 'block';
-        console.log('✅ Content area displayed');
+        // Content area displayed
     }
 }
 
