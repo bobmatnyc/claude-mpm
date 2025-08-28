@@ -4,9 +4,6 @@ Unit tests for the actual InstructionReinforcementHook implementation.
 These tests verify the real functionality of the instruction reinforcement system.
 """
 
-import time
-from datetime import datetime
-from unittest.mock import patch
 
 import pytest
 

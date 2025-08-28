@@ -5,7 +5,6 @@ This command delegates to the Agentic Coder Optimizer agent to establish clear,
 single-path project standards for documentation, tooling, and workflows.
 """
 
-import json
 import logging
 import subprocess
 import sys
@@ -235,7 +234,7 @@ Focus on establishing ONE clear way to do ANYTHING in the project.
 
                 # Execute the command
                 result = subprocess.run(
-                    cmd, capture_output=True, text=True, cwd=str(self.project_path)
+                    cmd, capture_output=True, text=True, cwd=str(self.project_path), check=False
                 )
 
                 # Check for environment-specific errors
@@ -258,7 +257,7 @@ Focus on establishing ONE clear way to do ANYTHING in the project.
                         cmd_venv,
                         capture_output=not verbose,
                         text=True,
-                        cwd=str(self.project_path),
+                        cwd=str(self.project_path), check=False,
                     )
             finally:
                 # Clean up temporary file
@@ -307,26 +306,25 @@ Focus on establishing ONE clear way to do ANYTHING in the project.
                 self._display_results(response, verbose)
 
                 return response
-            else:
-                # Extract meaningful error message
-                error_msg = (
-                    result.stderr
-                    if result.stderr
-                    else result.stdout if result.stdout else "Unknown error occurred"
-                )
-                # Clean up mamba warnings from error message
-                if "libmamba" in error_msg:
-                    lines = error_msg.split("\n")
-                    error_lines = [
-                        l for l in lines if not l.startswith("warning") and l.strip()
-                    ]
-                    error_msg = "\n".join(error_lines) if error_lines else error_msg
+            # Extract meaningful error message
+            error_msg = (
+                result.stderr
+                if result.stderr
+                else result.stdout if result.stdout else "Unknown error occurred"
+            )
+            # Clean up mamba warnings from error message
+            if "libmamba" in error_msg:
+                lines = error_msg.split("\n")
+                error_lines = [
+                    l for l in lines if not l.startswith("warning") and l.strip()
+                ]
+                error_msg = "\n".join(error_lines) if error_lines else error_msg
 
-                logger.error(f"claude-mpm run failed: {error_msg}")
-                return {
-                    "status": "error",
-                    "message": f"Initialization failed: {error_msg}",
-                }
+            logger.error(f"claude-mpm run failed: {error_msg}")
+            return {
+                "status": "error",
+                "message": f"Initialization failed: {error_msg}",
+            }
 
         except FileNotFoundError:
             logger.error("claude-mpm command not found")

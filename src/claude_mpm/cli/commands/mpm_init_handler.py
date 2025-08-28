@@ -4,7 +4,6 @@ MPM-Init command handler for claude-mpm CLI.
 This module handles the execution of the mpm-init command.
 """
 
-import sys
 from pathlib import Path
 
 from rich.console import Console
@@ -65,10 +64,9 @@ def manage_mpm_init(args):
         # Return appropriate exit code
         if result.get("status") == "success":
             return 0
-        elif result.get("status") == "cancelled":
+        if result.get("status") == "cancelled":
             return 130  # User cancelled
-        else:
-            return 1  # Error
+        return 1  # Error
 
     except ImportError as e:
         console.print(f"[red]Error: Required module not available: {e}[/red]")

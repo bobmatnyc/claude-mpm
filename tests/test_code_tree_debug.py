@@ -8,10 +8,11 @@ This script will:
 3. Provide instructions on what to look for in console logs
 """
 
-import time
-import webbrowser
 import subprocess
 import sys
+import time
+import webbrowser
+
 
 def main():
     print("=" * 60)
@@ -22,18 +23,18 @@ def main():
     print()
     print("Starting the Claude MPM dashboard...")
     print()
-    
+
     # Start the dashboard
     try:
         # Use the same command that would normally start the dashboard
         subprocess.Popen([sys.executable, "-m", "claude_mpm", "dashboard"])
-        
+
         # Give it time to start
         time.sleep(3)
-        
+
         # Open browser
         webbrowser.open("http://localhost:5000")
-        
+
         print("Dashboard started! Opening browser...")
         print()
         print("TESTING INSTRUCTIONS:")
@@ -75,17 +76,18 @@ def main():
         print("- Any error messages")
         print()
         print("Press Ctrl+C to stop the dashboard when done testing...")
-        
+
         # Keep running until interrupted
         while True:
             time.sleep(1)
-            
+
     except KeyboardInterrupt:
         print("\n\nStopping dashboard...")
         print("Test complete!")
     except Exception as e:
         print(f"\nError: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

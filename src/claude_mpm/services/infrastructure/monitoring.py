@@ -30,7 +30,7 @@ For backward compatibility, legacy classes are still available:
 """
 
 # Re-export all components from the modular implementation
-from .monitoring import (  # noqa: F401; New service-based API; Base components; Legacy compatibility
+from .monitoring import (  # noqa: F401
     AdvancedHealthMonitor,
     HealthChecker,
     HealthCheckResult,

@@ -199,7 +199,7 @@ def main():
 
     # Write configuration
     try:
-        with config_path.open(, "w") as f:
+        with config_path.open("w") as f:
             json.dump(existing_config, f, indent=2)
         print(f"\n✅ Configuration written to: {config_path}")
         print("\n6. Next steps:")

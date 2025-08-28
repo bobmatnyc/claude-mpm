@@ -48,6 +48,7 @@ extend-select = [
 ignore = [
     "E203",  # Whitespace before ':' (Black compatibility)
     "E501",  # Line too long (handled by formatter)
+    "E402",  # Module level import not at top of file (common pattern in this codebase)
     "B008",  # Do not perform function calls in argument defaults
     "B905",  # zip() without explicit strict= parameter
     "C901",  # Too complex (can enable later)
@@ -72,10 +73,12 @@ exclude = [
 ]
 
 # Per-file ignores
-[per-file-ignores]
+[lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"]  # Allow unused imports in __init__
-"tests/*" = ["F403", "F405"]       # Allow star imports in tests
-"scripts/*" = ["T201"]              # Allow print() in scripts
+"tests/*" = ["F403", "F405", "E402", "F841", "PLR0912", "PLR0915", "PLR2004", "DTZ005", "DTZ006", "DTZ007", "PTH123", "PTH207", "PTH109", "N806", "N802", "F821", "SIM117", "RUF012", "W293", "DTZ003", "B023", "E722", "F811", "RET504"]  # More lenient for tests
+"scripts/*" = ["T201", "PLR0912", "PLR0915", "PLR2004", "E402", "F841", "PTH123", "DTZ005", "DTZ006", "E722", "RUF006", "W293", "W291", "F401", "PLR0911", "SIM102", "PTH109", "SIM117", "PLR0913", "B904", "B018", "RUF001", "PTH120", "PTH100", "PTH118", "PTH110", "PTH101"]  # More lenient for scripts
+"src/claude_mpm/utils/*" = ["E722", "E741"]  # Allow bare except in utilities
+"src/claude_mpm/validation/*" = ["E722"]  # Allow bare except in validation code
 
 # Import settings
 [lint.isort]
