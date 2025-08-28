@@ -242,13 +242,30 @@ class CodeAnalysisEventHandler(BaseEventHandler):
         request_id = data.get("request_id")
         show_hidden_files = data.get("show_hidden_files", False)
         
-        # Debug logging
-        self.logger.info(f"[DEBUG] handle_discover_top_level: Received show_hidden_files={show_hidden_files} from frontend")
-        self.logger.info(f"[DEBUG] handle_discover_top_level: Full request data: {data}")
+        # Extensive debug logging
+        self.logger.info(f"[DEBUG] handle_discover_top_level START")
+        self.logger.info(f"[DEBUG] Received show_hidden_files={show_hidden_files} (type: {type(show_hidden_files)})")
+        self.logger.info(f"[DEBUG] Current analyzer exists: {self.code_analyzer is not None}")
+        if self.code_analyzer:
+            current_value = getattr(self.code_analyzer, 'show_hidden_files', 'NOT_FOUND')
+            self.logger.info(f"[DEBUG] Current analyzer show_hidden_files={current_value}")
+        self.logger.info(f"[DEBUG] Full request data: {data}")
 
         try:
             # Create analyzer if needed or recreate if show_hidden_files changed
-            if not self.code_analyzer or getattr(self.code_analyzer, 'show_hidden_files', False) != show_hidden_files:
+            current_show_hidden = getattr(self.code_analyzer, 'show_hidden_files', None) if self.code_analyzer else None
+            need_recreate = (
+                not self.code_analyzer or 
+                current_show_hidden != show_hidden_files
+            )
+            
+            self.logger.info(f"[DEBUG] Analyzer recreation check:")
+            self.logger.info(f"[DEBUG]   - Analyzer exists: {self.code_analyzer is not None}")
+            self.logger.info(f"[DEBUG]   - Current show_hidden: {current_show_hidden}")
+            self.logger.info(f"[DEBUG]   - Requested show_hidden: {show_hidden_files}")
+            self.logger.info(f"[DEBUG]   - Need recreate: {need_recreate}")
+            
+            if need_recreate:
                 # Create a custom emitter that sends to Socket.IO
                 emitter = CodeTreeEventEmitter(use_stdout=False)
                 # Override emit method to send to Socket.IO
@@ -284,8 +301,11 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 # Initialize CodeTreeAnalyzer with emitter keyword argument and show_hidden_files
                 self.logger.info(f"[DEBUG] Creating new CodeTreeAnalyzer with show_hidden_files={show_hidden_files}")
                 self.code_analyzer = CodeTreeAnalyzer(emitter=emitter, show_hidden_files=show_hidden_files)
-                self.logger.info(f"[DEBUG] CodeTreeAnalyzer created, analyzer.show_hidden_files={self.code_analyzer.show_hidden_files}")
-                self.logger.info(f"[DEBUG] GitignoreManager.show_hidden_files={self.code_analyzer.gitignore_manager.show_hidden_files}")
+                self.logger.info(f"[DEBUG] CodeTreeAnalyzer created:")
+                self.logger.info(f"[DEBUG]   - analyzer.show_hidden_files={self.code_analyzer.show_hidden_files}")
+                self.logger.info(f"[DEBUG]   - gitignore_manager.show_hidden_files={self.code_analyzer.gitignore_manager.show_hidden_files}")
+            else:
+                self.logger.info(f"[DEBUG] Reusing existing analyzer with show_hidden_files={self.code_analyzer.show_hidden_files}")
 
             # Use the provided path as-is - the frontend sends the absolute path
             # Make sure we're using an absolute path
@@ -321,7 +341,17 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 f"Discovering top-level contents of: {directory.absolute()}"
             )
 
+            # Log before discovery
+            self.logger.info(f"[DEBUG] About to discover with analyzer.show_hidden_files={self.code_analyzer.show_hidden_files}")
+            
             result = self.code_analyzer.discover_top_level(directory, ignore_patterns)
+            
+            # Log what we got back
+            num_items = len(result.get("children", []))
+            dotfiles = [c for c in result.get("children", []) if c.get("name", "").startswith(".")]
+            self.logger.info(f"[DEBUG] Discovery result: {num_items} items, {len(dotfiles)} dotfiles")
+            if dotfiles:
+                self.logger.info(f"[DEBUG] Dotfiles found: {[d.get('name') for d in dotfiles]}")
 
             # Send result to client with correct event name for top level discovery
             await self.server.core.sio.emit(
@@ -426,7 +456,19 @@ class CodeAnalysisEventHandler(BaseEventHandler):
 
         try:
             # Ensure analyzer exists or recreate if show_hidden_files changed
-            if not self.code_analyzer or getattr(self.code_analyzer, 'show_hidden_files', False) != show_hidden_files:
+            current_show_hidden = getattr(self.code_analyzer, 'show_hidden_files', None) if self.code_analyzer else None
+            need_recreate = (
+                not self.code_analyzer or 
+                current_show_hidden != show_hidden_files
+            )
+            
+            self.logger.info(f"[DEBUG] Analyzer recreation check:")
+            self.logger.info(f"[DEBUG]   - Analyzer exists: {self.code_analyzer is not None}")
+            self.logger.info(f"[DEBUG]   - Current show_hidden: {current_show_hidden}")
+            self.logger.info(f"[DEBUG]   - Requested show_hidden: {show_hidden_files}")
+            self.logger.info(f"[DEBUG]   - Need recreate: {need_recreate}")
+            
+            if need_recreate:
                 emitter = CodeTreeEventEmitter(use_stdout=False)
                 # Override emit method to send to Socket.IO
                 original_emit = emitter.emit
@@ -462,6 +504,8 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 self.code_analyzer = CodeTreeAnalyzer(emitter=emitter, show_hidden_files=show_hidden_files)
                 self.logger.info(f"[DEBUG] CodeTreeAnalyzer created, analyzer.show_hidden_files={self.code_analyzer.show_hidden_files}")
                 self.logger.info(f"[DEBUG] GitignoreManager.show_hidden_files={self.code_analyzer.gitignore_manager.show_hidden_files}")
+            else:
+                self.logger.info(f"[DEBUG] Reusing analyzer with show_hidden_files={self.code_analyzer.show_hidden_files}")
 
             # Discover directory
             result = self.code_analyzer.discover_directory(path, ignore_patterns)
@@ -550,7 +594,19 @@ class CodeAnalysisEventHandler(BaseEventHandler):
 
         try:
             # Ensure analyzer exists or recreate if show_hidden_files changed
-            if not self.code_analyzer or getattr(self.code_analyzer, 'show_hidden_files', False) != show_hidden_files:
+            current_show_hidden = getattr(self.code_analyzer, 'show_hidden_files', None) if self.code_analyzer else None
+            need_recreate = (
+                not self.code_analyzer or 
+                current_show_hidden != show_hidden_files
+            )
+            
+            self.logger.info(f"[DEBUG] Analyzer recreation check:")
+            self.logger.info(f"[DEBUG]   - Analyzer exists: {self.code_analyzer is not None}")
+            self.logger.info(f"[DEBUG]   - Current show_hidden: {current_show_hidden}")
+            self.logger.info(f"[DEBUG]   - Requested show_hidden: {show_hidden_files}")
+            self.logger.info(f"[DEBUG]   - Need recreate: {need_recreate}")
+            
+            if need_recreate:
                 emitter = CodeTreeEventEmitter(use_stdout=False)
                 # Override emit method to send to Socket.IO
                 original_emit = emitter.emit
@@ -586,6 +642,8 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 self.code_analyzer = CodeTreeAnalyzer(emitter=emitter, show_hidden_files=show_hidden_files)
                 self.logger.info(f"[DEBUG] CodeTreeAnalyzer created, analyzer.show_hidden_files={self.code_analyzer.show_hidden_files}")
                 self.logger.info(f"[DEBUG] GitignoreManager.show_hidden_files={self.code_analyzer.gitignore_manager.show_hidden_files}")
+            else:
+                self.logger.info(f"[DEBUG] Reusing analyzer with show_hidden_files={self.code_analyzer.show_hidden_files}")
 
             # Analyze file
             result = self.code_analyzer.analyze_file(path)
