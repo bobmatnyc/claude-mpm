@@ -233,10 +233,7 @@ class AgentCleanupService(IAgentCleanupService):
             all_agents = multi_source_service.discover_agents_from_all_sources()
 
             # Detect orphaned agents
-            return multi_source_service.detect_orphaned_agents(
-                agents_dir, all_agents
-            )
-
+            return multi_source_service.detect_orphaned_agents(agents_dir, all_agents)
 
         except Exception as e:
             self.logger.error(f"Error finding orphaned agents: {e}", exc_info=True)

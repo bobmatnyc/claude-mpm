@@ -92,7 +92,6 @@ class CircuitBreakerPerformanceTest:
                 "prevents_execution_when_open": not failure_states[-1]["can_execute"],
             }
 
-
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
@@ -155,7 +154,6 @@ class CircuitBreakerPerformanceTest:
                 and after_timeout_can_execute,
                 "timeout_respected": elapsed_time >= 2.0,
             }
-
 
         except Exception as e:
             return {"status": "error", "error": str(e)}
@@ -233,7 +231,6 @@ class CircuitBreakerPerformanceTest:
                 and not failure_recovery_can_execute,
             }
 
-
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
@@ -287,7 +284,6 @@ class CircuitBreakerPerformanceTest:
                 "consistently_fast": max_open_time < 0.001,  # Should be sub-millisecond
                 "rejection_rate": 100.0,  # Should reject 100% when open
             }
-
 
         except Exception as e:
             return {"status": "error", "error": str(e)}
@@ -382,7 +378,6 @@ class CircuitBreakerPerformanceTest:
                 ),
                 "integration_working": True,  # If we got this far without exceptions
             }
-
 
         except Exception as e:
             return {"status": "error", "error": str(e)}

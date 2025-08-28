@@ -318,6 +318,13 @@ def create_parser(
         pass
 
     try:
+        from .dashboard_parser import add_dashboard_subparser
+
+        add_dashboard_subparser(subparsers)
+    except ImportError:
+        pass
+
+    try:
         from .mcp_parser import add_mcp_subparser
 
         add_mcp_subparser(subparsers)
@@ -364,6 +371,14 @@ def create_parser(
         )
         parser_obj.add_arguments(analyze_code_parser)
         analyze_code_parser.set_defaults(command="analyze-code")
+    except ImportError:
+        pass
+
+    # Add mpm-init command parser
+    try:
+        from .mpm_init_parser import add_mpm_init_subparser
+
+        add_mpm_init_subparser(subparsers)
     except ImportError:
         pass
 

@@ -98,12 +98,8 @@ class TestAgentCapabilitiesService:
         assert (
             self._categorize_agent("code-analyzer", "code analysis") == "General"
         )  # Actual behavior
-        assert (
-            self._categorize_agent("documentation", "docs writer") == "Documentation"
-        )
-        assert (
-            self._categorize_agent("research-agent", "research tasks") == "Research"
-        )
+        assert self._categorize_agent("documentation", "docs writer") == "Documentation"
+        assert self._categorize_agent("research-agent", "research tasks") == "Research"
         assert self._categorize_agent("unknown-agent", "some content") == "General"
 
     def test_get_fallback_capabilities(self):

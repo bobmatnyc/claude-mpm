@@ -324,7 +324,6 @@ def create_test_html():
     """
 
 
-
 if __name__ == "__main__":
     # Create the test HTML file
     html_content = create_test_html()

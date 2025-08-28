@@ -551,9 +551,7 @@ class TestMemoryCommandFunctions:
         """Test _view_memory displays memory content."""
         from claude_mpm.cli.commands.memory import _view_memory
 
-        self.load_agent_memory.return_value = (
-            "# Test Memory\n- Test content"
-        )
+        self.load_agent_memory.return_value = "# Test Memory\n- Test content"
 
         args = Namespace(agent_id="engineer")  # Use agent_id instead of agent
 
@@ -581,9 +579,7 @@ class TestMemoryCommandFunctions:
         """Test _show_memories displays memory output."""
         from claude_mpm.cli.commands.memory import _show_memories
 
-        self.load_agent_memory.return_value = (
-            "# Test Memory\n- Test content"
-        )
+        self.load_agent_memory.return_value = "# Test Memory\n- Test content"
 
         args = Namespace(agent="engineer", format="summary", raw=False)
 

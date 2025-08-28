@@ -38,9 +38,7 @@ def mock_framework_loader():
         from claude_mpm.core.framework_loader import FrameworkLoader
 
         # Patch _load_framework_content to avoid file loading during init
-        with patch.object(
-            FrameworkLoader, "_load_framework_content", return_value={}
-        ):
+        with patch.object(FrameworkLoader, "_load_framework_content", return_value={}):
             loader = FrameworkLoader(framework_path=Path("/test"))
             yield loader
 

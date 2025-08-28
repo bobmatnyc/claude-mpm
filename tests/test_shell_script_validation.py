@@ -119,7 +119,8 @@ exit 0
             [str(self.script_path)],
             cwd=str(self.test_dir),
             capture_output=True,
-            text=True, check=False,
+            text=True,
+            check=False,
         )
 
         # Check PYTHONPATH was set
@@ -136,7 +137,8 @@ exit 0
             cwd=str(self.test_dir),
             capture_output=True,
             text=True,
-            env=env, check=False,
+            env=env,
+            check=False,
         )
 
         # Should output continue action
@@ -162,7 +164,8 @@ exit 0
             [str(self.script_path), "arg1", "arg2", "arg3"],
             cwd=str(self.test_dir),
             capture_output=True,
-            text=True, check=False,
+            text=True,
+            check=False,
         )
 
         # Check arguments were passed
@@ -188,7 +191,8 @@ exit 0
             [str(self.script_path)],
             cwd=str(self.test_dir),
             capture_output=True,
-            text=True, check=False,
+            text=True,
+            check=False,
         )
         self.assertIn("SOCKETIO_PORT=8765", result.stdout)
 
@@ -200,7 +204,8 @@ exit 0
             cwd=str(self.test_dir),
             capture_output=True,
             text=True,
-            env=env, check=False,
+            env=env,
+            check=False,
         )
         self.assertIn("SOCKETIO_PORT=9999", result.stdout)
 
@@ -223,7 +228,8 @@ exit 1
             [str(self.script_path)],
             cwd=str(self.test_dir),
             capture_output=True,
-            text=True, check=False,
+            text=True,
+            check=False,
         )
 
         # Should still output continue
@@ -263,7 +269,8 @@ print(json.dumps({"action": "continue"}))
             cwd=str(self.test_dir),
             input=test_input,
             capture_output=True,
-            text=True, check=False,
+            text=True,
+            check=False,
         )
 
         # Should process the input
@@ -294,7 +301,8 @@ exit 0
             cwd=str(self.test_dir),
             capture_output=True,
             text=True,
-            env=env, check=False,
+            env=env,
+            check=False,
         )
 
         # Check if debug log was created (if script supports it)
@@ -323,7 +331,8 @@ exit 0
             [str(self.script_path)],
             cwd=str(self.test_dir),
             capture_output=True,
-            text=True, check=False,
+            text=True,
+            check=False,
         )
         self.assertIn("Using venv Python", result.stdout)
 
@@ -345,7 +354,8 @@ exit 0
             [str(self.script_path)],
             cwd=str(self.test_dir),
             capture_output=True,
-            text=True, check=False,
+            text=True,
+            check=False,
         )
         self.assertIn("Using .venv Python", result.stdout)
 
@@ -396,7 +406,11 @@ exit 0
 
             # Run script
             result = subprocess.run(
-                [str(script_path)], cwd=str(space_dir), capture_output=True, text=True, check=False
+                [str(script_path)],
+                cwd=str(space_dir),
+                capture_output=True,
+                text=True,
+                check=False,
             )
 
             self.assertIn("Executed from path with spaces", result.stdout)
@@ -446,7 +460,8 @@ print(json.dumps({"action": "continue", "pid": pid}))
                     [str(script_path)],
                     cwd=str(self.test_dir),
                     capture_output=True,
-                    text=True, check=False,
+                    text=True,
+                    check=False,
                 )
                 results.append(result.stdout)
 
@@ -519,7 +534,11 @@ exit 1
         fail_python.chmod(0o755)
 
         result = subprocess.run(
-            [str(script_path)], cwd=str(self.test_dir), capture_output=True, text=True, check=False
+            [str(script_path)],
+            cwd=str(self.test_dir),
+            capture_output=True,
+            text=True,
+            check=False,
         )
         # Should still exit 0 and output continue
         self.assertEqual(result.returncode, 0)

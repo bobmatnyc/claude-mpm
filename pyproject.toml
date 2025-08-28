@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-mpm"
-version = "4.1.10"
+version = "4.1.11"
 description = "Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation and ticket tracking"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -75,6 +75,9 @@ dependencies = [
 
     # Python version compatibility
     "importlib-resources>=5.0; python_version < '3.9'",
+    
+    # Gitignore pattern matching
+    "pathspec>=0.11.0",
 ]
 
 [project.urls]
@@ -244,7 +247,7 @@ ignore-imports = false
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "4.1.10"
+version = "4.1.11"
 version_files = [
     "VERSION",
     "src/claude_mpm/VERSION",

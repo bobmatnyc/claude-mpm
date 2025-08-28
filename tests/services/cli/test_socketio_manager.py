@@ -56,9 +56,7 @@ class TestSocketIOManagerStartStop:
     @pytest.fixture
     def manager(self):
         """Create a SocketIOManager instance with mocked logger."""
-        with patch(
-            "claude_mpm.services.cli.socketio_manager.get_logger"
-        ):
+        with patch("claude_mpm.services.cli.socketio_manager.get_logger"):
             manager = SocketIOManager()
             manager.logger = Mock()
             return manager

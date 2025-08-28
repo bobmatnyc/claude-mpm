@@ -257,9 +257,7 @@ class TestAgentDiscoveryService:
 
         assert self._is_agent_excluded("test-agent", excluded_agents, None)
         assert self._is_agent_excluded("qa-agent", excluded_agents, None)
-        assert not self._is_agent_excluded(
-            "security-agent", excluded_agents, None
-        )
+        assert not self._is_agent_excluded("security-agent", excluded_agents, None)
 
     def test_is_agent_excluded_case_insensitive(self):
         """Test case-insensitive agent exclusion."""
@@ -270,12 +268,8 @@ class TestAgentDiscoveryService:
 
         excluded_agents = ["TEST-AGENT"]
 
-        assert self._is_agent_excluded(
-            "test-agent", excluded_agents, config
-        )
-        assert not self._is_agent_excluded(
-            "security-agent", excluded_agents, config
-        )
+        assert self._is_agent_excluded("test-agent", excluded_agents, config)
+        assert not self._is_agent_excluded("security-agent", excluded_agents, config)
 
     def test_validate_template_file_valid(self):
         """Test validating valid template file."""
@@ -306,18 +300,10 @@ class TestAgentDiscoveryService:
         # Invalid names
         assert not self._is_valid_agent_name("Test-Agent")  # uppercase
         assert not self._is_valid_agent_name("test_agent")  # underscore
-        assert not self._is_valid_agent_name(
-            "test--agent"
-        )  # double hyphen
-        assert not self._is_valid_agent_name(
-            "-test-agent"
-        )  # starts with hyphen
-        assert not self._is_valid_agent_name(
-            "test-agent-"
-        )  # ends with hyphen
-        assert not self._is_valid_agent_name(
-            "123-agent"
-        )  # starts with number
+        assert not self._is_valid_agent_name("test--agent")  # double hyphen
+        assert not self._is_valid_agent_name("-test-agent")  # starts with hyphen
+        assert not self._is_valid_agent_name("test-agent-")  # ends with hyphen
+        assert not self._is_valid_agent_name("123-agent")  # starts with number
 
     def test_get_discovery_stats(self):
         """Test getting discovery statistics."""

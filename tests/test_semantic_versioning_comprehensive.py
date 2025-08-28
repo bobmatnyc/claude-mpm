@@ -491,9 +491,7 @@ class TestVersionFileUpdates:
     def test_update_version_files_nonexistent(self):
         """Test updating non-existent version files."""
         new_version = SemanticVersion(2, 0, 0)
-        results = self.update_version_files(
-            new_version, ["nonexistent.json"]
-        )
+        results = self.update_version_files(new_version, ["nonexistent.json"])
 
         # Should not include non-existent files in results
         assert "nonexistent.json" not in results

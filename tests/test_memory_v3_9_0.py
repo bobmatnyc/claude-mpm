@@ -472,9 +472,7 @@ This is project-specific memory that should override system memory.
 
             # Test 2: Very long content
             very_long_content = "x" * 10000  # 10KB single item
-            memory_manager.add_learning(
-                "engineer", "pattern", very_long_content
-            )
+            memory_manager.add_learning("engineer", "pattern", very_long_content)
 
             # Should either succeed with truncation or fail gracefully
             engineer_memory = memory_manager.load_memory("engineer")

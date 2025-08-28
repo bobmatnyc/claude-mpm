@@ -281,9 +281,7 @@ class TestInstructionLoadingCore(unittest.TestCase):
                     "claude_mpm.agents.base_agent_loader.load_base_agent_instructions",
                     return_value="Base content",
                 ):
-                    prepend_base_instructions(
-                        "Agent prompt", complexity_score=score
-                    )
+                    prepend_base_instructions("Agent prompt", complexity_score=score)
 
                     # Verify the right template was selected
                     args = mock_build.call_args[0]

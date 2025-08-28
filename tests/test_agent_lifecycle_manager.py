@@ -155,15 +155,11 @@ class TestAgentLifecycleOperations:
         # Setup mocks
         mock_modification = Mock()
         mock_modification.modification_id = "mod_123"
-        self.modification_tracker.track_modification.return_value = (
-            mock_modification
-        )
+        self.modification_tracker.track_modification.return_value = mock_modification
 
         mock_persistence = Mock()
         mock_persistence.operation_id = "pers_123"
-        self.persistence_service.persist_agent.return_value = (
-            mock_persistence
-        )
+        self.persistence_service.persist_agent.return_value = mock_persistence
 
         # Mock file path operations
         with patch("claude_mpm.utils.path_operations.path_ops") as mock_path_ops:
@@ -239,15 +235,11 @@ class TestAgentLifecycleOperations:
         # Setup mocks
         mock_modification = Mock()
         mock_modification.modification_id = "mod_456"
-        self.modification_tracker.track_modification.return_value = (
-            mock_modification
-        )
+        self.modification_tracker.track_modification.return_value = mock_modification
 
         mock_persistence = Mock()
         mock_persistence.operation_id = "pers_456"
-        self.persistence_service.persist_agent.return_value = (
-            mock_persistence
-        )
+        self.persistence_service.persist_agent.return_value = mock_persistence
 
         # Mock file operations
         with patch("claude_mpm.utils.path_operations.path_ops") as mock_path_ops:
@@ -300,13 +292,9 @@ class TestAgentLifecycleOperations:
         # Setup mocks
         mock_modification = Mock()
         mock_modification.modification_id = "mod_789"
-        self.modification_tracker.track_modification.return_value = (
-            mock_modification
-        )
+        self.modification_tracker.track_modification.return_value = mock_modification
 
-        self._create_deletion_backup = AsyncMock(
-            return_value="/test/backup.md"
-        )
+        self._create_deletion_backup = AsyncMock(return_value="/test/backup.md")
 
         # Mock file operations
         with patch("claude_mpm.utils.path_operations.path_ops") as mock_path_ops:
@@ -369,8 +357,8 @@ class TestAgentLifecycleErrorHandling:
     async def test_create_agent_with_tracker_failure(self):
         """Test agent creation when modification tracker fails."""
         # Make modification tracker fail
-        self.modification_tracker.track_modification.side_effect = (
-            Exception("Tracker failed")
+        self.modification_tracker.track_modification.side_effect = Exception(
+            "Tracker failed"
         )
 
         result = await self.create_agent(
@@ -393,9 +381,7 @@ class TestAgentLifecycleErrorHandling:
         # Setup successful tracker but failing persistence
         mock_modification = Mock()
         mock_modification.modification_id = "mod_123"
-        self.modification_tracker.track_modification.return_value = (
-            mock_modification
-        )
+        self.modification_tracker.track_modification.return_value = mock_modification
 
         self.persistence_service.persist_agent.side_effect = Exception(
             "Persistence failed"
@@ -421,15 +407,11 @@ class TestAgentLifecycleErrorHandling:
         # Setup mocks for successful operations
         mock_modification = Mock()
         mock_modification.modification_id = "mod_concurrent"
-        self.modification_tracker.track_modification.return_value = (
-            mock_modification
-        )
+        self.modification_tracker.track_modification.return_value = mock_modification
 
         mock_persistence = Mock()
         mock_persistence.operation_id = "pers_concurrent"
-        self.persistence_service.persist_agent.return_value = (
-            mock_persistence
-        )
+        self.persistence_service.persist_agent.return_value = mock_persistence
 
         with patch("claude_mpm.utils.path_operations.path_ops") as mock_path_ops:
             mock_path_ops.ensure_dir = Mock()
@@ -506,21 +488,15 @@ class TestAgentLifecyclePerformanceMetrics:
         # Setup successful operation mocks
         mock_modification = Mock()
         mock_modification.modification_id = "mod_perf"
-        self.modification_tracker.track_modification.return_value = (
-            mock_modification
-        )
+        self.modification_tracker.track_modification.return_value = mock_modification
 
         mock_persistence = Mock()
         mock_persistence.operation_id = "pers_perf"
-        self.persistence_service.persist_agent.return_value = (
-            mock_persistence
-        )
+        self.persistence_service.persist_agent.return_value = mock_persistence
 
         # Check initial metrics
         initial_total = self.performance_metrics["total_operations"]
-        initial_successful = self.performance_metrics[
-            "successful_operations"
-        ]
+        initial_successful = self.performance_metrics["successful_operations"]
 
         with patch("claude_mpm.utils.path_operations.path_ops") as mock_path_ops:
             mock_path_ops.ensure_dir = Mock()
@@ -535,13 +511,9 @@ class TestAgentLifecyclePerformanceMetrics:
 
         # Check metrics were updated
         assert result.success is True
+        assert self.performance_metrics["total_operations"] == initial_total + 1
         assert (
-            self.performance_metrics["total_operations"]
-            == initial_total + 1
-        )
-        assert (
-            self.performance_metrics["successful_operations"]
-            == initial_successful + 1
+            self.performance_metrics["successful_operations"] == initial_successful + 1
         )
         assert result.duration_ms > 0
 
@@ -549,8 +521,8 @@ class TestAgentLifecyclePerformanceMetrics:
     async def test_failed_operation_metrics(self):
         """Test that failed operations are tracked in metrics."""
         # Make operation fail
-        self.modification_tracker.track_modification.side_effect = (
-            Exception("Test failure")
+        self.modification_tracker.track_modification.side_effect = Exception(
+            "Test failure"
         )
 
         initial_total = self.performance_metrics["total_operations"]
@@ -565,11 +537,5 @@ class TestAgentLifecyclePerformanceMetrics:
 
         # Check metrics were updated
         assert result.success is False
-        assert (
-            self.performance_metrics["total_operations"]
-            == initial_total + 1
-        )
-        assert (
-            self.performance_metrics["failed_operations"]
-            == initial_failed + 1
-        )
+        assert self.performance_metrics["total_operations"] == initial_total + 1
+        assert self.performance_metrics["failed_operations"] == initial_failed + 1

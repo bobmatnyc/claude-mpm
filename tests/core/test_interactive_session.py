@@ -314,9 +314,7 @@ class TestInteractiveSession:
 
         with patch.object(self, "_log_launch_attempt"), patch.object(
             self, "_launch_exec_mode", side_effect=KeyboardInterrupt()
-        ), patch.object(
-            self, "_handle_keyboard_interrupt"
-        ) as mock_handle:
+        ), patch.object(self, "_handle_keyboard_interrupt") as mock_handle:
             result = self.handle_interactive_input(environment)
 
             assert result is True  # Clean exit
@@ -459,9 +457,7 @@ class TestInteractiveSession:
     def test_cleanup_interactive_session_with_exception(self):
         """Test cleanup with exception during cleanup."""
         self.runner.project_logger = Mock()
-        self.runner.project_logger.log_system.side_effect = Exception(
-            "Cleanup error"
-        )
+        self.runner.project_logger.log_system.side_effect = Exception("Cleanup error")
 
         # Should not raise exception
         self.cleanup_interactive_session()
@@ -509,9 +505,7 @@ class TestInteractiveSession:
 
     def test_build_claude_command_with_system_prompt(self):
         """Test Claude command building with system prompt."""
-        self.runner._create_system_prompt.return_value = (
-            "custom system prompt"
-        )
+        self.runner._create_system_prompt.return_value = "custom system prompt"
 
         with patch(
             "claude_mpm.core.claude_runner.create_simple_context",
@@ -645,9 +639,7 @@ class TestInteractiveSession:
 
         result = self._launch_subprocess_mode(cmd, env)
 
-        self.runner._launch_subprocess_interactive.assert_called_once_with(
-            cmd, env
-        )
+        self.runner._launch_subprocess_interactive.assert_called_once_with(cmd, env)
         assert result is True
 
     def test_handle_launch_error_file_not_found(self, capsys):

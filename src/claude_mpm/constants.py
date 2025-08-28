@@ -43,6 +43,7 @@ class CLICommands(str, Enum):
     CLEANUP = "cleanup-memory"
     MCP = "mcp"
     DOCTOR = "doctor"
+    DASHBOARD = "dashboard"
 
     def with_prefix(self, prefix: CLIPrefix = CLIPrefix.MPM) -> str:
         """Get command with prefix."""
@@ -97,6 +98,15 @@ class MonitorCommands(str, Enum):
     RESTART = "restart"
     STATUS = "status"
     PORT = "port"
+
+
+class DashboardCommands(str, Enum):
+    """Dashboard subcommand constants."""
+
+    START = "start"
+    STOP = "stop"
+    STATUS = "status"
+    OPEN = "open"
 
 
 class ConfigCommands(str, Enum):

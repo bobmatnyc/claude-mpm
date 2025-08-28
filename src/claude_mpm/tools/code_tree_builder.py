@@ -327,7 +327,6 @@ class CodeTreeBuilder:
             progress_callback,
         )
 
-
     def _build_node(
         self,
         path: Path,

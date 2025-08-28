@@ -574,16 +574,17 @@ class ConfigureCommand(BaseCommand):
         self.console.print("[bold]Current Template:[/bold]")
         # Truncate for display if too large
         display_template = template.copy()
-        if "instructions" in display_template and isinstance(
-            display_template["instructions"], dict
-        ) and (
-            "custom_instructions" in display_template["instructions"]
-            and len(str(display_template["instructions"]["custom_instructions"]))
-            > 200
+        if (
+            "instructions" in display_template
+            and isinstance(display_template["instructions"], dict)
+            and (
+                "custom_instructions" in display_template["instructions"]
+                and len(str(display_template["instructions"]["custom_instructions"]))
+                > 200
+            )
         ):
             display_template["instructions"]["custom_instructions"] = (
-                display_template["instructions"]["custom_instructions"][:200]
-                + "..."
+                display_template["instructions"]["custom_instructions"][:200] + "..."
             )
 
         json_str = json.dumps(display_template, indent=2)
