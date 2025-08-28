@@ -36,8 +36,6 @@ export class BuildTracker {
      * Initialize the build tracker component
      */
     async init() {
-        console.log('Initializing BuildTracker component');
-        
         // Try to load version.json for dashboard version
         await this.loadDashboardVersion();
         
@@ -67,11 +65,10 @@ export class BuildTracker {
                     full_version: versionData.full_version || "v1.0.0-0001"
                 };
                 
-                console.log('Loaded dashboard version:', this.buildInfo.monitor);
+                // Dashboard version loaded successfully
             }
         } catch (error) {
             // Silently fall back to defaults if version.json not available
-            console.debug('Dashboard version.json not available, using defaults');
         }
     }
     
@@ -162,8 +159,6 @@ export class BuildTracker {
      * @param {Object} buildInfo - Build information from server
      */
     updateBuildInfo(buildInfo) {
-        console.log('Updating build info:', buildInfo);
-        
         // Store the build info
         this.buildInfo = buildInfo;
         
@@ -252,8 +247,7 @@ export class BuildTracker {
             }
         }
         
-        // Show in console and alert
-        console.log('Version Information:\n' + info.join('\n'));
+        // Version information compiled
         
         // Create a simple modal-like display
         const modal = document.createElement('div');
@@ -285,12 +279,20 @@ export class BuildTracker {
             ? document.querySelector(parent) 
             : parent;
         
-        if (parentElement && this.element) {
-            parentElement.appendChild(this.element);
-            console.log('BuildTracker mounted to', parent);
-        } else {
-            console.error('Failed to mount BuildTracker: parent element not found');
+        if (!this.element) {
+            return;
         }
+        
+        if (!parentElement) {
+            return;
+        }
+        
+        // Check if already mounted to prevent duplicates
+        if (this.element.parentNode === parentElement) {
+            return;
+        }
+        
+        parentElement.appendChild(this.element);
     }
     
     /**

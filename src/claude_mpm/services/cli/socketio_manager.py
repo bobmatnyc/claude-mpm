@@ -172,10 +172,19 @@ class SocketIOManager(ISocketIOManager):
 
             # Check if server already running on this port
             if self.is_server_running(target_port):
-                self.logger.info(
-                    f"Socket.IO server already running on port {target_port}"
-                )
-                return True, self.get_server_info(target_port)
+                # Verify the server is healthy and responding
+                if self.wait_for_server(target_port, timeout=2):
+                    self.logger.info(
+                        f"Healthy Socket.IO server already running on port {target_port}"
+                    )
+                    return True, self.get_server_info(target_port)
+                else:
+                    # Server exists but not responding, try to clean it up
+                    self.logger.warning(
+                        f"Socket.IO server on port {target_port} not responding, attempting cleanup"
+                    )
+                    self.stop_server(port=target_port, timeout=5)
+                    # Continue with starting a new server
 
             # Ensure dependencies are available
             deps_ok, error_msg = self.ensure_dependencies()
@@ -459,14 +468,37 @@ class SocketIOManager(ISocketIOManager):
         Returns:
             Available port number
         """
-        # Try preferred port first
+        # First check if our Socket.IO server is already running on the preferred port
+        if self.is_server_running(preferred_port):
+            # Check if it's healthy
+            if self.wait_for_server(preferred_port, timeout=2):
+                self.logger.info(
+                    f"Healthy Socket.IO server already running on port {preferred_port}"
+                )
+                return preferred_port
+            else:
+                self.logger.warning(
+                    f"Socket.IO server on port {preferred_port} not responding, will try to restart"
+                )
+        
+        # Try preferred port first if available
         if self.port_manager.is_port_available(preferred_port):
             return preferred_port
 
-        # Find alternative port
-        available_port = self.port_manager.get_available_port(preferred_port)
-        self.logger.info(f"Port {preferred_port} unavailable, using {available_port}")
-        return available_port
+        # Find alternative port using the correct method name
+        available_port = self.port_manager.find_available_port(
+            preferred_port=preferred_port, reclaim=True
+        )
+        
+        if available_port:
+            self.logger.info(f"Port {preferred_port} unavailable, using {available_port}")
+            return available_port
+        else:
+            # If no port found, raise an error
+            raise RuntimeError(
+                f"No available ports in range {self.port_manager.PORT_RANGE.start}-"
+                f"{self.port_manager.PORT_RANGE.stop-1}"
+            )
 
     def ensure_dependencies(self) -> Tuple[bool, Optional[str]]:
         """

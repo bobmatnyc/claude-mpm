@@ -35,17 +35,17 @@ class MPMInitCommand:
         framework: Optional[str] = None,
         force: bool = False,
         verbose: bool = False,
-        use_venv: bool = False
+        use_venv: bool = False,
     ) -> Dict:
         """
         Initialize project with Agentic Coder Optimizer standards.
-        
+
         Args:
             project_type: Type of project (web, api, cli, library, etc.)
             framework: Specific framework if applicable
             force: Force initialization even if project already configured
             verbose: Show detailed output
-            
+
         Returns:
             Dict containing initialization results
         """
@@ -53,29 +53,31 @@ class MPMInitCommand:
             # Check if project already initialized
             claude_md = self.project_path / "CLAUDE.md"
             if claude_md.exists() and not force:
+                console.print("[yellow]⚠️  Project already has CLAUDE.md file.[/yellow]")
                 console.print(
-                    "[yellow]⚠️  Project already has CLAUDE.md file.[/yellow]"
+                    "[yellow]Use --force to reinitialize the project.[/yellow]"
                 )
-                console.print("[yellow]Use --force to reinitialize the project.[/yellow]")
                 return {"status": "cancelled", "message": "Initialization cancelled"}
 
             # Build the delegation prompt
             prompt = self._build_initialization_prompt(project_type, framework)
-            
+
             # Show initialization plan
-            console.print(Panel(
-                "[bold cyan]🤖👥 Claude MPM Project Initialization[/bold cyan]\n\n"
-                "This will set up your project with:\n"
-                "• Clear CLAUDE.md documentation for AI agents\n"
-                "• Single-path workflows (ONE way to do ANYTHING)\n"
-                "• Optimized project structure\n"
-                "• Tool configurations (linting, formatting, testing)\n"
-                "• GitHub workflows and CI/CD setup\n"
-                "• Memory system initialization\n\n"
-                "[dim]Powered by Agentic Coder Optimizer Agent[/dim]",
-                title="MPM-Init",
-                border_style="cyan"
-            ))
+            console.print(
+                Panel(
+                    "[bold cyan]🤖👥 Claude MPM Project Initialization[/bold cyan]\n\n"
+                    "This will set up your project with:\n"
+                    "• Clear CLAUDE.md documentation for AI agents\n"
+                    "• Single-path workflows (ONE way to do ANYTHING)\n"
+                    "• Optimized project structure\n"
+                    "• Tool configurations (linting, formatting, testing)\n"
+                    "• GitHub workflows and CI/CD setup\n"
+                    "• Memory system initialization\n\n"
+                    "[dim]Powered by Agentic Coder Optimizer Agent[/dim]",
+                    title="MPM-Init",
+                    border_style="cyan",
+                )
+            )
 
             # Execute via claude-mpm run command
             with Progress(
@@ -83,11 +85,13 @@ class MPMInitCommand:
                 TextColumn("[progress.description]{task.description}"),
                 console=console,
             ) as progress:
-                task = progress.add_task("[cyan]Delegating to Agentic Coder Optimizer...", total=None)
-                
+                task = progress.add_task(
+                    "[cyan]Delegating to Agentic Coder Optimizer...", total=None
+                )
+
                 # Run the initialization through subprocess
                 result = self._run_initialization(prompt, verbose, use_venv)
-                
+
                 progress.update(task, description="[green]✓ Initialization complete")
 
             return result
@@ -108,9 +112,7 @@ class MPMInitCommand:
         return Path("claude-mpm")
 
     def _build_initialization_prompt(
-        self,
-        project_type: Optional[str] = None,
-        framework: Optional[str] = None
+        self, project_type: Optional[str] = None, framework: Optional[str] = None
     ) -> str:
         """Build the initialization prompt for the agent."""
         base_prompt = f"""Please delegate this task to the Agentic Coder Optimizer agent:
@@ -119,13 +121,13 @@ Initialize this project for optimal use with Claude Code and Claude MPM.
 
 Project Path: {self.project_path}
 """
-        
+
         if project_type:
             base_prompt += f"Project Type: {project_type}\n"
-        
+
         if framework:
             base_prompt += f"Framework: {framework}\n"
-        
+
         base_prompt += """
 Please perform the following initialization tasks:
 
@@ -176,95 +178,103 @@ Please perform the following initialization tasks:
 Please ensure all documentation is clear, concise, and optimized for AI agents to understand and follow.
 Focus on establishing ONE clear way to do ANYTHING in the project.
 """
-        
+
         return base_prompt
 
-    def _build_claude_mpm_command(self, verbose: bool, use_venv: bool = False) -> List[str]:
+    def _build_claude_mpm_command(
+        self, verbose: bool, use_venv: bool = False
+    ) -> List[str]:
         """Build the claude-mpm run command with appropriate arguments."""
         cmd = [str(self.claude_mpm_script)]
-        
+
         # Add venv flag if requested or if mamba issues detected
         # This goes BEFORE the subcommand
         if use_venv:
             cmd.append("--use-venv")
-        
+
         # Add top-level flags that go before 'run' subcommand
         cmd.append("--no-check-dependencies")
-        
+
         # Now add the run subcommand
         cmd.append("run")
-        
+
         # Add non-interactive mode
         # We'll pass the prompt via stdin instead of -i flag
         cmd.append("--non-interactive")
-        
+
         # Add verbose flag if requested (run subcommand argument)
         if verbose:
             cmd.append("--verbose")
-        
+
         return cmd
 
-    def _run_initialization(self, prompt: str, verbose: bool, use_venv: bool = False) -> Dict:
+    def _run_initialization(
+        self, prompt: str, verbose: bool, use_venv: bool = False
+    ) -> Dict:
         """Run the initialization through subprocess calling claude-mpm."""
         import tempfile
-        
+
         try:
             # Write prompt to temporary file
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as tmp_file:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".txt", delete=False
+            ) as tmp_file:
                 tmp_file.write(prompt)
                 prompt_file = tmp_file.name
-            
+
             try:
                 # Build the command
                 cmd = self._build_claude_mpm_command(verbose, use_venv)
                 # Add the input file flag
                 cmd.extend(["-i", prompt_file])
-                
+
                 # Log the command if verbose
                 if verbose:
                     console.print(f"[dim]Running: {' '.join(cmd)}[/dim]")
                     console.print(f"[dim]Prompt file: {prompt_file}[/dim]")
-                
+
                 # Execute the command
                 result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    cwd=str(self.project_path)
+                    cmd, capture_output=True, text=True, cwd=str(self.project_path)
                 )
-                
+
                 # Check for environment-specific errors
                 if "libmamba" in result.stderr or "tree-sitter" in result.stderr:
-                    console.print("\n[yellow]⚠️  Environment dependency issue detected.[/yellow]")
-                    console.print("[yellow]Attempting alternative initialization method...[/yellow]\n")
-                    
+                    console.print(
+                        "\n[yellow]⚠️  Environment dependency issue detected.[/yellow]"
+                    )
+                    console.print(
+                        "[yellow]Attempting alternative initialization method...[/yellow]\n"
+                    )
+
                     # Try again with venv flag to bypass mamba
                     cmd_venv = self._build_claude_mpm_command(verbose, use_venv=True)
                     cmd_venv.extend(["-i", prompt_file])
-                    
+
                     if verbose:
                         console.print(f"[dim]Retrying with: {' '.join(cmd_venv)}[/dim]")
-                    
+
                     result = subprocess.run(
                         cmd_venv,
                         capture_output=not verbose,
                         text=True,
-                        cwd=str(self.project_path)
+                        cwd=str(self.project_path),
                     )
             finally:
                 # Clean up temporary file
                 import os
+
                 try:
                     os.unlink(prompt_file)
                 except:
                     pass
-            
+
             # Display output if verbose
             if verbose and result.stdout:
                 console.print(result.stdout)
             if verbose and result.stderr:
                 console.print(f"[yellow]{result.stderr}[/yellow]")
-            
+
             # Check result - be more lenient with return codes
             if result.returncode == 0 or (self.project_path / "CLAUDE.md").exists():
                 response = {
@@ -272,49 +282,57 @@ Focus on establishing ONE clear way to do ANYTHING in the project.
                     "message": "Project initialized successfully",
                     "files_created": [],
                     "files_updated": [],
-                    "next_steps": []
+                    "next_steps": [],
                 }
-                
+
                 # Check if CLAUDE.md was created
                 claude_md = self.project_path / "CLAUDE.md"
                 if claude_md.exists():
                     response["files_created"].append("CLAUDE.md")
-                
+
                 # Check for other common files
                 for file_name in ["CODE.md", "DEVELOPER.md", "STRUCTURE.md", "OPS.md"]:
                     file_path = self.project_path / file_name
                     if file_path.exists():
                         response["files_created"].append(file_name)
-                
+
                 # Add next steps
                 response["next_steps"] = [
                     "Review the generated CLAUDE.md documentation",
                     "Verify the project structure meets your needs",
-                    "Run 'claude-mpm run' to start using the optimized setup"
+                    "Run 'claude-mpm run' to start using the optimized setup",
                 ]
-                
+
                 # Display results
                 self._display_results(response, verbose)
-                
+
                 return response
             else:
                 # Extract meaningful error message
-                error_msg = result.stderr if result.stderr else result.stdout if result.stdout else "Unknown error occurred"
+                error_msg = (
+                    result.stderr
+                    if result.stderr
+                    else result.stdout if result.stdout else "Unknown error occurred"
+                )
                 # Clean up mamba warnings from error message
                 if "libmamba" in error_msg:
-                    lines = error_msg.split('\n')
-                    error_lines = [l for l in lines if not l.startswith('warning') and l.strip()]
-                    error_msg = '\n'.join(error_lines) if error_lines else error_msg
-                
+                    lines = error_msg.split("\n")
+                    error_lines = [
+                        l for l in lines if not l.startswith("warning") and l.strip()
+                    ]
+                    error_msg = "\n".join(error_lines) if error_lines else error_msg
+
                 logger.error(f"claude-mpm run failed: {error_msg}")
                 return {
                     "status": "error",
-                    "message": f"Initialization failed: {error_msg}"
+                    "message": f"Initialization failed: {error_msg}",
                 }
-            
+
         except FileNotFoundError:
             logger.error("claude-mpm command not found")
-            console.print("[red]Error: claude-mpm command not found. Ensure Claude MPM is properly installed.[/red]")
+            console.print(
+                "[red]Error: claude-mpm command not found. Ensure Claude MPM is properly installed.[/red]"
+            )
             return {"status": "error", "message": "claude-mpm not found"}
         except Exception as e:
             logger.error(f"Initialization failed: {e}")
@@ -324,74 +342,76 @@ Focus on establishing ONE clear way to do ANYTHING in the project.
         """Display initialization results."""
         if result["status"] == "success":
             console.print("\n[green]✅ Project Initialization Complete![/green]\n")
-            
+
             if result.get("files_created"):
                 console.print("[bold]Files Created:[/bold]")
                 for file in result["files_created"]:
                     console.print(f"  • {file}")
                 console.print()
-            
+
             if result.get("files_updated"):
                 console.print("[bold]Files Updated:[/bold]")
                 for file in result["files_updated"]:
                     console.print(f"  • {file}")
                 console.print()
-            
+
             if result.get("next_steps"):
                 console.print("[bold]Next Steps:[/bold]")
                 for step in result["next_steps"]:
                     console.print(f"  → {step}")
                 console.print()
-            
-            console.print(Panel(
-                "[green]Your project is now optimized for Claude Code and Claude MPM![/green]\n\n"
-                "Key files:\n"
-                "• [cyan]CLAUDE.md[/cyan] - Main documentation for AI agents\n"
-                "• [cyan].claude-mpm/[/cyan] - Configuration and memories\n\n"
-                "[dim]Run 'claude-mpm run' to start using the optimized setup[/dim]",
-                title="Success",
-                border_style="green"
-            ))
+
+            console.print(
+                Panel(
+                    "[green]Your project is now optimized for Claude Code and Claude MPM![/green]\n\n"
+                    "Key files:\n"
+                    "• [cyan]CLAUDE.md[/cyan] - Main documentation for AI agents\n"
+                    "• [cyan].claude-mpm/[/cyan] - Configuration and memories\n\n"
+                    "[dim]Run 'claude-mpm run' to start using the optimized setup[/dim]",
+                    title="Success",
+                    border_style="green",
+                )
+            )
 
 
 @click.command(name="mpm-init")
 @click.option(
     "--project-type",
-    type=click.Choice(["web", "api", "cli", "library", "mobile", "desktop", "fullstack"]),
-    help="Type of project to initialize"
+    type=click.Choice(
+        ["web", "api", "cli", "library", "mobile", "desktop", "fullstack"]
+    ),
+    help="Type of project to initialize",
 )
 @click.option(
     "--framework",
     type=str,
-    help="Specific framework (e.g., react, django, fastapi, express)"
+    help="Specific framework (e.g., react, django, fastapi, express)",
 )
 @click.option(
     "--force",
     is_flag=True,
-    help="Force reinitialization even if project is already configured"
+    help="Force reinitialization even if project is already configured",
 )
 @click.option(
-    "--verbose",
-    is_flag=True,
-    help="Show detailed output during initialization"
+    "--verbose", is_flag=True, help="Show detailed output during initialization"
 )
 @click.argument(
     "project_path",
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
     required=False,
-    default="."
+    default=".",
 )
 def mpm_init(project_type, framework, force, verbose, project_path):
     """
     Initialize a project for optimal use with Claude Code and Claude MPM.
-    
+
     This command uses the Agentic Coder Optimizer agent to:
     - Create comprehensive CLAUDE.md documentation
     - Establish single-path workflows (ONE way to do ANYTHING)
     - Configure development tools and standards
     - Set up memory systems for project knowledge
     - Optimize for AI agent understanding
-    
+
     Examples:
         claude-mpm mpm-init
         claude-mpm mpm-init --project-type web --framework react
@@ -400,21 +420,18 @@ def mpm_init(project_type, framework, force, verbose, project_path):
     try:
         # Create command instance
         command = MPMInitCommand(Path(project_path))
-        
+
         # Run initialization (now synchronous)
         result = command.initialize_project(
-            project_type=project_type,
-            framework=framework,
-            force=force,
-            verbose=verbose
+            project_type=project_type, framework=framework, force=force, verbose=verbose
         )
-        
+
         # Exit with appropriate code
         if result["status"] == "success":
             sys.exit(0)
         else:
             sys.exit(1)
-            
+
     except KeyboardInterrupt:
         console.print("\n[yellow]Initialization cancelled by user[/yellow]")
         sys.exit(130)

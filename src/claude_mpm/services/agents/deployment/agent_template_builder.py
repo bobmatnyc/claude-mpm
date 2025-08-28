@@ -190,7 +190,17 @@ class AgentTemplateBuilder:
         # Include tools field only if agent is clearly restricted (missing core tools or very few tools)
         include_tools_field = not has_core_tools or len(agent_tools) < 6
 
-        # Build YAML frontmatter using Claude Code's working format + our custom fields
+        # Build YAML frontmatter using Claude Code's minimal format
+        # ONLY include fields that Claude Code recognizes
+        # 
+        # REMOVED FIELDS for Claude Code compatibility:
+        # - model, color, version, type, source, author
+        # These fields caused Claude Code to silently fail agent discovery
+        # 
+        # CLAUDE CODE COMPATIBLE FORMAT:
+        # - name: kebab-case agent name (required)
+        # - description: when/why to use this agent (required) 
+        # - tools: comma-separated tool list (optional, only if restricting)
         frontmatter_lines = [
             "---",
             f"name: {claude_code_name}",
@@ -203,12 +213,6 @@ class AgentTemplateBuilder:
 
         frontmatter_lines.extend(
             [
-                f"model: {model_type}",  # Use explicit model type instead of inherit
-                f"color: {color}",
-                f"version: {agent_version}",
-                f"type: {agent_type}",
-                f"source: {source_info}",  # Track which source provided this agent
-                "author: claude-mpm",  # Mark as system-managed agent
                 "---",
                 "",
             ]

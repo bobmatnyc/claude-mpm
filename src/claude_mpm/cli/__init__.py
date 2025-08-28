@@ -390,7 +390,7 @@ def _execute_command(command: str, args) -> int:
 
         result = execute_run_guarded(args)
         return result if result is not None else 0
-    
+
     # Handle mpm-init command with lazy import
     if command == "mpm-init":
         # Lazy import to avoid loading unless needed

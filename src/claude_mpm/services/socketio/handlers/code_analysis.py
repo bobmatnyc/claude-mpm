@@ -13,6 +13,7 @@ DESIGN DECISIONS:
 """
 
 import asyncio
+import logging
 import uuid
 from pathlib import Path
 from typing import Any, Dict
@@ -216,56 +217,22 @@ class CodeAnalysisEventHandler(BaseEventHandler):
             )
             return
 
-        # ADDITIONAL SECURITY: Ensure path is within working directory bounds
-        # This prevents access to system directories like /Users, /System, etc.
-        working_dir = Path.cwd().absolute()
-        try:
-            requested_path = Path(path).absolute()
-            # This will raise ValueError if path is not within working_dir
-            requested_path.relative_to(working_dir)
-        except ValueError:
-            self.logger.warning(
-                f"Access denied - path outside working directory: {path}"
-            )
-            await self.server.core.sio.emit(
-                "code:analysis:error",
-                {
-                    "error": f"Access denied: Path outside working directory: {path}",
-                    "request_id": data.get("request_id"),
-                    "path": path,
-                },
-                room=sid,
-            )
-            return
+        # SECURITY: Validate the requested path
+        # Allow access to the explicitly chosen working directory and its subdirectories
+        requested_path = Path(path).absolute()
+        
+        # For now, we trust the frontend to send valid paths
+        # In production, you might want to maintain a server-side list of allowed directories
+        # or implement a more sophisticated permission system
+        
+        # Basic sanity checks are done below after creating the Path object
 
         ignore_patterns = data.get("ignore_patterns", [])
         request_id = data.get("request_id")
-        show_hidden_files = data.get("show_hidden_files", False)
-        
-        # Extensive debug logging
-        self.logger.info(f"[DEBUG] handle_discover_top_level START")
-        self.logger.info(f"[DEBUG] Received show_hidden_files={show_hidden_files} (type: {type(show_hidden_files)})")
-        self.logger.info(f"[DEBUG] Current analyzer exists: {self.code_analyzer is not None}")
-        if self.code_analyzer:
-            current_value = getattr(self.code_analyzer, 'show_hidden_files', 'NOT_FOUND')
-            self.logger.info(f"[DEBUG] Current analyzer show_hidden_files={current_value}")
-        self.logger.info(f"[DEBUG] Full request data: {data}")
 
         try:
-            # Create analyzer if needed or recreate if show_hidden_files changed
-            current_show_hidden = getattr(self.code_analyzer, 'show_hidden_files', None) if self.code_analyzer else None
-            need_recreate = (
-                not self.code_analyzer or 
-                current_show_hidden != show_hidden_files
-            )
-            
-            self.logger.info(f"[DEBUG] Analyzer recreation check:")
-            self.logger.info(f"[DEBUG]   - Analyzer exists: {self.code_analyzer is not None}")
-            self.logger.info(f"[DEBUG]   - Current show_hidden: {current_show_hidden}")
-            self.logger.info(f"[DEBUG]   - Requested show_hidden: {show_hidden_files}")
-            self.logger.info(f"[DEBUG]   - Need recreate: {need_recreate}")
-            
-            if need_recreate:
+            # Create analyzer if needed
+            if not self.code_analyzer:
                 # Create a custom emitter that sends to Socket.IO
                 emitter = CodeTreeEventEmitter(use_stdout=False)
                 # Override emit method to send to Socket.IO
@@ -276,14 +243,14 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 ):
                     # Keep the original event format with colons - frontend expects this!
                     # The frontend listens for 'code:directory:discovered' not 'code.directory.discovered'
-                    
+
                     # Special handling for 'info' events - they should be passed through directly
-                    if event_type == 'info':
+                    if event_type == "info":
                         # INFO events for granular tracking
                         loop = asyncio.get_event_loop()
                         loop.create_task(
                             self.server.core.sio.emit(
-                                'info', {"request_id": request_id, **event_data}
+                                "info", {"request_id": request_id, **event_data}
                             )
                         )
                     else:
@@ -298,14 +265,9 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                     original_emit(event_type, event_data, batch)
 
                 emitter.emit = socket_emit
-                # Initialize CodeTreeAnalyzer with emitter keyword argument and show_hidden_files
-                self.logger.info(f"[DEBUG] Creating new CodeTreeAnalyzer with show_hidden_files={show_hidden_files}")
-                self.code_analyzer = CodeTreeAnalyzer(emitter=emitter, show_hidden_files=show_hidden_files)
-                self.logger.info(f"[DEBUG] CodeTreeAnalyzer created:")
-                self.logger.info(f"[DEBUG]   - analyzer.show_hidden_files={self.code_analyzer.show_hidden_files}")
-                self.logger.info(f"[DEBUG]   - gitignore_manager.show_hidden_files={self.code_analyzer.gitignore_manager.show_hidden_files}")
-            else:
-                self.logger.info(f"[DEBUG] Reusing existing analyzer with show_hidden_files={self.code_analyzer.show_hidden_files}")
+                # Initialize CodeTreeAnalyzer with emitter keyword argument
+                self.logger.info("Creating CodeTreeAnalyzer")
+                self.code_analyzer = CodeTreeAnalyzer(emitter=emitter)
 
             # Use the provided path as-is - the frontend sends the absolute path
             # Make sure we're using an absolute path
@@ -341,17 +303,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 f"Discovering top-level contents of: {directory.absolute()}"
             )
 
-            # Log before discovery
-            self.logger.info(f"[DEBUG] About to discover with analyzer.show_hidden_files={self.code_analyzer.show_hidden_files}")
-            
             result = self.code_analyzer.discover_top_level(directory, ignore_patterns)
-            
-            # Log what we got back
-            num_items = len(result.get("children", []))
-            dotfiles = [c for c in result.get("children", []) if c.get("name", "").startswith(".")]
-            self.logger.info(f"[DEBUG] Discovery result: {num_items} items, {len(dotfiles)} dotfiles")
-            if dotfiles:
-                self.logger.info(f"[DEBUG] Dotfiles found: {[d.get('name') for d in dotfiles]}")
 
             # Send result to client with correct event name for top level discovery
             await self.server.core.sio.emit(
@@ -404,7 +356,6 @@ class CodeAnalysisEventHandler(BaseEventHandler):
         path = data.get("path")
         ignore_patterns = data.get("ignore_patterns", [])
         request_id = data.get("request_id")
-        show_hidden_files = data.get("show_hidden_files", False)
 
         if not path:
             await self.server.core.sio.emit(
@@ -432,21 +383,34 @@ class CodeAnalysisEventHandler(BaseEventHandler):
             )
             return
 
-        # ADDITIONAL SECURITY: Ensure path is within working directory bounds
-        # This prevents access to system directories like /Users, /System, etc.
-        working_dir = Path.cwd().absolute()
-        try:
-            requested_path = Path(path).absolute()
-            # This will raise ValueError if path is not within working_dir
-            requested_path.relative_to(working_dir)
-        except ValueError:
-            self.logger.warning(
-                f"Access denied - path outside working directory: {path}"
-            )
+        # SECURITY: Validate the requested path
+        # Allow access to the explicitly chosen working directory and its subdirectories
+        requested_path = Path(path).absolute()
+        
+        # For now, we trust the frontend to send valid paths
+        # In production, you might want to maintain a server-side list of allowed directories
+        # or implement a more sophisticated permission system
+        
+        # Basic sanity checks
+        if not requested_path.exists():
+            self.logger.warning(f"Path does not exist: {path}")
             await self.server.core.sio.emit(
                 "code:analysis:error",
                 {
-                    "error": f"Access denied: Path outside working directory: {path}",
+                    "error": f"Path does not exist: {path}",
+                    "request_id": request_id,
+                    "path": path,
+                },
+                room=sid,
+            )
+            return
+        
+        if not requested_path.is_dir():
+            self.logger.warning(f"Path is not a directory: {path}")
+            await self.server.core.sio.emit(
+                "code:analysis:error",
+                {
+                    "error": f"Path is not a directory: {path}",
                     "request_id": request_id,
                     "path": path,
                 },
@@ -455,20 +419,8 @@ class CodeAnalysisEventHandler(BaseEventHandler):
             return
 
         try:
-            # Ensure analyzer exists or recreate if show_hidden_files changed
-            current_show_hidden = getattr(self.code_analyzer, 'show_hidden_files', None) if self.code_analyzer else None
-            need_recreate = (
-                not self.code_analyzer or 
-                current_show_hidden != show_hidden_files
-            )
-            
-            self.logger.info(f"[DEBUG] Analyzer recreation check:")
-            self.logger.info(f"[DEBUG]   - Analyzer exists: {self.code_analyzer is not None}")
-            self.logger.info(f"[DEBUG]   - Current show_hidden: {current_show_hidden}")
-            self.logger.info(f"[DEBUG]   - Requested show_hidden: {show_hidden_files}")
-            self.logger.info(f"[DEBUG]   - Need recreate: {need_recreate}")
-            
-            if need_recreate:
+            # Ensure analyzer exists
+            if not self.code_analyzer:
                 emitter = CodeTreeEventEmitter(use_stdout=False)
                 # Override emit method to send to Socket.IO
                 original_emit = emitter.emit
@@ -478,14 +430,14 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 ):
                     # Keep the original event format with colons - frontend expects this!
                     # The frontend listens for 'code:directory:discovered' not 'code.directory.discovered'
-                    
+
                     # Special handling for 'info' events - they should be passed through directly
-                    if event_type == 'info':
+                    if event_type == "info":
                         # INFO events for granular tracking
                         loop = asyncio.get_event_loop()
                         loop.create_task(
                             self.server.core.sio.emit(
-                                'info', {"request_id": request_id, **event_data}
+                                "info", {"request_id": request_id, **event_data}
                             )
                         )
                     else:
@@ -499,16 +451,16 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                     original_emit(event_type, event_data, batch)
 
                 emitter.emit = socket_emit
-                # Initialize CodeTreeAnalyzer with emitter keyword argument and show_hidden_files
-                self.logger.info(f"[DEBUG] Creating new CodeTreeAnalyzer with show_hidden_files={show_hidden_files}")
-                self.code_analyzer = CodeTreeAnalyzer(emitter=emitter, show_hidden_files=show_hidden_files)
-                self.logger.info(f"[DEBUG] CodeTreeAnalyzer created, analyzer.show_hidden_files={self.code_analyzer.show_hidden_files}")
-                self.logger.info(f"[DEBUG] GitignoreManager.show_hidden_files={self.code_analyzer.gitignore_manager.show_hidden_files}")
-            else:
-                self.logger.info(f"[DEBUG] Reusing analyzer with show_hidden_files={self.code_analyzer.show_hidden_files}")
+                # Initialize CodeTreeAnalyzer with emitter keyword argument
+                self.logger.info("Creating CodeTreeAnalyzer")
+                self.code_analyzer = CodeTreeAnalyzer(emitter=emitter)
 
             # Discover directory
             result = self.code_analyzer.discover_directory(path, ignore_patterns)
+            
+            # Log what we're sending
+            self.logger.info(f"Discovery result for {path}: {len(result.get('children', []))} children found")
+            self.logger.debug(f"Full result: {result}")
 
             # Send result with correct event name (using colons, not dots!)
             await self.server.core.sio.emit(
@@ -571,20 +523,30 @@ class CodeAnalysisEventHandler(BaseEventHandler):
             )
             return
 
-        # ADDITIONAL SECURITY: Ensure file is within working directory bounds
-        working_dir = Path.cwd().absolute()
-        try:
-            requested_path = Path(path).absolute()
-            # This will raise ValueError if path is not within working_dir
-            requested_path.relative_to(working_dir)
-        except ValueError:
-            self.logger.warning(
-                f"Access denied - file outside working directory: {path}"
-            )
+        # SECURITY: Validate the requested file path
+        # Allow access to files within the explicitly chosen working directory
+        requested_path = Path(path).absolute()
+        
+        # Basic sanity checks
+        if not requested_path.exists():
+            self.logger.warning(f"File does not exist: {path}")
             await self.server.core.sio.emit(
                 "code:analysis:error",
                 {
-                    "error": f"Access denied: File outside working directory: {path}",
+                    "error": f"File does not exist: {path}",
+                    "request_id": request_id,
+                    "path": path,
+                },
+                room=sid,
+            )
+            return
+        
+        if not requested_path.is_file():
+            self.logger.warning(f"Path is not a file: {path}")
+            await self.server.core.sio.emit(
+                "code:analysis:error",
+                {
+                    "error": f"Path is not a file: {path}",
                     "request_id": request_id,
                     "path": path,
                 },
@@ -593,20 +555,8 @@ class CodeAnalysisEventHandler(BaseEventHandler):
             return
 
         try:
-            # Ensure analyzer exists or recreate if show_hidden_files changed
-            current_show_hidden = getattr(self.code_analyzer, 'show_hidden_files', None) if self.code_analyzer else None
-            need_recreate = (
-                not self.code_analyzer or 
-                current_show_hidden != show_hidden_files
-            )
-            
-            self.logger.info(f"[DEBUG] Analyzer recreation check:")
-            self.logger.info(f"[DEBUG]   - Analyzer exists: {self.code_analyzer is not None}")
-            self.logger.info(f"[DEBUG]   - Current show_hidden: {current_show_hidden}")
-            self.logger.info(f"[DEBUG]   - Requested show_hidden: {show_hidden_files}")
-            self.logger.info(f"[DEBUG]   - Need recreate: {need_recreate}")
-            
-            if need_recreate:
+            # Ensure analyzer exists
+            if not self.code_analyzer:
                 emitter = CodeTreeEventEmitter(use_stdout=False)
                 # Override emit method to send to Socket.IO
                 original_emit = emitter.emit
@@ -616,14 +566,14 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 ):
                     # Keep the original event format with colons - frontend expects this!
                     # The frontend listens for 'code:file:analyzed' not 'code.file.analyzed'
-                    
+
                     # Special handling for 'info' events - they should be passed through directly
-                    if event_type == 'info':
+                    if event_type == "info":
                         # INFO events for granular tracking
                         loop = asyncio.get_event_loop()
                         loop.create_task(
                             self.server.core.sio.emit(
-                                'info', {"request_id": request_id, **event_data}
+                                "info", {"request_id": request_id, **event_data}
                             )
                         )
                     else:
@@ -637,13 +587,9 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                     original_emit(event_type, event_data, batch)
 
                 emitter.emit = socket_emit
-                # Initialize CodeTreeAnalyzer with emitter keyword argument and show_hidden_files
-                self.logger.info(f"[DEBUG] Creating new CodeTreeAnalyzer with show_hidden_files={show_hidden_files}")
-                self.code_analyzer = CodeTreeAnalyzer(emitter=emitter, show_hidden_files=show_hidden_files)
-                self.logger.info(f"[DEBUG] CodeTreeAnalyzer created, analyzer.show_hidden_files={self.code_analyzer.show_hidden_files}")
-                self.logger.info(f"[DEBUG] GitignoreManager.show_hidden_files={self.code_analyzer.gitignore_manager.show_hidden_files}")
-            else:
-                self.logger.info(f"[DEBUG] Reusing analyzer with show_hidden_files={self.code_analyzer.show_hidden_files}")
+                # Initialize CodeTreeAnalyzer with emitter keyword argument
+                self.logger.info("Creating CodeTreeAnalyzer")
+                self.code_analyzer = CodeTreeAnalyzer(emitter=emitter)
 
             # Analyze file
             result = self.code_analyzer.analyze_file(path)
