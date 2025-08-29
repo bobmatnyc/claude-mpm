@@ -183,7 +183,7 @@ class SocketIOManager(ISocketIOManager):
                     f"Socket.IO server on port {target_port} not responding, attempting cleanup"
                 )
                 self.stop_server(port=target_port, timeout=5)
-                    # Continue with starting a new server
+                # Continue with starting a new server
 
             # Ensure dependencies are available
             deps_ok, error_msg = self.ensure_dependencies()

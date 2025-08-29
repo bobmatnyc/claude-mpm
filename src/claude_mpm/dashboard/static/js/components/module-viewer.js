@@ -1,7 +1,10 @@
 /**
  * Module Viewer Component
  * Displays detailed information about selected events organized by class/type
+ * Now uses UnifiedDataViewer for consistent data formatting
  */
+
+import { UnifiedDataViewer } from './unified-data-viewer.js';
 
 class ModuleViewer {
     constructor(containerId) {
@@ -17,6 +20,9 @@ class ModuleViewer {
         
         // Track if keyboard listener has been added to avoid duplicates
         this.keyboardListenerAdded = false;
+        
+        // Initialize unified data viewer
+        this.unifiedViewer = new UnifiedDataViewer('module-data-content');
 
         this.init();
     }
@@ -81,17 +87,22 @@ class ModuleViewer {
     }
 
     /**
-     * Show details for a selected event
+     * Show details for a selected event using UnifiedDataViewer
      * @param {Object} event - The selected event
      */
     showEventDetails(event) {
         this.currentEvent = event;
-
-        // Render structured data in top pane
-        this.renderStructuredData(event);
-
-        // Render JSON in bottom pane
-        this.renderJsonData(event);
+        
+        if (!this.unifiedViewer) {
+            console.warn('ModuleViewer: UnifiedDataViewer not available');
+            // Fallback to legacy rendering
+            this.renderStructuredData(event);
+            this.renderJsonData(event);
+            return;
+        }
+        
+        // Use unified viewer to display event data
+        this.unifiedViewer.display(event, 'event');
     }
 
     /**
@@ -1386,6 +1397,9 @@ class ModuleViewer {
      * Clear the module viewer
      */
     clear() {
+        if (this.unifiedViewer) {
+            this.unifiedViewer.clear();
+        }
         this.showEmptyState();
     }
 

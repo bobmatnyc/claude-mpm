@@ -1,4 +1,4 @@
-/* Activity Tab Styles for D3.js Tree Visualization */
+/* Activity Tab Styles for Linear Tree View */
 
 /* Container and Layout */
 .activity-container {
@@ -87,21 +87,529 @@
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 400px;
+    max-height: calc(100vh - 320px);
+    padding: 0;
+    scroll-behavior: smooth;
+}
+
+/* SVG Tree Styles */
+#activity-tree-svg {
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+}
+
+/* D3 Tree Group */
+.tree-group {
+    cursor: move; /* Cursor for pan */
+}
+
+/* D3 Node Styles */
+.node {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.node.selected .node-circle {
+    stroke: #4299e1 !important;
+    stroke-width: 3px !important;
+    filter: drop-shadow(0 0 6px rgba(66, 153, 225, 0.6));
+}
+
+.node-circle {
+    transition: all 0.3s ease;
+}
+
+.node:hover .node-circle {
+    stroke-width: 3px;
+    filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.3));
+}
+
+.node-icon {
+    font-size: 12px;
+    pointer-events: none;
+    font-weight: bold;
+}
+
+.node-label {
+    font-size: 14px;
+    font-weight: 500;
+    fill: #2d3748;
+    transition: all 0.3s ease;
+}
+
+.node:hover .node-label {
+    fill: #4299e1;
+}
+
+/* Node Type Colors */
+.node-project .node-circle {
+    fill: #4299e1;
+    stroke: #2c5282;
+}
+
+.node-session .node-circle {
+    fill: #38a169;
+    stroke: #276749;
+}
+
+.node-todo .node-circle {
+    fill: #ed8936;
+    stroke: #c05621;
+}
+
+.node-agent .node-circle {
+    fill: #9f7aea;
+    stroke: #6b46c1;
+}
+
+.node-tool .node-circle {
+    fill: #e53e3e;
+    stroke: #c53030;
+}
+
+/* Status Badges */
+.status-badge {
+    transition: all 0.3s ease;
+}
+
+.status-text {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+}
+
+/* Links */
+.link {
+    transition: all 0.3s ease;
+}
+
+.node:hover .link {
+    stroke: #4299e1;
+    stroke-width: 3px;
+}
+
+/* D3 Tooltip */
+.d3-tooltip {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.4;
+    max-width: 250px;
+    word-wrap: break-word;
+}
+
+/* Legacy Tree Styles - Keep for fallback */
+.linear-tree {
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+    line-height: 1.6;
+    padding: 15px;
+    min-height: 100%;
+}
+
+/* Tree Node Base Styles */
+.tree-node {
+    margin: 2px 0;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.tree-node:hover {
+    background-color: #f7fafc;
+}
+
+.tree-node-content {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    gap: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.tree-node-content:hover {
+    background-color: #edf2f7;
+}
+
+/* Tree Indentation */
+.tree-node[data-level="1"] {
+    margin-left: 20px;
+}
+
+.tree-node[data-level="2"] {
+    margin-left: 40px;
+}
+
+.tree-node[data-level="3"] {
+    margin-left: 60px;
+}
+
+.tree-node[data-level="4"] {
+    margin-left: 80px;
+}
+
+/* Tree Icons */
+.tree-icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.tree-expand-icon {
+    font-size: 12px;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    color: #718096;
+    transition: transform 0.2s ease;
+}
+
+.tree-expand-icon:hover {
+    color: #4a5568;
+    transform: scale(1.2);
+}
+
+/* Tree Labels and Text */
+.tree-label {
+    flex-grow: 1;
+    font-size: 14px;
+    color: #2d3748;
+    font-weight: 500;
+}
+
+.tree-label.clickable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 3px;
+    padding: 2px 4px;
+}
+
+.tree-label.clickable:hover {
+    background-color: #e2e8f0;
+    color: #2c5282;
+}
+
+.tree-meta {
+    font-size: 12px;
+    color: #718096;
+    font-style: italic;
+    margin-left: auto;
+}
+
+.tree-params {
+    font-size: 11px;
+    color: #4a5568;
+    background: #edf2f7;
+    padding: 2px 6px;
+    border-radius: 3px;
+    max-width: 200px;
     overflow: hidden;
-    min-height: 400px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-#activity-tree {
-    width: 100%;
-    height: 100%;
-    min-height: 400px;
+.tree-status {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
 }
 
-/* Ensure SVG fills container */
-#activity-tree svg {
-    display: block;
-    width: 100%;
-    height: 100%;
+/* Tree Children */
+.tree-children {
+    margin-left: 0;
+    border-left: 1px solid #e2e8f0;
+    margin-left: 20px;
+    padding-left: 0;
+}
+
+/* Node Type Styles */
+
+/* Project Root */
+.tree-node.project-root {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    margin-bottom: 10px;
+    border-radius: 6px;
+}
+
+.tree-node.project-root .tree-node-content {
+    padding: 10px 12px;
+}
+
+.tree-node.project-root .tree-label {
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.tree-node.project-root .tree-meta {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Session Nodes */
+.tree-node.session {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    margin-bottom: 8px;
+    border-radius: 6px;
+}
+
+.tree-node.session .tree-node-content {
+    padding: 8px 12px;
+    font-weight: 600;
+}
+
+.tree-node.session .tree-icon {
+    font-size: 18px;
+}
+
+.tree-node.session .tree-label {
+    font-size: 15px;
+    color: #495057;
+}
+
+/* Todo Nodes */
+.tree-node.todo {
+    border-left: 3px solid #cbd5e0;
+    margin: 4px 0;
+}
+
+.tree-node.todo.status-pending {
+    border-left-color: #cbd5e0;
+    background: #f8f9fa;
+}
+
+.tree-node.todo.status-in_progress {
+    border-left-color: #3182ce;
+    background: #ebf8ff;
+}
+
+.tree-node.todo.status-completed {
+    border-left-color: #38a169;
+    background: #f0fff4;
+}
+
+/* Agent Nodes */
+.tree-node.agent {
+    background: #fef5e7;
+    border-left: 2px solid #ed8936;
+    margin: 2px 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tree-node.agent:hover {
+    background: #fed7aa;
+    transform: translateX(2px);
+    box-shadow: 0 2px 4px rgba(237, 137, 54, 0.2);
+}
+
+.tree-node.agent.selected {
+    background: #fed7aa;
+    border-left-color: #c05621;
+    border-left-width: 4px;
+    box-shadow: 0 4px 8px rgba(192, 86, 33, 0.3);
+}
+
+.tree-node.agent.status-active {
+    background: #fef5e7;
+    border-left-color: #ed8936;
+}
+
+.tree-node.agent.status-completed {
+    background: #f0fff4;
+    border-left-color: #38a169;
+}
+
+/* Tool Nodes - Maximum Specificity to Override Any Conflicting Styles */
+body .activity-tree-container .linear-tree .tree-node.tool,
+.tree-node.tool {
+    background: #faf5ff !important;
+    border-left: 2px solid #9f7aea !important;
+    margin: 1px 0 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+body .activity-tree-container .linear-tree .tree-node.tool:hover,
+.tree-node.tool:hover {
+    background: #f3e8ff !important;
+    transform: translateX(2px) !important;
+    box-shadow: 0 2px 4px rgba(159, 122, 234, 0.2) !important;
+}
+
+body .activity-tree-container .linear-tree .tree-node.tool.selected,
+.tree-node.tool.selected {
+    background: #e9d8fd !important;
+    border-left-color: #7c3aed !important;
+    border-left-width: 4px !important;
+    box-shadow: 0 4px 8px rgba(124, 58, 237, 0.3) !important;
+}
+
+/* Tool Status Styles - Maximum Specificity to Override Any Other Rules */
+body .activity-tree-container .linear-tree .tree-node.tool.status-pending,
+.tree-node.tool.status-pending {
+    background: #faf5ff !important;
+    border-left-color: #9f7aea !important;
+    border-left-width: 2px !important;
+}
+
+body .activity-tree-container .linear-tree .tree-node.tool.status-in_progress,
+.tree-node.tool.status-in_progress {
+    background: #e6fffa !important;
+    border-left-color: #38b2ac !important;
+    border-left-width: 3px !important;
+}
+
+body .activity-tree-container .linear-tree .tree-node.tool.status-completed,
+.tree-node.tool.status-completed {
+    background: #f0fff4 !important;
+    border-left-color: #38a169 !important;
+    border-left-width: 2px !important;
+}
+
+body .activity-tree-container .linear-tree .tree-node.tool.status-failed,
+.tree-node.tool.status-failed {
+    background: #fed7d7 !important;
+    border-left-color: #e53e3e !important;
+    border-left-width: 2px !important;
+}
+
+/* Privileged Tool (TodoWrite) - High Specificity */
+body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool,
+.tree-node.tool.privileged-tool {
+    background: #fff8e1 !important;
+    border-left: 3px solid #ff9800 !important;
+    border-radius: 6px !important;
+    margin: 4px 0 !important;
+}
+
+body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree-label,
+.tree-node.tool.privileged-tool .tree-label {
+    font-weight: 600 !important;
+    color: #e65100 !important;
+}
+
+body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree-params,
+.tree-node.tool.privileged-tool .tree-params {
+    background: #ffe0b2 !important;
+    color: #e65100 !important;
+    font-weight: 500 !important;
+}
+
+/* Catch-all rule to prevent any other styles from overriding tool styling */
+.tree-node.tool:not(.privileged-tool) {
+    background: #faf5ff !important;
+    border-left: 2px solid #9f7aea !important;
+}
+
+.tree-node.tool:not(.privileged-tool).status-pending {
+    background: #faf5ff !important;
+    border-left-color: #9f7aea !important;
+}
+
+.tree-node.tool:not(.privileged-tool).status-in_progress {
+    background: #e6fffa !important;
+    border-left-color: #38b2ac !important;
+    border-left-width: 3px !important;
+}
+
+.tree-node.tool:not(.privileged-tool).status-completed {
+    background: #f0fff4 !important;
+    border-left-color: #38a169 !important;
+}
+
+.tree-node.tool:not(.privileged-tool).status-failed {
+    background: #fed7d7 !important;
+    border-left-color: #e53e3e !important;
+}
+
+/* Todo Items within TodoWrite tool */
+.tree-node.todo-item {
+    background: #f8f9fa;
+    border-left: 2px solid #cbd5e0;
+    margin: 1px 0;
+    border-radius: 3px;
+}
+
+.tree-node.todo-item.status-pending {
+    border-left-color: #cbd5e0;
+    background: #f8f9fa;
+}
+
+.tree-node.todo-item.status-in_progress {
+    border-left-color: #3182ce;
+    background: #ebf8ff;
+    animation: pulse-todo 2s infinite;
+}
+
+.tree-node.todo-item.status-completed {
+    border-left-color: #38a169;
+    background: #f0fff4;
+}
+
+@keyframes pulse-todo {
+    0% { 
+        background: #ebf8ff;
+    }
+    50% { 
+        background: #bee3f8;
+    }
+    100% { 
+        background: #ebf8ff;
+    }
+}
+
+/* Status Badges */
+.tree-status.status-pending {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+.tree-status.status-in_progress {
+    background: #bee3f8;
+    color: #2c5282;
+    animation: pulse-status 2s infinite;
+}
+
+.tree-status.status-active {
+    background: #fbb6ce;
+    color: #97266d;
+    animation: pulse-status 2s infinite;
+}
+
+.tree-status.status-completed {
+    background: #c6f6d5;
+    color: #276749;
+}
+
+.tree-status.status-failed {
+    background: #fed7d7;
+    color: #c53030;
+}
+
+/* Status Animation */
+@keyframes pulse-status {
+    0% { 
+        opacity: 1; 
+    }
+    50% { 
+        opacity: 0.7; 
+    }
+    100% { 
+        opacity: 1; 
+    }
 }
 
 /* Tree Legend */
@@ -156,334 +664,308 @@
     color: #95A5A6;
 }
 
-/* Breadcrumb */
-.activity-breadcrumb {
-    padding: 10px 15px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    margin-top: 15px;
-    font-size: 13px;
-    color: #4a5568;
-    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+/* Search Highlighting - Ensure this doesn't affect tools */
+.tree-node.search-match:not(.tool) {
+    background: #fff3cd !important;
+    border-left-color: #ffc107 !important;
 }
 
-/* D3 Tree Styles */
-.node {
+.tree-node.search-match:not(.tool) .tree-label {
+    background: #ffecb5;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+/* Empty State */
+.linear-tree:empty::after {
+    content: "No activity data available. Start using the PM to see the activity tree.";
+    display: block;
+    text-align: center;
+    color: #718096;
+    font-style: italic;
+    padding: 40px 20px;
+}
+
+/* Scrollbar Styles */
+.activity-tree-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.activity-tree-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.activity-tree-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.activity-tree-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* User instruction styles */
+.tree-node.user-instruction {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border-left: 4px solid #2196f3;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.node circle,
-.node-circle {
-    stroke-width: 2px;
-    transition: all 0.3s;
+.tree-node.user-instruction.selected {
+    background: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%);
+    border-left-color: #1976d2;
+    box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
 }
 
-.node rect {
-    stroke-width: 2px;
-    transition: all 0.3s;
+.tree-node.user-instruction:hover {
+    background: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%);
+    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.2);
 }
 
-.node.pm circle {
-    fill: #4A90E2;
-    stroke: #2E6BC0;
+.tree-node.user-instruction .tree-label {
+    font-style: italic;
+    color: #1976d2;
 }
 
-.node.todowrite rect {
-    fill: #9B59B6;
-    stroke: #7E3E93;
-    rx: 4;
+/* TODO checklist styles */
+.tree-node.todo-checklist {
+    background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+    border-left: 4px solid #9c27b0;
+    font-weight: 600;
 }
 
-.node.agent circle {
-    fill: #27AE60;
-    stroke: #1A8847;
+.tree-node.todo-checklist:hover {
+    background: linear-gradient(135deg, #e1bee7 0%, #ce93d8 100%);
+    box-shadow: 0 4px 8px rgba(156, 39, 176, 0.2);
 }
 
-.node.tool circle {
-    fill: #E67E22;
-    stroke: #C35D0B;
+.tree-node.todo-checklist .tree-label {
+    color: #7b1fa2;
+    font-weight: bold;
 }
 
-.node.file circle,
-.node.command circle {
-    fill: #95A5A6;
-    stroke: #728384;
-    r: 5;
+/* Enhanced TODO item styles */
+.tree-node.todo-item {
+    margin: 2px 0;
+    border-radius: 4px;
+    transition: all 0.2s ease;
 }
 
-/* Collapsed node indicator */
-.node.collapsed circle {
-    fill: white !important;
-    stroke-width: 3px;
+.tree-node.todo-item.status-pending {
+    background: linear-gradient(135deg, #f7fafc 0%, #e2e8f0 20%);
+    border-left: 3px solid #a0aec0;
 }
 
-.node.collapsed rect {
-    fill: white !important;
-    stroke-width: 3px;
-}
-
-/* Active/In-progress animation */
-@keyframes pulse {
-    0% { 
-        opacity: 1; 
-        transform: scale(1);
-    }
-    50% { 
-        opacity: 0.7; 
-        transform: scale(1.1);
-    }
-    100% { 
-        opacity: 1; 
-        transform: scale(1);
-    }
-}
-
-.node.active circle,
-.node.active rect {
+.tree-node.todo-item.status-in_progress {
+    background: linear-gradient(135deg, #e8f5e8 0%, #a5d6a7 20%);
+    border-left: 3px solid #4caf50;
     animation: pulse 2s infinite;
 }
 
-.node.in-progress circle,
-.node.in-progress rect {
-    animation: pulse 1.5s infinite;
-    stroke: #F39C12;
-    stroke-width: 3px;
+.tree-node.todo-item.status-completed {
+    background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 20%);
+    border-left: 3px solid #2e7d32;
+    opacity: 0.8;
 }
 
-/* Failed/Error state */
-.node.failed circle,
-.node.failed rect {
-    stroke: #E74C3C !important;
-    stroke-width: 3px;
-    fill: #FFE5E5 !important;
+.tree-node.todo-item.status-completed .tree-label {
+    text-decoration: line-through;
+    color: #666;
 }
 
-/* Node type specific circle colors */
-.node-circle.pm {
-    fill: #4A90E2;
-    stroke: #2E6BC0;
-}
-
-.node-circle.todowrite {
-    fill: #9B59B6;
-    stroke: #7E3E93;
-}
-
-.node-circle.agent {
-    fill: #27AE60;
-    stroke: #1A8847;
-}
-
-.node-circle.tool {
-    fill: #E67E22;
-    stroke: #C35D0B;
-}
-
-.node-circle.file,
-.node-circle.command,
-.node-circle.url {
-    fill: #95A5A6;
-    stroke: #728384;
-}
-
-/* Pulsing animation for in-progress nodes */
-.node-circle.pulsing {
-    animation: pulse 1.5s infinite;
-}
-
-/* Failed state */
-.node-circle.failed {
-    stroke: #E74C3C !important;
-    stroke-width: 3px;
-    fill: #FFE5E5 !important;
-}
-
-/* Node text */
-.node text {
-    font: 12px 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    pointer-events: none;
-    user-select: none;
-}
-
-/* Node icons and labels */
-.node-icon {
-    font-size: 14px;
-    pointer-events: none;
-}
-
-.node-label {
-    fill: #2d3748;
+/* Instruction and todo item detail styles */
+.instruction-details,
+.generic-details,
+.tool-details,
+.agent-details {
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
     font-size: 12px;
 }
 
-.node.pm text {
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.node.todowrite text {
-    font-size: 11px;
-}
-
-/* Node hover effects */
-.node:hover circle,
-.node:hover rect {
-    stroke-width: 3px;
-    filter: brightness(1.1);
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-}
-
-/* Links */
-.link {
-    fill: none;
-    stroke: #cbd5e0;
-    stroke-width: 1.5px;
-    stroke-dasharray: none;
-}
-
-.link.delegation {
-    stroke: #9B59B6;
-    stroke-width: 2px;
-    stroke-dasharray: 5, 3;
-}
-
-/* Tooltip */
-.activity-tooltip {
-    position: absolute;
-    text-align: left;
-    padding: 10px;
-    font-size: 12px;
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    border-radius: 6px;
-    pointer-events: none;
-    max-width: 300px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
-}
-
-.activity-tooltip .tooltip-title {
-    font-weight: bold;
-    margin-bottom: 5px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.activity-tooltip .tooltip-item {
-    margin: 3px 0;
-}
-
-.activity-tooltip .tooltip-label {
-    color: #9ca3af;
-    margin-right: 5px;
-}
-
-.activity-tooltip .tooltip-value {
-    color: #f3f4f6;
-}
-
-/* Count badges */
-.node-count {
-    fill: #E74C3C;
-    font-size: 10px;
-    font-weight: bold;
-    text-anchor: middle;
-}
-
-.node-badge {
-    fill: #E74C3C;
-    stroke: white;
-    stroke-width: 2px;
-}
-
-/* Search highlighting */
-.node.search-match circle,
-.node.search-match rect {
-    stroke: #F39C12 !important;
-    stroke-width: 4px !important;
-    filter: drop-shadow(0 0 8px rgba(243, 156, 18, 0.6));
-}
-
-/* Zoom controls */
-.zoom-controls {
-    position: absolute;
-    bottom: 15px;
-    right: 15px;
+.detail-row {
     display: flex;
-    flex-direction: column;
-    gap: 5px;
+    margin-bottom: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    align-items: flex-start;
 }
 
-.zoom-btn {
-    width: 36px;
-    height: 36px;
-    background: white;
+.detail-label {
+    font-weight: bold;
+    color: #4a5568;
+    width: 120px;
+    flex-shrink: 0;
+    line-height: 1.4;
+}
+
+.detail-value {
+    color: #2d3748;
+    word-break: break-word;
+    flex: 1;
+    line-height: 1.4;
+}
+
+.detail-section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 2px solid #e2e8f0;
+}
+
+.detail-section-title {
+    font-weight: bold;
+    color: #2d3748;
+    margin-bottom: 12px;
+    display: block;
+    font-size: 14px;
+}
+
+.params-list {
+    background: #f7fafc;
+    border-radius: 6px;
+    padding: 12px;
     border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    transition: all 0.2s;
 }
 
-.zoom-btn:hover {
-    background: #f8f9fa;
-    transform: scale(1.1);
+.param-item {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
 }
 
-/* Expand/Collapse indicators */
-.expand-indicator {
-    fill: #718096;
-    font-size: 14px;
+.param-item:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.param-key {
     font-weight: bold;
-    text-anchor: middle;
-    pointer-events: none;
+    color: #553c9a;
+    margin-bottom: 4px;
+    display: block;
+    font-size: 12px;
 }
 
-/* Performance optimization for large trees */
-.node.hidden {
-    display: none;
+.param-value {
+    color: #2d3748;
 }
 
-.link.hidden {
-    display: none;
+.param-text-short {
+    background: #ffffff;
+    padding: 4px 8px;
+    border-radius: 3px;
+    border: 1px solid #cbd5e0;
+    display: inline-block;
+    font-family: inherit;
 }
 
-/* Tree grid background (optional) */
-.tree-grid {
-    stroke: #f0f0f0;
-    stroke-width: 0.5px;
-    fill: none;
+.param-text,
+.param-text-long {
+    background: #ffffff;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    padding: 8px;
+    margin: 4px 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 11px;
+    line-height: 1.4;
+    max-height: 200px;
+    overflow-y: auto;
 }
 
-/* Time indicators */
-.node-time {
-    fill: #718096;
-    font-size: 10px;
+.param-json {
+    background: #f8f9fa;
+    border: 1px solid #d6d8db;
+    border-radius: 4px;
+    padding: 8px;
+    margin: 4px 0;
+    white-space: pre;
+    font-size: 11px;
+    line-height: 1.3;
+    max-height: 300px;
+    overflow: auto;
+    color: #24292e;
+}
+
+.param-primitive {
+    background: #edf2f7;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 500;
+    color: #2d3748;
+}
+
+.param-error {
+    background: #fed7d7;
+    padding: 4px 8px;
+    border-radius: 3px;
+    color: #c53030;
     font-style: italic;
 }
 
-/* Status indicators */
-.status-indicator {
-    stroke-width: 0;
+.status-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+    letter-spacing: 0.5px;
 }
 
-.status-indicator.pending {
-    fill: #CBD5E0;
+.status-badge.status-pending {
+    background: #e2e8f0;
+    color: #4a5568;
 }
 
-.status-indicator.in-progress {
-    fill: #F39C12;
+.status-badge.status-in_progress {
+    background: #bee3f8;
+    color: #2c5282;
 }
 
-.status-indicator.completed {
-    fill: #27AE60;
+.status-badge.status-completed {
+    background: #c6f6d5;
+    color: #276749;
 }
 
-.status-indicator.failed {
-    fill: #E74C3C;
+.status-badge.status-failed {
+    background: #fed7d7;
+    color: #c53030;
+}
+
+.status-badge.status-active {
+    background: #fbb6ce;
+    color: #97266d;
+}
+
+.tool-result {
+    background: #f8f9fa;
+    border: 1px solid #d6d8db;
+    border-radius: 4px;
+    padding: 12px;
+    margin: 8px 0;
+    white-space: pre-wrap;
+    font-size: 11px;
+    line-height: 1.4;
+    max-height: 400px;
+    overflow: auto;
+    color: #24292e;
+}
+
+/* Pulse animation for in-progress items */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 4px rgba(76, 175, 80, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+    }
 }
 
 /* Responsive adjustments */
@@ -496,12 +978,61 @@
     .activity-controls {
         width: 100%;
         flex-wrap: wrap;
+        justify-content: center;
     }
     
     .tree-legend {
-        top: auto;
-        bottom: 15px;
-        right: 15px;
+        position: static;
+        margin-top: 15px;
+        max-width: 300px;
+    }
+    
+    .tree-params {
+        max-width: 150px;
+    }
+    
+    .activity-controls input {
+        width: 150px;
+    }
+}
+
+@media (max-width: 768px) {
+    .activity-container {
+        padding: 10px;
+    }
+    
+    .activity-tree-container {
+        padding: 0;
+    }
+    
+    .linear-tree {
+        padding: 10px;
+    }
+    
+    .tree-node[data-level="1"] {
+        margin-left: 15px;
+    }
+    
+    .tree-node[data-level="2"] {
+        margin-left: 30px;
+    }
+    
+    .tree-node[data-level="3"] {
+        margin-left: 45px;
+    }
+    
+    .tree-node[data-level="4"] {
+        margin-left: 60px;
+    }
+    
+    .tree-params {
+        max-width: 100px;
+    }
+    
+    .stat-item {
+        flex-direction: column;
+        gap: 2px;
+        text-align: center;
     }
 }
 
@@ -509,6 +1040,34 @@
 @media (prefers-color-scheme: dark) {
     .activity-tree-container {
         background: #1a202c;
+        color: #e2e8f0;
+    }
+    
+    /* D3 Dark Mode Styles */
+    #activity-tree-svg {
+        background: #1a202c;
+    }
+    
+    .node-label {
+        fill: #e2e8f0;
+    }
+    
+    .node:hover .node-label {
+        fill: #63b3ed;
+    }
+    
+    .link {
+        stroke: #4a5568;
+    }
+    
+    .node:hover .link {
+        stroke: #63b3ed;
+    }
+    
+    .d3-tooltip {
+        background: rgba(45, 55, 72, 0.95) !important;
+        color: #e2e8f0 !important;
+        border: 1px solid #4a5568;
     }
     
     .activity-header {
@@ -539,11 +1098,424 @@
         color: #e2e8f0;
     }
     
-    .node text {
-        fill: #e2e8f0;
+    .tree-node:hover {
+        background-color: #2d3748;
     }
     
-    .link {
-        stroke: #4a5568;
+    .tree-node-content:hover {
+        background-color: #4a5568;
     }
+    
+    .tree-label {
+        color: #e2e8f0;
+    }
+    
+    .tree-meta {
+        color: #a0aec0;
+    }
+    
+    .tree-node.project-root {
+        background: linear-gradient(135deg, #4299e1 0%, #553c9a 100%);
+    }
+    
+    .tree-node.session {
+        background: #2d3748;
+        border-color: #4a5568;
+    }
+    
+    .tree-node.session .tree-label {
+        color: #e2e8f0;
+    }
+    
+    .tree-children {
+        border-left-color: #4a5568;
+    }
+    
+    .tree-label.clickable:hover {
+        background-color: rgba(74, 85, 104, 0.5);
+        color: #e2e8f0;
+    }
+    
+    .module-item-details {
+        color: #e2e8f0;
+    }
+    
+    .module-item-header {
+        border-bottom-color: #4a5568;
+    }
+    
+    .module-item-header h6 {
+        color: #e2e8f0;
+    }
+    
+    .detail-label {
+        color: #a0aec0;
+    }
+    
+    .detail-value {
+        color: #e2e8f0;
+    }
+    
+    .detail-section {
+        border-top-color: #4a5568;
+    }
+    
+    .detail-section-title {
+        color: #a0aec0;
+    }
+    
+    .tools-list, .params-list {
+        background: #2d3748;
+        border-color: #4a5568;
+    }
+    
+    .tool-summary {
+        background: #4a5568;
+        border-color: #718096;
+        color: #e2e8f0;
+    }
+    
+    .tool-params-expanded {
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .param-line .param-key,
+    .param-key {
+        color: #9f7aea;
+    }
+    
+    .param-line .param-value,
+    .param-value {
+        color: #e2e8f0;
+    }
+    
+    .param-item {
+        border-bottom-color: #4a5568;
+    }
+    
+    .param-text-short {
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .param-text,
+    .param-text-long {
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .param-json {
+        background: #1a202c;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .param-primitive {
+        background: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .param-error {
+        background: #742a2a;
+        color: #feb2b2;
+    }
+    
+    .tool-result {
+        background: #1a202c;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+}
+
+/* Enhanced TodoWrite Display Styles */
+
+/* Todo Summary Items */
+.todo-summary {
+    display: flex;
+    gap: 15px;
+    margin: 15px 0;
+    flex-wrap: wrap;
+}
+
+.summary-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-radius: 6px;
+    border-left: 3px solid #e2e8f0;
+    min-width: 120px;
+    flex: 1;
+}
+
+.summary-item.completed {
+    background: #f0fff4;
+    border-left-color: #38a169;
+}
+
+.summary-item.in_progress {
+    background: #e6fffa;
+    border-left-color: #38b2ac;
+}
+
+.summary-item.pending {
+    background: #f7fafc;
+    border-left-color: #a0aec0;
+}
+
+.summary-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.summary-count {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2d3748;
+    flex-shrink: 0;
+}
+
+.summary-label {
+    font-size: 12px;
+    color: #718096;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Todo Checklist Items */
+.todo-checklist {
+    background: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    padding: 8px;
+}
+
+.todo-checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px;
+    margin: 4px 0;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.todo-checklist-item:hover {
+    background: #edf2f7;
+}
+
+.todo-checklist-item.completed {
+    background: #f0fff4;
+    border-left-color: #38a169;
+}
+
+.todo-checklist-item.in_progress {
+    background: #e6fffa;
+    border-left-color: #38b2ac;
+    animation: pulse-todo 2s infinite;
+}
+
+.todo-checklist-item.pending {
+    background: #f7fafc;
+    border-left-color: #cbd5e0;
+}
+
+.todo-checkbox {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background: white;
+    border: 2px solid #e2e8f0;
+    margin-top: 2px;
+}
+
+.checkbox-icon {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.checkbox-icon.status-completed {
+    color: #38a169;
+}
+
+.checkbox-icon.status-in_progress {
+    color: #38b2ac;
+}
+
+.checkbox-icon.status-pending {
+    color: #a0aec0;
+}
+
+.todo-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.todo-content {
+    display: block;
+    font-size: 14px;
+    color: #2d3748;
+    line-height: 1.4;
+    margin-bottom: 4px;
+    word-wrap: break-word;
+}
+
+.todo-checklist-item.completed .todo-content {
+    text-decoration: line-through;
+    color: #718096;
+}
+
+.todo-status-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: 10px;
+    margin-top: 2px;
+}
+
+.todo-status-badge.status-completed {
+    background: #c6f6d5;
+    color: #276749;
+}
+
+.todo-status-badge.status-in_progress {
+    background: #b2f5ea;
+    color: #285e61;
+}
+
+.todo-status-badge.status-pending {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+/* No todos message */
+.no-todos {
+    text-align: center;
+    color: #718096;
+    font-style: italic;
+    padding: 20px;
+    background: #f7fafc;
+    border-radius: 6px;
+    border: 1px dashed #cbd5e0;
+}
+
+/* Animation for in-progress items */
+@keyframes pulse-todo {
+    0% {
+        background: #e6fffa;
+    }
+    50% {
+        background: #b2f5ea;
+    }
+    100% {
+        background: #e6fffa;
+    }
+}
+
+/* Unified viewer status and headers */
+.unified-viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    border-radius: 6px 6px 0 0;
+}
+
+.unified-viewer-header h6 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.unified-viewer-status {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.unified-viewer-content {
+    padding: 16px;
+}
+
+/* Responsive adjustments for TodoWrite display */
+@media (max-width: 768px) {
+    .todo-summary {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .summary-item {
+        min-width: auto;
+    }
+    
+    .todo-checklist-item {
+        padding: 6px;
+    }
+    
+    .todo-checkbox {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .checkbox-icon {
+        font-size: 12px;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .activity-header {
+        display: none;
+    }
+    
+    .tree-legend {
+        position: static;
+        margin-bottom: 20px;
+    }
+    
+    .activity-tree-container {
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+    
+    .tree-node {
+        break-inside: avoid;
+    }
+    
+    .tree-status {
+        border: 1px solid #000;
+        background: transparent !important;
+        color: #000 !important;
+    }
+}
+
+/* Focus and Accessibility */
+.tree-node-content:focus {
+    outline: 2px solid #4299e1;
+    outline-offset: 2px;
+}
+
+.tree-expand-icon:focus {
+    outline: 2px solid #4299e1;
+    outline-offset: 2px;
 }

@@ -4,7 +4,6 @@ Unit tests for the actual InstructionReinforcementHook implementation.
 These tests verify the real functionality of the instruction reinforcement system.
 """
 
-
 import pytest
 
 from claude_mpm.core.instruction_reinforcement_hook import (
