@@ -1,19 +1,20 @@
 # Vercel Ops Agent
 
-Specialized operations agent for Vercel platform deployment, environment management, and optimization. Expert in serverless architecture, edge functions, and modern deployment strategies including rolling releases.
+Specialized operations agent for Vercel platform deployment, environment management, and optimization. Expert in serverless architecture, edge functions, and modern deployment strategies including rolling releases. **Enhanced with git commit authority and comprehensive security verification (v2.2.2+)**.
 
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Getting Started](#getting-started)
-3. [Core Features](#core-features)
-4. [Installation and Setup](#installation-and-setup)
-5. [Usage Examples](#usage-examples)
-6. [Configuration Guide](#configuration-guide)
-7. [Integration with PM Workflow](#integration-with-pm-workflow)
-8. [Best Practices](#best-practices)
-9. [Troubleshooting](#troubleshooting)
-10. [Reference](#reference)
+2. [Git Commit Authority & Security (v2.2.2+)](#git-commit-authority--security-v222)
+3. [Getting Started](#getting-started)
+4. [Core Features](#core-features)
+5. [Installation and Setup](#installation-and-setup)
+6. [Usage Examples](#usage-examples)
+7. [Configuration Guide](#configuration-guide)
+8. [Integration with PM Workflow](#integration-with-pm-workflow)
+9. [Best Practices](#best-practices)
+10. [Troubleshooting](#troubleshooting)
+11. [Reference](#reference)
 
 ## Overview
 
@@ -42,6 +43,193 @@ The Vercel Ops Agent is a specialized component of the Claude MPM framework desi
 - Astro
 - SolidStart
 - Qwik
+
+## Git Commit Authority & Security (v2.2.2+)
+
+The Vercel Ops Agent has been enhanced with comprehensive git commit authority and advanced security verification capabilities, making it the primary agent for secure code operations and repository management.
+
+### Enhanced Git Capabilities
+
+#### Secure Commit Operations
+The Ops agent can now perform git commits with built-in security verification:
+
+- **Pre-commit Security Scanning**: Automatically scans all staged files for sensitive information
+- **Prohibited Pattern Detection**: Identifies secrets, API keys, credentials, and other sensitive data
+- **Quality Gate Integration**: Runs `make quality` before commits to ensure code standards
+- **Smart Context Awareness**: Understands project context and applies appropriate security measures
+- **Conventional Commits**: Generates proper commit messages following conventional commit standards
+
+#### Security Verification Protocols
+
+**Automatic Security Checks**:
+```bash
+# The Ops agent performs these checks before every commit:
+# 1. Scan staged files for prohibited patterns
+# 2. Run 'make quality' for code quality verification
+# 3. Validate environment variable usage
+# 4. Check for hardcoded secrets and credentials
+# 5. Verify no sensitive deployment configurations are exposed
+```
+
+**Prohibited Pattern Detection**:
+- API keys and tokens (AWS, Google Cloud, GitHub, Vercel, etc.)
+- Database connection strings
+- Private keys and certificates
+- Hardcoded passwords and secrets
+- Development-only configuration in production files
+
+#### Integration with Development Workflow
+
+**Quality Gate Integration**:
+The Ops agent integrates with the project's quality assurance pipeline:
+
+```bash
+# Before any commit, the agent runs:
+make quality  # Includes linting, formatting, testing, and security checks
+```
+
+**Real-time Security Feedback**:
+```
+Example Security Detection:
+┌─ Security Issue Detected ─┐
+│ File: vercel.json          │
+│ Line: 15                   │
+│ Issue: Hardcoded API token │
+│ Pattern: "token-abcd1234"  │
+│                            │
+│ Recommendation:            │
+│ Move to environment var    │
+│ VERCEL_TOKEN=$TOKEN        │
+└────────────────────────────┘
+
+Commit blocked until resolved.
+```
+
+### Usage Examples
+
+#### Requesting Secure Git Operations
+
+**Basic Commit Request**:
+```
+User: "Commit the Vercel configuration changes"
+
+Ops Agent Response:
+1. 🔍 Scanning 3 staged files for security issues...
+2. ✅ No prohibited patterns detected
+3. 🔧 Running 'make quality'...
+4. ✅ Code quality checks passed
+5. 📝 Generating conventional commit message...
+6. ✅ Commit successful: "feat(config): update vercel deployment settings"
+```
+
+**Security Issue Detection**:
+```
+User: "Commit the environment setup"
+
+Ops Agent Response:
+1. 🔍 Scanning 2 staged files for security issues...
+2. ⚠️  Security issue detected in .env.example:
+   - Line 5: Hardcoded database password
+   - Recommendation: Use placeholder value "your-password-here"
+3. ❌ Commit blocked until security issues are resolved
+4. 💡 Run 'git diff --staged' to review staged changes
+```
+
+#### Advanced Git Operations
+
+**Branch Management with Security**:
+```
+User: "Create feature branch and commit authentication changes"
+
+Ops Agent Response:
+1. 🌿 Creating feature branch: feature/auth-improvements
+2. 🔍 Security scanning authentication files...
+3. ✅ JWT secret properly using environment variable
+4. ✅ OAuth credentials configured via VERCEL_ENV
+5. 🔧 Running quality checks...
+6. ✅ All checks passed
+7. 📝 Commit: "feat(auth): implement JWT token refresh mechanism"
+8. 🚀 Branch ready for deployment preview
+```
+
+### Security Best Practices
+
+#### Vercel-Specific Security Considerations
+
+**Environment Variable Security**:
+```bash
+# ✅ Good: Using environment variables
+{
+  "env": {
+    "DATABASE_URL": "@database-url",
+    "API_SECRET": "@api-secret"
+  }
+}
+
+# ❌ Bad: Hardcoded values
+{
+  "env": {
+    "DATABASE_URL": "postgresql://user:pass@host/db",
+    "API_SECRET": "sk_live_abc123xyz"
+  }
+}
+```
+
+**Deployment Configuration Security**:
+```bash
+# ✅ Good: Generic configuration
+{
+  "functions": {
+    "pages/api/*.js": {
+      "maxDuration": 10
+    }
+  },
+  "regions": ["iad1"]
+}
+
+# ❌ Bad: Exposed internal details
+{
+  "functions": {
+    "pages/api/admin-secret-endpoint.js": {
+      "maxDuration": 30,
+      "memory": 3008
+    }
+  }
+}
+```
+
+#### Emergency Security Response
+
+**Immediate Actions for Detected Issues**:
+1. **Block Commit**: Prevent sensitive data from entering repository
+2. **Provide Context**: Show exact location and nature of security issue
+3. **Suggest Fix**: Offer specific remediation steps
+4. **Verify Resolution**: Re-scan after fixes are applied
+5. **Proceed Safely**: Allow commit only after all issues resolved
+
+**Audit Trail**:
+All security checks and their results are logged for audit purposes:
+```
+[2025-08-29 10:30:15] Security scan initiated for 3 files
+[2025-08-29 10:30:16] Prohibited pattern check: PASSED
+[2025-08-29 10:30:17] Environment variable validation: PASSED
+[2025-08-29 10:30:18] Quality gate execution: PASSED
+[2025-08-29 10:30:19] Commit authorized and executed
+[2025-08-29 10:30:19] Commit hash: abc123def456
+```
+
+### Integration with Vercel Operations
+
+The git commit authority seamlessly integrates with Vercel deployment operations:
+
+**Deployment Pipeline Security**:
+1. **Secure Commits**: Ensure only safe code is committed
+2. **Quality Verification**: Run comprehensive checks before deployment
+3. **Environment Validation**: Verify deployment configurations are secure
+4. **Monitoring Setup**: Ensure security monitoring is in place
+5. **Rollback Readiness**: Prepare secure rollback procedures
+
+This enhanced security ensures that every git operation maintains the highest security standards while enabling efficient development and deployment workflows.
 
 ## Getting Started
 
