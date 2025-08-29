@@ -461,6 +461,13 @@
     position: relative;
     overflow: auto;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border-left: 1px solid #e2e8f0;
+}
+
+/* Visual hierarchy improvements */
+.code-tree-container:focus-within {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-left-color: #3b82f6;
 }
 
 /* Loading indicator */
@@ -710,6 +717,78 @@
     filter: brightness(1.1);
 }
 
+/* Directory node styling - make expandable directories obvious */
+.code-node.directory circle {
+    fill: #f8fafc;
+    stroke: #3b82f6;
+    stroke-width: 2px;
+}
+
+.code-node.directory:hover circle {
+    fill: #eef2ff;
+    stroke: #2563eb;
+    stroke-width: 3px;
+    filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3));
+}
+
+/* Expanded directory styling */
+.code-node.directory.expanded circle {
+    fill: #dbeafe;
+    stroke: #1d4ed8;
+}
+
+/* File node styling */
+.code-node.file circle {
+    fill: #f9fafb;
+    stroke: #6b7280;
+    stroke-width: 1.5px;
+}
+
+.code-node.file:hover circle {
+    fill: #f3f4f6;
+    stroke: #4b5563;
+    stroke-width: 2px;
+}
+
+/* Empty directory styling */
+.code-node.directory.empty circle {
+    fill: #f9fafb;
+    stroke: #9ca3af;
+    stroke-dasharray: 3,3;
+    opacity: 0.7;
+}
+
+/* Directory expand/collapse icons */
+.expand-icon {
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: bold;
+    text-anchor: middle;
+    dominant-baseline: central;
+    fill: #374151;
+    pointer-events: none;
+    transition: all 0.2s ease;
+}
+
+.code-node.directory .expand-icon {
+    fill: #3b82f6;
+}
+
+.code-node.directory.expanded .expand-icon {
+    fill: #1d4ed8;
+    transform: rotate(90deg);
+}
+
+.code-node.directory.loading .expand-icon {
+    fill: #f59e0b;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 /* Visualization Controls */
 .viz-controls {
     position: absolute;
@@ -802,6 +881,31 @@
     fill: #ec4899;
 }
 
+/* Search match highlighting */
+.code-node.search-match circle {
+    stroke: #fbbf24 !important;
+    stroke-width: 3px;
+    fill: #fef3c7 !important;
+    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.6));
+    animation: searchPulse 2s ease-in-out infinite;
+}
+
+.code-node.search-match text {
+    font-weight: bold;
+    fill: #92400e;
+}
+
+@keyframes searchPulse {
+    0%, 100% {
+        stroke-width: 3px;
+        opacity: 1;
+    }
+    50% {
+        stroke-width: 4px;
+        opacity: 0.8;
+    }
+}
+
 /* Collapsed node indicator */
 .code-node.collapsed circle {
     fill: #e2e8f0 !important;
@@ -851,6 +955,31 @@
     fill: #fef3c7 !important;
 }
 
+/* Enhanced loading states */
+.code-node.loading circle {
+    stroke: #f59e0b !important;
+    fill: #fef3c7 !important;
+    animation: nodePulse 1.5s ease-in-out infinite;
+}
+
+.code-node.loading text {
+    fill: #92400e;
+    font-weight: 600;
+}
+
+/* Directory item count badge */
+.item-count-badge {
+    font-size: 10px;
+    fill: #6b7280;
+    text-anchor: middle;
+    dominant-baseline: central;
+    font-weight: 500;
+}
+
+.code-node.directory:hover .item-count-badge {
+    fill: #374151;
+}
+
 /* Tooltips */
 .code-tooltip {
     position: absolute;
@@ -864,11 +993,115 @@
     z-index: 1000;
 }
 
+/* Tree control toolbar */
+.tree-controls-toolbar {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    display: flex;
+    gap: 8px;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(4px);
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tree-control-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid #d1d5db;
+    background: white;
+    color: #374151;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 32px;
+    justify-content: center;
+}
+
+.tree-control-btn:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+    transform: translateY(-1px);
+}
+
+.tree-control-btn:active {
+    transform: translateY(0);
+}
+
+.tree-control-btn.active {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border-color: #2563eb;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.tree-control-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Breadcrumb navigation */
+.tree-breadcrumb {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(4px);
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #4b5563;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+    max-width: 400px;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.breadcrumb-path {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+}
+
+.breadcrumb-separator {
+    color: #9ca3af;
+    margin: 0 2px;
+}
+
+.breadcrumb-segment {
+    color: #374151;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: background 0.2s ease;
+}
+
+.breadcrumb-segment:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.breadcrumb-segment.current {
+    color: #3b82f6;
+    font-weight: 600;
+}
+
 /* Code tree notifications */
 .code-tree-notification {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 70px;
+    right: 15px;
     padding: 12px 20px;
     border-radius: 6px;
     background: white;

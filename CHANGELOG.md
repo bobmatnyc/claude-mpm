@@ -16,6 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [4.1.14] - 2025-08-29
+
+### Fixed
+- **Dashboard Code Panel Navigation**: Fixed multi-level directory exploration with proper click handlers
+- **Tree Positioning Behavior**: Removed automatic centering/movement that caused disorienting user experience
+- **Interactive Element Handling**: Added comprehensive click handlers to all visual elements (circles, text, icons)
+- **Visual Feedback System**: Enhanced chevron icons and loading indicators for better user interaction
+- **Navigation State Management**: Improved subdirectory click handlers after tree updates
+- **D3 Zoom Behavior**: Disabled automatic zoom to maintain stationary tree per user preference
+
+### Added
+- **Diagnostic Logging**: Comprehensive logging system for debugging code panel navigation issues
+- **Enhanced Click Detection**: Multi-target click handling for improved user interaction reliability
+
+
 ## [4.1.13] - 2025-08-29
 
 ### Added

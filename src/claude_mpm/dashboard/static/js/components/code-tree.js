@@ -4,6 +4,15 @@
  * D3.js-based tree visualization for displaying AST-based code structure.
  * Shows modules, classes, functions, and methods with complexity-based coloring.
  * Provides real-time updates during code analysis.
+ * 
+ * ===== CACHE CLEAR INSTRUCTIONS =====
+ * If tree still moves/centers after update:
+ * 1. Hard refresh: Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (Mac)
+ * 2. Or open DevTools (F12) → Network tab → Check "Disable cache" 
+ * 3. Or clear browser cache: Ctrl+Shift+Delete → Clear cached images and files
+ * 
+ * Version: 2025-08-29T15:30:00Z - ALL CENTERING REMOVED
+ * Last Update: Completely disabled tree centering/movement on node clicks
  */
 
 class CodeTree {
@@ -41,6 +50,8 @@ class CodeTree {
         this.zoom = null;  // Store zoom behavior
         this.activeNode = null;  // Track currently active node
         this.loadingNodes = new Set();  // Track nodes that are loading
+        this.bulkLoadMode = false;  // Track bulk loading preference
+        this.expandedPaths = new Set();  // Track which paths are expanded
     }
 
     /**
@@ -280,6 +291,12 @@ class CodeTree {
 
         const container = d3.select('#code-tree-container');
         container.selectAll('*').remove();
+        
+        // Add tree controls toolbar
+        this.addTreeControls();
+        
+        // Add breadcrumb navigation
+        this.addBreadcrumb();
 
         if (!container || !container.node()) {
             console.error('Code tree container not found');
@@ -353,22 +370,14 @@ class CodeTree {
                 });
         }
 
-        // Add zoom behavior with proper transform handling
-        this.zoom = d3.zoom()
-            .scaleExtent([0.1, 10])
-            .on('zoom', (event) => {
-                if (this.isRadialLayout) {
-                    // Radial: maintain center point
-                    this.treeGroup.attr('transform', 
-                        `translate(${centerX + event.transform.x},${centerY + event.transform.y}) scale(${event.transform.k})`);
-                } else {
-                    // Linear: maintain left margin
-                    this.treeGroup.attr('transform', 
-                        `translate(${this.margin.left + 100 + event.transform.x},${centerY + event.transform.y}) scale(${event.transform.k})`);
-                }
-            });
-
-        this.svg.call(this.zoom);
+        // DISABLED: All zoom behavior has been completely disabled to prevent tree movement
+        // The tree should remain completely stationary - no zooming, panning, or centering allowed
+        this.zoom = null;  // Completely disable zoom behavior
+        
+        // Do NOT apply zoom behavior to SVG - this prevents all zoom/pan interactions
+        // this.svg.call(this.zoom);  // DISABLED
+        
+        console.log('[CodeTree] All zoom and pan behavior disabled - tree is now completely stationary');
 
         // Add controls overlay
         this.addVisualizationControls();
@@ -560,10 +569,285 @@ class CodeTree {
         if (this.socket) {
             this.socket.emit('code:analysis:cancel');
         }
+    }
 
-        this.updateBreadcrumb('Analysis cancelled', 'warning');
-        this.showNotification('Analysis cancelled', 'warning');
-        this.addEventToDisplay('Analysis cancelled', 'warning');
+    /**
+     * Add tree control toolbar with expand/collapse and other controls
+     */
+    addTreeControls() {
+        const container = d3.select('#code-tree-container');
+        
+        // Remove any existing controls
+        container.select('.tree-controls-toolbar').remove();
+        
+        const toolbar = container.append('div')
+            .attr('class', 'tree-controls-toolbar');
+            
+        // Expand All button
+        toolbar.append('button')
+            .attr('class', 'tree-control-btn')
+            .attr('title', 'Expand all loaded directories')
+            .text('⊞')
+            .on('click', () => this.expandAll());
+            
+        // Collapse All button  
+        toolbar.append('button')
+            .attr('class', 'tree-control-btn')
+            .attr('title', 'Collapse all directories')
+            .text('⊟')
+            .on('click', () => this.collapseAll());
+            
+        // Bulk Load Toggle
+        toolbar.append('button')
+            .attr('class', 'tree-control-btn')
+            .attr('id', 'bulk-load-toggle')
+            .attr('title', 'Toggle bulk loading (load 2 levels at once)')
+            .text('↕')
+            .on('click', () => this.toggleBulkLoad());
+            
+        // Layout Toggle
+        toolbar.append('button')
+            .attr('class', 'tree-control-btn')
+            .attr('title', 'Toggle between radial and linear layouts')
+            .text('◎')
+            .on('click', () => this.toggleLayout());
+            
+        // Path Search
+        const searchInput = toolbar.append('input')
+            .attr('class', 'tree-control-btn')
+            .attr('type', 'text')
+            .attr('placeholder', 'Search...')
+            .attr('title', 'Search for files and directories')
+            .style('width', '120px')
+            .style('text-align', 'left')
+            .on('input', (event) => this.searchTree(event.target.value))
+            .on('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    event.target.value = '';
+                    this.searchTree('');
+                }
+            });
+    }
+
+    /**
+     * Add breadcrumb navigation
+     */
+    addBreadcrumb() {
+        const container = d3.select('#code-tree-container');
+        
+        // Remove any existing breadcrumb
+        container.select('.tree-breadcrumb').remove();
+        
+        const breadcrumb = container.append('div')
+            .attr('class', 'tree-breadcrumb');
+            
+        const pathDiv = breadcrumb.append('div')
+            .attr('class', 'breadcrumb-path')
+            .attr('id', 'tree-breadcrumb-path');
+            
+        // Initialize with working directory
+        this.updateBreadcrumbPath('/');
+    }
+
+    /**
+     * Update breadcrumb path based on current navigation
+     */
+    updateBreadcrumbPath(currentPath) {
+        const pathDiv = d3.select('#tree-breadcrumb-path');
+        pathDiv.selectAll('*').remove();
+        
+        const workingDir = this.getWorkingDirectory();
+        if (!workingDir || workingDir === 'Loading...' || workingDir === 'Not selected') {
+            pathDiv.text('No project selected');
+            return;
+        }
+        
+        // Build path segments
+        const segments = currentPath === '/' ? 
+            [workingDir.split('/').pop() || 'Root'] :
+            currentPath.split('/').filter(s => s.length > 0);
+            
+        segments.forEach((segment, index) => {
+            if (index > 0) {
+                pathDiv.append('span')
+                    .attr('class', 'breadcrumb-separator')
+                    .text('/');
+            }
+            
+            pathDiv.append('span')
+                .attr('class', index === segments.length - 1 ? 'breadcrumb-segment current' : 'breadcrumb-segment')
+                .text(segment)
+                .on('click', () => {
+                    if (index < segments.length - 1) {
+                        // Navigate to parent path
+                        const parentPath = segments.slice(0, index + 1).join('/');
+                        this.navigateToPath(parentPath);
+                    }
+                });
+        });
+    }
+
+    /**
+     * Expand all currently loaded directories
+     */
+    expandAll() {
+        if (!this.root) return;
+        
+        const expandNode = (node) => {
+            if (node.data.type === 'directory' && node.data.loaded === true) {
+                if (node._children) {
+                    node.children = node._children;
+                    node._children = null;
+                    node.data.expanded = true;
+                }
+            }
+            if (node.children) {
+                node.children.forEach(expandNode);
+            }
+        };
+        
+        expandNode(this.root);
+        this.update(this.root);
+        this.showNotification('Expanded all loaded directories', 'success');
+    }
+
+    /**
+     * Collapse all directories to root level
+     */
+    collapseAll() {
+        if (!this.root) return;
+        
+        const collapseNode = (node) => {
+            if (node.data.type === 'directory' && node.children) {
+                node._children = node.children;
+                node.children = null;
+                node.data.expanded = false;
+            }
+            if (node._children) {
+                node._children.forEach(collapseNode);
+            }
+        };
+        
+        collapseNode(this.root);
+        this.update(this.root);
+        this.showNotification('Collapsed all directories', 'info');
+    }
+
+    /**
+     * Toggle bulk loading mode
+     */
+    toggleBulkLoad() {
+        this.bulkLoadMode = !this.bulkLoadMode;
+        const button = d3.select('#bulk-load-toggle');
+        
+        if (this.bulkLoadMode) {
+            button.classed('active', true);
+            this.showNotification('Bulk load enabled - will load 2 levels deep', 'info');
+        } else {
+            button.classed('active', false);
+            this.showNotification('Bulk load disabled - load 1 level at a time', 'info');
+        }
+    }
+
+    /**
+     * Navigate to a specific path in the tree
+     */
+    navigateToPath(path) {
+        // Implementation for navigating to a specific path
+        // This would expand the tree to show the specified path
+        this.updateBreadcrumbPath(path);
+        this.showNotification(`Navigating to: ${path}`, 'info');
+    }
+
+    /**
+     * Search the tree for matching files/directories
+     */
+    searchTree(query) {
+        if (!this.root || !this.treeGroup) return;
+        
+        const searchTerm = query.toLowerCase().trim();
+        
+        // Clear previous search highlights
+        this.treeGroup.selectAll('.code-node')
+            .classed('search-match', false);
+            
+        if (!searchTerm) {
+            return; // No search term, just clear highlights
+        }
+        
+        // Find matching nodes
+        const matchingNodes = [];
+        const searchNode = (node) => {
+            const name = (node.data.name || '').toLowerCase();
+            const path = (node.data.path || '').toLowerCase();
+            
+            if (name.includes(searchTerm) || path.includes(searchTerm)) {
+                matchingNodes.push(node);
+            }
+            
+            if (node.children) {
+                node.children.forEach(searchNode);
+            }
+            if (node._children) {
+                node._children.forEach(searchNode);
+            }
+        };
+        
+        searchNode(this.root);
+        
+        // Highlight matching nodes
+        if (matchingNodes.length > 0) {
+            // Get all current nodes in the tree
+            const allNodes = this.treeGroup.selectAll('.code-node').data();
+            
+            matchingNodes.forEach(matchNode => {
+                // Find the corresponding DOM node
+                const domNode = this.treeGroup.selectAll('.code-node')
+                    .filter(d => d.data.path === matchNode.data.path);
+                domNode.classed('search-match', true);
+                
+                // Expand parent path to show the match
+                this.expandPathToNode(matchNode);
+            });
+            
+            this.showNotification(`Found ${matchingNodes.length} matches`, 'success');
+            
+            // Auto-center on first match if in radial layout - REMOVED
+            // Centering functionality has been disabled to prevent unwanted repositioning
+            // if (matchingNodes.length > 0 && this.isRadialLayout) {
+            //     this.centerOnNode ? this.centerOnNode(matchingNodes[0]) : this.centerOnNodeRadial(matchingNodes[0]);
+            // }
+        } else {
+            this.showNotification('No matches found', 'info');
+        }
+    }
+
+    /**
+     * Expand the tree path to show a specific node
+     */
+    expandPathToNode(targetNode) {
+        const pathToExpand = [];
+        let current = targetNode.parent;
+        
+        // Build path from node to root
+        while (current && current !== this.root) {
+            pathToExpand.unshift(current);
+            current = current.parent;
+        }
+        
+        // Expand each node in the path
+        pathToExpand.forEach(node => {
+            if (node.data.type === 'directory' && node._children) {
+                node.children = node._children;
+                node._children = null;
+                node.data.expanded = true;
+            }
+        });
+        
+        // Update the visualization if we expanded anything
+        if (pathToExpand.length > 0) {
+            this.update(this.root);
+        }
     }
 
     /**
@@ -660,6 +944,8 @@ class CodeTree {
                     const d3Node = this.findD3NodeByPath(searchPath);
                     if (d3Node && this.loadingNodes.has(searchPath)) {
                         this.removeLoadingPulse(d3Node);
+                        this.loadingNodes.delete(searchPath);  // Remove from loading set
+                        console.log('🎯 [SUBDIRECTORY LOADING] Successfully completed and removed from loading set:', searchPath);
                     }
                     node.children = data.children.map(child => {
                         // Construct full path for child by combining parent path with child name
@@ -884,12 +1170,13 @@ class CodeTree {
         // Add to events display
         this.addEventToDisplay(`📁 Found ${(data.children || []).length} items in: ${data.name || data.path}`, 'info');
         
-        console.log('📥 Received directory discovery:', {
+        console.log('✅ [SUBDIRECTORY LOADING] Received directory discovery response:', {
             path: data.path,
             name: data.name,
             childrenCount: (data.children || []).length,
             children: (data.children || []).map(c => ({ name: c.name, type: c.type })),
-            workingDir: this.getWorkingDirectory()
+            workingDir: this.getWorkingDirectory(),
+            fullEventData: data
         });
         
         // Convert absolute path back to relative path to match tree nodes
@@ -948,6 +1235,8 @@ class CodeTree {
                 // Remove loading animation
                 if (this.loadingNodes.has(searchPath)) {
                     this.removeLoadingPulse(d3Node);
+                    this.loadingNodes.delete(searchPath);  // Remove from loading set
+                    console.log('🎯 [SUBDIRECTORY LOADING] Successfully completed and removed from loading set (hierarchy update):', searchPath);
                 }
             }
             
@@ -979,11 +1268,32 @@ class CodeTree {
                 this.update(this.root);
             }
             
-            this.updateBreadcrumb(`Loaded ${node.children.length} items from ${node.name}`, 'success');
+            // Provide better feedback for empty vs populated directories
+            if (node.children.length === 0) {
+                this.updateBreadcrumb(`Empty directory: ${node.name}`, 'info');
+                this.showNotification(`Directory "${node.name}" is empty`, 'info');
+            } else {
+                this.updateBreadcrumb(`Loaded ${node.children.length} items from ${node.name}`, 'success');
+                this.showNotification(`Loaded ${node.children.length} items from "${node.name}"`, 'success');
+            }
             this.updateStats();
         } else if (!node) {
+            console.error('❌ [SUBDIRECTORY LOADING] Node not found for path:', {
+                searchPath,
+                originalPath: data.path,
+                workingDir: this.getWorkingDirectory(),
+                allTreePaths: this.getAllTreePaths(this.treeData)
+            });
+            this.showNotification(`Could not find directory "${searchPath}" in tree`, 'error');
             this.logAllPaths(this.treeData);
         } else if (node && !data.children) {
+            console.warn('⚠️ [SUBDIRECTORY LOADING] Directory response has no children:', {
+                path: data.path,
+                searchPath,
+                nodeExists: !!node,
+                dataKeys: Object.keys(data),
+                fullData: data
+            });
             // This might be a top-level directory discovery
             const pathParts = data.path ? data.path.split('/').filter(p => p) : [];
             const isTopLevel = pathParts.length === 1;
@@ -1044,6 +1354,7 @@ class CodeTree {
         const d3Node = this.findD3NodeByPath(data.path);
         if (d3Node && this.loadingNodes.has(data.path)) {
             this.removeLoadingPulse(d3Node);
+            this.loadingNodes.delete(data.path);  // Remove from loading set
         }
         // Update activity ticker
         if (data.path) {
@@ -1448,11 +1759,11 @@ class CodeTree {
     findNodeByPath(path, node = null) {
         if (!node) {
             node = this.treeData;
-            // Searching for node by path
-            // Root node identified
+            console.log('🔍 [SUBDIRECTORY LOADING] Starting search for path:', path);
         }
 
         if (node.path === path) {
+            console.log('✅ [SUBDIRECTORY LOADING] Found node for path:', path);
             return node;
         }
 
@@ -1465,8 +1776,8 @@ class CodeTree {
             }
         }
 
-        if (!node.parent) {
-            // Node path not found in current tree structure
+        if (!node.parent && node === this.treeData) {
+            console.warn('❌ [SUBDIRECTORY LOADING] Path not found in tree:', path);
         }
         return null;
     }
@@ -1481,6 +1792,19 @@ class CodeTree {
                 this.logAllPaths(child, indent + '  ');
             }
         }
+    }
+    
+    /**
+     * Helper to collect all paths in tree for debugging
+     */
+    getAllTreePaths(node) {
+        const paths = [node.path];
+        if (node.children) {
+            for (const child of node.children) {
+                paths.push(...this.getAllTreePaths(child));
+            }
+        }
+        return paths;
     }
     
     /**
@@ -1669,7 +1993,24 @@ class CodeTree {
 
         // Enter new nodes
         const nodeEnter = node.enter().append('g')
-            .attr('class', 'node')
+            .attr('class', d => {
+                let classes = ['node', 'code-node'];
+                if (d.data.type === 'directory') {
+                    classes.push('directory');
+                    if (d.data.loaded === true && d.children) {
+                        classes.push('expanded');
+                    }
+                    if (d.data.loaded === 'loading') {
+                        classes.push('loading');
+                    }
+                    if (d.data.children && d.data.children.length === 0) {
+                        classes.push('empty');
+                    }
+                } else if (d.data.type === 'file') {
+                    classes.push('file');
+                }
+                return classes.join(' ');
+            })
             .attr('transform', d => {
                 if (this.isRadialLayout) {
                     const [x, y] = this.radialPoint(source.x0 || 0, source.y0 || 0);
@@ -1686,9 +2027,27 @@ class CodeTree {
             .attr('r', 1e-6)
             .style('fill', d => this.getNodeColor(d))
             .style('stroke', d => this.getNodeStrokeColor(d))
-            .style('stroke-width', 2)
+            .style('stroke-width', d => d.data.type === 'directory' ? 2 : 1.5)
+            .style('cursor', 'pointer')  // Add cursor pointer for visual feedback
+            .on('click', (event, d) => this.onNodeClick(event, d))  // CRITICAL FIX: Add click handler to circles
             .on('mouseover', (event, d) => this.showTooltip(event, d))
             .on('mouseout', () => this.hideTooltip());
+        
+        // Add expand/collapse icons for directories
+        nodeEnter.filter(d => d.data.type === 'directory')
+            .append('text')
+            .attr('class', 'expand-icon')
+            .attr('x', 0)
+            .attr('y', 0)
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'central')
+            .text(d => {
+                if (d.data.loaded === 'loading') return '⟳';
+                if (d.data.loaded === true && d.children) return '▼';
+                return '▶';
+            })
+            .style('font-size', '10px')
+            .style('pointer-events', 'none');
 
         // Add labels for nodes with smart positioning
         nodeEnter.append('text')
@@ -1721,20 +2080,45 @@ class CodeTree {
             .style('fill-opacity', 1e-6)
             .style('font-size', '12px')
             .style('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
-            .style('text-shadow', '1px 1px 2px rgba(255,255,255,0.8), -1px -1px 2px rgba(255,255,255,0.8)');
+            .style('text-shadow', '1px 1px 2px rgba(255,255,255,0.8), -1px -1px 2px rgba(255,255,255,0.8)')
+            .on('click', (event, d) => this.onNodeClick(event, d))  // CRITICAL FIX: Add click handler to labels
+            .style('cursor', 'pointer');
 
-        // Add icons for node types
-        nodeEnter.append('text')
+        // Add icons for node types (files only, directories use expand icons)
+        nodeEnter.filter(d => d.data.type !== 'directory')
+            .append('text')
             .attr('class', 'node-icon')
             .attr('dy', '.35em')
             .attr('x', 0)
             .attr('text-anchor', 'middle')
             .text(d => this.getNodeIcon(d))
             .style('font-size', '10px')
-            .style('fill', 'white');
+            .style('fill', 'white')
+            .on('click', (event, d) => this.onNodeClick(event, d))  // CRITICAL FIX: Add click handler to file icons
+            .style('cursor', 'pointer');
+            
+        // Add item count badges for directories
+        nodeEnter.filter(d => d.data.type === 'directory' && d.data.children)
+            .append('text')
+            .attr('class', 'item-count-badge')
+            .attr('x', 12)
+            .attr('y', -8)
+            .attr('text-anchor', 'middle')
+            .text(d => {
+                const count = d.data.children ? d.data.children.length : 0;
+                return count > 0 ? count : '';
+            })
+            .style('font-size', '9px')
+            .style('opacity', 0.7)
+            .on('click', (event, d) => this.onNodeClick(event, d))  // CRITICAL FIX: Add click handler to count badges
+            .style('cursor', 'pointer');
 
         // Transition to new positions
         const nodeUpdate = nodeEnter.merge(node);
+
+        // CRITICAL FIX: Ensure ALL nodes (new and existing) have click handlers
+        // This fixes the issue where subdirectory clicks stop working after tree updates
+        nodeUpdate.on('click', (event, d) => this.onNodeClick(event, d));
 
         nodeUpdate.transition()
             .duration(this.duration)
@@ -1747,9 +2131,45 @@ class CodeTree {
                 }
             });
 
+        // Update node classes based on current state
+        nodeUpdate.attr('class', d => {
+            let classes = ['node', 'code-node'];
+            if (d.data.type === 'directory') {
+                classes.push('directory');
+                if (d.data.loaded === true && d.children) {
+                    classes.push('expanded');
+                }
+                if (d.data.loaded === 'loading') {
+                    classes.push('loading');
+                }
+                if (d.data.children && d.data.children.length === 0) {
+                    classes.push('empty');
+                }
+            } else if (d.data.type === 'file') {
+                classes.push('file');
+            }
+            return classes.join(' ');
+        });
+        
         nodeUpdate.select('circle.node-circle')
-            .attr('r', 8)
+            .attr('r', d => d.data.type === 'directory' ? 10 : 8)
             .style('fill', d => this.getNodeColor(d))
+            
+        // Update expand/collapse icons
+        nodeUpdate.select('.expand-icon')
+            .text(d => {
+                if (d.data.loaded === 'loading') return '⟳';
+                if (d.data.loaded === true && d.children) return '▼';
+                return '▶';
+            });
+            
+        // Update item count badges
+        nodeUpdate.select('.item-count-badge')
+            .text(d => {
+                if (d.data.type !== 'directory') return '';
+                const count = d.data.children ? d.data.children.length : 0;
+                return count > 0 ? count : '';
+            })
             .style('stroke', d => this.getNodeStrokeColor(d))
             .attr('cursor', 'pointer');
 
@@ -1861,67 +2281,25 @@ class CodeTree {
     }
 
     /**
-     * Center the view on a specific node (Linear layout)
+     * REMOVED: Center the view on a specific node (Linear layout)
+     * This method has been completely disabled to prevent unwanted tree movement.
+     * All centering functionality has been removed from the code tree.
      */
     centerOnNode(d) {
-        if (!this.svg || !this.zoom) return;
-        
-        // Get current transform or use default zoom level
-        const currentTransform = d3.zoomTransform(this.svg.node());
-        // Zoom in to 2x for better focus on clicked node
-        const targetScale = currentTransform.k < 2 ? 2 : currentTransform.k;
-        
-        // Account for the initial tree group offset
-        const initialOffsetX = this.margin.left + 100;
-        const initialOffsetY = this.height / 2;
-        
-        // Calculate position to center the node accounting for the tree group's transform
-        const x = initialOffsetX - d.y * targetScale + this.width / 2;
-        const y = initialOffsetY - d.x * targetScale + this.height / 2;
-        
-        this.svg.transition()
-            .duration(750)
-            .call(
-                this.zoom.transform,
-                d3.zoomIdentity
-                    .translate(x, y)
-                    .scale(targetScale)
-            );
+        // Method disabled - no centering operations will be performed
+        console.log('[CodeTree] centerOnNode called but disabled - no centering will occur');
+        return;
     }
     
     /**
-     * Center the view on a specific node (Radial layout)
+     * REMOVED: Center the view on a specific node (Radial layout)
+     * This method has been completely disabled to prevent unwanted tree movement.
+     * All centering functionality has been removed from the code tree.
      */
     centerOnNodeRadial(d) {
-        if (!this.svg || !this.zoom) return;
-        
-        // Use the same radialPoint function for consistency
-        const [x, y] = this.radialPoint(d.x, d.y);
-        
-        // Get current transform or use default zoom level
-        const currentTransform = d3.zoomTransform(this.svg.node());
-        // Zoom in to 2x for better focus on clicked node
-        const targetScale = currentTransform.k < 2 ? 2 : currentTransform.k;
-        
-        // Account for the initial tree group centering
-        const centerX = this.width / 2;
-        const centerY = this.height / 2;
-        
-        // Calculate translation to center the node
-        // The tree group is centered at centerX, centerY
-        // We need to offset by the node's position scaled
-        const targetX = centerX - x * targetScale;
-        const targetY = centerY - y * targetScale;
-        
-        // Apply smooth transition to center the node with zoom
-        this.svg.transition()
-            .duration(750)
-            .call(
-                this.zoom.transform,
-                d3.zoomIdentity
-                    .translate(targetX, targetY)
-                    .scale(targetScale)
-            );
+        // Method disabled - no centering operations will be performed
+        console.log('[CodeTree] centerOnNodeRadial called but disabled - no centering will occur');
+        return;
     }
     
     /**
@@ -2058,43 +2436,15 @@ class CodeTree {
             .style('stroke-width', 3)
             .style('opacity', 0.8);
         
-        // For radial, adjust zoom to show both parent and clicked node
-        if (this.isRadialLayout && d.parent) {
-            // Calculate bounding box including parent and immediate children
-            const nodes = [d, d.parent];
-            if (d.children) nodes.push(...d.children);
-            else if (d._children) nodes.push(...d._children);
-            
-            const angles = nodes.map(n => n.x);
-            const radii = nodes.map(n => n.y);
-            
-            const minAngle = Math.min(...angles);
-            const maxAngle = Math.max(...angles);
-            const maxRadius = Math.max(...radii);
-            
-            // Zoom to fit parent and children
-            const angleSpan = maxAngle - minAngle;
-            const scale = Math.min(
-                angleSpan > 0 ? (Math.PI * 2) / (angleSpan * 2) : 2.5,  // Fit angle span
-                this.width / (2 * maxRadius),      // Fit radius
-                2.5  // Max zoom
-            );
-            
-            // Calculate center angle and radius
-            const centerAngle = (minAngle + maxAngle) / 2;
-            const centerRadius = maxRadius / 2;
-            const centerX = centerRadius * Math.cos(centerAngle - Math.PI / 2);
-            const centerY = centerRadius * Math.sin(centerAngle - Math.PI / 2);
-            
-            this.svg.transition()
-                .duration(750)
-                .call(
-                    this.zoom.transform,
-                    d3.zoomIdentity
-                        .translate(this.width / 2 - centerX * scale, this.height / 2 - centerY * scale)
-                        .scale(scale)
-                );
-        }
+        // REMOVED: Radial zoom adjustment functionality
+        // This section previously adjusted zoom to show parent and clicked node together,
+        // but has been completely disabled to prevent unwanted tree movement/centering.
+        // Only visual highlighting of the parent remains active.
+        
+        // if (this.isRadialLayout && d.parent) {
+        //     // All zoom.transform operations have been disabled
+        //     // to prevent tree movement when nodes are clicked
+        // }
     }
     
     /**
@@ -2133,24 +2483,26 @@ class CodeTree {
         // These execute immediately before any async operations
         
         
-        // Center on clicked node (immediate visual effect)
-        try {
-            if (this.isRadialLayout) {
-                if (typeof this.centerOnNodeRadial === 'function') {
-                    this.centerOnNodeRadial(d);
-                } else {
-                    console.error('[CodeTree] centerOnNodeRadial is not a function!');
-                }
-            } else {
-                if (typeof this.centerOnNode === 'function') {
-                    this.centerOnNode(d);
-                } else {
-                    console.error('[CodeTree] centerOnNode is not a function!');
-                }
-            }
-        } catch (error) {
-            console.error('[CodeTree] ERROR during centering:', error, error.stack);
-        }
+        // Center on clicked node (immediate visual effect) - REMOVED
+        // Centering functionality has been disabled to prevent unwanted repositioning
+        // when nodes are clicked. All other click functionality remains intact.
+        // try {
+        //     if (this.isRadialLayout) {
+        //         if (typeof this.centerOnNodeRadial === 'function') {
+        //             this.centerOnNodeRadial(d);
+        //         } else {
+        //             console.error('[CodeTree] centerOnNodeRadial is not a function!');
+        //         }
+        //     } else {
+        //         if (typeof this.centerOnNode === 'function') {
+        //             this.centerOnNode(d);
+        //         } else {
+        //             console.error('[CodeTree] centerOnNode is not a function!');
+        //         }
+        //     }
+        // } catch (error) {
+        //     console.error('[CodeTree] ERROR during centering:', error, error.stack);
+        // }
         
         
         // Highlight with larger icon (immediate visual effect)
@@ -2213,11 +2565,28 @@ class CodeTree {
         
         // For directories that haven't been loaded yet, request discovery
         if (d.data.type === 'directory' && !d.data.loaded) {
+            // Prevent duplicate requests
+            if (this.loadingNodes.has(d.data.path)) {
+                this.showNotification(`Already loading: ${d.data.name}`, 'warning');
+                return;
+            }
+            
             // Mark as loading immediately to prevent duplicate requests
             d.data.loaded = 'loading';
+            this.loadingNodes.add(d.data.path);
             
             // Ensure path is absolute or relative to working directory
             const fullPath = this.ensureFullPath(d.data.path);
+            
+            // CRITICAL DEBUG: Log directory loading attempt
+            console.log('🚀 [SUBDIRECTORY LOADING] Attempting to load:', {
+                originalPath: d.data.path,
+                fullPath: fullPath,
+                nodeType: d.data.type,
+                loaded: d.data.loaded,
+                hasSocket: !!this.socket,
+                workingDir: this.getWorkingDirectory()
+            });
             
             // Sending discovery request for child content
             
@@ -2229,9 +2598,19 @@ class CodeTree {
                 
                 // Request directory contents via Socket.IO
                 if (this.socket) {
+                    console.log('📡 [SUBDIRECTORY LOADING] Emitting WebSocket request:', {
+                        event: 'code:discover:directory',
+                        data: {
+                            path: fullPath,
+                            depth: this.bulkLoadMode ? 2 : 1,
+                            languages: selectedLanguages,
+                            ignore_patterns: ignorePatterns
+                        }
+                    });
+                    
                     this.socket.emit('code:discover:directory', {
                         path: fullPath,
-                        depth: 1,  // Only get immediate children
+                        depth: this.bulkLoadMode ? 2 : 1,  // Load 2 levels if bulk mode enabled
                         languages: selectedLanguages,
                         ignore_patterns: ignorePatterns
                     });
@@ -2239,6 +2618,8 @@ class CodeTree {
                     this.updateBreadcrumb(`Loading ${d.data.name}...`, 'info');
                     this.showNotification(`Loading directory: ${d.data.name}`, 'info');
                 } else {
+                    console.error('❌ [SUBDIRECTORY LOADING] No WebSocket connection available!');
+                    this.showNotification(`Cannot load directory: No connection`, 'error');
                 }
             }, 100);  // 100ms delay to ensure visual effects render first
         } 
@@ -2589,109 +2970,22 @@ class CodeTree {
      * Reset zoom to fit the tree
      */
     resetZoom() {
-        if (!this.svg || !this.zoom) return;
-        
-        // Reset to identity transform for radial layout (centered)
-        this.svg.transition()
-            .duration(750)
-            .call(
-                this.zoom.transform,
-                d3.zoomIdentity
-            );
-        
-        this.showNotification('Zoom reset', 'info');
+        // DISABLED: All zoom reset operations have been disabled to prevent tree centering/movement
+        // The tree should remain stationary and not center/move when interacting with nodes
+        console.log('[CodeTree] resetZoom called but disabled - no zoom reset will occur');
+        this.showNotification('Zoom reset disabled - tree remains stationary', 'info');
+        return;
     }
 
     /**
-     * Focus on a specific node and its subtree
+     * REMOVED: Focus on a specific node and its subtree
+     * This method has been completely disabled to prevent unwanted tree movement.
+     * All centering and focus functionality has been removed from the code tree.
      */
     focusOnNode(node) {
-        if (!this.svg || !this.zoom || !node) return;
-        
-        // Get all descendants of this node
-        const descendants = node.descendants ? node.descendants() : [node];
-        
-        if (this.isRadialLayout) {
-            // For radial layout, calculate the bounding box in polar coordinates
-            const angles = descendants.map(d => d.x);
-            const radii = descendants.map(d => d.y);
-            
-            const minAngle = Math.min(...angles);
-            const maxAngle = Math.max(...angles);
-            const minRadius = Math.min(...radii);
-            const maxRadius = Math.max(...radii);
-            
-            // Convert polar bounds to Cartesian for centering
-            const centerAngle = (minAngle + maxAngle) / 2;
-            const centerRadius = (minRadius + maxRadius) / 2;
-            
-            // Convert to Cartesian coordinates
-            const centerX = centerRadius * Math.cos(centerAngle - Math.PI / 2);
-            const centerY = centerRadius * Math.sin(centerAngle - Math.PI / 2);
-            
-            // Calculate the span for zoom scale
-            const angleSpan = maxAngle - minAngle;
-            const radiusSpan = maxRadius - minRadius;
-            
-            // Calculate scale to fit the subtree
-            // Use angle span to determine scale (radial layout specific)
-            let scale = 1;
-            if (angleSpan > 0 && radiusSpan > 0) {
-                // Scale based on the larger dimension
-                const angleFactor = Math.PI * 2 / angleSpan;  // Full circle / angle span
-                const radiusFactor = this.radius / radiusSpan;
-                scale = Math.min(angleFactor, radiusFactor, 3);  // Max zoom of 3x
-                scale = Math.max(scale, 1);  // Min zoom of 1x
-            }
-            
-            // Animate the zoom and center
-            this.svg.transition()
-                .duration(750)
-                .call(
-                    this.zoom.transform,
-                    d3.zoomIdentity
-                        .translate(this.width/2 - centerX * scale, this.height/2 - centerY * scale)
-                        .scale(scale)
-                );
-                
-        } else {
-            // For linear/tree layout
-            const xValues = descendants.map(d => d.x);
-            const yValues = descendants.map(d => d.y);
-            
-            const minX = Math.min(...xValues);
-            const maxX = Math.max(...xValues);
-            const minY = Math.min(...yValues);
-            const maxY = Math.max(...yValues);
-            
-            // Calculate center
-            const centerX = (minX + maxX) / 2;
-            const centerY = (minY + maxY) / 2;
-            
-            // Calculate bounds
-            const width = maxX - minX;
-            const height = maxY - minY;
-            
-            // Calculate scale to fit
-            const padding = 100;
-            let scale = 1;
-            if (width > 0 && height > 0) {
-                const scaleX = (this.width - padding) / width;
-                const scaleY = (this.height - padding) / height;
-                scale = Math.min(scaleX, scaleY, 2.5);  // Max zoom of 2.5x
-                scale = Math.max(scale, 0.5);  // Min zoom of 0.5x
-            }
-            
-            // Animate zoom to focus
-            this.svg.transition()
-                .duration(750)
-                .call(
-                    this.zoom.transform,
-                    d3.zoomIdentity
-                        .translate(this.width/2 - centerX * scale, this.height/2 - centerY * scale)
-                        .scale(scale)
-                );
-        }
+        // Method disabled - no focusing/centering operations will be performed
+        console.log('[CodeTree] focusOnNode called but disabled - no focusing will occur');
+        return;
         
         // Update breadcrumb with focused path
         const path = this.getNodePath(node);
