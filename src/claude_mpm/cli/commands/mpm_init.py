@@ -234,7 +234,11 @@ Focus on establishing ONE clear way to do ANYTHING in the project.
 
                 # Execute the command
                 result = subprocess.run(
-                    cmd, capture_output=True, text=True, cwd=str(self.project_path), check=False
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    cwd=str(self.project_path),
+                    check=False,
                 )
 
                 # Check for environment-specific errors
@@ -257,7 +261,8 @@ Focus on establishing ONE clear way to do ANYTHING in the project.
                         cmd_venv,
                         capture_output=not verbose,
                         text=True,
-                        cwd=str(self.project_path), check=False,
+                        cwd=str(self.project_path),
+                        check=False,
                     )
             finally:
                 # Clean up temporary file
