@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+
+## [4.1.15] - 2025-08-29
+
+### Fixed
+- **Package Distribution**: Added missing `__init__.py` files to ensure proper package distribution
+  - Added `__init__.py` to `src/claude_mpm/commands/` directory
+  - Added `__init__.py` to `src/claude_mpm/dashboard/` directory  
+  - Added `__init__.py` to `src/claude_mpm/experimental/` directory
+  - Added `__init__.py` to `src/claude_mpm/schemas/` directory
+  - Added `__init__.py` to `src/claude_mpm/tools/` directory
+  - Fixes issue where these modules were not being included in distributed packages
+
+### Added  
 - **Ops Agent v2.2.2**: Enhanced git commit authority with comprehensive security verification
   - Advanced git commit capabilities with pre-commit security scanning
   - Automated security verification against prohibited patterns (secrets, credentials, API keys)
@@ -16,12 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Smart context-aware git operations with branch management and merge conflict resolution
   - Secure commit message generation following conventional commit standards
   - Real-time security feedback and immediate threat detection
-
-### Changed
-
-### Fixed
-
-### Removed
 
 ## [4.1.14] - 2025-08-29
 
