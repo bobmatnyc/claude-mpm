@@ -115,7 +115,7 @@ def main():
                 "session_id": session["session_id"],
             }
             sio.emit("hook_event", pm_start_event)
-            print(f"  ✓ Sent PM session start")
+            print("  ✓ Sent PM session start")
 
             # Send TodoWrite event
             todo_event = {
@@ -216,7 +216,7 @@ def main():
                 "session_id": session["session_id"],
             }
             sio.emit("hook_event", session_end_event)
-            print(f"  ✓ Sent session completion")
+            print("  ✓ Sent session completion")
 
             time.sleep(0.5)  # Small delay between sessions
 
