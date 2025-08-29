@@ -16,6 +16,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [4.1.13] - 2025-08-29
+
+### Added
+- **Unified Data Viewer Component**: New dashboard visualization component for improved data rendering
+- **Validation Scripts**: Comprehensive development workflow scripts for activity structure and dashboard state verification
+- **PM Instruction Reinforcement System**: Enhanced instruction drift prevention with improved monitoring capabilities
+- **Comprehensive Test Suite Additions**: Expanded test coverage across SocketIO, dashboard, and activity management modules
+
+### Changed
+- **Dashboard Stability Improvements**: Enhanced activity session data handling and visualization robustness
+- **SocketIO Architecture Enhancements**: Improved connection reliability and event handling architecture
+- **Agent Metadata Handling**: Enhanced Claude Code compatibility with improved agent metadata processing
+
+### Fixed
+- **Activity Session Data Issues**: Resolved critical data handling problems in dashboard activity visualization
+- **Linting Configuration**: Fixed ruff configuration issues resulting in 77% error reduction
+- **SocketIO Connection Reliability**: Addressed connection stability and event routing issues
+- **Dashboard Visualization Bugs**: Fixed various UI rendering and data display issues
+
 ## [4.1.12] - 2025-08-28
 
 ### Added
