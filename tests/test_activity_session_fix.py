@@ -39,7 +39,7 @@ def main():
             response = requests.get("http://localhost:8765", timeout=5)
             if response.status_code == 200:
                 print("✅ Dashboard is running on port 8765")
-                print(f"🌐 Open http://localhost:8765 in your browser")
+                print("🌐 Open http://localhost:8765 in your browser")
                 print("\n📋 Testing checklist:")
                 print("1. Navigate to the Activity tab")
                 print(
