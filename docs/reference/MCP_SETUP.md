@@ -14,6 +14,8 @@ Choose the setup instructions based on how you installed claude-mpm:
 
 ## pipx Installation Setup
 
+**🎉 Pipx Issues Resolved!** As of v4.1.14, all previous pipx installation issues have been fixed. MCP gateway now works seamlessly with pipx installations.
+
 ### Automatic Configuration (Recommended)
 
 If you installed via pipx, use the automated configuration command:

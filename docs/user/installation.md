@@ -2,8 +2,8 @@
 
 Complete installation instructions for Claude MPM across different environments and use cases.
 
-**Last Updated**: 2025-08-14  
-**Version**: 3.8.2
+**Last Updated**: 2025-08-29  
+**Version**: 4.1.14
 
 ## Quick Install
 
@@ -44,6 +44,19 @@ The pipx installation method provides:
 - **Global command access**: claude-mpm commands available system-wide
 - **Easy updates**: Simple upgrade with `pipx upgrade claude-mpm`
 - **Clean uninstall**: Complete removal with `pipx uninstall claude-mpm`
+
+**🎉 Pipx Now Fully Supported!** As of v4.1.14, all pipx installation issues have been resolved:
+
+✅ **Resource Path Resolution**: Fixed Socket.IO daemon script access in pipx environments
+✅ **Command Directory Access**: Resolved commands directory path resolution for pipx users  
+✅ **Packaging Improvements**: All resource files (scripts, commands) now properly packaged
+✅ **Python 3.13+ Compatibility**: Full support for latest Python versions in pipx
+
+**Previous Issues Resolved:**
+- **Issue**: "socketio_daemon_wrapper.py not found" error reported by users
+- **Fix**: Implemented `get_package_resource_path()` for proper resource resolution
+- **Issue**: Commands directory access failures in pipx environments  
+- **Fix**: Enhanced path detection with `importlib.resources` fallback
 
 For MCP configuration with pipx, see [MCP pipx Setup Guide](../MCP_PIPX_SETUP.md).
 
