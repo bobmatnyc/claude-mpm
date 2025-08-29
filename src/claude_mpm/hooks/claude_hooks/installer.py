@@ -500,9 +500,19 @@ main "$@"
 
     def _install_commands(self) -> None:
         """Install custom commands for Claude Code."""
-        # Find commands directory in the package
-        package_root = Path(__file__).parent.parent.parent.parent
-        commands_src = package_root / ".claude" / "commands"
+        # Find commands directory using proper resource resolution
+        try:
+            from ...core.unified_paths import get_package_resource_path
+
+            commands_src = get_package_resource_path("commands")
+        except FileNotFoundError:
+            # Fallback to hardcoded path exploration for development
+            package_root = Path(__file__).parent.parent.parent.parent
+            commands_src = package_root / ".claude" / "commands"
+
+            if not commands_src.exists():
+                # Try the actual location in src/claude_mpm/commands
+                commands_src = Path(__file__).parent.parent.parent / "commands"
 
         if not commands_src.exists():
             self.logger.debug(

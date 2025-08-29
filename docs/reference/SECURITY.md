@@ -801,6 +801,350 @@ class DependencySecurityChecker:
         return issues
 ```
 
+## Git Commit Security (Ops Agent v2.2.2+)
+
+The Ops agent has been enhanced with comprehensive git commit authority and security verification capabilities. This section documents the security protocols and verification procedures implemented for safe code repository operations.
+
+### Git Commit Security Framework
+
+#### Pre-commit Security Scanning
+
+The Ops agent implements a multi-layered security scanning approach before any git commit:
+
+```python
+class GitCommitSecurityScanner:
+    """Comprehensive security scanner for git commits"""
+    
+    def __init__(self):
+        self.prohibited_patterns = [
+            # API Keys and Tokens
+            r'sk_[a-zA-Z0-9]{32,}',  # Stripe keys
+            r'pk_[a-zA-Z0-9]{32,}',  # Public keys
+            r'AKIA[0-9A-Z]{16}',     # AWS Access Keys
+            r'[A-Za-z0-9/+=]{40}',   # AWS Secret Keys
+            r'ghp_[a-zA-Z0-9]{36}',  # GitHub Personal Access Tokens
+            r'gho_[a-zA-Z0-9]{36}',  # GitHub OAuth Tokens
+            r'vercel_[a-zA-Z0-9]{24}',  # Vercel tokens
+            
+            # Database Credentials
+            r'postgresql://[^:]+:[^@]+@[^/]+',  # PostgreSQL connection strings
+            r'mysql://[^:]+:[^@]+@[^/]+',       # MySQL connection strings
+            r'mongodb://[^:]+:[^@]+@[^/]+',     # MongoDB connection strings
+            
+            # Private Keys
+            r'-----BEGIN (RSA |DSA |EC )?PRIVATE KEY-----',
+            r'-----BEGIN OPENSSH PRIVATE KEY-----',
+            
+            # Generic Secrets
+            r'password\s*=\s*["\'][^"\']+["\']',
+            r'secret\s*=\s*["\'][^"\']+["\']',
+            r'token\s*=\s*["\'][^"\']+["\']',
+        ]
+        self.quality_checker = QualityGateChecker()
+    
+    def scan_staged_files(self) -> SecurityScanResult:
+        """Scan all staged files for security violations"""
+        result = SecurityScanResult()
+        
+        # Get staged files
+        staged_files = self._get_staged_files()
+        
+        for file_path in staged_files:
+            file_result = self._scan_file(file_path)
+            result.merge(file_result)
+        
+        return result
+    
+    def _scan_file(self, file_path: str) -> FileScanResult:
+        """Scan individual file for prohibited patterns"""
+        result = FileScanResult(file_path)
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            for line_num, line in enumerate(content.splitlines(), 1):
+                for pattern in self.prohibited_patterns:
+                    if re.search(pattern, line, re.IGNORECASE):
+                        result.add_violation(
+                            line_num=line_num,
+                            pattern=pattern,
+                            matched_text=line.strip(),
+                            severity=ViolationSeverity.HIGH
+                        )
+        except Exception as e:
+            result.add_error(f"Failed to scan file: {e}")
+        
+        return result
+```
+
+#### Quality Gate Integration
+
+All git commits are integrated with the project's quality assurance pipeline:
+
+```python
+class QualityGateChecker:
+    """Integrates with make quality for comprehensive checks"""
+    
+    def run_quality_checks(self) -> QualityCheckResult:
+        """Run complete quality gate before commit"""
+        try:
+            # Run make quality command
+            result = subprocess.run(
+                ['make', 'quality'],
+                capture_output=True,
+                text=True,
+                timeout=300  # 5-minute timeout
+            )
+            
+            return QualityCheckResult(
+                success=result.returncode == 0,
+                stdout=result.stdout,
+                stderr=result.stderr,
+                return_code=result.returncode
+            )
+        except subprocess.TimeoutExpired:
+            return QualityCheckResult(
+                success=False,
+                error="Quality check timeout (5 minutes)"
+            )
+        except Exception as e:
+            return QualityCheckResult(
+                success=False,
+                error=f"Quality check failed: {e}"
+            )
+```
+
+### Security Verification Protocols
+
+#### Prohibited Pattern Detection
+
+The system maintains a comprehensive list of patterns that are prohibited in committed code:
+
+**API Keys and Service Tokens**:
+- Stripe API keys (`sk_`, `pk_` prefixes)
+- AWS access keys and secrets (`AKIA` prefix, base64 patterns)
+- GitHub tokens (`ghp_`, `gho_` prefixes)
+- Vercel tokens (`vercel_` prefix)
+- Google Cloud service account keys
+- Azure storage connection strings
+
+**Database Credentials**:
+- PostgreSQL connection strings with credentials
+- MySQL connection strings with credentials
+- MongoDB connection strings with credentials
+- Redis AUTH passwords
+- Database password environment variables with hardcoded values
+
+**Cryptographic Material**:
+- Private keys (RSA, DSA, EC, OpenSSH)
+- SSL certificates with private keys
+- JWT signing secrets
+- Encryption keys
+
+**Configuration Secrets**:
+- Hardcoded passwords in configuration files
+- API endpoints with embedded credentials
+- OAuth client secrets
+- Webhook signing secrets
+
+#### Security Response Protocol
+
+When security violations are detected, the following protocol is executed:
+
+1. **Immediate Block**: Prevent the commit from proceeding
+2. **Detailed Report**: Provide specific violation details:
+   ```
+   🔒 Security Violation Detected
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   📁 File: src/config/database.js
+   📍 Line: 15
+   🚨 Issue: Database connection string with credentials
+   🔍 Pattern: postgresql://user:password@host/db
+   
+   💡 Recommended Fix:
+   Replace with environment variable:
+   DATABASE_URL=process.env.DATABASE_URL
+   
+   🛡️ Security Note:
+   Never commit database credentials to version control.
+   Use environment variables or secure key management.
+   ```
+
+3. **Guidance**: Provide specific remediation steps
+4. **Verification**: Re-scan after fixes are applied
+5. **Audit Logging**: Record all security events for compliance
+
+#### Environment-Specific Considerations
+
+**Development Environment**:
+```bash
+# Acceptable in development (using placeholders)
+DATABASE_URL=postgresql://user:password@localhost:5432/dev_db
+API_KEY=your_api_key_here
+```
+
+**Production Environment**:
+```bash
+# Required in production (environment variables only)
+DATABASE_URL=${DATABASE_URL}
+API_KEY=${API_KEY}
+```
+
+### Integration with Development Workflow
+
+#### Secure Commit Workflow
+
+```mermaid
+graph TD
+    A[User Requests Commit] --> B[Scan Staged Files]
+    B --> C{Security Issues?}
+    C -->|Yes| D[Block Commit]
+    C -->|No| E[Run Quality Checks]
+    D --> F[Report Issues]
+    F --> G[Provide Fixes]
+    G --> H[User Makes Changes]
+    H --> B
+    E --> I{Quality Pass?}
+    I -->|No| J[Block Commit]
+    I -->|Yes| K[Generate Commit Message]
+    J --> L[Report Quality Issues]
+    L --> H
+    K --> M[Execute Git Commit]
+    M --> N[Log Audit Trail]
+```
+
+#### Audit Trail Requirements
+
+All security-related operations are logged with the following information:
+
+```python
+class GitCommitAuditLogger:
+    def log_security_scan(self, scan_result: SecurityScanResult):
+        """Log security scan results for audit purposes"""
+        audit_entry = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'event_type': 'git_commit_security_scan',
+            'files_scanned': scan_result.files_scanned,
+            'violations_found': len(scan_result.violations),
+            'violations': [
+                {
+                    'file': v.file_path,
+                    'line': v.line_number,
+                    'severity': v.severity.name,
+                    'pattern_type': v.pattern_type
+                } for v in scan_result.violations
+            ],
+            'quality_check_passed': scan_result.quality_check_passed,
+            'commit_authorized': scan_result.violations == 0
+        }
+        
+        self._write_audit_log(audit_entry)
+```
+
+### Security Configuration
+
+#### Environment Variables
+
+Configure security scanning behavior:
+
+```bash
+# Enable/disable git commit security scanning
+CLAUDE_MPM_GIT_SECURITY_ENABLED=true
+
+# Configure scan sensitivity (low, medium, high)
+CLAUDE_MPM_SECURITY_SENSITIVITY=high
+
+# Enable/disable quality gate integration
+CLAUDE_MPM_QUALITY_GATE_ENABLED=true
+
+# Configure audit logging
+CLAUDE_MPM_AUDIT_LOG_ENABLED=true
+CLAUDE_MPM_AUDIT_LOG_PATH=/var/log/claude-mpm/security.log
+```
+
+#### Custom Pattern Configuration
+
+Teams can customize prohibited patterns:
+
+```yaml
+# .claude-mpm/security/patterns.yaml
+prohibited_patterns:
+  api_keys:
+    - pattern: 'company_api_[a-zA-Z0-9]{32}'
+      description: 'Company-specific API keys'
+      severity: 'high'
+  
+  database:
+    - pattern: 'DB_PASSWORD\s*=\s*["\'][^"\']+["\']'
+      description: 'Hardcoded database passwords'
+      severity: 'critical'
+  
+  custom_secrets:
+    - pattern: 'SECRET_TOKEN_[A-Z0-9]{16}'
+      description: 'Custom secret tokens'
+      severity: 'high'
+```
+
+### Emergency Response Procedures
+
+#### Security Incident Response
+
+If sensitive data is accidentally committed:
+
+1. **Immediate Actions**:
+   ```bash
+   # Remove from latest commit
+   git reset --soft HEAD~1
+   git reset HEAD <file_with_secrets>
+   
+   # Clean up the file
+   # Edit file to remove secrets
+   
+   # Re-commit safely
+   git add <cleaned_file>
+   git commit -m "fix: remove sensitive data from configuration"
+   ```
+
+2. **History Cleanup** (if already pushed):
+   ```bash
+   # Use BFG Repo-Cleaner or git filter-branch
+   # Coordinate with team before force-pushing
+   git filter-branch --index-filter 'git rm --cached --ignore-unmatch <file_with_secrets>'
+   ```
+
+3. **Credential Rotation**:
+   - Immediately revoke compromised credentials
+   - Generate new credentials
+   - Update all systems using the old credentials
+   - Document the incident for security review
+
+#### Monitoring and Alerting
+
+```python
+class SecurityMonitor:
+    """Monitor security events and trigger alerts"""
+    
+    def __init__(self):
+        self.alert_thresholds = {
+            'violations_per_hour': 5,
+            'failed_commits_per_day': 10,
+            'quality_failures_per_day': 20
+        }
+    
+    def check_security_metrics(self):
+        """Check security metrics and trigger alerts if needed"""
+        metrics = self._collect_security_metrics()
+        
+        if metrics['violations_per_hour'] > self.alert_thresholds['violations_per_hour']:
+            self._send_security_alert('High violation rate detected')
+        
+        if metrics['failed_commits_per_day'] > self.alert_thresholds['failed_commits_per_day']:
+            self._send_security_alert('High commit failure rate')
+```
+
+This comprehensive git commit security framework ensures that all code changes undergo rigorous security verification before entering the repository, maintaining the integrity and security of the codebase.
+
 ## Best Practices
 
 ### 1. Input Validation

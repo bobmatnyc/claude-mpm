@@ -30,6 +30,12 @@ pipx install claude-mpm
 claude-mpm mcp-pipx-config
 ```
 
+**🎉 Pipx Support Now Fully Functional!** Recent improvements ensure complete compatibility:
+- ✅ Socket.IO daemon script path resolution (fixed)
+- ✅ Commands directory access (fixed) 
+- ✅ Resource files properly packaged for pipx environments
+- ✅ Python 3.13+ fully supported
+
 **That's it!** See [QUICKSTART.md](QUICKSTART.md) for immediate usage or [docs/user/installation.md](docs/user/installation.md) for advanced options.
 
 ## Quick Usage
@@ -82,7 +88,7 @@ Claude MPM includes 15 specialized agents:
 - **Security** - Security analysis and implementation
 
 #### Operations & Infrastructure
-- **Ops** - Operations and deployment
+- **Ops** - Operations and deployment with advanced git commit authority and security verification (v2.2.2+)
 - **Version Control** - Git and version management
 - **Data Engineer** - Data pipeline and ETL development
 

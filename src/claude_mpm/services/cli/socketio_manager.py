@@ -201,21 +201,29 @@ class SocketIOManager(ISocketIOManager):
             try:
                 self.logger.info(f"Starting Socket.IO server on port {target_port}")
 
-                # Get the socketio daemon script path
-                scripts_dir = get_scripts_dir()
-                daemon_script = scripts_dir / "socketio_daemon_wrapper.py"
+                # Get the socketio daemon script path using proper resource resolution
+                try:
+                    from ...core.unified_paths import get_package_resource_path
 
-                if not daemon_script.exists():
-                    self.logger.error(
-                        f"Socket.IO daemon script not found: {daemon_script}"
+                    daemon_script = get_package_resource_path(
+                        "scripts/socketio_daemon_wrapper.py"
                     )
-                    return False, ServerInfo(
-                        port=target_port,
-                        pid=None,
-                        is_running=False,
-                        launch_time=None,
-                        url=f"http://localhost:{target_port}",
-                    )
+                except FileNotFoundError:
+                    # Fallback to old method for development environments
+                    scripts_dir = get_scripts_dir()
+                    daemon_script = scripts_dir / "socketio_daemon_wrapper.py"
+
+                    if not daemon_script.exists():
+                        self.logger.error(
+                            f"Socket.IO daemon script not found: {daemon_script}"
+                        )
+                        return False, ServerInfo(
+                            port=target_port,
+                            pid=None,
+                            is_running=False,
+                            launch_time=None,
+                            url=f"http://localhost:{target_port}",
+                        )
 
                 # Start the server process
                 env = os.environ.copy()

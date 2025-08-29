@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Ops Agent v2.2.2**: Enhanced git commit authority with comprehensive security verification
+  - Advanced git commit capabilities with pre-commit security scanning
+  - Automated security verification against prohibited patterns (secrets, credentials, API keys)
+  - Integration with `make quality` for comprehensive code quality checks
+  - Smart context-aware git operations with branch management and merge conflict resolution
+  - Secure commit message generation following conventional commit standards
+  - Real-time security feedback and immediate threat detection
 
 ### Changed
 
@@ -25,10 +32,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Visual Feedback System**: Enhanced chevron icons and loading indicators for better user interaction
 - **Navigation State Management**: Improved subdirectory click handlers after tree updates
 - **D3 Zoom Behavior**: Disabled automatic zoom to maintain stationary tree per user preference
+- **Pipx Installation Issues**: Resolved critical resource path resolution for pipx users
+  - Fixed "socketio_daemon_wrapper.py not found" error reported by users
+  - Fixed commands directory access failures in pipx environments
+  - Implemented `get_package_resource_path()` for proper resource resolution
+  - Enhanced path detection with `importlib.resources` fallback mechanism
+  - Full Python 3.13+ compatibility in pipx environments
 
 ### Added
 - **Diagnostic Logging**: Comprehensive logging system for debugging code panel navigation issues
 - **Enhanced Click Detection**: Multi-target click handling for improved user interaction reliability
+- **Resource Path Resolution**: New unified path management system for proper resource packaging
+  - Cross-platform compatibility for Windows, macOS, Linux
+  - Automatic fallback to filesystem paths when resources API unavailable
 
 
 ## [4.1.13] - 2025-08-29

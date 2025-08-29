@@ -21,8 +21,14 @@ class CommandDeploymentService(BaseService):
         """Initialize the command deployment service."""
         super().__init__(name="command_deployment")
 
-        # Source commands directory in the package
-        self.source_dir = Path(__file__).parent.parent / "commands"
+        # Source commands directory in the package - use proper resource resolution
+        try:
+            from ..core.unified_paths import get_package_resource_path
+
+            self.source_dir = get_package_resource_path("commands")
+        except FileNotFoundError:
+            # Fallback to old method for development environments
+            self.source_dir = Path(__file__).parent.parent / "commands"
 
         # Target directory in user's home
         self.target_dir = Path.home() / ".claude" / "commands"

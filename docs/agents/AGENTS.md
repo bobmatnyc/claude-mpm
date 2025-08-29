@@ -54,7 +54,7 @@ Claude MPM includes 15 specialized agents:
 - **Security** - Security analysis and implementation
 
 #### Operations & Infrastructure
-- **Ops** - Operations and deployment
+- **Ops** - Operations and deployment with advanced git commit authority and security verification
 - **Version Control** - Git and version management
 - **Data Engineer** - Data pipeline and ETL development
 
@@ -503,6 +503,74 @@ python scripts/aggregate_agent_dependencies.py
 ```
 
 For comprehensive dependency management documentation, see [docs/AGENT_DEPENDENCIES.md](AGENT_DEPENDENCIES.md).
+
+## Ops Agent Security Features (v2.2.2+)
+
+The Ops agent has been enhanced with comprehensive git commit authority and advanced security verification capabilities. This makes it the primary agent for secure code deployment and repository management operations.
+
+### Git Commit Authority
+
+The Ops agent can now perform secure git operations with built-in security scanning:
+
+- **Pre-commit Security Scanning**: Automatically scans code for sensitive information before commits
+- **Prohibited Pattern Detection**: Identifies and prevents commits containing secrets, API keys, credentials
+- **Quality Integration**: Integrates with `make quality` for comprehensive code quality verification
+- **Smart Context Awareness**: Understands project context and applies appropriate security measures
+
+### Security Verification Protocols
+
+**Automatic Security Checks**:
+- Scans for hardcoded API keys and secrets
+- Detects credential patterns in code and configuration files
+- Validates environment variable usage for sensitive data
+- Identifies potential security vulnerabilities in dependencies
+
+**Integration with Development Workflow**:
+- Runs `make quality` before commits to ensure code standards
+- Provides immediate feedback on security violations
+- Suggests secure alternatives for detected issues
+- Maintains audit trail of all security checks
+
+### Best Practices for Ops Agent Usage
+
+**Secure Git Operations**:
+```bash
+# The Ops agent automatically performs these security checks before any git operation:
+# 1. Scans all staged files for prohibited patterns
+# 2. Runs code quality checks via 'make quality'
+# 3. Validates commit message conventions
+# 4. Ensures no sensitive data is being committed
+```
+
+**Security Response Protocol**:
+- **Detection**: Immediate identification of security issues
+- **Prevention**: Blocks commits containing sensitive data
+- **Guidance**: Provides specific remediation steps
+- **Verification**: Confirms fixes before allowing commit
+
+### Usage Examples
+
+**Requesting Secure Commits**:
+```
+PM: "Commit the database migration changes"
+Ops Agent Response:
+1. Scans all staged files for sensitive information
+2. Runs 'make quality' to verify code standards
+3. Generates conventional commit message
+4. Executes secure commit with audit trail
+5. Reports security verification results
+```
+
+**Security Issue Handling**:
+```
+Ops Agent: "Security issue detected - API key found in config.js"
+- Location: line 15, hardcoded API_KEY value
+- Recommendation: Move to environment variable
+- Resolution: Use process.env.API_KEY instead
+- Status: Commit blocked until resolved
+```
+
+For detailed information about the Ops agent's capabilities, see [VERCEL_OPS_AGENT.md](VERCEL_OPS_AGENT.md).
 
 ## Agent Discovery and Caching
 

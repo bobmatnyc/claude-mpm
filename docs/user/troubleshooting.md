@@ -2,8 +2,8 @@
 
 Solutions to common issues and problems with Claude MPM.
 
-**Last Updated**: 2025-08-14  
-**Version**: 3.8.2
+**Last Updated**: 2025-08-29  
+**Version**: 4.1.14
 
 ## Quick Diagnostics
 
@@ -116,6 +116,47 @@ pip install --proxy http://proxy.example.com:8080 claude-mpm
 # Skip certificate verification (not recommended)
 pip install --trusted-host pypi.org claude-mpm
 ```
+
+### Pipx Installation Issues (RESOLVED ✅)
+
+**As of v4.1.14, all pipx issues have been resolved!** The following problems no longer occur:
+
+**Previously Reported Issue 1: Socket.IO Daemon Script Not Found**
+```
+Error: socketio_daemon_wrapper.py not found in pipx environment
+```
+✅ **Fixed**: Implemented proper resource path resolution using `get_package_resource_path()`
+
+**Previously Reported Issue 2: Commands Directory Access**
+```
+Error: Cannot access commands directory in pipx installation
+```
+✅ **Fixed**: Enhanced path detection with `importlib.resources` fallback mechanism
+
+**If You Still Encounter Pipx Issues:**
+```bash
+# Verify pipx installation
+pipx --version
+
+# Check claude-mpm installation
+pipx list | grep claude-mpm
+
+# Reinstall if needed
+pipx uninstall claude-mpm
+pipx install claude-mpm
+
+# Verify resource access
+claude-mpm doctor --checks installation
+
+# Test basic functionality
+claude-mpm info
+```
+
+**Technical Details:**
+- Resource files now properly packaged with `importlib.resources`
+- Cross-platform compatibility for Windows, macOS, Linux
+- Python 3.13+ fully supported in pipx environments
+- Automatic fallback to filesystem paths when resources API unavailable
 
 ## Runtime Issues
 
