@@ -331,7 +331,6 @@
                                 <div class="activity-controls">
                                     <button id="expand-all" class="btn-sm">Expand All</button>
                                     <button id="collapse-all" class="btn-sm">Collapse All</button>
-                                    <button id="reset-zoom" class="btn-sm">Reset Zoom</button>
                                     <select id="time-range">
                                         <option value="all">All Time</option>
                                         <option value="hour">Last Hour</option>
@@ -359,24 +358,24 @@
                                 <div id="activity-tree"></div>
                                 <div class="tree-legend">
                                     <div class="legend-item">
-                                        <span class="legend-icon pm">●</span>
-                                        <span>PM</span>
+                                        <span class="legend-icon">📁</span>
+                                        <span>Project Root</span>
                                     </div>
                                     <div class="legend-item">
-                                        <span class="legend-icon todowrite">■</span>
-                                        <span>TodoWrite</span>
+                                        <span class="legend-icon pm">🎯</span>
+                                        <span>PM Session</span>
                                     </div>
                                     <div class="legend-item">
-                                        <span class="legend-icon agent">●</span>
+                                        <span class="legend-icon todowrite">📝</span>
+                                        <span>Todo Item</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-icon agent">🤖</span>
                                         <span>Agent</span>
                                     </div>
                                     <div class="legend-item">
-                                        <span class="legend-icon tool">●</span>
+                                        <span class="legend-icon tool">🔧</span>
                                         <span>Tool</span>
-                                    </div>
-                                    <div class="legend-item">
-                                        <span class="legend-icon file">●</span>
-                                        <span>File/Command</span>
                                     </div>
                                 </div>
                             </div>
@@ -510,23 +509,94 @@
     </div>
 
     <!-- JavaScript Modules -->
-    <!-- Load bundled dashboard assets (built with Vite) - with timestamp cache busting -->
+    <!-- Load bundled dashboard assets (built with Vite) - with proper initialization order -->
     <script type="module">
-        // Add timestamp-based cache busting to all module imports
+        // Add timestamp-based cache busting and ensure proper loading order
         const timestamp = Date.now();
-        const modules = [
-            '/static/dist/dashboard.js',
-            '/static/dist/components/activity-tree.js',
-            '/static/dist/components/code-tree.js',
-            '/static/dist/components/code-viewer.js'
-        ];
         
-        // Dynamically import each module with cache busting
-        modules.forEach(modulePath => {
-            const script = document.createElement('script');
-            script.type = 'module';
-            script.src = `${modulePath}?t=${timestamp}`;
-            document.body.appendChild(script);
+        // Load modules sequentially to ensure dashboard.js loads first
+        const loadModule = (src) => {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.type = 'module';
+                script.src = `${src}?t=${timestamp}`;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.body.appendChild(script);
+            });
+        };
+        
+        // Load dashboard.js first, then other components
+        Promise.all([
+            loadModule('/static/dist/dashboard.js'),
+            loadModule('/static/dist/components/activity-tree.js'),
+            loadModule('/static/dist/components/code-tree.js'),
+            loadModule('/static/dist/components/code-viewer.js')
+        ]).then(() => {
+            console.log('All dashboard modules loaded successfully');
+            
+            // Give modules time to execute and initialize dashboard
+            setTimeout(() => {
+                console.log('Checking dashboard initialization...');
+                
+                if (window.dashboard) {
+                    console.log('Dashboard found, checking auto-connect status...');
+                    
+                    // Force auto-connect if not already connected
+                    if (window.dashboard.socketManager) {
+                        const socketManager = window.dashboard.socketManager;
+                        
+                        if (!socketManager.isConnected() && !socketManager.isConnecting()) {
+                            console.log('Dashboard loaded but not connected, forcing auto-connect...');
+                            
+                            // Try to trigger auto-connect manually
+                            const params = new URLSearchParams(window.location.search);
+                            socketManager.initializeFromURL(params);
+                        } else {
+                            console.log('Dashboard already connected or connecting');
+                        }
+                    } else {
+                        console.warn('Dashboard found but socketManager not available');
+                    }
+                } else {
+                    console.warn('Dashboard still not initialized after module loading');
+                    
+                    // Try to manually trigger initialization
+                    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                        console.log('Document ready, attempting to trigger dashboard initialization...');
+                        document.dispatchEvent(new Event('DOMContentLoaded'));
+                    }
+                }
+                
+                // Debug: Test connection settings button
+                const connectionToggleBtn = document.getElementById('connection-toggle-btn');
+                if (connectionToggleBtn) {
+                    console.log('Connection toggle button found, testing functionality...');
+                    
+                    // Add a debug click handler to ensure the button works
+                    connectionToggleBtn.addEventListener('click', () => {
+                        console.log('Connection toggle button clicked (debug handler)');
+                        
+                        if (window.dashboard && window.dashboard.socketManager) {
+                            console.log('Calling socketManager.toggleConnectionControls()');
+                            window.dashboard.socketManager.toggleConnectionControls();
+                        } else {
+                            console.log('Manual toggle fallback');
+                            const controlsRow = document.getElementById('connection-controls-row');
+                            if (controlsRow) {
+                                const isVisible = controlsRow.style.display !== 'none';
+                                controlsRow.style.display = isVisible ? 'none' : 'block';
+                                connectionToggleBtn.textContent = isVisible ? 'Connection Settings' : 'Hide Settings';
+                                console.log(`Manually toggled controls visibility: ${!isVisible}`);
+                            }
+                        }
+                    });
+                } else {
+                    console.error('Connection toggle button not found in DOM');
+                }
+            }, 1000);
+        }).catch(error => {
+            console.error('Failed to load dashboard modules:', error);
         });
     </script>
 </body>

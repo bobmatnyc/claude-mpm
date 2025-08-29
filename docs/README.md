@@ -58,10 +58,15 @@ Welcome to Claude MPM (Multi-Agent Project Manager) - a framework that extends C
 
 - **Advanced Topics**
   - [Hook System](developer/02-core-components/hook-system.md)
+  - [Socket.IO Hook Architecture](developer/SOCKET_HOOK_ARCHITECTURE.md)
   - [Code Visualization Guide](developer/02-core-components/code-visualization-guide.md)
   - [Memory System Architecture](developer/08-memory-system/)
   - [Security Framework](developer/09-security/SECURITY.md)
   - [Dashboard Development](developer/11-dashboard/)
+
+- **Real-time Communication**
+  - [Socket.IO Server Architecture](developer/SOCKETIO_SERVER_ARCHITECTURE.md)
+  - [Socket.IO Testing Strategy](developer/SOCKETIO_TESTING_STRATEGY.md)
 
 ### 🛠️ **For Agents** - Agent Development
 > **Start here:** [Agent Documentation Hub](agents/README.md)
@@ -81,6 +86,7 @@ Welcome to Claude MPM (Multi-Agent Project Manager) - a framework that extends C
   - [Deployment Guide](reference/DEPLOY.md)
   - [Version Management](reference/VERSIONING.md)
   - [Security Configuration](reference/SECURITY.md)
+  - [Socket.IO Troubleshooting](reference/SOCKETIO_TROUBLESHOOTING.md)
 
 - **Integration & Setup**
   - [MCP Gateway Setup](reference/MCP_SETUP.md)

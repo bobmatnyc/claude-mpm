@@ -26,6 +26,7 @@ import { ExportManager } from '@components/export-manager.js';
 import { WorkingDirectoryManager } from '@components/working-directory.js';
 import { FileToolTracker } from '@components/file-tool-tracker.js';
 import { BuildTracker } from '@components/build-tracker.js';
+import { UnifiedDataViewer } from '@components/unified-data-viewer.js';
 class Dashboard {
     constructor() {
         // Core components (existing)
@@ -453,7 +454,7 @@ class Dashboard {
     }
 
     /**
-     * Render agents tab with hierarchical view
+     * Render agents tab with flat chronological view
      */
     renderAgents() {
         const agentsList = document.getElementById('agents-list');
@@ -463,17 +464,12 @@ class Dashboard {
         const searchText = document.getElementById('agents-search-input')?.value || '';
         const agentType = document.getElementById('agents-type-filter')?.value || '';
         
-        // Build filters object
-        const filters = {};
-        if (searchText) filters.searchText = searchText;
-        if (agentType) filters.agentType = agentType;
+        // Generate flat HTML
+        const flatHTML = this.renderAgentsFlat(searchText, agentType);
+        agentsList.innerHTML = flatHTML;
         
-        // Generate hierarchical HTML
-        const hierarchyHTML = this.agentHierarchy.render(filters);
-        agentsList.innerHTML = hierarchyHTML;
-        
-        // Add expand/collapse all buttons if not present
-        this.addHierarchyControls();
+        // Remove hierarchy controls if they exist
+        this.removeHierarchyControls();
         
         // Update filter dropdowns with available agent types
         const uniqueInstances = this.agentInference.getUniqueAgentInstances();
@@ -481,45 +477,202 @@ class Dashboard {
     }
     
     /**
-     * Add hierarchy control buttons
+     * Remove hierarchy control buttons (flat view doesn't need them)
      */
-    addHierarchyControls() {
-        const tabFilters = document.querySelector('#agents-tab .tab-filters');
-        if (!tabFilters) return;
+    removeHierarchyControls() {
+        const existingControls = document.getElementById('hierarchy-controls');
+        if (existingControls) {
+            existingControls.remove();
+        }
+    }
+    
+    /**
+     * Render agents as a flat chronological list
+     * @param {string} searchText - Search filter
+     * @param {string} agentType - Agent type filter 
+     * @returns {string} HTML for flat agent list
+     */
+    renderAgentsFlat(searchText, agentType) {
+        const events = this.eventViewer.events;
+        if (!events || events.length === 0) {
+            return '<div class="no-events">No agent events found...</div>';
+        }
         
-        // Check if controls already exist
-        if (document.getElementById('hierarchy-controls')) return;
+        // Process agent inference to get agent mappings
+        this.agentInference.processAgentInference();
+        const eventAgentMap = this.agentInference.getEventAgentMap();
         
-        // Create control buttons
-        const controls = document.createElement('div');
-        controls.id = 'hierarchy-controls';
-        controls.className = 'hierarchy-controls';
-        controls.innerHTML = `
-            <button data-action="expand-all" 
-                    class="hierarchy-btn hierarchy-expand-all">
-                Expand All
-            </button>
-            <button data-action="collapse-all" 
-                    class="hierarchy-btn hierarchy-collapse-all">
-                Collapse All
-            </button>
-        `;
-        
-        // Add safe event listeners
-        controls.addEventListener('click', (event) => {
-            const action = event.target.dataset.action;
-            if (action && window.dashboard && window.dashboard.agentHierarchy) {
-                if (action === 'expand-all') {
-                    window.dashboard.agentHierarchy.expandAllNodes();
-                    window.dashboard.renderAgents();
-                } else if (action === 'collapse-all') {
-                    window.dashboard.agentHierarchy.collapseAllNodes();
-                    window.dashboard.renderAgents();
+        // Collect all agent events with metadata
+        const agentEvents = [];
+        events.forEach((event, index) => {
+            const inference = eventAgentMap.get(index);
+            if (inference && (inference.type === 'subagent' || inference.type === 'main_agent')) {
+                // Apply filters
+                let includeEvent = true;
+                
+                if (searchText) {
+                    const searchLower = searchText.toLowerCase();
+                    includeEvent = includeEvent && (
+                        inference.agentName.toLowerCase().includes(searchLower) ||
+                        (event.tool_name && event.tool_name.toLowerCase().includes(searchLower)) ||
+                        (event.data && JSON.stringify(event.data).toLowerCase().includes(searchLower))
+                    );
+                }
+                
+                if (agentType) {
+                    includeEvent = includeEvent && inference.agentName.includes(agentType);
+                }
+                
+                if (includeEvent) {
+                    agentEvents.push({
+                        event,
+                        inference,
+                        index,
+                        timestamp: new Date(event.timestamp)
+                    });
                 }
             }
         });
         
-        tabFilters.appendChild(controls);
+        if (agentEvents.length === 0) {
+            return '<div class="no-events">No agent events match the current filters...</div>';
+        }
+        
+        // Generate HTML for each event
+        const html = agentEvents.map((item, listIndex) => {
+            const { event, inference, index, timestamp } = item;
+            
+            // Determine action/tool
+            let action = 'Activity';
+            let actionIcon = '📋';
+            let details = '';
+            
+            if (event.event_type === 'SubagentStart') {
+                action = 'Started';
+                actionIcon = '🟢';
+                details = 'Agent session began';
+            } else if (event.event_type === 'SubagentStop') {
+                action = 'Stopped';
+                actionIcon = '🔴';
+                details = 'Agent session ended';
+            } else if (event.tool_name) {
+                action = `Tool: ${event.tool_name}`;
+                actionIcon = this.getToolIcon(event.tool_name);
+                
+                // Add tool parameters as details
+                if (event.data && event.data.tool_parameters) {
+                    const params = event.data.tool_parameters;
+                    if (params.file_path) {
+                        details = params.file_path;
+                    } else if (params.command) {
+                        details = params.command.substring(0, 50) + (params.command.length > 50 ? '...' : '');
+                    } else if (params.pattern) {
+                        details = `pattern="${params.pattern}"`;
+                    } else if (params.query) {
+                        details = `query="${params.query}"`;
+                    }
+                }
+            }
+            
+            // Status based on event type
+            let status = 'completed';
+            if (event.event_type === 'SubagentStart') {
+                status = 'active';
+            } else if (event.data && event.data.error) {
+                status = 'error';
+            }
+            
+            return `
+                <div class="agent-event-item" data-index="${listIndex}" onclick="window.dashboard.showCardDetails('agents', ${index})">
+                    <div class="agent-event-header">
+                        <div class="agent-event-time">${this.formatTimestamp(timestamp)}</div>
+                        <div class="agent-event-agent">
+                            ${this.getAgentIcon(inference.agentName)} ${inference.agentName}
+                        </div>
+                        <div class="agent-event-action">
+                            ${actionIcon} ${action}
+                        </div>
+                        <div class="agent-event-status status-${status}">
+                            ${this.getStatusIcon(status)}
+                        </div>
+                    </div>
+                    ${details ? `<div class="agent-event-details">${this.escapeHtml(details)}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+        
+        return `<div class="agent-events-flat">${html}</div>`;
+    }
+    
+    /**
+     * Get icon for agent type
+     */
+    getAgentIcon(agentName) {
+        const agentIcons = {
+            'PM': '🎯',
+            'Engineer Agent': '🔧',
+            'Research Agent': '🔍', 
+            'QA Agent': '✅',
+            'Documentation Agent': '📝',
+            'Security Agent': '🔒',
+            'Ops Agent': '⚙️',
+            'Version Control Agent': '📦',
+            'Data Engineer Agent': '💾',
+            'Test Integration Agent': '🧪'
+        };
+        return agentIcons[agentName] || '🤖';
+    }
+    
+    /**
+     * Get icon for tool
+     */
+    getToolIcon(toolName) {
+        const toolIcons = {
+            'Read': '📖',
+            'Write': '✏️',
+            'Edit': '📝',
+            'Bash': '💻',
+            'Grep': '🔍',
+            'Glob': '📂',
+            'LS': '📁',
+            'Task': '📋'
+        };
+        return toolIcons[toolName] || '🔧';
+    }
+    
+    /**
+     * Get icon for status
+     */
+    getStatusIcon(status) {
+        const statusIcons = {
+            'active': '🟢',
+            'completed': '✅',
+            'error': '❌',
+            'pending': '🟡'
+        };
+        return statusIcons[status] || '❓';
+    }
+    
+    /**
+     * Format timestamp for display
+     */
+    formatTimestamp(timestamp) {
+        return timestamp.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit', 
+            second: '2-digit',
+            hour12: false
+        });
+    }
+    
+    /**
+     * Escape HTML for safe display
+     */
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     /**

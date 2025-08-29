@@ -104,7 +104,7 @@ class EnhancedConnectionManager {
             timeout: 20000,
             transports: ['websocket', 'polling'],
             pingInterval: 25000,
-            pingTimeout: 60000
+            pingTimeout: 20000
         });
         
         this.setupSocketHandlers();

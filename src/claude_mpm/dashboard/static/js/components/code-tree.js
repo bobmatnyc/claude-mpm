@@ -2127,16 +2127,6 @@ class CodeTree {
             return;
         }
         
-            hasName: d.data.hasOwnProperty('name'),
-            hasPath: d.data.hasOwnProperty('path'),
-            hasType: d.data.hasOwnProperty('type'),
-            hasLoaded: d.data.hasOwnProperty('loaded'),
-            name: d.data.name,
-            path: d.data.path,
-            type: d.data.type,
-            loaded: d.data.loaded
-        });
-        
         // Node interaction detected
         
         // === PHASE 1: Immediate Visual Effects (Synchronous) ===
@@ -2220,13 +2210,6 @@ class CodeTree {
         
         // === PHASE 3: Async Operations (Delayed) ===
         // Add a small delay to ensure visual effects are rendered first
-        
-            type: d.data.type,
-            loaded: d.data.loaded,
-            typeIsDirectory: d.data.type === 'directory',
-            loadedIsFalsy: !d.data.loaded,
-            willRequestDiscovery: (d.data.type === 'directory' && !d.data.loaded)
-        });
         
         // For directories that haven't been loaded yet, request discovery
         if (d.data.type === 'directory' && !d.data.loaded) {

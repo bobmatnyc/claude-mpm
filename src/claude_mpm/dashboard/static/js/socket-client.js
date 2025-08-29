@@ -315,7 +315,7 @@ class SocketClient {
      * Configuration Details:
      * - autoConnect: true - Immediate connection attempt
      * - reconnection: true - Built-in reconnection enabled
-     * - pingInterval: 45000ms - Matches server configuration
+     * - pingInterval: 25000ms - Matches server configuration
      * - pingTimeout: 20000ms - Health check timeout
      * - transports: ['websocket', 'polling'] - Fallback options
      * 
@@ -351,7 +351,7 @@ class SocketClient {
             timeout: 20000,  // Connection timeout
             forceNew: true,
             transports: ['websocket', 'polling'],
-            pingInterval: 45000,  // CRITICAL: Must match server's 45 seconds
+            pingInterval: 25000,  // CRITICAL: Must match server's 25 seconds
             pingTimeout: 20000    // CRITICAL: Must match server's 20 seconds
         });
 
