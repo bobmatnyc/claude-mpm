@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.1.19] - 2025-08-30
+
+### Added
+- **Web QA Agent v1.8.0**: Added Safari testing with AppleScript for macOS
+  - Added 5th phase: Safari testing with AppleScript automation
+  - Comprehensive AppleScript automation commands for Safari testing
+  - Safari vs Playwright comparison guide
+  - Enhanced progressive testing: API → Routes → Links2 → Safari → Playwright
+
 ## [4.1.18] - 2025-08-30
 
 ### Added

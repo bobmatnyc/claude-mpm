@@ -3,6 +3,9 @@ MPM-Init Command - Initialize projects for optimal Claude Code and Claude MPM su
 
 This command delegates to the Agentic Coder Optimizer agent to establish clear,
 single-path project standards for documentation, tooling, and workflows.
+
+Enhanced with AST inspection capabilities for generating comprehensive developer
+documentation with code structure analysis.
 """
 
 import logging
@@ -35,6 +38,7 @@ class MPMInitCommand:
         force: bool = False,
         verbose: bool = False,
         use_venv: bool = False,
+        ast_analysis: bool = True,
     ) -> Dict:
         """
         Initialize project with Agentic Coder Optimizer standards.
@@ -44,6 +48,8 @@ class MPMInitCommand:
             framework: Specific framework if applicable
             force: Force initialization even if project already configured
             verbose: Show detailed output
+            use_venv: Force use of venv instead of mamba
+            ast_analysis: Enable AST analysis for enhanced documentation
 
         Returns:
             Dict containing initialization results
@@ -59,7 +65,9 @@ class MPMInitCommand:
                 return {"status": "cancelled", "message": "Initialization cancelled"}
 
             # Build the delegation prompt
-            prompt = self._build_initialization_prompt(project_type, framework)
+            prompt = self._build_initialization_prompt(
+                project_type, framework, ast_analysis
+            )
 
             # Show initialization plan
             console.print(
@@ -71,8 +79,15 @@ class MPMInitCommand:
                     "• Optimized project structure\n"
                     "• Tool configurations (linting, formatting, testing)\n"
                     "• GitHub workflows and CI/CD setup\n"
-                    "• Memory system initialization\n\n"
-                    "[dim]Powered by Agentic Coder Optimizer Agent[/dim]",
+                    "• Memory system initialization\n"
+                    + (
+                        "• AST analysis for comprehensive code documentation\n"
+                        if ast_analysis
+                        else ""
+                    )
+                    + "• Holistic CLAUDE.md organization with ranked instructions\n"
+                    + "• Priority-based content structure (🔴🟡🟢⚪)\n"
+                    + "\n[dim]Powered by Agentic Coder Optimizer Agent[/dim]",
                     title="MPM-Init",
                     border_style="cyan",
                 )
@@ -111,7 +126,10 @@ class MPMInitCommand:
         return Path("claude-mpm")
 
     def _build_initialization_prompt(
-        self, project_type: Optional[str] = None, framework: Optional[str] = None
+        self,
+        project_type: Optional[str] = None,
+        framework: Optional[str] = None,
+        ast_analysis: bool = True,
     ) -> str:
         """Build the initialization prompt for the agent."""
         base_prompt = f"""Please delegate this task to the Agentic Coder Optimizer agent:
@@ -173,9 +191,122 @@ Please perform the following initialization tasks:
    - Step-by-step setup instructions
    - Common commands reference
    - Troubleshooting guide
+"""
+
+        if ast_analysis:
+            base_prompt += """
+9. **Perform AST Analysis** (using Code Analyzer agent if needed):
+   - Parse code files to extract structure (classes, functions, methods)
+   - Generate comprehensive API documentation
+   - Create code architecture diagrams
+   - Document function signatures and dependencies
+   - Extract docstrings and inline comments
+   - Map code relationships and inheritance hierarchies
+   - Generate developer documentation with:
+     * Module overview and purpose
+     * Class hierarchies and relationships
+     * Function/method documentation
+     * Type annotations and parameter descriptions
+     * Code complexity metrics
+     * Dependency graphs
+   - Create DEVELOPER.md with technical architecture details
+   - Add CODE_STRUCTURE.md with AST-derived insights
+"""
+
+        base_prompt += """
+
+10. **Holistic CLAUDE.md Organization** (CRITICAL - Do this LAST):
+   After completing all initialization tasks, take a holistic look at the CLAUDE.md file and:
+   
+   a) **Reorganize Content by Priority**:
+      - CRITICAL instructions (security, data handling, core business rules) at the TOP
+      - Project overview and purpose
+      - Key architectural decisions and constraints
+      - Development guidelines and standards
+      - Common tasks and workflows
+      - Links to additional documentation
+      - Nice-to-have or optional information at the BOTTOM
+   
+   b) **Rank Instructions by Importance**:
+      - Use clear markers: 
+        * 🔴 CRITICAL: Security, data handling, breaking changes, core business rules
+        * 🟡 IMPORTANT: Key workflows, architecture decisions, performance requirements
+        * 🟢 STANDARD: Common operations, coding standards, best practices
+        * ⚪ OPTIONAL: Nice-to-have features, experimental code, future considerations
+      - Group related instructions together
+      - Ensure no contradictory instructions exist
+      - Remove redundant or outdated information
+      - Add a "Priority Index" at the top listing all CRITICAL and IMPORTANT items
+   
+   c) **Optimize for AI Agent Understanding**:
+      - Use consistent formatting and structure
+      - Provide clear examples for complex instructions
+      - Include "WHY" explanations for critical rules
+      - Add quick reference sections for common operations
+      - Ensure instructions are actionable and unambiguous
+   
+   d) **Validate Completeness**:
+      - Ensure ALL critical project knowledge is captured
+      - Verify single-path principle (ONE way to do each task)
+      - Check that all referenced documentation exists
+      - Confirm all tools and dependencies are documented
+      - Test that a new AI agent could understand the project from CLAUDE.md alone
+   
+   e) **Add Meta-Instructions Section**:
+      - Include a section about how to maintain CLAUDE.md
+      - Document when and how to update instructions
+      - Provide guidelines for instruction priority levels
+      - Add a changelog or last-updated timestamp
+   
+   f) **Follow This CLAUDE.md Template Structure**:
+      ```markdown
+      # Project Name - CLAUDE.md
+      
+      ## 🎯 Priority Index
+      ### 🔴 CRITICAL Instructions
+      - [List all critical items with links to their sections]
+      
+      ### 🟡 IMPORTANT Instructions
+      - [List all important items with links to their sections]
+      
+      ## 📋 Project Overview
+      [Brief description and purpose]
+      
+      ## 🔴 CRITICAL: Security & Data Handling
+      [Critical security rules and data handling requirements]
+      
+      ## 🔴 CRITICAL: Core Business Rules
+      [Non-negotiable business logic and constraints]
+      
+      ## 🟡 IMPORTANT: Architecture & Design
+      [Key architectural decisions and patterns]
+      
+      ## 🟡 IMPORTANT: Development Workflow
+      ### ONE Way to Build
+      ### ONE Way to Test
+      ### ONE Way to Deploy
+      
+      ## 🟢 STANDARD: Coding Guidelines
+      [Standard practices and conventions]
+      
+      ## 🟢 STANDARD: Common Tasks
+      [How to perform routine operations]
+      
+      ## 📚 Documentation Links
+      [Links to additional resources]
+      
+      ## ⚪ OPTIONAL: Future Enhancements
+      [Nice-to-have features and ideas]
+      
+      ## 📝 Meta: Maintaining This Document
+      - Last Updated: [timestamp]
+      - Update Frequency: [when to update]
+      - Priority Guidelines: [how to assign priorities]
+      ```
 
 Please ensure all documentation is clear, concise, and optimized for AI agents to understand and follow.
 Focus on establishing ONE clear way to do ANYTHING in the project.
+The final CLAUDE.md should be a comprehensive, well-organized guide that any AI agent can follow to work effectively on this project.
 """
 
         return base_prompt
@@ -369,7 +500,11 @@ Focus on establishing ONE clear way to do ANYTHING in the project.
                     "[green]Your project is now optimized for Claude Code and Claude MPM![/green]\n\n"
                     "Key files:\n"
                     "• [cyan]CLAUDE.md[/cyan] - Main documentation for AI agents\n"
-                    "• [cyan].claude-mpm/[/cyan] - Configuration and memories\n\n"
+                    "  - Organized with priority rankings (🔴🟡🟢⚪)\n"
+                    "  - Instructions ranked by importance for AI understanding\n"
+                    "  - Holistic documentation review completed\n"
+                    "• [cyan].claude-mpm/[/cyan] - Configuration and memories\n"
+                    "• [cyan]CODE_STRUCTURE.md[/cyan] - AST-derived architecture documentation (if enabled)\n\n"
                     "[dim]Run 'claude-mpm run' to start using the optimized setup[/dim]",
                     title="Success",
                     border_style="green",
@@ -398,13 +533,18 @@ Focus on establishing ONE clear way to do ANYTHING in the project.
 @click.option(
     "--verbose", is_flag=True, help="Show detailed output during initialization"
 )
+@click.option(
+    "--ast-analysis/--no-ast-analysis",
+    default=True,
+    help="Enable/disable AST analysis for enhanced documentation (default: enabled)",
+)
 @click.argument(
     "project_path",
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
     required=False,
     default=".",
 )
-def mpm_init(project_type, framework, force, verbose, project_path):
+def mpm_init(project_type, framework, force, verbose, ast_analysis, project_path):
     """
     Initialize a project for optimal use with Claude Code and Claude MPM.
 
@@ -414,11 +554,14 @@ def mpm_init(project_type, framework, force, verbose, project_path):
     - Configure development tools and standards
     - Set up memory systems for project knowledge
     - Optimize for AI agent understanding
+    - Perform AST analysis for enhanced developer documentation
 
     Examples:
         claude-mpm mpm-init
         claude-mpm mpm-init --project-type web --framework react
         claude-mpm mpm-init /path/to/project --force
+        claude-mpm mpm-init --ast-analysis  # Enable AST analysis (default)
+        claude-mpm mpm-init --no-ast-analysis  # Disable AST analysis
     """
     try:
         # Create command instance
@@ -426,7 +569,11 @@ def mpm_init(project_type, framework, force, verbose, project_path):
 
         # Run initialization (now synchronous)
         result = command.initialize_project(
-            project_type=project_type, framework=framework, force=force, verbose=verbose
+            project_type=project_type,
+            framework=framework,
+            force=force,
+            verbose=verbose,
+            ast_analysis=ast_analysis,
         )
 
         # Exit with appropriate code

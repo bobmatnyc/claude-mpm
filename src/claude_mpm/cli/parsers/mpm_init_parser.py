@@ -88,6 +88,19 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
         action="store_true",
         help="Use traditional Python venv instead of mamba/conda environment",
     )
+    init_group.add_argument(
+        "--ast-analysis",
+        action="store_true",
+        default=True,
+        dest="ast_analysis",
+        help="Enable AST analysis for enhanced developer documentation (default: enabled)",
+    )
+    init_group.add_argument(
+        "--no-ast-analysis",
+        action="store_false",
+        dest="ast_analysis",
+        help="Disable AST analysis for documentation generation",
+    )
 
     # Template options
     template_group = mpm_init_parser.add_argument_group("template options")

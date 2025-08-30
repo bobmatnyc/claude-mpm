@@ -13,6 +13,7 @@ class ActivityTree {
     constructor() {
         this.container = null;
         this.events = [];
+        this.processedEventIds = new Set(); // Track which events we've already processed
         this.sessions = new Map();
         this.currentSession = null;
         this.selectedSessionFilter = 'all';
@@ -240,13 +241,18 @@ class ActivityTree {
                 }
             }
             
-            // Process only the new events since last update
-            const newEventCount = events.length - this.events.length;
-            if (newEventCount > 0) {
-                const newEvents = events.slice(this.events.length);
-                console.log(`ActivityTree: Processing ${newEventCount} new events`, newEvents);
+            // Process only events we haven't seen before
+            const newEvents = events.filter(event => {
+                const eventId = event.id || `${event.type}-${event.timestamp}-${Math.random()}`;
+                return !this.processedEventIds.has(eventId);
+            });
+            
+            if (newEvents.length > 0) {
+                console.log(`ActivityTree: Processing ${newEvents.length} new events`, newEvents);
                 
                 newEvents.forEach(event => {
+                    const eventId = event.id || `${event.type}-${event.timestamp}-${Math.random()}`;
+                    this.processedEventIds.add(eventId);
                     this.processEvent(event);
                 });
             }
@@ -290,10 +296,21 @@ class ActivityTree {
                 }
             }
             
-            // Process existing events to populate activity data
-            socketState.events.forEach(event => {
-                this.processEvent(event);
+            // Process only events we haven't seen before
+            const unprocessedEvents = socketState.events.filter(event => {
+                const eventId = event.id || `${event.type}-${event.timestamp}-${Math.random()}`;
+                return !this.processedEventIds.has(eventId);
             });
+            
+            if (unprocessedEvents.length > 0) {
+                console.log(`ActivityTree: Processing ${unprocessedEvents.length} unprocessed events from initial load`);
+                unprocessedEvents.forEach(event => {
+                    const eventId = event.id || `${event.type}-${event.timestamp}-${Math.random()}`;
+                    this.processedEventIds.add(eventId);
+                    this.processEvent(event);
+                });
+            }
+            
             this.events = [...socketState.events];
             this.renderTree();
             
@@ -440,13 +457,22 @@ class ActivityTree {
             type: 'user_instruction'
         };
         
-        // NEW USER PROMPT: This is when we should clear/reset agent activity
-        // Clear previous agents for this session as we're starting fresh
-        console.log('ActivityTree: New user prompt detected, clearing previous agent activity');
-        session.agents.clear();
-        session.tools = [];
-        session.toolsMap = new Map();
-        session.todoWritesMap = new Map();
+        // NEW USER PROMPT: Only collapse agents if we have existing ones
+        // Don't clear - we want to keep the history!
+        if (session.agents.size > 0) {
+            console.log('ActivityTree: New user prompt detected, collapsing previous agents');
+            
+            // Mark all existing agents as completed (not active)
+            for (let agent of session.agents.values()) {
+                if (agent.status === 'active') {
+                    agent.status = 'completed';
+                }
+                // Collapse all existing agents
+                this.expandedAgents.delete(agent.id);
+            }
+        }
+        
+        // Reset current active agent for new work
         session.currentActiveAgent = null;
         
         // Add to session's user instructions
@@ -585,28 +611,23 @@ class ActivityTree {
         // This ensures we track unique agent instances per session
         const agentKey = `${agentName}-${agentSessionId || 'no-session'}`;
         
-        // Check if this agent already exists in the session
+        // Check if this exact agent already exists (same name and session)
         let existingAgent = null;
-        for (let [id, ag] of session.agents.entries()) {
-            if (ag.name === agentName && (ag.sessionId === agentSessionId || (!ag.sessionId && !agentSessionId))) {
-                existingAgent = ag;
-                break;
-            }
-        }
-        
-        // Also check in subagents of all agents
-        if (!existingAgent) {
-            const allAgents = this.getAllAgents(session);
-            existingAgent = allAgents.find(a => a.name === agentName && a.sessionId === agentSessionId);
-        }
+        const allAgents = this.getAllAgents(session);
+        existingAgent = allAgents.find(a => 
+            a.name === agentName && 
+            a.sessionId === agentSessionId &&
+            a.status === 'active'  // Only reuse if still active
+        );
         
         let agent;
         if (existingAgent) {
-            // Update existing agent
+            // Update existing active agent
             agent = existingAgent;
-            agent.status = 'active';
             agent.timestamp = event.timestamp;
             agent.instanceCount = (agent.instanceCount || 1) + 1;
+            // Auto-expand the active agent
+            this.expandedAgents.add(agent.id);
         } else {
             // Create new agent instance for first occurrence
             const agentId = `agent-${agentKey}-${Date.now()}`;
@@ -653,6 +674,9 @@ class ActivityTree {
                 // Top-level agent, add to session
                 session.agents.set(agent.id, agent);
             }
+            
+            // Auto-expand new agents
+            this.expandedAgents.add(agent.id);
         }
         
         // Track the currently active agent for tool/todo association
@@ -877,8 +901,9 @@ class ActivityTree {
         element.dataset.sessionId = session.id;
         
         const expandIcon = isExpanded ? '▼' : '▶';
-        const agentCount = session.agents ? session.agents.size : 0;
-        const todoCount = session.todos ? session.todos.length : 0;
+        // Count ALL agents including nested ones
+        const agentCount = this.getAllAgents(session).length;
+        const todoCount = session.currentTodos ? session.currentTodos.length : 0;
         const instructionCount = session.userInstructions ? session.userInstructions.length : 0;
         
         console.log(`ActivityTree: Rendering session ${session.id}: ${agentCount} agents, ${instructionCount} instructions, ${todoCount} todos at ${sessionTime}`);
@@ -911,25 +936,27 @@ class ActivityTree {
             }
         }
         
-        // Render TODOs as checklist directly under session
-        if (session.todos && session.todos.length > 0) {
-            html += this.renderTodoChecklistElement(session.todos, 1);
+        // Render session-level TodoWrite FIRST (if exists)
+        if (session.todoWrites && session.todoWrites.length > 0) {
+            // Show the first (and should be only) TodoWrite at session level
+            html += this.renderTodoWriteElement(session.todoWrites[0], 1);
         }
         
-        // Render session-level tools (PM tools)
-        if (session.tools && session.tools.length > 0) {
-            for (let tool of session.tools) {
-                // Show all tools including TodoWrite - both checklist and tool views are useful
-                html += this.renderToolElement(tool, 1);
-            }
-        }
-        
-        // Render agents
+        // Render agents (they will have their own TodoWrite)
         const agents = Array.from(session.agents.values())
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         
         for (let agent of agents) {
             html += this.renderAgentElement(agent, 1);
+        }
+        
+        // Render session-level tools LAST (excluding TodoWrite since we show it first)
+        if (session.tools && session.tools.length > 0) {
+            for (let tool of session.tools) {
+                if (tool.name !== 'TodoWrite') {
+                    html += this.renderToolElement(tool, 1);
+                }
+            }
         }
         
         return html;
