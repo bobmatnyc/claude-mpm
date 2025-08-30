@@ -17,6 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.1.17] - 2025-08-30
+
+### Fixed
+- **Dashboard Activity Tree**: Enhanced persistence and proper event handling
+  - Fixed activity tree to persist unique instances of TodoWrite, agents, and tools
+  - Prevented list from disappearing between events
+  - Tree now only resets on new user prompts, not on every update
+  - TodoWrite always appears first under each agent/subagent
+  - Added call/update counters for multiple invocations
+  - Fixed in-place updates instead of replacing items
+
+### Added
+- **Git Hooks Setup**: Added setup script with commit message format instructions
+  - Added scripts/setup-git-hooks.sh for consistent commit formatting
+  - Integrated commit message format instructions in development workflow
+
 ## [4.1.16] - 2025-08-30
 
 ### Fixed

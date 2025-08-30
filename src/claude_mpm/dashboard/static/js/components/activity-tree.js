@@ -208,27 +208,36 @@ class ActivityTree {
         window.socketClient.onEventUpdate((events, sessions) => {
             console.log(`ActivityTree: onEventUpdate called with ${events.length} total events and ${sessions.size} sessions`);
             
-            // Use the authoritative sessions from socket client instead of building our own
-            this.sessions.clear();
-            
-            // Convert authoritative sessions Map to our format
+            // IMPORTANT: Don't clear sessions! We need to preserve the accumulated agent data
+            // Only create new sessions if they don't exist yet
             for (const [sessionId, sessionData] of sessions.entries()) {
-                const activitySession = {
-                    id: sessionId,
-                    timestamp: new Date(sessionData.lastActivity || sessionData.startTime || new Date()),
-                    expanded: this.expandedSessions.has(sessionId) || true, // Preserve expansion state
-                    agents: new Map(),
-                    todos: [],
-                    userInstructions: [],
-                    tools: [],
-                    status: 'active',
-                    currentTodoTool: null,
-                    // Preserve additional session metadata
-                    working_directory: sessionData.working_directory,
-                    git_branch: sessionData.git_branch,
-                    eventCount: sessionData.eventCount
-                };
-                this.sessions.set(sessionId, activitySession);
+                if (!this.sessions.has(sessionId)) {
+                    // Create new session only if it doesn't exist
+                    const activitySession = {
+                        id: sessionId,
+                        timestamp: new Date(sessionData.lastActivity || sessionData.startTime || new Date()),
+                        expanded: this.expandedSessions.has(sessionId) || true, // Preserve expansion state
+                        agents: new Map(),
+                        todos: [],
+                        userInstructions: [],
+                        tools: [],
+                        toolsMap: new Map(),
+                        todoWritesMap: new Map(),
+                        status: 'active',
+                        currentTodoTool: null,
+                        // Preserve additional session metadata
+                        working_directory: sessionData.working_directory,
+                        git_branch: sessionData.git_branch,
+                        eventCount: sessionData.eventCount
+                    };
+                    this.sessions.set(sessionId, activitySession);
+                } else {
+                    // Update existing session metadata without clearing accumulated data
+                    const existingSession = this.sessions.get(sessionId);
+                    existingSession.timestamp = new Date(sessionData.lastActivity || sessionData.startTime || existingSession.timestamp);
+                    existingSession.eventCount = sessionData.eventCount;
+                    existingSession.status = sessionData.status || existingSession.status;
+                }
             }
             
             // Process only the new events since last update
@@ -256,25 +265,29 @@ class ActivityTree {
             console.log(`ActivityTree: Loading existing data - ${socketState.events.length} events, ${socketState.sessions.size} sessions`);
             
             // Initialize from existing socket client data
-            this.sessions.clear();
+            // Don't clear existing sessions - preserve accumulated data
             
             // Convert authoritative sessions Map to our format
             for (const [sessionId, sessionData] of socketState.sessions.entries()) {
-                const activitySession = {
-                    id: sessionId,
-                    timestamp: new Date(sessionData.lastActivity || sessionData.startTime || new Date()),
-                    expanded: this.expandedSessions.has(sessionId) || true,
-                    agents: new Map(),
-                    todos: [],
-                    userInstructions: [],
-                    tools: [],
-                    status: 'active',
-                    currentTodoTool: null,
-                    working_directory: sessionData.working_directory,
-                    git_branch: sessionData.git_branch,
-                    eventCount: sessionData.eventCount
-                };
-                this.sessions.set(sessionId, activitySession);
+                if (!this.sessions.has(sessionId)) {
+                    const activitySession = {
+                        id: sessionId,
+                        timestamp: new Date(sessionData.lastActivity || sessionData.startTime || new Date()),
+                        expanded: this.expandedSessions.has(sessionId) || true,
+                        agents: new Map(),
+                        todos: [],
+                        userInstructions: [],
+                        tools: [],
+                        toolsMap: new Map(),
+                        todoWritesMap: new Map(),
+                        status: 'active',
+                        currentTodoTool: null,
+                        working_directory: sessionData.working_directory,
+                        git_branch: sessionData.git_branch,
+                        eventCount: sessionData.eventCount
+                    };
+                    this.sessions.set(sessionId, activitySession);
+                }
             }
             
             // Process existing events to populate activity data
@@ -427,6 +440,15 @@ class ActivityTree {
             type: 'user_instruction'
         };
         
+        // NEW USER PROMPT: This is when we should clear/reset agent activity
+        // Clear previous agents for this session as we're starting fresh
+        console.log('ActivityTree: New user prompt detected, clearing previous agent activity');
+        session.agents.clear();
+        session.tools = [];
+        session.toolsMap = new Map();
+        session.todoWritesMap = new Map();
+        session.currentActiveAgent = null;
+        
         // Add to session's user instructions
         session.userInstructions.push(instruction);
         
@@ -457,20 +479,6 @@ class ActivityTree {
             status: todo.status,
             timestamp: event.timestamp
         }));
-        
-        // Create TodoWrite instance
-        const todoWriteInstance = {
-            id: `todowrite-${Date.now()}-${Math.random()}`,
-            name: 'TodoWrite',
-            type: 'todowrite',
-            icon: '📝',
-            timestamp: event.timestamp,
-            status: 'completed',
-            todos: todos,
-            params: {
-                todos: todos
-            }
-        };
 
         // Find the appropriate agent to attach this TodoWrite to
         let targetAgent = session.currentActiveAgent;
@@ -495,12 +503,42 @@ class ActivityTree {
             }
         }
 
-        // Attach TodoWrite to the agent (accumulate, don't replace)
+        // Attach or update TodoWrite for the agent
         if (targetAgent) {
+            if (!targetAgent.todoWritesMap) {
+                targetAgent.todoWritesMap = new Map();
+            }
             if (!targetAgent.todoWrites) {
                 targetAgent.todoWrites = [];
             }
-            targetAgent.todoWrites.push(todoWriteInstance);
+            
+            // Check if we already have a TodoWrite instance
+            const existingTodoWrite = targetAgent.todoWritesMap.get('TodoWrite');
+            
+            if (existingTodoWrite) {
+                // Update existing TodoWrite instance
+                existingTodoWrite.todos = todos;
+                existingTodoWrite.timestamp = event.timestamp;
+                existingTodoWrite.updateCount = (existingTodoWrite.updateCount || 1) + 1;
+            } else {
+                // Create new TodoWrite instance
+                const todoWriteInstance = {
+                    id: `todowrite-${targetAgent.id}-${Date.now()}`,
+                    name: 'TodoWrite',
+                    type: 'todowrite',
+                    icon: '📝',
+                    timestamp: event.timestamp,
+                    status: 'completed',
+                    todos: todos,
+                    params: {
+                        todos: todos
+                    },
+                    updateCount: 1
+                };
+                
+                targetAgent.todoWritesMap.set('TodoWrite', todoWriteInstance);
+                targetAgent.todoWrites = [todoWriteInstance]; // Keep single instance
+            }
             
             // Update agent's current todos for display when collapsed
             targetAgent.currentTodos = todos;
@@ -509,7 +547,29 @@ class ActivityTree {
             if (!session.todoWrites) {
                 session.todoWrites = [];
             }
-            session.todoWrites.push(todoWriteInstance);
+            if (!session.todoWritesMap) {
+                session.todoWritesMap = new Map();
+            }
+            
+            const existingTodoWrite = session.todoWritesMap.get('TodoWrite');
+            if (existingTodoWrite) {
+                existingTodoWrite.todos = todos;
+                existingTodoWrite.timestamp = event.timestamp;
+                existingTodoWrite.updateCount = (existingTodoWrite.updateCount || 1) + 1;
+            } else {
+                const todoWriteInstance = {
+                    id: `todowrite-session-${Date.now()}`,
+                    name: 'TodoWrite',
+                    type: 'todowrite',
+                    icon: '📝',
+                    timestamp: event.timestamp,
+                    status: 'completed',
+                    todos: todos,
+                    updateCount: 1
+                };
+                session.todoWritesMap.set('TodoWrite', todoWriteInstance);
+                session.todoWrites = [todoWriteInstance];
+            }
         }
     }
 
@@ -521,49 +581,78 @@ class ActivityTree {
         const agentSessionId = event.session_id || event.data?.session_id;
         const parentAgent = event.parent_agent || event.data?.parent_agent;
         
-        // Create unique ID for each agent instance (to persist multiple calls)
-        const agentId = `agent-${agentName}-${Date.now()}-${Math.random()}`;
+        // Use a composite key based on agent name and session to find existing instances
+        // This ensures we track unique agent instances per session
+        const agentKey = `${agentName}-${agentSessionId || 'no-session'}`;
         
-        // Create new agent instance (always create new for persistence)
-        const agent = {
-            id: agentId,
-            name: agentName,
-            type: 'agent',
-            icon: this.getAgentIcon(agentName),
-            timestamp: event.timestamp,
-            status: 'active',
-            tools: [],
-            todoWrites: [],  // Store TodoWrite instances
-            subagents: new Map(),  // Store nested subagents
-            sessionId: agentSessionId,
-            parentAgent: parentAgent,
-            isPM: agentName.toLowerCase() === 'pm' || agentName.toLowerCase().includes('project manager')
-        };
+        // Check if this agent already exists in the session
+        let existingAgent = null;
+        for (let [id, ag] of session.agents.entries()) {
+            if (ag.name === agentName && (ag.sessionId === agentSessionId || (!ag.sessionId && !agentSessionId))) {
+                existingAgent = ag;
+                break;
+            }
+        }
         
-        // If this is a subagent, nest it under the parent agent
-        if (parentAgent) {
-            // Find the parent agent in the session
-            let parent = null;
-            for (let [id, ag] of session.agents.entries()) {
-                if (ag.sessionId === parentAgent || ag.name === parentAgent) {
-                    parent = ag;
-                    break;
-                }
-            }
-            
-            if (parent) {
-                // Add as nested subagent
-                if (!parent.subagents) {
-                    parent.subagents = new Map();
-                }
-                parent.subagents.set(agentId, agent);
-            } else {
-                // No parent found, add to session level
-                session.agents.set(agentId, agent);
-            }
+        // Also check in subagents of all agents
+        if (!existingAgent) {
+            const allAgents = this.getAllAgents(session);
+            existingAgent = allAgents.find(a => a.name === agentName && a.sessionId === agentSessionId);
+        }
+        
+        let agent;
+        if (existingAgent) {
+            // Update existing agent
+            agent = existingAgent;
+            agent.status = 'active';
+            agent.timestamp = event.timestamp;
+            agent.instanceCount = (agent.instanceCount || 1) + 1;
         } else {
-            // Top-level agent, add to session
-            session.agents.set(agentId, agent);
+            // Create new agent instance for first occurrence
+            const agentId = `agent-${agentKey}-${Date.now()}`;
+            agent = {
+                id: agentId,
+                name: agentName,
+                type: 'agent',
+                icon: this.getAgentIcon(agentName),
+                timestamp: event.timestamp,
+                status: 'active',
+                tools: [],
+                todoWrites: [],  // Store TodoWrite instances
+                subagents: new Map(),  // Store nested subagents
+                sessionId: agentSessionId,
+                parentAgent: parentAgent,
+                isPM: agentName.toLowerCase() === 'pm' || agentName.toLowerCase().includes('project manager'),
+                instanceCount: 1,
+                toolsMap: new Map(), // Track unique tools by name
+                todoWritesMap: new Map() // Track unique TodoWrites
+            };
+            
+            // If this is a subagent, nest it under the parent agent
+            if (parentAgent) {
+                // Find the parent agent in the session
+                let parent = null;
+                for (let [id, ag] of session.agents.entries()) {
+                    if (ag.sessionId === parentAgent || ag.name === parentAgent) {
+                        parent = ag;
+                        break;
+                    }
+                }
+                
+                if (parent) {
+                    // Add as nested subagent
+                    if (!parent.subagents) {
+                        parent.subagents = new Map();
+                    }
+                    parent.subagents.set(agent.id, agent);
+                } else {
+                    // No parent found, add to session level
+                    session.agents.set(agent.id, agent);
+                }
+            } else {
+                // Top-level agent, add to session
+                session.agents.set(agent.id, agent);
+            }
         }
         
         // Track the currently active agent for tool/todo association
@@ -590,23 +679,6 @@ class ActivityTree {
         const toolName = event.tool_name || event.data?.tool_name || event.tool || event.data?.tool || 'unknown';
         const params = event.tool_parameters || event.data?.tool_parameters || event.parameters || event.data?.parameters || {};
         const agentSessionId = event.session_id || event.data?.session_id;
-        
-        const tool = {
-            id: `tool-${Date.now()}-${Math.random()}`,
-            name: toolName,
-            type: 'tool',
-            icon: this.getToolIcon(toolName),
-            timestamp: event.timestamp,
-            status: 'in_progress',
-            params: params,
-            eventId: event.id
-        };
-
-        // Special handling for Task tool (subagent delegation)
-        if (toolName === 'Task' && params.subagent_type) {
-            tool.isSubagentTask = true;
-            tool.subagentType = params.subagent_type;
-        }
 
         // Find the appropriate agent to attach this tool to
         let targetAgent = session.currentActiveAgent;
@@ -620,21 +692,85 @@ class ActivityTree {
         }
 
         if (targetAgent) {
-            // Update current tool for collapsed display
-            targetAgent.currentTool = tool;
-            
-            // Add to tools array (accumulate)
+            if (!targetAgent.toolsMap) {
+                targetAgent.toolsMap = new Map();
+            }
             if (!targetAgent.tools) {
                 targetAgent.tools = [];
             }
-            targetAgent.tools.push(tool);
+            
+            // Check if we already have this tool type
+            let existingTool = targetAgent.toolsMap.get(toolName);
+            
+            if (existingTool) {
+                // Update existing tool instance
+                existingTool.params = params;
+                existingTool.timestamp = event.timestamp;
+                existingTool.status = 'in_progress';
+                existingTool.eventId = event.id;
+                existingTool.callCount = (existingTool.callCount || 1) + 1;
+                
+                // Update current tool for collapsed display
+                targetAgent.currentTool = existingTool;
+            } else {
+                // Create new tool instance
+                const tool = {
+                    id: `tool-${targetAgent.id}-${toolName}-${Date.now()}`,
+                    name: toolName,
+                    type: 'tool',
+                    icon: this.getToolIcon(toolName),
+                    timestamp: event.timestamp,
+                    status: 'in_progress',
+                    params: params,
+                    eventId: event.id,
+                    callCount: 1
+                };
+                
+                // Special handling for Task tool (subagent delegation)
+                if (toolName === 'Task' && params.subagent_type) {
+                    tool.isSubagentTask = true;
+                    tool.subagentType = params.subagent_type;
+                }
+                
+                targetAgent.toolsMap.set(toolName, tool);
+                targetAgent.tools.push(tool);
+                targetAgent.currentTool = tool;
+            }
         } else {
             // No agent found, attach to session (PM level)
             if (!session.tools) {
                 session.tools = [];
             }
-            session.tools.push(tool);
-            session.currentTool = tool;
+            if (!session.toolsMap) {
+                session.toolsMap = new Map();
+            }
+            
+            let existingTool = session.toolsMap.get(toolName);
+            
+            if (existingTool) {
+                existingTool.params = params;
+                existingTool.timestamp = event.timestamp;
+                existingTool.status = 'in_progress';
+                existingTool.eventId = event.id;
+                existingTool.callCount = (existingTool.callCount || 1) + 1;
+                session.currentTool = existingTool;
+            } else {
+                const tool = {
+                    id: `tool-session-${toolName}-${Date.now()}`,
+                    name: toolName,
+                    type: 'tool',
+                    icon: this.getToolIcon(toolName),
+                    timestamp: event.timestamp,
+                    status: 'in_progress',
+                    params: params,
+                    eventId: event.id,
+                    callCount: 1
+                };
+                
+                session.toolsMap.set(toolName, tool);
+                session.tools.push(tool);
+                session.currentTool = tool;
+            }
         }
     }
 
@@ -645,48 +781,45 @@ class ActivityTree {
         const toolName = event.tool_name || event.data?.tool_name || event.tool || 'unknown';
         const agentSessionId = event.session_id || event.data?.session_id;
         
-        // Find and update tool status across all agents
-        const findAndUpdateTool = (agent) => {
-            if (agent.tools) {
-                // Find tool by event ID first (most specific)
-                let tool = agent.tools.find(t => t.eventId === event.id);
-                
-                // If not found by eventId, try to find by tool name and recent timestamp
-                if (!tool && toolName) {
-                    const recentTools = agent.tools.filter(t => 
-                        t.name === toolName && 
-                        t.status === 'in_progress' &&
-                        new Date(event.timestamp) - new Date(t.timestamp) < 60000 // within 1 minute
-                    ).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                    
-                    if (recentTools.length > 0) {
-                        tool = recentTools[0];
-                    }
-                }
-                
-                if (tool) {
-                    tool.status = status;
-                    // Add completion timestamp and result data if available
-                    tool.completedAt = event.timestamp;
-                    if (event.data?.result || event.result) {
-                        tool.result = event.data?.result || event.result;
-                    }
-                    if (event.data?.duration_ms) {
-                        tool.duration = event.data.duration_ms;
-                    }
-                    return true;
-                }
-            }
-            return false;
-        };
-
-        // Check all agents in session
-        for (let agent of session.agents.values()) {
-            if (findAndUpdateTool(agent)) return;
+        // Find the appropriate agent
+        let targetAgent = session.currentActiveAgent;
+        
+        if (!targetAgent) {
+            const allAgents = this.getAllAgents(session);
+            targetAgent = allAgents.find(a => a.sessionId === agentSessionId) ||
+                         allAgents.find(a => a.status === 'active');
         }
         
-        // Check session-level tools (PM level)
-        if (session.tools && findAndUpdateTool({ tools: session.tools })) return;
+        if (targetAgent && targetAgent.toolsMap) {
+            const tool = targetAgent.toolsMap.get(toolName);
+            if (tool) {
+                tool.status = status;
+                tool.completedAt = event.timestamp;
+                if (event.data?.result || event.result) {
+                    tool.result = event.data?.result || event.result;
+                }
+                if (event.data?.duration_ms) {
+                    tool.duration = event.data.duration_ms;
+                }
+                return;
+            }
+        }
+        
+        // Check session-level tools
+        if (session.toolsMap) {
+            const tool = session.toolsMap.get(toolName);
+            if (tool) {
+                tool.status = status;
+                tool.completedAt = event.timestamp;
+                if (event.data?.result || event.result) {
+                    tool.result = event.data?.result || event.result;
+                }
+                if (event.data?.duration_ms) {
+                    tool.duration = event.data.duration_ms;
+                }
+                return;
+            }
+        }
         
         console.log(`ActivityTree: Could not find tool to update status for ${toolName} (event ${event.id})`);
     }
@@ -901,6 +1034,9 @@ class ActivityTree {
         const expandIcon = hasContent ? (isExpanded ? '▼' : '▶') : '';
         const selectedClass = isSelected ? 'selected' : '';
         
+        // Add instance count if called multiple times
+        const instanceIndicator = agent.instanceCount > 1 ? ` (${agent.instanceCount}x)` : '';
+        
         // Build status display for collapsed state
         let collapsedStatus = '';
         if (!isExpanded && hasContent) {
@@ -924,7 +1060,7 @@ class ActivityTree {
                 <div class="tree-node-content">
                     ${expandIcon ? `<span class="tree-expand-icon" onclick="window.activityTreeInstance.toggleAgent('${agent.id}'); event.stopPropagation();">${expandIcon}</span>` : '<span class="tree-expand-icon"></span>'}
                     <span class="tree-icon">${agent.icon}</span>
-                    <span class="tree-label clickable" onclick="window.activityTreeInstance.selectItem(${this.escapeJson(agent)}, 'agent', event)">${agent.name}${collapsedStatus}</span>
+                    <span class="tree-label clickable" onclick="window.activityTreeInstance.selectItem(${this.escapeJson(agent)}, 'agent', event)">${agent.name}${instanceIndicator}${collapsedStatus}</span>
                     <span class="tree-status ${statusClass}">${agent.status}</span>
                 </div>
         `;
@@ -933,14 +1069,13 @@ class ActivityTree {
         if (hasContent && isExpanded) {
             html += '<div class="tree-children">';
             
-            // Render TodoWrite instances first
+            // ALWAYS render TodoWrite FIRST (single instance)
             if (hasTodoWrites) {
-                for (let todoWrite of agent.todoWrites) {
-                    html += this.renderTodoWriteElement(todoWrite, level + 1);
-                }
+                // Only render the first (and should be only) TodoWrite instance
+                html += this.renderTodoWriteElement(agent.todoWrites[0], level + 1);
             }
             
-            // Render subagents
+            // Then render subagents (they will have their own TodoWrite at the top)
             if (hasSubagents) {
                 const subagents = Array.from(agent.subagents.values());
                 for (let subagent of subagents) {
@@ -948,10 +1083,10 @@ class ActivityTree {
                 }
             }
             
-            // Render tools last
+            // Finally render other tools (excluding TodoWrite)
             if (hasTools) {
                 for (let tool of agent.tools) {
-                    // Skip TodoWrite tools since we show them separately
+                    // Skip TodoWrite tools since we show them separately at the top
                     if (tool.name !== 'TodoWrite') {
                         html += this.renderToolElement(tool, level + 1);
                     }
@@ -978,13 +1113,16 @@ class ActivityTree {
         const statusIcon = this.getToolStatusIcon(tool.status);
         const statusLabel = this.getToolStatusLabel(tool.status);
         
+        // Add call count if more than 1
+        const callIndicator = tool.callCount > 1 ? ` (${tool.callCount} calls)` : '';
+        
         let html = `
             <div class="tree-node tool ${statusClass} ${selectedClass}" data-level="${level}">
                 <div class="tree-node-content">
                     <span class="tree-expand-icon"></span>
                     <span class="tree-icon">${tool.icon}</span>
                     <span class="tree-status-icon">${statusIcon}</span>
-                    <span class="tree-label clickable" onclick="window.activityTreeInstance.selectItem(${this.escapeJson(tool)}, 'tool', event)">${tool.name} (click to view details)</span>
+                    <span class="tree-label clickable" onclick="window.activityTreeInstance.selectItem(${this.escapeJson(tool)}, 'tool', event)">${tool.name}${callIndicator}</span>
                     <span class="tree-params">${params}</span>
                     <span class="tree-status ${statusClass}">${statusLabel}</span>
                 </div>
@@ -1114,12 +1252,15 @@ class ActivityTree {
             statusSummary = `${completedCount}/${todos.length} done`;
         }
         
+        // Add update count if more than 1
+        const updateIndicator = todoWrite.updateCount > 1 ? ` (${todoWrite.updateCount} updates)` : '';
+        
         let html = `
             <div class="tree-node todowrite ${currentTodo ? 'has-active' : ''}" data-level="${level}">
                 <div class="tree-node-content">
                     <span class="tree-expand-icon" onclick="window.activityTreeInstance.toggleTodoWrite('${todoWriteId}'); event.stopPropagation();">${expandIcon}</span>
                     <span class="tree-icon">📝</span>
-                    <span class="tree-label">TodoWrite${!isExpanded ? currentIndicator : ''}</span>
+                    <span class="tree-label">TodoWrite${updateIndicator}${!isExpanded ? currentIndicator : ''}</span>
                     <span class="tree-params">${statusSummary}</span>
                     <span class="tree-status status-active">todos</span>
                 </div>

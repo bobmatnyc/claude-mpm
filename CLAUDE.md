@@ -2,6 +2,23 @@
 
 This document provides development guidelines for the claude-mpm project codebase.
 
+## IMPORTANT: Git Commit Message Format
+
+When creating git commits in this project, ALWAYS use the Claude MPM branding:
+
+```
+Your commit message
+
+🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+**DO NOT USE**: `🤖 Generated with [Claude Code](https://claude.ai/code)`
+**ALWAYS USE**: `🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)`
+
+Note: A git hook at `.git/hooks/prepare-commit-msg` will automatically fix this if you forget.
+
 ## Project Overview
 
 Claude MPM (Multi-Agent Project Manager) is a framework that extends Claude Code with orchestration capabilities for multiple specialized agents, featuring a modern service-oriented architecture with interface-based contracts and dependency injection.
