@@ -261,6 +261,14 @@
     flex-shrink: 0;
 }
 
+.tree-status-icon {
+    font-size: 14px;
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+    margin-left: 2px;
+}
+
 .tree-expand-icon {
     font-size: 12px;
     width: 16px;
@@ -470,6 +478,7 @@ body .activity-tree-container .linear-tree .tree-node.tool.status-in_progress,
     background: #e6fffa !important;
     border-left-color: #38b2ac !important;
     border-left-width: 3px !important;
+    animation: pulse-tool 2s infinite;
 }
 
 body .activity-tree-container .linear-tree .tree-node.tool.status-completed,
@@ -484,6 +493,43 @@ body .activity-tree-container .linear-tree .tree-node.tool.status-failed,
     background: #fed7d7 !important;
     border-left-color: #e53e3e !important;
     border-left-width: 2px !important;
+}
+
+/* Tool Status Icons */
+.tree-node.tool .tree-status-icon {
+    color: #718096;
+}
+
+.tree-node.tool.status-in_progress .tree-status-icon {
+    color: #38b2ac;
+    animation: spin 2s linear infinite;
+}
+
+.tree-node.tool.status-completed .tree-status-icon {
+    color: #38a169;
+}
+
+.tree-node.tool.status-failed .tree-status-icon {
+    color: #e53e3e;
+}
+
+/* Spinning animation for in-progress tools */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Pulse animation for in-progress tools */
+@keyframes pulse-tool {
+    0% {
+        background: #e6fffa !important;
+    }
+    50% {
+        background: #b2f5ea !important;
+    }
+    100% {
+        background: #e6fffa !important;
+    }
 }
 
 /* Privileged Tool (TodoWrite) - High Specificity */
@@ -523,6 +569,7 @@ body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree
     background: #e6fffa !important;
     border-left-color: #38b2ac !important;
     border-left-width: 3px !important;
+    animation: pulse-tool 2s infinite;
 }
 
 .tree-node.tool:not(.privileged-tool).status-completed {
@@ -610,6 +657,44 @@ body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree
     100% { 
         opacity: 1; 
     }
+}
+
+/* Pinned TODOs Styles */
+.tree-node.pinned-todos {
+    background: linear-gradient(135deg, #fff8dc 0%, #f0e68c 100%) !important;
+    border-left: 4px solid #daa520 !important;
+    border-radius: 6px !important;
+    margin: 4px 0 !important;
+    font-weight: 600 !important;
+}
+
+.tree-node.pinned-todos:hover {
+    background: linear-gradient(135deg, #f0e68c 0%, #daa520 100%) !important;
+    box-shadow: 0 4px 8px rgba(218, 165, 32, 0.3) !important;
+}
+
+.tree-node.pinned-todos .tree-label {
+    color: #b8860b !important;
+    font-weight: bold !important;
+}
+
+.tree-node.pinned-todos .tree-icon {
+    color: #daa520 !important;
+    font-size: 18px !important;
+}
+
+.tree-node.pinned-todos .tree-params {
+    background: #f5deb3 !important;
+    color: #8b4513 !important;
+    font-weight: 600 !important;
+    border: 1px solid #daa520 !important;
+}
+
+.tree-node.pinned-todos .tree-status {
+    background: #daa520 !important;
+    color: white !important;
+    font-weight: bold !important;
+    text-transform: uppercase !important;
 }
 
 /* Tree Legend */
@@ -1518,4 +1603,60 @@ body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree
 .tree-expand-icon:focus {
     outline: 2px solid #4299e1;
     outline-offset: 2px;
+}
+
+/* Active/current item highlighting */
+.tree-node.current-active {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%);
+    border-left: 3px solid #f59e0b;
+    animation: pulse-active 2s ease-in-out infinite;
+}
+
+.tree-node.has-active .tree-node-content {
+    font-weight: 600;
+}
+
+.tree-node.todowrite.has-active .tree-icon {
+    animation: rotate-icon 3s linear infinite;
+}
+
+@keyframes pulse-active {
+    0%, 100% {
+        background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%);
+    }
+    50% {
+        background: linear-gradient(90deg, rgba(245, 158, 11, 0.2) 0%, transparent 100%);
+    }
+}
+
+@keyframes rotate-icon {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Collapsed state indicators */
+.tree-node.agent:not(.expanded) .tree-label {
+    font-style: italic;
+    color: #4b5563;
+}
+
+.tree-node.agent .tree-label .current-status {
+    color: #f59e0b;
+    font-weight: 600;
+    margin-left: 10px;
+}
+
+/* TodoWrite specific styles */
+.tree-node.todowrite {
+    background: rgba(99, 102, 241, 0.05);
+    border-radius: 4px;
+    margin: 2px 0;
+}
+
+.tree-node.todowrite .tree-node-content {
+    padding: 4px 8px;
 }
