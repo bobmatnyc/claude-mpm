@@ -236,7 +236,12 @@ class AgentVersionManager:
             deployed_content = deployed_file.read_text()
 
             # Skip non-system agents (user-created)
-            if "author: claude-mpm" not in deployed_content:
+            # Check for various author formats used by system agents
+            if not any(author in deployed_content.lower() for author in [
+                "author: claude-mpm",
+                "author: claude mpm team",
+                "author: claude mpm"
+            ]):
                 return (False, "not a system agent")
 
             # Extract version info from YAML frontmatter
