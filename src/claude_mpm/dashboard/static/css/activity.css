@@ -1660,3 +1660,27 @@ body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree
 .tree-node.todowrite .tree-node-content {
     padding: 4px 8px;
 }
+
+/* Multiple call/update indicators */
+.tree-node .tree-label .call-count,
+.tree-node .tree-label .update-count {
+    color: #6366f1;
+    font-weight: 600;
+    font-size: 0.85em;
+    opacity: 0.8;
+}
+
+.tree-node.tool .tree-label {
+    position: relative;
+}
+
+.tree-node.tool .call-indicator {
+    display: inline-block;
+    background: #f59e0b;
+    color: white;
+    border-radius: 10px;
+    padding: 0 6px;
+    font-size: 0.75em;
+    margin-left: 5px;
+    font-weight: 600;
+}
