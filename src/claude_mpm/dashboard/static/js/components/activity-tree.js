@@ -3,8 +3,11 @@
  * 
  * HTML/CSS-based linear tree visualization for showing PM activity hierarchy.
  * Replaces D3.js with simpler, cleaner linear tree structure.
- * Uses simple display methods for data visualization.
+ * Uses UnifiedDataViewer for consistent data display with Tools viewer.
  */
+
+// Import UnifiedDataViewer for consistent data display
+import { UnifiedDataViewer } from './unified-data-viewer.js';
 
 class ActivityTree {
     constructor() {
@@ -447,77 +450,66 @@ class ActivityTree {
             return;
         }
 
-        // Update session's todos directly for overall checklist view
-        session.todos = todos.map(todo => ({
+        // Update session's current todos for latest state tracking
+        session.currentTodos = todos.map(todo => ({
             content: todo.content,
             activeForm: todo.activeForm,
             status: todo.status,
             timestamp: event.timestamp
         }));
         
-        // Create TodoWrite tool for session-level display
-        const sessionTodoTool = {
-            id: `todo-session-${session.id}-${Date.now()}`,
+        // Create TodoWrite instance
+        const todoWriteInstance = {
+            id: `todowrite-${Date.now()}-${Math.random()}`,
             name: 'TodoWrite',
-            type: 'tool',
+            type: 'todowrite',
             icon: '📝',
             timestamp: event.timestamp,
-            status: 'active',
+            status: 'completed',
+            todos: todos,
             params: {
                 todos: todos
-            },
-            isPrioritizedTool: true
+            }
         };
-        
-        // Update session-level TodoWrite tool
-        session.tools = session.tools.filter(t => t.name !== 'TodoWrite');
-        session.tools.unshift(sessionTodoTool);
-        session.currentTodoTool = sessionTodoTool;
 
-        // ALSO attach TodoWrite to the active agent that triggered it
-        const agentSessionId = event.session_id || event.data?.session_id;
-        let targetAgent = null;
-        
         // Find the appropriate agent to attach this TodoWrite to
-        // First try to find by session ID
-        if (agentSessionId && session.agents.has(agentSessionId)) {
-            targetAgent = session.agents.get(agentSessionId);
-        } else {
+        let targetAgent = session.currentActiveAgent;
+        
+        if (!targetAgent) {
             // Fall back to most recent active agent
-            const activeAgents = Array.from(session.agents.values())
+            const activeAgents = this.getAllAgents(session)
                 .filter(agent => agent.status === 'active' || agent.status === 'in_progress')
                 .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             
             if (activeAgents.length > 0) {
                 targetAgent = activeAgents[0];
             } else {
-                // If no active agents, use the most recently used agent
-                const allAgents = Array.from(session.agents.values())
-                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                if (allAgents.length > 0) {
+                // If no active agents, check if this is PM-level
+                const allAgents = this.getAllAgents(session);
+                const pmAgent = allAgents.find(a => a.isPM);
+                if (pmAgent) {
+                    targetAgent = pmAgent;
+                } else if (allAgents.length > 0) {
                     targetAgent = allAgents[0];
                 }
             }
         }
 
-        // Create agent-specific TodoWrite tool
+        // Attach TodoWrite to the agent (accumulate, don't replace)
         if (targetAgent) {
-            const agentTodoTool = {
-                id: `todo-agent-${targetAgent.id}-${Date.now()}`,
-                name: 'TodoWrite',
-                type: 'tool',
-                icon: '📝',
-                timestamp: event.timestamp,
-                status: 'active',
-                params: {
-                    todos: todos
-                },
-                isPrioritizedTool: true
-            };
+            if (!targetAgent.todoWrites) {
+                targetAgent.todoWrites = [];
+            }
+            targetAgent.todoWrites.push(todoWriteInstance);
             
-            // Remove existing TodoWrite tool from agent and add the updated one
-            targetAgent.tools = targetAgent.tools.filter(t => t.name !== 'TodoWrite');
-            targetAgent.tools.unshift(agentTodoTool);
+            // Update agent's current todos for display when collapsed
+            targetAgent.currentTodos = todos;
+        } else {
+            // No agent found, attach to session level
+            if (!session.todoWrites) {
+                session.todoWrites = [];
+            }
+            session.todoWrites.push(todoWriteInstance);
         }
     }
 
@@ -527,31 +519,55 @@ class ActivityTree {
     processSubagentStart(event, session) {
         const agentName = event.agent_name || event.data?.agent_name || event.data?.agent_type || event.agent_type || event.agent || 'unknown';
         const agentSessionId = event.session_id || event.data?.session_id;
+        const parentAgent = event.parent_agent || event.data?.parent_agent;
         
-        // Use session ID as unique agent identifier, or create unique ID
-        const agentId = agentSessionId || `agent-${Date.now()}-${Math.random()}`;
+        // Create unique ID for each agent instance (to persist multiple calls)
+        const agentId = `agent-${agentName}-${Date.now()}-${Math.random()}`;
         
-        // Check if agent already exists in this session
-        if (!session.agents.has(agentId)) {
-            const agent = {
-                id: agentId,
-                name: agentName,
-                type: 'agent',
-                icon: this.getAgentIcon(agentName),
-                timestamp: event.timestamp,
-                status: 'active',
-                tools: [],
-                sessionId: agentSessionId,
-                isPM: false
-            };
+        // Create new agent instance (always create new for persistence)
+        const agent = {
+            id: agentId,
+            name: agentName,
+            type: 'agent',
+            icon: this.getAgentIcon(agentName),
+            timestamp: event.timestamp,
+            status: 'active',
+            tools: [],
+            todoWrites: [],  // Store TodoWrite instances
+            subagents: new Map(),  // Store nested subagents
+            sessionId: agentSessionId,
+            parentAgent: parentAgent,
+            isPM: agentName.toLowerCase() === 'pm' || agentName.toLowerCase().includes('project manager')
+        };
+        
+        // If this is a subagent, nest it under the parent agent
+        if (parentAgent) {
+            // Find the parent agent in the session
+            let parent = null;
+            for (let [id, ag] of session.agents.entries()) {
+                if (ag.sessionId === parentAgent || ag.name === parentAgent) {
+                    parent = ag;
+                    break;
+                }
+            }
             
-            session.agents.set(agentId, agent);
+            if (parent) {
+                // Add as nested subagent
+                if (!parent.subagents) {
+                    parent.subagents = new Map();
+                }
+                parent.subagents.set(agentId, agent);
+            } else {
+                // No parent found, add to session level
+                session.agents.set(agentId, agent);
+            }
         } else {
-            // Update existing agent status to active
-            const existingAgent = session.agents.get(agentId);
-            existingAgent.status = 'active';
-            existingAgent.timestamp = event.timestamp; // Update timestamp
+            // Top-level agent, add to session
+            session.agents.set(agentId, agent);
         }
+        
+        // Track the currently active agent for tool/todo association
+        session.currentActiveAgent = agent;
     }
 
     /**
@@ -586,29 +602,39 @@ class ActivityTree {
             eventId: event.id
         };
 
+        // Special handling for Task tool (subagent delegation)
+        if (toolName === 'Task' && params.subagent_type) {
+            tool.isSubagentTask = true;
+            tool.subagentType = params.subagent_type;
+        }
+
         // Find the appropriate agent to attach this tool to
-        let targetAgent = null;
+        let targetAgent = session.currentActiveAgent;
         
-        // First try to find by session ID
-        if (agentSessionId && session.agents.has(agentSessionId)) {
-            targetAgent = session.agents.get(agentSessionId);
-        } else {
-            // Fall back to most recent active agent
-            const activeAgents = Array.from(session.agents.values())
-                .filter(agent => agent.status === 'active')
-                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-            
-            if (activeAgents.length > 0) {
-                targetAgent = activeAgents[0];
-            } else {
-                // If no active agents, attach to session (PM level)
-                session.tools.push(tool);
-                return;
-            }
+        if (!targetAgent) {
+            // Fall back to finding by session ID or most recent active
+            const allAgents = this.getAllAgents(session);
+            targetAgent = allAgents.find(a => a.sessionId === agentSessionId) ||
+                         allAgents.find(a => a.status === 'active') ||
+                         allAgents[0];
         }
 
         if (targetAgent) {
+            // Update current tool for collapsed display
+            targetAgent.currentTool = tool;
+            
+            // Add to tools array (accumulate)
+            if (!targetAgent.tools) {
+                targetAgent.tools = [];
+            }
             targetAgent.tools.push(tool);
+        } else {
+            // No agent found, attach to session (PM level)
+            if (!session.tools) {
+                session.tools = [];
+            }
+            session.tools.push(tool);
+            session.currentTool = tool;
         }
     }
 
@@ -616,12 +642,38 @@ class ActivityTree {
      * Update tool status after completion
      */
     updateToolStatus(event, session, status) {
+        const toolName = event.tool_name || event.data?.tool_name || event.tool || 'unknown';
+        const agentSessionId = event.session_id || event.data?.session_id;
+        
         // Find and update tool status across all agents
         const findAndUpdateTool = (agent) => {
             if (agent.tools) {
-                const tool = agent.tools.find(t => t.eventId === event.id);
+                // Find tool by event ID first (most specific)
+                let tool = agent.tools.find(t => t.eventId === event.id);
+                
+                // If not found by eventId, try to find by tool name and recent timestamp
+                if (!tool && toolName) {
+                    const recentTools = agent.tools.filter(t => 
+                        t.name === toolName && 
+                        t.status === 'in_progress' &&
+                        new Date(event.timestamp) - new Date(t.timestamp) < 60000 // within 1 minute
+                    ).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    
+                    if (recentTools.length > 0) {
+                        tool = recentTools[0];
+                    }
+                }
+                
                 if (tool) {
                     tool.status = status;
+                    // Add completion timestamp and result data if available
+                    tool.completedAt = event.timestamp;
+                    if (event.data?.result || event.result) {
+                        tool.result = event.data?.result || event.result;
+                    }
+                    if (event.data?.duration_ms) {
+                        tool.duration = event.data.duration_ms;
+                    }
                     return true;
                 }
             }
@@ -634,7 +686,9 @@ class ActivityTree {
         }
         
         // Check session-level tools (PM level)
-        if (session.tools && findAndUpdateTool(session)) return;
+        if (session.tools && findAndUpdateTool({ tools: session.tools })) return;
+        
+        console.log(`ActivityTree: Could not find tool to update status for ${toolName} (event ${event.id})`);
     }
 
     /**
@@ -833,33 +887,77 @@ class ActivityTree {
     }
 
     /**
-     * Render agent element
+     * Render agent element with proper nesting
      */
     renderAgentElement(agent, level) {
         const statusClass = agent.status === 'active' ? 'status-active' : 'status-completed';
         const isExpanded = this.expandedAgents.has(agent.id);
+        const hasTodoWrites = agent.todoWrites && agent.todoWrites.length > 0;
         const hasTools = agent.tools && agent.tools.length > 0;
+        const hasSubagents = agent.subagents && agent.subagents.size > 0;
+        const hasContent = hasTodoWrites || hasTools || hasSubagents;
         const isSelected = this.selectedItem && this.selectedItem.type === 'agent' && this.selectedItem.data.id === agent.id;
         
-        const expandIcon = hasTools ? (isExpanded ? '▼' : '▶') : '';
+        const expandIcon = hasContent ? (isExpanded ? '▼' : '▶') : '';
         const selectedClass = isSelected ? 'selected' : '';
+        
+        // Build status display for collapsed state
+        let collapsedStatus = '';
+        if (!isExpanded && hasContent) {
+            const parts = [];
+            if (agent.currentTodos && agent.currentTodos.length > 0) {
+                const inProgress = agent.currentTodos.find(t => t.status === 'in_progress');
+                if (inProgress) {
+                    parts.push(`📝 ${inProgress.activeForm || inProgress.content}`);
+                }
+            }
+            if (agent.currentTool) {
+                parts.push(`${agent.currentTool.icon} ${agent.currentTool.name}`);
+            }
+            if (parts.length > 0) {
+                collapsedStatus = ` • ${parts.join(' • ')}`;
+            }
+        }
         
         let html = `
             <div class="tree-node agent ${statusClass} ${selectedClass}" data-level="${level}">
                 <div class="tree-node-content">
                     ${expandIcon ? `<span class="tree-expand-icon" onclick="window.activityTreeInstance.toggleAgent('${agent.id}'); event.stopPropagation();">${expandIcon}</span>` : '<span class="tree-expand-icon"></span>'}
                     <span class="tree-icon">${agent.icon}</span>
-                    <span class="tree-label clickable" onclick="window.activityTreeInstance.selectItem(${this.escapeJson(agent)}, 'agent', event)">${agent.name}</span>
+                    <span class="tree-label clickable" onclick="window.activityTreeInstance.selectItem(${this.escapeJson(agent)}, 'agent', event)">${agent.name}${collapsedStatus}</span>
                     <span class="tree-status ${statusClass}">${agent.status}</span>
                 </div>
         `;
         
-        // Render tools under this agent
-        if (hasTools && isExpanded) {
+        // Render nested content when expanded
+        if (hasContent && isExpanded) {
             html += '<div class="tree-children">';
-            for (let tool of agent.tools) {
-                html += this.renderToolElement(tool, level + 1);
+            
+            // Render TodoWrite instances first
+            if (hasTodoWrites) {
+                for (let todoWrite of agent.todoWrites) {
+                    html += this.renderTodoWriteElement(todoWrite, level + 1);
+                }
             }
+            
+            // Render subagents
+            if (hasSubagents) {
+                const subagents = Array.from(agent.subagents.values());
+                for (let subagent of subagents) {
+                    html += this.renderAgentElement(subagent, level + 1);
+                }
+            }
+            
+            // Render tools last
+            if (hasTools) {
+                for (let tool of agent.tools) {
+                    // Skip TodoWrite tools since we show them separately
+                    if (tool.name !== 'TodoWrite') {
+                        html += this.renderToolElement(tool, level + 1);
+                    }
+                }
+            }
+            
             html += '</div>';
         }
         
@@ -876,14 +974,19 @@ class ActivityTree {
         const isSelected = this.selectedItem && this.selectedItem.type === 'tool' && this.selectedItem.data.id === tool.id;
         const selectedClass = isSelected ? 'selected' : '';
         
+        // Add visual status indicators
+        const statusIcon = this.getToolStatusIcon(tool.status);
+        const statusLabel = this.getToolStatusLabel(tool.status);
+        
         let html = `
             <div class="tree-node tool ${statusClass} ${selectedClass}" data-level="${level}">
                 <div class="tree-node-content">
                     <span class="tree-expand-icon"></span>
                     <span class="tree-icon">${tool.icon}</span>
+                    <span class="tree-status-icon">${statusIcon}</span>
                     <span class="tree-label clickable" onclick="window.activityTreeInstance.selectItem(${this.escapeJson(tool)}, 'tool', event)">${tool.name} (click to view details)</span>
                     <span class="tree-params">${params}</span>
-                    <span class="tree-status ${statusClass}">${tool.status}</span>
+                    <span class="tree-status ${statusClass}">${statusLabel}</span>
                 </div>
             </div>
         `;
@@ -951,9 +1054,114 @@ class ActivityTree {
             'qa': '🧪',
             'ops': '⚙️',
             'pm': '📊',
-            'architect': '🏗️'
+            'architect': '🏗️',
+            'project manager': '📊'
         };
         return icons[agentName.toLowerCase()] || '🤖';
+    }
+
+    /**
+     * Helper to get all agents including nested subagents
+     */
+    getAllAgents(session) {
+        const agents = [];
+        
+        const collectAgents = (agentMap) => {
+            if (!agentMap) return;
+            
+            for (let agent of agentMap.values()) {
+                agents.push(agent);
+                if (agent.subagents && agent.subagents.size > 0) {
+                    collectAgents(agent.subagents);
+                }
+            }
+        };
+        
+        collectAgents(session.agents);
+        return agents;
+    }
+
+    /**
+     * Render TodoWrite element
+     */
+    renderTodoWriteElement(todoWrite, level) {
+        const todoWriteId = todoWrite.id;
+        const isExpanded = this.expandedTools.has(todoWriteId);
+        const expandIcon = isExpanded ? '▼' : '▶';
+        const todos = todoWrite.todos || [];
+        
+        // Calculate status summary
+        let completedCount = 0;
+        let inProgressCount = 0;
+        let pendingCount = 0;
+        
+        todos.forEach(todo => {
+            if (todo.status === 'completed') completedCount++;
+            else if (todo.status === 'in_progress') inProgressCount++;
+            else pendingCount++;
+        });
+        
+        // Find current in-progress todo for highlighting
+        const currentTodo = todos.find(t => t.status === 'in_progress');
+        const currentIndicator = currentTodo ? ` • 🔄 ${currentTodo.activeForm || currentTodo.content}` : '';
+        
+        let statusSummary = '';
+        if (inProgressCount > 0) {
+            statusSummary = `${inProgressCount} in progress, ${completedCount}/${todos.length} done`;
+        } else if (completedCount === todos.length && todos.length > 0) {
+            statusSummary = `All ${todos.length} completed ✅`;
+        } else {
+            statusSummary = `${completedCount}/${todos.length} done`;
+        }
+        
+        let html = `
+            <div class="tree-node todowrite ${currentTodo ? 'has-active' : ''}" data-level="${level}">
+                <div class="tree-node-content">
+                    <span class="tree-expand-icon" onclick="window.activityTreeInstance.toggleTodoWrite('${todoWriteId}'); event.stopPropagation();">${expandIcon}</span>
+                    <span class="tree-icon">📝</span>
+                    <span class="tree-label">TodoWrite${!isExpanded ? currentIndicator : ''}</span>
+                    <span class="tree-params">${statusSummary}</span>
+                    <span class="tree-status status-active">todos</span>
+                </div>
+        `;
+        
+        // Show expanded todo items if expanded
+        if (isExpanded && todos.length > 0) {
+            html += '<div class="tree-children">';
+            for (let todo of todos) {
+                const statusIcon = this.getCheckboxIcon(todo.status);
+                const statusClass = `status-${todo.status}`;
+                const displayText = todo.status === 'in_progress' ? todo.activeForm : todo.content;
+                const isCurrentTodo = todo === currentTodo;
+                
+                html += `
+                    <div class="tree-node todo-item ${statusClass} ${isCurrentTodo ? 'current-active' : ''}" data-level="${level + 1}">
+                        <div class="tree-node-content">
+                            <span class="tree-expand-icon"></span>
+                            <span class="tree-icon">${statusIcon}</span>
+                            <span class="tree-label">${this.escapeHtml(displayText)}</span>
+                            <span class="tree-status ${statusClass}">${todo.status.replace('_', ' ')}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+        }
+        
+        html += '</div>';
+        return html;
+    }
+
+    /**
+     * Toggle TodoWrite expansion
+     */
+    toggleTodoWrite(todoWriteId) {
+        if (this.expandedTools.has(todoWriteId)) {
+            this.expandedTools.delete(todoWriteId);
+        } else {
+            this.expandedTools.add(todoWriteId);
+        }
+        this.renderTree();
     }
 
     /**
@@ -971,6 +1179,36 @@ class ActivityTree {
             'todowrite': '📝'
         };
         return icons[toolName.toLowerCase()] || '🔧';
+    }
+
+    /**
+     * Get status icon for tool status
+     */
+    getToolStatusIcon(status) {
+        const icons = {
+            'in_progress': '⏳',
+            'completed': '✅',
+            'failed': '❌',
+            'error': '❌',
+            'pending': '⏸️',
+            'active': '🔄'
+        };
+        return icons[status] || '❓';
+    }
+
+    /**
+     * Get formatted status label for tool
+     */
+    getToolStatusLabel(status) {
+        const labels = {
+            'in_progress': 'in progress',
+            'completed': 'completed',
+            'failed': 'failed',
+            'error': 'error',
+            'pending': 'pending',
+            'active': 'active'
+        };
+        return labels[status] || status;
     }
 
     /**
@@ -1171,6 +1409,72 @@ class ActivityTree {
     }
 
     /**
+     * Render pinned TODOs element under agent
+     */
+    renderPinnedTodosElement(pinnedTodos, level) {
+        const checklistId = `pinned-todos-${Date.now()}`;
+        const isExpanded = this.expandedTools.has(checklistId) !== false; // Default to expanded
+        const expandIcon = isExpanded ? '▼' : '▶';
+        const todos = pinnedTodos.todos || [];
+        
+        // Calculate status summary
+        let completedCount = 0;
+        let inProgressCount = 0;
+        let pendingCount = 0;
+        
+        todos.forEach(todo => {
+            if (todo.status === 'completed') completedCount++;
+            else if (todo.status === 'in_progress') inProgressCount++;
+            else pendingCount++;
+        });
+        
+        let statusSummary = '';
+        if (inProgressCount > 0) {
+            statusSummary = `${inProgressCount} in progress, ${completedCount} completed`;
+        } else if (completedCount === todos.length && todos.length > 0) {
+            statusSummary = `All ${todos.length} completed`;
+        } else {
+            statusSummary = `${todos.length} todo(s)`;
+        }
+        
+        let html = `
+            <div class="tree-node pinned-todos" data-level="${level}">
+                <div class="tree-node-content">
+                    <span class="tree-expand-icon" onclick="window.activityTreeInstance.toggleTodoChecklist('${checklistId}'); event.stopPropagation();">${expandIcon}</span>
+                    <span class="tree-icon">📌</span>
+                    <span class="tree-label">Pinned TODOs</span>
+                    <span class="tree-params">${statusSummary}</span>
+                    <span class="tree-status status-active">pinned</span>
+                </div>
+        `;
+        
+        // Show expanded todo items if expanded
+        if (isExpanded) {
+            html += '<div class="tree-children">';
+            for (let todo of todos) {
+                const statusIcon = this.getCheckboxIcon(todo.status);
+                const statusClass = `status-${todo.status}`;
+                const displayText = todo.status === 'in_progress' ? todo.activeForm : todo.content;
+                
+                html += `
+                    <div class="tree-node todo-item ${statusClass}" data-level="${level + 1}">
+                        <div class="tree-node-content">
+                            <span class="tree-expand-icon"></span>
+                            <span class="tree-icon">${statusIcon}</span>
+                            <span class="tree-label">${this.escapeHtml(displayText)}</span>
+                            <span class="tree-status ${statusClass}">${todo.status.replace('_', ' ')}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+        }
+        
+        html += '</div>';
+        return html;
+    }
+
+    /**
      * Handle item click to show data in left pane
      */
     selectItem(item, itemType, event) {
@@ -1185,30 +1489,16 @@ class ActivityTree {
     }
 
     /**
-     * Display item data in left pane using simple display methods
+     * Display item data in left pane using UnifiedDataViewer for consistency with Tools viewer
      */
     displayItemData(item, itemType) {
-        // Special handling for TodoWrite tools to match Tools view display
-        if (itemType === 'tool' && item.name === 'TodoWrite' && item.params && item.params.todos) {
-            this.displayTodoWriteData(item);
-            return;
+        // Initialize UnifiedDataViewer if not already available
+        if (!this.unifiedViewer) {
+            this.unifiedViewer = new UnifiedDataViewer('module-data-content');
         }
         
-        // Use simple display methods based on item type
-        switch(itemType) {
-            case 'agent':
-                this.displayAgentData(item);
-                break;
-            case 'tool':
-                this.displayToolData(item);
-                break;
-            case 'instruction':
-                this.displayInstructionData(item);
-                break;
-            default:
-                this.displayGenericData(item, itemType);
-                break;
-        }
+        // Use the same UnifiedDataViewer as Tools viewer for consistent display
+        this.unifiedViewer.display(item, itemType);
         
         // Update module header for consistency
         const moduleHeader = document.querySelector('.module-data-header h5');
@@ -1217,7 +1507,8 @@ class ActivityTree {
                 'agent': '🤖',
                 'tool': '🔧', 
                 'instruction': '💬',
-                'session': '🎯'
+                'session': '🎯',
+                'todo': '📝'
             };
             const icon = icons[itemType] || '📊';
             const name = item.name || item.agentName || item.tool_name || 'Item';
@@ -1225,311 +1516,7 @@ class ActivityTree {
         }
     }
 
-    /**
-     * Display TodoWrite data in the same clean format as Tools view
-     */
-    displayTodoWriteData(item) {
-        const todos = item.params.todos || [];
-        const timestamp = this.formatTimestamp(item.timestamp);
-        
-        // Calculate status summary
-        let completedCount = 0;
-        let inProgressCount = 0;
-        let pendingCount = 0;
-        
-        todos.forEach(todo => {
-            if (todo.status === 'completed') completedCount++;
-            else if (todo.status === 'in_progress') inProgressCount++;
-            else pendingCount++;
-        });
-        
-        let html = `
-            <div class="unified-viewer-header">
-                <h6>📝 TodoWrite: PM ${timestamp}</h6>
-                <span class="unified-viewer-status">${this.formatStatus(item.status)}</span>
-            </div>
-            <div class="unified-viewer-content">
-        `;
-
-        if (todos.length > 0) {
-            // Status summary 
-            html += `
-                <div class="detail-section">
-                    <span class="detail-section-title">Todo Summary</span>
-                    <div class="todo-summary">
-                        <div class="summary-item completed">
-                            <span class="summary-icon">✅</span>
-                            <span class="summary-count">${completedCount}</span>
-                            <span class="summary-label">Completed</span>
-                        </div>
-                        <div class="summary-item in_progress">
-                            <span class="summary-icon">🔄</span>
-                            <span class="summary-count">${inProgressCount}</span>
-                            <span class="summary-label">In Progress</span>
-                        </div>
-                        <div class="summary-item pending">
-                            <span class="summary-icon">⏳</span>
-                            <span class="summary-count">${pendingCount}</span>
-                            <span class="summary-label">Pending</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Todo list display (same as Tools view)
-            html += `
-                <div class="detail-section">
-                    <span class="detail-section-title">Todo List (${todos.length} items)</span>
-                    <div class="todo-checklist">
-            `;
-            
-            todos.forEach((todo, index) => {
-                const statusIcon = this.getCheckboxIcon(todo.status);
-                const displayText = todo.status === 'in_progress' ? 
-                    (todo.activeForm || todo.content) : todo.content;
-                const statusClass = this.formatStatusClass(todo.status);
-                
-                html += `
-                    <div class="todo-checklist-item ${todo.status}">
-                        <div class="todo-checkbox">
-                            <span class="checkbox-icon ${statusClass}">${statusIcon}</span>
-                        </div>
-                        <div class="todo-text">
-                            <span class="todo-content">${this.escapeHtml(displayText)}</span>
-                            <span class="todo-status-badge ${statusClass}">${todo.status.replace('_', ' ')}</span>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += `
-                    </div>
-                </div>
-            `;
-        } else {
-            html += `
-                <div class="detail-section">
-                    <div class="no-todos">No todo items found</div>
-                </div>
-            `;
-        }
-
-        // Add raw JSON section at the bottom
-        html += `
-            <div class="detail-section">
-                <span class="detail-section-title">Parameters (${Object.keys(item.params).length})</span>
-                <div class="params-list">
-                    <div class="param-item">
-                        <div class="param-key">todos:</div>
-                        <div class="param-value">
-                            <pre class="param-json">${this.escapeHtml(JSON.stringify(todos, null, 2))}</pre>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        html += '</div>';
-        
-        // Set the content directly
-        const container = document.getElementById('module-data-content');
-        if (container) {
-            container.innerHTML = html;
-        }
-
-        // Update module header 
-        const moduleHeader = document.querySelector('.module-data-header h5');
-        if (moduleHeader) {
-            moduleHeader.textContent = `📝 tool: TodoWrite`;
-        }
-    }
-
-    // Utility methods for TodoWrite display
-    formatStatus(status) {
-        if (!status) return 'unknown';
-        
-        const statusMap = {
-            'active': '🟢 Active',
-            'completed': '✅ Completed', 
-            'in_progress': '🔄 In Progress',
-            'pending': '⏳ Pending',
-            'error': '❌ Error',
-            'failed': '❌ Failed'
-        };
-        
-        return statusMap[status] || status;
-    }
-
-    formatStatusClass(status) {
-        return `status-${status}`;
-    }
-
-    formatTimestamp(timestamp) {
-        if (!timestamp) return '';
-        
-        try {
-            const date = new Date(timestamp);
-            if (isNaN(date.getTime())) return '';
-            return date.toLocaleTimeString();
-        } catch (error) {
-            return '';
-        }
-    }
-
-    /**
-     * Display agent data in a simple format
-     */
-    displayAgentData(agent) {
-        const timestamp = this.formatTimestamp(agent.timestamp);
-        const container = document.getElementById('module-data-content');
-        if (!container) return;
-
-        let html = `
-            <div class="detail-section">
-                <span class="detail-section-title">Agent Information</span>
-                <div class="agent-info">
-                    <div class="info-item">
-                        <span class="info-label">Name:</span>
-                        <span class="info-value">${this.escapeHtml(agent.name)}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Status:</span>
-                        <span class="info-value status-${agent.status}">${agent.status}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Timestamp:</span>
-                        <span class="info-value">${timestamp}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Session ID:</span>
-                        <span class="info-value">${agent.sessionId || 'N/A'}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        if (agent.tools && agent.tools.length > 0) {
-            html += `
-                <div class="detail-section">
-                    <span class="detail-section-title">Tools (${agent.tools.length})</span>
-                    <div class="tool-list">
-            `;
-            
-            agent.tools.forEach(tool => {
-                html += `
-                    <div class="tool-item">
-                        <span class="tool-name">${this.escapeHtml(tool.name)}</span>
-                        <span class="tool-status status-${tool.status}">${tool.status}</span>
-                    </div>
-                `;
-            });
-            
-            html += `
-                    </div>
-                </div>
-            `;
-        }
-
-        container.innerHTML = html;
-    }
-
-    /**
-     * Display tool data in a simple format
-     */
-    displayToolData(tool) {
-        const timestamp = this.formatTimestamp(tool.timestamp);
-        const container = document.getElementById('module-data-content');
-        if (!container) return;
-
-        let html = `
-            <div class="detail-section">
-                <span class="detail-section-title">Tool Information</span>
-                <div class="tool-info">
-                    <div class="info-item">
-                        <span class="info-label">Name:</span>
-                        <span class="info-value">${this.escapeHtml(tool.name)}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Status:</span>
-                        <span class="info-value status-${tool.status}">${tool.status}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Timestamp:</span>
-                        <span class="info-value">${timestamp}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        if (tool.params && Object.keys(tool.params).length > 0) {
-            html += `
-                <div class="detail-section">
-                    <span class="detail-section-title">Parameters</span>
-                    <div class="params-list">
-            `;
-            
-            Object.entries(tool.params).forEach(([key, value]) => {
-                html += `
-                    <div class="param-item">
-                        <div class="param-key">${this.escapeHtml(key)}:</div>
-                        <div class="param-value">${this.escapeHtml(String(value))}</div>
-                    </div>
-                `;
-            });
-            
-            html += `
-                    </div>
-                </div>
-            `;
-        }
-
-        container.innerHTML = html;
-    }
-
-    /**
-     * Display instruction data in a simple format
-     */
-    displayInstructionData(instruction) {
-        const timestamp = this.formatTimestamp(instruction.timestamp);
-        const container = document.getElementById('module-data-content');
-        if (!container) return;
-
-        const html = `
-            <div class="detail-section">
-                <span class="detail-section-title">User Instruction</span>
-                <div class="instruction-info">
-                    <div class="info-item">
-                        <span class="info-label">Timestamp:</span>
-                        <span class="info-value">${timestamp}</span>
-                    </div>
-                    <div class="instruction-content">
-                        <div class="instruction-text">${this.escapeHtml(instruction.text)}</div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        container.innerHTML = html;
-    }
-
-    /**
-     * Display generic data for unknown types
-     */
-    displayGenericData(item, itemType) {
-        const container = document.getElementById('module-data-content');
-        if (!container) return;
-
-        let html = `
-            <div class="detail-section">
-                <span class="detail-section-title">${itemType || 'Item'} Data</span>
-                <div class="generic-data">
-                    <pre>${this.escapeHtml(JSON.stringify(item, null, 2))}</pre>
-                </div>
-            </div>
-        `;
-
-        container.innerHTML = html;
-    }
+    // Display methods removed - now using UnifiedDataViewer for consistency
 
     /**
      * Escape HTML for safe display

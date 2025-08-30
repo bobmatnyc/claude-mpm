@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.1.16] - 2025-08-30
+
+### Fixed
+- **Dashboard Activity Viewer**: Improved persistence and nesting structure
+  - Updated activity-tree.js to persist agents and tools instead of replacing them
+  - Implemented proper nesting structure (PM → TodoWrite → Subagents → Tools)
+  - Added collapsed state behavior showing current status
+  - Added visual indicators for active items with CSS animations
+  - Fixed issue where agents and tools were being replaced instead of accumulated
+
 ## [4.1.15] - 2025-08-29
 
 ### Fixed
