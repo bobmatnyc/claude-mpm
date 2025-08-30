@@ -193,19 +193,32 @@ class AgentTemplateBuilder:
         # Build YAML frontmatter using Claude Code's minimal format
         # ONLY include fields that Claude Code recognizes
         #
-        # REMOVED FIELDS for Claude Code compatibility:
-        # - model, color, version, type, source, author
-        # These fields caused Claude Code to silently fail agent discovery
-        #
         # CLAUDE CODE COMPATIBLE FORMAT:
         # - name: kebab-case agent name (required)
         # - description: when/why to use this agent (required)
+        # - version: agent version for update tracking (recommended)
         # - tools: comma-separated tool list (optional, only if restricting)
+        # - color, author, tags: metadata fields (optional)
         frontmatter_lines = [
             "---",
             f"name: {claude_code_name}",
             f"description: {description}",
+            f'version: "{agent_version}"',
         ]
+        
+        # Add optional metadata if available
+        if metadata.get("color"):
+            frontmatter_lines.append(f"color: {metadata['color']}")
+        if metadata.get("author"):
+            frontmatter_lines.append(f"author: {metadata['author']}")
+        if metadata.get("tags"):
+            frontmatter_lines.append("tags:")
+            for tag in metadata["tags"][:10]:  # Limit to 10 tags
+                frontmatter_lines.append(f"  - {tag}")
+        if metadata.get("priority"):
+            frontmatter_lines.append(f"priority: {metadata['priority']}")
+        if metadata.get("category"):
+            frontmatter_lines.append(f"category: {metadata['category']}")
 
         # Only include tools if restricting to subset
         if include_tools_field:
