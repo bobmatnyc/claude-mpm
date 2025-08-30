@@ -17,6 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.1.21] - 2025-08-30
+
+### Changed
+- **PM Instructions**: Consolidated and strengthened delegation and testing requirements
+  - Eliminated redundancy across INSTRUCTIONS, WORKFLOW, BASE_PM, and MEMORY files
+  - Used first-person language for stronger behavioral enforcement
+  - Made testing requirements absolutely non-negotiable with instant rejection protocol
+  - Simplified core operating rules from 17 to 6 clear directives
+  - Added clear file purpose headers to prevent future overlap
+  - Strengthened untested work protocol: "untested work = unacceptable work"
+
+### Fixed
+- **PM Testing Enforcement**: PM now instantly rejects any untested work from agents
+  - No longer accepts "I didn't test it" responses
+  - Requires proof of testing (logs, output, screenshots)
+  - Automatically re-delegates untested work
+
 ## [4.1.20] - 2025-08-30
 
 ### Fixed
