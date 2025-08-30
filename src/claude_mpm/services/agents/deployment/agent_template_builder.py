@@ -205,7 +205,7 @@ class AgentTemplateBuilder:
             f"description: {description}",
             f'version: "{agent_version}"',
         ]
-        
+
         # Add optional metadata if available
         if metadata.get("color"):
             frontmatter_lines.append(f"color: {metadata['color']}")
