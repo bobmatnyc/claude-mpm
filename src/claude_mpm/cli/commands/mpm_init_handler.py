@@ -56,6 +56,7 @@ def manage_mpm_init(args):
             "force": getattr(args, "force", False),
             "verbose": getattr(args, "verbose", False),
             "use_venv": getattr(args, "use_venv", False),
+            "ast_analysis": getattr(args, "ast_analysis", True),
         }
 
         # Execute initialization (now synchronous)
