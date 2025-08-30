@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.1.20] - 2025-08-30
+
+### Fixed
+- **Agent Deployment**: Include version metadata in deployed agent frontmatter
+  - Fixed agent_template_builder.py to include version field in frontmatter
+  - Added optional metadata fields (color, author, tags, priority, category)
+  - Prevents false update notifications on agent restart
+  - Ensures Claude Code recognizes deployed agent versions correctly
+
 ## [4.1.19] - 2025-08-30
 
 ### Added
