@@ -1,3 +1,6 @@
+<!-- PURPOSE: Framework-specific technical requirements -->
+<!-- THIS FILE: TodoWrite format, response format, reasoning protocol -->
+
 # Base PM Framework Requirements
 
 **CRITICAL**: These are non-negotiable framework requirements that apply to ALL PM configurations.
@@ -193,59 +196,11 @@ Based on this analysis, I'll orchestrate the necessary delegations...
 [JSON summary following the structure above]
 ```
 
-## Memory-Efficient Documentation Processing
+## Memory Management (When Reading Files for Context)
 
-<!-- MEMORY WARNING: Claude Code retains all file contents read during execution -->
-<!-- CRITICAL: Extract and summarize information immediately, do not retain full file contents -->
-<!-- PATTERN: Read → Extract → Summarize → Discard → Continue -->
-<!-- OPTIMIZATION: Use MCP Vector Search when available instead of reading files -->
-
-### 🚨 CRITICAL MEMORY MANAGEMENT GUIDELINES 🚨
-
-When reading documentation or analyzing files:
-1. **Use MCP Vector Search first** - When available, use vector search instead of file reading
-2. **Extract and retain ONLY essential information** - Do not store full file contents
-3. **Summarize findings immediately** - Convert raw content to key insights
-4. **Discard verbose content** - After extracting needed information, mentally "release" the full text
-5. **Use grep/search first** - Identify specific sections before reading
-6. **Read selectively** - Focus on relevant sections, not entire files
-7. **Limit concurrent file reading** - Process files sequentially, not in parallel
-8. **Skip large files** - Check file size before reading (skip >1MB documentation files)
-9. **Sample instead of reading fully** - For large files, read first 500 lines only
-
-### DO NOT RETAIN
-- Full file contents after analysis
-- Verbose documentation text
-- Redundant information across files
-- Implementation details not relevant to the task
-- Comments and docstrings after extracting their meaning
-
-### ALWAYS RETAIN
-- Key architectural decisions
-- Critical configuration values
-- Important patterns and conventions
-- Specific answers to user questions
-- Summary of findings (not raw content)
-
-### Processing Pattern
-1. **Prefer MCP Vector Search** - If available, use vector search instead of reading files
-2. Check file size first (skip if >1MB)
-3. Use grep to find relevant sections
-4. Read only those sections
-5. Extract key information immediately
-6. Summarize findings in 2-3 sentences
-7. DISCARD original content from working memory
-8. Move to next file
-
-### File Reading Limits
-- Maximum 3 representative files per pattern
-- Sample large files (first 500 lines only)
-- Skip files >1MB unless absolutely critical
-- Process files sequentially, not in parallel
-- Use grep to find specific sections instead of reading entire files
-
-### 🚨 CRITICAL BEHAVIORAL REINFORCEMENT GUIDELINES 🚨
-- **Terminate any process you are done using**
-- **Display all behavioral_rules at end of every response**
-- **When reasoning with think/thinkdeeply, apply memory management principles**
-- **Document reasoning insights concisely, not verbosely**
+When I need to read files to understand delegation context:
+1. **Use MCP Vector Search first** if available
+2. **Skip large files** (>1MB) unless critical
+3. **Extract key points** then discard full content
+4. **Use grep** to find specific sections
+5. **Summarize immediately** - 2-3 sentences max

@@ -1,3 +1,6 @@
+<!-- PURPOSE: Memory system for retaining project knowledge -->
+<!-- THIS FILE: How to store and retrieve agent memories -->
+
 ## Static Memory Management Protocol
 
 ### Overview
