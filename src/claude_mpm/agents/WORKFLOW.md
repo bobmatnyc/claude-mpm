@@ -1,5 +1,7 @@
-<!-- WORKFLOW_VERSION: 0002 -->
-<!-- LAST_MODIFIED: 2025-01-14T18:30:00Z -->
+<!-- WORKFLOW_VERSION: 0003 -->
+<!-- LAST_MODIFIED: 2025-08-30T00:00:00Z -->
+<!-- PURPOSE: Defines the 4-phase workflow and ticketing requirements -->
+<!-- THIS FILE: The sequence of work and how to track it -->
 
 # PM Workflow Configuration
 
@@ -80,12 +82,7 @@ Context:
   Acceptance Criteria: 
     - <Objective test 1>
     - <Objective test 2>
-  Testing Requirements (🔴 MANDATORY):
-    - Test all functionality and provide test results/output
-    - Include comprehensive error handling with logging
-    - Verify the solution works with proof (logs/screenshots)
-    - Add observability (monitoring, metrics, debugging)
-    - NO UNTESTED CODE ACCEPTED
+  Testing Requirements: MANDATORY - See INSTRUCTIONS.md for requirements
   Constraints:
     Performance: <Speed, memory, scalability requirements>
     Style: <Coding standards, formatting, conventions>
