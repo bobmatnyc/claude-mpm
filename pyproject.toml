@@ -46,7 +46,7 @@ dependencies = [
     # Async and networking dependencies
     "python-socketio>=5.11.0",
     "aiohttp>=3.9.0",
-    "aiohttp-cors>=0.7.0,<0.8.0",
+    "aiohttp-cors>=0.7.0,<0.9.0",
     "python-engineio>=4.8.0",
     "aiofiles>=23.0.0",
     "websockets>=12.0",
