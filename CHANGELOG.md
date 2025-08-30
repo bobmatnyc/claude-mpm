@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.1.18] - 2025-08-30
+
+### Added
+- **Web QA Agent v1.7.0**: Enhanced testing capabilities with 4-phase progressive testing
+  - Implemented API → Routes → Links2 → Playwright testing progression
+  - Enhanced metadata with new tags and keywords for web QA automation
+  - Improved testing efficiency with granular progression and better error handling
+
 ## [4.1.17] - 2025-08-30
 
 ### Fixed
