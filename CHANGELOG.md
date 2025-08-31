@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.1.28] - 2025-08-31
+
+### Fixed
+- **Code Explorer**: Fixed backend issue causing empty directory children
+  - Fixed spreading of result object that was overwriting path and name fields
+  - Backend now explicitly sends children array instead of spreading result
+  - Added debug logging to track children being sent
+  - Properly preserves directory discovery data structure
+
 ## [4.1.27] - 2025-08-31
 
 ### Fixed
