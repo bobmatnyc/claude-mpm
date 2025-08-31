@@ -698,6 +698,12 @@ class ActivityTree {
 
     /**
      * Process tool use event
+     * 
+     * DISPLAY RULES:
+     * 1. TodoWrite is a privileged tool that ALWAYS appears first under the agent/PM
+     * 2. Each tool appears only once per unique instance (updated in place)
+     * 3. Tools are listed in order of creation (after TodoWrite)
+     * 4. Tool instances are updated with new events as they arrive
      */
     processToolUse(event, session) {
         const toolName = event.tool_name || event.data?.tool_name || event.tool || event.data?.tool || 'unknown';
@@ -723,11 +729,13 @@ class ActivityTree {
                 targetAgent.tools = [];
             }
             
-            // Check if we already have this tool type
-            let existingTool = targetAgent.toolsMap.get(toolName);
+            // Check if we already have this tool instance
+            // Use tool name + params hash for unique identification
+            const toolKey = this.getToolKey(toolName, params);
+            let existingTool = targetAgent.toolsMap.get(toolKey);
             
             if (existingTool) {
-                // Update existing tool instance
+                // UPDATE RULE: Update existing tool instance in place
                 existingTool.params = params;
                 existingTool.timestamp = event.timestamp;
                 existingTool.status = 'in_progress';
@@ -737,7 +745,7 @@ class ActivityTree {
                 // Update current tool for collapsed display
                 targetAgent.currentTool = existingTool;
             } else {
-                // Create new tool instance
+                // CREATE RULE: Create new tool instance
                 const tool = {
                     id: `tool-${targetAgent.id}-${toolName}-${Date.now()}`,
                     name: toolName,
@@ -747,7 +755,8 @@ class ActivityTree {
                     status: 'in_progress',
                     params: params,
                     eventId: event.id,
-                    callCount: 1
+                    callCount: 1,
+                    createdAt: event.timestamp  // Track creation order
                 };
                 
                 // Special handling for Task tool (subagent delegation)
@@ -756,12 +765,22 @@ class ActivityTree {
                     tool.subagentType = params.subagent_type;
                 }
                 
-                targetAgent.toolsMap.set(toolName, tool);
-                targetAgent.tools.push(tool);
+                targetAgent.toolsMap.set(toolKey, tool);
+                
+                // ORDERING RULE: TodoWrite always goes first, others in creation order
+                if (toolName === 'TodoWrite') {
+                    // Insert TodoWrite at the beginning
+                    targetAgent.tools.unshift(tool);
+                } else {
+                    // Append other tools in creation order
+                    targetAgent.tools.push(tool);
+                }
+                
                 targetAgent.currentTool = tool;
             }
         } else {
             // No agent found, attach to session (PM level)
+            // PM RULE: Same display rules apply - TodoWrite first, others in creation order
             if (!session.tools) {
                 session.tools = [];
             }
@@ -769,9 +788,11 @@ class ActivityTree {
                 session.toolsMap = new Map();
             }
             
-            let existingTool = session.toolsMap.get(toolName);
+            const toolKey = this.getToolKey(toolName, params);
+            let existingTool = session.toolsMap.get(toolKey);
             
             if (existingTool) {
+                // UPDATE RULE: Update existing tool instance in place
                 existingTool.params = params;
                 existingTool.timestamp = event.timestamp;
                 existingTool.status = 'in_progress';
@@ -788,14 +809,55 @@ class ActivityTree {
                     status: 'in_progress',
                     params: params,
                     eventId: event.id,
-                    callCount: 1
+                    callCount: 1,
+                    createdAt: event.timestamp  // Track creation order
                 };
                 
-                session.toolsMap.set(toolName, tool);
-                session.tools.push(tool);
+                session.toolsMap.set(toolKey, tool);
+                
+                // ORDERING RULE: TodoWrite always goes first for PM too
+                if (toolName === 'TodoWrite') {
+                    session.tools.unshift(tool);
+                } else {
+                    session.tools.push(tool);
+                }
+                
                 session.currentTool = tool;
             }
         }
+    }
+
+    /**
+     * Generate unique key for tool instance identification
+     * Tools are unique per name + certain parameter combinations
+     */
+    getToolKey(toolName, params) {
+        // For TodoWrite, each instance is unique (don't merge)
+        if (toolName === 'TodoWrite') {
+            return `${toolName}-${Date.now()}-${Math.random()}`;
+        }
+        
+        // For other tools, use tool name + key params for uniqueness
+        // This allows updating the same logical tool instance
+        let key = toolName;
+        
+        // Add file path for file-based tools
+        if (params.file_path) {
+            key += `-${params.file_path}`;
+        }
+        
+        // Add command for Bash tool
+        if (toolName === 'Bash' && params.command) {
+            // Use first 50 chars of command for key
+            key += `-${params.command.substring(0, 50)}`;
+        }
+        
+        // Add pattern for search tools
+        if ((toolName === 'Grep' || toolName === 'Glob') && params.pattern) {
+            key += `-${params.pattern}`;
+        }
+        
+        return key;
     }
 
     /**
@@ -925,6 +987,14 @@ class ActivityTree {
 
     /**
      * Render session content (user instructions, todos, agents, tools)
+     * 
+     * PM DISPLAY RULES (documented inline):
+     * 1. User instructions appear first (context)
+     * 2. PM-level tools follow the same rules as agent tools:
+     *    - TodoWrite is privileged and appears first
+     *    - Other tools appear in creation order
+     *    - Each unique instance is updated in place
+     * 3. Agents appear after PM tools
      */
     renderSessionContent(session) {
         let html = '';
@@ -936,27 +1006,21 @@ class ActivityTree {
             }
         }
         
-        // Render session-level TodoWrite FIRST (if exists)
-        if (session.todoWrites && session.todoWrites.length > 0) {
-            // Show the first (and should be only) TodoWrite at session level
-            html += this.renderTodoWriteElement(session.todoWrites[0], 1);
+        // PM TOOL DISPLAY RULES:
+        // Render PM-level tools (TodoWrite first, then others in creation order)
+        // The session.tools array is already properly ordered by processToolUse
+        if (session.tools && session.tools.length > 0) {
+            for (let tool of session.tools) {
+                html += this.renderToolElement(tool, 1);
+            }
         }
         
-        // Render agents (they will have their own TodoWrite)
+        // Render agents (they will have their own TodoWrite at the top)
         const agents = Array.from(session.agents.values())
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         
         for (let agent of agents) {
             html += this.renderAgentElement(agent, 1);
-        }
-        
-        // Render session-level tools LAST (excluding TodoWrite since we show it first)
-        if (session.tools && session.tools.length > 0) {
-            for (let tool of session.tools) {
-                if (tool.name !== 'TodoWrite') {
-                    html += this.renderToolElement(tool, 1);
-                }
-            }
         }
         
         return html;
@@ -1096,10 +1160,18 @@ class ActivityTree {
         if (hasContent && isExpanded) {
             html += '<div class="tree-children">';
             
-            // ALWAYS render TodoWrite FIRST (single instance)
-            if (hasTodoWrites) {
-                // Only render the first (and should be only) TodoWrite instance
-                html += this.renderTodoWriteElement(agent.todoWrites[0], level + 1);
+            // DISPLAY ORDER RULES (documented inline):
+            // 1. TodoWrite is a privileged tool - ALWAYS appears first
+            // 2. Each tool appears only once per unique instance
+            // 3. Tools are displayed in order of creation (after TodoWrite)
+            // 4. Tool instances are updated in place as new events arrive
+            
+            // Render all tools in their proper order
+            // The tools array is already ordered: TodoWrite first, then others by creation
+            if (hasTools) {
+                for (let tool of agent.tools) {
+                    html += this.renderToolElement(tool, level + 1);
+                }
             }
             
             // Then render subagents (they will have their own TodoWrite at the top)
@@ -1107,16 +1179,6 @@ class ActivityTree {
                 const subagents = Array.from(agent.subagents.values());
                 for (let subagent of subagents) {
                     html += this.renderAgentElement(subagent, level + 1);
-                }
-            }
-            
-            // Finally render other tools (excluding TodoWrite)
-            if (hasTools) {
-                for (let tool of agent.tools) {
-                    // Skip TodoWrite tools since we show them separately at the top
-                    if (tool.name !== 'TodoWrite') {
-                        html += this.renderToolElement(tool, level + 1);
-                    }
                 }
             }
             
