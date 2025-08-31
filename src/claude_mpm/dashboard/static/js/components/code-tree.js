@@ -1196,11 +1196,38 @@ class CodeTree {
         // Find the node that was clicked to trigger this discovery
         const node = this.findNodeByPath(searchPath);
         
+        console.log('🔍 Node search result:', {
+            searchPath: searchPath,
+            nodeFound: !!node,
+            nodeName: node?.name,
+            nodePath: node?.path,
+            nodeChildren: node?.children?.length,
+            dataHasChildren: !!data.children,
+            dataChildrenLength: data.children?.length
+        });
+        
+        // Debug: log all paths in the tree if node not found
+        if (!node) {
+            console.warn('Node not found! Logging all paths in tree:');
+            this.logAllPaths(this.treeData);
+        }
+        
         // Located target node for expansion
         
-        if (node && data.children) {
-            // Update the node with discovered children
-            node.children = data.children.map(child => {
+        // Handle both cases: when children exist and when directory is empty
+        if (node) {
+            console.log('📦 Node found, checking children:', {
+                nodeFound: true,
+                dataHasChildren: 'children' in data,
+                dataChildrenIsArray: Array.isArray(data.children),
+                dataChildrenLength: data.children?.length,
+                dataChildrenValue: data.children
+            });
+            
+            if (data.children) {
+                console.log(`📂 Updating node ${node.name} with ${data.children.length} children`);
+                // Update the node with discovered children
+                node.children = data.children.map(child => {
                 // Construct full path for child by combining parent path with child name
                 // The backend now returns just the item name, not the full path
                 let childPath;
@@ -1268,13 +1295,23 @@ class CodeTree {
                 this.update(this.root);
             }
             
-            // Provide better feedback for empty vs populated directories
-            if (node.children.length === 0) {
-                this.updateBreadcrumb(`Empty directory: ${node.name}`, 'info');
-                this.showNotification(`Directory "${node.name}" is empty`, 'info');
+                // Provide better feedback for empty vs populated directories
+                if (node.children.length === 0) {
+                    this.updateBreadcrumb(`Empty directory: ${node.name}`, 'info');
+                    this.showNotification(`Directory "${node.name}" is empty`, 'info');
+                } else {
+                    this.updateBreadcrumb(`Loaded ${node.children.length} items from ${node.name}`, 'success');
+                    this.showNotification(`Loaded ${node.children.length} items from "${node.name}"`, 'success');
+                }
             } else {
-                this.updateBreadcrumb(`Loaded ${node.children.length} items from ${node.name}`, 'success');
-                this.showNotification(`Loaded ${node.children.length} items from "${node.name}"`, 'success');
+                // data.children is undefined or null - should not happen if backend is working correctly
+                console.error('❌ No children data received for directory:', {
+                    path: searchPath,
+                    dataKeys: Object.keys(data),
+                    fullData: data
+                });
+                this.updateBreadcrumb(`Error loading ${node.name}`, 'error');
+                this.showNotification(`Failed to load directory contents`, 'error');
             }
             this.updateStats();
         } else if (!node) {

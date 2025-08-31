@@ -464,11 +464,13 @@ class CodeAnalysisEventHandler(BaseEventHandler):
             self.logger.debug(f"Full result: {result}")
 
             # Send result with correct event name (using colons, not dots!)
+            # Include both absolute path and relative name for frontend compatibility
             await self.server.core.sio.emit(
                 "code:directory:discovered",
                 {
                     "request_id": request_id,
-                    "path": path,
+                    "path": path,  # Absolute path as requested
+                    "name": Path(path).name,  # Just the directory name for display
                     **result,
                 },
                 room=sid,
