@@ -426,24 +426,12 @@ class UnifiedDataViewer {
         if (todos.length > 0) {
             const statusCounts = this.getTodoStatusCounts(todos);
             
-            // Status summary bar
+            // Status summary - horizontal single line format
             html += `
-                <div class="todo-status-bar">
-                    <div class="status-item completed">
-                        <span class="status-icon">✅</span>
-                        <span class="status-count">${statusCounts.completed}</span>
-                        <span class="status-label">Done</span>
-                    </div>
-                    <div class="status-item in_progress">
-                        <span class="status-icon">🔄</span>
-                        <span class="status-count">${statusCounts.in_progress}</span>
-                        <span class="status-label">Active</span>
-                    </div>
-                    <div class="status-item pending">
-                        <span class="status-icon">⏳</span>
-                        <span class="status-count">${statusCounts.pending}</span>
-                        <span class="status-label">Pending</span>
-                    </div>
+                <div class="todo-status-line">
+                    <span class="status-inline">✅ ${statusCounts.completed} Done</span>
+                    <span class="status-inline">🔄 ${statusCounts.in_progress} Active</span>
+                    <span class="status-inline">⏳ ${statusCounts.pending} Pending</span>
                 </div>
             `;
 

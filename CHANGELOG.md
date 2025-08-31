@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.1.24] - 2025-08-31
+
+### Changed
+- **TodoWrite Data Viewer**: Status bar now displays horizontally in a single row
+  - Shows "✅ X Done  🔄 Y Active  ⏳ Z Pending" format
+  - More compact and scannable view
+  - Improved visual consistency
+
+### Fixed
+- **Ops Agent Version Detection**: Investigated version 0.0.0 display issue
+  - Confirmed version extraction is working correctly
+  - Both template and deployed versions properly show 2.2.2
+
 ## [4.1.23] - 2025-08-30
 
 ### Fixed
