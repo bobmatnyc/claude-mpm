@@ -17,6 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.1.23] - 2025-08-30
+
+### Fixed
+- **Activity Viewer Tools Persistence**: Fixed tools disappearing after a few seconds
+  - Preserved accumulated data (tools, agents, todos) during session updates
+  - Added debounced rendering to prevent excessive DOM rebuilds
+  - Tools now properly persist and update in place
+
+### Changed
+- **Data Viewer Improvements**: Enhanced all data viewers for better clarity
+  - TodoWrite viewer now shows todos list and status summary immediately after title
+  - All viewers now highlight primary data with secondary details in collapsible JSON
+  - Added visual status indicators and improved styling
+  - Tool-specific displays for file operations, commands, and searches
+  - Added comprehensive CSS styling for improved readability
+
 ## [4.1.22] - 2025-08-30
 
 ### Fixed

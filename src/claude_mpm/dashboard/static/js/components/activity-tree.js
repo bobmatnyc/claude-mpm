@@ -24,6 +24,24 @@ class ActivityTree {
         this.expandedAgents = new Set();
         this.expandedTools = new Set();
         this.selectedItem = null;
+        
+        // Add debounce for renderTree to prevent excessive DOM rebuilds
+        this.renderTreeDebounced = this.debounce(() => this.renderTree(), 100);
+    }
+    
+    /**
+     * Debounce helper to prevent excessive DOM updates
+     */
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
     }
 
     /**
@@ -233,10 +251,16 @@ class ActivityTree {
                     this.sessions.set(sessionId, activitySession);
                 } else {
                     // Update existing session metadata without clearing accumulated data
+                    // CRITICAL: Preserve all accumulated data (tools, agents, todos, etc.)
                     const existingSession = this.sessions.get(sessionId);
                     existingSession.timestamp = new Date(sessionData.lastActivity || sessionData.startTime || existingSession.timestamp);
                     existingSession.eventCount = sessionData.eventCount;
                     existingSession.status = sessionData.status || existingSession.status;
+                    // Update metadata without losing accumulated data
+                    existingSession.working_directory = sessionData.working_directory || existingSession.working_directory;
+                    existingSession.git_branch = sessionData.git_branch || existingSession.git_branch;
+                    // DO NOT reset tools, agents, todos, userInstructions, toolsMap, etc.
+                    // These are built up from events and must be preserved!
                 }
             }
             
@@ -257,7 +281,8 @@ class ActivityTree {
             }
                 
             this.events = [...events];
-            this.renderTree();
+            // Use debounced render to prevent excessive DOM rebuilds
+            this.renderTreeDebounced();
             
             // Debug: Log session state after processing
             console.log(`ActivityTree: Sessions after sync with socket client:`, Array.from(this.sessions.entries()));
@@ -310,6 +335,7 @@ class ActivityTree {
             }
             
             this.events = [...socketState.events];
+            // Initial render can be immediate
             this.renderTree();
             
             // Debug: Log initial session state
