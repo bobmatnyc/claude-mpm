@@ -791,9 +791,11 @@ class CodeTreeAnalyzer:
     CODE_EXTENSIONS = {
         ".py",
         ".js",
+        ".jsx",  
         ".ts",
         ".tsx",
-        ".jsx",
+        ".mjs",    # Added missing extension
+        ".cjs",    # Added missing extension
         ".java",
         ".cpp",
         ".c",
