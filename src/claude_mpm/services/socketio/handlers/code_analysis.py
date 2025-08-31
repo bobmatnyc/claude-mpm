@@ -462,16 +462,24 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 f"Discovery result for {path}: {len(result.get('children', []))} children found"
             )
             self.logger.debug(f"Full result: {result}")
+            
+            # DEBUG: Log exact children being sent
+            if result.get('children'):
+                self.logger.info(f"Children being sent: {[child.get('name') for child in result.get('children', [])]}")
+            else:
+                self.logger.warning(f"No children found for {path}")
 
             # Send result with correct event name (using colons, not dots!)
             # Include both absolute path and relative name for frontend compatibility
+            # IMPORTANT: Don't use **result as it overwrites path and name
             await self.server.core.sio.emit(
                 "code:directory:discovered",
                 {
                     "request_id": request_id,
                     "path": path,  # Absolute path as requested
                     "name": Path(path).name,  # Just the directory name for display
-                    **result,
+                    "type": result.get("type", "directory"),
+                    "children": result.get("children", []),  # Send children array directly
                 },
                 room=sid,
             )
