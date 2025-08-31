@@ -33,6 +33,10 @@ class Dashboard {
         this.eventViewer = null;
         this.moduleViewer = null;
         this.sessionManager = null;
+        
+        // Retry prevention
+        this.activityTreeRetryCount = 0;
+        this.maxRetryAttempts = 10;
 
         // New modular components
         this.socketManager = null;
@@ -385,6 +389,9 @@ class Dashboard {
                 // Trigger Activity tab rendering through the component
                 // Check if ActivityTree class is available (from built module)
                 if (window.ActivityTree && typeof window.ActivityTree === 'function') {
+                    // Reset retry count on successful load
+                    this.activityTreeRetryCount = 0;
+                    
                     // Create or get instance
                     if (!window.activityTreeInstance) {
                         console.log('Creating new ActivityTree instance...');
@@ -423,13 +430,22 @@ class Dashboard {
                         }
                     }
                 } else {
-                    // Module not loaded yet, retry after a delay
-                    console.warn('Activity tree component not available, retrying in 100ms...');
-                    setTimeout(() => {
-                        if (this.currentTab === 'activity') {
-                            this.renderCurrentTab();
+                    // Module not loaded yet, retry after a delay (with retry limit)
+                    if (this.activityTreeRetryCount < this.maxRetryAttempts) {
+                        this.activityTreeRetryCount++;
+                        console.warn(`Activity tree component not available, retrying in 100ms... (attempt ${this.activityTreeRetryCount}/${this.maxRetryAttempts})`);
+                        setTimeout(() => {
+                            if (this.uiStateManager.getCurrentTab() === 'activity') {
+                                this.renderCurrentTab();
+                            }
+                        }, 100);
+                    } else {
+                        console.error('Maximum retry attempts reached for ActivityTree initialization. Giving up.');
+                        const activityContainer = document.getElementById('activity-tree-container') || document.getElementById('activity-tree');
+                        if (activityContainer) {
+                            activityContainer.innerHTML = '<div class="error-message">⚠️ Activity Tree failed to load. Please refresh the page.</div>';
                         }
-                    }, 100);
+                    }
                 }
                 break;
             case 'agents':
@@ -1483,428 +1499,6 @@ function formatFileSize(bytes) {
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-// Git Diff Modal Functions - restored from original dashboard
-window.showGitDiffModal = function(filePath, timestamp, workingDir) {
-    // Use the dashboard's current working directory if not provided
-    if (!workingDir && window.dashboard && window.dashboard.currentWorkingDir) {
-        workingDir = window.dashboard.currentWorkingDir;
-    }
-
-    // Create modal if it doesn't exist
-    let modal = document.getElementById('git-diff-modal');
-    if (!modal) {
-        modal = createGitDiffModal();
-        document.body.appendChild(modal);
-    }
-
-    // Update modal content
-    updateGitDiffModal(modal, filePath, timestamp, workingDir);
-
-    // Show the modal as flex container
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden'; // Prevent background scrolling
-};
-
-window.hideGitDiffModal = function() {
-    const modal = document.getElementById('git-diff-modal');
-    if (modal) {
-        modal.style.display = 'none';
-        document.body.style.overflow = ''; // Restore background scrolling
-    }
-};
-
-window.copyGitDiff = function() {
-    const modal = document.getElementById('git-diff-modal');
-    if (!modal) return;
-
-    const codeElement = modal.querySelector('.git-diff-code');
-    if (!codeElement) return;
-
-    const text = codeElement.textContent;
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => {
-            // Show brief feedback
-            const button = modal.querySelector('.git-diff-copy');
-            const originalText = button.textContent;
-            button.textContent = '✅ Copied!';
-            setTimeout(() => {
-                button.textContent = originalText;
-            }, 2000);
-        }).catch(err => {
-            console.error('Failed to copy text:', err);
-        });
-    } else {
-        // Fallback for older browsers
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-
-        const button = modal.querySelector('.git-diff-copy');
-        const originalText = button.textContent;
-        button.textContent = '✅ Copied!';
-        setTimeout(() => {
-            button.textContent = originalText;
-        }, 2000);
-    }
-};
-
-function createGitDiffModal() {
-    const modal = document.createElement('div');
-    modal.id = 'git-diff-modal';
-    modal.className = 'modal git-diff-modal';
-
-    modal.innerHTML = `
-        <div class="modal-content git-diff-content">
-            <div class="git-diff-header">
-                <h2 class="git-diff-title">
-                    <span class="git-diff-icon">📋</span>
-                    <span class="git-diff-title-text">Git Diff</span>
-                </h2>
-                <div class="git-diff-meta">
-                    <span class="git-diff-file-path"></span>
-                    <span class="git-diff-timestamp"></span>
-                </div>
-                <button class="git-diff-close" onclick="hideGitDiffModal()">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="git-diff-body">
-                <div class="git-diff-loading">
-                    <div class="loading-spinner"></div>
-                    <span>Loading git diff...</span>
-                </div>
-                <div class="git-diff-error" style="display: none;">
-                    <div class="error-icon">⚠️</div>
-                    <div class="error-message"></div>
-                    <div class="error-suggestions"></div>
-                </div>
-                <div class="git-diff-content-area" style="display: none;">
-                    <div class="git-diff-toolbar">
-                        <div class="git-diff-info">
-                            <span class="commit-hash"></span>
-                            <span class="diff-method"></span>
-                        </div>
-                        <div class="git-diff-actions">
-                            <button class="git-diff-copy" onclick="copyGitDiff()">
-                                📋 Copy
-                            </button>
-                        </div>
-                    </div>
-                    <div class="git-diff-scroll-wrapper">
-                        <pre class="git-diff-display"><code class="git-diff-code"></code></pre>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    // Close modal when clicking outside
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            hideGitDiffModal();
-        }
-    });
-
-    // Close modal with Escape key
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal.style.display === 'flex') {
-            hideGitDiffModal();
-        }
-    });
-
-    return modal;
-}
-
-async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
-    // Update header info
-    const filePathElement = modal.querySelector('.git-diff-file-path');
-    const timestampElement = modal.querySelector('.git-diff-timestamp');
-
-    filePathElement.textContent = filePath;
-    timestampElement.textContent = timestamp ? new Date(timestamp).toLocaleString() : 'Latest';
-
-    // Show loading state
-    modal.querySelector('.git-diff-loading').style.display = 'flex';
-    modal.querySelector('.git-diff-error').style.display = 'none';
-    modal.querySelector('.git-diff-content-area').style.display = 'none';
-
-    try {
-        // Get the Socket.IO server port with multiple fallbacks
-        let port = 8765; // Default fallback
-
-        // Try to get port from socketClient first
-        if (window.dashboard && window.dashboard.socketClient && window.dashboard.socketClient.port) {
-            port = window.dashboard.socketClient.port;
-        }
-        // Fallback to port input field if socketClient port is not available
-        else {
-            const portInput = document.getElementById('port-input');
-            if (portInput && portInput.value) {
-                port = portInput.value;
-            }
-        }
-
-        // Build URL parameters
-        const params = new URLSearchParams({
-            file: filePath
-        });
-
-        if (timestamp) {
-            params.append('timestamp', timestamp);
-        }
-        if (workingDir) {
-            params.append('working_dir', workingDir);
-        }
-
-        const requestUrl = `http://localhost:${port}/api/git-diff?${params}`;
-        console.log('🌐 Making git diff request to:', requestUrl);
-        console.log('📋 Git diff request parameters:', {
-            filePath,
-            timestamp,
-            workingDir,
-            urlParams: params.toString()
-        });
-
-        // Test server connectivity first
-        try {
-            const healthResponse = await fetch(`http://localhost:${port}/health`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                mode: 'cors'
-            });
-
-            if (!healthResponse.ok) {
-                throw new Error(`Server health check failed: ${healthResponse.status} ${healthResponse.statusText}`);
-            }
-
-            // Server health check passed
-        } catch (healthError) {
-            throw new Error(`Cannot reach server at localhost:${port}. Health check failed: ${healthError.message}`);
-        }
-
-        // Make the actual git diff request
-        const response = await fetch(requestUrl, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            mode: 'cors'
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        // Git diff response received
-
-        // Hide loading
-        modal.querySelector('.git-diff-loading').style.display = 'none';
-
-        if (result.success) {
-            // Displaying successful git diff
-            // Show successful diff
-            displayGitDiff(modal, result);
-        } else {
-            // Displaying git diff error
-            // Show error
-            displayGitDiffError(modal, result);
-        }
-
-    } catch (error) {
-        console.error('❌ Failed to fetch git diff:', error);
-        console.error('Error details:', {
-            name: error.name,
-            message: error.message,
-            stack: error.stack,
-            filePath,
-            timestamp,
-            workingDir
-        });
-
-        modal.querySelector('.git-diff-loading').style.display = 'none';
-
-        // Create detailed error message based on error type
-        let errorMessage = `Network error: ${error.message}`;
-        let suggestions = [];
-
-        if (error.message.includes('Failed to fetch')) {
-            errorMessage = 'Failed to connect to the monitoring server';
-            suggestions = [
-                'Check if the monitoring server is running on port 8765',
-                'Verify the port configuration in the dashboard',
-                'Check browser console for CORS or network errors',
-                'Try refreshing the page and reconnecting'
-            ];
-        } else if (error.message.includes('health check failed')) {
-            errorMessage = error.message;
-            suggestions = [
-                'The server may be starting up - try again in a few seconds',
-                'Check if another process is using port 8765',
-                'Restart the claude-mpm monitoring server'
-            ];
-        } else if (error.message.includes('HTTP')) {
-            errorMessage = `Server error: ${error.message}`;
-            suggestions = [
-                'The server encountered an internal error',
-                'Check the server logs for more details',
-                'Try with a different file or working directory'
-            ];
-        }
-
-        displayGitDiffError(modal, {
-            error: errorMessage,
-            file_path: filePath,
-            working_dir: workingDir,
-            suggestions: suggestions,
-            debug_info: {
-                error_type: error.name,
-                original_message: error.message,
-                port: window.dashboard?.socketClient?.port || document.getElementById('port-input')?.value || '8765',
-                timestamp: new Date().toISOString()
-            }
-        });
-    }
-}
-
-function highlightGitDiff(diffText) {
-    /**
-     * Apply basic syntax highlighting to git diff output
-     * WHY: Git diffs have a standard format that can be highlighted for better readability:
-     * - Lines starting with '+' are additions (green)
-     * - Lines starting with '-' are deletions (red)
-     * - Lines starting with '@@' are context headers (blue)
-     * - File headers and metadata get special formatting
-     */
-    return diffText
-        .split('\n')
-        .map(line => {
-            // Escape HTML entities
-            const escaped = line
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
-
-            // Apply diff highlighting
-            if (line.startsWith('+++') || line.startsWith('---')) {
-                return `<span class="diff-header">${escaped}</span>`;
-            } else if (line.startsWith('@@')) {
-                return `<span class="diff-meta">${escaped}</span>`;
-            } else if (line.startsWith('+')) {
-                return `<span class="diff-addition">${escaped}</span>`;
-            } else if (line.startsWith('-')) {
-                return `<span class="diff-deletion">${escaped}</span>`;
-            } else if (line.startsWith('commit ') || line.startsWith('Author:') || line.startsWith('Date:')) {
-                return `<span class="diff-header">${escaped}</span>`;
-            } else {
-                return `<span class="diff-context">${escaped}</span>`;
-            }
-        })
-        .join('\n');
-}
-
-function displayGitDiff(modal, result) {
-    // Display git diff content
-    const contentArea = modal.querySelector('.git-diff-content-area');
-    const commitHashElement = modal.querySelector('.commit-hash');
-    const methodElement = modal.querySelector('.diff-method');
-    const codeElement = modal.querySelector('.git-diff-code');
-
-    // Elements found for diff display
-
-    // Update metadata
-    if (commitHashElement) commitHashElement.textContent = `Commit: ${result.commit_hash}`;
-    if (methodElement) methodElement.textContent = `Method: ${result.method}`;
-
-    // Update diff content with basic syntax highlighting
-    if (codeElement && result.diff) {
-        // Setting diff content
-        codeElement.innerHTML = highlightGitDiff(result.diff);
-
-        // Force scrolling to work by setting explicit heights
-        const wrapper = modal.querySelector('.git-diff-scroll-wrapper');
-        if (wrapper) {
-            // Give it a moment for content to render
-            setTimeout(() => {
-                const modalContent = modal.querySelector('.modal-content');
-                const header = modal.querySelector('.git-diff-header');
-                const toolbar = modal.querySelector('.git-diff-toolbar');
-
-                const modalHeight = modalContent?.offsetHeight || 0;
-                const headerHeight = header?.offsetHeight || 0;
-                const toolbarHeight = toolbar?.offsetHeight || 0;
-
-                const availableHeight = modalHeight - headerHeight - toolbarHeight - 40; // 40px for padding
-
-                // Setting explicit scroll height
-
-                wrapper.style.maxHeight = `${availableHeight}px`;
-                wrapper.style.overflowY = 'auto';
-            }, 50);
-        }
-    } else {
-        console.warn('⚠️ Missing codeElement or diff data');
-    }
-
-    // Show content area
-    if (contentArea) {
-        contentArea.style.display = 'block';
-        // Content area displayed
-    }
-}
-
-function displayGitDiffError(modal, result) {
-    const errorArea = modal.querySelector('.git-diff-error');
-    const messageElement = modal.querySelector('.error-message');
-    const suggestionsElement = modal.querySelector('.error-suggestions');
-
-    // Create more user-friendly error messages
-    let errorMessage = result.error || 'Unknown error occurred';
-    let isUntracked = false;
-
-    if (errorMessage.includes('not tracked by git')) {
-        errorMessage = '📝 This file is not tracked by git yet';
-        isUntracked = true;
-    } else if (errorMessage.includes('No git history found')) {
-        errorMessage = '📋 No git history available for this file';
-    }
-
-    messageElement.innerHTML = `
-        <div class="error-main">${errorMessage}</div>
-        ${result.file_path ? `<div class="error-file">File: ${result.file_path}</div>` : ''}
-        ${result.working_dir ? `<div class="error-dir">Working directory: ${result.working_dir}</div>` : ''}
-    `;
-
-    if (result.suggestions && result.suggestions.length > 0) {
-        const suggestionTitle = isUntracked ? 'How to track this file:' : 'Suggestions:';
-        suggestionsElement.innerHTML = `
-            <h4>${suggestionTitle}</h4>
-            <ul>
-                ${result.suggestions.map(s => `<li>${s}</li>`).join('')}
-            </ul>
-        `;
-    } else {
-        suggestionsElement.innerHTML = '';
-    }
-
-    console.log('📋 Displaying git diff error:', {
-        originalError: result.error,
-        processedMessage: errorMessage,
-        isUntracked,
-        suggestions: result.suggestions
-    });
-
-    errorArea.style.display = 'block';
 }
 
 // File Viewer Modal Functions

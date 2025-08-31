@@ -1655,7 +1655,7 @@ class ModuleViewer {
     }
 
     /**
-     * Show file operations details (backward compatibility method)
+     * Show file operations using UnifiedDataViewer for consistency
      * @param {Object} fileData - The file operations data
      * @param {string} filePath - The file path
      */
@@ -1665,92 +1665,31 @@ class ModuleViewer {
             return;
         }
 
-        // Get file name from path for header
-        const fileName = filePath.split('/').pop() || filePath;
-        const operations = fileData.operations || [];
-        const lastOp = operations[operations.length - 1];
-        const headerTimestamp = lastOp ? this.formatTimestamp(lastOp.timestamp) : '';
+        // Initialize UnifiedDataViewer if not already available
+        if (!this.unifiedViewer) {
+            this.unifiedViewer = new UnifiedDataViewer('module-data-content');
+        }
 
-        // Create contextual header
-        const contextualHeader = `
-            <div class="contextual-header">
-                <h3 class="contextual-header-text">File: ${fileName} ${headerTimestamp}</h3>
-            </div>
-        `;
+        // Convert file data to standardized format
+        const standardizedFileData = {
+            file_path: filePath,
+            operations: fileData.operations || [],
+            lastOperation: fileData.lastOperation,
+            ...fileData // Preserve any additional data
+        };
 
-        const content = `
-            <div class="structured-view-section">
-                <div class="file-details">
-                    <div class="file-path-display">
-                        <strong>Full Path:</strong> ${this.createClickableFilePath(filePath)}
-                        <div id="git-track-status-${filePath.replace(/[^a-zA-Z0-9]/g, '-')}" class="git-track-status" style="margin-top: 8px;">
-                            <!-- Git tracking status will be populated here -->
-                        </div>
-                    </div>
-                    <div class="operations-list">
-                        ${operations.map(op => `
-                            <div class="operation-item">
-                                <div class="operation-header">
-                                    <span class="operation-icon">${this.getOperationIcon(op.operation)}</span>
-                                    <span class="operation-type">${op.operation}</span>
-                                    <span class="operation-timestamp">${new Date(op.timestamp).toLocaleString()}</span>
-                                    ${this.isReadOnlyOperation(op.operation) ? `
-                                        <!-- Read-only operation: show only file viewer -->
-                                        <span class="file-viewer-icon"
-                                              onclick="showFileViewerModal('${filePath}')"
-                                              title="View file contents with syntax highlighting"
-                                              style="margin-left: 8px; cursor: pointer; font-size: 16px;">
-                                            👁️
-                                        </span>
-                                    ` : `
-                                        <!-- Edit operation: show both file viewer and git diff -->
-                                        <span class="file-viewer-icon"
-                                              onclick="showFileViewerModal('${filePath}')"
-                                              title="View file contents with syntax highlighting"
-                                              style="margin-left: 8px; cursor: pointer; font-size: 16px;">
-                                            👁️
-                                        </span>
-                                        <span class="git-diff-icon"
-                                              onclick="showGitDiffModal('${filePath}', '${op.timestamp}')"
-                                              title="View git diff for this file operation"
-                                              style="margin-left: 8px; cursor: pointer; font-size: 16px; display: none;"
-                                              data-file-path="${filePath}"
-                                              data-operation-timestamp="${op.timestamp}">
-                                            📋
-                                        </span>
-                                    `}
-                                </div>
-                                <div class="operation-details">
-                                    <strong>Agent:</strong> ${op.agent}<br>
-                                    <strong>Session:</strong> ${op.sessionId ? op.sessionId.substring(0, 8) + '...' : 'Unknown'}
-                                    ${op.details ? this.formatOperationDetails(op.details) : ''}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        `;
+        // Use UnifiedDataViewer for consistent display
+        this.unifiedViewer.display(standardizedFileData, 'file_operation');
+
+        // Update module header for consistency
+        const moduleHeader = document.querySelector('.module-data-header h5');
+        if (moduleHeader) {
+            const fileName = filePath.split('/').pop() || filePath;
+            moduleHeader.textContent = `📄 File: ${fileName}`;
+        }
 
         // Check git tracking status and show track control if needed
         this.checkAndShowTrackControl(filePath);
-
-        // Check git status and conditionally show git diff icons
-        this.checkAndShowGitDiffIcons(filePath);
-
-        // Create collapsible JSON section for file data
-        const collapsibleJsonSection = this.createCollapsibleJsonSection(fileData);
-
-        // Show structured data with JSON section in data pane
-        if (this.dataContainer) {
-            this.dataContainer.innerHTML = contextualHeader + content + collapsibleJsonSection;
-        }
-
-        // Initialize JSON toggle functionality
-        this.initializeJsonToggle();
-
-        // Hide JSON pane since data is integrated above
-        // JSON container no longer exists - handled via collapsible sections
     }
 
     /**
@@ -2653,122 +2592,6 @@ class ModuleViewer {
         }
     }
 
-    /**
-     * Check git status and conditionally show git diff icons
-     * Only shows git diff icons if git status check succeeds
-     * @param {string} filePath - Path to the file to check
-     */
-    async checkAndShowGitDiffIcons(filePath) {
-        if (!filePath) {
-            console.debug('[GIT-DIFF-ICONS] No filePath provided, skipping git diff icon check');
-            return;
-        }
-
-        console.debug('[GIT-DIFF-ICONS] Checking git diff icons for file:', filePath);
-
-        try {
-            // Get the Socket.IO client
-            const socket = window.socket || window.dashboard?.socketClient?.socket;
-            if (!socket) {
-                console.warn('[GIT-DIFF-ICONS] No socket connection available for git status check');
-                return;
-            }
-
-            console.debug('[GIT-DIFF-ICONS] Socket connection available, proceeding');
-
-            // Get working directory from dashboard with proper fallback
-            let workingDir = window.dashboard?.currentWorkingDir;
-
-            // Don't use 'Unknown' as a working directory
-            if (!workingDir || workingDir === 'Unknown' || workingDir.trim() === '') {
-                // Try to get from footer element
-                const footerDir = document.getElementById('footer-working-dir');
-                if (footerDir?.textContent?.trim() && footerDir.textContent.trim() !== 'Unknown') {
-                    workingDir = footerDir.textContent.trim();
-                } else {
-                    // Final fallback to current directory
-                    workingDir = '.';
-                }
-                console.log('[GIT-DIFF-ICONS] Working directory fallback used:', workingDir);
-            } else {
-                console.debug('[GIT-DIFF-ICONS] Using working directory:', workingDir);
-            }
-
-            // Set up one-time listener for git status response
-            const responsePromise = new Promise((resolve, reject) => {
-                const responseHandler = (data) => {
-                    console.debug('[GIT-DIFF-ICONS] Received git status response:', data);
-                    if (data.file_path === filePath) {
-                        socket.off('git_status_response', responseHandler);
-                        resolve(data);
-                    } else {
-                        console.debug('[GIT-DIFF-ICONS] Response for different file, ignoring:', data.file_path);
-                    }
-                };
-
-                socket.on('git_status_response', responseHandler);
-
-                // Timeout after 3 seconds
-                setTimeout(() => {
-                    socket.off('git_status_response', responseHandler);
-                    console.warn('[GIT-DIFF-ICONS] Timeout waiting for git status response');
-                    reject(new Error('Request timeout'));
-                }, 3000);
-            });
-
-            console.debug('[GIT-DIFF-ICONS] Sending check_git_status event');
-            // Send git status request
-            socket.emit('check_git_status', {
-                file_path: filePath,
-                working_dir: workingDir
-            });
-
-            // Wait for response
-            const result = await responsePromise;
-            console.debug('[GIT-DIFF-ICONS] Git status check result:', result);
-
-            // Only show git diff icons if git status check was successful
-            if (result.success) {
-                console.debug('[GIT-DIFF-ICONS] Git status check successful, showing icons for:', filePath);
-                this.showGitDiffIconsForFile(filePath);
-            } else {
-                console.debug('[GIT-DIFF-ICONS] Git status check failed, icons will remain hidden:', result.error);
-            }
-            // If git status fails, icons remain hidden (display: none)
-
-        } catch (error) {
-            console.warn('[GIT-DIFF-ICONS] Git status check failed, hiding git diff icons:', error.message);
-            // Icons remain hidden on error
-        }
-    }
-
-    /**
-     * Show git diff icons for a specific file after successful git status check
-     * @param {string} filePath - Path to the file
-     */
-    showGitDiffIconsForFile(filePath) {
-        console.debug('[GIT-DIFF-ICONS] Showing git diff icons for file:', filePath);
-
-        // Find all git diff icons for this file path and show them
-        const gitDiffIcons = document.querySelectorAll(`[data-file-path="${filePath}"]`);
-        console.debug('[GIT-DIFF-ICONS] Found', gitDiffIcons.length, 'elements with matching file path');
-
-        let shownCount = 0;
-        gitDiffIcons.forEach((icon, index) => {
-            console.debug('[GIT-DIFF-ICONS] Processing element', index, ':', icon);
-            console.debug('[GIT-DIFF-ICONS] Element classes:', icon.classList.toString());
-
-            if (icon.classList.contains('git-diff-icon')) {
-                console.debug('[GIT-DIFF-ICONS] Setting display to inline for git-diff-icon');
-                icon.style.display = 'inline';
-                shownCount++;
-            } else {
-                console.debug('[GIT-DIFF-ICONS] Element is not a git-diff-icon, skipping');
-            }
-        });
-
-        console.debug('[GIT-DIFF-ICONS] Showed', shownCount, 'git diff icons for file:', filePath);
-    }
 
     /**
      * Show notification to user
