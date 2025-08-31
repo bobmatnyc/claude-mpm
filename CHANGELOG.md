@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.1.22] - 2025-08-30
+
+### Fixed
+- **Agent Version Check**: Fixed repeated agent upgrade notifications
+  - Corrected author field check in agent_version_manager.py
+  - Now accepts multiple author formats ("claude-mpm", "Claude MPM Team", etc.)
+  - Resolves issue where system agents were incorrectly skipped during version checks
+  - Agents now properly deploy updates when available
+
 ## [4.1.21] - 2025-08-30
 
 ### Changed
