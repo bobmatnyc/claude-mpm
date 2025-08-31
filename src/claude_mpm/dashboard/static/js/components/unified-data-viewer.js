@@ -134,6 +134,8 @@ class UnifiedDataViewer {
 
     /**
      * Display event data with comprehensive formatting
+     * PRIMARY: Event type, timestamp, and key details
+     * SECONDARY: Full event data in collapsible JSON
      */
     displayEvent(data) {
         const eventType = this.formatEventType(data);
@@ -147,19 +149,45 @@ class UnifiedDataViewer {
             <div class="unified-viewer-content">
         `;
 
-        // Event-specific details
+        // PRIMARY DATA: Event-specific key details
+        html += `<div class="primary-data">`;
         html += this.formatEventDetails(data);
-
-        // Tool parameters if present
-        if (data.tool_parameters || (data.data && data.data.tool_parameters)) {
-            const params = data.tool_parameters || data.data.tool_parameters;
-            html += this.formatParameters(params, 'Tool Parameters');
+        
+        // Show important tool parameters inline if present
+        if (data.tool_name || data.data?.tool_name) {
+            const toolName = data.tool_name || data.data.tool_name;
+            html += `
+                <div class="detail-row highlight">
+                    <span class="detail-label">Tool:</span>
+                    <span class="detail-value">${this.getToolIcon(toolName)} ${toolName}</span>
+                </div>
+            `;
+            
+            // Show key parameters for specific tools
+            const params = data.tool_parameters || data.data?.tool_parameters;
+            if (params) {
+                if (params.file_path) {
+                    html += `
+                        <div class="detail-row">
+                            <span class="detail-label">File:</span>
+                            <span class="detail-value code">${params.file_path}</span>
+                        </div>
+                    `;
+                }
+                if (params.command) {
+                    html += `
+                        <div class="detail-row">
+                            <span class="detail-label">Command:</span>
+                            <pre class="code-snippet">${this.escapeHtml(params.command)}</pre>
+                        </div>
+                    `;
+                }
+            }
         }
+        html += `</div>`;
 
-        // Event data if present
-        if (data.data && Object.keys(data.data).length > 0) {
-            html += this.formatEventData(data);
-        }
+        // SECONDARY DATA: Collapsible JSON viewer for full event data
+        html += this.createCollapsibleJSON(data, 'Full Event Data');
 
         html += '</div>';
         this.container.innerHTML = html;
@@ -167,48 +195,79 @@ class UnifiedDataViewer {
 
     /**
      * Display agent data with full details
+     * PRIMARY: Agent status, active tools, and key info
+     * SECONDARY: Full agent data in collapsible JSON
      */
     displayAgent(data) {
         const agentIcon = this.getAgentIcon(data.name || data.agentName);
+        const agentName = data.name || data.agentName || 'Unknown Agent';
         const status = this.formatStatus(data.status);
         
         let html = `
             <div class="unified-viewer-header">
-                <h6>${agentIcon} ${data.name || data.agentName || 'Unknown Agent'}</h6>
+                <h6>${agentIcon} ${agentName}</h6>
                 <span class="unified-viewer-status">${status}</span>
             </div>
             <div class="unified-viewer-content">
-                <div class="detail-row">
-                    <span class="detail-label">Status:</span>
-                    <span class="detail-value">${status}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Session ID:</span>
-                    <span class="detail-value">${data.sessionId || data.session_id || 'N/A'}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Timestamp:</span>
-                    <span class="detail-value">${this.formatTimestamp(data.timestamp)}</span>
-                </div>
         `;
 
-        // Tools used by agent
+        // PRIMARY DATA: Key agent information
+        html += `<div class="primary-data">`;
+        
+        // Status with visual indicator
+        html += `
+            <div class="detail-row highlight">
+                <span class="detail-label">Status:</span>
+                <span class="detail-value ${this.formatStatusClass(status)}">${status}</span>
+            </div>
+        `;
+
+        // Tools summary if present
         if (data.tools && data.tools.length > 0) {
+            // Show active tools prominently
+            const activeTools = data.tools.filter(t => t.status === 'in_progress');
+            const completedTools = data.tools.filter(t => t.status === 'completed');
+            
+            if (activeTools.length > 0) {
+                html += `
+                    <div class="active-tools-section">
+                        <span class="section-label">🔄 Active Tools:</span>
+                        <div class="tools-grid">
+                `;
+                activeTools.forEach(tool => {
+                    html += `
+                        <div class="tool-chip active">
+                            ${this.getToolIcon(tool.name)} ${tool.name}
+                        </div>
+                    `;
+                });
+                html += `</div></div>`;
+            }
+            
             html += `
-                <div class="detail-section">
-                    <span class="detail-section-title">Tools Used (${data.tools.length}):</span>
-                    <div class="tools-list">
-                        ${data.tools.map(tool => `
-                            <div class="tool-summary">
-                                <span class="tool-icon">${this.getToolIcon(tool.name)}</span>
-                                <span class="tool-name">${tool.name}</span>
-                                <span class="tool-status ${this.formatStatusClass(tool.status)}">${tool.status}</span>
-                            </div>
-                        `).join('')}
-                    </div>
+                <div class="detail-row">
+                    <span class="detail-label">Tools Summary:</span>
+                    <span class="detail-value">
+                        ${activeTools.length} active, ${completedTools.length} completed, ${data.tools.length} total
+                    </span>
                 </div>
             `;
         }
+
+        // Current task if available
+        if (data.currentTask || data.description) {
+            html += `
+                <div class="detail-row">
+                    <span class="detail-label">Current Task:</span>
+                    <span class="detail-value">${data.currentTask || data.description}</span>
+                </div>
+            `;
+        }
+        
+        html += `</div>`;
+
+        // SECONDARY DATA: Collapsible JSON viewer
+        html += this.createCollapsibleJSON(data, 'Full Agent Details');
 
         html += '</div>';
         this.container.innerHTML = html;
@@ -216,140 +275,181 @@ class UnifiedDataViewer {
 
     /**
      * Display tool data with parameters and results
+     * Special handling for TodoWrite to show todos prominently
      */
     displayTool(data) {
-        const toolIcon = this.getToolIcon(data.name || data.tool_name);
+        const toolName = data.name || data.tool_name || 'Unknown Tool';
+        const toolIcon = this.getToolIcon(toolName);
         const status = this.formatStatus(data.status);
+        
+        // Special handling for TodoWrite tool
+        if (toolName === 'TodoWrite') {
+            this.displayTodoWriteTool(data);
+            return;
+        }
         
         let html = `
             <div class="unified-viewer-header">
-                <h6>${toolIcon} ${data.name || data.tool_name || 'Unknown Tool'}</h6>
+                <h6>${toolIcon} ${toolName}</h6>
                 <span class="unified-viewer-status">${status}</span>
             </div>
             <div class="unified-viewer-content">
-                <div class="detail-row">
-                    <span class="detail-label">Type:</span>
-                    <span class="detail-value">Tool</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Name:</span>
-                    <span class="detail-value">${data.name || data.tool_name || 'Unknown Tool'}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Status:</span>
-                    <span class="detail-value">${status}</span>
-                </div>
         `;
 
-        // Tool parameters
-        if (data.params || data.tool_parameters) {
-            const params = data.params || data.tool_parameters;
-            html += this.formatParameters(params, 'Parameters');
+        // PRIMARY DATA: Show important tool-specific information first
+        const params = data.params || data.tool_parameters || {};
+        
+        // Tool-specific primary data display
+        if (toolName === 'Read' || toolName === 'Edit' || toolName === 'Write') {
+            // File tools - show file path prominently
+            if (params.file_path) {
+                html += `
+                    <div class="primary-data">
+                        <div class="detail-row highlight">
+                            <span class="detail-label">📁 File:</span>
+                            <span class="detail-value code">${params.file_path}</span>
+                        </div>
+                `;
+                if (params.old_string) {
+                    html += `
+                        <div class="detail-row">
+                            <span class="detail-label">Old Text:</span>
+                            <pre class="code-snippet">${this.escapeHtml(params.old_string.substring(0, 200))}${params.old_string.length > 200 ? '...' : ''}</pre>
+                        </div>
+                    `;
+                }
+                if (params.new_string) {
+                    html += `
+                        <div class="detail-row">
+                            <span class="detail-label">New Text:</span>
+                            <pre class="code-snippet">${this.escapeHtml(params.new_string.substring(0, 200))}${params.new_string.length > 200 ? '...' : ''}</pre>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+        } else if (toolName === 'Bash') {
+            // Bash tool - show command prominently
+            if (params.command) {
+                html += `
+                    <div class="primary-data">
+                        <div class="detail-row highlight">
+                            <span class="detail-label">💻 Command:</span>
+                            <pre class="code-snippet">${this.escapeHtml(params.command)}</pre>
+                        </div>
+                    </div>
+                `;
+            }
+        } else if (toolName === 'Grep' || toolName === 'Glob') {
+            // Search tools - show pattern prominently
+            if (params.pattern) {
+                html += `
+                    <div class="primary-data">
+                        <div class="detail-row highlight">
+                            <span class="detail-label">🔍 Pattern:</span>
+                            <span class="detail-value code">${this.escapeHtml(params.pattern)}</span>
+                        </div>
+                `;
+                if (params.path) {
+                    html += `
+                        <div class="detail-row">
+                            <span class="detail-label">Path:</span>
+                            <span class="detail-value">${params.path}</span>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+        } else if (toolName === 'Task') {
+            // Task tool - show delegation info prominently
+            if (params.subagent_type) {
+                html += `
+                    <div class="primary-data">
+                        <div class="detail-row highlight">
+                            <span class="detail-label">🤖 Delegating to:</span>
+                            <span class="detail-value">${params.subagent_type} agent</span>
+                        </div>
+                `;
+                if (params.description) {
+                    html += `
+                        <div class="detail-row">
+                            <span class="detail-label">Task:</span>
+                            <span class="detail-value">${params.description}</span>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
         }
 
-        // Timestamp
-        if (data.timestamp) {
+        // Status and metadata
+        html += `
+            <div class="detail-row">
+                <span class="detail-label">Status:</span>
+                <span class="detail-value">${status}</span>
+            </div>
+        `;
+
+        if (data.callCount) {
             html += `
                 <div class="detail-row">
-                    <span class="detail-label">Timestamp:</span>
-                    <span class="detail-value">${this.formatTimestamp(data.timestamp)}</span>
+                    <span class="detail-label">Call Count:</span>
+                    <span class="detail-value">${data.callCount}</span>
                 </div>
             `;
         }
 
-        // Tool result
-        if (data.result) {
-            html += `
-                <div class="detail-section">
-                    <span class="detail-section-title">Result:</span>
-                    <pre class="tool-result">${this.escapeHtml(JSON.stringify(data.result, null, 2))}</pre>
-                </div>
-            `;
-        }
-
+        // Collapsible JSON viewer for full details
+        html += this.createCollapsibleJSON(data, 'Full Tool Details');
+        
         html += '</div>';
         this.container.innerHTML = html;
     }
 
     /**
-     * Display todo data with checklist formatting
+     * Display TodoWrite tool with todos list prominently after title
      */
-    displayTodo(data) {
-        // Handle different data structures for TodoWrite
-        let todos;
-        let toolName = 'Todo List';
-        let timestamp = null;
-        let status = null;
-        
-        if (data.todos && Array.isArray(data.todos)) {
-            // Direct todo list format
-            todos = data.todos;
-        } else if (data.tool_parameters && data.tool_parameters.todos) {
-            // TodoWrite tool format
-            todos = data.tool_parameters.todos;
-            toolName = 'TodoWrite';
-            timestamp = data.timestamp;
-            status = data.status;
-        } else if (Array.isArray(data)) {
-            // Array of todos
-            todos = data;
-        } else if (data.content && data.activeForm && data.status) {
-            // Single todo item
-            todos = [data];
-        } else {
-            // Fallback
-            todos = [];
-        }
+    displayTodoWriteTool(data) {
+        const status = this.formatStatus(data.status);
+        const params = data.params || data.tool_parameters || {};
+        const todos = params.todos || [];
         
         let html = `
             <div class="unified-viewer-header">
-                <h6>📝 ${toolName}</h6>
-                ${status ? `<span class="unified-viewer-status">${this.formatStatus(status)}</span>` : ''}
+                <h6>📝 TodoWrite</h6>
+                <span class="unified-viewer-status">${status}</span>
             </div>
             <div class="unified-viewer-content">
         `;
 
-        // Show timestamp if available
-        if (timestamp) {
-            html += `
-                <div class="detail-row">
-                    <span class="detail-label">Timestamp:</span>
-                    <span class="detail-value">${this.formatTimestamp(timestamp)}</span>
-                </div>
-            `;
-        }
-
+        // PRIMARY DATA: Todo list and status summary immediately after title
         if (todos.length > 0) {
-            // Status summary with enhanced formatting
             const statusCounts = this.getTodoStatusCounts(todos);
+            
+            // Status summary bar
             html += `
-                <div class="detail-section">
-                    <span class="detail-section-title">Todo Summary</span>
-                    <div class="todo-summary">
-                        <div class="summary-item completed">
-                            <span class="summary-icon">✅</span>
-                            <span class="summary-count">${statusCounts.completed}</span>
-                            <span class="summary-label">Completed</span>
-                        </div>
-                        <div class="summary-item in_progress">
-                            <span class="summary-icon">🔄</span>
-                            <span class="summary-count">${statusCounts.in_progress}</span>
-                            <span class="summary-label">In Progress</span>
-                        </div>
-                        <div class="summary-item pending">
-                            <span class="summary-icon">⏳</span>
-                            <span class="summary-count">${statusCounts.pending}</span>
-                            <span class="summary-label">Pending</span>
-                        </div>
+                <div class="todo-status-bar">
+                    <div class="status-item completed">
+                        <span class="status-icon">✅</span>
+                        <span class="status-count">${statusCounts.completed}</span>
+                        <span class="status-label">Done</span>
+                    </div>
+                    <div class="status-item in_progress">
+                        <span class="status-icon">🔄</span>
+                        <span class="status-count">${statusCounts.in_progress}</span>
+                        <span class="status-label">Active</span>
+                    </div>
+                    <div class="status-item pending">
+                        <span class="status-icon">⏳</span>
+                        <span class="status-count">${statusCounts.pending}</span>
+                        <span class="status-label">Pending</span>
                     </div>
                 </div>
             `;
 
-            // Enhanced todo items display
+            // Todo items list
             html += `
-                <div class="detail-section">
-                    <span class="detail-section-title">Todo List (${todos.length} items)</span>
-                    <div class="todo-checklist">
+                <div class="todo-list-primary">
             `;
             
             todos.forEach((todo, index) => {
@@ -359,20 +459,89 @@ class UnifiedDataViewer {
                 const statusClass = this.formatStatusClass(todo.status);
                 
                 html += `
-                    <div class="todo-checklist-item ${todo.status}">
-                        <div class="todo-checkbox">
-                            <span class="checkbox-icon ${statusClass}">${statusIcon}</span>
-                        </div>
-                        <div class="todo-text">
-                            <span class="todo-content">${this.escapeHtml(displayText)}</span>
-                            <span class="todo-status-badge ${statusClass}">${todo.status.replace('_', ' ')}</span>
-                        </div>
+                    <div class="todo-item ${todo.status}">
+                        <span class="todo-icon ${statusClass}">${statusIcon}</span>
+                        <span class="todo-text">${this.escapeHtml(displayText)}</span>
+                        ${todo.status === 'in_progress' ? '<span class="todo-badge active">ACTIVE</span>' : ''}
                     </div>
                 `;
             });
             
             html += `
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="detail-row">
+                    <span class="detail-value">No todos in list</span>
+                </div>
+            `;
+        }
+
+        // Metadata section
+        if (data.callCount && data.callCount > 1) {
+            html += `
+                <div class="detail-row">
+                    <span class="detail-label">Updates:</span>
+                    <span class="detail-value">${data.callCount}</span>
+                </div>
+            `;
+        }
+
+        // Collapsible JSON viewer for full details
+        html += this.createCollapsibleJSON(data, 'Full Details');
+        
+        html += '</div>';
+        this.container.innerHTML = html;
+    }
+
+    /**
+     * Display todo data with checklist formatting (for standalone todos, not TodoWrite)
+     */
+    displayTodo(data) {
+        // Handle different data structures for standalone todos
+        let todos;
+        let toolName = 'Todo List';
+        
+        if (data.todos && Array.isArray(data.todos)) {
+            todos = data.todos;
+        } else if (Array.isArray(data)) {
+            todos = data;
+        } else if (data.content && data.activeForm && data.status) {
+            todos = [data];
+        } else {
+            todos = [];
+        }
+        
+        let html = `
+            <div class="unified-viewer-header">
+                <h6>📋 ${toolName}</h6>
+            </div>
+            <div class="unified-viewer-content">
+        `;
+
+        if (todos.length > 0) {
+            // Show todos immediately
+            html += `
+                <div class="todo-list-primary">
+            `;
+            
+            todos.forEach((todo) => {
+                const statusIcon = this.getCheckboxIcon(todo.status);
+                const displayText = todo.status === 'in_progress' ? 
+                    (todo.activeForm || todo.content) : todo.content;
+                const statusClass = this.formatStatusClass(todo.status);
+                
+                html += `
+                    <div class="todo-item ${todo.status}">
+                        <span class="todo-icon ${statusClass}">${statusIcon}</span>
+                        <span class="todo-text">${this.escapeHtml(displayText)}</span>
+                        <span class="todo-status-text ${statusClass}">${todo.status.replace('_', ' ')}</span>
                     </div>
+                `;
+            });
+            
+            html += `
                 </div>
             `;
         } else {
@@ -389,6 +558,8 @@ class UnifiedDataViewer {
 
     /**
      * Display instruction data
+     * PRIMARY: Instruction text prominently displayed
+     * SECONDARY: Metadata in collapsible section
      */
     displayInstruction(data) {
         let html = `
@@ -397,16 +568,27 @@ class UnifiedDataViewer {
                 <span class="unified-viewer-timestamp">${this.formatTimestamp(data.timestamp)}</span>
             </div>
             <div class="unified-viewer-content">
-                <div class="detail-row">
-                    <span class="detail-label">Content:</span>
-                    <div class="detail-value instruction-text">${this.escapeHtml(data.text)}</div>
+        `;
+        
+        // PRIMARY DATA: The instruction text itself
+        html += `
+            <div class="primary-data">
+                <div class="instruction-content">
+                    ${this.escapeHtml(data.text)}
                 </div>
-                <div class="detail-row">
-                    <span class="detail-label">Length:</span>
-                    <span class="detail-value">${data.text.length} characters</span>
+                <div class="instruction-meta">
+                    <span class="meta-item">📏 ${data.text.length} characters</span>
+                    <span class="meta-item">🕐 ${this.formatTimestamp(data.timestamp)}</span>
                 </div>
             </div>
         `;
+
+        // SECONDARY DATA: Full instruction object if there's more data
+        if (Object.keys(data).length > 3) {
+            html += this.createCollapsibleJSON(data, 'Full Instruction Data');
+        }
+        
+        html += '</div>';
         this.container.innerHTML = html;
     }
 
@@ -1021,6 +1203,69 @@ class UnifiedDataViewer {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    /**
+     * Create a collapsible JSON viewer for secondary details
+     * Provides a clean way to show full data without cluttering the main view
+     */
+    createCollapsibleJSON(data, title = 'Full Details') {
+        // Generate unique ID for this collapsible section
+        const sectionId = `json-details-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Filter out sensitive or overly verbose properties
+        const cleanData = this.cleanDataForDisplay(data);
+        
+        return `
+            <div class="collapsible-json-section">
+                <button class="collapsible-json-toggle" onclick="
+                    const content = document.getElementById('${sectionId}');
+                    const button = this;
+                    if (content.style.display === 'none' || content.style.display === '') {
+                        content.style.display = 'block';
+                        button.classList.add('expanded');
+                        button.innerHTML = '▼ ${title}';
+                    } else {
+                        content.style.display = 'none';
+                        button.classList.remove('expanded');
+                        button.innerHTML = '▶ ${title}';
+                    }
+                ">▶ ${title}</button>
+                <div id="${sectionId}" class="collapsible-json-content" style="display: none;">
+                    <pre class="json-viewer">${this.escapeHtml(JSON.stringify(cleanData, null, 2))}</pre>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Clean data for display in JSON viewer
+     * Removes circular references and limits string lengths
+     */
+    cleanDataForDisplay(data) {
+        const seen = new WeakSet();
+        
+        return JSON.parse(JSON.stringify(data, (key, value) => {
+            // Handle circular references
+            if (typeof value === 'object' && value !== null) {
+                if (seen.has(value)) {
+                    return '[Circular Reference]';
+                }
+                seen.add(value);
+            }
+            
+            // Truncate very long strings
+            if (typeof value === 'string' && value.length > 1000) {
+                return value.substring(0, 1000) + '... [truncated]';
+            }
+            
+            // Handle functions
+            if (typeof value === 'function') {
+                return '[Function]';
+            }
+            
+            return value;
+        }));
     }
 
     // ==================== PUBLIC API METHODS ====================

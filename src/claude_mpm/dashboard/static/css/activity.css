@@ -1684,3 +1684,255 @@ body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree
     margin-left: 5px;
     font-weight: 600;
 }
+
+/* ==================== IMPROVED DATA VIEWER STYLES ==================== */
+
+/* Primary data section for important information */
+.primary-data {
+    padding: 10px 0;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 15px;
+}
+
+.primary-data .detail-row.highlight {
+    background: rgba(59, 130, 246, 0.05);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 5px 0;
+    font-weight: 500;
+}
+
+.primary-data .code {
+    font-family: 'Monaco', 'Courier New', monospace;
+    background: #1e293b;
+    color: #94a3b8;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+/* TodoWrite specific styles */
+.todo-status-bar {
+    display: flex;
+    gap: 20px;
+    padding: 12px;
+    background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.todo-status-bar .status-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.todo-status-bar .status-icon {
+    font-size: 1.2em;
+}
+
+.todo-status-bar .status-count {
+    font-size: 1.4em;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.todo-status-bar .status-label {
+    color: #64748b;
+    font-size: 0.9em;
+}
+
+/* Todo list primary display */
+.todo-list-primary {
+    padding: 10px 0;
+}
+
+.todo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin: 5px 0;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.todo-item:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.todo-item.completed {
+    opacity: 0.7;
+    background: #f8fafc;
+}
+
+.todo-item.completed .todo-text {
+    text-decoration: line-through;
+    color: #94a3b8;
+}
+
+.todo-item.in_progress {
+    background: linear-gradient(90deg, rgba(251, 146, 60, 0.1) 0%, white 100%);
+    border-color: #fb923c;
+}
+
+.todo-item .todo-icon {
+    font-size: 1.2em;
+    flex-shrink: 0;
+}
+
+.todo-item .todo-text {
+    flex-grow: 1;
+    font-size: 0.95em;
+    color: #334155;
+}
+
+.todo-item .todo-badge.active {
+    background: #fb923c;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+    text-transform: uppercase;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Tool display improvements */
+.tool-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 15px;
+    font-size: 0.9em;
+    margin: 2px;
+}
+
+.tool-chip.active {
+    background: linear-gradient(90deg, #fef3c7 0%, #fed7aa 100%);
+    border-color: #fb923c;
+    font-weight: 500;
+}
+
+.tools-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.active-tools-section {
+    margin: 10px 0;
+    padding: 10px;
+    background: rgba(251, 146, 60, 0.05);
+    border-radius: 6px;
+}
+
+.active-tools-section .section-label {
+    font-weight: 600;
+    color: #ea580c;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* Instruction display */
+.instruction-content {
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #3b82f6;
+    font-size: 0.95em;
+    line-height: 1.6;
+    color: #1e293b;
+    margin-bottom: 10px;
+}
+
+.instruction-meta {
+    display: flex;
+    gap: 15px;
+    padding: 8px 0;
+    color: #64748b;
+    font-size: 0.85em;
+}
+
+.instruction-meta .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Collapsible JSON viewer */
+.collapsible-json-section {
+    margin-top: 15px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 10px;
+}
+
+.collapsible-json-toggle {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: #475569;
+    transition: all 0.2s ease;
+    width: auto;
+    display: inline-block;
+}
+
+.collapsible-json-toggle:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.collapsible-json-toggle.expanded {
+    background: #e0e7ff;
+    border-color: #818cf8;
+    color: #4338ca;
+}
+
+.collapsible-json-content {
+    margin-top: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.json-viewer {
+    background: #1e293b;
+    color: #94a3b8;
+    padding: 12px;
+    border-radius: 6px;
+    font-family: 'Monaco', 'Courier New', monospace;
+    font-size: 0.85em;
+    line-height: 1.4;
+    overflow-x: auto;
+}
+
+/* Code snippets in viewers */
+.code-snippet {
+    background: #1e293b;
+    color: #94a3b8;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Courier New', monospace;
+    font-size: 0.9em;
+    margin: 5px 0;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+/* Animation for active items */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
