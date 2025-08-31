@@ -42,7 +42,8 @@ export default defineConfig({
         'components/hud-library-loader': resolve(__dirname, 'src/claude_mpm/dashboard/static/js/components/hud-library-loader.js'),
         'components/activity-tree': resolve(__dirname, 'src/claude_mpm/dashboard/static/js/components/activity-tree.js'),
         'components/code-tree': resolve(__dirname, 'src/claude_mpm/dashboard/static/js/components/code-tree.js'),
-        'components/code-viewer': resolve(__dirname, 'src/claude_mpm/dashboard/static/js/components/code-viewer.js')
+        'components/code-viewer': resolve(__dirname, 'src/claude_mpm/dashboard/static/js/components/code-viewer.js'),
+        'components/unified-data-viewer': resolve(__dirname, 'src/claude_mpm/dashboard/static/js/components/unified-data-viewer.js')
       },
 
       // Output configuration

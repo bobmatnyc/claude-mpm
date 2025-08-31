@@ -17,6 +17,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.1.25] - 2025-08-31
+
+### Fixed
+- **Dashboard Performance**: Resolved "page not responding" issue
+  - Fixed infinite loop in session filter initialization
+  - Added retry counter to prevent infinite retry attempts
+  - Improved error handling with graceful component failure recovery
+
+- **Code Explorer**: Fixed directory traversal showing empty directories
+  - Added missing .mjs and .cjs extensions to CODE_EXTENSIONS
+  - Directories with JavaScript modules now display correctly
+
+### Changed
+- **Files Pane**: Removed git tracking functionality
+  - Simplified to focus on file viewing and diff capabilities
+  - Integrated UnifiedDataViewer for consistent display
+  - Removed dependency on git status tracking
+
+- **Data Viewers**: Consolidated all viewers using UnifiedDataViewer
+  - Activity viewer now serves as the base for all data display
+  - Consistent interface across all viewer components
+  - Improved maintainability with single source of truth
+
 ## [4.1.24] - 2025-08-31
 
 ### Changed

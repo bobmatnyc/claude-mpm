@@ -24,6 +24,7 @@ class ActivityTree {
         this.expandedAgents = new Set();
         this.expandedTools = new Set();
         this.selectedItem = null;
+        this.sessionFilterInitialized = false; // Flag to prevent initialization loop
         
         // Add debounce for renderTree to prevent excessive DOM rebuilds
         this.renderTreeDebounced = this.debounce(() => this.renderTree(), 100);
@@ -150,13 +151,14 @@ class ActivityTree {
             this.renderTree();
         });
 
-        // Initialize with current session filter from SessionManager
+        // Initialize with current session filter from SessionManager (prevent loop)
         setTimeout(() => {
-            if (window.sessionManager) {
+            if (window.sessionManager && !this.sessionFilterInitialized) {
                 const currentFilter = window.sessionManager.getCurrentFilter();
                 if (currentFilter !== this.selectedSessionFilter) {
                     this.selectedSessionFilter = currentFilter || 'all';
                     console.log(`ActivityTree: Initialized with current session filter: ${this.selectedSessionFilter}`);
+                    this.sessionFilterInitialized = true; // Prevent re-initialization
                     this.renderTree();
                 }
             }

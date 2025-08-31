@@ -62,7 +62,13 @@ class UnifiedDataViewer {
                 this.displaySession(data);
                 break;
             case 'file_operation':
-                this.displayFileOperation(data);
+                // Convert file tool to file operation format if needed
+                if (data.name && (data.params || data.tool_parameters)) {
+                    const convertedData = this.convertToolToFileOperation(data);
+                    this.displayFileOperation(convertedData);
+                } else {
+                    this.displayFileOperation(data);
+                }
                 break;
             case 'hook':
                 this.displayHook(data);
@@ -121,6 +127,14 @@ class UnifiedDataViewer {
 
         // File operation detection
         if (data.file_path && (data.operations || data.operation)) {
+            return 'file_operation';
+        }
+
+        // File tool detection - handle file tools as file operations when they have file_path
+        if ((data.name === 'Read' || data.name === 'Write' || data.name === 'Edit' || 
+             data.name === 'MultiEdit' || data.name === 'Grep' || data.name === 'Glob') &&
+            (data.params?.file_path || data.tool_parameters?.file_path)) {
+            // Convert file tool to file operation format for better display
             return 'file_operation';
         }
 
@@ -632,36 +646,63 @@ class UnifiedDataViewer {
     }
 
     /**
-     * Display file operation data
+     * Display file operation data with file viewing capabilities
      */
     displayFileOperation(data) {
+        const fileName = data.file_path ? data.file_path.split('/').pop() : 'Unknown File';
+        
         let html = `
             <div class="unified-viewer-header">
-                <h6>📄 File: ${data.file_path}</h6>
+                <h6>📄 File: ${fileName}</h6>
                 <span class="unified-viewer-count">${data.operations ? data.operations.length : 1} operation${data.operations && data.operations.length !== 1 ? 's' : ''}</span>
             </div>
             <div class="unified-viewer-content">
-                <div class="detail-row">
-                    <span class="detail-label">File Path:</span>
-                    <span class="detail-value">${data.file_path}</span>
-                </div>
+                <div class="primary-data">
+                    <div class="detail-row highlight">
+                        <span class="detail-label">📁 File Path:</span>
+                        <span class="detail-value code">${data.file_path}</span>
+                    </div>
         `;
+
+        // Add file viewing button for tracked files
+        if (data.file_path) {
+            html += `
+                <div class="file-actions">
+                    <button class="file-action-btn view-file-btn" 
+                            onclick="window.showFileViewerModal && window.showFileViewerModal('${data.file_path}')"
+                            title="View file contents with syntax highlighting">
+                        👁️ View File Contents
+                    </button>
+                </div>
+            `;
+        }
+
+        html += `</div>`;
 
         if (data.operations && Array.isArray(data.operations)) {
             html += `
                 <div class="detail-section">
-                    <span class="detail-section-title">Operations:</span>
+                    <span class="detail-section-title">Operations (${data.operations.length}):</span>
                     <div class="operations-list">
-                        ${data.operations.map(op => `
+                        ${data.operations.map((op, index) => `
                             <div class="operation-item">
-                                <span class="operation-type">${op.operation}</span>
-                                <span class="operation-timestamp">${this.formatTimestamp(op.timestamp)}</span>
+                                <div class="operation-header">
+                                    <span class="operation-type">${this.getOperationIcon(op.operation)} ${op.operation}</span>
+                                    <span class="operation-timestamp">${this.formatTimestamp(op.timestamp)}</span>
+                                </div>
+                                <div class="operation-details">
+                                    <span class="operation-agent">by ${op.agent || 'Unknown'}</span>
+                                    ${op.workingDirectory ? `<span class="operation-dir">in ${op.workingDirectory}</span>` : ''}
+                                </div>
                             </div>
                         `).join('')}
                     </div>
                 </div>
             `;
         }
+
+        // Add collapsible JSON viewer for full file data
+        html += this.createCollapsibleJSON(data, 'Full File Data');
 
         html += '</div>';
         this.container.innerHTML = html;
@@ -1165,6 +1206,58 @@ class UnifiedDataViewer {
             'completed': '✅'
         };
         return icons[status] || '❓';
+    }
+
+    /**
+     * Get icon for file operation type
+     */
+    getOperationIcon(operation) {
+        const icons = {
+            'read': '👁️',
+            'write': '✍️',
+            'edit': '✏️',
+            'delete': '🗑️',
+            'create': '📝',
+            'search': '🔍',
+            'list': '📂',
+            'copy': '📋',
+            'move': '📦',
+            'bash': '💻'
+        };
+        return icons[operation.toLowerCase()] || '📄';
+    }
+
+    /**
+     * Convert tool data to file operation format for better display
+     */
+    convertToolToFileOperation(toolData) {
+        const params = toolData.params || toolData.tool_parameters || {};
+        const filePath = params.file_path || params.path || params.notebook_path;
+        
+        if (!filePath) {
+            return toolData; // Return original if no file path
+        }
+
+        // Create file operation format
+        const operation = {
+            operation: toolData.name.toLowerCase(),
+            timestamp: toolData.timestamp || new Date().toISOString(),
+            agent: 'Activity Tool',
+            sessionId: toolData.sessionId || 'unknown',
+            details: {
+                parameters: params,
+                tool_name: toolData.name,
+                status: toolData.status || 'completed'
+            }
+        };
+
+        return {
+            file_path: filePath,
+            operations: [operation],
+            lastOperation: operation.timestamp,
+            // Preserve original tool data for reference
+            originalTool: toolData
+        };
     }
 
     /**
