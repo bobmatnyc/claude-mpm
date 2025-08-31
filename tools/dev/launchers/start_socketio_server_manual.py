@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 
 print("Starting Socket.IO server on port 8765...")
 server = SocketIOServer(host="localhost", port=8765)
-server.start()
+server.start_sync()
 
 print("Server started. Press Ctrl+C to stop.")
 try:

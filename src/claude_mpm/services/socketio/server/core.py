@@ -195,6 +195,9 @@ class SocketIOServerCore:
             # Setup HTTP API endpoints for receiving events from hook handlers
             self._setup_http_api()
 
+            # Setup simple directory API
+            self._setup_directory_api()
+
             # Find and serve static files
             self._setup_static_files()
 
@@ -390,6 +393,19 @@ class SocketIOServerCore:
         self.app.router.add_post("/api/events", api_events_handler)
         self.logger.info("✅ HTTP API endpoint registered at /api/events")
 
+    def _setup_directory_api(self):
+        """Setup simple directory listing API.
+        
+        WHY: Provides a dead-simple way to list directory contents via HTTP GET
+        without complex WebSocket interactions.
+        """
+        try:
+            from claude_mpm.dashboard.api.simple_directory import register_routes
+            register_routes(self.app)
+            self.logger.info("✅ Simple directory API registered at /api/directory/list")
+        except Exception as e:
+            self.logger.error(f"Failed to setup directory API: {e}")
+
     def _setup_static_files(self):
         """Setup static file serving for the dashboard."""
         try:
@@ -439,6 +455,24 @@ class SocketIOServerCore:
                     return await index_handler(request)
 
                 self.app.router.add_get("/dashboard", dashboard_handler)
+
+                # Serve simple code view template at /code-simple
+                async def code_simple_handler(request):
+                    code_simple_template = (
+                        self.dashboard_path.parent / "templates" / "code_simple.html"
+                    )
+                    if code_simple_template.exists():
+                        self.logger.debug(
+                            f"Serving code simple template from: {code_simple_template}"
+                        )
+                        return web.FileResponse(code_simple_template)
+                    # Return error if template doesn't exist
+                    self.logger.warning(
+                        f"Code simple template not found at: {code_simple_template}"
+                    )
+                    return web.Response(text="Simple code view not available", status=404)
+
+                self.app.router.add_get("/code-simple", code_simple_handler)
 
                 # Serve version.json from dashboard directory
                 async def version_handler(request):
