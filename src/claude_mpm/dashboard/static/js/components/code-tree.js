@@ -1164,6 +1164,15 @@ class CodeTree {
      * Handle directory discovered event
      */
     onDirectoryDiscovered(data) {
+        // CRITICAL DEBUG: Log raw data received
+        console.log('🔴 [RAW DATA] Exact data received from backend:', data);
+        console.log('🔴 [RAW DATA] Data type:', typeof data);
+        console.log('🔴 [RAW DATA] Data keys:', Object.keys(data));
+        console.log('🔴 [RAW DATA] Children field:', data.children);
+        console.log('🔴 [RAW DATA] Children type:', typeof data.children);
+        console.log('🔴 [RAW DATA] Is children array?:', Array.isArray(data.children));
+        console.log('🔴 [RAW DATA] Children length:', data.children ? data.children.length : 'undefined');
+        
         // Update activity ticker first
         this.updateActivityTicker(`📁 Discovered: ${data.name || 'directory'}`);
         
