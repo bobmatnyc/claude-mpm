@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.1.29] - 2025-08-31
+
+### Fixed
+- **Code Explorer**: Prevented duplicate empty directory events
+  - Commented out emit_directory_discovered call that was sending empty children array
+  - Fixed Socket.IO handler to pass emit_events=False to prevent stdout emitter creation
+  - Eliminates conflicting directory discovered events being sent to frontend
+  - Frontend now properly receives directory contents from backend
+
 ## [4.1.28] - 2025-08-31
 
 ### Fixed
