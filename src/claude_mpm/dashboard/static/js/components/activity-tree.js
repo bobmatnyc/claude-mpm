@@ -223,7 +223,6 @@ class ActivityTree {
                         userInstructions: [],
                         tools: [],
                         toolsMap: new Map(),
-                        todoWritesMap: new Map(),
                         status: 'active',
                         currentTodoTool: null,
                         // Preserve additional session metadata
@@ -285,7 +284,6 @@ class ActivityTree {
                         userInstructions: [],
                         tools: [],
                         toolsMap: new Map(),
-                        todoWritesMap: new Map(),
                         status: 'active',
                         currentTodoTool: null,
                         working_directory: sessionData.working_directory,
@@ -382,7 +380,8 @@ class ActivityTree {
                 this.processUserInstruction(event, session);
                 break;
             case 'TodoWrite':
-                this.processTodoWrite(event, session);
+                // TodoWrite is now handled as a tool in 'tool_use' events
+                // Skip separate TodoWrite processing to avoid duplication
                 break;
             case 'SubagentStart':
                 this.processSubagentStart(event, session);
@@ -639,14 +638,12 @@ class ActivityTree {
                 timestamp: event.timestamp,
                 status: 'active',
                 tools: [],
-                todoWrites: [],  // Store TodoWrite instances
                 subagents: new Map(),  // Store nested subagents
                 sessionId: agentSessionId,
                 parentAgent: parentAgent,
                 isPM: agentName.toLowerCase() === 'pm' || agentName.toLowerCase().includes('project manager'),
                 instanceCount: 1,
-                toolsMap: new Map(), // Track unique tools by name
-                todoWritesMap: new Map() // Track unique TodoWrites
+                toolsMap: new Map() // Track unique tools by name
             };
             
             // If this is a subagent, nest it under the parent agent
@@ -832,31 +829,32 @@ class ActivityTree {
      * Tools are unique per name + certain parameter combinations
      */
     getToolKey(toolName, params) {
-        // For TodoWrite, each instance is unique (don't merge)
+        // For TodoWrite, we want ONE instance per agent/PM that updates in place
+        // So we use just the tool name as the key
         if (toolName === 'TodoWrite') {
-            return `${toolName}-${Date.now()}-${Math.random()}`;
+            return 'TodoWrite';  // Single instance per agent/PM
         }
         
-        // For other tools, use tool name + key params for uniqueness
-        // This allows updating the same logical tool instance
+        // For other tools, we generally want one instance per tool type
+        // that gets updated with each call (not creating new instances)
         let key = toolName;
         
-        // Add file path for file-based tools
-        if (params.file_path) {
-            key += `-${params.file_path}`;
+        // Only add distinguishing params if we need multiple instances
+        // For example, multiple files being edited simultaneously
+        if (toolName === 'Edit' || toolName === 'Write' || toolName === 'Read') {
+            if (params.file_path) {
+                key += `-${params.file_path}`;
+            }
         }
         
-        // Add command for Bash tool
-        if (toolName === 'Bash' && params.command) {
-            // Use first 50 chars of command for key
-            key += `-${params.command.substring(0, 50)}`;
-        }
-        
-        // Add pattern for search tools
+        // For search tools, we might want separate instances for different searches
         if ((toolName === 'Grep' || toolName === 'Glob') && params.pattern) {
-            key += `-${params.pattern}`;
+            // Only add pattern if significantly different
+            key += `-${params.pattern.substring(0, 20)}`;
         }
         
+        // Most tools should have a single instance that updates
+        // This prevents the tool list from growing unbounded
         return key;
     }
 
@@ -865,7 +863,11 @@ class ActivityTree {
      */
     updateToolStatus(event, session, status) {
         const toolName = event.tool_name || event.data?.tool_name || event.tool || 'unknown';
+        const params = event.tool_parameters || event.data?.tool_parameters || event.parameters || event.data?.parameters || {};
         const agentSessionId = event.session_id || event.data?.session_id;
+        
+        // Generate the same key we used to store the tool
+        const toolKey = this.getToolKey(toolName, params);
         
         // Find the appropriate agent
         let targetAgent = session.currentActiveAgent;
@@ -877,7 +879,7 @@ class ActivityTree {
         }
         
         if (targetAgent && targetAgent.toolsMap) {
-            const tool = targetAgent.toolsMap.get(toolName);
+            const tool = targetAgent.toolsMap.get(toolKey);
             if (tool) {
                 tool.status = status;
                 tool.completedAt = event.timestamp;
@@ -893,7 +895,7 @@ class ActivityTree {
         
         // Check session-level tools
         if (session.toolsMap) {
-            const tool = session.toolsMap.get(toolName);
+            const tool = session.toolsMap.get(toolKey);
             if (tool) {
                 tool.status = status;
                 tool.completedAt = event.timestamp;
@@ -907,7 +909,7 @@ class ActivityTree {
             }
         }
         
-        console.log(`ActivityTree: Could not find tool to update status for ${toolName} (event ${event.id})`);
+        console.log(`ActivityTree: Could not find tool to update status for ${toolName} with key ${toolKey} (event ${event.id})`);
     }
 
     /**
@@ -1116,10 +1118,9 @@ class ActivityTree {
     renderAgentElement(agent, level) {
         const statusClass = agent.status === 'active' ? 'status-active' : 'status-completed';
         const isExpanded = this.expandedAgents.has(agent.id);
-        const hasTodoWrites = agent.todoWrites && agent.todoWrites.length > 0;
         const hasTools = agent.tools && agent.tools.length > 0;
         const hasSubagents = agent.subagents && agent.subagents.size > 0;
-        const hasContent = hasTodoWrites || hasTools || hasSubagents;
+        const hasContent = hasTools || hasSubagents;
         const isSelected = this.selectedItem && this.selectedItem.type === 'agent' && this.selectedItem.data.id === agent.id;
         
         const expandIcon = hasContent ? (isExpanded ? '▼' : '▶') : '';
