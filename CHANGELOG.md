@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.1.26] - 2025-08-31
+
+### Fixed
+- **Code Explorer**: Fixed "Empty directory: src" issue
+  - Fixed `has_code_files` method to properly skip .egg-info directories during recursion
+  - The method now correctly detects Python files in subdirectories like src/claude_mpm
+  - Directories with code only in subdirectories are now properly included
+
 ## [4.1.25] - 2025-08-31
 
 ### Fixed
