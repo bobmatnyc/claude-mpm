@@ -1361,8 +1361,11 @@ class CodeTreeAnalyzer:
                     }
                     result["children"].append(child)
 
-                    if self.emitter:
-                        self.emitter.emit_directory_discovered(path_str, [])
+                    # Don't emit directory discovered event here with empty children
+                    # The actual discovery will happen when the directory is clicked
+                    # This prevents confusing the frontend with empty directory events
+                    # if self.emitter:
+                    #     self.emitter.emit_directory_discovered(path_str, [])
 
                 elif item.is_file():
                     # Check if it's a supported code file or a special file we want to show

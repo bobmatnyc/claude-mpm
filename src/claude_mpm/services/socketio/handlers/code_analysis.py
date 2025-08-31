@@ -266,7 +266,9 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 emitter.emit = socket_emit
                 # Initialize CodeTreeAnalyzer with emitter keyword argument
                 self.logger.info("Creating CodeTreeAnalyzer")
-                self.code_analyzer = CodeTreeAnalyzer(emitter=emitter)
+                # Pass emit_events=False to prevent duplicate events from the analyzer
+                # The emitter will still work but the analyzer won't create its own stdout emitter
+                self.code_analyzer = CodeTreeAnalyzer(emit_events=False, emitter=emitter)
 
             # Use the provided path as-is - the frontend sends the absolute path
             # Make sure we're using an absolute path
@@ -452,7 +454,9 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 emitter.emit = socket_emit
                 # Initialize CodeTreeAnalyzer with emitter keyword argument
                 self.logger.info("Creating CodeTreeAnalyzer")
-                self.code_analyzer = CodeTreeAnalyzer(emitter=emitter)
+                # Pass emit_events=False to prevent duplicate events from the analyzer
+                # The emitter will still work but the analyzer won't create its own stdout emitter
+                self.code_analyzer = CodeTreeAnalyzer(emit_events=False, emitter=emitter)
 
             # Discover directory
             result = self.code_analyzer.discover_directory(path, ignore_patterns)
@@ -464,23 +468,31 @@ class CodeAnalysisEventHandler(BaseEventHandler):
             self.logger.debug(f"Full result: {result}")
             
             # DEBUG: Log exact children being sent
-            if result.get('children'):
-                self.logger.info(f"Children being sent: {[child.get('name') for child in result.get('children', [])]}")
+            children = result.get('children', [])
+            if children:
+                self.logger.info(f"Children being sent: {[child.get('name') for child in children]}")
+                self.logger.info(f"Full children data: {children}")
             else:
                 self.logger.warning(f"No children found for {path}")
+
+            # Prepare the response data
+            response_data = {
+                "request_id": request_id,
+                "path": path,  # Absolute path as requested
+                "name": Path(path).name,  # Just the directory name for display
+                "type": result.get("type", "directory"),
+                "children": children,  # Send children array directly
+            }
+            
+            # Log the exact data being sent
+            self.logger.info(f"Sending response data: {response_data}")
 
             # Send result with correct event name (using colons, not dots!)
             # Include both absolute path and relative name for frontend compatibility
             # IMPORTANT: Don't use **result as it overwrites path and name
             await self.server.core.sio.emit(
                 "code:directory:discovered",
-                {
-                    "request_id": request_id,
-                    "path": path,  # Absolute path as requested
-                    "name": Path(path).name,  # Just the directory name for display
-                    "type": result.get("type", "directory"),
-                    "children": result.get("children", []),  # Send children array directly
-                },
+                response_data,
                 room=sid,
             )
 
@@ -600,7 +612,9 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 emitter.emit = socket_emit
                 # Initialize CodeTreeAnalyzer with emitter keyword argument
                 self.logger.info("Creating CodeTreeAnalyzer")
-                self.code_analyzer = CodeTreeAnalyzer(emitter=emitter)
+                # Pass emit_events=False to prevent duplicate events from the analyzer
+                # The emitter will still work but the analyzer won't create its own stdout emitter
+                self.code_analyzer = CodeTreeAnalyzer(emit_events=False, emitter=emitter)
 
             # Analyze file
             result = self.code_analyzer.analyze_file(path)
