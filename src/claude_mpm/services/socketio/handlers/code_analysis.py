@@ -484,8 +484,10 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 "children": children,  # Send children array directly
             }
             
-            # Log the exact data being sent
-            self.logger.info(f"Sending response data: {response_data}")
+            # CRITICAL DEBUG: Log exact JSON that will be sent
+            import json
+            self.logger.info(f"Sending response data (JSON): {json.dumps(response_data, indent=2)}")
+            self.logger.info(f"Children count in response: {len(response_data.get('children', []))}")
 
             # Send result with correct event name (using colons, not dots!)
             # Include both absolute path and relative name for frontend compatibility
