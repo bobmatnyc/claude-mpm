@@ -1741,6 +1741,26 @@ body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree
     font-size: 0.9em;
 }
 
+/* Horizontal status line for TodoWrite */
+.todo-status-line {
+    display: flex;
+    gap: 20px;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    font-size: 0.95em;
+    border: 1px solid #e2e8f0;
+}
+
+.todo-status-line .status-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+    color: #475569;
+}
+
 /* Todo list primary display */
 .todo-list-primary {
     padding: 10px 0;
