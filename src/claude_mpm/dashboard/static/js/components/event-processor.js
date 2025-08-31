@@ -26,10 +26,6 @@ class EventProcessor {
         // Session filtering
         this.selectedSessionId = null;
 
-        // Git tracking status cache
-        this.fileTrackingCache = new Map(); // file_path -> {is_tracked: boolean, timestamp: number}
-        this.trackingCheckTimeout = 30000; // Cache for 30 seconds
-
         console.log('Event processor initialized');
     }
 
@@ -502,110 +498,7 @@ class EventProcessor {
         return this.applyFilesFilters(fileOperations);
     }
 
-    /**
-     * Check if a file is tracked by git (with caching)
-     * @param {string} filePath - Path to the file
-     * @param {string} workingDir - Working directory
-     * @returns {Promise<boolean>} - Promise resolving to tracking status
-     */
-    async isFileTracked(filePath, workingDir) {
-        const cacheKey = `${workingDir}:${filePath}`;
-        const now = Date.now();
 
-        // Check cache first
-        const cached = this.fileTrackingCache.get(cacheKey);
-        if (cached && (now - cached.timestamp) < this.trackingCheckTimeout) {
-            return cached.is_tracked;
-        }
-
-        try {
-            // Use the socketio connection to check tracking status
-            const socket = window.socket;
-            if (!socket) {
-                console.warn('No socket connection available for git tracking check');
-                return false;
-            }
-
-            return new Promise((resolve) => {
-                // Set up one-time listener for response
-                const responseHandler = (data) => {
-                    if (data.file_path === filePath) {
-                        const isTracked = data.success && data.is_tracked;
-
-                        // Cache the result
-                        this.fileTrackingCache.set(cacheKey, {
-                            is_tracked: isTracked,
-                            timestamp: now
-                        });
-
-                        socket.off('file_tracked_response', responseHandler);
-                        resolve(isTracked);
-                    }
-                };
-
-                socket.on('file_tracked_response', responseHandler);
-
-                // Send request
-                socket.emit('check_file_tracked', {
-                    file_path: filePath,
-                    working_dir: workingDir
-                });
-
-                // Timeout after 5 seconds
-                setTimeout(() => {
-                    socket.off('file_tracked_response', responseHandler);
-                    resolve(false); // Default to not tracked on timeout
-                }, 5000);
-            });
-
-        } catch (error) {
-            console.error('Error checking file tracking status:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Generate git diff icon with tracking status
-     * @param {string} filePath - Path to the file
-     * @param {string} timestamp - Operation timestamp
-     * @param {string} workingDir - Working directory
-     * @returns {string} - HTML for git diff icon
-     */
-    generateGitDiffIcon(filePath, timestamp, workingDir) {
-        const iconId = `git-icon-${filePath.replace(/[^a-zA-Z0-9]/g, '-')}-${timestamp}`;
-
-        // Initially show default icon
-        const iconHtml = `
-            <span id="${iconId}" class="git-diff-icon"
-                  onclick="event.stopPropagation(); showGitDiffModal('${filePath}', '${timestamp}')"
-                  title="View git diff for this file operation"
-                  style="margin-left: 8px; cursor: pointer; font-size: 16px;">
-                📋
-            </span>
-        `;
-
-        // Asynchronously check tracking status and update icon
-        this.isFileTracked(filePath, workingDir).then(isTracked => {
-            const iconElement = document.getElementById(iconId);
-            if (iconElement) {
-                if (!isTracked) {
-                    // File is not tracked - show crossed out icon
-                    iconElement.innerHTML = '📋❌';
-                    iconElement.title = 'File not tracked by git - click to see details';
-                    iconElement.classList.add('untracked-file');
-                } else {
-                    // File is tracked - keep normal icon
-                    iconElement.innerHTML = '📋';
-                    iconElement.title = 'View git diff for this file operation';
-                    iconElement.classList.add('tracked-file');
-                }
-            }
-        }).catch(error => {
-            console.error('Error updating git diff icon:', error);
-        });
-
-        return iconHtml;
-    }
 
     /**
      * Show agent instance details for unique instance view
