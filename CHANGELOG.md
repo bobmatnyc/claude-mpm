@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.1.27] - 2025-08-31
+
+### Fixed
+- **Code Explorer**: Resolved persistent "Empty directory" issue for src folder
+  - Fixed improper if/else block structure in onDirectoryDiscovered method
+  - Added comprehensive error handling for missing children data
+  - Added debug logging to track directory discovery flow
+  - Now properly handles both populated and empty directories
+
 ## [4.1.26] - 2025-08-31
 
 ### Fixed
