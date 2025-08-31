@@ -1198,7 +1198,8 @@ class CodeTreeAnalyzer:
             "__MACOSX",
             ".ipynb_checkpoints",
         }
-        if directory.name in SKIP_DIRS:
+        # Skip directories in the skip list or egg-info directories
+        if directory.name in SKIP_DIRS or directory.name.endswith(".egg-info"):
             return False
 
         try:
@@ -1213,8 +1214,12 @@ class CodeTreeAnalyzer:
                     if ext in self.CODE_EXTENSIONS:
                         return True
                 elif item.is_dir() and current_depth < depth - 1:
+                    # Skip egg-info directories in the recursive check too
+                    if item.name.endswith(".egg-info"):
+                        continue
                     if self.has_code_files(item, depth, current_depth + 1):
                         return True
+                    
         except (PermissionError, OSError):
             pass
 
@@ -1308,7 +1313,9 @@ class CodeTreeAnalyzer:
                     continue
 
                 if item.is_dir():
-                    # Only include directories that contain code files (5-level deep scan)
+                    # Check if directory contains code files (recursively checking subdirectories)
+                    # Important: We want to include directories even if they only have code 
+                    # in subdirectories (like src/claude_mpm/*.py)
                     if not self.has_code_files(item, depth=5):
                         if self.emitter:
                             from datetime import datetime
