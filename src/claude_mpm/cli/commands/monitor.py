@@ -75,15 +75,19 @@ class MonitorCommand(BaseCommand):
         """Start the monitor server."""
         port = getattr(args, "port", 8766)  # Default to 8766 for monitor
         host = getattr(args, "host", "localhost")
-        background = getattr(args, "background", True)  # Default to background for monitor
+        background = getattr(
+            args, "background", True
+        )  # Default to background for monitor
 
-        self.logger.info(f"Starting monitor server on {host}:{port} (background: {background})")
+        self.logger.info(
+            f"Starting monitor server on {host}:{port} (background: {background})"
+        )
 
         # Check if monitor is already running
         if self._is_monitor_running(port):
             return CommandResult.success_result(
                 f"Monitor server already running on {host}:{port}",
-                data={"url": f"http://{host}:{port}", "port": port}
+                data={"url": f"http://{host}:{port}", "port": port},
             )
 
         if background:
@@ -93,12 +97,13 @@ class MonitorCommand(BaseCommand):
                 if self.server.start_sync():
                     return CommandResult.success_result(
                         f"Monitor server started on {host}:{port}",
-                        data={"url": f"http://{host}:{port}", "port": port}
+                        data={"url": f"http://{host}:{port}", "port": port},
                     )
-                else:
-                    return CommandResult.error_result("Failed to start monitor server")
+                return CommandResult.error_result("Failed to start monitor server")
             except Exception as e:
-                return CommandResult.error_result(f"Failed to start monitor server: {e}")
+                return CommandResult.error_result(
+                    f"Failed to start monitor server: {e}"
+                )
         else:
             # Run monitor in foreground mode
             try:
@@ -138,7 +143,9 @@ class MonitorCommand(BaseCommand):
                 print("\nMonitor server stopped by user")
                 return CommandResult.success_result("Monitor server stopped")
             except Exception as e:
-                return CommandResult.error_result(f"Failed to start monitor server: {e}")
+                return CommandResult.error_result(
+                    f"Failed to start monitor server: {e}"
+                )
 
     def _stop_monitor(self, args) -> CommandResult:
         """Stop the monitor server."""
@@ -147,13 +154,17 @@ class MonitorCommand(BaseCommand):
         self.logger.info(f"Stopping monitor server on port {port}")
 
         if not self._is_monitor_running(port):
-            return CommandResult.success_result(f"No monitor server running on port {port}")
+            return CommandResult.success_result(
+                f"No monitor server running on port {port}"
+            )
 
         # Try to stop our server instance if we have one
         if self.server and self.server.is_running():
             try:
                 self.server.stop_sync()
-                return CommandResult.success_result(f"Monitor server stopped on port {port}")
+                return CommandResult.success_result(
+                    f"Monitor server stopped on port {port}"
+                )
             except Exception as e:
                 return CommandResult.error_result(f"Error stopping monitor server: {e}")
 
@@ -161,10 +172,13 @@ class MonitorCommand(BaseCommand):
         try:
             self.port_manager.cleanup_dead_instances()
             active_instances = self.port_manager.list_active_instances()
-            
+
             # Look for instances on the target port
             for instance in active_instances:
-                if instance.get("port") == port and instance.get("service_type") == "monitor":
+                if (
+                    instance.get("port") == port
+                    and instance.get("service_type") == "monitor"
+                ):
                     # Found an instance, but we can't stop it directly
                     # This would need to be implemented with a proper process manager
                     return CommandResult.error_result(
@@ -172,10 +186,14 @@ class MonitorCommand(BaseCommand):
                         "(no direct control - you may need to kill the process manually)"
                     )
 
-            return CommandResult.success_result(f"No monitor server found on port {port}")
+            return CommandResult.success_result(
+                f"No monitor server found on port {port}"
+            )
 
         except Exception as e:
-            return CommandResult.error_result(f"Error checking monitor server status: {e}")
+            return CommandResult.error_result(
+                f"Error checking monitor server status: {e}"
+            )
 
     def _restart_monitor(self, args) -> CommandResult:
         """Restart the monitor server."""
@@ -184,7 +202,9 @@ class MonitorCommand(BaseCommand):
         # Stop first
         stop_result = self._stop_monitor(args)
         if not stop_result.success:
-            self.logger.warning("Failed to stop monitor server for restart, proceeding anyway")
+            self.logger.warning(
+                "Failed to stop monitor server for restart, proceeding anyway"
+            )
 
         # Wait a moment
         time.sleep(2)
@@ -226,7 +246,8 @@ class MonitorCommand(BaseCommand):
         active_instances = self.port_manager.list_active_instances()
         if active_instances:
             monitor_instances = [
-                inst for inst in active_instances 
+                inst
+                for inst in active_instances
                 if inst.get("service_type") == "monitor"
             ]
             if monitor_instances:
@@ -247,7 +268,7 @@ class MonitorCommand(BaseCommand):
         """Start monitor server on specific port."""
         port = getattr(args, "port", 8766)
         self.logger.info(f"Starting monitor server on port {port}")
-        
+
         # Ensure background mode for port-specific starts
         if not hasattr(args, "background"):
             args.background = True
@@ -257,10 +278,11 @@ class MonitorCommand(BaseCommand):
     def _is_monitor_running(self, port: int) -> bool:
         """Check if monitor server is running on given port."""
         import socket
+
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.settimeout(1)
-                result = s.connect_ex(('localhost', port))
+                result = s.connect_ex(("localhost", port))
                 return result == 0
         except Exception:
             return False
