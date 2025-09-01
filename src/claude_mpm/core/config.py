@@ -552,7 +552,11 @@ class Config:
                 "exclude_dependencies": False,  # Whether to exclude agent dependencies too
                 "case_sensitive": False,  # Whether agent name matching is case-sensitive
                 "filter_non_mpm_agents": True,  # Filter out non-MPM agents by default
-                "mpm_author_patterns": ["claude mpm", "claude-mpm", "anthropic"]  # Patterns for MPM agents
+                "mpm_author_patterns": [
+                    "claude mpm",
+                    "claude-mpm",
+                    "anthropic",
+                ],  # Patterns for MPM agents
             },
             # Instruction reinforcement system configuration
             "instruction_reinforcement": {

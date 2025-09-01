@@ -8,7 +8,6 @@ maintainability and testability.
 """
 
 import re
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -159,7 +158,7 @@ class AgentFormatConverter:
             "haiku": "haiku",
             "opus": "opus",
         }
-        
+
         mapped_model = model_map.get(model, "sonnet")
 
         # Create multiline description with example (Claude Code format)
@@ -470,25 +469,25 @@ author: "{author}"
     def _indent_text(self, text: str, spaces: int) -> str:
         """
         Indent multiline text with specified number of spaces.
-        
+
         Args:
             text: Text to indent
             spaces: Number of spaces for indentation
-            
+
         Returns:
             Indented text
         """
         if not text:
             return ""
-        
+
         indent = " " * spaces
         lines = text.split("\n")
         indented_lines = []
-        
+
         for line in lines:
             if line.strip():  # Non-empty lines get indented
                 indented_lines.append(indent + line)
             else:  # Empty lines stay empty
                 indented_lines.append("")
-        
+
         return "\n".join(indented_lines)

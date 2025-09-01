@@ -85,7 +85,10 @@ class AgentDiscoveryService:
         return agents
 
     def get_filtered_templates(
-        self, excluded_agents: List[str], config: Optional[Config] = None, filter_non_mpm: bool = False
+        self,
+        excluded_agents: List[str],
+        config: Optional[Config] = None,
+        filter_non_mpm: bool = False,
     ) -> List[Path]:
         """
         Get filtered list of template files based on configuration.
@@ -138,7 +141,7 @@ class AgentDiscoveryService:
         # Log filtering results
         if filter_non_mpm and non_mpm_count > 0:
             self.logger.info(f"Filtered out {non_mpm_count} non-MPM agents")
-        
+
         self.logger.info(
             f"Found {len(template_files)} templates, excluded {excluded_count}, filtered {non_mpm_count} non-MPM, deploying {len(filtered_files)}"
         )
@@ -250,41 +253,40 @@ class AgentDiscoveryService:
 
     def _is_mpm_agent(self, template_file: Path) -> bool:
         """Check if agent is authored by Claude MPM team.
-        
+
         MPM agents must have:
         - An author field containing 'claude mpm', 'claude-mpm', or 'anthropic'
         - A valid agent_version field
-        
+
         Args:
             template_file: Path to the agent template JSON file
-            
+
         Returns:
             True if this is an MPM agent, False otherwise
         """
         try:
             template_data = json.loads(template_file.read_text())
             metadata = template_data.get("metadata", {})
-            
+
             # Check for author field
             author = metadata.get("author", "").lower()
-            has_valid_author = any(pattern in author for pattern in [
-                "claude mpm",
-                "claude-mpm", 
-                "anthropic"
-            ])
-            
+            has_valid_author = any(
+                pattern in author
+                for pattern in ["claude mpm", "claude-mpm", "anthropic"]
+            )
+
             # Check for version field
             has_version = bool(template_data.get("agent_version"))
-            
+
             if not has_valid_author or not has_version:
                 self.logger.debug(
                     f"Filtered non-MPM agent {template_file.name}: "
                     f"author='{metadata.get('author', 'missing')}', "
                     f"version={'present' if has_version else 'missing'}"
                 )
-            
+
             return has_valid_author and has_version
-            
+
         except Exception as e:
             self.logger.debug(f"Error checking if {template_file} is MPM agent: {e}")
             return False  # Treat invalid templates as non-MPM
@@ -410,39 +412,46 @@ class AgentDiscoveryService:
 
         return bool(re.match(pattern, agent_name))
 
-    def _is_mpm_agent(self, template_file: Path, config: Optional[Config] = None) -> bool:
+    def _is_mpm_agent(
+        self, template_file: Path, config: Optional[Config] = None
+    ) -> bool:
         """Check if agent is authored by Claude MPM team.
-        
+
         MPM agents must have:
         - An author field containing configurable MPM patterns (default: 'claude mpm', 'claude-mpm', 'anthropic')
         - A valid agent_version field
-        
+
         Args:
             template_file: Path to the agent template JSON file
             config: Configuration object for MPM patterns
-            
+
         Returns:
             True if this is an MPM agent, False otherwise
         """
         try:
             template_data = json.loads(template_file.read_text())
             metadata = template_data.get("metadata", {})
-            
+
             # Get MPM author patterns from config
             if config:
-                mpm_patterns = config.get("agent_deployment.mpm_author_patterns", ["claude mpm", "claude-mpm", "anthropic"])
+                mpm_patterns = config.get(
+                    "agent_deployment.mpm_author_patterns",
+                    ["claude mpm", "claude-mpm", "anthropic"],
+                )
             else:
                 mpm_patterns = ["claude mpm", "claude-mpm", "anthropic"]
-            
+
             # Check for author field
             author = metadata.get("author", "").lower()
-            has_valid_author = any(pattern.lower() in author for pattern in mpm_patterns)
-            
+            has_valid_author = any(
+                pattern.lower() in author for pattern in mpm_patterns
+            )
+
             # Check for version field
             has_version = bool(template_data.get("agent_version"))
-            
+
             return has_valid_author and has_version
-            
+
         except Exception as e:
             self.logger.debug(f"Error checking if {template_file} is MPM agent: {e}")
             return False  # Treat invalid templates as non-MPM
