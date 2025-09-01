@@ -5,6 +5,7 @@ This simulates the full browser behavior and API calls.
 """
 
 import json
+import sys
 import time
 
 import requests
@@ -172,4 +173,4 @@ def test_simple_browser():
 
 if __name__ == "__main__":
     success = test_simple_browser()
-    exit(0 if success else 1)
+    sys.exit(0 if success else 1)

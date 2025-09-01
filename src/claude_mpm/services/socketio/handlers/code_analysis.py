@@ -218,7 +218,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
 
         # SECURITY: Validate the requested path
         # Allow access to the explicitly chosen working directory and its subdirectories
-        requested_path = Path(path).absolute()
+        Path(path).absolute()
 
         # For now, we trust the frontend to send valid paths
         # In production, you might want to maintain a server-side list of allowed directories
@@ -532,7 +532,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
 
         path = data.get("path")
         request_id = data.get("request_id")
-        show_hidden_files = data.get("show_hidden_files", False)
+        data.get("show_hidden_files", False)
 
         if not path:
             await self.server.core.sio.emit(

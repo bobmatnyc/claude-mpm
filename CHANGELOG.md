@@ -17,6 +17,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.1] - 2024-09-01
+
+### 🐛 Bug Fixes
+- **Monitor Launch**: Fixed misleading error message about non-existent `launch_socketio_dashboard.py` script
+- **Mamba Environment**: Fixed tree-sitter dependency issue by moving from conda to pip dependencies
+- **Project Structure**: Cleaned up root directory by moving test artifacts and documentation to proper locations
+- **Dashboard Launch**: Added proper standalone launcher script at `scripts/launch_dashboard.py`
+- **Dependency Checking**: Enhanced SocketIOManager with better dependency checking and error messages
+
+### ✨ Improvements
+- **Monitor Guidance**: Improved error messages to guide users to correct `--monitor` usage
+- **Environment Support**: Both Mamba and venv environments now work correctly
+- **Structure Organization**: Moved 40+ misplaced files to appropriate directories
+- **Error Handling**: Better error messages for missing monitoring dependencies
+
+### 📚 Documentation
+- Added clear instructions for launching monitor in multiple ways
+- Fixed incorrect script paths in error messages
+- Improved dependency installation guidance
+
+
 ## [4.2.0] - 2025-09-01
 
 ### 🎯 Major Features

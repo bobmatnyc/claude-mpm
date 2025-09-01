@@ -167,7 +167,7 @@ class TestDashboardModuleLoading:
 
         # Should register routes for index, dashboard, and version
         expected_routes = ["/", "/dashboard", "/version.json"]
-        add_get_calls = [call for call in mock_app.router.add_get.call_args_list]
+        add_get_calls = list(mock_app.router.add_get.call_args_list)
 
         registered_routes = [call[0][0] for call in add_get_calls]
 

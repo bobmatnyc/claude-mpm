@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # verify_dashboard_state.py
 import json
+import sys
 import time
 from datetime import datetime
 
@@ -168,4 +169,4 @@ if __name__ == "__main__":
     success = verifier.run_verification()
 
     print(f"\n🏁 Overall verification: {'✅ PASSED' if success else '❌ FAILED'}")
-    exit(0 if success else 1)
+    sys.exit(0 if success else 1)

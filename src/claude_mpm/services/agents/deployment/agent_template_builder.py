@@ -87,8 +87,7 @@ class AgentTemplateBuilder:
 
             if base_path.exists():
                 self.logger.debug(f"Loading BASE instructions from {base_path}")
-                content = base_path.read_text(encoding="utf-8")
-                return content
+                return base_path.read_text(encoding="utf-8")
             self.logger.debug(f"No BASE instructions found for type: {agent_type}")
             return ""
 
@@ -232,7 +231,7 @@ class AgentTemplateBuilder:
 
         if template_color:
             # Use the color specified in the template
-            color = template_color
+            pass
         else:
             # Fallback to default color map based on agent type
             color_map = {
@@ -243,7 +242,7 @@ class AgentTemplateBuilder:
                 "documentation": "cyan",  # Changed default to match template preference
                 "ops": "gray",
             }
-            color = color_map.get(agent_type, "blue")
+            color_map.get(agent_type, "blue")
 
         # Check if we should include tools field (only if significantly restricting)
         # Claude Code approach: omit tools field unless specifically restricting
