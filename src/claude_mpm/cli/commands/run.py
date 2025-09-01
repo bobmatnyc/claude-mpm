@@ -896,8 +896,13 @@ def run_session_legacy(args):
                         print(f"💡 Monitor interface available at: {monitor_url}")
                 else:
                     print("⚠️  Failed to launch Socket.IO monitor")
+                    print("Dashboard is not running. To enable monitoring:")
+                    print("  1. Use the --monitor flag: claude-mpm run --monitor")
                     print(
-                        f"  You can manually run: python scripts/launch_socketio_dashboard.py --port {websocket_port}"
+                        "  2. Or start dashboard separately: claude-mpm dashboard start"
+                    )
+                    print(
+                        f"  3. Dashboard will be available at: http://localhost:{websocket_port}"
                     )
                     args._browser_opened_by_cli = False
             else:
