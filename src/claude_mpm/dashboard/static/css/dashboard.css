@@ -2694,6 +2694,263 @@ button:disabled:hover {
     opacity: 0.8;
 }
 
+/* Enhanced File Operations Styles */
+.single-file-header {
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    border-left: 4px solid #4299e1;
+    border-radius: 6px 6px 0 0;
+}
+
+.file-type-badge {
+    background: #e2e8f0;
+    color: #4a5568;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.clickable-file-path {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: -2px -4px;
+}
+
+.clickable-file-path:hover {
+    background: #bee3f8;
+    color: #2b6cb0;
+    transform: translateX(2px);
+}
+
+.file-actions {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.single-file-actions {
+    margin-top: 16px;
+    padding: 12px;
+    background: #f7fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+.file-action-btn {
+    background: #4299e1;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.file-action-btn:hover {
+    background: #3182ce;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+}
+
+.file-action-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(66, 153, 225, 0.3);
+}
+
+.file-action-btn.primary-action {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(66, 153, 225, 0.2);
+}
+
+.file-action-btn.primary-action:hover {
+    background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+    box-shadow: 0 4px 16px rgba(66, 153, 225, 0.4);
+}
+
+.inline-preview-btn {
+    background: #48bb78;
+    border: 1px solid #38a169;
+}
+
+.inline-preview-btn:hover {
+    background: #38a169;
+    border-color: #2f855a;
+}
+
+/* Inline Preview Styles */
+.inline-preview-container {
+    margin-top: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
+    background: white;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+        margin-top: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 500px;
+        margin-top: 16px;
+    }
+}
+
+.inline-preview-header {
+    background: #f7fafc;
+    padding: 8px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.preview-label {
+    color: #4a5568;
+    font-weight: 600;
+}
+
+.preview-file {
+    color: #2d3748;
+    font-family: 'Monaco', 'Consolas', monospace;
+    background: #e2e8f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.inline-preview-content {
+    padding: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    background: #fafafa;
+}
+
+.preview-note {
+    color: #718096;
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+    background: #f7fafc;
+    border: 2px dashed #cbd5e0;
+    border-radius: 6px;
+}
+
+.inline-preview-loading {
+    padding: 20px;
+    text-align: center;
+    color: #4a5568;
+    font-style: italic;
+}
+
+.inline-preview-error {
+    padding: 12px;
+    background: #fed7d7;
+    color: #c53030;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* File Icon Enhancements */
+.unified-viewer-header h6 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Enhanced File Type Icons */
+.unified-viewer-header .file-type-badge {
+    margin-left: auto;
+}
+
+/* File Path Click Animation */
+.clickable-file-path {
+    position: relative;
+}
+
+.clickable-file-path::before {
+    content: '👁️';
+    position: absolute;
+    right: -20px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    font-size: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.clickable-file-path:hover::before {
+    opacity: 0.7;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .file-actions {
+        flex-direction: column;
+    }
+    
+    .file-action-btn {
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .single-file-actions {
+        padding: 8px;
+    }
+    
+    .inline-preview-content {
+        font-size: 11px;
+        padding: 8px;
+    }
+}
+
+/* Hover Effects for File Operations */
+.unified-viewer-content:hover .clickable-file-path {
+    background: rgba(190, 227, 248, 0.3);
+}
+
+.single-file-header:hover {
+    background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
+}
+
+/* Accessibility */
+.file-action-btn:focus {
+    outline: 2px solid #4299e1;
+    outline-offset: 2px;
+}
+
+.clickable-file-path:focus {
+    outline: 2px solid #4299e1;
+    outline-offset: 1px;
+}
+
 /* Agent-specific view styles */
 .agent-overview-section,
 .agent-prompt-section,

@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Simple Code Browser - Claude MPM</title>
+    <meta charset="utf-8">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -15,20 +16,59 @@
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        #init-status {
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div id="code-container"></div>
+        <div id="init-status">
+            <h3>Initialization Status:</h3>
+            <div id="status-messages">
+                <div>⏳ Page loaded...</div>
+            </div>
+        </div>
+        
+        <div id="code-container">
+            <!-- SimpleCodeView will render here -->
+        </div>
     </div>
     
-    <script src="/static/js/components/code-simple.js"></script>
     <script>
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            simpleCodeView.init(document.getElementById('code-container'));
-        });
+        console.log('[HTML] Page script starting');
+        
+        function addStatus(message) {
+            const statusDiv = document.getElementById('status-messages');
+            if (statusDiv) {
+                statusDiv.innerHTML += '<div>' + message + '</div>';
+            }
+            console.log('[HTML Status]', message);
+        }
+        
+        addStatus('⏳ Loading code-simple.js...');
+    </script>
+    
+    <script src="/static/js/components/code-simple.js" 
+            onload="addStatus('✅ code-simple.js loaded successfully')"
+            onerror="addStatus('❌ Failed to load code-simple.js')"></script>
+    
+    <script>
+        addStatus('⏳ Waiting for initialization...');
+        
+        // Check initialization after a delay
+        setTimeout(() => {
+            if (window.simpleCodeView) {
+                addStatus('✅ SimpleCodeView is available');
+            } else {
+                addStatus('❌ SimpleCodeView not found in window');
+            }
+        }, 1000);
     </script>
 </body>
 </html>
