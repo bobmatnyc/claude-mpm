@@ -14,7 +14,6 @@ dependencies:
   - aiohttp>=3.9.0
   - websockets>=12.0
   - pandas>=2.1.0
-  - tree-sitter>=0.21.0
   
   # Development tools
   - pytest>=7.0
@@ -81,7 +80,8 @@ dependencies:
     - flake8-bugbear
     - pre-commit
     
-    # Tree-sitter language parsers
+    # Tree-sitter and language parsers
+    - tree-sitter>=0.21.0
     - tree-sitter-python>=0.21.0
     - tree-sitter-javascript>=0.21.0
     - tree-sitter-typescript>=0.21.0

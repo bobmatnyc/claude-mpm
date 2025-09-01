@@ -17,6 +17,7 @@ DESIGN DECISIONS:
 """
 
 import asyncio
+import contextlib
 import json
 import signal
 import subprocess
@@ -269,7 +270,7 @@ class CompleteEventFlowTest:
             "code:file:analyzed",
         }
 
-        received_event_types = set(e.get("type", "") for e in code_events)
+        received_event_types = {e.get("type", "") for e in code_events}
         lazy_events_found = expected_lazy_events.intersection(received_event_types)
 
         await self.socketio_tester.disconnect_client()
@@ -573,16 +574,12 @@ class CompleteEventFlowTest:
 
         # Cleanup testers
         if self.socketio_tester:
-            try:
+            with contextlib.suppress(Exception):
                 asyncio.create_task(self.socketio_tester.disconnect_client())
-            except:
-                pass
 
         if self.browser_tester and self.browser_tester.driver:
-            try:
+            with contextlib.suppress(Exception):
                 self.browser_tester.driver.quit()
-            except:
-                pass
 
 
 async def main():

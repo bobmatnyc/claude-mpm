@@ -674,7 +674,7 @@ if __name__ == "__main__":
         try:
             # Create multiple test codebases
             test_dirs = []
-            for i in range(3):
+            for _i in range(3):
                 test_dir = self.create_test_codebase("small")
                 test_dirs.append(test_dir)
 

@@ -3,6 +3,7 @@
 D3.js Activity Tree Test Script
 Tests the new linear graph tree implementation for the Activity view.
 """
+import contextlib
 import json
 import time
 from datetime import datetime, timedelta
@@ -229,10 +230,8 @@ def main():
         sio.disconnect()
     except Exception as e:
         print(f"❌ Test failed with error: {e}")
-        try:
+        with contextlib.suppress(Exception):
             sio.disconnect()
-        except:
-            pass
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ Enhanced with AST inspection capabilities for generating comprehensive developer
 documentation with code structure analysis.
 """
 
+import contextlib
 import logging
 import subprocess
 import sys
@@ -26,7 +27,7 @@ console = Console()
 class MPMInitCommand:
     """Initialize projects for optimal Claude Code and Claude MPM usage."""
 
-    def __init__(self, project_path: Path = None):
+    def __init__(self, project_path: Optional[Path] = None):
         """Initialize the MPM-Init command."""
         self.project_path = project_path or Path.cwd()
         self.claude_mpm_script = self._find_claude_mpm_script()
@@ -217,7 +218,7 @@ Please perform the following initialization tasks:
 
 10. **Holistic CLAUDE.md Organization** (CRITICAL - Do this LAST):
    After completing all initialization tasks, take a holistic look at the CLAUDE.md file and:
-   
+
    a) **Reorganize Content by Priority**:
       - CRITICAL instructions (security, data handling, core business rules) at the TOP
       - Project overview and purpose
@@ -226,9 +227,9 @@ Please perform the following initialization tasks:
       - Common tasks and workflows
       - Links to additional documentation
       - Nice-to-have or optional information at the BOTTOM
-   
+
    b) **Rank Instructions by Importance**:
-      - Use clear markers: 
+      - Use clear markers:
         * 🔴 CRITICAL: Security, data handling, breaking changes, core business rules
         * 🟡 IMPORTANT: Key workflows, architecture decisions, performance requirements
         * 🟢 STANDARD: Common operations, coding standards, best practices
@@ -237,67 +238,67 @@ Please perform the following initialization tasks:
       - Ensure no contradictory instructions exist
       - Remove redundant or outdated information
       - Add a "Priority Index" at the top listing all CRITICAL and IMPORTANT items
-   
+
    c) **Optimize for AI Agent Understanding**:
       - Use consistent formatting and structure
       - Provide clear examples for complex instructions
       - Include "WHY" explanations for critical rules
       - Add quick reference sections for common operations
       - Ensure instructions are actionable and unambiguous
-   
+
    d) **Validate Completeness**:
       - Ensure ALL critical project knowledge is captured
       - Verify single-path principle (ONE way to do each task)
       - Check that all referenced documentation exists
       - Confirm all tools and dependencies are documented
       - Test that a new AI agent could understand the project from CLAUDE.md alone
-   
+
    e) **Add Meta-Instructions Section**:
       - Include a section about how to maintain CLAUDE.md
       - Document when and how to update instructions
       - Provide guidelines for instruction priority levels
       - Add a changelog or last-updated timestamp
-   
+
    f) **Follow This CLAUDE.md Template Structure**:
       ```markdown
       # Project Name - CLAUDE.md
-      
+
       ## 🎯 Priority Index
       ### 🔴 CRITICAL Instructions
       - [List all critical items with links to their sections]
-      
+
       ### 🟡 IMPORTANT Instructions
       - [List all important items with links to their sections]
-      
+
       ## 📋 Project Overview
       [Brief description and purpose]
-      
+
       ## 🔴 CRITICAL: Security & Data Handling
       [Critical security rules and data handling requirements]
-      
+
       ## 🔴 CRITICAL: Core Business Rules
       [Non-negotiable business logic and constraints]
-      
+
       ## 🟡 IMPORTANT: Architecture & Design
       [Key architectural decisions and patterns]
-      
+
       ## 🟡 IMPORTANT: Development Workflow
       ### ONE Way to Build
       ### ONE Way to Test
       ### ONE Way to Deploy
-      
+
       ## 🟢 STANDARD: Coding Guidelines
       [Standard practices and conventions]
-      
+
       ## 🟢 STANDARD: Common Tasks
       [How to perform routine operations]
-      
+
       ## 📚 Documentation Links
       [Links to additional resources]
-      
+
       ## ⚪ OPTIONAL: Future Enhancements
       [Nice-to-have features and ideas]
-      
+
       ## 📝 Meta: Maintaining This Document
       - Last Updated: [timestamp]
       - Update Frequency: [when to update]
@@ -399,10 +400,8 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
                 # Clean up temporary file
                 import os
 
-                try:
+                with contextlib.suppress(Exception):
                     os.unlink(prompt_file)
-                except:
-                    pass
 
             # Display output if verbose
             if verbose and result.stdout:

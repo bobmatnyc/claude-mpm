@@ -1240,7 +1240,7 @@ class CodeTreeAnalyzer:
         # CRITICAL FIX: Use the directory parameter as the base for relative paths
         # NOT the current working directory. This ensures we only show items
         # within the requested directory, not parent directories.
-        working_dir = Path(directory).absolute()
+        Path(directory).absolute()
 
         # Emit discovery start event
         if self.emitter:
@@ -1461,8 +1461,7 @@ class CodeTreeAnalyzer:
             self._last_working_dir = directory.parent
 
         # The discover_top_level method will emit all the INFO events
-        result = self.discover_top_level(directory, ignore_patterns)
-        return result
+        return self.discover_top_level(directory, ignore_patterns)
 
     def analyze_file(self, file_path: str) -> Dict[str, Any]:
         """Analyze a specific file and return its AST structure.
@@ -1530,7 +1529,7 @@ class CodeTreeAnalyzer:
 
             if language == "python":
                 analyzer = self.python_analyzer
-            elif language == "javascript" or language == "typescript":
+            elif language in {"javascript", "typescript"}:
                 analyzer = self.javascript_analyzer
             else:
                 analyzer = self.generic_analyzer
@@ -1670,9 +1669,7 @@ class CodeTreeAnalyzer:
         for pattern in internal_patterns:
             if name_lower.startswith(pattern):
                 # Exception: include __init__ methods
-                if node.name == "__init__":
-                    return False
-                return True
+                return node.name != "__init__"
 
         return False
 
