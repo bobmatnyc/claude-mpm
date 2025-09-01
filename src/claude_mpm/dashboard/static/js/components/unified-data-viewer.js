@@ -646,35 +646,64 @@ class UnifiedDataViewer {
     }
 
     /**
-     * Display file operation data with file viewing capabilities
+     * Display file operation data with enhanced file viewing capabilities
      */
     displayFileOperation(data) {
         const fileName = data.file_path ? data.file_path.split('/').pop() : 'Unknown File';
+        const isSingleFile = this.isSingleFileOperation(data);
+        const fileIcon = this.getFileIcon(data.file_path);
+        const fileType = this.getFileType(data.file_path);
         
         let html = `
-            <div class="unified-viewer-header">
-                <h6>📄 File: ${fileName}</h6>
+            <div class="unified-viewer-header ${isSingleFile ? 'single-file-header' : ''}">
+                <h6>${fileIcon} File: ${fileName}</h6>
                 <span class="unified-viewer-count">${data.operations ? data.operations.length : 1} operation${data.operations && data.operations.length !== 1 ? 's' : ''}</span>
+                ${fileType ? `<span class="file-type-badge">${fileType}</span>` : ''}
             </div>
             <div class="unified-viewer-content">
                 <div class="primary-data">
                     <div class="detail-row highlight">
                         <span class="detail-label">📁 File Path:</span>
-                        <span class="detail-value code">${data.file_path}</span>
+                        <span class="detail-value code clickable-file-path" 
+                              onclick="window.showFileViewerModal && window.showFileViewerModal('${data.file_path}')"
+                              title="Click to view file contents\\nKeyboard: Hover + V key or Ctrl/Cmd + Click\\nFile: ${data.file_path}"
+                              tabindex="0"
+                              role="button"
+                              aria-label="Open file ${data.file_path} in viewer"
+                              onkeypress="if(event.key==='Enter'||event.key===' '){window.showFileViewerModal && window.showFileViewerModal('${data.file_path}')}">${data.file_path}</span>
                     </div>
         `;
 
-        // Add file viewing button for tracked files
+        // Enhanced file viewing for single file operations
         if (data.file_path) {
+            const shouldShowPreview = this.shouldShowInlinePreview(data);
+            
             html += `
-                <div class="file-actions">
-                    <button class="file-action-btn view-file-btn" 
+                <div class="file-actions ${isSingleFile ? 'single-file-actions' : ''}">
+                    <button class="file-action-btn view-file-btn ${isSingleFile ? 'primary-action' : ''}" 
                             onclick="window.showFileViewerModal && window.showFileViewerModal('${data.file_path}')"
                             title="View file contents with syntax highlighting">
-                        👁️ View File Contents
+                        ${fileIcon} View File Contents
                     </button>
+                    ${isSingleFile && this.isTextFile(data.file_path) ? `
+                        <button class="file-action-btn inline-preview-btn" 
+                                onclick="window.unifiedDataViewer && window.unifiedDataViewer.toggleInlinePreview('${data.file_path}', this)"
+                                title="Toggle inline preview">
+                            📖 Quick Preview
+                        </button>
+                    ` : ''}
                 </div>
             `;
+            
+            // Add inline preview container for single file operations
+            if (isSingleFile && shouldShowPreview) {
+                const previewId = this.generatePreviewId(data.file_path);
+                html += `
+                    <div class="inline-preview-container" id="preview-${previewId}" style="display: none;">
+                        <div class="inline-preview-loading">Loading preview...</div>
+                    </div>
+                `;
+            }
         }
 
         html += `</div>`;
@@ -1114,6 +1143,225 @@ class UnifiedDataViewer {
         return html;
     }
 
+    // ==================== FILE OPERATION UTILITIES ====================
+
+    /**
+     * Determine if this is a single file operation
+     */
+    isSingleFileOperation(data) {
+        // Single file if no operations array or only one operation
+        if (!data.operations) return true;
+        return data.operations.length === 1;
+    }
+
+    /**
+     * Get file icon based on file extension
+     */
+    getFileIcon(filePath) {
+        if (!filePath) return '📄';
+        
+        const ext = filePath.split('.').pop()?.toLowerCase();
+        const iconMap = {
+            // Code files
+            'js': '🟨',
+            'jsx': '⚛️',
+            'ts': '🔷',
+            'tsx': '⚛️',
+            'py': '🐍',
+            'java': '☕',
+            'cpp': '⚡',
+            'c': '⚡',
+            'cs': '#️⃣',
+            'php': '🐘',
+            'rb': '💎',
+            'go': '🐹',
+            'rs': '🦀',
+            'swift': '🦉',
+            'kt': '🅺',
+            'scala': '🎯',
+            
+            // Web files
+            'html': '🌐',
+            'htm': '🌐',
+            'css': '🎨',
+            'scss': '🎨',
+            'sass': '🎨',
+            'less': '🎨',
+            'vue': '💚',
+            
+            // Config files
+            'json': '📋',
+            'xml': '📄',
+            'yaml': '⚙️',
+            'yml': '⚙️',
+            'toml': '⚙️',
+            'ini': '⚙️',
+            'conf': '⚙️',
+            'config': '⚙️',
+            
+            // Documentation
+            'md': '📝',
+            'txt': '📃',
+            'rtf': '📃',
+            'pdf': '📕',
+            'doc': '📘',
+            'docx': '📘',
+            
+            // Images
+            'jpg': '🖼️',
+            'jpeg': '🖼️',
+            'png': '🖼️',
+            'gif': '🖼️',
+            'svg': '🎨',
+            'webp': '🖼️',
+            'ico': '🖼️',
+            
+            // Archives
+            'zip': '🗜️',
+            'tar': '🗜️',
+            'gz': '🗜️',
+            'rar': '🗜️',
+            '7z': '🗜️',
+            
+            // Other
+            'sql': '🗃️',
+            'db': '🗃️',
+            'log': '📊',
+            'env': '🔐',
+            'lock': '🔒'
+        };
+        
+        return iconMap[ext] || '📄';
+    }
+
+    /**
+     * Get file type description
+     */
+    getFileType(filePath) {
+        if (!filePath) return null;
+        
+        const ext = filePath.split('.').pop()?.toLowerCase();
+        const typeMap = {
+            'js': 'JavaScript',
+            'jsx': 'React JSX',
+            'ts': 'TypeScript',
+            'tsx': 'React TSX',
+            'py': 'Python',
+            'java': 'Java',
+            'cpp': 'C++',
+            'c': 'C',
+            'cs': 'C#',
+            'php': 'PHP',
+            'rb': 'Ruby',
+            'go': 'Go',
+            'rs': 'Rust',
+            'html': 'HTML',
+            'css': 'CSS',
+            'scss': 'SCSS',
+            'json': 'JSON',
+            'xml': 'XML',
+            'yaml': 'YAML',
+            'yml': 'YAML',
+            'md': 'Markdown',
+            'txt': 'Text',
+            'sql': 'SQL',
+            'log': 'Log File'
+        };
+        
+        return typeMap[ext] || null;
+    }
+
+    /**
+     * Check if file should show inline preview
+     */
+    shouldShowInlinePreview(data) {
+        // Show preview for single file text operations
+        return this.isSingleFileOperation(data) && this.isTextFile(data.file_path);
+    }
+
+    /**
+     * Check if file is a text file suitable for preview
+     */
+    isTextFile(filePath) {
+        if (!filePath) return false;
+        
+        const ext = filePath.split('.').pop()?.toLowerCase();
+        const textExtensions = [
+            'txt', 'md', 'json', 'xml', 'yaml', 'yml', 'ini', 'conf', 'config',
+            'js', 'jsx', 'ts', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb',
+            'go', 'rs', 'swift', 'kt', 'scala', 'html', 'htm', 'css', 'scss', 'sass',
+            'less', 'vue', 'sql', 'log', 'env', 'gitignore', 'dockerignore'
+        ];
+        
+        return textExtensions.includes(ext);
+    }
+
+    /**
+     * Toggle inline preview for a file
+     */
+    async toggleInlinePreview(filePath, buttonElement) {
+        const containerId = `preview-${this.generatePreviewId(filePath)}`;
+        const container = document.getElementById(containerId);
+        
+        if (!container) {
+            console.warn('Preview container not found');
+            return;
+        }
+        
+        if (container.style.display === 'none') {
+            // Show preview
+            container.style.display = 'block';
+            buttonElement.innerHTML = '📖 Hide Preview';
+            await this.loadInlinePreview(filePath, container);
+        } else {
+            // Hide preview
+            container.style.display = 'none';
+            buttonElement.innerHTML = '📖 Quick Preview';
+        }
+    }
+
+    /**
+     * Load inline preview content
+     */
+    async loadInlinePreview(filePath, container) {
+        try {
+            // This would typically make an API call to get file contents
+            // For now, show a placeholder
+            container.innerHTML = `
+                <div class="inline-preview-header">
+                    <span class="preview-label">Quick Preview:</span>
+                    <span class="preview-file">${filePath}</span>
+                </div>
+                <div class="inline-preview-content">
+                    <div class="preview-note">
+                        💡 Inline preview feature ready - API integration needed
+                        <br>Click "View File Contents" for full syntax-highlighted view
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            container.innerHTML = `
+                <div class="inline-preview-error">
+                    ❌ Could not load preview: ${error.message}
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Generate a unique ID for preview containers
+     */
+    generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+    }
+
+    /**
+     * Generate preview ID based on file path
+     */
+    generatePreviewId(filePath) {
+        return btoa(filePath).replace(/[^a-zA-Z0-9]/g, '');
+    }
+
     // ==================== UTILITY METHODS ====================
 
     /**
@@ -1390,3 +1638,35 @@ export default UnifiedDataViewer;
 
 // Make globally available for non-module usage
 window.UnifiedDataViewer = UnifiedDataViewer;
+
+// Create a global instance for inline preview functionality
+if (typeof window !== 'undefined') {
+    window.addEventListener('DOMContentLoaded', function() {
+        // Create global instance if one doesn't exist
+        if (!window.unifiedDataViewer) {
+            window.unifiedDataViewer = new UnifiedDataViewer();
+        }
+        
+        // Add keyboard shortcuts for file operations
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + Click on file paths to open file viewer
+            if ((e.ctrlKey || e.metaKey) && e.target.classList.contains('clickable-file-path')) {
+                e.preventDefault();
+                const filePath = e.target.textContent.trim();
+                if (window.showFileViewerModal) {
+                    window.showFileViewerModal(filePath);
+                }
+            }
+            
+            // 'V' key to open file viewer when hovering over clickable file paths
+            if (e.key.toLowerCase() === 'v' && document.querySelector('.clickable-file-path:hover')) {
+                const hoveredPath = document.querySelector('.clickable-file-path:hover');
+                if (hoveredPath && window.showFileViewerModal) {
+                    e.preventDefault();
+                    const filePath = hoveredPath.textContent.trim();
+                    window.showFileViewerModal(filePath);
+                }
+            }
+        });
+    });
+}
