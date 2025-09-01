@@ -31,7 +31,7 @@ def main():
         import asyncio
 
         from claude_mpm.services.cli.dashboard_launcher import DashboardLauncher
-        from claude_mpm.services.socketio.server import SocketIOServer
+        from claude_mpm.services.socketio_server import SocketIOServer
 
         print(f"Starting Claude MPM Dashboard on http://{args.host}:{args.port}")
 

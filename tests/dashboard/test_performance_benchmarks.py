@@ -72,7 +72,7 @@ class EventStreamBenchmark:
                     "key3": random.random(),
                     "nested": {
                         "deep1": f"deep_value_{index}",
-                        "deep2": [i for i in range(5)],
+                        "deep2": list(range(5)),
                     },
                 },
             },

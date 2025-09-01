@@ -16,6 +16,7 @@ DESIGN DECISIONS:
 - Validate lazy loading and user interactions
 """
 
+import contextlib
 import json
 import sys
 import time
@@ -635,7 +636,7 @@ class CodeAnalysisBrowserTest:
                 ]
 
                 visible_elements = 0
-                for element_id, description in elements_to_check:
+                for element_id, _description in elements_to_check:
                     try:
                         element = self.driver.find_element(By.ID, element_id)
                         if element.is_displayed():
@@ -794,10 +795,8 @@ class CodeAnalysisBrowserTest:
         finally:
             # Cleanup driver
             if self.driver:
-                try:
+                with contextlib.suppress(Exception):
                     self.driver.quit()
-                except:
-                    pass
                 self.driver = None
 
     async def run_full_test_suite(
