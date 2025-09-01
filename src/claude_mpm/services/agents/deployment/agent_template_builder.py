@@ -281,11 +281,8 @@ class AgentTemplateBuilder:
             f"name: {claude_code_name}",
         ]
         
-        # Add multiline description (always use pipe format for consistency)
-        frontmatter_lines.extend([
-            "description: |",
-            self._indent_multiline_text(description, 2)
-        ])
+        # Add description as single-line YAML string with \n escapes
+        frontmatter_lines.append(f"description: {self._format_description_for_yaml(description)}")
         
         # Add model field (required for Claude Code)
         frontmatter_lines.append(f"model: {model}")
@@ -646,14 +643,15 @@ tools:
 
     def _extract_examples_from_template(self, template_data: dict, agent_name: str) -> List[str]:
         """
-        Extract examples from template data.
+        Extract examples from template data and format with commentary.
+        Creates ONE example with commentary from template data.
         
         Args:
             template_data: Template data
             agent_name: Name of the agent
             
         Returns:
-            List of example strings
+            List of example strings (single example with commentary)
         """
         examples = []
         
@@ -662,62 +660,70 @@ tools:
         template_examples = knowledge.get("examples", [])
         
         if template_examples:
-            for i, example in enumerate(template_examples[:2]):  # Limit to 2 examples
-                scenario = example.get("scenario", "")
-                approach = example.get("approach", "")
-                
-                if scenario and approach:
-                    examples.extend([
-                        "<example>",
-                        f'Context: {scenario}',
-                        f'user: "I need help with {scenario.lower()}"',
-                        f'assistant: "I\'ll use the {agent_name} agent to {approach.lower()}."',
-                        "</example>"
-                    ])
-                    
-                    if i < len(template_examples) - 1:  # Add separator between examples
-                        examples.append("")
+            # Take only the first example and add commentary
+            example = template_examples[0]
+            scenario = example.get("scenario", "")
+            approach = example.get("approach", "")
+            commentary = example.get("commentary", "")
+            
+            if scenario and approach:
+                examples.extend([
+                    "<example>",
+                    f'Context: {scenario}',
+                    f'user: "I need help with {scenario.lower()}"',
+                    f'assistant: "I\'ll use the {agent_name} agent to {approach.lower()}."',
+                    "<commentary>",
+                    commentary if commentary else f"This agent is well-suited for {scenario.lower()} because it specializes in {approach.lower()} with targeted expertise.",
+                    "</commentary>",
+                    "</example>"
+                ])
         
         # Check for triggers that can be converted to examples  
         interactions = template_data.get("interactions", {})
         triggers = interactions.get("triggers", [])
         
         if triggers and not examples:
-            # Convert first two triggers to examples
-            for i, trigger in enumerate(triggers[:2]):
-                examples.extend([
-                    "<example>",
-                    f'Context: When user needs {trigger}',
-                    f'user: "{trigger}"',
-                    f'assistant: "I\'ll use the {agent_name} agent for {trigger}."',
-                    "</example>"
-                ])
-                
-                if i < len(triggers) - 1:  # Add separator between examples
-                    examples.append("")
+            # Convert first trigger to example with commentary
+            trigger = triggers[0]
+            agent_type = template_data.get("agent_type", "general")
+            
+            examples.extend([
+                "<example>",
+                f'Context: When user needs {trigger}',
+                f'user: "{trigger}"',
+                f'assistant: "I\'ll use the {agent_name} agent for {trigger}."',
+                "<commentary>",
+                f"This {agent_type} agent is appropriate because it has specialized capabilities for {trigger.lower()} tasks.",
+                "</commentary>",
+                "</example>"
+            ])
         
         return examples
 
     def _generate_default_examples(self, agent_name: str, template_data: dict) -> List[str]:
         """
         Generate default examples when none are available in template.
+        Creates ONE example with commentary for each agent type.
         
         Args:
             agent_name: Name of the agent
             template_data: Template data for context
             
         Returns:
-            List of default example strings
+            List of example strings (single example with commentary)
         """
         agent_type = template_data.get("agent_type", "general")
         
-        # Create type-specific examples
+        # Create type-specific examples with commentary inside
         type_examples = {
             "engineer": [
                 "<example>",
                 "Context: When you need to implement new features or write code.",
                 'user: "I need to add authentication to my API"',
                 f'assistant: "I\'ll use the {agent_name} agent to implement a secure authentication system for your API."',
+                "<commentary>",
+                "The engineer agent is ideal for code implementation tasks because it specializes in writing production-quality code, following best practices, and creating well-architected solutions.",
+                "</commentary>",
                 "</example>"
             ],
             "ops": [
@@ -725,6 +731,9 @@ tools:
                 "Context: When you need to deploy or manage infrastructure.",
                 'user: "I need to deploy my application to the cloud"',
                 f'assistant: "I\'ll use the {agent_name} agent to set up and deploy your application infrastructure."',
+                "<commentary>",
+                "The ops agent excels at infrastructure management and deployment automation, ensuring reliable and scalable production systems.",
+                "</commentary>",
                 "</example>"
             ],
             "qa": [
@@ -732,20 +741,39 @@ tools:
                 "Context: When you need to test or validate functionality.",
                 'user: "I need to write tests for my new feature"',
                 f'assistant: "I\'ll use the {agent_name} agent to create comprehensive tests for your feature."',
+                "<commentary>",
+                "The QA agent specializes in comprehensive testing strategies, quality assurance validation, and creating robust test suites that ensure code reliability.",
+                "</commentary>",
                 "</example>"
             ],
             "research": [
                 "<example>",
-                "Context: When you need to investigate or analyze information.",
-                'user: "I need to research best practices for this technology"',
-                f'assistant: "I\'ll use the {agent_name} agent to research and analyze the best practices."',
+                "Context: When you need to investigate or analyze existing codebases.",
+                'user: "I need to understand how the authentication system works in this project"',
+                f'assistant: "I\'ll use the {agent_name} agent to analyze the codebase and explain the authentication implementation."',
+                "<commentary>",
+                "The research agent is perfect for code exploration and analysis tasks, providing thorough investigation of existing systems while maintaining memory efficiency.",
+                "</commentary>",
+                "</example>"
+            ],
+            "security": [
+                "<example>",
+                "Context: When you need to review code for security vulnerabilities.",
+                'user: "I need a security review of my authentication implementation"',
+                f'assistant: "I\'ll use the {agent_name} agent to conduct a thorough security analysis of your authentication code."',
+                "<commentary>",
+                "The security agent specializes in identifying security risks, vulnerability assessment, and ensuring applications meet security standards and best practices.",
+                "</commentary>",
                 "</example>"
             ],
             "documentation": [
                 "<example>",
-                "Context: When you need to create or update documentation.",
+                "Context: When you need to create or update technical documentation.",
                 'user: "I need to document this new API endpoint"',
                 f'assistant: "I\'ll use the {agent_name} agent to create comprehensive API documentation."',
+                "<commentary>",
+                "The documentation agent excels at creating clear, comprehensive technical documentation including API docs, user guides, and technical specifications.",
+                "</commentary>",
                 "</example>"
             ]
         }
@@ -755,6 +783,9 @@ tools:
             f"Context: When you need specialized assistance from the {agent_name} agent.",
             f'user: "I need help with {agent_name.replace("-", " ")} tasks"',
             f'assistant: "I\'ll use the {agent_name} agent to provide specialized assistance."',
+            "<commentary>",
+            f"This agent provides targeted expertise for {agent_name.replace('-', ' ')} related tasks and follows established best practices.",
+            "</commentary>",
             "</example>"
         ])
 
@@ -783,3 +814,25 @@ tools:
                 indented_lines.append("")
         
         return "\n".join(indented_lines)
+
+    def _format_description_for_yaml(self, description: str) -> str:
+        """Format description as a single-line YAML string with escaped newlines.
+        
+        Args:
+            description: Multi-line description text
+            
+        Returns:
+            Single-line YAML-formatted string with \n escapes
+        """
+        if not description:
+            return '""'
+        
+        # The description already contains actual newlines, we need to escape them
+        # Replace actual newlines with \n escape sequence  
+        escaped = description.replace('\n', '\\n')
+        
+        # Escape any quotes in the description
+        escaped = escaped.replace('"', '\\"')
+        
+        # Return as quoted string
+        return f'"{escaped}"'
