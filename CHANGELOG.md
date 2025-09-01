@@ -17,6 +17,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.0] - 2025-09-01
+
+### 🎯 Major Features
+- **BASE Agent Instruction System**: Implemented comprehensive BASE instruction files for all core agent types (ENGINEER, QA, OPS, RESEARCH, DOCUMENTATION) that automatically load and merge with agent-specific instructions
+- **Google Cloud Ops Agent**: Added new specialized agent for Google Cloud Platform operations with OAuth, Service Account, and gcloud CLI expertise
+- **Automatic Instruction Inheritance**: Agent template builder now automatically loads BASE instructions based on agent type, reducing template duplication by 50-70%
+
+### ✨ Enhancements
+- **PM Verification Requirements**: Added mandatory end-of-session verification requiring QA agent testing and deployment verification before work completion
+- **Simple Code Browser Filtering**: Added comprehensive file/folder filtering matching main explorer behavior (hides dot files, shows only code-relevant directories)
+- **File Viewing Enhancement**: Enhanced activity data viewer with clickable file paths, keyboard shortcuts (V key, Ctrl+Click), and file type icons for single file operations
+- **Loading State Management**: Fixed "Already loading" issue in code tree by properly clearing loadingNodes Set in error scenarios
+
+### 🔧 Technical Improvements
+- Added `_load_base_agent_instructions()` method to AgentTemplateBuilder for dynamic BASE file loading
+- Implemented GitignoreManager integration in simple directory API for consistent filtering
+- Enhanced unified data viewer with file type detection and accessibility features
+- Improved error recovery in code tree WebSocket handlers
+
+### 📚 Documentation
+- Created BASE instruction files documenting common patterns for each agent type
+- Updated BASE_PM.md with comprehensive verification requirements
+- Added 21 total agents now benefiting from BASE instruction inheritance
+
+### 🐛 Bug Fixes
+- Fixed directory loading state management preventing "Already loading: src" errors
+- Resolved WebSocket error recovery issues in code tree component
+- Fixed simple code browser to properly filter system files and build artifacts
+
 ## [4.1.29] - 2025-08-31
 
 ### Fixed
