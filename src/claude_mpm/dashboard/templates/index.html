@@ -531,7 +531,7 @@
         Promise.all([
             loadModule('/static/dist/dashboard.js'),
             loadModule('/static/dist/components/activity-tree.js'),
-            loadModule('/static/dist/components/code-tree.js'),
+            loadModule('/static/js/components/code-tree.js'),  // TEMPORARY: Direct source for debugging
             loadModule('/static/dist/components/code-viewer.js')
         ]).then(() => {
             console.log('All dashboard modules loaded successfully');

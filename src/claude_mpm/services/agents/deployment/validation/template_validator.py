@@ -31,7 +31,7 @@ class TemplateValidator:
             "agent_type": str,
             "metadata": dict,
             "capabilities": dict,
-            "instructions": dict,
+            "instructions": str,
         }
 
         # Required metadata fields
@@ -45,13 +45,10 @@ class TemplateValidator:
         # Required capabilities fields
         self.required_capabilities_fields = {
             "model": str,
-            "tools": list,
+            "resource_tier": str,
         }
 
-        # Required instructions fields
-        self.required_instructions_fields = {
-            "system_prompt": str,
-        }
+        # Instructions is now a string field, not a dictionary
 
     def validate_template_file(self, template_file: Path) -> ValidationResult:
         """Validate a template file.
@@ -90,9 +87,9 @@ class TemplateValidator:
             if "capabilities" in template_data:
                 self._validate_capabilities(template_data["capabilities"], result)
 
-            # Validate instructions
+            # Validate instructions (now a string field)
             if "instructions" in template_data:
-                self._validate_instructions(template_data["instructions"], result)
+                self._validate_instructions_string(template_data["instructions"], result)
 
             # Validate agent ID format
             if "agent_id" in template_data:
@@ -230,7 +227,7 @@ class TemplateValidator:
                     suggestion=f"Use one of: {', '.join(valid_models)}",
                 )
 
-        # Validate tools
+        # Validate tools (optional field but validate if present)
         if "tools" in capabilities:
             tools = capabilities["tools"]
             if not isinstance(tools, list):
@@ -241,44 +238,56 @@ class TemplateValidator:
                 result.add_warning(
                     "No tools specified", field_name="capabilities.tools"
                 )
+        
+        # Validate resource_tier
+        if "resource_tier" in capabilities:
+            resource_tier = capabilities["resource_tier"]
+            valid_tiers = ["basic", "standard", "intensive", "lightweight", "high"]
+            if resource_tier not in valid_tiers:
+                result.add_warning(
+                    f"Unknown resource tier '{resource_tier}'",
+                    field_name="capabilities.resource_tier",
+                    suggestion=f"Use one of: {', '.join(valid_tiers)}",
+                )
 
-    def _validate_instructions(
-        self, instructions: Dict[str, Any], result: ValidationResult
+    def _validate_instructions_string(
+        self, instructions: str, result: ValidationResult
     ) -> None:
-        """Validate instructions section.
+        """Validate instructions string.
 
         Args:
-            instructions: Instructions dictionary
+            instructions: Instructions string
             result: ValidationResult to update
         """
-        for field, expected_type in self.required_instructions_fields.items():
-            if field not in instructions:
-                result.add_error(
-                    f"Missing required instructions field: {field}",
-                    field_name=f"instructions.{field}",
-                )
-            else:
-                value = instructions[field]
-                if not isinstance(value, expected_type):
-                    result.add_error(
-                        f"Instructions field '{field}' should be {expected_type.__name__}, got {type(value).__name__}",
-                        field_name=f"instructions.{field}",
-                    )
+        # Check if instructions is actually a string
+        if not isinstance(instructions, str):
+            result.add_error(
+                f"Instructions should be a string, got {type(instructions).__name__}",
+                field_name="instructions",
+            )
+            return
 
-        # Validate system prompt
-        if "system_prompt" in instructions:
-            system_prompt = instructions["system_prompt"]
-            if not system_prompt or not system_prompt.strip():
-                result.add_error(
-                    "System prompt cannot be empty",
-                    field_name="instructions.system_prompt",
-                )
-            elif len(system_prompt) < 20:
-                result.add_warning(
-                    "System prompt is very short",
-                    field_name="instructions.system_prompt",
-                    suggestion="Provide more detailed instructions",
-                )
+        # Check if instructions is not empty
+        if not instructions or not instructions.strip():
+            result.add_error(
+                "Instructions cannot be empty",
+                field_name="instructions",
+            )
+        elif len(instructions) < 20:
+            result.add_warning(
+                "Instructions are very short",
+                field_name="instructions",
+                suggestion="Provide more detailed instructions",
+            )
+        
+        # Check for file references that might be invalid
+        if instructions.startswith("file:"):
+            file_ref = instructions[5:]  # Remove "file:" prefix
+            result.add_warning(
+                f"Instructions reference external file: {file_ref}",
+                field_name="instructions",
+                suggestion="Consider embedding instructions directly or ensure the referenced file exists",
+            )
 
     def _validate_agent_id(self, agent_id: str, result: ValidationResult) -> None:
         """Validate agent ID format.

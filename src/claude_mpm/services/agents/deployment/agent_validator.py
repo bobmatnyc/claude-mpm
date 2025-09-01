@@ -331,12 +331,13 @@ class AgentValidator:
         # Extract from YAML frontmatter
         lines = content.split("\n")
         for line in lines:
-            if line.startswith("name:"):
-                agent_info["name"] = line.split(":", 1)[1].strip().strip("\"'")
-            elif line.startswith("description:"):
-                agent_info["description"] = line.split(":", 1)[1].strip().strip("\"'")
-            elif line.startswith("version:"):
-                agent_info["version"] = line.split(":", 1)[1].strip().strip("\"'")
+            stripped_line = line.strip()
+            if stripped_line.startswith("name:"):
+                agent_info["name"] = stripped_line.split(":", 1)[1].strip().strip("\"'")
+            elif stripped_line.startswith("description:"):
+                agent_info["description"] = stripped_line.split(":", 1)[1].strip().strip("\"'")
+            elif stripped_line.startswith("version:"):
+                agent_info["version"] = stripped_line.split(":", 1)[1].strip().strip("\"'")
 
         return agent_info
 

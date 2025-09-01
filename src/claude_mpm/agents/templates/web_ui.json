@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "web-ui-engineer",
-  "agent_version": "1.4.0",
+  "agent_version": "1.4.1",
   "agent_type": "engineer",
   "metadata": {
     "name": "Web UI Agent",

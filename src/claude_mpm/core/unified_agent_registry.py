@@ -420,8 +420,8 @@ class UnifiedAgentRegistry:
             for _i, line in enumerate(lines[1:], 1):
                 if line.strip() == "---":
                     break
-                if line.startswith("description:"):
-                    return line.split(":", 1)[1].strip().strip("\"'")
+                if line.strip().startswith("description:"):
+                    return line.strip().split(":", 1)[1].strip().strip("\"'")
 
         # Look for first paragraph
         for line in lines:

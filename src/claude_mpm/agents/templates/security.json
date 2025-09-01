@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "security-agent",
-  "agent_version": "2.3.0",
+  "agent_version": "2.3.1",
   "agent_type": "security",
   "metadata": {
     "name": "Security Agent",

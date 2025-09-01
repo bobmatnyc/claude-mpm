@@ -19,7 +19,7 @@ from typing import Optional
 from ...constants import DashboardCommands
 from ...services.cli.dashboard_launcher import DashboardLauncher
 from ...services.port_manager import PortManager
-from ...services.socketio.server.main import SocketIOServer
+from ...services.socketio.dashboard_server import DashboardServer
 from ..shared import BaseCommand, CommandResult
 
 
@@ -105,8 +105,8 @@ class DashboardCommand(BaseCommand):
             print(f"Starting dashboard server on {host}:{port}...")
             print("Press Ctrl+C to stop the server")
 
-            # Create and start the SocketIO server
-            self.server = SocketIOServer(host=host, port=port)
+            # Create and start the Dashboard server (with monitor client)
+            self.server = DashboardServer(host=host, port=port)
 
             # Set up signal handlers for graceful shutdown
             def signal_handler(signum, frame):
