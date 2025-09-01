@@ -89,7 +89,9 @@ class TemplateValidator:
 
             # Validate instructions (now a string field)
             if "instructions" in template_data:
-                self._validate_instructions_string(template_data["instructions"], result)
+                self._validate_instructions_string(
+                    template_data["instructions"], result
+                )
 
             # Validate agent ID format
             if "agent_id" in template_data:
@@ -238,7 +240,7 @@ class TemplateValidator:
                 result.add_warning(
                     "No tools specified", field_name="capabilities.tools"
                 )
-        
+
         # Validate resource_tier
         if "resource_tier" in capabilities:
             resource_tier = capabilities["resource_tier"]
@@ -279,7 +281,7 @@ class TemplateValidator:
                 field_name="instructions",
                 suggestion="Provide more detailed instructions",
             )
-        
+
         # Check for file references that might be invalid
         if instructions.startswith("file:"):
             file_ref = instructions[5:]  # Remove "file:" prefix

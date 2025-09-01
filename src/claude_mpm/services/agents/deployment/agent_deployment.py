@@ -684,7 +684,9 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
     def _get_filtered_templates(self, excluded_agents: list, config: Config) -> list:
         """Get and filter template files based on exclusion rules."""
         filter_non_mpm = config.get("agent_deployment.filter_non_mpm_agents", True)
-        return self.discovery_service.get_filtered_templates(excluded_agents, config, filter_non_mpm)
+        return self.discovery_service.get_filtered_templates(
+            excluded_agents, config, filter_non_mpm
+        )
 
     def _validate_and_repair_existing_agents(self, agents_dir: Path) -> Dict[str, Any]:
         """Validate and repair broken frontmatter in existing agent files."""
