@@ -395,14 +395,17 @@ class SocketIOServerCore:
 
     def _setup_directory_api(self):
         """Setup simple directory listing API.
-        
+
         WHY: Provides a dead-simple way to list directory contents via HTTP GET
         without complex WebSocket interactions.
         """
         try:
             from claude_mpm.dashboard.api.simple_directory import register_routes
+
             register_routes(self.app)
-            self.logger.info("✅ Simple directory API registered at /api/directory/list")
+            self.logger.info(
+                "✅ Simple directory API registered at /api/directory/list"
+            )
         except Exception as e:
             self.logger.error(f"Failed to setup directory API: {e}")
 
@@ -470,7 +473,9 @@ class SocketIOServerCore:
                     self.logger.warning(
                         f"Code simple template not found at: {code_simple_template}"
                     )
-                    return web.Response(text="Simple code view not available", status=404)
+                    return web.Response(
+                        text="Simple code view not available", status=404
+                    )
 
                 self.app.router.add_get("/code-simple", code_simple_handler)
 
