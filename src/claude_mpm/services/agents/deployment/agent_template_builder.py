@@ -29,6 +29,67 @@ class AgentTemplateBuilder:
         """Initialize the template builder."""
         self.logger = get_logger(__name__)
 
+    def _load_base_agent_instructions(self, agent_type: str) -> str:
+        """Load BASE instructions for a specific agent type.
+        
+        Args:
+            agent_type: The type of agent (engineer, qa, ops, research, documentation)
+            
+        Returns:
+            The BASE instructions content or empty string if not found
+        """
+        if not agent_type:
+            return ""
+            
+        try:
+            # Construct BASE file name  
+            base_file = f"BASE_{agent_type.upper()}.md"
+            
+            # Try to find BASE file in agents directory
+            # First try current working directory structure
+            agents_dir = Path(__file__).parent.parent.parent.parent / "agents"
+            base_path = agents_dir / base_file
+            
+            if not base_path.exists():
+                # Try packaged resources if available
+                try:
+                    from importlib.resources import files
+                    agents_package = files("claude_mpm.agents")
+                    base_resource = agents_package / base_file
+                    if base_resource.is_file():
+                        content = base_resource.read_text(encoding='utf-8')
+                        self.logger.debug(f"Loaded BASE instructions from package: {base_file}")
+                        return content
+                except (ImportError, Exception) as e:
+                    self.logger.debug(f"Could not load BASE instructions from package: {e}")
+                    
+                # Final fallback - try multiple possible locations
+                possible_paths = [
+                    Path.cwd() / "src" / "claude_mpm" / "agents" / base_file,
+                    Path(__file__).parent.parent.parent.parent / "agents" / base_file,
+                    Path.home() / ".claude-mpm" / "agents" / base_file
+                ]
+                
+                for path in possible_paths:
+                    if path.exists():
+                        base_path = path
+                        break
+                else:
+                    self.logger.debug(f"No BASE instructions found for type: {agent_type}")
+                    return ""
+            
+            if base_path.exists():
+                self.logger.debug(f"Loading BASE instructions from {base_path}")
+                content = base_path.read_text(encoding='utf-8')
+                return content
+            else:
+                self.logger.debug(f"No BASE instructions found for type: {agent_type}")
+                return ""
+                
+        except Exception as e:
+            self.logger.warning(f"Error loading BASE instructions for {agent_type}: {e}")
+            return ""
+
     def build_agent_markdown(
         self,
         agent_name: str,
@@ -233,13 +294,24 @@ class AgentTemplateBuilder:
 
         frontmatter = "\n".join(frontmatter_lines)
 
+        # Load BASE instructions for this agent type
+        base_instructions = self._load_base_agent_instructions(agent_type)
+        
         # Get agent instructions from template data (primary) or base agent data (fallback)
-        content = (
+        agent_specific_instructions = (
             template_data.get("instructions")
             or base_agent_data.get("content")
             or base_agent_data.get("instructions")
             or "# Agent Instructions\n\nThis agent provides specialized assistance."
         )
+        
+        # Combine BASE instructions with agent-specific instructions
+        if base_instructions:
+            # Create a combined instruction set
+            content = f"{base_instructions}\n\n---\n\n{agent_specific_instructions}"
+            self.logger.debug(f"Combined BASE instructions with agent-specific instructions for {agent_type}")
+        else:
+            content = agent_specific_instructions
 
         # Add memory update instructions if not already present
         if "memory-update" not in content and "Remember" not in content:
