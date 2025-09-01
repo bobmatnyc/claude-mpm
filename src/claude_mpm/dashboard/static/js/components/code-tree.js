@@ -203,6 +203,7 @@ class CodeTree {
             this.autoDiscovered = false;
             this.analyzing = false;
             this.nodes.clear();
+            this.loadingNodes.clear();  // Clear loading state tracking
             this.stats = {
                 files: 0,
                 classes: 0,
@@ -223,6 +224,7 @@ class CodeTree {
         
         // Clear existing data
         this.nodes.clear();
+        this.loadingNodes.clear();  // Clear loading state tracking
         this.stats = {
             files: 0,
             classes: 0,
@@ -483,6 +485,7 @@ class CodeTree {
         
         // Clear any existing nodes
         this.nodes.clear();
+        this.loadingNodes.clear();  // Clear loading state for fresh discovery
         this.stats = {
             files: 0,
             classes: 0,
@@ -565,6 +568,7 @@ class CodeTree {
     cancelAnalysis() {
         this.analyzing = false;
         this.hideLoading();
+        this.loadingNodes.clear();  // Clear loading state on cancellation
 
         if (this.socket) {
             this.socket.emit('code:analysis:cancel');
@@ -1571,6 +1575,7 @@ class CodeTree {
     onAnalysisError(data) {
         this.analyzing = false;
         this.hideLoading();
+        this.loadingNodes.clear();  // Clear loading state on error
 
         const message = data.message || data.error || 'Analysis failed';
         this.updateBreadcrumb(message, 'error');
@@ -1688,6 +1693,7 @@ class CodeTree {
     onAnalysisCancelled(data) {
         this.analyzing = false;
         this.hideLoading();
+        this.loadingNodes.clear();  // Clear loading state on cancellation
         const message = data.message || 'Analysis cancelled';
         this.updateBreadcrumb(message, 'warning');
     }
@@ -2666,6 +2672,15 @@ class CodeTree {
                 } else {
                     console.error('❌ [SUBDIRECTORY LOADING] No WebSocket connection available!');
                     this.showNotification(`Cannot load directory: No connection`, 'error');
+                    
+                    // Clear loading state since the request failed
+                    this.loadingNodes.delete(d.data.path);
+                    const d3Node = this.findD3NodeByPath(d.data.path);
+                    if (d3Node) {
+                        this.removeLoadingPulse(d3Node);
+                    }
+                    // Reset the loaded flag
+                    d.data.loaded = false;
                 }
             }, 100);  // 100ms delay to ensure visual effects render first
         } 

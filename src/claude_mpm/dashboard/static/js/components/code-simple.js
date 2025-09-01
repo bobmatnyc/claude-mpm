@@ -155,20 +155,33 @@ class SimpleCodeView {
             const data = await response.json();
             console.log('[SimpleCodeView.loadDirectory] Data received:', data);
             
-            // Update debug info with response
+            // Update debug info with response and filtering status
             if (debugDiv) {
-                debugDiv.innerHTML = `
+                let debugContent = `
                     <strong>Debug Info:</strong><br>
                     API URL: ${apiUrl}<br>
                     Response Status: ${response.status}<br>
                     Path Exists: ${data.exists}<br>
                     Is Directory: ${data.is_directory}<br>
                     Item Count: ${data.contents ? data.contents.length : 0}<br>
+                `;
+                
+                // Add filtering information
+                if (data.filtered) {
+                    debugContent += `<strong>Filtering:</strong> ${data.filter_info || 'Filtered view'}<br>`;
+                    if (data.summary) {
+                        debugContent += `<strong>Items:</strong> ${data.summary.directories} directories, ${data.summary.code_files} code files<br>`;
+                    }
+                }
+                
+                debugContent += `
                     <details>
                         <summary>Raw Response (click to expand)</summary>
                         <pre style="overflow-x: auto;">${JSON.stringify(data, null, 2)}</pre>
                     </details>
                 `;
+                
+                debugDiv.innerHTML = debugContent;
             }
             
             // Display contents
@@ -182,11 +195,25 @@ class SimpleCodeView {
                 contentsDiv.innerHTML = `<p style="color: red;">❌ Error: ${data.error}</p>`;
                 this.showError(data.error);
             } else if (!data.contents || data.contents.length === 0) {
-                contentsDiv.innerHTML = '<p style="color: gray;">📭 Empty directory (no visible contents)</p>';
-                this.updateStatus('Empty directory', 'gray');
+                contentsDiv.innerHTML = '<p style="color: gray;">📭 No code files or subdirectories found (hidden files/folders not shown)</p>';
+                this.updateStatus('No code content found', 'gray');
             } else {
-                // Build the list
-                let html = `<div style="margin-bottom: 10px; color: #666;">Found ${data.contents.length} items:</div>`;
+                // Build the list with filtering indicator
+                let headerText = `Found ${data.contents.length} items`;
+                if (data.filtered && data.summary) {
+                    headerText += ` (${data.summary.directories} directories, ${data.summary.code_files} code files)`;
+                }
+                headerText += ':';
+                
+                let html = `<div style="margin-bottom: 10px; color: #666;">${headerText}</div>`;
+                
+                // Add filtering notice if applicable
+                if (data.filtered) {
+                    html += `<div style="margin-bottom: 10px; padding: 8px; background: #e8f4fd; border-left: 3px solid #2196f3; color: #1565c0; font-size: 13px;">
+                        🔍 Filtered view: ${data.filter_info || 'Showing only code-related files and directories'}
+                    </div>`;
+                }
+                
                 html += '<ul style="list-style: none; padding: 0; margin: 0;">';
                 
                 // Sort: directories first, then files
@@ -198,7 +225,14 @@ class SimpleCodeView {
                 });
                 
                 for (const item of sorted) {
-                    const icon = item.is_directory ? '📁' : '📄';
+                    let icon = item.is_directory ? '📁' : '📄';
+                    let nameStyle = 'color: #666;';
+                    
+                    // Special styling for code files
+                    if (!item.is_directory && item.is_code_file) {
+                        icon = '💻'; // Code file icon
+                        nameStyle = 'color: #2e7d32; font-weight: 500;'; // Green color for code files
+                    }
                     
                     if (item.is_directory) {
                         // Make directories clickable
@@ -210,7 +244,7 @@ class SimpleCodeView {
                     } else {
                         // Files are not clickable
                         html += `<li style="padding: 5px 0;">
-                            ${icon} <span style="color: #666;">${item.name}</span>
+                            ${icon} <span style="${nameStyle}">${item.name}</span>
                         </li>`;
                     }
                 }
