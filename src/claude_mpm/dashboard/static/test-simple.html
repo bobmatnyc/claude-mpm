@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Simple Code Browser</title>
+</head>
+<body>
+    <h1>Test Simple Code Browser</h1>
+    <div id="test-container"></div>
+    <div id="debug-output" style="margin-top: 20px; padding: 10px; background: #f0f0f0; font-family: monospace; white-space: pre-wrap;"></div>
+    
+    <script>
+        const debugOutput = document.getElementById('debug-output');
+        
+        function debug(message) {
+            const timestamp = new Date().toISOString();
+            debugOutput.textContent += `[${timestamp}] ${message}\n`;
+            console.log(message);
+        }
+        
+        debug('Page loaded');
+        
+        // Test 1: Check if we can fetch the directory API directly
+        async function testAPI() {
+            debug('Testing API...');
+            try {
+                const response = await fetch('/api/directory/list?path=/Users/masa/Projects/claude-mpm');
+                const data = await response.json();
+                debug(`API Success: ${data.contents ? data.contents.length : 0} items found`);
+                return true;
+            } catch (error) {
+                debug(`API Error: ${error.message}`);
+                return false;
+            }
+        }
+        
+        // Test 2: Load the JavaScript dynamically
+        function loadSimpleCodeJS() {
+            debug('Loading SimpleCode JavaScript...');
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = '/static/js/components/code-simple.js';
+                
+                script.onload = () => {
+                    debug('JavaScript loaded successfully');
+                    resolve(true);
+                };
+                
+                script.onerror = () => {
+                    debug('JavaScript failed to load');
+                    reject(new Error('Failed to load JavaScript'));
+                };
+                
+                document.head.appendChild(script);
+            });
+        }
+        
+        // Test 3: Initialize the view
+        async function initView() {
+            debug('Initializing view...');
+            const container = document.getElementById('test-container');
+            
+            if (typeof simpleCodeView !== 'undefined') {
+                debug('simpleCodeView found, calling init...');
+                await simpleCodeView.init(container);
+                debug('View initialization completed');
+            } else {
+                debug('ERROR: simpleCodeView not found after loading JavaScript');
+            }
+        }
+        
+        // Run tests
+        document.addEventListener('DOMContentLoaded', async () => {
+            debug('DOM ready, starting tests...');
+            
+            // Test API first
+            const apiWorking = await testAPI();
+            if (!apiWorking) {
+                debug('API test failed, stopping tests');
+                return;
+            }
+            
+            // Load JavaScript
+            try {
+                await loadSimpleCodeJS();
+            } catch (error) {
+                debug(`JavaScript loading failed: ${error.message}`);
+                return;
+            }
+            
+            // Wait a bit for JavaScript to fully initialize
+            setTimeout(async () => {
+                await initView();
+            }, 100);
+        });
+    </script>
+</body>
+</html>
