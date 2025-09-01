@@ -17,6 +17,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.2] - 2025-01-01
+
+### ✨ Features
+- **Agent Deployment**: Added single-line formatting for agent descriptions to remove newlines
+- **Non-MPM Filtering**: Implemented filtering of non-MPM agents based on author/version fields
+- **User Agent Handling**: Added graceful handling of user-created agents without templates
+- **YAML Formatting**: Fixed descriptions to use single-line format with \n escapes
+- **Example Format**: Updated descriptions to use single example with commentary
+
+### 🐛 Bug Fixes
+- **Description Formatting**: Fixed multi-line YAML pipe format to single-line with escapes
+- **Orphaned Detection**: Improved to distinguish between user and system orphaned agents
+
+### 🛠️ Improvements
+- **Agent Deployer**: Enhanced to automatically format descriptions properly
+- **Logging**: User agents now logged at DEBUG level instead of INFO
+- **Configuration**: Added `filter_non_mpm_agents` config option (default: true)
+
+
 ## [4.2.1] - 2024-09-01
 
 ### 🐛 Bug Fixes
