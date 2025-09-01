@@ -148,19 +148,38 @@ class AgentFormatConverter:
         # Extract instructions from YAML content
         instructions = self._extract_instructions_from_yaml(yaml_content, agent_name)
 
-        # Build new YAML frontmatter
-        current_time = datetime.now().isoformat() + "Z"
+        # Map model names to Claude Code format
+        model_map = {
+            "claude-3-5-sonnet-20241022": "sonnet",
+            "claude-3-5-sonnet": "sonnet",
+            "claude-3-sonnet": "sonnet",
+            "claude-3-haiku": "haiku",
+            "claude-3-opus": "opus",
+            "sonnet": "sonnet",
+            "haiku": "haiku",
+            "opus": "opus",
+        }
+        
+        mapped_model = model_map.get(model, "sonnet")
 
+        # Create multiline description with example (Claude Code format)
+        multiline_description = f"""{description}
+
+<example>
+Context: When you need specialized assistance from the {name} agent.
+user: "I need help with {agent_name.replace('_', ' ').replace('-', ' ')} tasks"
+assistant: "I'll use the {name} agent to provide specialized assistance."
+</example>"""
+
+        # Build new YAML frontmatter - Claude Code compatible format
+        # NOTE: Removed tags field and other non-essential fields for Claude Code compatibility
         new_frontmatter = f"""---
 name: {name}
-description: "{description}"
+description: |
+  {self._indent_text(multiline_description, 2)}
+model: {mapped_model}
 version: "{version}"
 author: "{author}"
-created: "{current_time}"
-updated: "{current_time}"
-tags: ["{agent_name}", "mpm-framework"]
-tools: {tools_list}
-model: "{model}"
 ---
 
 """
@@ -447,3 +466,29 @@ model: "{model}"
         except Exception as e:
             self.logger.error(f"Failed to convert MD to JSON: {e}")
             return json.dumps({"error": str(e)})
+
+    def _indent_text(self, text: str, spaces: int) -> str:
+        """
+        Indent multiline text with specified number of spaces.
+        
+        Args:
+            text: Text to indent
+            spaces: Number of spaces for indentation
+            
+        Returns:
+            Indented text
+        """
+        if not text:
+            return ""
+        
+        indent = " " * spaces
+        lines = text.split("\n")
+        indented_lines = []
+        
+        for line in lines:
+            if line.strip():  # Non-empty lines get indented
+                indented_lines.append(indent + line)
+            else:  # Empty lines stay empty
+                indented_lines.append("")
+        
+        return "\n".join(indented_lines)

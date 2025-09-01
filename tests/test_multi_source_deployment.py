@@ -212,10 +212,11 @@ def test_deployment_integration():
             version = None
             source = None
             for line in content.split("\n"):
-                if line.startswith("version:"):
-                    version = line.split(":", 1)[1].strip()
-                elif line.startswith("source:"):
-                    source = line.split(":", 1)[1].strip()
+                stripped_line = line.strip()
+                if stripped_line.startswith("version:"):
+                    version = stripped_line.split(":", 1)[1].strip()
+                elif stripped_line.startswith("source:"):
+                    source = stripped_line.split(":", 1)[1].strip()
 
             if version and source:
                 print(f"    {agent_file.stem}: v{version} from {source}")

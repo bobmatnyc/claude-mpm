@@ -527,11 +527,32 @@ class Config:
                     },
                 },
             },
+            # Monitor server configuration (decoupled from dashboard)
+            "monitor_server": {
+                "host": "localhost",
+                "port": 8766,  # Default monitor port (separate from dashboard)
+                "enable_health_monitoring": True,
+                "auto_start": False,  # Don't auto-start with dashboard by default
+                "event_buffer_size": 2000,  # Larger buffer for monitor server
+                "client_timeout": 60,  # Timeout for inactive clients
+            },
+            # Dashboard server configuration (connects to monitor)
+            "dashboard_server": {
+                "host": "localhost",
+                "port": 8765,  # Dashboard UI port
+                "monitor_host": "localhost",  # Monitor server host to connect to
+                "monitor_port": 8766,  # Monitor server port to connect to
+                "auto_connect_monitor": True,  # Automatically connect to monitor
+                "monitor_reconnect": True,  # Auto-reconnect to monitor if disconnected
+                "fallback_standalone": True,  # Run in standalone mode if monitor unavailable
+            },
             # Agent deployment configuration
             "agent_deployment": {
                 "excluded_agents": [],  # List of agent IDs to exclude from deployment
                 "exclude_dependencies": False,  # Whether to exclude agent dependencies too
                 "case_sensitive": False,  # Whether agent name matching is case-sensitive
+                "filter_non_mpm_agents": True,  # Filter out non-MPM agents by default
+                "mpm_author_patterns": ["claude mpm", "claude-mpm", "anthropic"]  # Patterns for MPM agents
             },
             # Instruction reinforcement system configuration
             "instruction_reinforcement": {

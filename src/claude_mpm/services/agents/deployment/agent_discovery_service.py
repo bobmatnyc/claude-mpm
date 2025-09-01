@@ -85,7 +85,7 @@ class AgentDiscoveryService:
         return agents
 
     def get_filtered_templates(
-        self, excluded_agents: List[str], config: Optional[Config] = None
+        self, excluded_agents: List[str], config: Optional[Config] = None, filter_non_mpm: bool = False
     ) -> List[Path]:
         """
         Get filtered list of template files based on configuration.
@@ -93,6 +93,7 @@ class AgentDiscoveryService:
         Args:
             excluded_agents: List of agent names to exclude
             config: Configuration object for additional filtering
+            filter_non_mpm: Whether to filter out non-MPM agents
 
         Returns:
             List of template file paths to deploy
@@ -111,6 +112,7 @@ class AgentDiscoveryService:
         # Apply exclusion filtering
         filtered_files = []
         excluded_count = 0
+        non_mpm_count = 0
 
         for template_file in template_files:
             agent_name = template_file.stem
@@ -121,14 +123,24 @@ class AgentDiscoveryService:
                 self.logger.debug(f"Excluding agent: {agent_name}")
                 continue
 
+            # Check if we should filter non-MPM agents
+            if filter_non_mpm and not self._is_mpm_agent(template_file):
+                non_mpm_count += 1
+                self.logger.debug(f"Filtering non-MPM agent: {agent_name}")
+                continue
+
             # Validate template file
             if self._validate_template_file(template_file):
                 filtered_files.append(template_file)
             else:
                 self.logger.warning(f"Invalid template file: {template_file.name}")
 
+        # Log filtering results
+        if filter_non_mpm and non_mpm_count > 0:
+            self.logger.info(f"Filtered out {non_mpm_count} non-MPM agents")
+        
         self.logger.info(
-            f"Found {len(template_files)} templates, excluded {excluded_count}, deploying {len(filtered_files)}"
+            f"Found {len(template_files)} templates, excluded {excluded_count}, filtered {non_mpm_count} non-MPM, deploying {len(filtered_files)}"
         )
         return filtered_files
 
@@ -235,6 +247,47 @@ class AgentDiscoveryService:
                 f"Failed to extract metadata from {template_file.name}: {e}"
             )
             return None
+
+    def _is_mpm_agent(self, template_file: Path) -> bool:
+        """Check if agent is authored by Claude MPM team.
+        
+        MPM agents must have:
+        - An author field containing 'claude mpm', 'claude-mpm', or 'anthropic'
+        - A valid agent_version field
+        
+        Args:
+            template_file: Path to the agent template JSON file
+            
+        Returns:
+            True if this is an MPM agent, False otherwise
+        """
+        try:
+            template_data = json.loads(template_file.read_text())
+            metadata = template_data.get("metadata", {})
+            
+            # Check for author field
+            author = metadata.get("author", "").lower()
+            has_valid_author = any(pattern in author for pattern in [
+                "claude mpm",
+                "claude-mpm", 
+                "anthropic"
+            ])
+            
+            # Check for version field
+            has_version = bool(template_data.get("agent_version"))
+            
+            if not has_valid_author or not has_version:
+                self.logger.debug(
+                    f"Filtered non-MPM agent {template_file.name}: "
+                    f"author='{metadata.get('author', 'missing')}', "
+                    f"version={'present' if has_version else 'missing'}"
+                )
+            
+            return has_valid_author and has_version
+            
+        except Exception as e:
+            self.logger.debug(f"Error checking if {template_file} is MPM agent: {e}")
+            return False  # Treat invalid templates as non-MPM
 
     def _is_agent_excluded(
         self,
@@ -356,6 +409,43 @@ class AgentDiscoveryService:
         pattern = r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
 
         return bool(re.match(pattern, agent_name))
+
+    def _is_mpm_agent(self, template_file: Path, config: Optional[Config] = None) -> bool:
+        """Check if agent is authored by Claude MPM team.
+        
+        MPM agents must have:
+        - An author field containing configurable MPM patterns (default: 'claude mpm', 'claude-mpm', 'anthropic')
+        - A valid agent_version field
+        
+        Args:
+            template_file: Path to the agent template JSON file
+            config: Configuration object for MPM patterns
+            
+        Returns:
+            True if this is an MPM agent, False otherwise
+        """
+        try:
+            template_data = json.loads(template_file.read_text())
+            metadata = template_data.get("metadata", {})
+            
+            # Get MPM author patterns from config
+            if config:
+                mpm_patterns = config.get("agent_deployment.mpm_author_patterns", ["claude mpm", "claude-mpm", "anthropic"])
+            else:
+                mpm_patterns = ["claude mpm", "claude-mpm", "anthropic"]
+            
+            # Check for author field
+            author = metadata.get("author", "").lower()
+            has_valid_author = any(pattern.lower() in author for pattern in mpm_patterns)
+            
+            # Check for version field
+            has_version = bool(template_data.get("agent_version"))
+            
+            return has_valid_author and has_version
+            
+        except Exception as e:
+            self.logger.debug(f"Error checking if {template_file} is MPM agent: {e}")
+            return False  # Treat invalid templates as non-MPM
 
     def get_discovery_stats(self) -> Dict[str, Any]:
         """

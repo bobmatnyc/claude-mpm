@@ -440,15 +440,43 @@ class CodeTree {
      */
     subscribeToEvents() {
         if (!this.socket) {
-            if (window.socket) {
+            // CRITICAL FIX: Create our own socket connection if no shared socket exists
+            // This ensures the tree view has a working WebSocket connection
+            if (window.socket && window.socket.connected) {
+                console.log('[CodeTree] Using existing global socket');
                 this.socket = window.socket;
                 this.setupEventHandlers();
-            } else if (window.dashboard?.socketClient?.socket) {
+            } else if (window.dashboard?.socketClient?.socket && window.dashboard.socketClient.socket.connected) {
+                console.log('[CodeTree] Using dashboard socket');
                 this.socket = window.dashboard.socketClient.socket;
                 this.setupEventHandlers();
-            } else if (window.socketClient?.socket) {
+            } else if (window.socketClient?.socket && window.socketClient.socket.connected) {
+                console.log('[CodeTree] Using socketClient socket');
                 this.socket = window.socketClient.socket;
                 this.setupEventHandlers();
+            } else if (window.io) {
+                // Create our own socket connection like the simple view does
+                console.log('[CodeTree] Creating new socket connection');
+                try {
+                    this.socket = io('/');
+                    
+                    this.socket.on('connect', () => {
+                        console.log('[CodeTree] Socket connected successfully');
+                        this.setupEventHandlers();
+                    });
+                    
+                    this.socket.on('disconnect', () => {
+                        console.log('[CodeTree] Socket disconnected');
+                    });
+                    
+                    this.socket.on('connect_error', (error) => {
+                        console.error('[CodeTree] Socket connection error:', error);
+                    });
+                } catch (error) {
+                    console.error('[CodeTree] Failed to create socket connection:', error);
+                }
+            } else {
+                console.error('[CodeTree] Socket.IO not available - cannot subscribe to events');
             }
         }
     }
@@ -993,13 +1021,16 @@ class CodeTree {
                         // Find the D3 node again after hierarchy recreation
                         const updatedD3Node = this.findD3NodeByPath(searchPath);
                         if (updatedD3Node) {
-                            // Ensure children are visible (not collapsed)
-                            updatedD3Node.children = updatedD3Node._children || updatedD3Node.children;
-                            updatedD3Node._children = null;
-                            updatedD3Node.data.expanded = true;
+                            // D3.hierarchy already creates the children - just ensure visible
+                            if (updatedD3Node.children && updatedD3Node.children.length > 0) {
+                                updatedD3Node._children = null;
+                                updatedD3Node.data.expanded = true;
+                                console.log('✅ [D3 UPDATE] Node expanded after loading:', searchPath);
+                            }
                         }
                         
-                        this.update(this.root);
+                        // Update with the specific node for smooth animation
+                        this.update(updatedD3Node || this.root);
                     }
                     
                     // Update stats based on discovered contents
@@ -1128,7 +1159,7 @@ class CodeTree {
                     name: child.name,
                     path: childPath,  // Just the name for top-level items
                     type: child.type,
-                    loaded: child.type === 'directory' ? false : undefined,
+                    loaded: child.type === 'directory' ? false : undefined,  // Explicitly false for directories
                     analyzed: child.type === 'file' ? false : undefined,
                     expanded: false,
                     children: child.type === 'directory' ? [] : undefined,
@@ -1142,10 +1173,30 @@ class CodeTree {
             
             // Update D3 hierarchy and render
             if (this.root && this.svg) {
-                // Recreate hierarchy with new data
-                this.root = d3.hierarchy(this.treeData);
-                this.root.x0 = this.height / 2;
-                this.root.y0 = 0;
+                // CRITICAL FIX: Preserve existing D3 node structure when possible
+                // Instead of recreating the entire hierarchy, update the existing root
+                if (this.root.data === this.treeData) {
+                    // Same root data object - update children in place
+                    console.log('📊 Updating existing D3 tree structure');
+                    
+                    // Create D3 hierarchy nodes for the new children
+                    this.root.children = rootNode.children.map(childData => {
+                        const childNode = d3.hierarchy(childData);
+                        childNode.parent = this.root;
+                        childNode.depth = 1;
+                        return childNode;
+                    });
+                    
+                    // Ensure root is marked as expanded
+                    this.root._children = null;
+                    this.root.data.expanded = true;
+                } else {
+                    // Different root - need to recreate
+                    console.log('🔄 Recreating D3 tree structure');
+                    this.root = d3.hierarchy(this.treeData);
+                    this.root.x0 = this.height / 2;
+                    this.root.y0 = 0;
+                }
                 
                 // Update the tree visualization
                 this.update(this.root);
@@ -1297,15 +1348,34 @@ class CodeTree {
                 
                 // Find the D3 node again after hierarchy recreation
                 const updatedD3Node = this.findD3NodeByPath(searchPath);
-                if (updatedD3Node && updatedD3Node.data.children && updatedD3Node.data.children.length > 0) {
-                    // Ensure the node is expanded to show children
-                    updatedD3Node.children = updatedD3Node._children || updatedD3Node.children;
-                    updatedD3Node._children = null;
-                    // Mark data as expanded
-                    updatedD3Node.data.expanded = true;
+                if (updatedD3Node) {
+                    // CRITICAL FIX: D3.hierarchy() creates nodes with children already set
+                    // We just need to ensure they're not hidden in _children
+                    // When d3.hierarchy creates the tree, it puts all children in the 'children' array
+                    
+                    // If the node has children from d3.hierarchy, make sure they're visible
+                    if (updatedD3Node.children && updatedD3Node.children.length > 0) {
+                        // Children are already there from d3.hierarchy - just ensure not hidden
+                        updatedD3Node._children = null;
+                        updatedD3Node.data.expanded = true;
+                        
+                        console.log('✅ [D3 UPDATE] Node expanded with children:', {
+                            path: searchPath,
+                            d3ChildrenCount: updatedD3Node.children.length,
+                            dataChildrenCount: updatedD3Node.data.children ? updatedD3Node.data.children.length : 0,
+                            childPaths: updatedD3Node.children.map(c => c.data.path)
+                        });
+                    } else if (!updatedD3Node.children && updatedD3Node.data.children && updatedD3Node.data.children.length > 0) {
+                        // This shouldn't happen if d3.hierarchy is working correctly
+                        console.error('⚠️ [D3 UPDATE] Data has children but D3 node does not!', {
+                            path: searchPath,
+                            dataChildren: updatedD3Node.data.children
+                        });
+                    }
                 }
                 
-                this.update(this.root);
+                // Force update with the source node for smooth animation
+                this.update(updatedD3Node || this.root);
             }
             
                 // Provide better feedback for empty vs populated directories
@@ -2171,6 +2241,10 @@ class CodeTree {
         // CRITICAL FIX: Ensure ALL nodes (new and existing) have click handlers
         // This fixes the issue where subdirectory clicks stop working after tree updates
         nodeUpdate.on('click', (event, d) => this.onNodeClick(event, d));
+        
+        // ADDITIONAL FIX: Also ensure click handlers on all child elements
+        nodeUpdate.selectAll('circle').on('click', (event, d) => this.onNodeClick(event, d));
+        nodeUpdate.selectAll('text').on('click', (event, d) => this.onNodeClick(event, d));
 
         nodeUpdate.transition()
             .duration(this.duration)
@@ -2448,10 +2522,11 @@ class CodeTree {
     
     /**
      * Remove pulsing animation when loading complete
+     * Note: This function only handles visual animation removal.
+     * The caller is responsible for managing the loadingNodes Set.
      */
     removeLoadingPulse(d) {
-        // Remove from loading set
-        this.loadingNodes.delete(d.data.path);
+        // Note: loadingNodes.delete() is handled by the caller for explicit control
         
         // Use consistent selection pattern
         const node = this.treeGroup.selectAll('g.node')
@@ -2503,6 +2578,16 @@ class CodeTree {
      * Handle node click - implement lazy loading with enhanced visual feedback
      */
     onNodeClick(event, d) {
+        // DEBUG: Log all clicks to verify handler is working
+        console.log('🖱️ [NODE CLICK] Clicked on node:', {
+            name: d?.data?.name,
+            path: d?.data?.path,
+            type: d?.data?.type,
+            loaded: d?.data?.loaded,
+            hasChildren: !!(d?.children || d?._children),
+            dataChildren: d?.data?.children?.length || 0
+        });
+        
         // Handle node click interaction
         
         // Check event parameter
@@ -2616,6 +2701,14 @@ class CodeTree {
         // Add a small delay to ensure visual effects are rendered first
         
         // For directories that haven't been loaded yet, request discovery
+        console.log('🔍 [LOAD CHECK]', {
+            type: d.data.type,
+            loaded: d.data.loaded,
+            loadedType: typeof d.data.loaded,
+            isDirectory: d.data.type === 'directory',
+            notLoaded: !d.data.loaded,
+            shouldLoad: d.data.type === 'directory' && !d.data.loaded
+        });
         if (d.data.type === 'directory' && !d.data.loaded) {
             // Prevent duplicate requests
             if (this.loadingNodes.has(d.data.path)) {
@@ -2646,30 +2739,124 @@ class CodeTree {
             const clickedD3Node = d;
             
             // Delay the socket request to ensure visual effects are rendered
+            // Use arrow function to preserve 'this' context
             setTimeout(() => {
                 
-                // Request directory contents via Socket.IO
-                if (this.socket) {
-                    console.log('📡 [SUBDIRECTORY LOADING] Emitting WebSocket request:', {
-                        event: 'code:discover:directory',
-                        data: {
-                            path: fullPath,
-                            depth: this.bulkLoadMode ? 2 : 1,
-                            languages: selectedLanguages,
-                            ignore_patterns: ignorePatterns
+                // CRITICAL FIX: Use REST API instead of WebSocket for reliability
+                // The simple view works because it uses REST API, so let's do the same
+                console.log('📡 [SUBDIRECTORY LOADING] Using REST API for directory:', {
+                    originalPath: d.data.path,
+                    fullPath: fullPath,
+                    apiUrl: `${window.location.origin}/api/directory/list?path=${encodeURIComponent(fullPath)}`,
+                    loadingNodesSize: this.loadingNodes.size,
+                    loadingNodesContent: Array.from(this.loadingNodes)
+                });
+                
+                const apiUrl = `${window.location.origin}/api/directory/list?path=${encodeURIComponent(fullPath)}`;
+                
+                fetch(apiUrl)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                         }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('✅ [SUBDIRECTORY LOADING] REST API response:', {
+                            data: data,
+                            pathToDelete: d.data.path,
+                            loadingNodesBefore: Array.from(this.loadingNodes)
+                        });
+                        
+                        // Remove from loading set
+                        const deleted = this.loadingNodes.delete(d.data.path);
+                        d.data.loaded = true;
+                        
+                        console.log('🧹 [SUBDIRECTORY LOADING] Cleanup result:', {
+                            pathDeleted: d.data.path,
+                            wasDeleted: deleted,
+                            loadingNodesAfter: Array.from(this.loadingNodes)
+                        });
+                        
+                        // Remove loading animation
+                        const d3Node = this.findD3NodeByPath(d.data.path);
+                        if (d3Node) {
+                            this.removeLoadingPulse(d3Node);
+                        }
+                        
+                        // Process the directory contents
+                        if (data.exists && data.is_directory && data.contents) {
+                            const node = this.findNodeByPath(d.data.path);
+                            if (node) {
+                                // Add children to the node
+                                node.children = data.contents.map(item => ({
+                                    name: item.name,
+                                    path: `${d.data.path}/${item.name}`,
+                                    type: item.is_directory ? 'directory' : 'file',
+                                    loaded: item.is_directory ? false : undefined,
+                                    analyzed: !item.is_directory ? false : undefined,
+                                    expanded: false,
+                                    children: item.is_directory ? [] : undefined
+                                }));
+                                node.loaded = true;
+                                node.expanded = true;
+                                
+                                // Update D3 hierarchy
+                                if (this.root && this.svg) {
+                                    const oldRoot = this.root;
+                                    this.root = d3.hierarchy(this.treeData);
+                                    this.root.x0 = this.height / 2;
+                                    this.root.y0 = 0;
+                                    
+                                    this.preserveExpansionState(oldRoot, this.root);
+                                    
+                                    const updatedD3Node = this.findD3NodeByPath(d.data.path);
+                                    if (updatedD3Node && updatedD3Node.children && updatedD3Node.children.length > 0) {
+                                        updatedD3Node._children = null;
+                                        updatedD3Node.data.expanded = true;
+                                    }
+                                    
+                                    this.update(updatedD3Node || this.root);
+                                }
+                                
+                                this.updateBreadcrumb(`Loaded ${data.contents.length} items`, 'success');
+                                this.showNotification(`Loaded ${data.contents.length} items from ${d.data.name}`, 'success');
+                            }
+                        } else {
+                            this.showNotification(`Directory ${d.data.name} is empty or inaccessible`, 'warning');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ [SUBDIRECTORY LOADING] REST API error:', {
+                            error: error.message,
+                            stack: error.stack,
+                            pathToDelete: d.data.path,
+                            loadingNodesBefore: Array.from(this.loadingNodes)
+                        });
+                        
+                        // Clean up loading state
+                        const deleted = this.loadingNodes.delete(d.data.path);
+                        d.data.loaded = false;
+                        
+                        console.log('🧹 [SUBDIRECTORY LOADING] Error cleanup:', {
+                            pathDeleted: d.data.path,
+                            wasDeleted: deleted,
+                            loadingNodesAfter: Array.from(this.loadingNodes)
+                        });
+                        
+                        const d3Node = this.findD3NodeByPath(d.data.path);
+                        if (d3Node) {
+                            this.removeLoadingPulse(d3Node);
+                        }
+                        
+                        this.showNotification(`Failed to load ${d.data.name}: ${error.message}`, 'error');
                     });
-                    
-                    this.socket.emit('code:discover:directory', {
-                        path: fullPath,
-                        depth: this.bulkLoadMode ? 2 : 1,  // Load 2 levels if bulk mode enabled
-                        languages: selectedLanguages,
-                        ignore_patterns: ignorePatterns
-                    });
-                    
-                    this.updateBreadcrumb(`Loading ${d.data.name}...`, 'info');
-                    this.showNotification(`Loading directory: ${d.data.name}`, 'info');
-                } else {
+                
+                this.updateBreadcrumb(`Loading ${d.data.name}...`, 'info');
+                this.showNotification(`Loading directory: ${d.data.name}`, 'info');
+                
+                // Keep the original else clause for when fetch isn't available
+                if (!window.fetch) {
                     console.error('❌ [SUBDIRECTORY LOADING] No WebSocket connection available!');
                     this.showNotification(`Cannot load directory: No connection`, 'error');
                     

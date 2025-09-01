@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "project-organizer",
-  "agent_version": "1.1.0",
+  "agent_version": "1.1.1",
   "agent_type": "ops",
   "metadata": {
     "name": "Project Organizer Agent",

@@ -24,6 +24,75 @@
             border-radius: 4px;
             margin-bottom: 20px;
         }
+        
+        /* Tree visualization styles */
+        .tree-node {
+            cursor: pointer;
+        }
+        
+        .tree-node circle {
+            fill: #fff;
+            stroke: steelblue;
+            stroke-width: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .tree-node:hover circle {
+            fill: #e6f3ff;
+            stroke-width: 3px;
+        }
+        
+        .tree-node text {
+            font: 12px sans-serif;
+            pointer-events: none;
+        }
+        
+        .tree-link {
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 2px;
+        }
+        
+        .view-toggle button {
+            transition: all 0.3s ease;
+        }
+        
+        .view-toggle button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .file-selector input:focus {
+            outline: none;
+            border-color: #007cba;
+            box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.2);
+        }
+        
+        .tree-legend {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        
+        .tree-legend-item {
+            margin: 2px 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .tree-legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 1px solid #333;
+        }
     </style>
 </head>
 <body>
@@ -53,6 +122,16 @@
         
         addStatus('⏳ Loading code-simple.js...');
     </script>
+    
+    <!-- D3.js for tree visualization -->
+    <script src="https://d3js.org/d3.v7.min.js" 
+            onload="addStatus('✅ D3.js loaded successfully')"
+            onerror="addStatus('❌ Failed to load D3.js')"></script>
+    
+    <!-- Socket.IO for real-time communication -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" 
+            onload="addStatus('✅ Socket.IO loaded successfully')"
+            onerror="addStatus('❌ Failed to load Socket.IO')"></script>
     
     <script src="/static/js/components/code-simple.js" 
             onload="addStatus('✅ code-simple.js loaded successfully')"
