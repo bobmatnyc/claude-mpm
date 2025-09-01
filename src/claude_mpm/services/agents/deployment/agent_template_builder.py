@@ -8,6 +8,7 @@ maintainability and testability.
 """
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -166,9 +167,11 @@ class AgentTemplateBuilder:
                 f"Tools must be comma-separated WITHOUT spaces: {tools_str}"
             )
 
-        # Map model names to Claude Code format
+        # Map model names to Claude Code format (as required)
         model_map = {
             "claude-3-5-sonnet-20241022": "sonnet",
+            "claude-3-5-haiku-20241022": "haiku", 
+            "claude-3-opus-20240229": "opus",
             "claude-3-5-sonnet": "sonnet",
             "claude-3-sonnet": "sonnet",
             "claude-3-haiku": "haiku",
@@ -180,6 +183,9 @@ class AgentTemplateBuilder:
 
         if model in model_map:
             model = model_map[model]
+        else:
+            # Default to sonnet if model not found in map
+            model = "sonnet"
 
         # Get response format from template or use base agent default
         template_data.get("response", {}).get("format", "structured")
@@ -190,8 +196,6 @@ class AgentTemplateBuilder:
         # CRITICAL: NO underscores allowed - they cause silent failures!
 
         # Validate the name before proceeding
-        import re
-
         if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", claude_code_name):
             self.logger.error(
                 f"Invalid agent name '{claude_code_name}' - must match ^[a-z0-9]+(-[a-z0-9]+)*$"
@@ -201,11 +205,14 @@ class AgentTemplateBuilder:
             )
 
         # Extract description from template with fallback
-        description = (
+        raw_description = (
             template_data.get("description")
             or template_data.get("metadata", {}).get("description")
             or f"{agent_name.title()} agent for specialized tasks"
         )
+        
+        # Convert to multiline format with examples for Claude Code compatibility
+        description = self._create_multiline_description(raw_description, agent_name, template_data)
 
         # Extract custom metadata fields
         metadata = template_data.get("metadata", {})
@@ -258,46 +265,43 @@ class AgentTemplateBuilder:
         # Include tools field only if agent is clearly restricted (missing core tools or very few tools)
         include_tools_field = not has_core_tools or len(agent_tools) < 6
 
-        # Build YAML frontmatter using Claude Code's minimal format
+        # Build YAML frontmatter using Claude Code's compatible format
         # ONLY include fields that Claude Code recognizes
         #
         # CLAUDE CODE COMPATIBLE FORMAT:
         # - name: kebab-case agent name (required)
-        # - description: when/why to use this agent (required)
-        # - version: agent version for update tracking (recommended)
-        # - tools: comma-separated tool list (optional, only if restricting)
-        # - color, author, tags: metadata fields (optional)
+        # - description: when/why to use this agent with examples (required, multiline)
+        # - model: mapped model name (required) 
+        # - color: visual identifier (optional)
+        # - version: agent version for update tracking (optional)
+        # - author: creator information (optional)
+        # NOTE: tags field REMOVED - not supported by Claude Code
         frontmatter_lines = [
             "---",
             f"name: {claude_code_name}",
-            f"description: {description}",
-            f'version: "{agent_version}"',
         ]
+        
+        # Add multiline description (always use pipe format for consistency)
+        frontmatter_lines.extend([
+            "description: |",
+            self._indent_multiline_text(description, 2)
+        ])
+        
+        # Add model field (required for Claude Code)
+        frontmatter_lines.append(f"model: {model}")
 
-        # Add optional metadata if available
+        # Add optional metadata (excluding tags field completely)
         if metadata.get("color"):
             frontmatter_lines.append(f"color: {metadata['color']}")
+        if agent_version and agent_version != "1.0.0":  # Only include non-default versions
+            frontmatter_lines.append(f'version: "{agent_version}"')
         if metadata.get("author"):
-            frontmatter_lines.append(f"author: {metadata['author']}")
-        if metadata.get("tags"):
-            frontmatter_lines.append("tags:")
-            for tag in metadata["tags"][:10]:  # Limit to 10 tags
-                frontmatter_lines.append(f"  - {tag}")
-        if metadata.get("priority"):
-            frontmatter_lines.append(f"priority: {metadata['priority']}")
-        if metadata.get("category"):
-            frontmatter_lines.append(f"category: {metadata['category']}")
+            frontmatter_lines.append(f'author: "{metadata["author"]}"')
 
-        # Only include tools if restricting to subset
-        if include_tools_field:
-            frontmatter_lines.append(f"tools: {tools_str}")
-
-        frontmatter_lines.extend(
-            [
-                "---",
-                "",
-            ]
-        )
+        frontmatter_lines.extend([
+            "---",
+            "",
+        ])
 
         frontmatter = "\n".join(frontmatter_lines)
 
@@ -545,3 +549,237 @@ tools:
             formatted_items.append(f"{indent_str}- {item}")
 
         return "\n".join(formatted_items)
+
+    def _create_multiline_description(self, raw_description: str, agent_name: str, template_data: dict) -> str:
+        """
+        Create a comprehensive multiline description with examples for Claude Code compatibility.
+        Based on Claude's software-engineer.md format: detailed when/why description with examples.
+        
+        Args:
+            raw_description: Original single-line description
+            agent_name: Name of the agent
+            template_data: Template data for extracting examples
+            
+        Returns:
+            Formatted multiline description with examples in Claude Code format
+        """
+        raw_description = self._format_to_single_line(raw_description)
+        
+        # Get agent type for creating targeted descriptions
+        agent_type = template_data.get("agent_type", "general")
+        
+        # Create enhanced description based on agent type
+        enhanced_description = self._create_enhanced_description(raw_description, agent_name, agent_type, template_data)
+        
+        # Add examples
+        examples = self._extract_examples_from_template(template_data, agent_name)
+        if not examples:
+            examples = self._generate_default_examples(agent_name, template_data)
+        
+        # Combine enhanced description with examples
+        if examples:
+            description_parts = [enhanced_description, ""] + examples
+        else:
+            description_parts = [enhanced_description]
+        
+        return "\n".join(description_parts)
+
+    def _format_to_single_line(self, description: str) -> str:
+        """
+        Format description to single line by removing line breaks and normalizing whitespace.
+        
+        Args:
+            description: Raw description text
+            
+        Returns:
+            Single-line formatted description
+        """
+        if not description:
+            return description
+        
+        # Remove all line breaks and normalize whitespace
+        single_line = " ".join(description.strip().split())
+        
+        # Remove redundant spaces around punctuation
+        single_line = re.sub(r'\s+([,.!?;:])', r'\1', single_line)
+        single_line = re.sub(r'([,.!?;:])\s+', r'\1 ', single_line)
+        
+        return single_line
+
+    def _create_enhanced_description(self, raw_description: str, agent_name: str, agent_type: str, template_data: dict) -> str:
+        """
+        Create an enhanced description based on agent type that follows Claude's format.
+        
+        Args:
+            raw_description: Original description
+            agent_name: Name of the agent
+            agent_type: Type of agent (engineer, qa, research, etc.)
+            template_data: Template data for additional context
+            
+        Returns:
+            Enhanced description string
+        """
+        # Type-specific enhanced descriptions following Claude's software-engineer.md pattern
+        enhanced_descriptions = {
+            "engineer": f"Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.",
+            
+            "qa": f"Use this agent when you need comprehensive testing, quality assurance validation, or test automation. This agent specializes in creating robust test suites, identifying edge cases, and ensuring code quality through systematic testing approaches across different testing methodologies.",
+            
+            "research": f"Use this agent when you need to investigate codebases, analyze system architecture, or gather technical insights. This agent excels at code exploration, pattern identification, and providing comprehensive analysis of existing systems while maintaining strict memory efficiency.",
+            
+            "ops": f"Use this agent when you need infrastructure management, deployment automation, or operational excellence. This agent specializes in DevOps practices, cloud operations, monitoring setup, and maintaining reliable production systems.",
+            
+            "security": f"Use this agent when you need security analysis, vulnerability assessment, or secure coding practices. This agent excels at identifying security risks, implementing security best practices, and ensuring applications meet security standards.",
+            
+            "documentation": f"Use this agent when you need to create, update, or maintain technical documentation. This agent specializes in writing clear, comprehensive documentation including API docs, user guides, and technical specifications."
+        }
+        
+        # Get the enhanced description or fallback to the original with improvements
+        if agent_type in enhanced_descriptions:
+            return enhanced_descriptions[agent_type]
+        else:
+            # Enhance the raw description if it's a custom type
+            if raw_description and len(raw_description) > 10:
+                return f"Use this agent when you need specialized assistance with {raw_description.lower()}. This agent provides targeted expertise and follows best practices for {agent_name.replace('-', ' ')} related tasks."
+            else:
+                return f"Use this agent when you need specialized assistance from the {agent_name.replace('-', ' ')} agent. This agent provides targeted expertise and follows established best practices."
+
+    def _extract_examples_from_template(self, template_data: dict, agent_name: str) -> List[str]:
+        """
+        Extract examples from template data.
+        
+        Args:
+            template_data: Template data
+            agent_name: Name of the agent
+            
+        Returns:
+            List of example strings
+        """
+        examples = []
+        
+        # Check for examples in knowledge section
+        knowledge = template_data.get("knowledge", {})
+        template_examples = knowledge.get("examples", [])
+        
+        if template_examples:
+            for i, example in enumerate(template_examples[:2]):  # Limit to 2 examples
+                scenario = example.get("scenario", "")
+                approach = example.get("approach", "")
+                
+                if scenario and approach:
+                    examples.extend([
+                        "<example>",
+                        f'Context: {scenario}',
+                        f'user: "I need help with {scenario.lower()}"',
+                        f'assistant: "I\'ll use the {agent_name} agent to {approach.lower()}."',
+                        "</example>"
+                    ])
+                    
+                    if i < len(template_examples) - 1:  # Add separator between examples
+                        examples.append("")
+        
+        # Check for triggers that can be converted to examples  
+        interactions = template_data.get("interactions", {})
+        triggers = interactions.get("triggers", [])
+        
+        if triggers and not examples:
+            # Convert first two triggers to examples
+            for i, trigger in enumerate(triggers[:2]):
+                examples.extend([
+                    "<example>",
+                    f'Context: When user needs {trigger}',
+                    f'user: "{trigger}"',
+                    f'assistant: "I\'ll use the {agent_name} agent for {trigger}."',
+                    "</example>"
+                ])
+                
+                if i < len(triggers) - 1:  # Add separator between examples
+                    examples.append("")
+        
+        return examples
+
+    def _generate_default_examples(self, agent_name: str, template_data: dict) -> List[str]:
+        """
+        Generate default examples when none are available in template.
+        
+        Args:
+            agent_name: Name of the agent
+            template_data: Template data for context
+            
+        Returns:
+            List of default example strings
+        """
+        agent_type = template_data.get("agent_type", "general")
+        
+        # Create type-specific examples
+        type_examples = {
+            "engineer": [
+                "<example>",
+                "Context: When you need to implement new features or write code.",
+                'user: "I need to add authentication to my API"',
+                f'assistant: "I\'ll use the {agent_name} agent to implement a secure authentication system for your API."',
+                "</example>"
+            ],
+            "ops": [
+                "<example>",
+                "Context: When you need to deploy or manage infrastructure.",
+                'user: "I need to deploy my application to the cloud"',
+                f'assistant: "I\'ll use the {agent_name} agent to set up and deploy your application infrastructure."',
+                "</example>"
+            ],
+            "qa": [
+                "<example>",
+                "Context: When you need to test or validate functionality.",
+                'user: "I need to write tests for my new feature"',
+                f'assistant: "I\'ll use the {agent_name} agent to create comprehensive tests for your feature."',
+                "</example>"
+            ],
+            "research": [
+                "<example>",
+                "Context: When you need to investigate or analyze information.",
+                'user: "I need to research best practices for this technology"',
+                f'assistant: "I\'ll use the {agent_name} agent to research and analyze the best practices."',
+                "</example>"
+            ],
+            "documentation": [
+                "<example>",
+                "Context: When you need to create or update documentation.",
+                'user: "I need to document this new API endpoint"',
+                f'assistant: "I\'ll use the {agent_name} agent to create comprehensive API documentation."',
+                "</example>"
+            ]
+        }
+        
+        return type_examples.get(agent_type, [
+            "<example>",
+            f"Context: When you need specialized assistance from the {agent_name} agent.",
+            f'user: "I need help with {agent_name.replace("-", " ")} tasks"',
+            f'assistant: "I\'ll use the {agent_name} agent to provide specialized assistance."',
+            "</example>"
+        ])
+
+    def _indent_multiline_text(self, text: str, spaces: int) -> str:
+        """
+        Indent multiline text with specified number of spaces.
+        
+        Args:
+            text: Text to indent
+            spaces: Number of spaces for indentation
+            
+        Returns:
+            Indented text
+        """
+        if not text:
+            return ""
+        
+        indent = " " * spaces
+        lines = text.split("\n")
+        indented_lines = []
+        
+        for line in lines:
+            if line.strip():  # Non-empty lines get indented
+                indented_lines.append(indent + line)
+            else:  # Empty lines stay empty
+                indented_lines.append("")
+        
+        return "\n".join(indented_lines)
