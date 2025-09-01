@@ -268,7 +268,9 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 self.logger.info("Creating CodeTreeAnalyzer")
                 # Pass emit_events=False to prevent duplicate events from the analyzer
                 # The emitter will still work but the analyzer won't create its own stdout emitter
-                self.code_analyzer = CodeTreeAnalyzer(emit_events=False, emitter=emitter)
+                self.code_analyzer = CodeTreeAnalyzer(
+                    emit_events=False, emitter=emitter
+                )
 
             # Use the provided path as-is - the frontend sends the absolute path
             # Make sure we're using an absolute path
@@ -456,7 +458,9 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 self.logger.info("Creating CodeTreeAnalyzer")
                 # Pass emit_events=False to prevent duplicate events from the analyzer
                 # The emitter will still work but the analyzer won't create its own stdout emitter
-                self.code_analyzer = CodeTreeAnalyzer(emit_events=False, emitter=emitter)
+                self.code_analyzer = CodeTreeAnalyzer(
+                    emit_events=False, emitter=emitter
+                )
 
             # Discover directory
             result = self.code_analyzer.discover_directory(path, ignore_patterns)
@@ -466,11 +470,13 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 f"Discovery result for {path}: {len(result.get('children', []))} children found"
             )
             self.logger.debug(f"Full result: {result}")
-            
+
             # DEBUG: Log exact children being sent
-            children = result.get('children', [])
+            children = result.get("children", [])
             if children:
-                self.logger.info(f"Children being sent: {[child.get('name') for child in children]}")
+                self.logger.info(
+                    f"Children being sent: {[child.get('name') for child in children]}"
+                )
                 self.logger.info(f"Full children data: {children}")
             else:
                 self.logger.warning(f"No children found for {path}")
@@ -483,11 +489,16 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 "type": result.get("type", "directory"),
                 "children": children,  # Send children array directly
             }
-            
+
             # CRITICAL DEBUG: Log exact JSON that will be sent
             import json
-            self.logger.info(f"Sending response data (JSON): {json.dumps(response_data, indent=2)}")
-            self.logger.info(f"Children count in response: {len(response_data.get('children', []))}")
+
+            self.logger.info(
+                f"Sending response data (JSON): {json.dumps(response_data, indent=2)}"
+            )
+            self.logger.info(
+                f"Children count in response: {len(response_data.get('children', []))}"
+            )
 
             # Send result with correct event name (using colons, not dots!)
             # Include both absolute path and relative name for frontend compatibility
@@ -616,7 +627,9 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 self.logger.info("Creating CodeTreeAnalyzer")
                 # Pass emit_events=False to prevent duplicate events from the analyzer
                 # The emitter will still work but the analyzer won't create its own stdout emitter
-                self.code_analyzer = CodeTreeAnalyzer(emit_events=False, emitter=emitter)
+                self.code_analyzer = CodeTreeAnalyzer(
+                    emit_events=False, emitter=emitter
+                )
 
             # Analyze file
             result = self.code_analyzer.analyze_file(path)

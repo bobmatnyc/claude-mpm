@@ -237,11 +237,14 @@ class AgentVersionManager:
 
             # Skip non-system agents (user-created)
             # Check for various author formats used by system agents
-            if not any(author in deployed_content.lower() for author in [
-                "author: claude-mpm",
-                "author: claude mpm team",
-                "author: claude mpm"
-            ]):
+            if not any(
+                author in deployed_content.lower()
+                for author in [
+                    "author: claude-mpm",
+                    "author: claude mpm team",
+                    "author: claude mpm",
+                ]
+            ):
                 return (False, "not a system agent")
 
             # Extract version info from YAML frontmatter

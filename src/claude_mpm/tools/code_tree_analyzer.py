@@ -791,11 +791,11 @@ class CodeTreeAnalyzer:
     CODE_EXTENSIONS = {
         ".py",
         ".js",
-        ".jsx",  
+        ".jsx",
         ".ts",
         ".tsx",
-        ".mjs",    # Added missing extension
-        ".cjs",    # Added missing extension
+        ".mjs",  # Added missing extension
+        ".cjs",  # Added missing extension
         ".java",
         ".cpp",
         ".c",
@@ -1219,7 +1219,7 @@ class CodeTreeAnalyzer:
                         continue
                     if self.has_code_files(item, depth, current_depth + 1):
                         return True
-                    
+
         except (PermissionError, OSError):
             pass
 
@@ -1314,7 +1314,7 @@ class CodeTreeAnalyzer:
 
                 if item.is_dir():
                     # Check if directory contains code files (recursively checking subdirectories)
-                    # Important: We want to include directories even if they only have code 
+                    # Important: We want to include directories even if they only have code
                     # in subdirectories (like src/claude_mpm/*.py)
                     if not self.has_code_files(item, depth=5):
                         if self.emitter:
