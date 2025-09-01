@@ -1,0 +1,20 @@
+{
+  "name": "Test Non-MPM Agent",
+  "description": "Test agent without MPM author or version fields",
+  "schema_version": "1.0.0",
+  "agent_id": "test-non-mpm",
+  "metadata": {
+    "name": "Test Non-MPM Agent", 
+    "description": "Test agent created by external developer",
+    "category": "testing",
+    "tags": ["testing", "external"],
+    "author": "External Developer",
+    "created_at": "2025-01-01T00:00:00.000000Z"
+  },
+  "capabilities": {
+    "model": "sonnet",
+    "tools": ["Read", "Write"]
+  },
+  "instructions": "You are a test agent without MPM credentials.",
+  "examples": []
+}

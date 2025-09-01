@@ -250,11 +250,11 @@ class AgentListingService(IAgentListingService):
                     type=agent_data.get("type", "agent"),
                     tier=agent_data.get("tier", "system"),
                     path=agent_data.get("path", ""),
-                    description=agent_data.get("description") if verbose else None,
+                    description=agent_data.get("description"),
                     specializations=(
                         agent_data.get("specializations") if verbose else None
                     ),
-                    version=agent_data.get("version") if verbose else None,
+                    version=agent_data.get("version"),
                     deployed=True,
                 )
                 agents.append(agent)

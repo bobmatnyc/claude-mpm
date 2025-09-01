@@ -12,6 +12,7 @@ DESIGN DECISIONS:
 """
 
 import json
+from pathlib import Path
 
 from ...constants import AgentCommands
 from ...services.cli.agent_cleanup_service import AgentCleanupService
@@ -219,6 +220,7 @@ class AgentsCommand(AgentCommand):
                     "name": agent.name,
                     "type": agent.type,
                     "path": agent.path,
+                    "file": Path(agent.path).name if agent.path else "Unknown",
                     "description": agent.description,
                     "specializations": agent.specializations,
                     "version": agent.version,
@@ -258,6 +260,7 @@ class AgentsCommand(AgentCommand):
                     "type": agent.type,
                     "tier": agent.tier,
                     "path": agent.path,
+                    "file": Path(agent.path).name if agent.path else "Unknown",
                     "description": agent.description,
                     "specializations": agent.specializations,
                     "version": agent.version,
