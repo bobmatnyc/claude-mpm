@@ -125,6 +125,15 @@ class ISocketIOManager(ABC):
         """
 
     @abstractmethod
+    def check_dependencies(self) -> bool:
+        """
+        Check if monitoring dependencies are installed and print helpful messages.
+
+        Returns:
+            True if all dependencies are available
+        """
+
+    @abstractmethod
     def ensure_dependencies(self) -> Tuple[bool, Optional[str]]:
         """
         Ensure Socket.IO dependencies are installed.
@@ -507,6 +516,31 @@ class SocketIOManager(ISocketIOManager):
             f"{self.port_manager.PORT_RANGE.stop-1}"
         )
 
+    def check_dependencies(self) -> bool:
+        """Check if monitoring dependencies are installed."""
+        missing = []
+        try:
+            import socketio
+        except ImportError:
+            missing.append("python-socketio")
+        try:
+            import aiohttp
+        except ImportError:
+            missing.append("aiohttp")
+        try:
+            import engineio
+        except ImportError:
+            missing.append("python-engineio")
+
+        if missing:
+            print(f"Missing dependencies for monitoring: {', '.join(missing)}")
+            print("\nTo install all monitoring dependencies:")
+            print("  pip install claude-mpm[monitor]")
+            print("\nOr install manually:")
+            print(f"  pip install {' '.join(missing)}")
+            return False
+        return True
+
     def ensure_dependencies(self) -> Tuple[bool, Optional[str]]:
         """
         Ensure Socket.IO dependencies are installed.
@@ -522,7 +556,31 @@ class SocketIOManager(ISocketIOManager):
             success, error_msg = ensure_socketio_dependencies(self.logger)
 
             if not success:
-                # Provide helpful error message
+                # Provide helpful error message with improved guidance
+                missing = []
+                try:
+                    import socketio
+                except ImportError:
+                    missing.append("python-socketio")
+                try:
+                    import aiohttp
+                except ImportError:
+                    missing.append("aiohttp")
+                try:
+                    import engineio
+                except ImportError:
+                    missing.append("python-engineio")
+
+                if missing:
+                    detailed_error = (
+                        f"Missing dependencies for monitoring: {', '.join(missing)}\n"
+                        "To install all monitoring dependencies:\n"
+                        "  pip install claude-mpm[monitor]\n"
+                        "Or install manually:\n"
+                        f"  pip install {' '.join(missing)}"
+                    )
+                    return False, detailed_error
+
                 if error_msg:
                     return False, error_msg
                 return False, (
