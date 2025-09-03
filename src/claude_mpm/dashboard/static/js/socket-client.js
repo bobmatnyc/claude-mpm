@@ -248,7 +248,7 @@ class SocketClient {
          * @private
          * @const
          */
-        this.pingTimeout = 90000; // 90 seconds for health check (more lenient than Socket.IO timeout)
+        this.pingTimeout = 120000; // 120 seconds for health check (more lenient for stability)
         
         /**
          * Health check interval timer.
@@ -346,13 +346,13 @@ class SocketClient {
             autoConnect: true,
             reconnection: true,
             reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-            reconnectionAttempts: 5,  // Try 5 times then stop (was Infinity which can cause issues)
-            timeout: 20000,  // Connection timeout
+            reconnectionDelayMax: 10000,  // Increased max delay for stability
+            reconnectionAttempts: 10,  // Increased attempts for better resilience  
+            timeout: 30000,  // Increased connection timeout to 30 seconds
             forceNew: true,
             transports: ['websocket', 'polling'],
-            pingInterval: 25000,  // CRITICAL: Must match server's 25 seconds
-            pingTimeout: 20000    // CRITICAL: Must match server's 20 seconds
+            pingInterval: 30000,  // Increased ping interval for stability
+            pingTimeout: 60000    // Much longer timeout for better stability
         });
 
         this.setupSocketHandlers();

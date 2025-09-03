@@ -186,9 +186,14 @@ class StableDashboardServer:
 
         print(f"📁 Using dashboard files from: {self.dashboard_path}")
 
-        # Create SocketIO server
+        # Create SocketIO server with improved timeout settings
         self.sio = socketio.AsyncServer(
-            cors_allowed_origins="*", logger=True, engineio_logger=True
+            cors_allowed_origins="*", 
+            logger=True, 
+            engineio_logger=True,
+            ping_interval=30,  # Match client's 30 second ping interval
+            ping_timeout=60,   # Match client's 60 second timeout
+            max_http_buffer_size=1e8  # Allow larger messages
         )
         self.app = web.Application()
         self.sio.attach(self.app)
@@ -207,6 +212,7 @@ class StableDashboardServer:
         self.app.router.add_get("/", self._serve_dashboard)
         self.app.router.add_get("/static/{path:.*}", self._serve_static)
         self.app.router.add_get("/api/directory/list", self._list_directory)
+        self.app.router.add_get("/api/file/read", self._read_file)
         self.app.router.add_get("/version.json", self._serve_version)
 
     def _setup_socketio_events(self):
@@ -336,6 +342,60 @@ class StableDashboardServer:
 
         return web.json_response(result)
 
+    async def _read_file(self, request):
+        """Read file content for source viewer."""
+        file_path = request.query.get("path", "")
+        
+        if not file_path:
+            return web.json_response({"error": "No path provided"}, status=400)
+        
+        abs_path = os.path.abspath(os.path.expanduser(file_path))
+        
+        # Security check - ensure file is within the project
+        try:
+            # Get the project root (current working directory)
+            project_root = os.getcwd()
+            # Ensure the path is within the project
+            if not abs_path.startswith(project_root):
+                return web.json_response({"error": "Access denied"}, status=403)
+        except Exception:
+            pass  # Allow read if we can't determine project root
+        
+        if not os.path.exists(abs_path):
+            return web.json_response({"error": "File not found"}, status=404)
+        
+        if not os.path.isfile(abs_path):
+            return web.json_response({"error": "Not a file"}, status=400)
+        
+        try:
+            # Read file with appropriate encoding
+            encodings = ['utf-8', 'latin-1', 'cp1252']
+            content = None
+            
+            for encoding in encodings:
+                try:
+                    with open(abs_path, 'r', encoding=encoding) as f:
+                        content = f.read()
+                    break
+                except UnicodeDecodeError:
+                    continue
+            
+            if content is None:
+                return web.json_response({"error": "Could not decode file"}, status=400)
+            
+            return web.json_response({
+                "path": abs_path,
+                "name": os.path.basename(abs_path),
+                "content": content,
+                "lines": len(content.splitlines()),
+                "size": os.path.getsize(abs_path)
+            })
+            
+        except PermissionError:
+            return web.json_response({"error": "Permission denied"}, status=403)
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+
     async def _serve_version(self, request):
         """Serve version information."""
         version_info = {
@@ -347,7 +407,7 @@ class StableDashboardServer:
         return web.json_response(version_info)
 
     def run(self):
-        """Run the server."""
+        """Run the server with automatic port conflict resolution."""
         print("🔧 Setting up server...")
         if not self.setup():
             print("❌ Server setup failed")
@@ -364,17 +424,42 @@ class StableDashboardServer:
         print("   - GET /api/directory/list (directory API)")
         print(f"🔗 Open in browser: http://{self.host}:{self.port}")
 
-        try:
-            web.run_app(self.app, host=self.host, port=self.port, access_log=None)
-        except KeyboardInterrupt:
-            print("\n🛑 Server stopped by user")
-        except Exception as e:
-            print(f"❌ Server error: {e}")
-            if self.debug:
-                import traceback
-
-                traceback.print_exc()
-            return False
+        # Try to start server with port conflict handling
+        max_port_attempts = 10
+        original_port = self.port
+        
+        for attempt in range(max_port_attempts):
+            try:
+                web.run_app(self.app, host=self.host, port=self.port, access_log=None)
+                break  # Server started successfully
+            except KeyboardInterrupt:
+                print("\n🛑 Server stopped by user")
+                break
+            except OSError as e:
+                if "[Errno 48]" in str(e) or "Address already in use" in str(e):
+                    # Port is already in use, try next port
+                    if attempt < max_port_attempts - 1:
+                        self.port += 1
+                        print(f"⚠️ Port {self.port - 1} in use, trying port {self.port}...")
+                        # Recreate the app with new port
+                        self.setup()
+                    else:
+                        print(f"❌ Could not find available port after {max_port_attempts} attempts")
+                        print(f"   Ports {original_port} to {self.port} are all in use")
+                        return False
+                else:
+                    # Other OS error
+                    print(f"❌ Server error: {e}")
+                    if self.debug:
+                        import traceback
+                        traceback.print_exc()
+                    return False
+            except Exception as e:
+                print(f"❌ Server error: {e}")
+                if self.debug:
+                    import traceback
+                    traceback.print_exc()
+                return False
 
         return True
 
