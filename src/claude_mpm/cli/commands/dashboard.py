@@ -102,41 +102,45 @@ class DashboardCommand(BaseCommand):
                     },
                 )
             return CommandResult.error_result("Failed to start dashboard in background")
-        
+
         # Run in foreground mode
         server_started = False
-        
+
         # Try stable server first (or if explicitly requested)
         if use_stable:
             try:
-                self.logger.info("Starting stable dashboard server (no monitor dependency)...")
+                self.logger.info(
+                    "Starting stable dashboard server (no monitor dependency)..."
+                )
                 print(f"Starting stable dashboard server on {host}:{port}...")
                 print("Press Ctrl+C to stop the server")
                 print("\n✅ Using stable server - works without monitor service\n")
-                
+
                 # Create and run the stable server
                 from ...services.dashboard.stable_server import StableDashboardServer
+
                 stable_server = StableDashboardServer(host=host, port=port, debug=debug)
-                
+
                 # Set up signal handlers for graceful shutdown
                 def signal_handler(signum, frame):
                     print("\nShutting down dashboard server...")
                     sys.exit(0)
-                
+
                 signal.signal(signal.SIGINT, signal_handler)
                 signal.signal(signal.SIGTERM, signal_handler)
-                
+
                 # Run the server (blocking)
                 result = stable_server.run()
                 if result:
                     # Server ran successfully and stopped normally
                     server_started = True
                     return CommandResult.success_result("Dashboard server stopped")
-                else:
-                    # Server failed to start (e.g., couldn't find templates)
-                    server_started = False
-                    self.logger.warning("Stable server failed to start, trying advanced server...")
-                    
+                # Server failed to start (e.g., couldn't find templates)
+                server_started = False
+                self.logger.warning(
+                    "Stable server failed to start, trying advanced server..."
+                )
+
             except KeyboardInterrupt:
                 print("\nDashboard server stopped by user")
                 return CommandResult.success_result("Dashboard server stopped")
@@ -146,12 +150,16 @@ class DashboardCommand(BaseCommand):
                     print(f"\n⚠️ Stable server failed: {e}")
                     print("Attempting fallback to advanced server...")
                 else:
-                    return CommandResult.error_result(f"Failed to start stable dashboard: {e}")
-        
+                    return CommandResult.error_result(
+                        f"Failed to start stable dashboard: {e}"
+                    )
+
         # Fallback to advanced DashboardServer if stable server failed or not requested
         if not server_started and not getattr(args, "stable_only", False):
             try:
-                self.logger.info("Attempting to start advanced dashboard server with monitor...")
+                self.logger.info(
+                    "Attempting to start advanced dashboard server with monitor..."
+                )
                 print(f"\nStarting advanced dashboard server on {host}:{port}...")
                 print("Note: This requires monitor service on port 8766")
                 print("Press Ctrl+C to stop the server")

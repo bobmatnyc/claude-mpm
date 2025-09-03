@@ -112,33 +112,41 @@ class SocketIOClientProxy:
             # Some systems resolve localhost differently than 127.0.0.1
             connection_urls = [
                 f"http://{self.host}:{self.port}",  # Use the provided host (usually "localhost")
-                f"http://127.0.0.1:{self.port}",     # Try IP address
-                f"http://localhost:{self.port}",      # Try localhost explicitly
+                f"http://127.0.0.1:{self.port}",  # Try IP address
+                f"http://localhost:{self.port}",  # Try localhost explicitly
             ]
-            
+
             connected = False
             last_error = None
-            
+
             for url in connection_urls:
                 try:
-                    self.logger.debug(f"SocketIOClientProxy: Attempting connection to {url}")
+                    self.logger.debug(
+                        f"SocketIOClientProxy: Attempting connection to {url}"
+                    )
                     await self._sio_client.connect(url)
                     connected = True
-                    self.logger.info(f"SocketIOClientProxy: Successfully connected to {url}")
+                    self.logger.info(
+                        f"SocketIOClientProxy: Successfully connected to {url}"
+                    )
                     break
                 except Exception as e:
                     last_error = e
                     # Only log as debug to avoid confusion when fallback succeeds
-                    self.logger.debug(f"SocketIOClientProxy: Failed to connect to {url}: {e}")
+                    self.logger.debug(
+                        f"SocketIOClientProxy: Failed to connect to {url}: {e}"
+                    )
                     # Disconnect any partial connection before trying next URL
                     try:
                         await self._sio_client.disconnect()
                     except:
                         pass
-            
+
             if not connected:
                 # Only show error if all attempts failed
-                self.logger.error(f"SocketIOClientProxy: Connection error after trying all addresses: {last_error}")
+                self.logger.error(
+                    f"SocketIOClientProxy: Connection error after trying all addresses: {last_error}"
+                )
                 self._sio_client = None
                 return
 
