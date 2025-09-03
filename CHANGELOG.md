@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.5] - 2025-01-03
+
+### 🐛 Bug Fixes
+- **Socket.IO Client**: Fixed connection error messages appearing even when connection succeeds
+- **Connection Resilience**: Client now tries multiple hostname formats (localhost, 127.0.0.1)
+- **Logging**: Suppressed misleading error messages when fallback connections succeed
+
+### ⚡ Improvements
+- **Connection Logic**: More robust connection handling for different system configurations
+- **Error Reporting**: Only shows error when ALL connection attempts fail
+- **Debug Logging**: Individual connection failures logged at debug level to reduce confusion
+
+
 ## [4.2.4] - 2025-01-03
 
 ### 🐛 Bug Fixes
