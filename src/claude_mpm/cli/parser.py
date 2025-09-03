@@ -19,8 +19,8 @@ REFACTORING NOTE: The original 961-line create_parser function has been split in
 - parsers/mcp_parser.py: MCP Gateway commands
 """
 
-import sys
 import argparse
+import sys
 from typing import List, Optional
 
 # Try to import from the new modular structure with helpful error handling
@@ -33,7 +33,7 @@ except ImportError as e:
 ║                    Claude MPM Import Error                       ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║                                                                   ║
-║  Unable to import required modules: {str(e)}                     ║
+║  Unable to import required modules: {e!s}                     ║
 ║                                                                   ║
 ║  This typically happens when:                                    ║
 ║  • The installation is outdated or incomplete                    ║
@@ -60,9 +60,9 @@ except ImportError as e:
 ╚══════════════════════════════════════════════════════════════════╝
 """
     print(error_msg, file=sys.stderr)
-    
+
     # Provide minimal fallback functionality to at least show help
-    def create_parser() -> argparse.ArgumentParser:
+    def create_parser(version: str = "Unknown") -> argparse.ArgumentParser:
         """Emergency fallback parser that shows reinstallation instructions."""
         parser = argparse.ArgumentParser(
             prog="claude-mpm",
@@ -71,27 +71,33 @@ except ImportError as e:
             epilog="""
 This installation appears to be incomplete or outdated.
 Please reinstall using one of the methods shown above.
-            """
+            """,
         )
         parser.add_argument(
-            "--version", 
-            action="version", 
-            version="Unknown (installation error - please reinstall)"
+            "--version",
+            action="version",
+            version=f"{version} (installation error - please reinstall)",
         )
         return parser
-    
+
     def add_common_arguments(parser: argparse.ArgumentParser) -> None:
         """Emergency fallback - no common arguments available."""
-        pass
-    
+
     def preprocess_args(args: Optional[List[str]] = None) -> List[str]:
         """Emergency fallback - return args unchanged."""
         return args if args is not None else sys.argv[1:]
-    
+
     # Exit with error code to indicate the problem
     # Don't exit immediately - let the user see --help if requested
     import atexit
-    atexit.register(lambda: sys.exit(1) if '--help' not in sys.argv and '--version' not in sys.argv else None)
+
+    atexit.register(
+        lambda: (
+            sys.exit(1)
+            if "--help" not in sys.argv and "--version" not in sys.argv
+            else None
+        )
+    )
 
 # Re-export for backward compatibility
 __all__ = ["add_common_arguments", "create_parser", "preprocess_args"]
