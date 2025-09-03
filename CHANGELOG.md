@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.9] - 2025-09-03
+
+### Fixed
+- Defensive import handling for outdated installations
+- Dashboard code viewer displays content in correct tab
+
 ## [4.2.8] - 2025-09-03
 
 ### Added
