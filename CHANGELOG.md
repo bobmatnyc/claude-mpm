@@ -17,6 +17,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.7] - 2025-01-03
+
+### 🐛 Bug Fixes
+- **Dashboard Resilience**: Added comprehensive error recovery mechanisms to StableDashboardServer
+- **WebSocket Connections**: Fixed WebSocket connection issues and improved stability
+- **Code Viewer**: Fixed file read API to work correctly with project files
+- **Event Handling**: Fixed event serving to use real events instead of mock data
+
+### ✨ New Features
+- **Health Check Endpoint**: Added `/health` endpoint for monitoring dashboard status
+- **Real Event Serving**: Implemented `/api/events` endpoint for receiving and serving real events
+- **Event Broadcasting**: Added Socket.IO event broadcasting to connected clients
+- **Circular Buffer**: Added event storage with circular buffer (max 1000 events)
+- **Auto-Restart**: Implemented auto-restart capability on failures
+
+### ⚡ Improvements
+- **Error Handling**: Improved error handling and recovery throughout dashboard server
+- **Fallback HTML**: Added fallback HTML serving mechanism for better resilience
+- **Connection Recovery**: Better connection error recovery in dashboard
+- **Debug Logging**: Enhanced debug output for troubleshooting issues
+
 ## [4.2.6] - 2025-01-03
 
 ### 🐛 Critical Bug Fixes
