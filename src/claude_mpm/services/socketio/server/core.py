@@ -392,6 +392,63 @@ class SocketIOServerCore:
         # Register the HTTP POST endpoint
         self.app.router.add_post("/api/events", api_events_handler)
         self.logger.info("✅ HTTP API endpoint registered at /api/events")
+        
+        # Add file reading endpoint for source viewer
+        async def file_read_handler(request):
+            """Handle GET /api/file/read for reading source files."""
+            import os
+            file_path = request.query.get("path", "")
+            
+            if not file_path:
+                return web.json_response({"error": "No path provided"}, status=400)
+            
+            abs_path = os.path.abspath(os.path.expanduser(file_path))
+            
+            # Security check - ensure file is within the project
+            try:
+                project_root = os.getcwd()
+                if not abs_path.startswith(project_root):
+                    return web.json_response({"error": "Access denied"}, status=403)
+            except Exception:
+                pass
+            
+            if not os.path.exists(abs_path):
+                return web.json_response({"error": "File not found"}, status=404)
+            
+            if not os.path.isfile(abs_path):
+                return web.json_response({"error": "Not a file"}, status=400)
+            
+            try:
+                # Read file with appropriate encoding
+                encodings = ['utf-8', 'latin-1', 'cp1252']
+                content = None
+                
+                for encoding in encodings:
+                    try:
+                        with open(abs_path, 'r', encoding=encoding) as f:
+                            content = f.read()
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                
+                if content is None:
+                    return web.json_response({"error": "Could not decode file"}, status=400)
+                
+                return web.json_response({
+                    "path": abs_path,
+                    "name": os.path.basename(abs_path),
+                    "content": content,
+                    "lines": len(content.splitlines()),
+                    "size": os.path.getsize(abs_path)
+                })
+                
+            except PermissionError:
+                return web.json_response({"error": "Permission denied"}, status=403)
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+        
+        self.app.router.add_get("/api/file/read", file_read_handler)
+        self.logger.info("✅ File reading API registered at /api/file/read")
 
     def _setup_directory_api(self):
         """Setup simple directory listing API.
