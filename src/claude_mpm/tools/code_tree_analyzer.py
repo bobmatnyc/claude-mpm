@@ -615,18 +615,16 @@ class PythonAnalyzer:
             if isinstance(node.value, ast.Constant):
                 if isinstance(node.value.value, str):
                     return f'{var_name} = "{node.value.value}"'
-                else:
-                    return f'{var_name} = {node.value.value}'
-            elif isinstance(node.value, ast.Name):
-                return f'{var_name} = {node.value.id}'
-            elif isinstance(node.value, ast.List):
-                return f'{var_name} = [...]'
-            elif isinstance(node.value, ast.Dict):
-                return f'{var_name} = {{...}}'
-            else:
-                return f'{var_name} = ...'
+                return f"{var_name} = {node.value.value}"
+            if isinstance(node.value, ast.Name):
+                return f"{var_name} = {node.value.id}"
+            if isinstance(node.value, ast.List):
+                return f"{var_name} = [...]"
+            if isinstance(node.value, ast.Dict):
+                return f"{var_name} = {{...}}"
+            return f"{var_name} = ..."
         except:
-            return f'{var_name} = ...'
+            return f"{var_name} = ..."
 
 
 class MultiLanguageAnalyzer:

@@ -704,7 +704,7 @@ tools:
         if triggers and not examples:
             # Convert first trigger to example with commentary
             trigger = triggers[0]
-            
+
             # Handle both string and dict trigger formats
             if isinstance(trigger, dict):
                 # New format with pattern and confidence
@@ -712,11 +712,11 @@ tools:
             else:
                 # Old format with simple string
                 trigger_text = str(trigger)
-            
+
             # Skip if we don't have valid trigger text
             if not trigger_text:
                 return examples
-                
+
             agent_type = template_data.get("agent_type", "general")
 
             examples.extend(
