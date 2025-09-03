@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.4] - 2025-01-03
+
+### 🐛 Bug Fixes
+- **Dashboard AST Viewer**: Fixed to display real file content instead of mock data
+- **File Reading API**: Added `/api/file/read` endpoint to SocketIO server for actual file content
+- **Source Viewer**: JavaScript client now fetches real content via API instead of placeholders
+
+### ✨ Features
+- **Security**: Added path validation to ensure files are only read from within project directory
+- **Encoding Support**: Multiple file encoding support (UTF-8, Latin-1, CP1252)
+- **Metadata**: Returns file metadata (name, lines, size) along with content
+
+
 ## [4.2.3] - 2025-01-03
 
 ### 🐛 Bug Fixes
