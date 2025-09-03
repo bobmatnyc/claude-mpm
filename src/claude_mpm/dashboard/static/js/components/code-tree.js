@@ -59,6 +59,11 @@ class CodeTree {
         this.focusedNode = null;  // Track the currently focused directory
         this.horizontalNodes = new Set();  // Track nodes that should have horizontal text
         this.centralSpine = new Set();  // Track the main path through the tree
+        
+        // CRITICAL FIX: Bind methods to preserve 'this' context when called by D3 event handlers
+        this.onNodeClick = this.onNodeClick.bind(this);
+        this.showTooltip = this.showTooltip.bind(this);
+        this.hideTooltip = this.hideTooltip.bind(this);
     }
 
     /**
@@ -431,9 +436,11 @@ class CodeTree {
             name: dirName,
             path: workingDir || '.',  // Use working directory or fallback to '.'
             type: 'root',
+            isDirectory: true,  // Critical: Mark root as directory for proper handling
             children: [],
             loaded: false,
-            expanded: true  // Start expanded
+            expanded: true,  // Start expanded
+            hasChildren: true  // Root always has potential children
         };
 
         if (typeof d3 !== 'undefined') {
@@ -515,7 +522,6 @@ class CodeTree {
             return;
         }
         
-        
         this.autoDiscovered = true;
         this.analyzing = true;
         
@@ -530,54 +536,111 @@ class CodeTree {
             lines: 0
         };
         
-        // Subscribe to events if not already done
+        // Subscribe to events if not already done (for other features)
         if (this.socket && !this.socket.hasListeners('code:node:found')) {
             this.setupEventHandlers();
         }
         
-        // Update tree data with working directory as the root
-        const dirName = workingDir.split('/').pop() || 'Project Root';
-        this.treeData = {
-            name: dirName,
-            path: workingDir,  // Use absolute path for consistency with API expectations
-            type: 'root',
-            children: [],
-            loaded: false,
-            expanded: true  // Start expanded to show discovered items
-        };
-        
-        if (typeof d3 !== 'undefined') {
-            this.root = d3.hierarchy(this.treeData);
-            this.root.x0 = this.height / 2;
-            this.root.y0 = 0;
-        }
-        
         // Update UI
         this.showLoading();
+        const dirName = workingDir.split('/').pop() || 'Project Root';
         this.updateBreadcrumb(`Discovering structure in ${dirName}...`, 'info');
         
-        // Get selected languages from checkboxes
-        const selectedLanguages = this.getSelectedLanguages();
+        // Use REST API for initial discovery (more reliable than WebSocket)
+        console.log(`🚀 [ROOT DISCOVERY] Using REST API for root: ${workingDir}`);
         
-        // Get ignore patterns
-        const ignorePatterns = document.getElementById('ignore-patterns')?.value || '';
+        const apiUrl = `${window.location.origin}/api/directory/list?path=${encodeURIComponent(workingDir)}`;
         
-        // Enhanced debug logging
-        
-        // Request top-level discovery with working directory
-        const requestPayload = {
-            path: workingDir,  // Use working directory instead of '.'
-            depth: 'top_level',
-            languages: selectedLanguages,
-            ignore_patterns: ignorePatterns,
-            request_id: `discover_${Date.now()}`  // Add request ID for tracking
-        };
-        
-        // Sending top-level discovery request
-        
-        if (this.socket) {
-            this.socket.emit('code:discover:top_level', requestPayload);
-        }
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('✅ [ROOT DISCOVERY] REST API response:', data);
+                
+                // Process the response
+                if (data.items && Array.isArray(data.items)) {
+                    // Update root node with children
+                    this.treeData.children = data.items.map(item => ({
+                        name: item.name,
+                        path: item.path,
+                        type: item.type || (item.is_directory ? 'directory' : 'file'),
+                        size: item.size,
+                        hasChildren: item.is_directory,
+                        children: [],
+                        loaded: false
+                    }));
+                    
+                    this.treeData.loaded = true;
+                    
+                    // Update D3 hierarchy
+                    if (typeof d3 !== 'undefined') {
+                        this.root = d3.hierarchy(this.treeData);
+                        this.root.x0 = this.height / 2;
+                        this.root.y0 = 0;
+                        
+                        // Expand root node to show children
+                        if (this.root.children) {
+                            this.root.children.forEach(child => {
+                                child._children = null;
+                            });
+                        }
+                    }
+                    
+                    // Update the visualization
+                    if (this.svg) {
+                        this.update(this.root);
+                    }
+                    
+                    // Update stats
+                    const fileCount = data.items.filter(item => !item.is_directory).length;
+                    const dirCount = data.items.filter(item => item.is_directory).length;
+                    
+                    this.stats.files = fileCount;
+                    this.updateStats();
+                    
+                    this.updateBreadcrumb(
+                        `📁 Found ${dirCount} directories and ${fileCount} files`,
+                        'success'
+                    );
+                    
+                    this.updateActivityTicker(
+                        `📁 Found ${dirCount} directories and ${fileCount} files`,
+                        'success'
+                    );
+                    
+                    // Add to events display
+                    this.addEventToDisplay(
+                        `📁 Loaded ${data.items.length} items from project root`,
+                        'info'
+                    );
+                }
+                
+                this.analyzing = false;
+                this.hideLoading();
+            })
+            .catch(error => {
+                console.error('[ROOT DISCOVERY] Error:', error);
+                this.analyzing = false;
+                this.hideLoading();
+                this.showNotification(`Failed to load directory: ${error.message}`, 'error');
+                
+                // Try WebSocket as fallback
+                if (this.socket) {
+                    console.log('[ROOT DISCOVERY] Falling back to WebSocket');
+                    const requestPayload = {
+                        path: workingDir,
+                        depth: 'top_level',
+                        languages: this.getSelectedLanguages(),
+                        ignore_patterns: document.getElementById('ignore-patterns')?.value || '',
+                        request_id: `discover_${Date.now()}`
+                    };
+                    this.socket.emit('code:discover:top_level', requestPayload);
+                }
+            });
         
         // Update stats display
         this.updateStats();
@@ -761,7 +824,7 @@ class CodeTree {
         if (!this.root) return;
         
         const expandNode = (node) => {
-            if (node.data.type === 'directory' && node.data.loaded === true) {
+            if ((node.data.type === 'directory' || node.data.type === 'root' || node.data.isDirectory) && node.data.loaded === true) {
                 if (node._children) {
                     node.children = node._children;
                     node._children = null;
@@ -785,7 +848,7 @@ class CodeTree {
         if (!this.root) return;
         
         const collapseNode = (node) => {
-            if (node.data.type === 'directory' && node.children) {
+            if ((node.data.type === 'directory' || node.data.type === 'root' || node.data.isDirectory) && node.children) {
                 node._children = node.children;
                 node.children = null;
                 node.data.expanded = false;
@@ -2439,7 +2502,7 @@ class CodeTree {
         if (children.length === 1) return children[0];
 
         // Prioritize directories over files
-        const directories = children.filter(child => child.data.type === 'directory');
+        const directories = children.filter(child => this.isNodeDirectory(child));
         if (directories.length === 1) return directories[0];
 
         // If multiple directories, choose the first one (could be enhanced with better logic)
@@ -2580,7 +2643,7 @@ class CodeTree {
         const nodeEnter = node.enter().append('g')
             .attr('class', d => {
                 let classes = ['node', 'code-node'];
-                if (d.data.type === 'directory') {
+                if (this.isNodeDirectory(d)) {
                     classes.push('directory');
                     if (d.data.loaded === true && d.children) {
                         classes.push('expanded');
@@ -2604,7 +2667,17 @@ class CodeTree {
                     return `translate(${source.y0},${source.x0})`;
                 }
             })
-            .on('click', (event, d) => this.onNodeClick(event, d));
+            .on('click', (event, d) => {
+                console.log('🔴 [G-ELEMENT] Click on node group element!', {
+                    nodeName: d?.data?.name,
+                    nodePath: d?.data?.path,
+                    eventTarget: event.target.tagName,
+                    thisContext: this,
+                    hasOnNodeClick: typeof this.onNodeClick === 'function'
+                });
+                // Use bound method
+                this.onNodeClick(event, d);
+            });
 
         // Add circles for nodes
         nodeEnter.append('circle')
@@ -2612,14 +2685,22 @@ class CodeTree {
             .attr('r', 1e-6)
             .style('fill', d => this.getNodeColor(d))
             .style('stroke', d => this.getNodeStrokeColor(d))
-            .style('stroke-width', d => d.data.type === 'directory' ? 2 : 1.5)
+            .style('stroke-width', d => this.isNodeDirectory(d) ? 2 : 1.5)
             .style('cursor', 'pointer')  // Add cursor pointer for visual feedback
-            .on('click', (event, d) => this.onNodeClick(event, d))  // CRITICAL FIX: Add click handler to circles
-            .on('mouseover', (event, d) => this.showTooltip(event, d))
-            .on('mouseout', () => this.hideTooltip());
+            .on('click', (event, d) => {
+                console.log('🔵 [CIRCLE] Click on circle element!', {
+                    nodeName: d?.data?.name,
+                    nodePath: d?.data?.path,
+                    hasOnNodeClick: typeof this.onNodeClick === 'function'
+                });
+                // Use bound method
+                this.onNodeClick(event, d);
+            })  // CRITICAL FIX: Add click handler to circles
+            .on('mouseover', this.showTooltip)
+            .on('mouseout', this.hideTooltip);
         
         // Add expand/collapse icons for directories
-        nodeEnter.filter(d => d.data.type === 'directory')
+        nodeEnter.filter(d => this.isNodeDirectory(d))
             .append('text')
             .attr('class', 'expand-icon')
             .attr('x', 0)
@@ -2704,11 +2785,19 @@ class CodeTree {
                 }
                 return null;
             })
-            .on('click', (event, d) => this.onNodeClick(event, d))  // CRITICAL FIX: Add click handler to labels
+            .on('click', (event, d) => {
+                console.log('📝 [LABEL] Click on text label!', {
+                    nodeName: d?.data?.name,
+                    nodePath: d?.data?.path,
+                    hasOnNodeClick: typeof this.onNodeClick === 'function'
+                });
+                // Use bound method
+                this.onNodeClick(event, d);
+            })  // CRITICAL FIX: Add click handler to labels
             .style('cursor', 'pointer');
 
         // Add icons for node types (files only, directories use expand icons)
-        nodeEnter.filter(d => d.data.type !== 'directory')
+        nodeEnter.filter(d => !this.isNodeDirectory(d))
             .append('text')
             .attr('class', 'node-icon')
             .attr('dy', '.35em')
@@ -2717,11 +2806,11 @@ class CodeTree {
             .text(d => this.getNodeIcon(d))
             .style('font-size', '10px')
             .style('fill', 'white')
-            .on('click', (event, d) => this.onNodeClick(event, d))  // CRITICAL FIX: Add click handler to file icons
+            .on('click', this.onNodeClick)  // CRITICAL FIX: Add click handler to file icons
             .style('cursor', 'pointer');
             
         // Add item count badges for directories
-        nodeEnter.filter(d => d.data.type === 'directory' && d.data.children)
+        nodeEnter.filter(d => this.isNodeDirectory(d) && d.data.children)
             .append('text')
             .attr('class', 'item-count-badge')
             .attr('x', 12)
@@ -2733,7 +2822,7 @@ class CodeTree {
             })
             .style('font-size', '9px')
             .style('opacity', 0.7)
-            .on('click', (event, d) => this.onNodeClick(event, d))  // CRITICAL FIX: Add click handler to count badges
+            .on('click', this.onNodeClick)  // CRITICAL FIX: Add click handler to count badges
             .style('cursor', 'pointer');
 
         // Transition to new positions
@@ -2741,11 +2830,20 @@ class CodeTree {
 
         // CRITICAL FIX: Ensure ALL nodes (new and existing) have click handlers
         // This fixes the issue where subdirectory clicks stop working after tree updates
-        nodeUpdate.on('click', (event, d) => this.onNodeClick(event, d));
+        nodeUpdate.on('click', (event, d) => {
+            console.log('🟡 [NODE-UPDATE] Click on updated node!', {
+                nodeName: d?.data?.name,
+                nodePath: d?.data?.path,
+                hasOnNodeClick: typeof this.onNodeClick === 'function',
+                thisContext: this
+            });
+            // Use bound method
+            this.onNodeClick(event, d);
+        });
         
-        // ADDITIONAL FIX: Also ensure click handlers on all child elements
-        nodeUpdate.selectAll('circle').on('click', (event, d) => this.onNodeClick(event, d));
-        nodeUpdate.selectAll('text').on('click', (event, d) => this.onNodeClick(event, d));
+        // ADDITIONAL FIX: Also ensure click handlers on all child elements using bound methods
+        nodeUpdate.selectAll('circle').on('click', this.onNodeClick);
+        nodeUpdate.selectAll('text').on('click', this.onNodeClick);
 
         nodeUpdate.transition()
             .duration(this.duration)
@@ -2761,7 +2859,7 @@ class CodeTree {
         // Update node classes based on current state
         nodeUpdate.attr('class', d => {
             let classes = ['node', 'code-node'];
-            if (d.data.type === 'directory') {
+            if (this.isNodeDirectory(d)) {
                 classes.push('directory');
                 if (d.data.loaded === true && d.children) {
                     classes.push('expanded');
@@ -2779,7 +2877,7 @@ class CodeTree {
         });
         
         nodeUpdate.select('circle.node-circle')
-            .attr('r', d => d.data.type === 'directory' ? 10 : 8)
+            .attr('r', d => this.isNodeDirectory(d) ? 10 : 8)
             .style('fill', d => this.getNodeColor(d))
             
         // Update expand/collapse icons
@@ -2793,7 +2891,7 @@ class CodeTree {
         // Update item count badges
         nodeUpdate.select('.item-count-badge')
             .text(d => {
-                if (d.data.type !== 'directory') return '';
+                if (!this.isNodeDirectory(d)) return '';
                 const count = d.data.children ? d.data.children.length : 0;
                 return count > 0 ? count : '';
             })
@@ -3104,7 +3202,9 @@ class CodeTree {
     onNodeClick(event, d) {
         const clickId = Date.now() + Math.random();
         // DEBUG: Log all clicks to verify handler is working
-        console.log(`🖱️ [NODE CLICK] Clicked on node (ID: ${clickId}):`, {
+        console.log(`🖱️🖱️🖱️ [NODE CLICK] onNodeClick method called! (ID: ${clickId}):`, {
+            thisContext: this,
+            isBound: this.constructor.name === 'CodeTree',
             name: d?.data?.name,
             path: d?.data?.path,
             type: d?.data?.type,
@@ -3197,7 +3297,7 @@ class CodeTree {
         
         // Add pulsing animation immediately for directories
         
-        if (d.data.type === 'directory' && !d.data.loaded) {
+        if (this.isNodeDirectory(d) && !d.data.loaded) {
             try {
                 if (typeof this.addLoadingPulse === 'function') {
                     this.addLoadingPulse(d);
@@ -3231,11 +3331,12 @@ class CodeTree {
             type: d.data.type,
             loaded: d.data.loaded,
             loadedType: typeof d.data.loaded,
-            isDirectory: d.data.type === 'directory',
+            isDirectory: d.data.type === 'directory' || d.data.type === 'root',
             notLoaded: !d.data.loaded,
-            shouldLoad: d.data.type === 'directory' && !d.data.loaded
+            shouldLoad: (d.data.type === 'directory' || d.data.type === 'root') && !d.data.loaded
         });
-        if (d.data.type === 'directory' && !d.data.loaded) {
+        // Check for both 'directory' type and 'root' type (or use isDirectory flag)
+        if ((d.data.type === 'directory' || d.data.type === 'root' || d.data.isDirectory) && !d.data.loaded) {
             console.log('✅ [SUBDIRECTORY LOADING] Load check passed, proceeding with loading logic');
             console.log('🔍 [SUBDIRECTORY LOADING] Initial loading state:', {
                 loadingNodesSize: this.loadingNodes ? this.loadingNodes.size : 'undefined',
@@ -3526,7 +3627,7 @@ class CodeTree {
             }, 100);  // 100ms delay to ensure visual effects render first
         }
         // Toggle children visibility for already loaded nodes
-        else if (d.data.type === 'directory' && d.data.loaded === true) {
+        else if (this.isNodeDirectory(d) && d.data.loaded === true) {
             // Directory is loaded, toggle expansion
             if (d.children) {
                 // Collapse - hide children
@@ -3653,6 +3754,14 @@ class CodeTree {
     }
 
     /**
+     * Helper function to check if a node is a directory or root
+     */
+    isNodeDirectory(node) {
+        const data = node.data || node;
+        return data.type === 'directory' || data.type === 'root' || data.isDirectory === true;
+    }
+    
+    /**
      * Get node color based on type and complexity
      */
     getNodeColor(d) {
@@ -3689,7 +3798,7 @@ class CodeTree {
         if (d.data.loaded === 'loading' || d.data.analyzed === 'loading') {
             return '#FCD34D';  // Yellow for loading
         }
-        if (d.data.type === 'directory' && !d.data.loaded) {
+        if (this.isNodeDirectory(d) && !d.data.loaded) {
             return '#94A3B8';  // Gray for unloaded
         }
         if (d.data.type === 'file' && !d.data.analyzed) {
@@ -3738,7 +3847,7 @@ class CodeTree {
         }
         
         // Special messages for lazy-loaded nodes
-        if (d.data.type === 'directory' && !d.data.loaded) {
+        if (this.isNodeDirectory(d) && !d.data.loaded) {
             info.push('<em>Click to explore contents</em>');
         } else if (d.data.type === 'file' && !d.data.analyzed) {
             info.push('<em>Click to analyze file</em>');
