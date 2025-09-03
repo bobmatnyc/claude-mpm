@@ -127,10 +127,14 @@ class DashboardCommand(BaseCommand):
                 signal.signal(signal.SIGTERM, signal_handler)
                 
                 # Run the server (blocking)
-                if stable_server.run():
+                result = stable_server.run()
+                if result:
+                    # Server ran successfully and stopped normally
                     server_started = True
                     return CommandResult.success_result("Dashboard server stopped")
                 else:
+                    # Server failed to start (e.g., couldn't find templates)
+                    server_started = False
                     self.logger.warning("Stable server failed to start, trying advanced server...")
                     
             except KeyboardInterrupt:
