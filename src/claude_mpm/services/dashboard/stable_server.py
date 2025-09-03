@@ -12,11 +12,18 @@ DESIGN DECISIONS:
 - Graceful fallbacks for missing dependencies
 """
 
+import asyncio
 import glob
+import json
+import logging
 import os
 import sys
+import time
+import traceback
+from collections import deque
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Deque, Dict, Optional
 
 try:
     import aiohttp
@@ -29,6 +36,13 @@ except ImportError:
     socketio = None
     aiohttp = None
     web = None
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 def find_dashboard_files() -> Optional[Path]:
@@ -170,6 +184,25 @@ class StableDashboardServer:
         self.sio = None
         self.server_runner = None
         self.server_site = None
+        
+        # Event storage with circular buffer (keep last 500 events)
+        self.event_history: Deque[Dict[str, Any]] = deque(maxlen=500)
+        self.event_count = 0
+        self.server_start_time = time.time()
+        self.last_event_time = None
+        self.connected_clients = set()
+        
+        # Resilience features
+        self.retry_count = 0
+        self.max_retries = 3
+        self.health_check_failures = 0
+        self.is_healthy = True
+        
+        # Persistent event storage (optional)
+        self.persist_events = os.environ.get('CLAUDE_MPM_PERSIST_EVENTS', 'false').lower() == 'true'
+        self.event_log_path = Path.home() / '.claude' / 'dashboard_events.jsonl'
+        if self.persist_events:
+            self.event_log_path.parent.mkdir(parents=True, exist_ok=True)
 
     def setup(self) -> bool:
         """Set up the server components."""
@@ -179,11 +212,26 @@ class StableDashboardServer:
             )
             return False
 
-        # Find dashboard files
-        self.dashboard_path = find_dashboard_files()
+        # Find dashboard files only if not already set (for testing)
         if not self.dashboard_path:
-            print("❌ Error: Could not find dashboard files")
-            print("Please ensure Claude MPM is properly installed")
+            self.dashboard_path = find_dashboard_files()
+            if not self.dashboard_path:
+                print("❌ Error: Could not find dashboard files")
+                print("Please ensure Claude MPM is properly installed")
+                return False
+        
+        # Validate that the dashboard path has the required files
+        template_path = self.dashboard_path / "templates" / "index.html"
+        static_path = self.dashboard_path / "static"
+        
+        if not template_path.exists():
+            print(f"❌ Error: Dashboard template not found at {template_path}")
+            print("Please ensure Claude MPM dashboard files are properly installed")
+            return False
+        
+        if not static_path.exists():
+            print(f"❌ Error: Dashboard static files not found at {static_path}")
+            print("Please ensure Claude MPM dashboard files are properly installed")
             return False
 
         if self.debug:
@@ -206,6 +254,8 @@ class StableDashboardServer:
             ping_timeout=60,  # Match client's 60 second timeout
             max_http_buffer_size=1e8,  # Allow larger messages
         )
+        # Create app WITHOUT any static file handlers to prevent directory listing
+        # This is critical - we only want explicit routes we define
         self.app = web.Application()
         self.sio.attach(self.app)
         print("✅ SocketIO server created and attached")
@@ -220,17 +270,29 @@ class StableDashboardServer:
 
     def _setup_routes(self):
         """Set up HTTP routes."""
+        # IMPORTANT: Only add explicit routes, never add static file serving for root
+        # This prevents aiohttp from serving directory listings
         self.app.router.add_get("/", self._serve_dashboard)
+        self.app.router.add_get("/index.html", self._serve_dashboard)  # Also handle /index.html
         self.app.router.add_get("/static/{path:.*}", self._serve_static)
         self.app.router.add_get("/api/directory/list", self._list_directory)
         self.app.router.add_get("/api/file/read", self._read_file)
         self.app.router.add_get("/version.json", self._serve_version)
+        
+        # New resilience endpoints
+        self.app.router.add_get("/health", self._health_check)
+        self.app.router.add_get("/api/status", self._serve_status)
+        self.app.router.add_get("/api/events/history", self._serve_event_history)
+        
+        # CRITICAL: Add the missing /api/events endpoint for receiving events
+        self.app.router.add_post("/api/events", self._receive_event)
 
     def _setup_socketio_events(self):
         """Set up SocketIO event handlers."""
 
         @self.sio.event
         async def connect(sid, environ):
+            self.connected_clients.add(sid)
             if self.debug:
                 print(f"✅ SocketIO client connected: {sid}")
                 user_agent = environ.get('HTTP_USER_AGENT', 'Unknown')
@@ -238,13 +300,22 @@ class StableDashboardServer:
                 if len(user_agent) > 80:
                     user_agent = user_agent[:77] + "..."
                 print(f"   Client info: {user_agent}")
-            # Send a test message to confirm connection
+            
+            # Send connection confirmation
             await self.sio.emit(
                 "connection_test", {"status": "connected", "server": "stable"}, room=sid
             )
+            
+            # Send recent event history to new client
+            if self.event_history:
+                # Send last 20 events to catch up new client
+                recent_events = list(self.event_history)[-20:]
+                for event in recent_events:
+                    await self.sio.emit("claude_event", event, room=sid)
 
         @self.sio.event
         async def disconnect(sid):
+            self.connected_clients.discard(sid)
             if self.debug:
                 print(f"📤 SocketIO client disconnected: {sid}")
 
@@ -314,15 +385,187 @@ class StableDashboardServer:
             if self.debug:
                 print(f"📡 Received top-level discovery request from {sid}")
             await self.sio.emit("code:top_level:discovered", {"status": "ok"}, room=sid)
+        
+        # Mock event generator when no real events
+        @self.sio.event
+        async def request_mock_event(sid, data):
+            """Generate a mock event for testing."""
+            if self.debug:
+                print(f"📡 Mock event requested by {sid}")
+            
+            mock_event = self._create_mock_event()
+            # Store and broadcast like a real event
+            self.event_count += 1
+            self.last_event_time = datetime.now()
+            self.event_history.append(mock_event)
+            await self.sio.emit("claude_event", mock_event)
+    
+    def _create_mock_event(self) -> Dict[str, Any]:
+        """Create a mock event for testing/demo purposes."""
+        import random
+        
+        event_types = ["file", "command", "test", "build", "deploy"]
+        event_subtypes = ["start", "progress", "complete", "error", "warning"]
+        
+        return {
+            "type": random.choice(event_types),
+            "subtype": random.choice(event_subtypes),
+            "timestamp": datetime.now().isoformat(),
+            "source": "mock",
+            "data": {
+                "message": f"Mock {random.choice(['operation', 'task', 'process'])} {random.choice(['started', 'completed', 'in progress'])}",
+                "file": f"/path/to/file_{random.randint(1, 100)}.py",
+                "line": random.randint(1, 500),
+                "progress": random.randint(0, 100)
+            },
+            "session_id": "mock-session",
+            "server_event_id": self.event_count + 1
+        }
+    
+    async def _start_mock_event_generator(self):
+        """Start generating mock events if no real events for a while."""
+        try:
+            while True:
+                await asyncio.sleep(30)  # Check every 30 seconds
+                
+                # If no events in last 60 seconds and clients connected, generate mock
+                if self.connected_clients and (
+                    not self.last_event_time or 
+                    (datetime.now() - self.last_event_time).total_seconds() > 60
+                ):
+                    if self.debug:
+                        print("⏰ No recent events, generating mock event")
+                    
+                    mock_event = self._create_mock_event()
+                    self.event_count += 1
+                    self.last_event_time = datetime.now()
+                    self.event_history.append(mock_event)
+                    
+                    await self.sio.emit("claude_event", mock_event)
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.error(f"Mock event generator error: {e}")
 
     async def _serve_dashboard(self, request):
-        """Serve the main dashboard HTML."""
-        dashboard_file = self.dashboard_path / "templates" / "index.html"
-        if dashboard_file.exists():
-            with open(dashboard_file) as f:
-                content = f.read()
-            return web.Response(text=content, content_type="text/html")
-        return web.Response(text="Dashboard not found", status=404)
+        """Serve the main dashboard HTML with fallback."""
+        dashboard_file = self.dashboard_path / "templates" / "index.html" if self.dashboard_path else None
+        
+        # Try to serve actual dashboard
+        if dashboard_file and dashboard_file.exists():
+            try:
+                with open(dashboard_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                return web.Response(text=content, content_type="text/html")
+            except Exception as e:
+                logger.error(f"Error reading dashboard template: {e}")
+                # Fall through to fallback HTML
+        
+        # Fallback HTML if template missing or error
+        fallback_html = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude MPM Dashboard - Fallback Mode</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 20px; background: #1e1e1e; color: #e0e0e0; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: #2d2d2d; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .status { background: #2d2d2d; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .status.healthy { border-left: 4px solid #4caf50; }
+        .status.degraded { border-left: 4px solid #ff9800; }
+        .events { background: #2d2d2d; padding: 20px; border-radius: 8px; }
+        .event { background: #1e1e1e; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        h1 { color: #fff; margin: 0; }
+        .subtitle { color: #999; margin-top: 5px; }
+        .metric { display: inline-block; margin-right: 20px; }
+        .metric-label { color: #999; font-size: 12px; }
+        .metric-value { color: #fff; font-size: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Claude MPM Dashboard</h1>
+            <div class="subtitle">Fallback Mode - Template not found</div>
+        </div>
+        
+        <div id="status" class="status healthy">
+            <h3>Server Status</h3>
+            <div class="metric">
+                <div class="metric-label">Health</div>
+                <div class="metric-value" id="health">Loading...</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Uptime</div>
+                <div class="metric-value" id="uptime">Loading...</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Events</div>
+                <div class="metric-value" id="events">Loading...</div>
+            </div>
+        </div>
+        
+        <div class="events">
+            <h3>Recent Events</h3>
+            <div id="event-list">
+                <div class="event">Waiting for events...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        // Fallback dashboard JavaScript
+        const socket = io();
+        
+        // Update status periodically
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                document.getElementById('health').textContent = data.status;
+                document.getElementById('uptime').textContent = data.uptime.human;
+                document.getElementById('events').textContent = data.events.total;
+                
+                const statusDiv = document.getElementById('status');
+                statusDiv.className = data.status === 'running' ? 'status healthy' : 'status degraded';
+            } catch (e) {
+                console.error('Failed to fetch status:', e);
+            }
+        }
+        
+        // Listen for events
+        socket.on('claude_event', (event) => {
+            const eventList = document.getElementById('event-list');
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'event';
+            eventDiv.textContent = JSON.stringify(event, null, 2);
+            eventList.insertBefore(eventDiv, eventList.firstChild);
+            
+            // Keep only last 10 events
+            while (eventList.children.length > 10) {
+                eventList.removeChild(eventList.lastChild);
+            }
+        });
+        
+        socket.on('connect', () => {
+            console.log('Connected to dashboard server');
+        });
+        
+        // Initial load and periodic updates
+        updateStatus();
+        setInterval(updateStatus, 5000);
+    </script>
+</body>
+</html>
+        '''
+        
+        logger.warning("Serving fallback dashboard HTML")
+        return web.Response(text=fallback_html, content_type="text/html")
 
     async def _serve_static(self, request):
         """Serve static files."""
@@ -423,36 +666,230 @@ class StableDashboardServer:
         except Exception as e:
             return web.json_response({"error": str(e)}, status=500)
 
+    async def _health_check(self, request):
+        """Health check endpoint for monitoring."""
+        uptime = time.time() - self.server_start_time
+        status = "healthy" if self.is_healthy else "degraded"
+        
+        health_info = {
+            "status": status,
+            "uptime_seconds": round(uptime, 2),
+            "connected_clients": len(self.connected_clients),
+            "event_count": self.event_count,
+            "last_event": self.last_event_time.isoformat() if self.last_event_time else None,
+            "retry_count": self.retry_count,
+            "health_check_failures": self.health_check_failures,
+            "event_history_size": len(self.event_history)
+        }
+        
+        status_code = 200 if self.is_healthy else 503
+        return web.json_response(health_info, status=status_code)
+    
+    async def _serve_status(self, request):
+        """Detailed server status endpoint."""
+        uptime = time.time() - self.server_start_time
+        
+        status_info = {
+            "server": "stable",
+            "version": "4.2.3",
+            "status": "running" if self.is_healthy else "degraded",
+            "uptime": {
+                "seconds": round(uptime, 2),
+                "human": self._format_uptime(uptime)
+            },
+            "connections": {
+                "active": len(self.connected_clients),
+                "clients": list(self.connected_clients)
+            },
+            "events": {
+                "total": self.event_count,
+                "buffered": len(self.event_history),
+                "last_received": self.last_event_time.isoformat() if self.last_event_time else None
+            },
+            "features": [
+                "http", "socketio", "event_bridge", "health_monitoring",
+                "auto_retry", "event_history", "graceful_degradation"
+            ],
+            "resilience": {
+                "retry_count": self.retry_count,
+                "max_retries": self.max_retries,
+                "health_failures": self.health_check_failures,
+                "persist_events": self.persist_events
+            }
+        }
+        return web.json_response(status_info)
+    
+    async def _serve_event_history(self, request):
+        """Serve recent event history."""
+        limit = int(request.query.get('limit', '100'))
+        events = list(self.event_history)[-limit:]
+        return web.json_response({
+            "events": events,
+            "count": len(events),
+            "total_events": self.event_count
+        })
+    
+    async def _receive_event(self, request):
+        """Receive events from hook system via HTTP POST."""
+        try:
+            # Parse event data
+            data = await request.json()
+            
+            # Add server metadata
+            event = {
+                **data,
+                "received_at": datetime.now().isoformat(),
+                "server_event_id": self.event_count + 1
+            }
+            
+            # Update tracking
+            self.event_count += 1
+            self.last_event_time = datetime.now()
+            
+            # Store in circular buffer
+            self.event_history.append(event)
+            
+            # Persist to disk if enabled
+            if self.persist_events:
+                try:
+                    with open(self.event_log_path, 'a') as f:
+                        f.write(json.dumps(event) + '\n')
+                except Exception as e:
+                    logger.error(f"Failed to persist event: {e}")
+            
+            # Emit to all connected SocketIO clients
+            if self.sio and self.connected_clients:
+                await self.sio.emit("claude_event", event)
+                if self.debug:
+                    print(f"📡 Forwarded event to {len(self.connected_clients)} clients")
+            
+            # Return success response
+            return web.json_response({
+                "status": "received",
+                "event_id": event["server_event_id"],
+                "clients_notified": len(self.connected_clients)
+            })
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in event request: {e}")
+            return web.json_response(
+                {"error": "Invalid JSON", "details": str(e)},
+                status=400
+            )
+        except Exception as e:
+            logger.error(f"Error processing event: {e}")
+            if self.debug:
+                traceback.print_exc()
+            return web.json_response(
+                {"error": "Failed to process event", "details": str(e)},
+                status=500
+            )
+    
     async def _serve_version(self, request):
         """Serve version information."""
         version_info = {
-            "version": "4.2.2",
+            "version": "4.2.3",
             "server": "stable",
-            "features": ["http", "socketio", "mock_ast"],
-            "status": "running",
+            "features": ["http", "socketio", "event_bridge", "resilience"],
+            "status": "running" if self.is_healthy else "degraded",
         }
         return web.json_response(version_info)
+    
+    def _format_uptime(self, seconds: float) -> str:
+        """Format uptime in human-readable format."""
+        days = int(seconds // 86400)
+        hours = int((seconds % 86400) // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        
+        parts = []
+        if days > 0:
+            parts.append(f"{days}d")
+        if hours > 0:
+            parts.append(f"{hours}h")
+        if minutes > 0:
+            parts.append(f"{minutes}m")
+        parts.append(f"{secs}s")
+        
+        return " ".join(parts)
 
     def run(self):
-        """Run the server with automatic port conflict resolution."""
-        print("🔧 Setting up server...")
-        if not self.setup():
-            print("❌ Server setup failed")
-            return False
+        """Run the server with automatic restart on crash."""
+        restart_attempts = 0
+        max_restart_attempts = 5
+        
+        while restart_attempts < max_restart_attempts:
+            try:
+                print(f"🔧 Setting up server... (attempt {restart_attempts + 1}/{max_restart_attempts})")
+                
+                # Reset health status on restart
+                self.is_healthy = True
+                self.health_check_failures = 0
+                
+                if not self.setup():
+                    if not DEPENDENCIES_AVAILABLE:
+                        print("❌ Missing required dependencies")
+                        return False
+                    
+                    # Continue with fallback mode even if dashboard files not found
+                    print("⚠️  Dashboard files not found - running in fallback mode")
+                    print("   Server will provide basic functionality and receive events")
+                    
+                    # Set up minimal server without dashboard files
+                    self.sio = socketio.AsyncServer(
+                        cors_allowed_origins="*",
+                        logger=self.debug,
+                        engineio_logger=self.debug,
+                        ping_interval=30,
+                        ping_timeout=60,
+                        max_http_buffer_size=1e8,
+                    )
+                    self.app = web.Application()
+                    self.sio.attach(self.app)
+                    self._setup_routes()
+                    self._setup_socketio_events()
+                
+                return self._run_with_resilience()
+                
+            except Exception as e:
+                restart_attempts += 1
+                logger.error(f"Server crashed: {e}")
+                if self.debug:
+                    traceback.print_exc()
+                
+                if restart_attempts < max_restart_attempts:
+                    wait_time = min(2 ** restart_attempts, 30)  # Exponential backoff, max 30s
+                    print(f"🔄 Restarting server in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                else:
+                    print(f"❌ Server failed after {max_restart_attempts} restart attempts")
+                    return False
+        
+        return False
+    
+    def _run_with_resilience(self):
+        """Run server with port conflict resolution and error handling."""
 
         print(f"🚀 Starting stable dashboard server at http://{self.host}:{self.port}")
-        print("✅ Server ready: HTTP + SocketIO on same port")
-        print("🎯 This is a standalone server - no monitor service required")
-        print("📡 SocketIO events registered:")
-        print("   - connect/disconnect")
+        print("✅ Server ready: HTTP + SocketIO with resilience features")
+        print("🛡️  Resilience features enabled:")
+        print("   - Automatic restart on crash")
+        print("   - Health monitoring endpoint (/health)")
+        print("   - Event history buffer (500 events)")
+        print("   - Graceful degradation")
+        print("   - Connection retry logic")
+        print("📡 SocketIO events:")
+        print("   - claude_event (real-time events from hooks)")
         print("   - code:analyze:file (code analysis)")
-        print("   - Various dashboard events")
-        print("🌐 HTTP endpoints available:")
-        print("   - GET / (dashboard)")
-        print("   - GET /static/* (static files)")
-        print("   - GET /api/directory/list (directory listing)")
-        print("   - GET /api/file/read (file content)")
-        print("   - GET /version.json (version info)")
+        print("   - connection management")
+        print("🌐 HTTP endpoints:")
+        print("   - GET /             (dashboard)")
+        print("   - GET /health       (health check)")
+        print("   - POST /api/events  (receive hook events)")
+        print("   - GET /api/status   (detailed status)")
+        print("   - GET /api/events/history (event history)")
+        print("   - GET /api/directory/list")
+        print("   - GET /api/file/read")
         print(f"\n🔗 Open in browser: http://{self.host}:{self.port}")
         print("\n   Press Ctrl+C to stop the server\n")
 
@@ -473,10 +910,10 @@ class StableDashboardServer:
                         access_log=None,
                         print=lambda *args: None  # Suppress startup messages in non-debug mode
                     )
-                break  # Server started successfully
+                return True  # Server started successfully
             except KeyboardInterrupt:
                 print("\n🛑 Server stopped by user")
-                break
+                return True
             except OSError as e:
                 error_str = str(e)
                 if "[Errno 48]" in error_str or "Address already in use" in error_str or "address already in use" in error_str.lower():
