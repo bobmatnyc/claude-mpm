@@ -27,6 +27,8 @@ except ImportError:
     SOCKETIO_AVAILABLE = False
     socketio = None
 
+import contextlib
+
 from ...core.logging_config import get_logger
 
 
@@ -109,10 +111,8 @@ class MonitorClient:
         self.should_stop = True
 
         if self.reconnect_task:
-            try:
+            with contextlib.suppress(Exception):
                 self.reconnect_task.cancel()
-            except:
-                pass
 
         if self.client and self.connected:
             try:
@@ -238,10 +238,8 @@ class MonitorClient:
             self.connecting = False
 
             if self.client:
-                try:
+                with contextlib.suppress(Exception):
                     await self.client.disconnect()
-                except:
-                    pass
                 self.client = None
 
     def _register_client_events(self):

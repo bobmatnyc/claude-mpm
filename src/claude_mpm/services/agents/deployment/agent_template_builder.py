@@ -265,7 +265,7 @@ class AgentTemplateBuilder:
         has_core_tools = len(agent_tools.intersection(core_tools)) >= 5
 
         # Include tools field only if agent is clearly restricted (missing core tools or very few tools)
-        include_tools_field = not has_core_tools or len(agent_tools) < 6
+        not has_core_tools or len(agent_tools) < 6
 
         # Build YAML frontmatter using Claude Code's compatible format
         # ONLY include fields that Claude Code recognizes
@@ -587,7 +587,7 @@ tools:
 
         # Combine enhanced description with examples
         if examples:
-            description_parts = [enhanced_description, ""] + examples
+            description_parts = [enhanced_description, "", *examples]
         else:
             description_parts = [enhanced_description]
 
@@ -611,9 +611,8 @@ tools:
 
         # Remove redundant spaces around punctuation
         single_line = re.sub(r"\s+([,.!?;:])", r"\1", single_line)
-        single_line = re.sub(r"([,.!?;:])\s+", r"\1 ", single_line)
+        return re.sub(r"([,.!?;:])\s+", r"\1 ", single_line)
 
-        return single_line
 
     def _create_enhanced_description(
         self,
