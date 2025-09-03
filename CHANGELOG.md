@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.8] - 2025-09-03
+
+### Added
+- JSON file support in dashboard code viewer with syntax highlighting for .json, .jsonl, and .geojson files
+
 ## [4.2.7] - 2025-01-03
 
 ### 🐛 Bug Fixes
