@@ -4378,7 +4378,13 @@ class CodeTree {
      * Initialize the structured data integration
      */
     initializeStructuredData() {
-        this.structuredDataContent = document.getElementById('module-data-content');
+        // Try to find the Code tab content area first
+        this.structuredDataContent = document.getElementById('code-module-data-content');
+        
+        // Fall back to Events tab content area for backward compatibility
+        if (!this.structuredDataContent) {
+            this.structuredDataContent = document.getElementById('module-data-content');
+        }
 
         if (!this.structuredDataContent) {
             console.warn('Structured data content element not found');
