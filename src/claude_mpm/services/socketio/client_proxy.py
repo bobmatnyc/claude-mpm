@@ -47,7 +47,7 @@ class SocketIOClientProxy:
 
     def start(self):
         """Start the Socket.IO client connection (compatibility wrapper).
-        
+
         This method exists for backward compatibility with code that expects
         a start() method. It simply calls start_sync().
         """
@@ -55,7 +55,7 @@ class SocketIOClientProxy:
 
     def stop(self):
         """Stop the Socket.IO client connection (compatibility wrapper).
-        
+
         This method exists for backward compatibility with code that expects
         a stop() method. It simply calls stop_sync().
         """

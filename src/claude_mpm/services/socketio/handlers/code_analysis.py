@@ -638,10 +638,14 @@ class CodeAnalysisEventHandler(BaseEventHandler):
             # Analyze file
             self.logger.info(f"Calling analyze_file for: {path}")
             result = self.code_analyzer.analyze_file(path)
-            self.logger.info(f"Analysis complete. Result keys: {list(result.keys()) if result else 'None'}")
+            self.logger.info(
+                f"Analysis complete. Result keys: {list(result.keys()) if result else 'None'}"
+            )
 
             if result:
-                self.logger.info(f"Analysis result: elements={len(result.get('elements', []))}, nodes={len(result.get('nodes', []))}")
+                self.logger.info(
+                    f"Analysis result: elements={len(result.get('elements', []))}, nodes={len(result.get('nodes', []))}"
+                )
             else:
                 self.logger.warning("Analysis returned None or empty result")
 
@@ -663,6 +667,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
         except Exception as e:
             self.logger.error(f"Error analyzing file {path}: {e}")
             import traceback
+
             self.logger.error(f"Full traceback: {traceback.format_exc()}")
             await self.server.core.sio.emit(
                 "code:analysis:error",
