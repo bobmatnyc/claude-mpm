@@ -704,16 +704,29 @@ tools:
         if triggers and not examples:
             # Convert first trigger to example with commentary
             trigger = triggers[0]
+            
+            # Handle both string and dict trigger formats
+            if isinstance(trigger, dict):
+                # New format with pattern and confidence
+                trigger_text = trigger.get("pattern", "")
+            else:
+                # Old format with simple string
+                trigger_text = str(trigger)
+            
+            # Skip if we don't have valid trigger text
+            if not trigger_text:
+                return examples
+                
             agent_type = template_data.get("agent_type", "general")
 
             examples.extend(
                 [
                     "<example>",
-                    f"Context: When user needs {trigger}",
-                    f'user: "{trigger}"',
-                    f'assistant: "I\'ll use the {agent_name} agent for {trigger}."',
+                    f"Context: When user needs {trigger_text}",
+                    f'user: "{trigger_text}"',
+                    f'assistant: "I\'ll use the {agent_name} agent for {trigger_text}."',
                     "<commentary>",
-                    f"This {agent_type} agent is appropriate because it has specialized capabilities for {trigger.lower()} tasks.",
+                    f"This {agent_type} agent is appropriate because it has specialized capabilities for {trigger_text.lower()} tasks.",
                     "</commentary>",
                     "</example>",
                 ]
