@@ -32,7 +32,7 @@ class CodeTree {
             lines: 0
         };
         // Radial layout settings
-        this.isRadialLayout = true;  // Toggle for radial vs linear layout
+        this.isRadialLayout = false;  // Toggle for radial vs linear layout - defaulting to linear for better readability
         this.margin = {top: 20, right: 20, bottom: 20, left: 20};
         this.width = 960 - this.margin.left - this.margin.right;
         this.height = 600 - this.margin.top - this.margin.bottom;
@@ -4684,15 +4684,26 @@ class CodeTree {
      */
     async readSourceFile(filePath) {
         try {
-            // For now, we'll use a placeholder since we don't have direct file access
-            // In a real implementation, this would make an API call to read the file
-            console.log('📖 [SOURCE READER] Would read file:', filePath);
-
-            // Return placeholder content for demonstration
-            return this.generatePlaceholderSource(filePath);
+            console.log('📖 [SOURCE READER] Reading file:', filePath);
+            
+            // Make API call to read the actual file content
+            const response = await fetch(`/api/file/read?path=${encodeURIComponent(filePath)}`);
+            
+            if (!response.ok) {
+                const error = await response.json();
+                console.error('Failed to read file:', error);
+                // Fall back to placeholder for errors
+                return this.generatePlaceholderSource(filePath);
+            }
+            
+            const data = await response.json();
+            console.log('📖 [SOURCE READER] Read', data.lines, 'lines from', data.name);
+            return data.content;
+            
         } catch (error) {
             console.error('Failed to read source file:', error);
-            return null;
+            // Fall back to placeholder on error
+            return this.generatePlaceholderSource(filePath);
         }
     }
 
