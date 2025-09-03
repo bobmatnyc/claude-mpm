@@ -504,7 +504,7 @@ class StableDashboardServer:
             <h1>Claude MPM Dashboard</h1>
             <div class="subtitle">Fallback Mode - Template not found</div>
         </div>
-        
+
         <div id="status" class="status healthy">
             <h3>Server Status</h3>
             <div class="metric">
@@ -520,7 +520,7 @@ class StableDashboardServer:
                 <div class="metric-value" id="events">Loading...</div>
             </div>
         </div>
-        
+
         <div class="events">
             <h3>Recent Events</h3>
             <div id="event-list">
@@ -528,29 +528,29 @@ class StableDashboardServer:
             </div>
         </div>
     </div>
-    
+
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script>
         // Fallback dashboard JavaScript
         const socket = io();
-        
+
         // Update status periodically
         async function updateStatus() {
             try {
                 const response = await fetch('/api/status');
                 const data = await response.json();
-                
+
                 document.getElementById('health').textContent = data.status;
                 document.getElementById('uptime').textContent = data.uptime.human;
                 document.getElementById('events').textContent = data.events.total;
-                
+
                 const statusDiv = document.getElementById('status');
                 statusDiv.className = data.status === 'running' ? 'status healthy' : 'status degraded';
             } catch (e) {
                 console.error('Failed to fetch status:', e);
             }
         }
-        
+
         // Listen for events
         socket.on('claude_event', (event) => {
             const eventList = document.getElementById('event-list');
@@ -558,17 +558,17 @@ class StableDashboardServer:
             eventDiv.className = 'event';
             eventDiv.textContent = JSON.stringify(event, null, 2);
             eventList.insertBefore(eventDiv, eventList.firstChild);
-            
+
             // Keep only last 10 events
             while (eventList.children.length > 10) {
                 eventList.removeChild(eventList.lastChild);
             }
         });
-        
+
         socket.on('connect', () => {
             console.log('Connected to dashboard server');
         });
-        
+
         // Initial load and periodic updates
         updateStatus();
         setInterval(updateStatus, 5000);

@@ -24,6 +24,8 @@ except ImportError:
     SOCKETIO_AVAILABLE = False
     socketio = None
 
+import contextlib
+
 from ...core.logging_config import get_logger
 
 
@@ -137,10 +139,8 @@ class SocketIOClientProxy:
                         f"SocketIOClientProxy: Failed to connect to {url}: {e}"
                     )
                     # Disconnect any partial connection before trying next URL
-                    try:
+                    with contextlib.suppress(Exception):
                         await self._sio_client.disconnect()
-                    except:
-                        pass
 
             if not connected:
                 # Only show error if all attempts failed

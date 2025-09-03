@@ -54,7 +54,7 @@ class MonitorServer(SocketIOServiceInterface):
     while dashboards can come and go without affecting event collection.
     """
 
-    def __init__(self, host: str = None, port: int = None):
+    def __init__(self, host: Optional[str] = None, port: Optional[int] = None):
         # Load configuration
         config = Config()
         monitor_config = config.get("monitor_server", {})
@@ -410,7 +410,7 @@ class MonitorServer(SocketIOServiceInterface):
     def session_ended(self):
         """Track session end."""
         if self.session_id and self.session_id in self.active_sessions:
-            session_data = self.active_sessions.pop(self.session_id)
+            self.active_sessions.pop(self.session_id)
             self.broadcast_event("session_ended", {"session_id": self.session_id})
 
     def claude_status_changed(
