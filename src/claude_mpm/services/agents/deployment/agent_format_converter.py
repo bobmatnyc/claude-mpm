@@ -129,13 +129,13 @@ class AgentFormatConverter:
         if isinstance(tools_line, str):
             if tools_line.startswith("[") and tools_line.endswith("]"):
                 # Already in list format
-                tools_list = tools_line
+                pass
             else:
                 # Convert comma-separated to list
                 tools = [tool.strip() for tool in tools_line.split(",")]
-                tools_list = str(tools).replace("'", '"')
+                str(tools).replace("'", '"')
         else:
-            tools_list = '["Read", "Write", "Edit"]'
+            pass
 
         # Extract additional fields
         model = self.extract_yaml_field(yaml_content, "model") or "sonnet"

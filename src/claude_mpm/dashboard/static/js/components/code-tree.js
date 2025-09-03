@@ -4084,11 +4084,19 @@ class CodeTree {
      * Show hierarchical source viewer for a source file
      */
     async showSourceViewer(node) {
-        console.log('📄 [SOURCE VIEWER] Showing source for:', node.data.path);
+        console.log('📄 [SOURCE VIEWER] Starting showSourceViewer for:', node.data.path);
+        console.log('  Node type:', node.data.type);
+        console.log('  Content element available:', !!this.structuredDataContent);
+        
+        if (!this.structuredDataContent) {
+            console.error('❌ [SOURCE VIEWER] No content element to display source in!');
+            return;
+        }
 
         // Create source viewer container
         const sourceViewer = document.createElement('div');
         sourceViewer.className = 'source-viewer';
+        console.log('📦 [SOURCE VIEWER] Created source viewer container');
 
         // Create header
         const header = document.createElement('div');
@@ -4108,7 +4116,11 @@ class CodeTree {
 
         sourceViewer.appendChild(header);
         sourceViewer.appendChild(content);
+        console.log('🔨 [SOURCE VIEWER] Appending source viewer to content element...');
         this.structuredDataContent.appendChild(sourceViewer);
+        console.log('✅ [SOURCE VIEWER] Source viewer added to DOM');
+        console.log('  Content element children count:', this.structuredDataContent.children.length);
+        console.log('  Content element HTML preview:', this.structuredDataContent.innerHTML.substring(0, 200) + '...');
 
         // Add control event listeners
         document.getElementById('expand-all-source')?.addEventListener('click', () => this.expandAllSource());
@@ -4378,39 +4390,98 @@ class CodeTree {
      * Initialize the structured data integration
      */
     initializeStructuredData() {
-        // Try to find the Code tab content area first
-        this.structuredDataContent = document.getElementById('code-module-data-content');
+        console.log('🔄 [CODE TREE] Initializing structured data integration...');
         
-        // Fall back to Events tab content area for backward compatibility
-        if (!this.structuredDataContent) {
-            this.structuredDataContent = document.getElementById('module-data-content');
-        }
+        // Use the existing "📊 Structured Data" section in the left panel
+        this.structuredDataContent = document.getElementById('module-data-content');
 
         if (!this.structuredDataContent) {
-            console.warn('Structured data content element not found');
+            console.warn('⏳ [CODE TREE] Structured data element not found yet, retrying in 500ms...');
+            
+            // Retry after a short delay in case DOM is still loading
+            setTimeout(() => {
+                this.structuredDataContent = document.getElementById('module-data-content');
+                
+                if (!this.structuredDataContent) {
+                    console.error('❌ [CODE TREE] Structured data content element (#module-data-content) not found after retry!');
+                    console.log('[CODE TREE] Checking DOM for available elements...');
+                    // Debug: List all elements with module or data in their ID
+                    const allElements = document.querySelectorAll('[id*="module"], [id*="data"]');
+                    console.log(`[CODE TREE] Found ${allElements.length} elements with "module" or "data" in ID:`);
+                    allElements.forEach(el => {
+                        console.log(`  - #${el.id} (class: ${el.className}, parent: ${el.parentElement?.id || 'no-parent'})`);
+                    });
+                    
+                    // Also check for the module viewer container
+                    const moduleViewer = document.querySelector('.module-viewer');
+                    if (moduleViewer) {
+                        console.log('[CODE TREE] Module viewer found, checking children...');
+                        const moduleDataContent = moduleViewer.querySelector('#module-data-content');
+                        if (moduleDataContent) {
+                            console.log('[CODE TREE] Found module-data-content via query selector!');
+                            this.structuredDataContent = moduleDataContent;
+                        } else {
+                            console.log('[CODE TREE] Module data content not found in module viewer');
+                        }
+                    }
+                } else {
+                    console.log('✅ [CODE TREE] Structured data integration initialized on retry');
+                    console.log('  Target element:', this.structuredDataContent);
+                    console.log('  Parent element:', this.structuredDataContent.parentElement);
+                }
+            }, 500);
             return;
         }
 
-        console.log('✅ Structured data integration initialized');
+        console.log('✅ [CODE TREE] Structured data integration initialized immediately');
+        console.log('  Target element:', this.structuredDataContent);
+        console.log('  Parent element:', this.structuredDataContent.parentElement);
     }
 
     /**
      * Update structured data with node information
      */
     updateStructuredData(node) {
+        console.log('📝 [STRUCTURED DATA] updateStructuredData called');
+        
         if (!this.structuredDataContent) {
-            return;
+            console.warn('⚠️ [STRUCTURED DATA] Content element not available, trying to find it...');
+            // Try to find it again in case it wasn't initialized properly
+            this.structuredDataContent = document.getElementById('module-data-content');
+            
+            if (!this.structuredDataContent) {
+                console.error('❌ [STRUCTURED DATA] Cannot find module-data-content element!');
+                // Last resort - try to find it in module viewer
+                const moduleViewer = document.querySelector('.module-viewer');
+                if (moduleViewer) {
+                    this.structuredDataContent = moduleViewer.querySelector('#module-data-content');
+                    if (this.structuredDataContent) {
+                        console.log('✅ [STRUCTURED DATA] Found element via module-viewer query');
+                    } else {
+                        console.error('❌ [STRUCTURED DATA] Still cannot find element, aborting update');
+                        return;
+                    }
+                } else {
+                    console.error('❌ [STRUCTURED DATA] Module viewer not found either, aborting update');
+                    return;
+                }
+            } else {
+                console.log('✅ [STRUCTURED DATA] Found element on retry');
+            }
         }
 
         console.log('🔍 [STRUCTURED DATA] Updating with node:', {
             name: node?.data?.name,
             type: node?.data?.type,
+            path: node?.data?.path,
             hasChildren: !!(node?.children || node?._children),
-            dataChildren: node?.data?.children?.length || 0
+            dataChildren: node?.data?.children?.length || 0,
+            contentElement: this.structuredDataContent
         });
 
         // Clear previous content
         this.structuredDataContent.innerHTML = '';
+        console.log('🧹 [STRUCTURED DATA] Cleared previous content');
 
         // Check if this is a source file that should show source viewer
         if (node.data.type === 'file' && this.isSourceFile(node.data.path)) {

@@ -206,6 +206,7 @@ class DashboardCommand(BaseCommand):
                 error_msg += "  - Try running with --stable flag for standalone mode\n"
                 error_msg += "  - Use --debug flag for more details\n"
                 return CommandResult.error_result(error_msg)
+        return None
 
     def _stop_dashboard(self, args) -> CommandResult:
         """Stop the dashboard server."""

@@ -51,10 +51,10 @@ class DashboardServer(SocketIOServiceInterface):
 
     def __init__(
         self,
-        host: str = None,
-        port: int = None,
-        monitor_host: str = None,
-        monitor_port: int = None,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        monitor_host: Optional[str] = None,
+        monitor_port: Optional[int] = None,
     ):
         # Load configuration
         config = Config()
