@@ -591,8 +591,11 @@ class CodeAnalysisEventHandler(BaseEventHandler):
             return
 
         try:
+            self.logger.info(f"Starting file analysis for: {path}")
+
             # Ensure analyzer exists
             if not self.code_analyzer:
+                self.logger.info("Creating new CodeTreeAnalyzer instance")
                 emitter = CodeTreeEventEmitter(use_stdout=False)
                 # Override emit method to send to Socket.IO
                 original_emit = emitter.emit
@@ -630,23 +633,37 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 self.code_analyzer = CodeTreeAnalyzer(
                     emit_events=False, emitter=emitter
                 )
+                self.logger.info("CodeTreeAnalyzer created successfully")
 
             # Analyze file
+            self.logger.info(f"Calling analyze_file for: {path}")
             result = self.code_analyzer.analyze_file(path)
+            self.logger.info(f"Analysis complete. Result keys: {list(result.keys()) if result else 'None'}")
+
+            if result:
+                self.logger.info(f"Analysis result: elements={len(result.get('elements', []))}, nodes={len(result.get('nodes', []))}")
+            else:
+                self.logger.warning("Analysis returned None or empty result")
 
             # Send result with correct event name (using colons, not dots!)
+            response_data = {
+                "request_id": request_id,
+                "path": path,
+                **result,
+            }
+
+            self.logger.info(f"Emitting code:file:analyzed event to {sid}")
             await self.server.core.sio.emit(
                 "code:file:analyzed",
-                {
-                    "request_id": request_id,
-                    "path": path,
-                    **result,
-                },
+                response_data,
                 room=sid,
             )
+            self.logger.info("Event emitted successfully")
 
         except Exception as e:
             self.logger.error(f"Error analyzing file {path}: {e}")
+            import traceback
+            self.logger.error(f"Full traceback: {traceback.format_exc()}")
             await self.server.core.sio.emit(
                 "code:analysis:error",
                 {

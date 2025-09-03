@@ -73,7 +73,7 @@ class MonitorCommand(BaseCommand):
 
     def _start_monitor(self, args) -> CommandResult:
         """Start the monitor server."""
-        port = getattr(args, "port", 8766)  # Default to 8766 for monitor
+        port = getattr(args, "port", 8765)  # Default to 8765 for monitor
         host = getattr(args, "host", "localhost")
         background = getattr(
             args, "background", True

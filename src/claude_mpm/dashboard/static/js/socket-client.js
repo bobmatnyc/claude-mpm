@@ -1218,8 +1218,11 @@ class SocketClient {
                         transformedEvent[key] = eventData.data[key];
                     }
                 } else {
-                    // Log warning if data field would overwrite a protected field
-                    console.warn(`Protected field '${key}' in data object was not copied to top level to preserve event structure`);
+                    // Log debug info if data field would overwrite a protected field
+                    // Only log for non-timestamp fields to reduce noise
+                    if (key !== 'timestamp') {
+                        console.debug(`Protected field '${key}' in data object was not copied to top level to preserve event structure`);
+                    }
                 }
             });
             

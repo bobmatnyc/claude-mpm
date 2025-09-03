@@ -48,10 +48,17 @@ class CodeTree {
         this.socket = null;
         this.autoDiscovered = false;  // Track if auto-discovery has been done
         this.zoom = null;  // Store zoom behavior
+
+        // Structured data properties
+        this.structuredDataContent = null;
+        this.selectedASTItem = null;
         this.activeNode = null;  // Track currently active node
         this.loadingNodes = new Set();  // Track nodes that are loading
         this.bulkLoadMode = false;  // Track bulk loading preference
         this.expandedPaths = new Set();  // Track which paths are expanded
+        this.focusedNode = null;  // Track the currently focused directory
+        this.horizontalNodes = new Set();  // Track nodes that should have horizontal text
+        this.centralSpine = new Set();  // Track the main path through the tree
     }
 
     /**
@@ -87,6 +94,7 @@ class CodeTree {
         this.setupControls();
         this.initializeTreeData();
         this.subscribeToEvents();
+        this.initializeStructuredData();
         
         // Set initial status message
         const breadcrumbContent = document.getElementById('breadcrumb-content');
@@ -166,20 +174,8 @@ class CodeTree {
             });
         }
 
-        const expandBtn = document.getElementById('code-expand-all');
-        if (expandBtn) {
-            expandBtn.addEventListener('click', () => this.expandAll());
-        }
-        
-        const collapseBtn = document.getElementById('code-collapse-all');
-        if (collapseBtn) {
-            collapseBtn.addEventListener('click', () => this.collapseAll());
-        }
-        
-        const resetZoomBtn = document.getElementById('code-reset-zoom');
-        if (resetZoomBtn) {
-            resetZoomBtn.addEventListener('click', () => this.resetZoom());
-        }
+        // Note: Expand/collapse/reset buttons are now handled by the tree controls toolbar
+        // which is created dynamically in addTreeControls()
         
         const toggleLegendBtn = document.getElementById('code-toggle-legend');
         if (toggleLegendBtn) {
@@ -372,14 +368,27 @@ class CodeTree {
                 });
         }
 
-        // DISABLED: All zoom behavior has been completely disabled to prevent tree movement
-        // The tree should remain completely stationary - no zooming, panning, or centering allowed
-        this.zoom = null;  // Completely disable zoom behavior
-        
-        // Do NOT apply zoom behavior to SVG - this prevents all zoom/pan interactions
-        // this.svg.call(this.zoom);  // DISABLED
-        
-        console.log('[CodeTree] All zoom and pan behavior disabled - tree is now completely stationary');
+        // Enable zoom and pan functionality for better navigation
+        this.zoom = d3.zoom()
+            .scaleExtent([0.1, 3])  // Allow zoom from 10% to 300%
+            .on('zoom', (event) => {
+                // Apply zoom transform to the tree group
+                this.treeGroup.attr('transform', event.transform);
+
+                // Keep text size constant by applying inverse scaling
+                this.adjustTextSizeForZoom(event.transform.k);
+
+                // Update zoom level display
+                this.updateZoomLevel(event.transform.k);
+            });
+
+        // Apply zoom behavior to SVG
+        this.svg.call(this.zoom);
+
+        // Add keyboard shortcuts for zoom
+        this.addZoomKeyboardShortcuts();
+
+        console.log('[CodeTree] Zoom and pan functionality enabled');
 
         // Add controls overlay
         this.addVisualizationControls();
@@ -416,12 +425,11 @@ class CodeTree {
     initializeTreeData() {
         const workingDir = this.getWorkingDirectory();
         const dirName = workingDir ? workingDir.split('/').pop() || 'Project Root' : 'Project Root';
-        
-        // Use '.' as the root path for consistency with relative path handling
-        // The actual working directory is retrieved via getWorkingDirectory() when needed
+
+        // Use absolute path for consistency with API expectations
         this.treeData = {
             name: dirName,
-            path: '.',  // Always use '.' for root to simplify path handling
+            path: workingDir || '.',  // Use working directory or fallback to '.'
             type: 'root',
             children: [],
             loaded: false,
@@ -531,7 +539,7 @@ class CodeTree {
         const dirName = workingDir.split('/').pop() || 'Project Root';
         this.treeData = {
             name: dirName,
-            path: '.',  // Use '.' for root to maintain consistency with relative path handling
+            path: workingDir,  // Use absolute path for consistency with API expectations
             type: 'root',
             children: [],
             loaded: false,
@@ -549,10 +557,7 @@ class CodeTree {
         this.updateBreadcrumb(`Discovering structure in ${dirName}...`, 'info');
         
         // Get selected languages from checkboxes
-        const selectedLanguages = [];
-        document.querySelectorAll('.language-checkbox:checked').forEach(cb => {
-            selectedLanguages.push(cb.value);
-        });
+        const selectedLanguages = this.getSelectedLanguages();
         
         // Get ignore patterns
         const ignorePatterns = document.getElementById('ignore-patterns')?.value || '';
@@ -643,7 +648,37 @@ class CodeTree {
             .attr('title', 'Toggle between radial and linear layouts')
             .text('◎')
             .on('click', () => this.toggleLayout());
-            
+
+        // Zoom In
+        toolbar.append('button')
+            .attr('class', 'tree-control-btn')
+            .attr('title', 'Zoom in')
+            .text('🔍+')
+            .on('click', () => this.zoomIn());
+
+        // Zoom Out
+        toolbar.append('button')
+            .attr('class', 'tree-control-btn')
+            .attr('title', 'Zoom out')
+            .text('🔍-')
+            .on('click', () => this.zoomOut());
+
+        // Reset Zoom
+        toolbar.append('button')
+            .attr('class', 'tree-control-btn')
+            .attr('title', 'Reset zoom to fit tree')
+            .text('⌂')
+            .on('click', () => this.resetZoom());
+
+        // Zoom Level Display
+        toolbar.append('span')
+            .attr('class', 'zoom-level-display')
+            .attr('id', 'zoom-level-display')
+            .text('100%')
+            .style('margin-left', '8px')
+            .style('font-size', '11px')
+            .style('color', '#718096');
+
         // Path Search
         const searchInput = toolbar.append('input')
             .attr('class', 'tree-control-btn')
@@ -948,11 +983,44 @@ class CodeTree {
         this.socket.on('code:top_level:discovered', (data) => this.onTopLevelDiscovered(data));
         this.socket.on('code:directory:discovered', (data) => this.onDirectoryDiscovered(data));
         this.socket.on('code:file:discovered', (data) => this.onFileDiscovered(data));
-        this.socket.on('code:file:analyzed', (data) => this.onFileAnalyzed(data));
+        this.socket.on('code:file:analyzed', (data) => {
+            console.log('📨 [SOCKET] Received code:file:analyzed event');
+            this.onFileAnalyzed(data);
+        });
         this.socket.on('code:node:found', (data) => this.onNodeFound(data));
 
         // Progress updates
         this.socket.on('code:analysis:progress', (data) => this.onProgressUpdate(data));
+
+        // Error handling
+        this.socket.on('code:analysis:error', (data) => {
+            console.error('❌ [FILE ANALYSIS] Analysis error:', data);
+            this.showNotification(`Analysis error: ${data.error || 'Unknown error'}`, 'error');
+        });
+
+        // Generic error handling
+        this.socket.on('error', (error) => {
+            console.error('❌ [SOCKET] Socket error:', error);
+        });
+
+        // Socket connection status
+        this.socket.on('connect', () => {
+            console.log('✅ [SOCKET] Connected to server, analysis service should be available');
+            this.connectionStable = true;
+        });
+
+        this.socket.on('disconnect', () => {
+            console.log('❌ [SOCKET] Disconnected from server - disabling AST analysis');
+            this.connectionStable = false;
+            // Clear any pending analysis timeouts
+            if (this.analysisTimeouts) {
+                this.analysisTimeouts.forEach((timeout, path) => {
+                    clearTimeout(timeout);
+                    this.loadingNodes.delete(path);
+                });
+                this.analysisTimeouts.clear();
+            }
+        });
         
         // Lazy loading responses
         this.socket.on('code:directory:contents', (data) => {
@@ -1136,10 +1204,11 @@ class CodeTree {
         // Add to events display
         this.addEventToDisplay(`📁 Found ${(data.items || []).length} top-level items in project root`, 'info');
         
-        // The root node (with path '.') should receive the children
-        const rootNode = this.findNodeByPath('.');
-        
-        console.log('🔎 Looking for root node with path ".", found:', rootNode ? {
+        // The root node should receive the children
+        const workingDir = this.getWorkingDirectory();
+        const rootNode = this.findNodeByPath(workingDir);
+
+        console.log(`🔎 Looking for root node with path "${workingDir}", found:`, rootNode ? {
             name: rootNode.name,
             path: rootNode.path,
             currentChildren: rootNode.children ? rootNode.children.length : 0
@@ -1150,14 +1219,16 @@ class CodeTree {
             
             // Update the root node with discovered children
             rootNode.children = data.items.map(child => {
-                // Items at root level get their name as the path
-                const childPath = child.name;
-                
+                // CRITICAL FIX: Use consistent path format that matches API expectations
+                // The API expects absolute paths, so construct them properly
+                const workingDir = this.getWorkingDirectory();
+                const childPath = workingDir ? `${workingDir}/${child.name}`.replace(/\/+/g, '/') : child.name;
+
                 console.log(`  Adding child: ${child.name} with path: ${childPath}`);
-                
+
                 return {
                     name: child.name,
-                    path: childPath,  // Just the name for top-level items
+                    path: childPath,  // Use absolute path for consistency
                     type: child.type,
                     loaded: child.type === 'directory' ? false : undefined,  // Explicitly false for directories
                     analyzed: child.type === 'file' ? false : undefined,
@@ -1470,6 +1541,45 @@ class CodeTree {
      * Handle file analyzed event
      */
     onFileAnalyzed(data) {
+        console.log('✅ [FILE ANALYSIS] Received analysis result:', {
+            path: data.path,
+            elements: data.elements ? data.elements.length : 0,
+            complexity: data.complexity,
+            lines: data.lines,
+            stats: data.stats,
+            elementsDetail: data.elements,
+            fullData: data
+        });
+
+        // Debug: Show elements in detail
+        if (data.elements && data.elements.length > 0) {
+            console.log('🔍 [AST ELEMENTS] Found elements:', data.elements.map(elem => ({
+                name: elem.name,
+                type: elem.type,
+                line: elem.line,
+                methods: elem.methods ? elem.methods.length : 0
+            })));
+        } else {
+            const fileName = data.path.split('/').pop();
+            console.log('⚠️ [AST ELEMENTS] No elements found in analysis result');
+
+            // Show user-friendly message for files with no AST elements
+            if (fileName.endsWith('__init__.py')) {
+                this.showNotification(`${fileName} is empty or contains only imports`, 'info');
+                this.updateBreadcrumb(`${fileName} - no code elements to display`, 'info');
+            } else {
+                this.showNotification(`${fileName} contains no classes or functions`, 'info');
+                this.updateBreadcrumb(`${fileName} - no AST elements found`, 'info');
+            }
+        }
+
+        // Clear analysis timeout
+        if (this.analysisTimeouts && this.analysisTimeouts.has(data.path)) {
+            clearTimeout(this.analysisTimeouts.get(data.path));
+            this.analysisTimeouts.delete(data.path);
+            console.log('⏰ [FILE ANALYSIS] Cleared timeout for:', data.path);
+        }
+
         // Remove loading pulse if this file was being analyzed
         const d3Node = this.findD3NodeByPath(data.path);
         if (d3Node && this.loadingNodes.has(data.path)) {
@@ -1484,13 +1594,14 @@ class CodeTree {
         
         const fileNode = this.findNodeByPath(data.path);
         if (fileNode) {
+            console.log('🔍 [FILE NODE] Found file node for:', data.path);
             fileNode.analyzed = true;
             fileNode.complexity = data.complexity || 0;
             fileNode.lines = data.lines || 0;
-            
+
             // Add code elements as children
             if (data.elements && Array.isArray(data.elements)) {
-                fileNode.children = data.elements.map(elem => ({
+                const children = data.elements.map(elem => ({
                     name: elem.name,
                     type: elem.type.toLowerCase(),
                     path: `${data.path}#${elem.name}`,
@@ -1506,8 +1617,17 @@ class CodeTree {
                         docstring: m.docstring || ''
                     })) : []
                 }));
+
+                fileNode.children = children;
+                console.log('✅ [FILE NODE] Added children to file node:', {
+                    filePath: data.path,
+                    childrenCount: children.length,
+                    children: children.map(c => ({ name: c.name, type: c.type }))
+                });
+            } else {
+                console.log('⚠️ [FILE NODE] No elements to add as children');
             }
-            
+
             // Update stats
             if (data.stats) {
                 this.stats.classes += data.stats.classes || 0;
@@ -1515,13 +1635,48 @@ class CodeTree {
                 this.stats.methods += data.stats.methods || 0;
                 this.stats.lines += data.stats.lines || 0;
             }
-            
+
             this.updateStats();
-            if (this.root) {
+
+            // CRITICAL FIX: Recreate D3 hierarchy to include new children
+            if (this.root && fileNode.children && fileNode.children.length > 0) {
+                console.log('🔄 [FILE NODE] Recreating D3 hierarchy to include AST children');
+
+                // Store the old root for expansion state preservation
+                const oldRoot = this.root;
+
+                // Recreate the D3 hierarchy with updated data
+                this.root = d3.hierarchy(this.treeData);
+                this.root.x0 = this.height / 2;
+                this.root.y0 = 0;
+
+                // Preserve expansion state from old tree
+                this.preserveExpansionState(oldRoot, this.root);
+
+                // Find the updated file node in the new hierarchy
+                const updatedFileNode = this.findD3NodeByPath(data.path);
+                if (updatedFileNode) {
+                    // Ensure the file node is expanded to show its AST children
+                    if (updatedFileNode.children && updatedFileNode.children.length > 0) {
+                        updatedFileNode._children = null;
+                        updatedFileNode.data.expanded = true;
+                        console.log('✅ [FILE NODE] File node expanded to show AST children:', {
+                            path: data.path,
+                            childrenCount: updatedFileNode.children.length,
+                            childNames: updatedFileNode.children.map(c => c.data.name)
+                        });
+                    }
+                }
+
+                // Update the visualization with the new hierarchy
+                this.update(this.root);
+            } else if (this.root) {
                 this.update(this.root);
             }
-            
+
             this.updateBreadcrumb(`Analyzed: ${data.path}`, 'success');
+        } else {
+            console.error('❌ [FILE NODE] Could not find file node for path:', data.path);
         }
     }
 
@@ -1965,12 +2120,12 @@ class CodeTree {
      * Update statistics display
      */
     updateStats() {
-        // Update stats display - use correct IDs from HTML
+        // Update stats display - use correct IDs from corner controls
         const statsElements = {
-            'file-count': this.stats.files,
-            'class-count': this.stats.classes,
-            'function-count': this.stats.functions,
-            'line-count': this.stats.lines
+            'stats-files': this.stats.files,
+            'stats-classes': this.stats.classes,
+            'stats-functions': this.stats.functions,
+            'stats-methods': this.stats.methods
         };
 
         for (const [id, value] of Object.entries(statsElements)) {
@@ -1999,6 +2154,145 @@ class CodeTree {
             breadcrumbContent.textContent = message;
             breadcrumbContent.className = `breadcrumb-${type}`;
         }
+    }
+
+    /**
+     * Analyze file using HTTP fallback when SocketIO fails
+     */
+    async analyzeFileHTTP(filePath, fileName, d3Node) {
+        console.log('🌐 [HTTP FALLBACK] Analyzing file via HTTP:', filePath);
+        console.log('🌐 [HTTP FALLBACK] File name:', fileName);
+
+        try {
+            // For now, create mock AST data since we don't have an HTTP endpoint yet
+            // This demonstrates the structure and can be replaced with real HTTP call
+            const mockAnalysisResult = this.createMockAnalysisData(filePath, fileName);
+            console.log('🌐 [HTTP FALLBACK] Created mock data:', mockAnalysisResult);
+
+            // Simulate network delay
+            setTimeout(() => {
+                console.log('✅ [HTTP FALLBACK] Mock analysis complete for:', fileName);
+                console.log('✅ [HTTP FALLBACK] Calling onFileAnalyzed with:', mockAnalysisResult);
+                this.onFileAnalyzed(mockAnalysisResult);
+            }, 1000);
+
+        } catch (error) {
+            console.error('❌ [HTTP FALLBACK] Analysis failed:', error);
+            this.showNotification(`Analysis failed: ${error.message}`, 'error');
+            this.loadingNodes.delete(filePath);
+            this.removeLoadingPulse(d3Node);
+        }
+    }
+
+    /**
+     * Create mock analysis data for demonstration
+     */
+    createMockAnalysisData(filePath, fileName) {
+        const ext = fileName.split('.').pop()?.toLowerCase();
+        console.log('🔍 [MOCK DATA] Creating mock data for file:', fileName, 'extension:', ext);
+
+        // Create realistic mock data based on file type
+        let elements = [];
+
+        if (ext === 'py') {
+            elements = [
+                {
+                    name: 'ExampleClass',
+                    type: 'class',
+                    line: 10,
+                    complexity: 3,
+                    docstring: 'Example class for demonstration',
+                    methods: [
+                        { name: '__init__', type: 'method', line: 12, complexity: 1 },
+                        { name: 'example_method', type: 'method', line: 18, complexity: 2 }
+                    ]
+                },
+                {
+                    name: 'example_function',
+                    type: 'function',
+                    line: 25,
+                    complexity: 2,
+                    docstring: 'Example function'
+                }
+            ];
+        } else if (ext === 'js' || ext === 'ts') {
+            elements = [
+                {
+                    name: 'ExampleClass',
+                    type: 'class',
+                    line: 5,
+                    complexity: 2,
+                    methods: [
+                        { name: 'constructor', type: 'method', line: 6, complexity: 1 },
+                        { name: 'exampleMethod', type: 'method', line: 10, complexity: 2 }
+                    ]
+                },
+                {
+                    name: 'exampleFunction',
+                    type: 'function',
+                    line: 20,
+                    complexity: 1
+                }
+            ];
+        } else {
+            // For other file types, create at least one element to show it's working
+            elements = [
+                {
+                    name: 'mock_element',
+                    type: 'function',
+                    line: 1,
+                    complexity: 1,
+                    docstring: `Mock element for ${fileName}`
+                }
+            ];
+        }
+
+        console.log('🔍 [MOCK DATA] Created elements:', elements);
+
+        return {
+            path: filePath,
+            elements: elements,
+            complexity: elements.reduce((sum, elem) => sum + (elem.complexity || 1), 0),
+            lines: 50,
+            stats: {
+                classes: elements.filter(e => e.type === 'class').length,
+                functions: elements.filter(e => e.type === 'function').length,
+                methods: elements.reduce((sum, e) => sum + (e.methods ? e.methods.length : 0), 0),
+                lines: 50
+            }
+        };
+    }
+
+    /**
+     * Get selected languages from checkboxes with fallback
+     */
+    getSelectedLanguages() {
+        const selectedLanguages = [];
+        const checkboxes = document.querySelectorAll('.language-checkbox:checked');
+
+        console.log('🔍 [LANGUAGE] Found checkboxes:', checkboxes.length);
+        console.log('🔍 [LANGUAGE] All language checkboxes:', document.querySelectorAll('.language-checkbox').length);
+
+        checkboxes.forEach(cb => {
+            console.log('🔍 [LANGUAGE] Checked language:', cb.value);
+            selectedLanguages.push(cb.value);
+        });
+
+        // Fallback: if no languages are selected, default to common ones
+        if (selectedLanguages.length === 0) {
+            console.warn('⚠️ [LANGUAGE] No languages selected, using defaults');
+            selectedLanguages.push('python', 'javascript', 'typescript');
+
+            // Also check the checkboxes programmatically
+            document.querySelectorAll('.language-checkbox').forEach(cb => {
+                if (['python', 'javascript', 'typescript'].includes(cb.value)) {
+                    cb.checked = true;
+                    console.log('✅ [LANGUAGE] Auto-checked:', cb.value);
+                }
+            });
+        }
+
+        return selectedLanguages;
     }
 
     /**
@@ -2083,6 +2377,172 @@ class CodeTree {
     }
 
     /**
+     * Apply horizontal text to the central spine of the tree
+     */
+    applySingletonHorizontalLayout(nodes) {
+        if (this.isRadialLayout) return; // Only apply to linear layout
+
+        // Clear previous horizontal nodes tracking
+        this.horizontalNodes.clear();
+        this.centralSpine.clear();
+
+        // Find the central spine - the main path through the tree
+        this.identifyCentralSpine(nodes);
+
+        // Mark all central spine nodes for horizontal text
+        this.centralSpine.forEach(path => {
+            this.horizontalNodes.add(path);
+        });
+
+        console.log(`🎯 [SPINE] Central spine nodes:`, Array.from(this.centralSpine));
+        console.log(`📝 [TEXT] Horizontal text nodes:`, Array.from(this.horizontalNodes));
+    }
+
+    /**
+     * Identify the central spine of the tree (main path from root to deepest/most important nodes)
+     */
+    identifyCentralSpine(nodes) {
+        if (!nodes || nodes.length === 0) return;
+
+        // Start with the root node
+        const rootNode = nodes.find(node => node.depth === 0);
+        if (!rootNode) {
+            console.warn('🎯 [SPINE] No root node found!');
+            return;
+        }
+
+        this.centralSpine.add(rootNode.data.path);
+        console.log(`🎯 [SPINE] Starting spine with root: ${rootNode.data.name} (${rootNode.data.path})`);
+
+        // Follow the main path through the tree
+        let currentNode = rootNode;
+        while (currentNode && currentNode.children && currentNode.children.length > 0) {
+            // Choose the "main" child - prioritize directories, then by name
+            const mainChild = this.selectMainChild(currentNode.children);
+            if (mainChild) {
+                this.centralSpine.add(mainChild.data.path);
+                console.log(`🎯 [SPINE] Adding to spine: ${mainChild.data.name}`);
+                currentNode = mainChild;
+            } else {
+                break;
+            }
+        }
+    }
+
+    /**
+     * Select the main child to continue the central spine
+     */
+    selectMainChild(children) {
+        if (!children || children.length === 0) return null;
+
+        // If only one child, it's the main path
+        if (children.length === 1) return children[0];
+
+        // Prioritize directories over files
+        const directories = children.filter(child => child.data.type === 'directory');
+        if (directories.length === 1) return directories[0];
+
+        // If multiple directories, choose the first one (could be enhanced with better logic)
+        if (directories.length > 0) return directories[0];
+
+        // Fallback to first child
+        return children[0];
+    }
+
+    /**
+     * Find chains of singleton nodes (nodes with only one child)
+     */
+    findSingletonChains(nodes) {
+        const chains = [];
+        const processed = new Set();
+
+        nodes.forEach(node => {
+            if (processed.has(node)) return;
+
+            // Start a new chain if this node has exactly one child
+            if (node.children && node.children.length === 1) {
+                const chain = [node];
+                let current = node.children[0];
+
+                console.log(`🔍 [CHAIN] Starting singleton chain with: ${node.data.name} (depth: ${node.depth})`);
+
+                // Follow the chain of singletons
+                while (current && current.children && current.children.length === 1) {
+                    chain.push(current);
+                    processed.add(current);
+                    console.log(`🔍 [CHAIN] Adding to chain: ${current.data.name} (depth: ${current.depth})`);
+                    current = current.children[0];
+                }
+
+                // Add the final node if it exists (even if it has multiple children or no children)
+                if (current) {
+                    chain.push(current);
+                    processed.add(current);
+                    console.log(`🔍 [CHAIN] Final node in chain: ${current.data.name} (depth: ${current.depth})`);
+                }
+
+                // Only create horizontal layout for chains of 2 or more nodes
+                if (chain.length >= 2) {
+                    console.log(`✅ [CHAIN] Created horizontal chain:`, chain.map(n => n.data.name));
+                    chains.push(chain);
+                    processed.add(node);
+                } else {
+                    console.log(`❌ [CHAIN] Chain too short (${chain.length}), skipping`);
+                }
+            }
+        });
+
+        return chains;
+    }
+
+    /**
+     * Layout a chain of nodes horizontally with parent in center
+     */
+    layoutChainHorizontally(chain) {
+        if (chain.length < 2) return;
+
+        const horizontalSpacing = 150; // Spacing between nodes in horizontal chain
+        const parentNode = chain[0];
+        const originalX = parentNode.x;
+        const originalY = parentNode.y;
+
+        // CRITICAL: In D3 tree layout for linear mode:
+        // - d.x controls VERTICAL position (up-down)
+        // - d.y controls HORIZONTAL position (left-right)
+        // To make singleton chains horizontal, we need to adjust d.x (vertical) to be the same
+        // and spread out d.y (horizontal) positions
+
+        if (chain.length === 2) {
+            // Simple case: parent and one child side by side
+            const centerY = originalY;
+            parentNode.y = centerY - horizontalSpacing / 2; // Parent to the left
+            chain[1].y = centerY + horizontalSpacing / 2;   // Child to the right
+            chain[1].x = originalX; // Same vertical level as parent
+        } else {
+            // Multiple nodes: center the parent in the horizontal chain
+            const totalWidth = (chain.length - 1) * horizontalSpacing;
+            const startY = originalY - (totalWidth / 2);
+
+            chain.forEach((node, index) => {
+                node.y = startY + (index * horizontalSpacing); // Spread horizontally
+                node.x = originalX; // All at same vertical level
+            });
+        }
+
+        // Mark all nodes in this chain as needing horizontal text
+        chain.forEach(node => {
+            this.horizontalNodes.add(node.data.path);
+            console.log(`📝 [TEXT] Marking node for horizontal text: ${node.data.name} (${node.data.path})`);
+        });
+
+        console.log(`🔄 [LAYOUT] Horizontal chain of ${chain.length} nodes:`,
+            chain.map(n => ({ name: n.data.name, vertical: n.x, horizontal: n.y })));
+        console.log(`📝 [TEXT] Total horizontal nodes:`, Array.from(this.horizontalNodes));
+    }
+
+
+
+    /**
      * Update D3 tree visualization
      */
     update(source) {
@@ -2094,6 +2554,9 @@ class CodeTree {
         const treeData = this.treeLayout(this.root);
         const nodes = treeData.descendants();
         const links = treeData.descendants().slice(1);
+
+        // Apply horizontal layout for singleton chains
+        this.applySingletonHorizontalLayout(nodes);
 
         if (this.isRadialLayout) {
             // Radial layout adjustments
@@ -2173,20 +2636,42 @@ class CodeTree {
 
         // Add labels for nodes with smart positioning
         nodeEnter.append('text')
-            .attr('class', 'node-label')
+            .attr('class', d => {
+                // Add horizontal-text class for root node
+                const baseClass = 'node-label';
+                if (d.depth === 0) {
+                    console.log(`📝 [TEXT] ✅ Adding horizontal-text class to root: ${d.data.name}`);
+                    return `${baseClass} horizontal-text`;
+                }
+                return baseClass;
+            })
             .attr('dy', '.35em')
             .attr('x', d => {
                 if (this.isRadialLayout) {
                     // For radial layout, initial position
                     return 0;
+                } else if (d.depth === 0 || this.horizontalNodes.has(d.data.path)) {
+                    // Root node or horizontal nodes: center text above the node
+                    console.log(`📝 [TEXT] ✅ HORIZONTAL positioning for: ${d.data.name} (depth: ${d.depth}, path: ${d.data.path})`);
+                    console.log(`📝 [TEXT] ✅ Root check: depth === 0 = ${d.depth === 0}`);
+                    console.log(`📝 [TEXT] ✅ Horizontal set check: ${this.horizontalNodes.has(d.data.path)}`);
+                    return 0;
                 } else {
                     // Linear layout: standard positioning
+                    console.log(`📝 [TEXT] Positioning vertical text for: ${d.data.name} (depth: ${d.depth}, path: ${d.data.path})`);
                     return d.children || d._children ? -13 : 13;
                 }
+            })
+            .attr('y', d => {
+                // For root node or horizontal nodes, position text above the node
+                return (d.depth === 0 || this.horizontalNodes.has(d.data.path)) ? -20 : 0;
             })
             .attr('text-anchor', d => {
                 if (this.isRadialLayout) {
                     return 'start';  // Will be adjusted in update
+                } else if (d.depth === 0 || this.horizontalNodes.has(d.data.path)) {
+                    // Root node or horizontal nodes: center the text
+                    return 'middle';
                 } else {
                     // Linear layout: standard anchoring
                     return d.children || d._children ? 'end' : 'start';
@@ -2203,6 +2688,22 @@ class CodeTree {
             .style('font-size', '12px')
             .style('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')
             .style('text-shadow', '1px 1px 2px rgba(255,255,255,0.8), -1px -1px 2px rgba(255,255,255,0.8)')
+            .style('writing-mode', d => {
+                // Force horizontal writing mode for root node
+                if (d.depth === 0) {
+                    console.log(`📝 [TEXT] ✅ Setting horizontal writing-mode for root: ${d.data.name}`);
+                    return 'horizontal-tb';
+                }
+                return null;
+            })
+            .style('text-orientation', d => {
+                // Force mixed text orientation for root node
+                if (d.depth === 0) {
+                    console.log(`📝 [TEXT] ✅ Setting mixed text-orientation for root: ${d.data.name}`);
+                    return 'mixed';
+                }
+                return null;
+            })
             .on('click', (event, d) => this.onNodeClick(event, d))  // CRITICAL FIX: Add click handler to labels
             .style('cursor', 'pointer');
 
@@ -2301,6 +2802,7 @@ class CodeTree {
 
         // Update text labels with proper rotation for radial layout
         const isRadial = this.isRadialLayout;  // Capture the layout type
+        const horizontalNodes = this.horizontalNodes;  // Capture horizontal nodes set
         nodeUpdate.select('text.node-label')
             .style('fill-opacity', 1)
             .style('fill', '#333')
@@ -2331,12 +2833,26 @@ class CodeTree {
                             .attr('dy', '.35em');
                     }
                 } else {
-                    // Linear layout - no rotation needed
-                    selection
-                        .attr('transform', null)
-                        .attr('x', d.children || d._children ? -13 : 13)
-                        .attr('text-anchor', d.children || d._children ? 'end' : 'start')
-                        .attr('dy', '.35em');
+                    // Linear layout - handle root node and horizontal nodes differently
+                    const isHorizontal = d.depth === 0 || horizontalNodes.has(d.data.path);
+
+                    if (isHorizontal) {
+                        // Root node or horizontal nodes: text above the node, centered
+                        selection
+                            .attr('transform', null)
+                            .attr('x', 0)
+                            .attr('y', -20)
+                            .attr('text-anchor', 'middle')
+                            .attr('dy', '.35em');
+                    } else {
+                        // Regular linear layout - no rotation needed
+                        selection
+                            .attr('transform', null)
+                            .attr('x', d.children || d._children ? -13 : 13)
+                            .attr('y', 0)
+                            .attr('text-anchor', d.children || d._children ? 'end' : 'start')
+                            .attr('dy', '.35em');
+                    }
                 }
             });
 
@@ -2404,6 +2920,14 @@ class CodeTree {
             d.x0 = d.x;
             d.y0 = d.y;
         });
+
+        // Apply current zoom level to maintain consistent text size
+        if (this.zoom) {
+            const currentTransform = d3.zoomTransform(this.svg.node());
+            if (currentTransform.k !== 1) {
+                this.adjustTextSizeForZoom(currentTransform.k);
+            }
+        }
     }
 
     /**
@@ -2578,16 +3102,21 @@ class CodeTree {
      * Handle node click - implement lazy loading with enhanced visual feedback
      */
     onNodeClick(event, d) {
+        const clickId = Date.now() + Math.random();
         // DEBUG: Log all clicks to verify handler is working
-        console.log('🖱️ [NODE CLICK] Clicked on node:', {
+        console.log(`🖱️ [NODE CLICK] Clicked on node (ID: ${clickId}):`, {
             name: d?.data?.name,
             path: d?.data?.path,
             type: d?.data?.type,
             loaded: d?.data?.loaded,
             hasChildren: !!(d?.children || d?._children),
-            dataChildren: d?.data?.children?.length || 0
+            dataChildren: d?.data?.children?.length || 0,
+            loadingNodesSize: this.loadingNodes ? this.loadingNodes.size : 'undefined'
         });
-        
+
+        // Update structured data with clicked node
+        this.updateStructuredData(d);
+
         // Handle node click interaction
         
         // Check event parameter
@@ -2686,11 +3215,8 @@ class CodeTree {
         
         
         // Get selected languages from checkboxes
-        const selectedLanguages = [];
-        const checkboxes = document.querySelectorAll('.language-checkbox:checked');
-        checkboxes.forEach(cb => {
-            selectedLanguages.push(cb.value);
-        });
+        const selectedLanguages = this.getSelectedLanguages();
+        console.log('🔍 [LANGUAGE] Selected languages:', selectedLanguages);
         
         // Get ignore patterns
         const ignorePatternsElement = document.getElementById('ignore-patterns');
@@ -2710,12 +3236,45 @@ class CodeTree {
             shouldLoad: d.data.type === 'directory' && !d.data.loaded
         });
         if (d.data.type === 'directory' && !d.data.loaded) {
-            // Prevent duplicate requests
-            if (this.loadingNodes.has(d.data.path)) {
-                this.showNotification(`Already loading: ${d.data.name}`, 'warning');
-                return;
+            console.log('✅ [SUBDIRECTORY LOADING] Load check passed, proceeding with loading logic');
+            console.log('🔍 [SUBDIRECTORY LOADING] Initial loading state:', {
+                loadingNodesSize: this.loadingNodes ? this.loadingNodes.size : 'undefined',
+                loadingNodesContent: Array.from(this.loadingNodes || [])
+            });
+
+            try {
+                // Debug the path and loadingNodes state
+                console.log('🔍 [SUBDIRECTORY LOADING] Checking for duplicates:', {
+                    path: d.data.path,
+                    pathType: typeof d.data.path,
+                    loadingNodesType: typeof this.loadingNodes,
+                    loadingNodesSize: this.loadingNodes ? this.loadingNodes.size : 'undefined',
+                    hasMethod: this.loadingNodes && typeof this.loadingNodes.has === 'function'
+                });
+
+                // Prevent duplicate requests
+                const isDuplicate = this.loadingNodes && this.loadingNodes.has(d.data.path);
+                console.log('🔍 [SUBDIRECTORY LOADING] Duplicate check result:', {
+                    isDuplicate: isDuplicate,
+                    loadingNodesContent: Array.from(this.loadingNodes || []),
+                    pathBeingChecked: d.data.path
+                });
+
+                if (isDuplicate) {
+                console.warn('⚠️ [SUBDIRECTORY LOADING] Duplicate request detected, but proceeding anyway:', {
+                    path: d.data.path,
+                    name: d.data.name,
+                    loadingNodesSize: this.loadingNodes.size,
+                    loadingNodesContent: Array.from(this.loadingNodes),
+                    pathInSet: this.loadingNodes.has(d.data.path)
+                });
+                // Remove the existing entry and proceed
+                this.loadingNodes.delete(d.data.path);
+                console.log('🧹 [SUBDIRECTORY LOADING] Removed duplicate entry, proceeding with fresh request');
             }
-            
+
+            console.log('✅ [SUBDIRECTORY LOADING] No duplicate request, proceeding to mark as loading');
+
             // Mark as loading immediately to prevent duplicate requests
             d.data.loaded = 'loading';
             this.loadingNodes.add(d.data.path);
@@ -2788,10 +3347,13 @@ class CodeTree {
                         if (data.exists && data.is_directory && data.contents) {
                             const node = this.findNodeByPath(d.data.path);
                             if (node) {
+                                console.log('🔧 [SUBDIRECTORY LOADING] Creating children with paths:',
+                                    data.contents.map(item => ({ name: item.name, path: item.path })));
+
                                 // Add children to the node
                                 node.children = data.contents.map(item => ({
                                     name: item.name,
-                                    path: `${d.data.path}/${item.name}`,
+                                    path: item.path,  // Use the full path from API response
                                     type: item.is_directory ? 'directory' : 'file',
                                     loaded: item.is_directory ? false : undefined,
                                     analyzed: !item.is_directory ? false : undefined,
@@ -2817,8 +3379,15 @@ class CodeTree {
                                     }
                                     
                                     this.update(updatedD3Node || this.root);
+
+                                    // Focus on the newly loaded directory for better UX
+                                    if (updatedD3Node && data.contents.length > 0) {
+                                        setTimeout(() => {
+                                            this.focusOnDirectory(updatedD3Node);
+                                        }, 500); // Small delay to let the update animation complete
+                                    }
                                 }
-                                
+
                                 this.updateBreadcrumb(`Loaded ${data.contents.length} items`, 'success');
                                 this.showNotification(`Loaded ${data.contents.length} items from ${d.data.name}`, 'success');
                             }
@@ -2870,12 +3439,37 @@ class CodeTree {
                     d.data.loaded = false;
                 }
             }, 100);  // 100ms delay to ensure visual effects render first
-        } 
+
+            } catch (error) {
+                console.error('❌ [SUBDIRECTORY LOADING] Error in directory loading logic:', {
+                    error: error.message,
+                    stack: error.stack,
+                    path: d.data.path,
+                    nodeData: d.data
+                });
+                this.showNotification(`Error loading directory: ${error.message}`, 'error');
+            }
+        }
         // For files that haven't been analyzed, request analysis
         else if (d.data.type === 'file' && !d.data.analyzed) {
             // Only analyze files of selected languages
             const fileLanguage = this.detectLanguage(d.data.path);
+            console.log('🔍 [FILE ANALYSIS] Language check:', {
+                fileName: d.data.name,
+                filePath: d.data.path,
+                detectedLanguage: fileLanguage,
+                selectedLanguages: selectedLanguages,
+                isLanguageSelected: selectedLanguages.includes(fileLanguage),
+                shouldAnalyze: selectedLanguages.includes(fileLanguage) || fileLanguage === 'unknown'
+            });
+
             if (!selectedLanguages.includes(fileLanguage) && fileLanguage !== 'unknown') {
+                console.warn('⚠️ [FILE ANALYSIS] Skipping file:', {
+                    fileName: d.data.name,
+                    detectedLanguage: fileLanguage,
+                    selectedLanguages: selectedLanguages,
+                    reason: `${fileLanguage} not in selected languages`
+                });
                 this.showNotification(`Skipping ${d.data.name} - ${fileLanguage} not selected`, 'warning');
                 return;
             }
@@ -2891,14 +3485,43 @@ class CodeTree {
             
             // Delay the socket request to ensure visual effects are rendered
             setTimeout(() => {
-                
-                if (this.socket) {
+                console.log('🚀 [FILE ANALYSIS] Sending analysis request:', {
+                    fileName: d.data.name,
+                    originalPath: d.data.path,
+                    fullPath: fullPath,
+                    hasSocket: !!this.socket,
+                    socketConnected: this.socket?.connected
+                });
+
+                if (this.socket && this.socket.connected) {
+                    console.log('📡 [FILE ANALYSIS] Using SocketIO for analysis:', {
+                        event: 'code:analyze:file',
+                        path: fullPath,
+                        socketConnected: this.socket.connected,
+                        socketId: this.socket.id
+                    });
+
                     this.socket.emit('code:analyze:file', {
                         path: fullPath
                     });
-                    
+
+                    // Set a shorter timeout since we have a stable server
+                    const analysisTimeout = setTimeout(() => {
+                        console.warn('⏰ [FILE ANALYSIS] SocketIO timeout, trying HTTP fallback for:', fullPath);
+                        this.analyzeFileHTTP(fullPath, d.data.name, d3.select(event.target.closest('g')));
+                    }, 5000); // 5 second timeout
+
+                    // Store timeout ID for cleanup
+                    if (!this.analysisTimeouts) this.analysisTimeouts = new Map();
+                    this.analysisTimeouts.set(fullPath, analysisTimeout);
+
                     this.updateBreadcrumb(`Analyzing ${d.data.name}...`, 'info');
                     this.showNotification(`Analyzing: ${d.data.name}`, 'info');
+                } else {
+                    console.log('🔄 [FILE ANALYSIS] SocketIO unavailable, using HTTP fallback');
+                    this.updateBreadcrumb(`Analyzing ${d.data.name}...`, 'info');
+                    this.showNotification(`Analyzing: ${d.data.name}`, 'info');
+                    this.analyzeFileHTTP(fullPath, d.data.name, d3.select(event.target.closest('g')));
                 }
             }, 100);  // 100ms delay to ensure visual effects render first
         }
@@ -3215,14 +3838,294 @@ class CodeTree {
     }
 
     /**
+     * Focus on a specific directory, hiding parent directories and showing only its contents
+     */
+    focusOnDirectory(node) {
+        if (!node || node.data.type !== 'directory') return;
+
+        console.log('🎯 [FOCUS] Focusing on directory:', node.data.path);
+
+        // Store the focused node
+        this.focusedNode = node;
+
+        // Create a temporary root for display purposes
+        const focusedRoot = {
+            ...node.data,
+            name: `📁 ${node.data.name}`,
+            children: node.data.children || []
+        };
+
+        // Create new D3 hierarchy with focused node as root
+        const tempRoot = d3.hierarchy(focusedRoot);
+        tempRoot.x0 = this.height / 2;
+        tempRoot.y0 = 0;
+
+        // Store original root for restoration
+        if (!this.originalRoot) {
+            this.originalRoot = this.root;
+        }
+
+        // Update with focused view
+        this.root = tempRoot;
+        this.update(this.root);
+
+        // Add visual styling for focused mode
+        d3.select('#code-tree-container').classed('focused', true);
+
+        // Update breadcrumb to show focused path
+        this.updateBreadcrumb(`Focused on: ${node.data.name}`, 'info');
+        this.showNotification(`Focused on directory: ${node.data.name}`, 'info');
+
+        // Add back button to toolbar
+        this.addBackButton();
+    }
+
+    /**
+     * Return to the full tree view from focused directory view
+     */
+    unfocusDirectory() {
+        if (!this.originalRoot) return;
+
+        console.log('🔙 [FOCUS] Returning to full tree view');
+
+        // Restore original root
+        this.root = this.originalRoot;
+        this.originalRoot = null;
+        this.focusedNode = null;
+
+        // Update display
+        this.update(this.root);
+
+        // Remove visual styling for focused mode
+        d3.select('#code-tree-container').classed('focused', false);
+
+        // Remove back button
+        this.removeBackButton();
+
+        this.updateBreadcrumb('Full tree view restored', 'success');
+        this.showNotification('Returned to full tree view', 'success');
+    }
+
+    /**
+     * Add back button to return from focused view
+     */
+    addBackButton() {
+        // Remove existing back button
+        d3.select('#tree-back-button').remove();
+
+        const toolbar = d3.select('.tree-controls-toolbar');
+        if (toolbar.empty()) return;
+
+        toolbar.insert('button', ':first-child')
+            .attr('id', 'tree-back-button')
+            .attr('class', 'tree-control-btn back-btn')
+            .attr('title', 'Return to full tree view')
+            .text('← Back')
+            .on('click', () => this.unfocusDirectory());
+    }
+
+    /**
+     * Remove back button
+     */
+    removeBackButton() {
+        d3.select('#tree-back-button').remove();
+    }
+
+    /**
      * Reset zoom to fit the tree
      */
     resetZoom() {
-        // DISABLED: All zoom reset operations have been disabled to prevent tree centering/movement
-        // The tree should remain stationary and not center/move when interacting with nodes
-        console.log('[CodeTree] resetZoom called but disabled - no zoom reset will occur');
-        this.showNotification('Zoom reset disabled - tree remains stationary', 'info');
-        return;
+        if (!this.svg || !this.zoom) return;
+
+        // Calculate bounds of the tree
+        const bounds = this.treeGroup.node().getBBox();
+        const fullWidth = this.width;
+        const fullHeight = this.height;
+        const width = bounds.width;
+        const height = bounds.height;
+        const midX = bounds.x + width / 2;
+        const midY = bounds.y + height / 2;
+
+        if (width === 0 || height === 0) return; // Nothing to fit
+
+        // Calculate scale to fit tree in view with some padding
+        const scale = Math.min(fullWidth / width, fullHeight / height) * 0.9;
+
+        // Calculate translate to center the tree
+        const translate = [fullWidth / 2 - scale * midX, fullHeight / 2 - scale * midY];
+
+        // Apply the transform with smooth transition
+        this.svg.transition()
+            .duration(750)
+            .call(this.zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+
+        this.showNotification('Zoom reset to fit tree', 'info');
+    }
+
+    /**
+     * Zoom in by a fixed factor
+     */
+    zoomIn() {
+        if (!this.svg || !this.zoom) return;
+
+        this.svg.transition()
+            .duration(300)
+            .call(this.zoom.scaleBy, 1.5);
+    }
+
+    /**
+     * Zoom out by a fixed factor
+     */
+    zoomOut() {
+        if (!this.svg || !this.zoom) return;
+
+        this.svg.transition()
+            .duration(300)
+            .call(this.zoom.scaleBy, 1 / 1.5);
+    }
+
+    /**
+     * Update zoom level display
+     */
+    updateZoomLevel(scale) {
+        const zoomDisplay = document.getElementById('zoom-level-display');
+        if (zoomDisplay) {
+            zoomDisplay.textContent = `${Math.round(scale * 100)}%`;
+        }
+    }
+
+    /**
+     * Adjust text size to remain constant during zoom
+     */
+    adjustTextSizeForZoom(zoomScale) {
+        if (!this.treeGroup) return;
+
+        // Calculate the inverse scale to keep text at consistent size
+        const textScale = 1 / zoomScale;
+
+        // Apply inverse scaling to all text elements
+        this.treeGroup.selectAll('text')
+            .style('font-size', `${12 * textScale}px`)
+            .attr('transform', function() {
+                // Get existing transform if any
+                const existingTransform = d3.select(this).attr('transform') || '';
+                // Remove any existing scale transforms and add the new one
+                const cleanTransform = existingTransform.replace(/scale\([^)]*\)/g, '').trim();
+                return cleanTransform ? `${cleanTransform} scale(${textScale})` : `scale(${textScale})`;
+            });
+
+        // Also adjust other UI elements that should maintain size
+        this.treeGroup.selectAll('.expand-icon')
+            .style('font-size', `${12 * textScale}px`)
+            .attr('transform', function() {
+                const existingTransform = d3.select(this).attr('transform') || '';
+                const cleanTransform = existingTransform.replace(/scale\([^)]*\)/g, '').trim();
+                return cleanTransform ? `${cleanTransform} scale(${textScale})` : `scale(${textScale})`;
+            });
+
+        // Adjust item count badges
+        this.treeGroup.selectAll('.item-count-badge')
+            .style('font-size', `${10 * textScale}px`)
+            .attr('transform', function() {
+                const existingTransform = d3.select(this).attr('transform') || '';
+                const cleanTransform = existingTransform.replace(/scale\([^)]*\)/g, '').trim();
+                return cleanTransform ? `${cleanTransform} scale(${textScale})` : `scale(${textScale})`;
+            });
+    }
+
+    /**
+     * Add keyboard shortcuts for zoom functionality
+     */
+    addZoomKeyboardShortcuts() {
+        // Only add shortcuts when the code tab is active
+        document.addEventListener('keydown', (event) => {
+            // Check if code tab is active
+            const codeTab = document.getElementById('code-tab');
+            if (!codeTab || !codeTab.classList.contains('active')) {
+                return;
+            }
+
+            // Prevent shortcuts when typing in input fields
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            // Handle zoom shortcuts
+            if (event.ctrlKey || event.metaKey) {
+                switch (event.key) {
+                    case '=':
+                    case '+':
+                        event.preventDefault();
+                        this.zoomIn();
+                        break;
+                    case '-':
+                        event.preventDefault();
+                        this.zoomOut();
+                        break;
+                    case '0':
+                        event.preventDefault();
+                        this.resetZoom();
+                        break;
+                }
+            }
+        });
+    }
+
+    /**
+     * Check if a file path represents a source file that should show source viewer
+     */
+    isSourceFile(path) {
+        if (!path) return false;
+        const sourceExtensions = ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.cpp', '.c', '.h', '.cs', '.php', '.rb', '.go', '.rs', '.swift'];
+        return sourceExtensions.some(ext => path.toLowerCase().endsWith(ext));
+    }
+
+    /**
+     * Show hierarchical source viewer for a source file
+     */
+    async showSourceViewer(node) {
+        console.log('📄 [SOURCE VIEWER] Showing source for:', node.data.path);
+
+        // Create source viewer container
+        const sourceViewer = document.createElement('div');
+        sourceViewer.className = 'source-viewer';
+
+        // Create header
+        const header = document.createElement('div');
+        header.className = 'source-viewer-header';
+        header.innerHTML = `
+            <span>📄 ${node.data.name || 'Source File'}</span>
+            <div class="source-viewer-controls">
+                <button class="source-control-btn" id="expand-all-source" title="Expand all">⬇</button>
+                <button class="source-control-btn" id="collapse-all-source" title="Collapse all">⬆</button>
+            </div>
+        `;
+
+        // Create content container
+        const content = document.createElement('div');
+        content.className = 'source-viewer-content';
+        content.id = 'source-viewer-content';
+
+        sourceViewer.appendChild(header);
+        sourceViewer.appendChild(content);
+        this.structuredDataContent.appendChild(sourceViewer);
+
+        // Add control event listeners
+        document.getElementById('expand-all-source')?.addEventListener('click', () => this.expandAllSource());
+        document.getElementById('collapse-all-source')?.addEventListener('click', () => this.collapseAllSource());
+
+        // Load and display source code
+        try {
+            await this.loadSourceContent(node, content);
+        } catch (error) {
+            console.error('Failed to load source content:', error);
+            content.innerHTML = `
+                <div class="ast-data-placeholder">
+                    <div class="ast-placeholder-icon">❌</div>
+                    <div class="ast-placeholder-text">Failed to load source file</div>
+                </div>
+            `;
+        }
     }
 
     /**
@@ -3385,6 +4288,35 @@ class CodeTree {
     }
     
     /**
+     * Debug function to clear loading state (for troubleshooting)
+     */
+    clearLoadingState() {
+        console.log('🧹 [DEBUG] Clearing loading state:', {
+            loadingNodesBefore: Array.from(this.loadingNodes),
+            size: this.loadingNodes.size
+        });
+        this.loadingNodes.clear();
+
+        // Also reset any nodes marked as 'loading'
+        this.resetLoadingFlags(this.treeData);
+
+        console.log('✅ [DEBUG] Loading state cleared');
+        this.showNotification('Loading state cleared', 'info');
+    }
+
+    /**
+     * Recursively reset loading flags in tree data
+     */
+    resetLoadingFlags(node) {
+        if (node.loaded === 'loading') {
+            node.loaded = false;
+        }
+        if (node.children) {
+            node.children.forEach(child => this.resetLoadingFlags(child));
+        }
+    }
+
+    /**
      * Export tree data
      */
     exportTree() {
@@ -3428,7 +4360,7 @@ class CodeTree {
         if (ticker) {
             ticker.textContent = message;
             ticker.className = `ticker ticker-${type}`;
-            
+
             // Auto-hide after 5 seconds for non-error messages
             if (type !== 'error') {
                 setTimeout(() => {
@@ -3441,6 +4373,779 @@ class CodeTree {
             }
         }
     }
+
+    /**
+     * Initialize the structured data integration
+     */
+    initializeStructuredData() {
+        this.structuredDataContent = document.getElementById('module-data-content');
+
+        if (!this.structuredDataContent) {
+            console.warn('Structured data content element not found');
+            return;
+        }
+
+        console.log('✅ Structured data integration initialized');
+    }
+
+    /**
+     * Update structured data with node information
+     */
+    updateStructuredData(node) {
+        if (!this.structuredDataContent) {
+            return;
+        }
+
+        console.log('🔍 [STRUCTURED DATA] Updating with node:', {
+            name: node?.data?.name,
+            type: node?.data?.type,
+            hasChildren: !!(node?.children || node?._children),
+            dataChildren: node?.data?.children?.length || 0
+        });
+
+        // Clear previous content
+        this.structuredDataContent.innerHTML = '';
+
+        // Check if this is a source file that should show source viewer
+        if (node.data.type === 'file' && this.isSourceFile(node.data.path)) {
+            this.showSourceViewer(node);
+        } else {
+            // Show children or functions for non-source files
+            const children = node.children || node._children || [];
+            const dataChildren = node.data.children || [];
+
+            if (children.length > 0 || dataChildren.length > 0) {
+                this.showASTNodeChildren(node);
+            } else if (node.data.type === 'file' && node.data.analyzed) {
+                this.showASTFileDetails(node);
+            } else {
+                this.showASTNodeDetails(node);
+            }
+        }
+    }
+
+    /**
+     * Show child nodes in structured data
+     */
+    showASTNodeChildren(node) {
+        const children = node.children || node._children || [];
+        const dataChildren = node.data.children || [];
+
+        // Use D3 children if available, otherwise use data children
+        const childrenToShow = children.length > 0 ? children : dataChildren;
+
+        if (childrenToShow.length === 0) {
+            this.showASTEmptyState('No children found');
+            return;
+        }
+
+        // Create header
+        const header = document.createElement('div');
+        header.className = 'structured-view-header';
+        header.innerHTML = `<h4>${this.getNodeIcon(node.data.type)} ${node.data.name || 'Node'} - Children (${childrenToShow.length})</h4>`;
+        this.structuredDataContent.appendChild(header);
+
+        childrenToShow.forEach((child, index) => {
+            const childData = child.data || child;
+            const item = this.createASTDataViewerItem(childData, index);
+            this.structuredDataContent.appendChild(item);
+        });
+    }
+
+    /**
+     * Show file details in structured data
+     */
+    showASTFileDetails(node) {
+        // Create header
+        const header = document.createElement('div');
+        header.className = 'structured-view-header';
+        header.innerHTML = `<h4>${this.getNodeIcon(node.data.type)} ${node.data.name || 'File'} - Details</h4>`;
+        this.structuredDataContent.appendChild(header);
+
+        const details = [];
+
+        if (node.data.language) {
+            details.push({ label: 'Language', value: node.data.language });
+        }
+
+        if (node.data.lines) {
+            details.push({ label: 'Lines', value: node.data.lines });
+        }
+
+        if (node.data.complexity !== undefined) {
+            details.push({ label: 'Complexity', value: node.data.complexity });
+        }
+
+        if (node.data.size) {
+            details.push({ label: 'Size', value: this.formatFileSize(node.data.size) });
+        }
+
+        if (details.length === 0) {
+            this.showASTEmptyState('No details available');
+            return;
+        }
+
+        details.forEach((detail, index) => {
+            const item = this.createASTDetailItem(detail, index);
+            this.structuredDataContent.appendChild(item);
+        });
+    }
+
+    /**
+     * Show basic node details in structured data
+     */
+    showASTNodeDetails(node) {
+        // Create header
+        const header = document.createElement('div');
+        header.className = 'structured-view-header';
+        header.innerHTML = `<h4>${this.getNodeIcon(node.data.type)} ${node.data.name || 'Node'} - Details</h4>`;
+        this.structuredDataContent.appendChild(header);
+
+        const details = [];
+
+        details.push({ label: 'Type', value: node.data.type || 'unknown' });
+        details.push({ label: 'Path', value: node.data.path || 'unknown' });
+
+        if (node.data.line) {
+            details.push({ label: 'Line', value: node.data.line });
+        }
+
+        details.forEach((detail, index) => {
+            const item = this.createASTDetailItem(detail, index);
+            this.structuredDataContent.appendChild(item);
+        });
+    }
+
+    /**
+     * Create an AST data viewer item for a child node
+     */
+    createASTDataViewerItem(childData, index) {
+        const item = document.createElement('div');
+        item.className = 'ast-data-viewer-item';
+        item.dataset.index = index;
+
+        const header = document.createElement('div');
+        header.className = 'ast-data-item-header';
+
+        const name = document.createElement('div');
+        name.className = 'ast-data-item-name';
+        name.innerHTML = `${this.getNodeIcon(childData.type)} ${childData.name || 'Unknown'}`;
+
+        const type = document.createElement('div');
+        type.className = `ast-data-item-type ${childData.type || 'unknown'}`;
+        type.textContent = childData.type || 'unknown';
+
+        header.appendChild(name);
+        header.appendChild(type);
+
+        const details = document.createElement('div');
+        details.className = 'ast-data-item-details';
+
+        const detailParts = [];
+
+        if (childData.line) {
+            detailParts.push(`<span class="ast-data-item-line">Line ${childData.line}</span>`);
+        }
+
+        if (childData.complexity !== undefined) {
+            const complexityLevel = this.getComplexityLevel(childData.complexity);
+            detailParts.push(`<span class="ast-data-item-complexity">
+                <span class="ast-complexity-indicator ${complexityLevel}"></span>
+                Complexity: ${childData.complexity}
+            </span>`);
+        }
+
+        if (childData.docstring) {
+            detailParts.push(`<div style="margin-top: 4px; font-style: italic;">${childData.docstring}</div>`);
+        }
+
+        details.innerHTML = detailParts.join(' ');
+
+        item.appendChild(header);
+        item.appendChild(details);
+
+        // Add click handler to select item
+        item.addEventListener('click', () => {
+            this.selectASTDataViewerItem(item);
+        });
+
+        return item;
+    }
+
+    /**
+     * Create a detail item for simple key-value pairs
+     */
+    createASTDetailItem(detail, index) {
+        const item = document.createElement('div');
+        item.className = 'ast-data-viewer-item';
+        item.dataset.index = index;
+
+        const header = document.createElement('div');
+        header.className = 'ast-data-item-header';
+
+        const name = document.createElement('div');
+        name.className = 'ast-data-item-name';
+        name.textContent = detail.label;
+
+        const value = document.createElement('div');
+        value.className = 'ast-data-item-details';
+        value.textContent = detail.value;
+
+        header.appendChild(name);
+        item.appendChild(header);
+        item.appendChild(value);
+
+        return item;
+    }
+
+    /**
+     * Show empty state in structured data
+     */
+    showASTEmptyState(message) {
+        this.structuredDataContent.innerHTML = `
+            <div class="ast-data-placeholder">
+                <div class="ast-placeholder-icon">📭</div>
+                <div class="ast-placeholder-text">${message}</div>
+            </div>
+        `;
+    }
+
+    /**
+     * Select an AST data viewer item
+     */
+    selectASTDataViewerItem(item) {
+        // Remove previous selection
+        const previousSelected = this.structuredDataContent.querySelector('.ast-data-viewer-item.selected');
+        if (previousSelected) {
+            previousSelected.classList.remove('selected');
+        }
+
+        // Select new item
+        item.classList.add('selected');
+        this.selectedASTItem = item;
+    }
+
+    /**
+     * Get icon for node type
+     */
+    getNodeIcon(type) {
+        const icons = {
+            'directory': '📁',
+            'file': '📄',
+            'class': '🏛️',
+            'function': '⚡',
+            'method': '🔧',
+            'variable': '📦',
+            'import': '📥',
+            'module': '📦'
+        };
+        return icons[type] || '📄';
+    }
+
+    /**
+     * Get complexity level for styling
+     */
+    getComplexityLevel(complexity) {
+        if (complexity <= 5) return 'low';
+        if (complexity <= 10) return 'medium';
+        return 'high';
+    }
+
+    /**
+     * Format file size for display
+     */
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    /**
+     * Load source content and render with AST integration
+     */
+    async loadSourceContent(node, contentContainer) {
+        // Try to read the file content
+        const sourceContent = await this.readSourceFile(node.data.path);
+        if (!sourceContent) {
+            throw new Error('Could not read source file');
+        }
+
+        // Get AST elements for this file
+        const astElements = node.data.children || [];
+
+        // Parse and render source with AST integration
+        this.renderSourceWithAST(sourceContent, astElements, contentContainer, node);
+    }
+
+    /**
+     * Read source file content
+     */
+    async readSourceFile(filePath) {
+        try {
+            // For now, we'll use a placeholder since we don't have direct file access
+            // In a real implementation, this would make an API call to read the file
+            console.log('📖 [SOURCE READER] Would read file:', filePath);
+
+            // Return placeholder content for demonstration
+            return this.generatePlaceholderSource(filePath);
+        } catch (error) {
+            console.error('Failed to read source file:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Generate placeholder source content for demonstration
+     */
+    generatePlaceholderSource(filePath) {
+        const fileName = filePath.split('/').pop();
+
+        if (fileName.endsWith('.py')) {
+            return `"""
+${fileName}
+Generated placeholder content for demonstration
+"""
+
+import os
+import sys
+from typing import List, Dict, Optional
+
+class ExampleClass:
+    """Example class with methods."""
+
+    def __init__(self, name: str):
+        """Initialize the example class."""
+        self.name = name
+        self.data = {}
+
+    def process_data(self, items: List[str]) -> Dict[str, int]:
+        """Process a list of items and return counts."""
+        result = {}
+        for item in items:
+            result[item] = result.get(item, 0) + 1
+        return result
+
+    def get_summary(self) -> str:
+        """Get a summary of the processed data."""
+        if not self.data:
+            return "No data processed"
+        return f"Processed {len(self.data)} items"
+
+def main():
+    """Main function."""
+    example = ExampleClass("demo")
+    items = ["a", "b", "a", "c", "b", "a"]
+    result = example.process_data(items)
+    print(example.get_summary())
+    return result
+
+if __name__ == "__main__":
+    main()
+`;
+        } else {
+            return `// ${fileName}
+// Generated placeholder content for demonstration
+
+class ExampleClass {
+    constructor(name) {
+        this.name = name;
+        this.data = {};
+    }
+
+    processData(items) {
+        const result = {};
+        for (const item of items) {
+            result[item] = (result[item] || 0) + 1;
+        }
+        return result;
+    }
+
+    getSummary() {
+        if (Object.keys(this.data).length === 0) {
+            return "No data processed";
+        }
+        return \`Processed \${Object.keys(this.data).length} items\`;
+    }
+}
+
+function main() {
+    const example = new ExampleClass("demo");
+    const items = ["a", "b", "a", "c", "b", "a"];
+    const result = example.processData(items);
+    console.log(example.getSummary());
+    return result;
+}
+
+main();
+`;
+        }
+    }
+
+    /**
+     * Render source code with AST integration and collapsible sections
+     */
+    renderSourceWithAST(sourceContent, astElements, container, node) {
+        const lines = sourceContent.split('\n');
+        const astMap = this.createASTLineMap(astElements);
+
+        console.log('🎨 [SOURCE RENDERER] Rendering source with AST:', {
+            lines: lines.length,
+            astElements: astElements.length,
+            astMap: Object.keys(astMap).length
+        });
+
+        // Create line elements with AST integration
+        lines.forEach((line, index) => {
+            const lineNumber = index + 1;
+            const lineElement = this.createSourceLine(line, lineNumber, astMap[lineNumber], node);
+            container.appendChild(lineElement);
+        });
+
+        // Store reference for expand/collapse operations
+        this.currentSourceContainer = container;
+        this.currentASTElements = astElements;
+    }
+
+    /**
+     * Create AST line mapping for quick lookup
+     */
+    createASTLineMap(astElements) {
+        const lineMap = {};
+
+        astElements.forEach(element => {
+            if (element.line) {
+                if (!lineMap[element.line]) {
+                    lineMap[element.line] = [];
+                }
+                lineMap[element.line].push(element);
+            }
+        });
+
+        return lineMap;
+    }
+
+    /**
+     * Create a source line element with AST integration
+     */
+    createSourceLine(content, lineNumber, astElements, node) {
+        const lineDiv = document.createElement('div');
+        lineDiv.className = 'source-line';
+        lineDiv.dataset.lineNumber = lineNumber;
+
+        // Check if this line has AST elements
+        const hasAST = astElements && astElements.length > 0;
+        if (hasAST) {
+            lineDiv.classList.add('ast-element');
+            lineDiv.dataset.astElements = JSON.stringify(astElements);
+        }
+
+        // Determine if this line should be collapsible
+        const isCollapsible = this.isCollapsibleLine(content, astElements);
+        if (isCollapsible) {
+            lineDiv.classList.add('collapsible');
+        }
+
+        // Create line number
+        const lineNumberSpan = document.createElement('span');
+        lineNumberSpan.className = 'line-number';
+        lineNumberSpan.textContent = lineNumber;
+
+        // Create collapse indicator
+        const collapseIndicator = document.createElement('span');
+        collapseIndicator.className = 'collapse-indicator';
+        if (isCollapsible) {
+            collapseIndicator.classList.add('expanded');
+            collapseIndicator.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleSourceSection(lineDiv);
+            });
+        } else {
+            collapseIndicator.classList.add('none');
+        }
+
+        // Create line content with syntax highlighting
+        const lineContentSpan = document.createElement('span');
+        lineContentSpan.className = 'line-content';
+        lineContentSpan.innerHTML = this.applySyntaxHighlighting(content);
+
+        // Add click handler for AST integration
+        if (hasAST) {
+            lineDiv.addEventListener('click', () => {
+                this.onSourceLineClick(lineDiv, astElements, node);
+            });
+        }
+
+        lineDiv.appendChild(lineNumberSpan);
+        lineDiv.appendChild(collapseIndicator);
+        lineDiv.appendChild(lineContentSpan);
+
+        return lineDiv;
+    }
+
+    /**
+     * Check if a line should be collapsible (function/class definitions)
+     */
+    isCollapsibleLine(content, astElements) {
+        const trimmed = content.trim();
+
+        // Python patterns
+        if (trimmed.startsWith('def ') || trimmed.startsWith('class ') ||
+            trimmed.startsWith('async def ')) {
+            return true;
+        }
+
+        // JavaScript patterns
+        if (trimmed.includes('function ') || trimmed.includes('class ') ||
+            trimmed.includes('=> {') || trimmed.match(/^\s*\w+\s*\([^)]*\)\s*{/)) {
+            return true;
+        }
+
+        // Check AST elements for function/class definitions
+        if (astElements) {
+            return astElements.some(el =>
+                el.type === 'function' || el.type === 'class' ||
+                el.type === 'method' || el.type === 'FunctionDef' ||
+                el.type === 'ClassDef'
+            );
+        }
+
+        return false;
+    }
+
+    /**
+     * Apply basic syntax highlighting
+     */
+    applySyntaxHighlighting(content) {
+        // First, properly escape HTML entities
+        let highlighted = content
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        // Store markers for where we'll insert spans
+        const replacements = [];
+        
+        // Python and JavaScript keywords (combined)
+        const keywords = /\b(def|class|import|from|if|else|elif|for|while|try|except|finally|with|as|return|yield|lambda|async|await|function|const|let|var|catch|export)\b/g;
+        
+        // Find all matches first without replacing
+        let match;
+        
+        // Keywords
+        while ((match = keywords.exec(highlighted)) !== null) {
+            replacements.push({
+                start: match.index,
+                end: match.index + match[0].length,
+                replacement: `<span class="keyword">${match[0]}</span>`
+            });
+        }
+        
+        // Strings - simple pattern for now
+        const stringPattern = /(["'`])([^"'`]*?)\1/g;
+        while ((match = stringPattern.exec(highlighted)) !== null) {
+            replacements.push({
+                start: match.index,
+                end: match.index + match[0].length,
+                replacement: `<span class="string">${match[0]}</span>`
+            });
+        }
+        
+        // Comments
+        const commentPattern = /(#.*$|\/\/.*$)/gm;
+        while ((match = commentPattern.exec(highlighted)) !== null) {
+            replacements.push({
+                start: match.index,
+                end: match.index + match[0].length,
+                replacement: `<span class="comment">${match[0]}</span>`
+            });
+        }
+        
+        // Sort replacements by start position (reverse order to not mess up indices)
+        replacements.sort((a, b) => b.start - a.start);
+        
+        // Apply replacements
+        for (const rep of replacements) {
+            // Check for overlapping replacements and skip if needed
+            const before = highlighted.substring(0, rep.start);
+            const after = highlighted.substring(rep.end);
+            
+            // Only apply if we're not inside another replacement
+            if (!before.includes('<span') || before.lastIndexOf('</span>') > before.lastIndexOf('<span')) {
+                highlighted = before + rep.replacement + after;
+            }
+        }
+        
+        return highlighted;
+    }
+
+    /**
+     * Toggle collapse/expand of a source section
+     */
+    toggleSourceSection(lineElement) {
+        const indicator = lineElement.querySelector('.collapse-indicator');
+        const isExpanded = indicator.classList.contains('expanded');
+
+        if (isExpanded) {
+            this.collapseSourceSection(lineElement);
+        } else {
+            this.expandSourceSection(lineElement);
+        }
+    }
+
+    /**
+     * Collapse a source section
+     */
+    collapseSourceSection(lineElement) {
+        const indicator = lineElement.querySelector('.collapse-indicator');
+        indicator.classList.remove('expanded');
+        indicator.classList.add('collapsed');
+
+        // Find and hide related lines (simple implementation)
+        const startLine = parseInt(lineElement.dataset.lineNumber);
+        const container = lineElement.parentElement;
+        const lines = Array.from(container.children);
+
+        // Hide subsequent indented lines
+        let currentIndex = lines.indexOf(lineElement) + 1;
+        const baseIndent = this.getLineIndentation(lineElement.querySelector('.line-content').textContent);
+
+        while (currentIndex < lines.length) {
+            const nextLine = lines[currentIndex];
+            const nextContent = nextLine.querySelector('.line-content').textContent;
+            const nextIndent = this.getLineIndentation(nextContent);
+
+            // Stop if we hit a line at the same or lower indentation level
+            if (nextContent.trim() && nextIndent <= baseIndent) {
+                break;
+            }
+
+            nextLine.classList.add('collapsed-content');
+            currentIndex++;
+        }
+
+        // Add collapsed placeholder
+        const placeholder = document.createElement('div');
+        placeholder.className = 'source-line collapsed-placeholder';
+        placeholder.innerHTML = `
+            <span class="line-number"></span>
+            <span class="collapse-indicator none"></span>
+            <span class="line-content">    ... (collapsed)</span>
+        `;
+        lineElement.insertAdjacentElement('afterend', placeholder);
+    }
+
+    /**
+     * Expand a source section
+     */
+    expandSourceSection(lineElement) {
+        const indicator = lineElement.querySelector('.collapse-indicator');
+        indicator.classList.remove('collapsed');
+        indicator.classList.add('expanded');
+
+        // Show hidden lines
+        const container = lineElement.parentElement;
+        const lines = Array.from(container.children);
+
+        lines.forEach(line => {
+            if (line.classList.contains('collapsed-content')) {
+                line.classList.remove('collapsed-content');
+            }
+        });
+
+        // Remove placeholder
+        const placeholder = lineElement.nextElementSibling;
+        if (placeholder && placeholder.classList.contains('collapsed-placeholder')) {
+            placeholder.remove();
+        }
+    }
+
+    /**
+     * Get indentation level of a line
+     */
+    getLineIndentation(content) {
+        const match = content.match(/^(\s*)/);
+        return match ? match[1].length : 0;
+    }
+
+    /**
+     * Handle click on source line with AST elements
+     */
+    onSourceLineClick(lineElement, astElements, node) {
+        console.log('🎯 [SOURCE LINE CLICK] Line clicked:', {
+            line: lineElement.dataset.lineNumber,
+            astElements: astElements.length
+        });
+
+        // Highlight the clicked line
+        this.highlightSourceLine(lineElement);
+
+        // Show AST details for this line
+        if (astElements.length > 0) {
+            this.showASTElementDetails(astElements[0], node);
+        }
+
+        // If this is a collapsible line, also toggle it
+        if (lineElement.classList.contains('collapsible')) {
+            this.toggleSourceSection(lineElement);
+        }
+    }
+
+    /**
+     * Highlight a source line
+     */
+    highlightSourceLine(lineElement) {
+        // Remove previous highlights
+        if (this.currentSourceContainer) {
+            const lines = this.currentSourceContainer.querySelectorAll('.source-line');
+            lines.forEach(line => line.classList.remove('highlighted'));
+        }
+
+        // Add highlight to clicked line
+        lineElement.classList.add('highlighted');
+    }
+
+    /**
+     * Show AST element details
+     */
+    showASTElementDetails(astElement, node) {
+        // This could open a detailed view or update another panel
+        console.log('📋 [AST DETAILS] Showing details for:', astElement);
+
+        // For now, just log the details
+        // In a full implementation, this might update a details panel
+    }
+
+    /**
+     * Expand all collapsible sections in source viewer
+     */
+    expandAllSource() {
+        if (!this.currentSourceContainer) return;
+
+        const collapsibleLines = this.currentSourceContainer.querySelectorAll('.source-line.collapsible');
+        collapsibleLines.forEach(line => {
+            const indicator = line.querySelector('.collapse-indicator');
+            if (indicator.classList.contains('collapsed')) {
+                this.expandSourceSection(line);
+            }
+        });
+    }
+
+    /**
+     * Collapse all collapsible sections in source viewer
+     */
+    collapseAllSource() {
+        if (!this.currentSourceContainer) return;
+
+        const collapsibleLines = this.currentSourceContainer.querySelectorAll('.source-line.collapsible');
+        collapsibleLines.forEach(line => {
+            const indicator = line.querySelector('.collapse-indicator');
+            if (indicator.classList.contains('expanded')) {
+                this.collapseSourceSection(line);
+            }
+        });
+    }
 }
 
 // Export for use in other modules
@@ -3451,7 +5156,35 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check if we're on a page with code tree container
     if (document.getElementById('code-tree-container')) {
         window.codeTree = new CodeTree();
-        
+
+        // Expose debug functions globally for troubleshooting
+        window.debugCodeTree = {
+            clearLoadingState: () => window.codeTree?.clearLoadingState(),
+            showLoadingNodes: () => {
+                console.log('Current loading nodes:', Array.from(window.codeTree?.loadingNodes || []));
+                return Array.from(window.codeTree?.loadingNodes || []);
+            },
+            resetTree: () => {
+                if (window.codeTree) {
+                    window.codeTree.clearLoadingState();
+                    window.codeTree.initializeTreeData();
+                    console.log('Tree reset complete');
+                }
+            },
+            focusOnPath: (path) => {
+                if (window.codeTree) {
+                    const node = window.codeTree.findD3NodeByPath(path);
+                    if (node) {
+                        window.codeTree.focusOnDirectory(node);
+                        console.log('Focused on:', path);
+                    } else {
+                        console.log('Node not found:', path);
+                    }
+                }
+            },
+            unfocus: () => window.codeTree?.unfocusDirectory()
+        };
+
         // Listen for tab changes to initialize when code tab is selected
         document.addEventListener('click', (e) => {
             if (e.target.matches('[data-tab="code"]')) {

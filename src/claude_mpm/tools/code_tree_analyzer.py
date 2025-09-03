@@ -500,6 +500,36 @@ class PythonAnalyzer:
                         )
                     )
 
+            def visit_Assign(self, node):
+                # Handle module-level variable assignments
+                if self.current_class is None:  # Only module-level assignments
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            var_node = CodeNode(
+                                file_path=str(file_path),
+                                node_type="variable",
+                                name=target.id,
+                                line_start=node.lineno,
+                                line_end=node.end_lineno or node.lineno,
+                                parent=self.parent_name,
+                                complexity=0,
+                                signature=f"{target.id} = ...",
+                            )
+                            nodes.append(var_node)
+
+                            # Emit event if emitter is available
+                            if self.emitter:
+                                self.emitter.emit_node(
+                                    CodeNodeEvent(
+                                        file_path=str(file_path),
+                                        node_type="variable",
+                                        name=target.id,
+                                        line_start=node.lineno,
+                                        line_end=node.end_lineno or node.lineno,
+                                        parent=self.parent_name,
+                                    )
+                                )
+
             def visit_AsyncFunctionDef(self, node):
                 self.visit_FunctionDef(node)
 
@@ -577,6 +607,26 @@ class PythonAnalyzer:
         visitor.visit(tree)
 
         return nodes
+
+    def _get_assignment_signature(self, node: ast.Assign, var_name: str) -> str:
+        """Get assignment signature string."""
+        try:
+            # Try to get a simple representation of the value
+            if isinstance(node.value, ast.Constant):
+                if isinstance(node.value.value, str):
+                    return f'{var_name} = "{node.value.value}"'
+                else:
+                    return f'{var_name} = {node.value.value}'
+            elif isinstance(node.value, ast.Name):
+                return f'{var_name} = {node.value.id}'
+            elif isinstance(node.value, ast.List):
+                return f'{var_name} = [...]'
+            elif isinstance(node.value, ast.Dict):
+                return f'{var_name} = {{...}}'
+            else:
+                return f'{var_name} = ...'
+        except:
+            return f'{var_name} = ...'
 
 
 class MultiLanguageAnalyzer:
@@ -1625,26 +1675,56 @@ class CodeTreeAnalyzer:
 
                 self.emitter.emit_file_analyzed(file_path, filtered_nodes, duration)
 
+        # Prepare the nodes data
+        final_nodes = (
+            filtered_nodes
+            if "filtered_nodes" in locals()
+            else [
+                {
+                    "name": n.name,
+                    "type": n.node_type,
+                    "line_start": n.line_start,
+                    "line_end": n.line_end,
+                    "complexity": n.complexity,
+                    "has_docstring": n.has_docstring,
+                    "signature": n.signature,
+                }
+                for n in nodes
+                if not self._is_internal_node(n)
+            ]
+        )
+
+        # Convert nodes to elements format for dashboard compatibility
+        elements = []
+        for node in final_nodes:
+            element = {
+                "name": node["name"],
+                "type": node["type"],
+                "line": node["line_start"],  # Dashboard expects 'line' not 'line_start'
+                "complexity": node["complexity"],
+                "signature": node.get("signature", ""),
+                "has_docstring": node.get("has_docstring", False),
+            }
+            # Add methods if it's a class (for expandable tree)
+            if node["type"] == "class":
+                element["methods"] = []  # Could be populated with class methods
+            elements.append(element)
+
         return {
             "path": file_path,
             "language": language,
-            "nodes": (
-                filtered_nodes
-                if "filtered_nodes" in locals()
-                else [
-                    {
-                        "name": n.name,
-                        "type": n.node_type,
-                        "line_start": n.line_start,
-                        "line_end": n.line_end,
-                        "complexity": n.complexity,
-                        "has_docstring": n.has_docstring,
-                        "signature": n.signature,
-                    }
-                    for n in nodes
-                    if not self._is_internal_node(n)
-                ]
-            ),
+            "nodes": final_nodes,  # Keep for backward compatibility
+            "elements": elements,  # Add for dashboard compatibility
+            "complexity": sum(e["complexity"] for e in elements),
+            "lines": len(elements),  # Simple line count approximation
+            "stats": {
+                "classes": len([e for e in elements if e["type"] == "class"]),
+                "functions": len([e for e in elements if e["type"] == "function"]),
+                "methods": len([e for e in elements if e["type"] == "method"]),
+                "variables": len([e for e in elements if e["type"] == "variable"]),
+                "imports": len([e for e in elements if e["type"] == "import"]),
+                "total": len(elements),
+            },
         }
 
     def _is_internal_node(self, node: CodeNode) -> bool:
