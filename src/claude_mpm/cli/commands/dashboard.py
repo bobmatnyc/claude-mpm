@@ -71,9 +71,11 @@ class DashboardCommand(BaseCommand):
         port = getattr(args, "port", 8765)
         host = getattr(args, "host", "localhost")
         background = getattr(args, "background", False)
+        use_stable = getattr(args, "stable", True)  # Default to stable server
+        debug = getattr(args, "debug", False)
 
         self.logger.info(
-            f"Starting dashboard on {host}:{port} (background: {background})"
+            f"Starting dashboard on {host}:{port} (background: {background}, stable: {use_stable})"
         )
 
         # Check if dashboard is already running
@@ -100,47 +102,98 @@ class DashboardCommand(BaseCommand):
                     },
                 )
             return CommandResult.error_result("Failed to start dashboard in background")
-        # Run in foreground mode - directly start the SocketIO server
-        try:
-            print(f"Starting dashboard server on {host}:{port}...")
-            print("Press Ctrl+C to stop the server")
+        
+        # Run in foreground mode
+        server_started = False
+        
+        # Try stable server first (or if explicitly requested)
+        if use_stable:
+            try:
+                self.logger.info("Starting stable dashboard server (no monitor dependency)...")
+                print(f"Starting stable dashboard server on {host}:{port}...")
+                print("Press Ctrl+C to stop the server")
+                print("\n✅ Using stable server - works without monitor service\n")
+                
+                # Create and run the stable server
+                from ...services.dashboard.stable_server import StableDashboardServer
+                stable_server = StableDashboardServer(host=host, port=port, debug=debug)
+                
+                # Set up signal handlers for graceful shutdown
+                def signal_handler(signum, frame):
+                    print("\nShutting down dashboard server...")
+                    sys.exit(0)
+                
+                signal.signal(signal.SIGINT, signal_handler)
+                signal.signal(signal.SIGTERM, signal_handler)
+                
+                # Run the server (blocking)
+                if stable_server.run():
+                    server_started = True
+                    return CommandResult.success_result("Dashboard server stopped")
+                else:
+                    self.logger.warning("Stable server failed to start, trying advanced server...")
+                    
+            except KeyboardInterrupt:
+                print("\nDashboard server stopped by user")
+                return CommandResult.success_result("Dashboard server stopped")
+            except Exception as e:
+                self.logger.warning(f"Stable server failed: {e}")
+                if not getattr(args, "no_fallback", False):
+                    print(f"\n⚠️ Stable server failed: {e}")
+                    print("Attempting fallback to advanced server...")
+                else:
+                    return CommandResult.error_result(f"Failed to start stable dashboard: {e}")
+        
+        # Fallback to advanced DashboardServer if stable server failed or not requested
+        if not server_started and not getattr(args, "stable_only", False):
+            try:
+                self.logger.info("Attempting to start advanced dashboard server with monitor...")
+                print(f"\nStarting advanced dashboard server on {host}:{port}...")
+                print("Note: This requires monitor service on port 8766")
+                print("Press Ctrl+C to stop the server")
 
-            # Create and start the Dashboard server (with monitor client)
-            self.server = DashboardServer(host=host, port=port)
+                # Create and start the Dashboard server (with monitor client)
+                self.server = DashboardServer(host=host, port=port)
 
-            # Set up signal handlers for graceful shutdown
-            def signal_handler(signum, frame):
-                print("\nShutting down dashboard server...")
+                # Set up signal handlers for graceful shutdown
+                def signal_handler(signum, frame):
+                    print("\nShutting down dashboard server...")
+                    if self.server:
+                        self.server.stop_sync()
+                    sys.exit(0)
+
+                signal.signal(signal.SIGINT, signal_handler)
+                signal.signal(signal.SIGTERM, signal_handler)
+
+                # Start the server (this starts in background thread)
+                self.server.start_sync()
+
+                # Keep the main thread alive while server is running
+                # The server runs in a background thread, so we need to block here
+                try:
+                    while self.server.is_running():
+                        time.sleep(1)
+                except KeyboardInterrupt:
+                    # Ctrl+C pressed, stop the server
+                    pass
+
+                # Server has stopped or user interrupted
                 if self.server:
                     self.server.stop_sync()
-                sys.exit(0)
 
-            signal.signal(signal.SIGINT, signal_handler)
-            signal.signal(signal.SIGTERM, signal_handler)
+                return CommandResult.success_result("Dashboard server stopped")
 
-            # Start the server (this starts in background thread)
-            self.server.start_sync()
-
-            # Keep the main thread alive while server is running
-            # The server runs in a background thread, so we need to block here
-            try:
-                while self.server.is_running():
-                    time.sleep(1)
             except KeyboardInterrupt:
-                # Ctrl+C pressed, stop the server
-                pass
-
-            # Server has stopped or user interrupted
-            if self.server:
-                self.server.stop_sync()
-
-            return CommandResult.success_result("Dashboard server stopped")
-
-        except KeyboardInterrupt:
-            print("\nDashboard server stopped by user")
-            return CommandResult.success_result("Dashboard server stopped")
-        except Exception as e:
-            return CommandResult.error_result(f"Failed to start dashboard: {e}")
+                print("\nDashboard server stopped by user")
+                return CommandResult.success_result("Dashboard server stopped")
+            except Exception as e:
+                # If both servers fail, provide helpful error message
+                error_msg = f"Failed to start dashboard: {e}\n\n"
+                error_msg += "💡 Troubleshooting tips:\n"
+                error_msg += f"  - Check if port {port} is already in use\n"
+                error_msg += "  - Try running with --stable flag for standalone mode\n"
+                error_msg += "  - Use --debug flag for more details\n"
+                return CommandResult.error_result(error_msg)
 
     def _stop_dashboard(self, args) -> CommandResult:
         """Stop the dashboard server."""
