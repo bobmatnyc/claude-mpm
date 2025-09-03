@@ -2,7 +2,7 @@
 Lightweight MonitorServer for claude-mpm.
 
 WHY: This module provides a minimal, independent monitoring service that:
-- Runs as a stable background service on port 8766
+- Runs as a stable background service on port 8765
 - Only handles event collection and relay (no UI components)
 - Has minimal dependencies and resource usage
 - Can run as always-on background service
@@ -60,7 +60,7 @@ class MonitorServer(SocketIOServiceInterface):
         monitor_config = config.get("monitor_server", {})
 
         self.host = host or monitor_config.get("host", "localhost")
-        self.port = port or monitor_config.get("port", 8766)
+        self.port = port or monitor_config.get("port", 8765)
         self.logger = get_logger(__name__ + ".MonitorServer")
 
         # Configuration-based settings

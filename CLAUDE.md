@@ -55,6 +55,7 @@ Following the TSK-0053 refactoring, Claude MPM features:
 - 🔢 **Versioning**: See [docs/reference/VERSIONING.md](docs/reference/VERSIONING.md) for version management
 - 🧠 **Memory System**: See [docs/user/03-features/memory-system.md](docs/user/03-features/memory-system.md) for agent memory management
 - 🎨 **Output Style**: See [docs/developer/OUTPUT_STYLE.md](docs/developer/OUTPUT_STYLE.md) for agent response formatting standards
+- 📡 **Monitor & Dashboard**: See [docs/MONITOR.md](docs/MONITOR.md) for real-time event monitoring and visualization
 
 ## Development Guidelines
 

@@ -247,7 +247,6 @@
                         <button class="tab-button" data-tab="files">📁 Files</button>
                         <button class="tab-button" data-tab="activity">🌳 Activity</button>
                         <button class="tab-button" data-tab="code">🧬 Code</button>
-                        <a href="/code-simple" class="tab-button" style="background: #f7fafc; color: #4a5568; text-decoration: none; border-left: 2px solid #e2e8f0;">📁 Simple View</a>
                     </div>
 
                     <!-- Events Tab -->
@@ -389,45 +388,52 @@
                     <!-- Code Tab -->
                     <div class="tab-content" id="code-tab">
                         <div class="code-container">
-                            <!-- Simplified header with controls -->
-                            <div class="code-header-compact">
-                                <div class="header-left">
-                                    <button id="code-expand-all" class="btn-compact" title="Expand All">⊕</button>
-                                    <button id="code-collapse-all" class="btn-compact" title="Collapse All">⊖</button>
-                                    <button id="code-reset-zoom" class="btn-compact" title="Reset Zoom">⟲</button>
-                                    <button id="code-toggle-legend" class="btn-compact" title="Toggle Legend">ℹ️</button>
-                                </div>
-                                <div class="header-center">
-                                    <span class="stat-compact">📁 <span id="file-count">0</span></span>
-                                    <span class="stat-compact">🏛️ <span id="class-count">0</span></span>
-                                    <span class="stat-compact">⚡ <span id="function-count">0</span></span>
-                                    <span class="stat-compact">📝 <span id="line-count">0</span></span>
-                                </div>
-                                <div class="header-right">
-                                    <select id="language-filter" class="select-compact">
-                                        <option value="all">All</option>
-                                        <option value="python">Python</option>
-                                        <option value="javascript">JS</option>
-                                        <option value="typescript">TS</option>
-                                    </select>
-                                    <input type="text" id="code-search" placeholder="Search..." class="search-compact">
-                                </div>
-                            </div>
-                            <!-- Advanced options - visible by default -->
-                            <div class="code-advanced-options-visible">
-                                <div class="advanced-content">
-                                    <div class="option-group">
-                                        <label>Languages:</label>
-                                        <label><input type="checkbox" class="language-checkbox" value="python" checked> Python</label>
-                                        <label><input type="checkbox" class="language-checkbox" value="javascript" checked> JS</label>
-                                        <label><input type="checkbox" class="language-checkbox" value="typescript" checked> TS</label>
-                                    </div>
-                                    <div class="option-group">
-                                        <label>Ignore: <input type="text" id="ignore-patterns" placeholder="test*, *.spec.js, node_modules" class="input-compact" style="width: 200px;"></label>
-                                    </div>
-                                </div>
-                            </div>
                             <div id="code-tree-container" class="code-tree-container">
+                                <!-- Top-left corner: Language selector -->
+                                <div class="tree-corner-controls top-left">
+                                    <div class="control-group">
+                                        <label class="control-label">Languages:</label>
+                                        <div class="checkbox-group">
+                                            <label class="checkbox-label"><input type="checkbox" class="language-checkbox" value="python" checked> Python</label>
+                                            <label class="checkbox-label"><input type="checkbox" class="language-checkbox" value="javascript" checked> JS</label>
+                                            <label class="checkbox-label"><input type="checkbox" class="language-checkbox" value="typescript" checked> TS</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Top-right corner: Layout and search -->
+                                <div class="tree-corner-controls top-right">
+                                    <div class="control-group">
+                                        <select id="code-layout" class="select-compact">
+                                            <option value="tree">Tree</option>
+                                            <option value="radial">Radial</option>
+                                        </select>
+                                        <input type="text" id="code-search" placeholder="Search..." class="search-compact">
+                                    </div>
+                                </div>
+
+                                <!-- Bottom-left corner: Stats and Status -->
+                                <div class="tree-corner-controls bottom-left">
+                                    <div class="stats-display" id="code-stats">
+                                        <span id="stats-files">0 files</span> •
+                                        <span id="stats-classes">0 classes</span> •
+                                        <span id="stats-functions">0 functions</span> •
+                                        <span id="stats-methods">0 methods</span>
+                                    </div>
+                                    <div class="status-display" id="code-breadcrumb">
+                                        <div class="breadcrumb-ticker" id="breadcrumb-ticker">
+                                            <span id="breadcrumb-content">Ready to analyze...</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Bottom-right corner: Ignore patterns -->
+                                <div class="tree-corner-controls bottom-right">
+                                    <div class="control-group">
+                                        <label class="control-label">Ignore:</label>
+                                        <input type="text" id="ignore-patterns" placeholder="test*, *.spec.js, node_modules" class="input-compact">
+                                    </div>
+                                </div>
                                 <div id="code-tree"></div>
                                 <!-- Collapsible legend -->
                                 <div class="tree-legend collapsed" id="tree-legend" style="display: none;">
@@ -445,11 +451,6 @@
                                             <div class="legend-item"><span class="legend-icon complexity-high">●</span> High</div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                            <div class="code-breadcrumb" id="code-breadcrumb">
-                                <div class="breadcrumb-ticker" id="breadcrumb-ticker">
-                                    <span id="breadcrumb-content">Ready to analyze...</span>
                                 </div>
                             </div>
                         </div>

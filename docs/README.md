@@ -1,97 +1,118 @@
 # Claude MPM Documentation
 
-Welcome to Claude MPM (Multi-Agent Project Manager) - a framework that extends Claude Code with multi-agent orchestration capabilities. This documentation hub provides comprehensive guides for all users, from beginners to advanced developers.
+**Version**: 4.2.2 | **Updated**: September 2, 2025
 
-## 🚀 Quick Start
+Claude MPM (Multi-Agent Project Manager) extends Claude Code with multi-agent orchestration capabilities and service-oriented architecture.
 
-**New to Claude MPM?** Start here:
-- **[Installation Guide](user/01-getting-started/installation.md)** - Get up and running in minutes
-- **[First Run Guide](user/01-getting-started/first-run.md)** - Your first interaction with Claude MPM
-- **[Basic Usage](user/02-guides/basic-usage.md)** - Essential commands and workflows
+## 🚀 5-Minute Quick Start
 
-## 📖 Documentation by Audience
+```bash
+# 1. Install
+git clone https://github.com/bobmatnyc/claude-mpm.git && cd claude-mpm
+./scripts/claude-mpm --setup
 
-### 👤 **For Users** - Using Claude MPM
-> **Start here:** [User Documentation Hub](user/README.md)
+# 2. Run
+./scripts/claude-mpm run
 
-- **Getting Started**
-  - [Installation & Setup](user/01-getting-started/)
-  - [Core Concepts](user/01-getting-started/concepts.md)
-  - [First Run Experience](user/01-getting-started/first-run.md)
+# 3. Create custom agent (optional)
+mkdir -p .claude-mpm/agents
+echo "---
+description: My project expert
+version: 1.0.0
+---
+# My Agent
+Expert in this project's patterns..." > .claude-mpm/agents/my_agent.md
+```
 
-- **Using Claude MPM**
-  - [Interactive Mode Guide](user/02-guides/interactive-mode.md)
-  - [CLI Commands Reference](user/02-guides/cli-commands-reference.md)
-  - [Basic Usage Patterns](user/02-guides/basic-usage.md)
+## 📖 Core Documentation (AI-Optimized)
 
-- **Features & Capabilities**
-  - [Memory System](user/03-features/memory-system.md)
-  - [Agent Delegation](user/03-features/agent-delegation.md)
-  - [Code Analysis & Visualization](user/03-features/code-analysis.md)
-  - [Mermaid Diagram Generation](user/03-features/mermaid-visualization.md)
-  - [Session Logging](user/03-features/session-logging.md)
-  - [File Security](user/03-features/file-security.md)
+### 🏗️ [Architecture](ARCHITECTURE.md)
+**Complete system architecture in one place**
+- Service-oriented design with 5 domains
+- Three-tier agent system (PROJECT > USER > SYSTEM)  
+- Dependency injection and interface contracts
+- Performance features (50-80% improvement)
+- Security framework and communication layer
 
-- **Reference & Help**
-  - [Configuration Guide](user/04-reference/configuration.md)
-  - [Troubleshooting](user/04-reference/troubleshooting.md)
-  - [Mermaid Troubleshooting](user/04-reference/troubleshooting-mermaid.md)
-  - [Security Settings](user/04-reference/security-configuration.md)
+### 🔧 [Development](DEVELOPMENT.md) 
+**Everything developers need to know**
+- Quality workflow: `make lint-fix` → `make quality` → `make test`
+- Service development patterns with examples
+- CLI command creation
+- Testing strategy and performance optimization
+- Complete troubleshooting guide
 
-### 👨‍💻 **For Developers** - Building with Claude MPM
-> **Start here:** [Developer Documentation Hub](developer/README.md)
+### 🤖 [Agents](AGENTS.md)
+**Complete agent development guide**
+- Create project agents in 3 steps
+- Three-tier precedence system
+- Multiple formats (Markdown, JSON, YAML)
+- Agent management commands  
+- Dependencies and deployment
 
-- **Architecture & Design**
-  - [System Architecture](developer/ARCHITECTURE.md)
-  - [Service Layer Guide](developer/SERVICES.md)
-  - [Project Structure](developer/STRUCTURE.md)
+### 🚀 [Deployment](DEPLOYMENT.md)
+**Operations and release management**
+- Version management and semantic versioning
+- Quality gates and release process
+- Environment configuration
+- Security protocols
 
-- **Development**
-  - [Testing Strategies](developer/TESTING.md)
-  - [Performance Optimization](developer/PERFORMANCE.md)
-  - [Code Quality & Linting](developer/LINTING.md)
+### 📚 [API Reference](API.md)
+**Service interfaces and API documentation**
+- Core service interfaces
+- Agent management APIs
+- Communication service APIs
+- Usage examples and patterns
 
-- **Agent Development**
-  - [Agent System Overview](developer/07-agent-system/)
-  - [Creating Custom Agents](developer/07-agent-system/creation-guide.md)
-  - [Agent Schema Reference](developer/10-schemas/agent_schema_documentation.md)
+### ❓ [Troubleshooting](TROUBLESHOOTING.md)
+**Common issues and solutions**
+- Setup problems and fixes
+- Agent loading issues
+- Performance debugging
+- Error resolution patterns
 
-- **Advanced Topics**
-  - [Hook System](developer/02-core-components/hook-system.md)
-  - [Socket.IO Hook Architecture](developer/SOCKET_HOOK_ARCHITECTURE.md)
-  - [Code Visualization Guide](developer/02-core-components/code-visualization-guide.md)
-  - [Memory System Architecture](developer/08-memory-system/)
-  - [Security Framework](developer/09-security/SECURITY.md)
-  - [Dashboard Development](developer/11-dashboard/)
+## 💡 AI Agent Quick Reference
 
-- **Real-time Communication**
-  - [Socket.IO Server Architecture](developer/SOCKETIO_SERVER_ARCHITECTURE.md)
-  - [Socket.IO Testing Strategy](developer/SOCKETIO_TESTING_STRATEGY.md)
+**For Claude Code/AI agents working with this project:**
 
-### 🛠️ **For Agents** - Agent Development
-> **Start here:** [Agent Documentation Hub](agents/README.md)
+| Task | Command | Location |
+|------|---------|----------|
+| **Run system** | `./scripts/claude-mpm run` | - |
+| **Check quality** | `make quality` | - |
+| **Fix code style** | `make lint-fix` | - |
+| **Run tests** | `make test` | - |
+| **List agents** | `./scripts/claude-mpm agents list --by-tier` | - |
+| **Create agent** | Create file in `.claude-mpm/agents/` | [Guide](AGENTS.md#quick-start) |
+| **Deploy agents** | `./scripts/claude-mpm agents deploy` | - |
+| **View architecture** | Read architecture summary | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| **Service layer** | 5 domains under `src/claude_mpm/services/` | [ARCHITECTURE.md](ARCHITECTURE.md#service-layer) |
 
-- **Agent Creation**
-  - [Agent Overview](agents/AGENTS.md)
-  - [Agent Templates & Examples](agents/)
+## 🎯 Task-Specific Documentation
 
-- **Specialized Agents**
-  - [ImageMagick Web Optimization](agents/IMAGEMAGICK_WEB_OPTIMIZATION.md)
-  - [Vercel Operations Agent](agents/VERCEL_OPS_AGENT.md)
+### New to Claude MPM?
+1. **[5-Minute Setup](#-5-minute-quick-start)** ← Start here
+2. **[Architecture Overview](ARCHITECTURE.md#overview)** - Understand the system
+3. **[Development Workflow](DEVELOPMENT.md#quality-workflow)** - Learn the process
 
-### 📚 **Reference Documentation** - Technical References
-> **Start here:** [Reference Documentation Hub](reference/README.md)
+### Developing Code?  
+1. **[Development Guide](DEVELOPMENT.md)** ← Essential workflows
+2. **[Testing Strategy](DEVELOPMENT.md#testing-strategy)** - Quality practices
+3. **[Service Development](DEVELOPMENT.md#service-development)** - Create services
 
-- **Deployment & Operations**
-  - [Deployment Guide](reference/DEPLOY.md)
-  - [Version Management](reference/VERSIONING.md)
-  - [Security Configuration](reference/SECURITY.md)
-  - [Socket.IO Troubleshooting](reference/SOCKETIO_TROUBLESHOOTING.md)
+### Creating Agents?
+1. **[Agent Quick Start](AGENTS.md#quick-start)** ← 3-step process
+2. **[Agent Formats](AGENTS.md#agent-formats)** - Choose format
+3. **[Management Commands](AGENTS.md#agent-management)** - CLI tools
 
-- **Integration & Setup**
-  - [MCP Gateway Setup](reference/MCP_SETUP.md)
-  - [MCP Gateway Configuration](reference/MCP_GATEWAY.md)
-  - [MCP Usage Guide](reference/MCP_USAGE.md)
+### Deploying?
+1. **[Deployment Guide](DEPLOYMENT.md)** ← Release process
+2. **[Version Management](DEPLOYMENT.md#version-management)** - Versioning
+3. **[Quality Gates](DEPLOYMENT.md#quality-gates)** - Pre-release checks
+
+### Having Issues?
+1. **[Troubleshooting Guide](TROUBLESHOOTING.md)** ← Common solutions  
+2. **[Development Troubleshooting](DEVELOPMENT.md#troubleshooting)** - Dev issues
+3. **[Agent Troubleshooting](AGENTS.md#troubleshooting)** - Agent problems
 
 ## 🗂️ Documentation Organization
 

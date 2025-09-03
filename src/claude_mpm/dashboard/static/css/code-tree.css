@@ -459,7 +459,7 @@
     border-radius: 8px;
     padding: 20px;
     position: relative;
-    overflow: auto;
+    overflow: hidden;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     border-left: 1px solid #e2e8f0;
 }
@@ -828,6 +828,8 @@
 .code-node text {
     font: 12px sans-serif;
     pointer-events: none;
+    /* Smooth transitions for zoom-based text scaling */
+    transition: font-size 0.2s ease;
 }
 
 .code-node.module circle {
@@ -974,6 +976,8 @@
     text-anchor: middle;
     dominant-baseline: central;
     font-weight: 500;
+    /* Smooth transitions for zoom-based scaling */
+    transition: font-size 0.2s ease;
 }
 
 .code-node.directory:hover .item-count-badge {
@@ -1405,4 +1409,219 @@
         transform: translateX(0);
         opacity: 1;
     }
+}
+
+/* Back Button for Focused Directory View */
+.tree-control-btn.back-btn {
+    background: #3182ce !important;
+    color: white !important;
+    border: 1px solid #2c5aa0 !important;
+    font-weight: 600;
+    margin-right: 10px;
+}
+
+.tree-control-btn.back-btn:hover {
+    background: #2c5aa0 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(49, 130, 206, 0.3);
+}
+
+/* Focused Directory View Styling */
+.code-tree-container.focused {
+    border: 2px solid #3182ce;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+}
+
+.code-tree-container.focused .tree-controls-toolbar {
+    background: #e6fffa;
+    border-bottom: 1px solid #81e6d9;
+}
+
+/* Corner Controls Styling */
+.tree-corner-controls {
+    position: absolute;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(4px);
+    font-size: 12px;
+}
+
+.tree-corner-controls.top-left {
+    top: 10px;
+    left: 10px;
+}
+
+.tree-corner-controls.top-right {
+    top: 10px;
+    right: 10px;
+}
+
+.tree-corner-controls.bottom-left {
+    bottom: 10px;
+    left: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.tree-corner-controls.bottom-right {
+    bottom: 10px;
+    right: 10px;
+}
+
+.tree-corner-controls .control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tree-corner-controls .control-label {
+    font-weight: 600;
+    color: #4a5568;
+    white-space: nowrap;
+}
+
+.tree-corner-controls .checkbox-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.tree-corner-controls .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #4a5568;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.tree-corner-controls .checkbox-label input[type="checkbox"] {
+    margin: 0;
+    transform: scale(0.9);
+}
+
+.tree-corner-controls .select-compact,
+.tree-corner-controls .search-compact,
+.tree-corner-controls .input-compact {
+    font-size: 11px;
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: white;
+}
+
+.tree-corner-controls .search-compact {
+    width: 120px;
+}
+
+.tree-corner-controls .input-compact {
+    width: 140px;
+}
+
+.tree-corner-controls .stats-display {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.tree-corner-controls .status-display {
+    font-size: 10px;
+    color: #4b5563;
+    font-style: italic;
+    opacity: 0.8;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tree-corner-controls .status-display .breadcrumb-ticker {
+    display: block;
+}
+
+.tree-corner-controls .status-display #breadcrumb-content {
+    display: inline-block;
+    animation: none; /* Disable any existing animations for corner display */
+}
+
+/* Hide corner controls when in focused mode to avoid clutter */
+.code-tree-container.focused .tree-corner-controls {
+    opacity: 0.7;
+}
+
+.code-tree-container.focused .tree-corner-controls:hover {
+    opacity: 1;
+}
+
+/* Force horizontal text for specific nodes */
+.node-label.horizontal-text {
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    transform: rotate(0deg) !important;
+}
+
+/* Zoom controls styling */
+.zoom-level-display {
+    display: inline-block;
+    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 11px !important;
+    color: #718096 !important;
+    margin-left: 8px !important;
+    vertical-align: middle;
+    min-width: 35px;
+    text-align: center;
+}
+
+/* Enhanced tree control buttons for zoom */
+.tree-control-btn {
+    background: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 6px 8px;
+    margin: 0 2px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #4a5568;
+    transition: all 0.2s;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.tree-control-btn:hover {
+    background: #e2e8f0;
+    border-color: #cbd5e0;
+    color: #2d3748;
+}
+
+.tree-control-btn:active {
+    background: #cbd5e0;
+    transform: translateY(1px);
+}
+
+/* Zoom-specific button styling */
+.tree-control-btn[title*="Zoom"] {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-weight: 500;
+}
+
+/* Pan cursor when dragging */
+.code-tree-container svg {
+    cursor: grab;
+}
+
+.code-tree-container svg:active {
+    cursor: grabbing;
 }
