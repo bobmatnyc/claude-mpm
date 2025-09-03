@@ -4,8 +4,9 @@ Unit tests for agent_template_builder trigger handling.
 Tests both string and dict trigger formats for backward compatibility.
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from claude_mpm.services.agents.deployment.agent_template_builder import (
     AgentTemplateBuilder,
