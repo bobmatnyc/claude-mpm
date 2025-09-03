@@ -168,6 +168,8 @@ class StableDashboardServer:
         self.dashboard_path = None
         self.app = None
         self.sio = None
+        self.server_runner = None
+        self.server_site = None
 
     def setup(self) -> bool:
         """Set up the server components."""
@@ -184,13 +186,22 @@ class StableDashboardServer:
             print("Please ensure Claude MPM is properly installed")
             return False
 
+        if self.debug:
+            print(f"🔍 Debug: Dashboard path resolved to: {self.dashboard_path}")
+            print(f"🔍 Debug: Checking for required files...")
+            template_exists = (self.dashboard_path / "templates" / "index.html").exists()
+            static_exists = (self.dashboard_path / "static").exists()
+            print(f"   - templates/index.html: {template_exists}")
+            print(f"   - static directory: {static_exists}")
+
         print(f"📁 Using dashboard files from: {self.dashboard_path}")
 
         # Create SocketIO server with improved timeout settings
+        logger_enabled = self.debug  # Only enable verbose logging in debug mode
         self.sio = socketio.AsyncServer(
             cors_allowed_origins="*",
-            logger=True,
-            engineio_logger=True,
+            logger=logger_enabled,
+            engineio_logger=logger_enabled,
             ping_interval=30,  # Match client's 30 second ping interval
             ping_timeout=60,  # Match client's 60 second timeout
             max_http_buffer_size=1e8,  # Allow larger messages
@@ -220,8 +231,13 @@ class StableDashboardServer:
 
         @self.sio.event
         async def connect(sid, environ):
-            print(f"✅ SocketIO client connected: {sid}")
-            print(f"   Client info: {environ.get('HTTP_USER_AGENT', 'Unknown')}")
+            if self.debug:
+                print(f"✅ SocketIO client connected: {sid}")
+                user_agent = environ.get('HTTP_USER_AGENT', 'Unknown')
+                # Truncate long user agents for readability
+                if len(user_agent) > 80:
+                    user_agent = user_agent[:77] + "..."
+                print(f"   Client info: {user_agent}")
             # Send a test message to confirm connection
             await self.sio.emit(
                 "connection_test", {"status": "connected", "server": "stable"}, room=sid
@@ -229,13 +245,15 @@ class StableDashboardServer:
 
         @self.sio.event
         async def disconnect(sid):
-            print(f"❌ SocketIO client disconnected: {sid}")
+            if self.debug:
+                print(f"📤 SocketIO client disconnected: {sid}")
 
         @self.sio.event
         async def code_analyze_file(sid, data):
-            print(
-                f"📡 Received file analysis request from {sid}: {data.get('path', 'unknown')}"
-            )
+            if self.debug:
+                print(
+                    f"📡 Received file analysis request from {sid}: {data.get('path', 'unknown')}"
+                )
 
             file_path = data.get("path", "")
             file_name = file_path.split("/")[-1] if file_path else "unknown"
@@ -243,15 +261,17 @@ class StableDashboardServer:
             # Create mock response
             response = create_mock_ast_data(file_path, file_name)
 
-            print(f"📤 Sending analysis response: {len(response['elements'])} elements")
+            if self.debug:
+                print(f"📤 Sending analysis response: {len(response['elements'])} elements")
             await self.sio.emit("code:file:analyzed", response, room=sid)
 
         # CRITICAL: Handle the actual event name with colons that the client sends
         @self.sio.on("code:analyze:file")
         async def handle_code_analyze_file(sid, data):
-            print(
-                f"📡 Received code:analyze:file from {sid}: {data.get('path', 'unknown')}"
-            )
+            if self.debug:
+                print(
+                    f"📡 Received code:analyze:file from {sid}: {data.get('path', 'unknown')}"
+                )
 
             file_path = data.get("path", "")
             file_name = file_path.split("/")[-1] if file_path else "unknown"
@@ -259,20 +279,23 @@ class StableDashboardServer:
             # Create mock response
             response = create_mock_ast_data(file_path, file_name)
 
-            print(f"📤 Sending analysis response: {len(response['elements'])} elements")
+            if self.debug:
+                print(f"📤 Sending analysis response: {len(response['elements'])} elements")
             await self.sio.emit("code:file:analyzed", response, room=sid)
 
         # Handle other events the dashboard sends
         @self.sio.event
         async def get_git_branch(sid, data):
-            print(f"📡 Received git branch request from {sid}: {data}")
+            if self.debug:
+                print(f"📡 Received git branch request from {sid}: {data}")
             await self.sio.emit(
                 "git_branch_response", {"branch": "main", "path": data}, room=sid
             )
 
         @self.sio.event
         async def request_status(sid, data):
-            print(f"📡 Received status request from {sid}")
+            if self.debug:
+                print(f"📡 Received status request from {sid}")
             await self.sio.emit(
                 "status_response", {"status": "running", "server": "stable"}, room=sid
             )
@@ -280,14 +303,16 @@ class StableDashboardServer:
         # Handle the event with dots (SocketIO converts colons to dots sometimes)
         @self.sio.event
         async def request_dot_status(sid, data):
-            print(f"📡 Received request.status from {sid}")
+            if self.debug:
+                print(f"📡 Received request.status from {sid}")
             await self.sio.emit(
                 "status_response", {"status": "running", "server": "stable"}, room=sid
             )
 
         @self.sio.event
         async def code_discover_top_level(sid, data):
-            print(f"📡 Received top-level discovery request from {sid}")
+            if self.debug:
+                print(f"📡 Received top-level discovery request from {sid}")
             await self.sio.emit("code:top_level:discovered", {"status": "ok"}, room=sid)
 
     async def _serve_dashboard(self, request):
@@ -417,14 +442,19 @@ class StableDashboardServer:
 
         print(f"🚀 Starting stable dashboard server at http://{self.host}:{self.port}")
         print("✅ Server ready: HTTP + SocketIO on same port")
+        print("🎯 This is a standalone server - no monitor service required")
         print("📡 SocketIO events registered:")
         print("   - connect/disconnect")
-        print("   - code_analyze_file (from 'code:analyze:file')")
+        print("   - code:analyze:file (code analysis)")
+        print("   - Various dashboard events")
         print("🌐 HTTP endpoints available:")
         print("   - GET / (dashboard)")
         print("   - GET /static/* (static files)")
-        print("   - GET /api/directory/list (directory API)")
-        print(f"🔗 Open in browser: http://{self.host}:{self.port}")
+        print("   - GET /api/directory/list (directory listing)")
+        print("   - GET /api/file/read (file content)")
+        print("   - GET /version.json (version info)")
+        print(f"\n🔗 Open in browser: http://{self.host}:{self.port}")
+        print("\n   Press Ctrl+C to stop the server\n")
 
         # Try to start server with port conflict handling
         max_port_attempts = 10
@@ -432,18 +462,29 @@ class StableDashboardServer:
 
         for attempt in range(max_port_attempts):
             try:
-                web.run_app(self.app, host=self.host, port=self.port, access_log=None)
+                # Use the print_func parameter to control access log output
+                if self.debug:
+                    web.run_app(self.app, host=self.host, port=self.port)
+                else:
+                    web.run_app(
+                        self.app, 
+                        host=self.host, 
+                        port=self.port, 
+                        access_log=None,
+                        print=lambda *args: None  # Suppress startup messages in non-debug mode
+                    )
                 break  # Server started successfully
             except KeyboardInterrupt:
                 print("\n🛑 Server stopped by user")
                 break
             except OSError as e:
-                if "[Errno 48]" in str(e) or "Address already in use" in str(e):
-                    # Port is already in use, try next port
+                error_str = str(e)
+                if "[Errno 48]" in error_str or "Address already in use" in error_str or "address already in use" in error_str.lower():
+                    # Port is already in use
                     if attempt < max_port_attempts - 1:
                         self.port += 1
                         print(
-                            f"⚠️ Port {self.port - 1} in use, trying port {self.port}..."
+                            f"⚠️  Port {self.port - 1} is in use, trying port {self.port}..."
                         )
                         # Recreate the app with new port
                         self.setup()
@@ -452,21 +493,23 @@ class StableDashboardServer:
                             f"❌ Could not find available port after {max_port_attempts} attempts"
                         )
                         print(f"   Ports {original_port} to {self.port} are all in use")
+                        print("\n💡 Tip: Check if another dashboard instance is running")
+                        print("   You can stop it with: claude-mpm dashboard stop")
                         return False
                 else:
                     # Other OS error
                     print(f"❌ Server error: {e}")
                     if self.debug:
                         import traceback
-
                         traceback.print_exc()
                     return False
             except Exception as e:
-                print(f"❌ Server error: {e}")
+                print(f"❌ Unexpected server error: {e}")
                 if self.debug:
                     import traceback
-
                     traceback.print_exc()
+                else:
+                    print("\n💡 Run with --debug flag for more details")
                 return False
 
         return True
