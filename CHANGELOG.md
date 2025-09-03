@@ -17,6 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.3] - 2025-01-03
+
+### 🐛 Bug Fixes
+- **Monitor/Dashboard**: Fixed default port configuration (was 8766, now 8765)
+- **Source Viewer**: Fixed HTML double-escaping in syntax highlighting
+- **Dashboard Server**: Improved stability and event handling
+
+### 📚 Documentation
+- **Monitor Guide**: Added comprehensive documentation at docs/MONITOR.md
+- **CLAUDE.md**: Added link to monitor documentation
+- **Dashboard Scripts**: Added helper scripts for development
+
+### ⚡ Improvements
+- **Unified Server**: Dashboard now correctly serves both UI and monitoring on port 8765
+- **Event Flow**: Clarified requirement for `--monitor` flag when starting Claude MPM
+- **Syntax Highlighting**: Rewrote highlighting engine to prevent HTML entity issues
+
+
 ## [4.2.2] - 2025-01-01
 
 ### ✨ Features
