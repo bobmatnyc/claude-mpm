@@ -636,6 +636,10 @@ class StableDashboardServer:
             return web.json_response({"error": "Not a file"}, status=400)
 
         try:
+            # Determine file type
+            file_ext = os.path.splitext(abs_path)[1].lower()
+            is_json = file_ext in ['.json', '.jsonl', '.geojson']
+            
             # Read file with appropriate encoding
             encodings = ["utf-8", "latin-1", "cp1252"]
             content = None
@@ -651,13 +655,28 @@ class StableDashboardServer:
             if content is None:
                 return web.json_response({"error": "Could not decode file"}, status=400)
 
+            # Format JSON files for better readability
+            formatted_content = content
+            is_valid_json = False
+            if is_json:
+                try:
+                    import json
+                    parsed = json.loads(content)
+                    formatted_content = json.dumps(parsed, indent=2, sort_keys=False)
+                    is_valid_json = True
+                except json.JSONDecodeError:
+                    # Not valid JSON, return as-is
+                    is_valid_json = False
+
             return web.json_response(
                 {
                     "path": abs_path,
                     "name": os.path.basename(abs_path),
-                    "content": content,
-                    "lines": len(content.splitlines()),
+                    "content": formatted_content,
+                    "lines": len(formatted_content.splitlines()),
                     "size": os.path.getsize(abs_path),
+                    "type": "json" if is_json else "text",
+                    "is_valid_json": is_valid_json
                 }
             )
 

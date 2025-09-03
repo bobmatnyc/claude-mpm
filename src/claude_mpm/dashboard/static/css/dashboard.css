@@ -2814,7 +2814,8 @@ button:disabled:hover {
     color: #f1fa8c;
 }
 
-.file-content-code .number {
+.file-content-code .number,
+.source-line .number {
     color: #bd93f9;
 }
 
@@ -2824,6 +2825,19 @@ button:disabled:hover {
 
 .file-content-code .value {
     color: #8be9fd;
+}
+
+/* JSON-specific syntax highlighting */
+.file-content-code .json-key,
+.source-line .json-key {
+    color: #8be9fd;
+    font-weight: 600;
+}
+
+.file-content-code .literal,
+.source-line .literal {
+    color: #ff79c6;
+    font-weight: 600;
 }
 
 .file-content-code .selector {

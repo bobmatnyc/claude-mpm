@@ -4928,7 +4928,7 @@ main();
     /**
      * Apply basic syntax highlighting
      */
-    applySyntaxHighlighting(content) {
+    applySyntaxHighlighting(content, fileType = 'text') {
         // First, properly escape HTML entities
         let highlighted = content
             .replace(/&/g, '&amp;')
@@ -4938,39 +4938,88 @@ main();
         // Store markers for where we'll insert spans
         const replacements = [];
         
-        // Python and JavaScript keywords (combined)
-        const keywords = /\b(def|class|import|from|if|else|elif|for|while|try|except|finally|with|as|return|yield|lambda|async|await|function|const|let|var|catch|export)\b/g;
+        // Check if this is JSON content
+        const isJson = fileType === 'json' || this.currentFilePath?.endsWith('.json');
         
-        // Find all matches first without replacing
-        let match;
-        
-        // Keywords
-        while ((match = keywords.exec(highlighted)) !== null) {
-            replacements.push({
-                start: match.index,
-                end: match.index + match[0].length,
-                replacement: `<span class="keyword">${match[0]}</span>`
-            });
-        }
-        
-        // Strings - simple pattern for now
-        const stringPattern = /(["'`])([^"'`]*?)\1/g;
-        while ((match = stringPattern.exec(highlighted)) !== null) {
-            replacements.push({
-                start: match.index,
-                end: match.index + match[0].length,
-                replacement: `<span class="string">${match[0]}</span>`
-            });
-        }
-        
-        // Comments
-        const commentPattern = /(#.*$|\/\/.*$)/gm;
-        while ((match = commentPattern.exec(highlighted)) !== null) {
-            replacements.push({
-                start: match.index,
-                end: match.index + match[0].length,
-                replacement: `<span class="comment">${match[0]}</span>`
-            });
+        if (isJson) {
+            // JSON-specific highlighting
+            // JSON property names (keys)
+            const jsonKeys = /"([^"]+)"(?=\s*:)/g;
+            let match;
+            while ((match = jsonKeys.exec(highlighted)) !== null) {
+                replacements.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    replacement: `<span class="json-key">${match[0]}</span>`
+                });
+            }
+            
+            // JSON strings (values)
+            const jsonStrings = /:\s*"([^"]*)"/g;
+            while ((match = jsonStrings.exec(highlighted)) !== null) {
+                const colonIndex = match[0].indexOf('"');
+                replacements.push({
+                    start: match.index + colonIndex,
+                    end: match.index + match[0].length,
+                    replacement: `<span class="string">"${match[1]}"</span>`
+                });
+            }
+            
+            // JSON numbers
+            const jsonNumbers = /:\s*(-?\d+\.?\d*)/g;
+            while ((match = jsonNumbers.exec(highlighted)) !== null) {
+                const numberStart = match[0].indexOf(match[1]);
+                replacements.push({
+                    start: match.index + numberStart,
+                    end: match.index + match[0].length,
+                    replacement: `<span class="number">${match[1]}</span>`
+                });
+            }
+            
+            // JSON booleans and null
+            const jsonLiterals = /\b(true|false|null)\b/g;
+            while ((match = jsonLiterals.exec(highlighted)) !== null) {
+                replacements.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    replacement: `<span class="literal">${match[0]}</span>`
+                });
+            }
+        } else {
+            // Python and JavaScript keywords (combined)
+            const keywords = /\b(def|class|import|from|if|else|elif|for|while|try|except|finally|with|as|return|yield|lambda|async|await|function|const|let|var|catch|export)\b/g;
+            
+            // Find all matches first without replacing
+            let match;
+            
+            // Keywords
+            while ((match = keywords.exec(highlighted)) !== null) {
+                replacements.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    replacement: `<span class="keyword">${match[0]}</span>`
+                });
+            }
+            
+            // Strings - simple pattern for now
+            const stringPattern = /(["'`])([^"'`]*?)\1/g;
+            while ((match = stringPattern.exec(highlighted)) !== null) {
+                replacements.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    replacement: `<span class="string">${match[0]}</span>`
+                });
+            }
+            
+            // Comments
+            const commentPattern = /(#.*$|\/\/.*$)/gm;
+            while ((match = commentPattern.exec(highlighted)) !== null) {
+                replacements.push({
+                    start: match.index,
+                    end: match.index + match[0].length,
+                    replacement: `<span class="comment">${match[0]}</span>`
+                });
+            }
         }
         
         // Sort replacements by start position (reverse order to not mess up indices)
