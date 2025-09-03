@@ -17,6 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.6] - 2025-01-03
+
+### 🐛 Critical Bug Fixes
+- **Dashboard Service**: Fixed critical production issue where dashboard was not responding on localhost:8765
+- **Monitor Dependency**: Removed broken dependency on monitor service (port 8766) that doesn't exist in production
+- **Default Server**: Changed to use StableDashboardServer by default which works standalone
+
+### ⚡ Improvements
+- **Fallback Mechanism**: Added automatic fallback to stable server if advanced server fails
+- **Error Handling**: Improved error messages and debug logging for dashboard issues
+- **Documentation**: Added comprehensive troubleshooting guide for dashboard service
+
+### 📝 Documentation
+- **Troubleshooting Guide**: Created detailed guide at `docs/developer/11-dashboard/TROUBLESHOOTING.md`
+- **Common Issues**: Documented solutions for connection refused, port conflicts, and missing dependencies
+
+
 ## [4.2.5] - 2025-01-03
 
 ### 🐛 Bug Fixes
