@@ -18,6 +18,7 @@ This guide documents the testing strategies, patterns, structure, and best pract
 - [Coverage and Metrics](#coverage-and-metrics)
 - [Performance Testing](#performance-testing)
 - [Security Testing](#security-testing)
+- [Architecture Compliance Testing](#architecture-compliance-testing)
 - [Best Practices](#best-practices)
 
 ## Overview
@@ -840,6 +841,77 @@ class TestPerformance:
         assert result is not None
         assert len(result) <= len(test_memory_content)
 ```
+
+## Architecture Compliance Testing
+
+### Overview
+
+Architecture compliance tests ensure that the codebase maintains architectural patterns and prevents regression to problematic implementations. These tests are particularly important for the event emission architecture.
+
+### Event Emission Architecture Compliance
+
+**Location**: `tests/hooks/test_single_path_emission.py::TestArchitectureCompliance`
+
+These tests prevent regression to duplicate event emission patterns:
+
+```python
+class TestArchitectureCompliance:
+    """Test architecture compliance to prevent regression to duplicate emission patterns."""
+
+    def test_no_eventbus_in_active_hook_files(self):
+        """Test that active hook handler files contain no EventBus references."""
+        # Scans active hook files for EventBus usage
+
+    def test_connection_manager_single_emission_path(self):
+        """Test that connection manager implements single emission path."""
+        # Verifies single-path pattern with return after success
+
+    def test_no_multiple_parallel_emissions(self):
+        """Test that emit_event method doesn't have multiple parallel emission calls."""
+        # Ensures at most 2 emission calls: primary + fallback
+```
+
+### Running Architecture Compliance Tests
+
+```bash
+# Run all architecture compliance tests
+cd src && python -m pytest ../tests/hooks/test_single_path_emission.py::TestArchitectureCompliance -v
+
+# Run specific compliance test
+cd src && python -m pytest ../tests/hooks/test_single_path_emission.py::TestArchitectureCompliance::test_no_eventbus_in_active_hook_files -v
+```
+
+### Architecture Compliance Principles
+
+1. **Automated Enforcement**: Architecture should be enforced by tests, not just documentation
+2. **Regression Prevention**: Tests catch accidental reintroduction of problematic patterns
+3. **Early Detection**: CI/CD runs these tests to catch violations early
+4. **Team Consistency**: Ensures all developers follow the same architectural patterns
+
+### Adding New Architecture Tests
+
+When introducing new architectural patterns:
+
+1. **Document the pattern** in architecture documentation
+2. **Create compliance tests** to enforce the pattern
+3. **Test both positive and negative cases**
+4. **Include tests in CI/CD pipeline**
+
+Example:
+```python
+def test_new_architecture_pattern_compliance(self):
+    """Test that new pattern is correctly implemented."""
+    # Check for required implementation
+    # Verify no anti-patterns exist
+    # Validate documentation references
+```
+
+### Maintenance Guidelines
+
+- **Never disable** architecture compliance tests without team review
+- **Update tests** when architecture changes are intentional
+- **Add new tests** for new architectural patterns
+- **Run tests locally** before committing architecture changes
 
 ## Security Testing
 
