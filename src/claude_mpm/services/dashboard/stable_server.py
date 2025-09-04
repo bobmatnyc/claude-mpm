@@ -363,6 +363,20 @@ class StableDashboardServer:
                 )
             await self.sio.emit("code:file:analyzed", response, room=sid)
 
+        # Handle code analysis cancellation
+        @self.sio.on("code:analysis:cancel")
+        async def handle_code_analysis_cancel(sid, data=None):
+            """Handle request to cancel code analysis."""
+            if self.debug:
+                print(f"📡 Received code:analysis:cancel from {sid}")
+            
+            # Send acknowledgment
+            await self.sio.emit(
+                "code:analysis:cancelled",
+                {"status": "cancelled", "timestamp": datetime.now().isoformat()},
+                room=sid,
+            )
+        
         # Handle other events the dashboard sends
         @self.sio.event
         async def get_git_branch(sid, data):
@@ -389,11 +403,96 @@ class StableDashboardServer:
                 "status_response", {"status": "running", "server": "stable"}, room=sid
             )
 
-        @self.sio.event
-        async def code_discover_top_level(sid, data):
+        # Handle directory discovery request with proper event name and response
+        @self.sio.on("code:discover:top_level")
+        async def handle_code_discover_top_level(sid, data):
+            """Handle request to discover top-level directories."""
             if self.debug:
-                print(f"📡 Received top-level discovery request from {sid}")
-            await self.sio.emit("code:top_level:discovered", {"status": "ok"}, room=sid)
+                print(f"📡 Received code:discover:top_level from {sid}: {data}")
+            
+            # Get the path from the request
+            path = data.get("path", os.getcwd())
+            request_id = data.get("request_id", "")
+            
+            # Read directory contents
+            abs_path = os.path.abspath(os.path.expanduser(path))
+            
+            if not os.path.exists(abs_path):
+                # Send error response
+                await self.sio.emit(
+                    "code:directory:discovered",
+                    {
+                        "error": f"Path does not exist: {abs_path}",
+                        "path": abs_path,
+                        "request_id": request_id,
+                    },
+                    room=sid,
+                )
+                return
+            
+            if not os.path.isdir(abs_path):
+                # Send error response
+                await self.sio.emit(
+                    "code:directory:discovered",
+                    {
+                        "error": f"Path is not a directory: {abs_path}",
+                        "path": abs_path,
+                        "request_id": request_id,
+                    },
+                    room=sid,
+                )
+                return
+            
+            # Build directory contents
+            contents = []
+            try:
+                for item in sorted(os.listdir(abs_path)):
+                    # Skip hidden files and common non-code directories
+                    if item.startswith(".") or item in ["node_modules", "__pycache__", "venv", ".venv"]:
+                        continue
+                    
+                    item_path = os.path.join(abs_path, item)
+                    is_dir = os.path.isdir(item_path)
+                    
+                    # Determine if it's a code file
+                    is_code_file = False
+                    if not is_dir:
+                        ext = os.path.splitext(item)[1].lower()
+                        is_code_file = ext in [".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".cpp", ".c", ".h", ".hpp", ".cs", ".go", ".rs", ".rb", ".php"]
+                    
+                    contents.append({
+                        "name": item,
+                        "path": item_path,
+                        "type": "directory" if is_dir else "file",
+                        "is_directory": is_dir,
+                        "is_file": not is_dir,
+                        "is_code_file": is_code_file,
+                    })
+                    
+            except PermissionError as e:
+                # Send error response
+                await self.sio.emit(
+                    "code:directory:discovered",
+                    {
+                        "error": f"Permission denied: {str(e)}",
+                        "path": abs_path,
+                        "request_id": request_id,
+                    },
+                    room=sid,
+                )
+                return
+            
+            # Send successful response
+            response = {
+                "path": abs_path,
+                "contents": contents,
+                "request_id": request_id,
+            }
+            
+            if self.debug:
+                print(f"📤 Sending directory discovery response: {len(contents)} items")
+            
+            await self.sio.emit("code:directory:discovered", response, room=sid)
 
         # Mock event generator when no real events
         @self.sio.event
@@ -581,7 +680,7 @@ class StableDashboardServer:
         return web.Response(text=fallback_html, content_type="text/html")
 
     async def _serve_static(self, request):
-        """Serve static files."""
+        """Serve static files with cache prevention."""
         file_path = request.match_info["path"]
         static_file = self.dashboard_path / "static" / file_path
 
@@ -593,7 +692,14 @@ class StableDashboardServer:
             )
             with open(static_file) as f:
                 content = f.read()
-            return web.Response(text=content, content_type=content_type)
+            
+            # Add cache prevention headers to ensure fresh JavaScript
+            headers = {
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+            return web.Response(text=content, content_type=content_type, headers=headers)
         return web.Response(text="File not found", status=404)
 
     async def _list_directory(self, request):
