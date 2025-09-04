@@ -18,30 +18,28 @@ def test_daemon():
     """Test daemon start/stop."""
     print("Testing monitor daemon cleanup...")
     print("-" * 50)
-    
+
     daemon = UnifiedMonitorDaemon(
-        host="localhost",
-        port=8765,
-        daemon_mode=False  # Foreground for testing
+        host="localhost", port=8765, daemon_mode=False  # Foreground for testing
     )
-    
+
     try:
         print("Starting daemon...")
         if not daemon.start():
             print("ERROR: Failed to start daemon")
             return False
-        
+
         print("Daemon started successfully")
         time.sleep(2)
-        
+
         print("Stopping daemon...")
         daemon.stop()
         print("Daemon stopped")
-        
+
         time.sleep(1)
         print("✅ SUCCESS: No errors detected!")
         return True
-        
+
     except KeyboardInterrupt:
         print("\nInterrupted, cleaning up...")
         daemon.stop()

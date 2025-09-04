@@ -61,15 +61,15 @@ def add_monitor_subparser(subparsers) -> argparse.ArgumentParser:
     # Add mutually exclusive group for foreground/background modes
     mode_group = start_monitor_parser.add_mutually_exclusive_group()
     mode_group.add_argument(
-        "--foreground", 
-        action="store_true", 
-        help="Run server in foreground mode (blocks terminal)"
+        "--foreground",
+        action="store_true",
+        help="Run server in foreground mode (blocks terminal)",
     )
     mode_group.add_argument(
-        "--background", 
+        "--background",
         action="store_true",
         default=None,  # None allows us to detect when not specified
-        help="Run server in background/daemon mode (default behavior)"
+        help="Run server in background/daemon mode (default behavior)",
     )
     start_monitor_parser.add_argument(
         "--force",
