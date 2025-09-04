@@ -48,6 +48,9 @@ class DaemonLifecycle:
             True if daemonization successful, False otherwise
         """
         try:
+            # Clean up any existing asyncio event loops before forking
+            self._cleanup_event_loops()
+            
             # First fork
             pid = os.fork()
             if pid > 0:
@@ -76,7 +79,7 @@ class DaemonLifecycle:
         self._redirect_streams()
 
         # Write PID file
-        self._write_pid_file()
+        self.write_pid_file()
 
         # Setup signal handlers
         self._setup_signal_handlers()
@@ -110,7 +113,7 @@ class DaemonLifecycle:
         except Exception as e:
             self.logger.error(f"Error redirecting streams: {e}")
 
-    def _write_pid_file(self):
+    def write_pid_file(self):
         """Write PID to PID file."""
         try:
             # Ensure parent directory exists
@@ -258,6 +261,43 @@ class DaemonLifecycle:
                 self.logger.debug("Removed stale PID file")
         except Exception as e:
             self.logger.error(f"Error removing stale PID file: {e}")
+    
+    def _cleanup_event_loops(self):
+        """Clean up any existing asyncio event loops before forking.
+        
+        This prevents the 'I/O operation on closed kqueue object' error
+        that occurs when forked processes inherit event loops.
+        """
+        try:
+            import asyncio
+            import gc
+            
+            # Try to get the current event loop
+            try:
+                loop = asyncio.get_event_loop()
+                if loop and loop.is_running():
+                    # Can't close a running loop, but we can stop it
+                    loop.stop()
+                    self.logger.debug("Stopped running event loop before fork")
+                elif loop:
+                    # Close the loop if it exists and is not running
+                    loop.close()
+                    self.logger.debug("Closed event loop before fork")
+            except RuntimeError:
+                # No event loop in current thread
+                pass
+            
+            # Clear the event loop policy to ensure clean state
+            asyncio.set_event_loop(None)
+            
+            # Force garbage collection to clean up any loop resources
+            gc.collect()
+            
+        except ImportError:
+            # asyncio not available (unlikely but handle it)
+            pass
+        except Exception as e:
+            self.logger.debug(f"Error cleaning up event loops before fork: {e}")
 
     def get_status(self) -> dict:
         """Get daemon status information.
