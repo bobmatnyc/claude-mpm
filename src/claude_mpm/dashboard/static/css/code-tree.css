@@ -7,11 +7,10 @@
     background: #f8f9fa;
 }
 
-/* Split Container for Tree and Content */
+/* Container for Code Tree - Now full width */
 .code-split-container {
     display: flex;
     flex: 1;
-    gap: 10px;
     padding: 10px;
     overflow: hidden;
 }
@@ -461,33 +460,26 @@
     color: #2d3748;
 }
 
-/* Code Tree Container */
+/* Code Tree Container - Full Width */
 .code-tree-container {
-    flex: 0 0 50%;
+    flex: 1;
     background: white;
     border-radius: 8px;
     padding: 20px;
     position: relative;
     overflow: auto;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    border-left: 1px solid #e2e8f0;
-}
-
-/* Code Content Area */
-.code-module-data-content {
-    flex: 1;
-    background: white;
-    border-radius: 8px;
-    padding: 20px;
-    overflow: auto;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     border: 1px solid #e2e8f0;
 }
+
+/* Code Content Area - DEPRECATED (Removed duplicate pane) */
+/* Content now displayed in main Structured Data section */
+/* .code-module-data-content class removed */
 
 /* Visual hierarchy improvements */
 .code-tree-container:focus-within {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border-left-color: #3b82f6;
+    border-color: #3b82f6;
 }
 
 /* Loading indicator */
