@@ -13,8 +13,8 @@ claude-mpm dashboard start
 # Method 2: Direct script (for development)
 python scripts/start-dashboard.py
 
-# Method 3: Python module
-python -m claude_mpm.services.dashboard.stable_server
+# Method 3: CLI command (recommended)
+claude-mpm dashboard start
 ```
 
 ## 📦 Installation Methods
@@ -221,13 +221,13 @@ python scripts/start-dashboard.py --debug
 
 ### Custom Server
 
-You can also create a custom server:
+You can also create a custom server using the unified daemon:
 
 ```python
-from claude_mpm.services.dashboard.stable_server import StableDashboardServer
+from claude_mpm.services.monitor.daemon import UnifiedMonitorDaemon
 
-server = StableDashboardServer(host='localhost', port=8765, debug=True)
-server.run()
+daemon = UnifiedMonitorDaemon(host='localhost', port=8765, daemon_mode=False)
+daemon.start()
 ```
 
 ## 📚 API Endpoints

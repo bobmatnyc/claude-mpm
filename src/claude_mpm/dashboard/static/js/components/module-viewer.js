@@ -18,11 +18,37 @@ class ModuleViewer {
         // When true, all events show JSON expanded; when false, all collapsed
         this.globalJsonExpanded = localStorage.getItem('dashboard-json-expanded') === 'true';
         
+        // Separate state for Full Event Data sections
+        this.fullEventDataExpanded = localStorage.getItem('dashboard-full-event-expanded') === 'true';
+        
         // Track if keyboard listener has been added to avoid duplicates
         this.keyboardListenerAdded = false;
         
         // Initialize unified data viewer
         this.unifiedViewer = new UnifiedDataViewer('module-data-content');
+        
+        // Sync unified viewer's JSON state with module viewer's state
+        // This ensures both viewers maintain consistent JSON visibility
+        this.unifiedViewer.globalJsonExpanded = this.globalJsonExpanded;
+        this.unifiedViewer.fullEventDataExpanded = this.fullEventDataExpanded;
+        
+        // Listen for JSON state changes from unified viewer
+        document.addEventListener('jsonToggleChanged', (e) => {
+            this.globalJsonExpanded = e.detail.expanded;
+            // Also update the unified viewer's state if it's different
+            if (this.unifiedViewer.globalJsonExpanded !== e.detail.expanded) {
+                this.unifiedViewer.globalJsonExpanded = e.detail.expanded;
+            }
+        });
+        
+        // Listen for Full Event Data state changes
+        document.addEventListener('fullEventToggleChanged', (e) => {
+            this.fullEventDataExpanded = e.detail.expanded;
+            // Also update the unified viewer's state if it's different
+            if (this.unifiedViewer.fullEventDataExpanded !== e.detail.expanded) {
+                this.unifiedViewer.fullEventDataExpanded = e.detail.expanded;
+            }
+        });
 
         this.init();
     }

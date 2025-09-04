@@ -92,11 +92,9 @@ class HookHandler:
             if session_id:
                 self._update_session_tracking(session_id, processed_event)
 
-            # Broadcast to all dashboard clients (HTTP-only architecture)
+            # Broadcast to all dashboard clients
+            # Use only one event type to avoid duplication
             await self.sio.emit("hook:event", processed_event)
-            await self.sio.emit(
-                "claude_event", processed_event
-            )  # Also broadcast original format
 
             self.logger.debug(
                 f"Claude hook event processed and broadcasted: {processed_event.get('type', 'unknown')}"

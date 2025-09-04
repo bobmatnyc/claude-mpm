@@ -530,13 +530,15 @@ class SocketClient {
             this.addEvent({ type: 'agent', subtype: 'executed', timestamp: new Date().toISOString(), data });
         });
 
-        this.socket.on('hook.pre', (data) => {
-            this.addEvent({ type: 'hook', subtype: 'pre', timestamp: new Date().toISOString(), data });
-        });
+        // DISABLED: Legacy hook handlers - events now come through claude_event pathway
+        // to prevent duplication. Hook events are processed by the claude_event handler above.
+        // this.socket.on('hook.pre', (data) => {
+        //     this.addEvent({ type: 'hook', subtype: 'pre', timestamp: new Date().toISOString(), data });
+        // });
 
-        this.socket.on('hook.post', (data) => {
-            this.addEvent({ type: 'hook', subtype: 'post', timestamp: new Date().toISOString(), data });
-        });
+        // this.socket.on('hook.post', (data) => {
+        //     this.addEvent({ type: 'hook', subtype: 'post', timestamp: new Date().toISOString(), data });
+        // });
 
         this.socket.on('todo.updated', (data) => {
             this.addEvent({ type: 'todo', subtype: 'updated', timestamp: new Date().toISOString(), data });

@@ -16,6 +16,26 @@ class UnifiedDataViewer {
         this.container = document.getElementById(containerId);
         this.currentData = null;
         this.currentType = null;
+        
+        // Global JSON visibility state - synchronized with localStorage
+        // This ensures all JSON sections maintain consistent state
+        this.globalJsonExpanded = localStorage.getItem('dashboard-json-expanded') === 'true';
+        
+        // Separate state for "Full Event Data" sections - uses its own localStorage key
+        // This allows independent control of Full Event Data visibility
+        this.fullEventDataExpanded = localStorage.getItem('dashboard-full-event-expanded') === 'true';
+        
+        // Listen for global JSON toggle changes from other components
+        document.addEventListener('jsonToggleChanged', (e) => {
+            this.globalJsonExpanded = e.detail.expanded;
+            this.updateAllJsonSections();
+        });
+        
+        // Listen for full event data toggle changes
+        document.addEventListener('fullEventToggleChanged', (e) => {
+            this.fullEventDataExpanded = e.detail.expanded;
+            this.updateAllFullEventSections();
+        });
     }
 
     /**
@@ -1533,6 +1553,112 @@ class UnifiedDataViewer {
         div.textContent = text;
         return div.innerHTML;
     }
+    
+    /**
+     * Toggle JSON section visibility and update global state
+     * WHY: Maintains sticky state across all JSON sections for consistent behavior
+     * @param {string} sectionId - ID of the specific section being toggled
+     * @param {HTMLElement} button - The button element that was clicked
+     */
+    toggleJsonSection(sectionId, button) {
+        // Toggle the global state
+        this.globalJsonExpanded = !this.globalJsonExpanded;
+        
+        // Persist the preference to localStorage
+        localStorage.setItem('dashboard-json-expanded', this.globalJsonExpanded.toString());
+        
+        // Update ALL JSON sections on the page
+        this.updateAllJsonSections();
+        
+        // Dispatch event to notify other components (like module-viewer) of the change
+        document.dispatchEvent(new CustomEvent('jsonToggleChanged', {
+            detail: { expanded: this.globalJsonExpanded }
+        }));
+    }
+    
+    /**
+     * Toggle Full Event Data section visibility and update state
+     * WHY: Maintains separate sticky state for Full Event Data sections
+     * @param {string} sectionId - ID of the specific section being toggled
+     * @param {HTMLElement} button - The button element that was clicked
+     */
+    toggleFullEventSection(sectionId, button) {
+        // Toggle the full event data state
+        this.fullEventDataExpanded = !this.fullEventDataExpanded;
+        
+        // Persist the preference to localStorage
+        localStorage.setItem('dashboard-full-event-expanded', this.fullEventDataExpanded.toString());
+        
+        // Update ALL Full Event sections on the page
+        this.updateAllFullEventSections();
+        
+        // Dispatch event to notify other components of the change
+        document.dispatchEvent(new CustomEvent('fullEventToggleChanged', {
+            detail: { expanded: this.fullEventDataExpanded }
+        }));
+    }
+    
+    /**
+     * Update all JSON sections on the page to match global state
+     * WHY: Ensures all "Structured Data" sections maintain consistent visibility
+     */
+    updateAllJsonSections() {
+        // Find all unified JSON sections (NOT full event sections)
+        const allJsonContents = document.querySelectorAll('.unified-json-content');
+        const allJsonButtons = document.querySelectorAll('.unified-json-toggle');
+        
+        // Update each JSON section
+        allJsonContents.forEach(content => {
+            if (this.globalJsonExpanded) {
+                content.style.display = 'block';
+            } else {
+                content.style.display = 'none';
+            }
+        });
+        
+        // Update all button states
+        allJsonButtons.forEach(button => {
+            const title = button.textContent.substring(2); // Remove arrow
+            if (this.globalJsonExpanded) {
+                button.innerHTML = '▼ ' + title;
+                button.classList.add('expanded');
+            } else {
+                button.innerHTML = '▶ ' + title;
+                button.classList.remove('expanded');
+            }
+        });
+    }
+    
+    /**
+     * Update all Full Event Data sections on the page to match state
+     * WHY: Ensures all "Full Event Data" sections maintain consistent visibility
+     */
+    updateAllFullEventSections() {
+        // Find all full event sections
+        const allFullEventContents = document.querySelectorAll('.full-event-content');
+        const allFullEventButtons = document.querySelectorAll('.full-event-toggle');
+        
+        // Update each full event section
+        allFullEventContents.forEach(content => {
+            if (this.fullEventDataExpanded) {
+                content.style.display = 'block';
+            } else {
+                content.style.display = 'none';
+            }
+        });
+        
+        // Update all button states
+        allFullEventButtons.forEach(button => {
+            const title = button.textContent.substring(2); // Remove arrow
+            if (this.fullEventDataExpanded) {
+                button.innerHTML = '▼ ' + title;
+                button.classList.add('expanded');
+            } else {
+                button.innerHTML = '▶ ' + title;
+                button.classList.remove('expanded');
+            }
+        });
+    }
 
     /**
      * Create a collapsible JSON viewer for secondary details
@@ -1545,22 +1671,28 @@ class UnifiedDataViewer {
         // Filter out sensitive or overly verbose properties
         const cleanData = this.cleanDataForDisplay(data);
         
+        // Determine which state to use based on title
+        // "Full Event Data" and similar titles use the fullEventDataExpanded state
+        // Other titles use the global JSON state (for backward compatibility)
+        const isFullEventData = title.includes('Full Event') || title.includes('Full Details') || 
+                               title.includes('Full Agent') || title.includes('Full Tool');
+        const isExpanded = isFullEventData ? this.fullEventDataExpanded : this.globalJsonExpanded;
+        const display = isExpanded ? 'block' : 'none';
+        const arrow = isExpanded ? '▼' : '▶';
+        const expandedClass = isExpanded ? 'expanded' : '';
+        
+        // Use different toggle function based on section type
+        const toggleFunction = isFullEventData ? 'toggleFullEventSection' : 'toggleJsonSection';
+        
         return `
             <div class="collapsible-json-section">
-                <button class="collapsible-json-toggle" onclick="
-                    const content = document.getElementById('${sectionId}');
-                    const button = this;
-                    if (content.style.display === 'none' || content.style.display === '') {
-                        content.style.display = 'block';
-                        button.classList.add('expanded');
-                        button.innerHTML = '▼ ${title}';
-                    } else {
-                        content.style.display = 'none';
-                        button.classList.remove('expanded');
-                        button.innerHTML = '▶ ${title}';
-                    }
-                ">▶ ${title}</button>
-                <div id="${sectionId}" class="collapsible-json-content" style="display: none;">
+                <button class="collapsible-json-toggle ${isFullEventData ? 'full-event-toggle' : 'unified-json-toggle'} ${expandedClass}" 
+                        data-section-id="${sectionId}"
+                        data-is-full-event="${isFullEventData}"
+                        onclick="window.unifiedDataViewer.${toggleFunction}('${sectionId}', this)">
+                    ${arrow} ${title}
+                </button>
+                <div id="${sectionId}" class="collapsible-json-content ${isFullEventData ? 'full-event-content' : 'unified-json-content'}" style="display: ${display};">
                     <pre class="json-viewer">${this.escapeHtml(JSON.stringify(cleanData, null, 2))}</pre>
                 </div>
             </div>
@@ -1638,6 +1770,26 @@ export default UnifiedDataViewer;
 
 // Make globally available for non-module usage
 window.UnifiedDataViewer = UnifiedDataViewer;
+
+// Create a global instance immediately for inline onclick handlers
+// This ensures the instance is available when HTML is rendered dynamically
+if (typeof window !== 'undefined') {
+    // Always create/update the global instance
+    window.unifiedDataViewer = new UnifiedDataViewer();
+    
+    // Also expose the methods directly on window as a fallback
+    window.toggleFullEventSection = function(sectionId, button) {
+        if (window.unifiedDataViewer) {
+            window.unifiedDataViewer.toggleFullEventSection(sectionId, button);
+        }
+    };
+    
+    window.toggleJsonSection = function(sectionId, button) {
+        if (window.unifiedDataViewer) {
+            window.unifiedDataViewer.toggleJsonSection(sectionId, button);
+        }
+    };
+}
 
 // Create a global instance for inline preview functionality
 if (typeof window !== 'undefined') {

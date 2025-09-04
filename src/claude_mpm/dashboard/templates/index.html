@@ -535,7 +535,8 @@
             loadModule('/static/dist/dashboard.js'),
             loadModule('/static/dist/components/activity-tree.js'),
             loadModule('/static/js/components/code-tree.js'),  // TEMPORARY: Direct source for debugging
-            loadModule('/static/dist/components/code-viewer.js')
+            loadModule('/static/dist/components/code-viewer.js'),
+            loadModule('/static/dist/components/file-viewer.js')  // File viewer for viewing file contents
         ]).then(() => {
             console.log('All dashboard modules loaded successfully');
             
