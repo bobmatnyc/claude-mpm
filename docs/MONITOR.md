@@ -1,49 +1,54 @@
-# Claude MPM Monitor & Dashboard System
+# Claude MPM Unified Monitor Daemon
 
 ## Overview
 
-The Claude MPM Monitor provides real-time event tracking and visualization for Claude sessions. It consists of a unified server that handles both the web dashboard UI and Socket.IO event monitoring on port 8765.
+The Claude MPM Unified Monitor Daemon is a **single stable process** that provides comprehensive monitoring for Claude sessions. It combines HTTP dashboard serving, Socket.IO event handling, real AST analysis, and Claude Code hook ingestion into one cohesive service running on port 8765.
 
 ## Quick Start
 
-### Starting the Dashboard
+### Starting the Monitor Daemon
 
 ```bash
-# Start the dashboard server (includes monitoring)
-python -m claude_mpm dashboard start
+# Start the unified monitor daemon
+claude-mpm monitor start
 
 # The dashboard will be available at:
 # http://localhost:8765/
 ```
 
-### Enabling Event Monitoring in Claude Sessions
+### Automatic Claude Code Hook Integration
 
-To receive events in the dashboard, start Claude MPM with the `--monitor` flag:
-
-```bash
-# Start Claude with monitoring enabled
-claude-mpm run --monitor
-
-# Or specify a custom port
-claude-mpm run --monitor --websocket-port 8765
-```
+The monitor daemon automatically receives events from Claude Code sessions - **no additional configuration needed**. When you run Claude Code with claude-mpm hooks installed, events are automatically sent to the monitor daemon via EventBus integration.
 
 ## Architecture
 
-### Unified Server (Port 8765)
+### Unified Monitor Daemon (Port 8765)
 
-The dashboard service provides:
-- **Web UI**: Interactive dashboard for visualizing events
-- **Socket.IO Server**: Real-time event streaming
-- **HTTP API**: RESTful endpoints for event submission
-- **Static Assets**: JavaScript, CSS, and HTML files
+The unified monitor daemon provides **all monitoring functionality in a single stable process**:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                 Unified Monitor Daemon                     │
+│                     (Port 8765)                            │
+├─────────────────────────────────────────────────────────────┤
+│  ✅ HTTP Server (aiohttp)                                  │
+│  ✅ Socket.IO Server                                       │
+│  ✅ Real AST Analysis (CodeTreeAnalyzer)                   │
+│  ✅ Dashboard Serving                                      │
+│  ✅ EventBus Integration                                   │
+│  ✅ Claude Code Hook Ingestion                            │
+│  ✅ Health Monitoring                                      │
+│  ✅ Daemon Management                                      │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ### Event Flow
 
-1. **Claude Session** → Hook Service → Monitor API → Dashboard UI
-2. Events are captured by hooks during Claude operations
-3. When `--monitor` is enabled, events are forwarded to port 8765
-4. The dashboard receives and displays events in real-time
+1. **Claude Code Session** → **Claude Code Hooks** → **EventBus** → **Monitor Daemon** → **Dashboard UI**
+2. Events are automatically captured by Claude Code hooks during operations
+3. Hooks publish events to EventBus using `hook.{event_type}` topics
+4. Monitor daemon's SocketIORelay subscribes to EventBus and forwards events to dashboard
+5. Dashboard receives and displays events in real-time via Socket.IO
 
 ## Features
 
@@ -92,58 +97,68 @@ monitor:
 
 ## CLI Commands
 
-### Dashboard Commands
+### Monitor Daemon Commands
+
+The unified monitor daemon is the **only monitoring process** you need:
 
 ```bash
-# Start the dashboard
-python -m claude_mpm dashboard start
+# Start the unified monitor daemon (foreground)
+claude-mpm monitor start
 
-# Stop the dashboard
-python -m claude_mpm dashboard stop
+# Start as background daemon
+claude-mpm monitor start --daemon
 
-# Check dashboard status
-python -m claude_mpm dashboard status
+# Stop the monitor daemon
+claude-mpm monitor stop
 
-# Open dashboard in browser (starts if needed)
-python -m claude_mpm dashboard open
+# Restart the monitor daemon
+claude-mpm monitor restart
+
+# Check monitor daemon status
+claude-mpm monitor status
+
+# Check status with verbose output
+claude-mpm monitor status --verbose
 ```
 
-### Monitor Commands (Legacy)
+### Legacy Commands (Deprecated)
 
-Note: The `monitor` command starts a lightweight Socket.IO server without the UI. Use `dashboard` instead for full functionality.
+⚠️ **These commands are deprecated and should not be used:**
 
 ```bash
-# Start monitor on specific port
-python -m claude_mpm monitor port 8765
+# DEPRECATED - Use 'claude-mpm monitor start' instead
+python -m claude_mpm dashboard start
 
-# Check monitor status
-python -m claude_mpm monitor status
+# DEPRECATED - Multiple competing servers
+python -m claude_mpm socketio start
 ```
 
 ## API Endpoints
 
-### POST /api/events
-Submit events to the dashboard:
+### GET /health
+Health check endpoint:
 
 ```bash
-curl -X POST http://localhost:8765/api/events \
-  -H "Content-Type: application/json" \
-  -d '{
-    "event": "hook.pre_tool",
-    "data": {
-      "tool": "bash",
-      "params": {"command": "ls -la"},
-      "timestamp": "2025-01-03T12:00:00Z"
-    }
-  }'
+curl http://localhost:8765/health
+# Returns: {"status": "healthy", "service": "unified-monitor", "version": "1.0.0", "port": 8765}
 ```
 
-### GET /api/directory/list
+### GET /api/directory
 List directory contents for code tree:
 
 ```bash
-curl "http://localhost:8765/api/directory/list?path=/path/to/project"
+curl "http://localhost:8765/api/directory?path=/path/to/project"
 ```
+
+### GET /
+Dashboard web interface:
+
+```bash
+# Open in browser
+open http://localhost:8765/
+```
+
+**Note**: Claude Code hook events are automatically sent via EventBus integration - no manual API calls needed.
 
 ### WebSocket Events
 
@@ -165,26 +180,29 @@ socket.on('hook.pre_tool', (data) => {
 
 ### Events Not Appearing
 
-1. **Check Claude was started with monitoring**:
+1. **Check monitor daemon is running**:
    ```bash
-   # This WON'T send events:
-   claude-mpm run
-   
-   # This WILL send events:
-   claude-mpm run --monitor
+   claude-mpm monitor status
    ```
 
-2. **Verify dashboard is running**:
+2. **Start the monitor daemon if not running**:
    ```bash
-   python -m claude_mpm dashboard status
+   claude-mpm monitor start
    ```
 
-3. **Test event submission manually**:
+3. **Check Claude Code hooks are working**:
    ```bash
-   curl -X POST http://localhost:8765/api/events \
-     -H "Content-Type: application/json" \
-     -d '{"event": "test", "data": {"message": "Test event"}}'
+   # Check hook error log for recent events
+   tail -f /tmp/claude-mpm-hook-error.log
+
+   # Look for:
+   # ✅ Published to EventBus: hook.pre_tool
+   # ✅ HTTP POST returned status 200
    ```
+
+4. **Verify EventBus integration**:
+   - Monitor daemon logs should show "EventBus integration setup complete"
+   - Hook events should appear as "Published to EventBus: hook.{event_type}"
 
 ### Port Conflicts
 
@@ -209,26 +227,31 @@ The source viewer uses syntax highlighting for code display. If you see escaped 
 
 ### File Locations
 
-- **Dashboard Server**: `src/claude_mpm/services/dashboard/`
-- **Socket.IO Server**: `src/claude_mpm/services/socketio/`
+- **Unified Monitor Daemon**: `src/claude_mpm/services/monitor/`
+- **Monitor Server**: `src/claude_mpm/services/monitor/server.py`
+- **Event Handlers**: `src/claude_mpm/services/monitor/handlers/`
 - **Frontend Assets**: `src/claude_mpm/dashboard/static/`
-- **Event Handlers**: `src/claude_mpm/services/socketio/handlers/`
+- **CLI Commands**: `src/claude_mpm/cli/commands/monitor.py`
 
-### Adding New Event Types
+### Architecture Components
 
-1. Define event in `src/claude_mpm/services/events/types.py`
-2. Create handler in `src/claude_mpm/services/socketio/handlers/`
-3. Register handler in `src/claude_mpm/services/socketio/server/main.py`
+- **UnifiedMonitorDaemon**: Main daemon class with lifecycle management
+- **UnifiedMonitorServer**: HTTP + Socket.IO server with EventBus integration
+- **Event Handlers**: Code analysis, dashboard, and hook event processing
+- **SocketIORelay**: Bridges EventBus events to Socket.IO clients
 
 ### Testing
 
 ```bash
-# Run monitor tests
-pytest tests/services/dashboard/
-pytest tests/services/socketio/
+# Test monitor daemon
+claude-mpm monitor start
+curl http://localhost:8765/health
 
-# Test Socket.IO connection
-python scripts/test-dashboard-connection.py
+# Test Claude Code hook integration
+tail -f /tmp/claude-mpm-hook-error.log
+
+# Run monitor tests
+pytest tests/services/monitor/
 ```
 
 ## Related Documentation
@@ -240,8 +263,23 @@ python scripts/test-dashboard-connection.py
 
 ## Important Notes
 
-- The dashboard requires a modern web browser with WebSocket support
-- Events are buffered in memory (default: 2000 events)
-- The monitor runs independently from Claude sessions
-- Multiple Claude sessions can connect to the same monitor
-- The dashboard can be left running continuously for monitoring multiple sessions
+- **Single Process**: The unified monitor daemon is the ONLY monitoring process needed
+- **Automatic Integration**: Claude Code hooks automatically connect via EventBus - no configuration needed
+- **Real AST Analysis**: Uses actual CodeTreeAnalyzer instead of mock data
+- **Stable Foundation**: Built on proven aiohttp + Socket.IO architecture
+- **Dashboard Ready**: Modern web browser with WebSocket support required
+- **Always-On**: Can run continuously for monitoring multiple Claude sessions
+- **Port 8765**: Single stable port for all monitoring functionality
+
+## Migration from Legacy Commands
+
+If you were using old commands, migrate to the unified daemon:
+
+```bash
+# OLD (deprecated):
+python -m claude_mpm dashboard start
+python -m claude_mpm socketio start
+
+# NEW (unified):
+claude-mpm monitor start
+```
