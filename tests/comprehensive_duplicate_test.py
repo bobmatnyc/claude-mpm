@@ -189,7 +189,8 @@ async def run_comprehensive_test():
                 ],
                 capture_output=True,
                 text=True,
-                cwd=".", check=False,
+                cwd=".",
+                check=False,
             )
             await asyncio.sleep(0.5)  # Small delay between events
 

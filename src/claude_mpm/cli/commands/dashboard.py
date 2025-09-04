@@ -127,9 +127,7 @@ class DashboardCommand(BaseCommand):
             success = daemon.start()
             if success:
                 return CommandResult.success_result("Unified monitor daemon stopped")
-            return CommandResult.error_result(
-                "Failed to start unified monitor daemon"
-            )
+            return CommandResult.error_result("Failed to start unified monitor daemon")
 
         except KeyboardInterrupt:
             print("\nUnified monitor daemon stopped by user")
