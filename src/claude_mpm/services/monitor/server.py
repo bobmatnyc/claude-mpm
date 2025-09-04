@@ -130,7 +130,7 @@ class UnifiedMonitorServer:
                 try:
                     # Cancel all pending tasks first
                     self._cancel_all_tasks(loop)
-                    
+
                     # Give tasks a moment to cancel gracefully
                     if not loop.is_closed():
                         try:
@@ -138,32 +138,33 @@ class UnifiedMonitorServer:
                         except RuntimeError:
                             # Loop might be stopped already, that's ok
                             pass
-                    
+
                 except Exception as e:
                     self.logger.debug(f"Error during task cancellation: {e}")
                 finally:
                     try:
                         # Clear the loop reference from the instance first
                         self.loop = None
-                        
+
                         # Stop the loop if it's still running
                         if loop.is_running():
                             loop.stop()
-                        
+
                         # CRITICAL: Wait a moment for the loop to stop
                         import time
+
                         time.sleep(0.1)
-                        
+
                         # Clear the event loop from the thread BEFORE closing
                         # This prevents other code from accidentally using it
                         asyncio.set_event_loop(None)
-                        
+
                         # Now close the loop - this is critical to prevent the kqueue error
                         if not loop.is_closed():
                             loop.close()
                             # Wait for the close to complete
                             time.sleep(0.05)
-                        
+
                     except Exception as e:
                         self.logger.debug(f"Error during event loop cleanup: {e}")
 
@@ -451,11 +452,11 @@ class UnifiedMonitorServer:
             # Wait for server thread to finish with a reasonable timeout
             if self.server_thread and self.server_thread.is_alive():
                 self.server_thread.join(timeout=5)
-                
+
                 # If thread is still alive after timeout, log a warning
                 if self.server_thread.is_alive():
                     self.logger.warning("Server thread did not stop within timeout")
-                
+
             # Clear all references to help with cleanup
             self.server_thread = None
             self.app = None
@@ -463,9 +464,10 @@ class UnifiedMonitorServer:
             self.runner = None
             self.site = None
             self.event_emitter = None
-            
+
             # Give the system a moment to cleanup resources
             import time
+
             time.sleep(0.2)
 
             self.logger.info("Unified monitor server stopped")
@@ -491,11 +493,12 @@ class UnifiedMonitorServer:
                 try:
                     if self.sio:
                         self.event_emitter.unregister_socketio_server(self.sio)
-                    
+
                     # Use the global cleanup function to ensure proper cleanup
                     from .event_emitter import cleanup_event_emitter
+
                     await cleanup_event_emitter()
-                    
+
                     self.logger.info("Event emitter cleaned up")
                 except Exception as e:
                     self.logger.warning(f"Error cleaning up event emitter: {e}")
@@ -521,7 +524,7 @@ class UnifiedMonitorServer:
                     self.logger.debug(f"Error cleaning up runner: {e}")
                 finally:
                     self.runner = None
-                    
+
             # Clear app reference
             self.app = None
 
@@ -549,22 +552,22 @@ class UnifiedMonitorServer:
         """Cancel all pending tasks in the event loop."""
         if loop is None:
             loop = self.loop
-            
+
         if not loop or loop.is_closed():
             return
-            
+
         try:
             # Get all tasks in the loop
             pending = asyncio.all_tasks(loop)
-            
+
             # Count tasks to cancel
             tasks_to_cancel = [task for task in pending if not task.done()]
-            
+
             if tasks_to_cancel:
                 # Cancel each task
                 for task in tasks_to_cancel:
                     task.cancel()
-                    
+
                 # Wait for all tasks to complete cancellation
                 gather = asyncio.gather(*tasks_to_cancel, return_exceptions=True)
                 try:
@@ -572,7 +575,7 @@ class UnifiedMonitorServer:
                 except Exception:
                     # Some tasks might fail to cancel, that's ok
                     pass
-                    
+
                 self.logger.debug(f"Cancelled {len(tasks_to_cancel)} pending tasks")
         except Exception as e:
             self.logger.debug(f"Error cancelling tasks: {e}")
@@ -582,12 +585,12 @@ class UnifiedMonitorServer:
         try:
             # Stop accepting new connections
             self.running = False
-            
+
             # Give ongoing operations a moment to complete
             await asyncio.sleep(0.5)
-            
+
             # Then cleanup resources
             await self._cleanup_async()
-            
+
         except Exception as e:
             self.logger.debug(f"Error in graceful shutdown: {e}")
