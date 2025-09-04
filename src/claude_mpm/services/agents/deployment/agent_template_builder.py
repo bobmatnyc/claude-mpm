@@ -613,7 +613,6 @@ tools:
         single_line = re.sub(r"\s+([,.!?;:])", r"\1", single_line)
         return re.sub(r"([,.!?;:])\s+", r"\1 ", single_line)
 
-
     def _create_enhanced_description(
         self,
         raw_description: str,
