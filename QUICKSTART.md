@@ -97,11 +97,11 @@ That's it! You now have:
 ## Next Steps
 
 **New Users**:
-- [Basic Usage Guide](docs/user/basic-usage.md) - Essential commands and workflows
-- [Memory System](docs/user/memory-system.md) - How agents learn
+- [Basic Usage Guide](docs/user/02-guides/basic-usage.md) - Essential commands and workflows
+- [Memory System](docs/user/03-features/memory-system.md) - How agents learn
 
 **Full Documentation**:
-- [Complete README](README.md) - All features and capabilities  
+- [Complete Documentation](docs/README.md) - All features and capabilities  
 - [Installation Guide](docs/user/installation.md) - Advanced installation options
 - [Troubleshooting](docs/user/troubleshooting.md) - Common issues and solutions
 
