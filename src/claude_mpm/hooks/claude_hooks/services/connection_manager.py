@@ -1,9 +1,18 @@
 """Connection management service for Claude hook handler.
 
+This service implements the SINGLE-PATH EVENT EMISSION ARCHITECTURE
+to eliminate duplicate events and improve performance.
+
+ARCHITECTURE: Hook → ConnectionManager → Direct Socket.IO → Dashboard
+                                      ↓ (fallback only)
+                                    HTTP POST → Monitor → Dashboard
+
+CRITICAL: This service must maintain the single emission path principle.
+See docs/developer/EVENT_EMISSION_ARCHITECTURE.md for full documentation.
+
 This service manages:
 - SocketIO connection pool initialization
-- EventBus initialization
-- Event emission through both channels
+- Direct event emission with HTTP fallback
 - Connection cleanup
 """
 
@@ -61,14 +70,8 @@ except ImportError:
             )
 
 
-# Import EventBus for decoupled event distribution
-try:
-    from claude_mpm.services.event_bus import EventBus
-
-    EVENTBUS_AVAILABLE = True
-except ImportError:
-    EVENTBUS_AVAILABLE = False
-    EventBus = None
+# EventBus removed - using direct Socket.IO calls with HTTP fallback
+# This eliminates duplicate events and improves performance
 
 
 class ConnectionManagerService:
@@ -84,9 +87,7 @@ class ConnectionManagerService:
         self.connection_pool = None
         self._initialize_socketio_pool()
 
-        # Initialize EventBus for in-process event distribution (optional)
-        self.event_bus = None
-        self._initialize_eventbus()
+        # EventBus removed - using direct Socket.IO with HTTP fallback only
 
     def _initialize_socketio_pool(self):
         """Initialize the SocketIO connection pool."""
@@ -102,25 +103,17 @@ class ConnectionManagerService:
                 )
             self.connection_pool = None
 
-    def _initialize_eventbus(self):
-        """Initialize the EventBus for in-process distribution."""
-        if EVENTBUS_AVAILABLE:
-            try:
-                self.event_bus = EventBus.get_instance()
-                if DEBUG:
-                    print("✅ EventBus initialized for hook handler", file=sys.stderr)
-            except Exception as e:
-                if DEBUG:
-                    print(f"⚠️ Failed to initialize EventBus: {e}", file=sys.stderr)
-                self.event_bus = None
-
     def emit_event(self, namespace: str, event: str, data: dict):
-        """Emit event through both connection pool and EventBus.
+        """Emit event through direct Socket.IO connection with HTTP fallback.
 
-        WHY dual approach:
-        - Connection pool: Direct Socket.IO connection for inter-process communication
-        - EventBus: For in-process subscribers (if any)
-        - Ensures events reach the dashboard regardless of process boundaries
+        🚨 CRITICAL: This method implements the SINGLE-PATH EMISSION ARCHITECTURE.
+        DO NOT add additional emission paths (EventBus, etc.) as this creates duplicates.
+        See docs/developer/EVENT_EMISSION_ARCHITECTURE.md for details.
+
+        High-performance single-path approach:
+        - Primary: Direct Socket.IO connection for ultra-low latency
+        - Fallback: HTTP POST for reliability when direct connection fails
+        - Eliminates duplicate events from multiple emission paths
         """
         # Create event data for normalization
         raw_event = {
@@ -152,49 +145,51 @@ class ConnectionManagerService:
                     file=sys.stderr,
                 )
 
-        # First, try to emit through direct Socket.IO connection pool
-        # This is the primary path for inter-process communication
+        # Emit through direct Socket.IO connection pool (primary path)
+        # This provides ultra-low latency direct async communication
         if self.connection_pool:
             try:
                 # Emit to Socket.IO server directly
                 self.connection_pool.emit("claude_event", claude_event_data)
                 if DEBUG:
                     print(f"✅ Emitted via connection pool: {event}", file=sys.stderr)
+                return  # Success - no need for fallback
             except Exception as e:
                 if DEBUG:
                     print(f"⚠️ Failed to emit via connection pool: {e}", file=sys.stderr)
 
-        # Also publish to EventBus for any in-process subscribers
-        if self.event_bus and EVENTBUS_AVAILABLE:
-            try:
-                # Publish to EventBus with topic format: hook.{event}
-                topic = f"hook.{event}"
-                self.event_bus.publish(topic, claude_event_data)
+        # HTTP fallback for cross-process communication (when direct calls fail)
+        # This replaces EventBus for reliability without the complexity
+        self._try_http_fallback(claude_event_data)
 
-                # Enhanced verification logging
+    def _try_http_fallback(self, claude_event_data: dict):
+        """HTTP fallback when direct Socket.IO connection fails."""
+        try:
+            import requests
+
+            # Send to monitor server HTTP API
+            response = requests.post(
+                "http://localhost:8765/api/events",
+                json=claude_event_data,
+                timeout=2.0,
+                headers={"Content-Type": "application/json"},
+            )
+
+            if response.status_code in [200, 204]:
                 if DEBUG:
-                    print(f"✅ Published to EventBus: {topic}", file=sys.stderr)
-                    # Get EventBus stats to verify publication
-                    if hasattr(self.event_bus, "get_stats"):
-                        stats = self.event_bus.get_stats()
-                        print(
-                            f"📊 EventBus stats after publish: {stats}", file=sys.stderr
-                        )
-                    # Log the number of data keys being published
-                    if isinstance(claude_event_data, dict):
-                        print(
-                            f"📦 Published data keys: {list(claude_event_data.keys())}",
-                            file=sys.stderr,
-                        )
-            except Exception as e:
-                if DEBUG:
-                    print(f"⚠️ Failed to publish to EventBus: {e}", file=sys.stderr)
-                    import traceback
+                    print("✅ HTTP fallback successful", file=sys.stderr)
+            elif DEBUG:
+                print(
+                    f"⚠️ HTTP fallback failed: {response.status_code}",
+                    file=sys.stderr,
+                )
 
-                    traceback.print_exc(file=sys.stderr)
+        except Exception as e:
+            if DEBUG:
+                print(f"⚠️ HTTP fallback error: {e}", file=sys.stderr)
 
-        # Warn if neither method is available
-        if not self.connection_pool and not self.event_bus and DEBUG:
+        # Warn if no emission method is available
+        if not self.connection_pool and DEBUG:
             print(f"⚠️ No event emission method available for: {event}", file=sys.stderr)
 
     def cleanup(self):
