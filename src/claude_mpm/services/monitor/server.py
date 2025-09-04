@@ -112,19 +112,60 @@ class UnifiedMonitorServer:
 
     def _run_server(self):
         """Run the server in its own event loop."""
+        loop = None
         try:
             # Create new event loop for this thread
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            self.loop = loop
 
             # Run the async server
-            self.loop.run_until_complete(self._start_async_server())
+            loop.run_until_complete(self._start_async_server())
 
         except Exception as e:
             self.logger.error(f"Error in server thread: {e}")
         finally:
-            if self.loop:
-                self.loop.close()
+            # Always ensure loop cleanup happens
+            if loop is not None:
+                try:
+                    # Cancel all pending tasks first
+                    self._cancel_all_tasks(loop)
+                    
+                    # Give tasks a moment to cancel gracefully
+                    if not loop.is_closed():
+                        try:
+                            loop.run_until_complete(asyncio.sleep(0.1))
+                        except RuntimeError:
+                            # Loop might be stopped already, that's ok
+                            pass
+                    
+                except Exception as e:
+                    self.logger.debug(f"Error during task cancellation: {e}")
+                finally:
+                    try:
+                        # Clear the loop reference from the instance first
+                        self.loop = None
+                        
+                        # Stop the loop if it's still running
+                        if loop.is_running():
+                            loop.stop()
+                        
+                        # CRITICAL: Wait a moment for the loop to stop
+                        import time
+                        time.sleep(0.1)
+                        
+                        # Clear the event loop from the thread BEFORE closing
+                        # This prevents other code from accidentally using it
+                        asyncio.set_event_loop(None)
+                        
+                        # Now close the loop - this is critical to prevent the kqueue error
+                        if not loop.is_closed():
+                            loop.close()
+                            # Wait for the close to complete
+                            time.sleep(0.05)
+                        
+                    except Exception as e:
+                        self.logger.debug(f"Error during event loop cleanup: {e}")
 
     async def _start_async_server(self):
         """Start the async server components."""
@@ -392,11 +433,40 @@ class UnifiedMonitorServer:
         try:
             self.logger.info("Stopping unified monitor server")
 
+            # Signal shutdown first
             self.running = False
 
-            # Wait for server thread to finish
+            # If we have a loop, schedule the cleanup
+            if self.loop and not self.loop.is_closed():
+                try:
+                    # Use call_soon_threadsafe to schedule cleanup from another thread
+                    future = asyncio.run_coroutine_threadsafe(
+                        self._graceful_shutdown(), self.loop
+                    )
+                    # Wait for cleanup to complete (with timeout)
+                    future.result(timeout=3)
+                except Exception as e:
+                    self.logger.debug(f"Error during graceful shutdown: {e}")
+
+            # Wait for server thread to finish with a reasonable timeout
             if self.server_thread and self.server_thread.is_alive():
                 self.server_thread.join(timeout=5)
+                
+                # If thread is still alive after timeout, log a warning
+                if self.server_thread.is_alive():
+                    self.logger.warning("Server thread did not stop within timeout")
+                
+            # Clear all references to help with cleanup
+            self.server_thread = None
+            self.app = None
+            self.sio = None
+            self.runner = None
+            self.site = None
+            self.event_emitter = None
+            
+            # Give the system a moment to cleanup resources
+            import time
+            time.sleep(0.2)
 
             self.logger.info("Unified monitor server stopped")
 
@@ -406,20 +476,54 @@ class UnifiedMonitorServer:
     async def _cleanup_async(self):
         """Cleanup async resources."""
         try:
+            # Close the Socket.IO server first to stop accepting new connections
+            if self.sio:
+                try:
+                    await self.sio.shutdown()
+                    self.logger.debug("Socket.IO shutdown complete")
+                except Exception as e:
+                    self.logger.debug(f"Error shutting down Socket.IO: {e}")
+                finally:
+                    self.sio = None
+
             # Cleanup event emitter
             if self.event_emitter:
                 try:
-                    self.event_emitter.unregister_socketio_server(self.sio)
-                    await self.event_emitter.close()
+                    if self.sio:
+                        self.event_emitter.unregister_socketio_server(self.sio)
+                    
+                    # Use the global cleanup function to ensure proper cleanup
+                    from .event_emitter import cleanup_event_emitter
+                    await cleanup_event_emitter()
+                    
                     self.logger.info("Event emitter cleaned up")
                 except Exception as e:
                     self.logger.warning(f"Error cleaning up event emitter: {e}")
+                finally:
+                    self.event_emitter = None
 
+            # Stop the site (must be done before runner cleanup)
             if self.site:
-                await self.site.stop()
+                try:
+                    await self.site.stop()
+                    self.logger.debug("Site stopped")
+                except Exception as e:
+                    self.logger.debug(f"Error stopping site: {e}")
+                finally:
+                    self.site = None
 
+            # Cleanup the runner (after site is stopped)
             if self.runner:
-                await self.runner.cleanup()
+                try:
+                    await self.runner.cleanup()
+                    self.logger.debug("Runner cleaned up")
+                except Exception as e:
+                    self.logger.debug(f"Error cleaning up runner: {e}")
+                finally:
+                    self.runner = None
+                    
+            # Clear app reference
+            self.app = None
 
         except Exception as e:
             self.logger.error(f"Error during async cleanup: {e}")
@@ -440,3 +544,50 @@ class UnifiedMonitorServer:
                 "hooks": self.hook_handler is not None,
             },
         }
+
+    def _cancel_all_tasks(self, loop=None):
+        """Cancel all pending tasks in the event loop."""
+        if loop is None:
+            loop = self.loop
+            
+        if not loop or loop.is_closed():
+            return
+            
+        try:
+            # Get all tasks in the loop
+            pending = asyncio.all_tasks(loop)
+            
+            # Count tasks to cancel
+            tasks_to_cancel = [task for task in pending if not task.done()]
+            
+            if tasks_to_cancel:
+                # Cancel each task
+                for task in tasks_to_cancel:
+                    task.cancel()
+                    
+                # Wait for all tasks to complete cancellation
+                gather = asyncio.gather(*tasks_to_cancel, return_exceptions=True)
+                try:
+                    loop.run_until_complete(gather)
+                except Exception:
+                    # Some tasks might fail to cancel, that's ok
+                    pass
+                    
+                self.logger.debug(f"Cancelled {len(tasks_to_cancel)} pending tasks")
+        except Exception as e:
+            self.logger.debug(f"Error cancelling tasks: {e}")
+
+    async def _graceful_shutdown(self):
+        """Perform graceful shutdown of async resources."""
+        try:
+            # Stop accepting new connections
+            self.running = False
+            
+            # Give ongoing operations a moment to complete
+            await asyncio.sleep(0.5)
+            
+            # Then cleanup resources
+            await self._cleanup_async()
+            
+        except Exception as e:
+            self.logger.debug(f"Error in graceful shutdown: {e}")

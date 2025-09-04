@@ -102,6 +102,9 @@ class UnifiedMonitorDaemon:
             existing_pid = self.lifecycle.get_pid()
             self.logger.warning(f"Daemon already running with PID {existing_pid}")
             return False
+            
+        # Wait for any pre-warming threads to complete before forking
+        self._wait_for_prewarm_completion()
 
         # Daemonize the process
         success = self.lifecycle.daemonize()
@@ -114,9 +117,18 @@ class UnifiedMonitorDaemon:
     def _start_foreground(self) -> bool:
         """Start in foreground mode."""
         self.logger.info(f"Starting unified monitor daemon on {self.host}:{self.port}")
+        
+        # Check if already running (check PID file even in foreground mode)
+        if self.lifecycle.is_running():
+            existing_pid = self.lifecycle.get_pid()
+            self.logger.warning(f"Monitor daemon already running with PID {existing_pid}")
+            return False
 
         # Setup signal handlers for graceful shutdown
         self._setup_signal_handlers()
+        
+        # Write PID file for foreground mode too (so other processes can detect it)
+        self.lifecycle.write_pid_file()
 
         # Start the server
         return self._run_server()
@@ -170,17 +182,29 @@ class UnifiedMonitorDaemon:
             self.running = False
             self.shutdown_event.set()
 
-            # Stop server
+            # Stop server with proper cleanup
             if self.server:
+                self.logger.debug("Initiating server shutdown...")
                 self.server.stop()
+                # Give asyncio loops adequate time to cleanup properly
+                # This is critical to prevent kqueue errors
+                time.sleep(2.0)
+                self.server = None
 
             # Stop health monitoring
             if self.health_monitor:
+                self.logger.debug("Stopping health monitor...")
                 self.health_monitor.stop()
+                self.health_monitor = None
 
-            # Cleanup daemon files
-            if self.daemon_mode:
-                self.lifecycle.cleanup()
+            # Clean up any asyncio resources
+            self._cleanup_asyncio_resources()
+            
+            # Give a final moment for OS-level cleanup
+            time.sleep(0.5)
+
+            # Cleanup daemon files (always cleanup PID file)
+            self.lifecycle.cleanup()
 
             self.logger.info("Unified monitor daemon stopped")
             return True
@@ -201,8 +225,10 @@ class UnifiedMonitorDaemon:
         if not self.stop():
             return False
 
-        # Wait a moment
-        time.sleep(2)
+        # Wait longer for port to be released properly
+        # This is needed because the daemon process may take time to fully cleanup
+        self.logger.info("Waiting for port to be fully released...")
+        time.sleep(3)
 
         # Start again
         return self.start()
@@ -213,12 +239,19 @@ class UnifiedMonitorDaemon:
         Returns:
             Dictionary with status information
         """
-        is_running = self.lifecycle.is_running() if self.daemon_mode else self.running
-        pid = self.lifecycle.get_pid() if self.daemon_mode else os.getpid()
+        # Always check the PID file to see if a daemon is running
+        # This ensures we detect daemons started by other processes
+        is_running = self.lifecycle.is_running()
+        pid = self.lifecycle.get_pid()
+        
+        # If no PID file exists but we're running in the current process
+        if not is_running and self.running:
+            is_running = True
+            pid = os.getpid()
 
         status = {
             "running": is_running,
-            "pid": pid,
+            "pid": pid if is_running else None,
             "host": self.host,
             "port": self.port,
             "daemon_mode": self.daemon_mode,
@@ -246,11 +279,93 @@ class UnifiedMonitorDaemon:
     def _cleanup(self):
         """Cleanup resources."""
         try:
+            # Stop server first with proper cleanup
             if self.server:
+                self.logger.debug("Stopping server and cleaning up event loops...")
                 self.server.stop()
+                # Give the server more time to cleanup event loops properly
+                # This is critical to prevent kqueue errors
+                time.sleep(1.5)
+                self.server = None
 
+            # Then stop health monitor
             if self.health_monitor:
+                self.logger.debug("Stopping health monitor...")
                 self.health_monitor.stop()
+                self.health_monitor = None
+
+            # Ensure PID file is removed
+            if not self.daemon_mode:
+                # In foreground mode, make sure we cleanup the PID file
+                self.lifecycle.cleanup()
+            
+            # Clean up any remaining asyncio resources in the main thread
+            self._cleanup_asyncio_resources()
+                
+            # Clear any remaining references
+            self.shutdown_event.clear()
+            
+            self.logger.debug("Cleanup completed successfully")
 
         except Exception as e:
             self.logger.error(f"Error during cleanup: {e}")
+    
+    def _cleanup_asyncio_resources(self):
+        """Clean up any asyncio resources in the current thread."""
+        try:
+            import asyncio
+            
+            # Try to get the current event loop
+            try:
+                loop = asyncio.get_event_loop()
+                if loop and not loop.is_closed():
+                    # Cancel any pending tasks
+                    pending = asyncio.all_tasks(loop)
+                    for task in pending:
+                        task.cancel()
+                    
+                    # Stop and close the loop
+                    if loop.is_running():
+                        loop.stop()
+                    
+                    # Clear the event loop from the thread
+                    asyncio.set_event_loop(None)
+                    
+                    # Close the loop
+                    loop.close()
+                    
+            except RuntimeError:
+                # No event loop in current thread, that's fine
+                pass
+                
+        except Exception as e:
+            self.logger.debug(f"Error cleaning up asyncio resources: {e}")
+    
+    def _wait_for_prewarm_completion(self, timeout: float = 5.0):
+        """Wait for MCP pre-warming threads to complete before forking.
+        
+        This prevents inherited threads and event loops in the forked process.
+        """
+        try:
+            import threading
+            import time
+            
+            start_time = time.time()
+            
+            # Get all non-daemon threads (pre-warm threads are daemon threads)
+            # but we still want to give them a moment to complete
+            active_threads = [t for t in threading.enumerate() 
+                            if t.is_alive() and t != threading.current_thread()]
+            
+            if active_threads:
+                self.logger.debug(f"Waiting for {len(active_threads)} threads to complete")
+                
+                # Wait briefly for threads to complete
+                wait_time = min(timeout, 2.0)  # Max 2 seconds for daemon threads
+                time.sleep(wait_time)
+                
+                elapsed = time.time() - start_time
+                self.logger.debug(f"Waited {elapsed:.2f}s for thread completion")
+                
+        except Exception as e:
+            self.logger.debug(f"Error waiting for threads: {e}")
