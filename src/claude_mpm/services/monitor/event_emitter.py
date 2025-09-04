@@ -251,20 +251,72 @@ class AsyncEventEmitter:
         }
 
     async def close(self):
-        """Clean up resources."""
+        """Clean up resources with proper order and timing."""
         try:
-            if self._http_session:
-                await self._http_session.close()
+            # Cancel batch processor if running
+            if self._batch_processor_task and not self._batch_processor_task.done():
+                self._batch_processor_task.cancel()
+                try:
+                    await self._batch_processor_task
+                except asyncio.CancelledError:
+                    pass
+                except Exception as e:
+                    self.logger.debug(f"Error cancelling batch processor: {e}")
+                finally:
+                    self._batch_processor_task = None
 
-            if self._http_connector:
-                await self._http_connector.close()
-
+            # Clear Socket.IO server references first
+            # This prevents any new events from being emitted
             self._socketio_servers.clear()
 
-            self.logger.info("AsyncEventEmitter closed")
+            # Close HTTP session (must be done before connector)
+            if self._http_session:
+                try:
+                    # Cancel any pending requests
+                    if hasattr(self._http_session, '_connector') and self._http_session._connector:
+                        # Give ongoing requests a moment to complete
+                        await asyncio.sleep(0.1)
+                    
+                    # Close the session
+                    await self._http_session.close()
+                    
+                    # CRITICAL: Wait for session to fully close
+                    # This prevents the "I/O operation on closed kqueue" error
+                    await asyncio.sleep(0.25)
+                    
+                except Exception as e:
+                    self.logger.debug(f"Error closing HTTP session: {e}")
+                finally:
+                    self._http_session = None
+
+            # Then close the connector (after session is fully closed)
+            if self._http_connector:
+                try:
+                    # Close the connector
+                    await self._http_connector.close()
+                    
+                    # Give the connector adequate time to close all connections
+                    # This is critical for preventing kqueue errors
+                    await asyncio.sleep(0.5)
+                    
+                except Exception as e:
+                    self.logger.debug(f"Error closing HTTP connector: {e}")
+                finally:
+                    self._http_connector = None
+
+            # Reset singleton instance
+            AsyncEventEmitter._instance = None
+
+            self.logger.info("AsyncEventEmitter closed successfully")
 
         except Exception as e:
             self.logger.error(f"Error closing AsyncEventEmitter: {e}")
+        finally:
+            # Ensure references are cleared even if errors occur
+            self._http_session = None
+            self._http_connector = None
+            self._socketio_servers.clear()
+            AsyncEventEmitter._instance = None
 
 
 # Global instance for easy access
@@ -277,3 +329,11 @@ async def get_event_emitter() -> AsyncEventEmitter:
     if _global_emitter is None:
         _global_emitter = await AsyncEventEmitter.get_instance()
     return _global_emitter
+
+
+async def cleanup_event_emitter():
+    """Clean up the global event emitter instance."""
+    global _global_emitter
+    if _global_emitter is not None:
+        await _global_emitter.close()
+        _global_emitter = None

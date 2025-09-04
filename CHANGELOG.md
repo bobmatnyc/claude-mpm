@@ -17,6 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.12] - 2025-09-04
+
+### Fixed
+- Monitor daemon process management and status detection
+- Background/daemon mode now default with --foreground flag for debugging
+- Asyncio cleanup errors preventing clean event loop shutdown
+- PID file management across all monitor operation modes
+- Socket.IO server initialization error handling
+- Structure violations by moving test files to correct /tests/ directory
+
+### Changed
+- Monitor daemon now starts in background by default
+- Enhanced process lifecycle management for better reliability
+
+
 ## [4.2.10] - 2025-09-04
 
 ### Fixed

@@ -70,10 +70,20 @@ class MonitorCommand(BaseCommand):
         if port is None:
             port = 8765  # Default to 8765 for unified monitor
         host = getattr(args, "host", "localhost")
-        daemon_mode = getattr(args, "daemon", False)  # Default to foreground
+        
+        # Check for explicit foreground flag first, then background flag
+        # Default to daemon/background mode if neither specified
+        if getattr(args, "foreground", False):
+            daemon_mode = False
+        elif getattr(args, "background", None) is not None:
+            daemon_mode = getattr(args, "background", False)
+        else:
+            # Default to daemon/background mode
+            daemon_mode = True
 
+        mode_str = "background/daemon" if daemon_mode else "foreground"
         self.logger.info(
-            f"Starting unified monitor daemon on {host}:{port} (daemon: {daemon_mode})"
+            f"Starting unified monitor daemon on {host}:{port} (mode: {mode_str})"
         )
 
         # Create unified monitor daemon
@@ -95,9 +105,10 @@ class MonitorCommand(BaseCommand):
 
         # Start the daemon
         if self.daemon.start():
+            mode_info = " in background" if daemon_mode else " in foreground"
             return CommandResult.success_result(
-                f"Unified monitor daemon started on {host}:{port}",
-                data={"url": f"http://{host}:{port}", "port": port},
+                f"Unified monitor daemon started on {host}:{port}{mode_info}",
+                data={"url": f"http://{host}:{port}", "port": port, "mode": mode_str},
             )
         return CommandResult.error_result("Failed to start unified monitor daemon")
 
@@ -111,8 +122,8 @@ class MonitorCommand(BaseCommand):
         if not daemon.lifecycle.is_running():
             return CommandResult.success_result("No unified monitor daemon running")
 
-        # Stop the daemon
-        if daemon.stop():
+        # Stop the daemon by PID (works for both daemon and foreground mode)
+        if daemon.lifecycle.stop_daemon():
             return CommandResult.success_result("Unified monitor daemon stopped")
         return CommandResult.error_result("Failed to stop unified monitor daemon")
 
