@@ -17,6 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.10] - 2025-09-04
+
+### Fixed
+- Dashboard code viewer Socket.IO event handling for directory discovery
+- JavaScript this context binding in code tree event handlers  
+- Root node directory flag for proper directory handling
+- UI layout to use full width after removing duplicate content pane
+- Dashboard server resilience with proper error handling
+- Applied comprehensive linting fixes across codebase
+
+### Added
+- Missing Socket.IO event handlers for code:discover:top_level in stable server
+- JSON file support with syntax highlighting in code viewer
+
+
 ## [4.2.9] - 2025-09-03
 
 ### Fixed
