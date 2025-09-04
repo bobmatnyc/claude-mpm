@@ -255,11 +255,113 @@ class UnifiedMonitorServer:
                     self.logger.error(f"Error handling HTTP event: {e}")
                     return web.Response(text=f"Error: {e!s}", status=500)
 
+            # File content endpoint for file viewer
+            async def api_file_handler(request):
+                """Handle file content requests."""
+                import json
+                import os
+                try:
+                    data = await request.json()
+                    file_path = data.get("path", "")
+                    
+                    # Security check: ensure path is absolute and exists
+                    if not file_path or not os.path.isabs(file_path):
+                        return web.json_response(
+                            {"success": False, "error": "Invalid file path"},
+                            status=400
+                        )
+                    
+                    # Check if file exists and is readable
+                    if not os.path.exists(file_path):
+                        return web.json_response(
+                            {"success": False, "error": "File not found"},
+                            status=404
+                        )
+                    
+                    if not os.path.isfile(file_path):
+                        return web.json_response(
+                            {"success": False, "error": "Path is not a file"},
+                            status=400
+                        )
+                    
+                    # Read file content (with size limit for safety)
+                    max_size = 10 * 1024 * 1024  # 10MB limit
+                    file_size = os.path.getsize(file_path)
+                    
+                    if file_size > max_size:
+                        return web.json_response(
+                            {"success": False, "error": f"File too large (>{max_size} bytes)"},
+                            status=413
+                        )
+                    
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                            lines = content.count('\n') + 1
+                    except UnicodeDecodeError:
+                        # Try reading as binary if UTF-8 fails
+                        return web.json_response(
+                            {"success": False, "error": "File is not a text file"},
+                            status=415
+                        )
+                    
+                    # Get file extension for type detection
+                    file_ext = os.path.splitext(file_path)[1].lstrip('.')
+                    
+                    return web.json_response({
+                        "success": True,
+                        "content": content,
+                        "lines": lines,
+                        "size": file_size,
+                        "type": file_ext or "text"
+                    })
+                    
+                except json.JSONDecodeError:
+                    return web.json_response(
+                        {"success": False, "error": "Invalid JSON in request"},
+                        status=400
+                    )
+                except Exception as e:
+                    self.logger.error(f"Error reading file: {e}")
+                    return web.json_response(
+                        {"success": False, "error": str(e)},
+                        status=500
+                    )
+
+            # Version endpoint for dashboard build tracker
+            async def version_handler(request):
+                """Serve version information for dashboard build tracker."""
+                try:
+                    # Try to get version from version service
+                    from claude_mpm.services.version_service import VersionService
+                    version_service = VersionService()
+                    version_info = version_service.get_version_info()
+
+                    return web.json_response({
+                        "version": version_info.get("base_version", "1.0.0"),
+                        "build": version_info.get("build_number", 1),
+                        "formatted_build": f"{version_info.get('build_number', 1):04d}",
+                        "full_version": version_info.get("version", "v1.0.0-0001"),
+                        "service": "unified-monitor"
+                    })
+                except Exception as e:
+                    self.logger.warning(f"Error getting version info: {e}")
+                    # Return default version info if service fails
+                    return web.json_response({
+                        "version": "1.0.0",
+                        "build": 1,
+                        "formatted_build": "0001",
+                        "full_version": "v1.0.0-0001",
+                        "service": "unified-monitor"
+                    })
+
             # Register routes
             self.app.router.add_get("/", dashboard_index)
             self.app.router.add_get("/health", health_check)
+            self.app.router.add_get("/version.json", version_handler)
             self.app.router.add_get("/api/directory", list_directory)
             self.app.router.add_post("/api/events", api_events_handler)
+            self.app.router.add_post("/api/file", api_file_handler)
 
             # Static files
             static_dir = dashboard_dir / "static"

@@ -90,13 +90,17 @@ class CodeAnalysisHandler:
             cache_key = f"file:{file_path}"
             if cache_key in self.analysis_cache:
                 self.logger.debug(f"Using cached analysis for {file_path}")
+                # Send cached result in same format as fresh analysis
+                cached_result = self.analysis_cache[cache_key]
+                response_data = {
+                    "path": file_path,
+                    "cached": True,
+                    **cached_result,  # Spread cached analysis result at top level
+                }
+
                 await self.sio.emit(
                     "code:file:analyzed",
-                    {
-                        "path": file_path,
-                        "analysis": self.analysis_cache[cache_key],
-                        "cached": True,
-                    },
+                    response_data,
                     room=sid,
                 )
                 return
@@ -108,10 +112,17 @@ class CodeAnalysisHandler:
                 # Cache the result
                 self.analysis_cache[cache_key] = analysis_result
 
-                # Emit the result
+                # Emit the result in the same format as legacy server
+                # Frontend expects analysis data at top level, not wrapped in "analysis" field
+                response_data = {
+                    "path": file_path,
+                    "cached": False,
+                    **analysis_result,  # Spread analysis result at top level
+                }
+
                 await self.sio.emit(
                     "code:file:analyzed",
-                    {"path": file_path, "analysis": analysis_result, "cached": False},
+                    response_data,
                     room=sid,
                 )
 

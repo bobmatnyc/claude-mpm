@@ -21,10 +21,11 @@ from typing import Optional
 from ...constants import LogLevel
 from ...core.logger import get_logger
 from ...core.unified_paths import get_scripts_dir
-from ...services.cli.dashboard_launcher import DashboardLauncher
 from ...services.cli.session_manager import SessionManager
-from ...services.cli.socketio_manager import SocketIOManager
+
+# SocketIOManager functionality now provided by UnifiedDashboardManager
 from ...services.cli.startup_checker import StartupCheckerService
+from ...services.cli.unified_dashboard_manager import UnifiedDashboardManager
 from ..shared import BaseCommand, CommandResult
 from ..startup_logging import (
     cleanup_old_startup_logs,
@@ -423,16 +424,16 @@ class RunCommand(BaseCommand):
                 self.logger.warning(f"Dependency check failed: {e}")
 
     def _setup_monitoring(self, args):
-        """Setup monitoring configuration using SocketIOManager."""
+        """Setup monitoring configuration using UnifiedDashboardManager."""
         monitor_mode = getattr(args, "monitor", False)
         websocket_port = 8765  # Default port
 
         if monitor_mode:
-            # Use SocketIOManager for server management
-            socketio_manager = SocketIOManager(self.logger)
+            # Use UnifiedDashboardManager for server management
+            dashboard_manager = UnifiedDashboardManager(self.logger)
 
             # Check dependencies
-            deps_ok, error_msg = socketio_manager.ensure_dependencies()
+            deps_ok, error_msg = dashboard_manager.ensure_dependencies()
             if not deps_ok:
                 self.logger.warning(
                     f"Socket.IO dependencies not available: {error_msg}, disabling monitor mode"
@@ -440,8 +441,8 @@ class RunCommand(BaseCommand):
                 monitor_mode = False
             else:
                 # Find available port and start server
-                websocket_port = socketio_manager.find_available_port(8765)
-                success, server_info = socketio_manager.start_server(
+                websocket_port = dashboard_manager.find_available_port(8765)
+                success, server_info = dashboard_manager.start_server(
                     port=websocket_port
                 )
 
@@ -451,12 +452,12 @@ class RunCommand(BaseCommand):
                     )
                     monitor_mode = False
                 else:
-                    # Use DashboardLauncher for browser opening only
-                    dashboard_launcher = DashboardLauncher(self.logger)
-                    monitor_url = dashboard_launcher.get_dashboard_url(websocket_port)
+                    # Use UnifiedDashboardManager for browser opening only
+                    dashboard_manager = UnifiedDashboardManager(self.logger)
+                    monitor_url = dashboard_manager.get_dashboard_url(websocket_port)
 
                     # Try to open browser
-                    browser_opened = dashboard_launcher._open_browser(monitor_url)
+                    browser_opened = dashboard_manager.open_browser(monitor_url)
                     args._browser_opened_by_cli = browser_opened
 
                     if not browser_opened:
@@ -855,12 +856,12 @@ def run_session_legacy(args):
 
     # Display Socket.IO server info if enabled
     if enable_websocket:
-        # Use SocketIOManager for server management
-        socketio_manager = SocketIOManager(logger)
+        # Use UnifiedDashboardManager for server management
+        dashboard_manager = UnifiedDashboardManager(logger)
 
         # Check dependencies
         print("🔧 Checking Socket.IO dependencies...")
-        deps_ok, error_msg = socketio_manager.ensure_dependencies()
+        deps_ok, error_msg = dashboard_manager.ensure_dependencies()
 
         if not deps_ok:
             print(f"❌ Failed to install Socket.IO dependencies: {error_msg}")
@@ -874,8 +875,8 @@ def run_session_legacy(args):
 
             # Find available port and start server if in monitor mode
             if monitor_mode:
-                websocket_port = socketio_manager.find_available_port(websocket_port)
-                success, server_info = socketio_manager.start_server(
+                websocket_port = dashboard_manager.find_available_port(websocket_port)
+                success, server_info = dashboard_manager.start_server(
                     port=websocket_port
                 )
 
@@ -886,10 +887,10 @@ def run_session_legacy(args):
                             "  Note: Socket.IO monitoring using exec mode with Claude Code hooks"
                         )
 
-                    # Use DashboardLauncher for browser opening
-                    dashboard_launcher = DashboardLauncher(logger)
-                    monitor_url = dashboard_launcher.get_dashboard_url(websocket_port)
-                    browser_opened = dashboard_launcher._open_browser(monitor_url)
+                    # Use UnifiedDashboardManager for browser opening
+                    dashboard_manager = UnifiedDashboardManager(logger)
+                    monitor_url = dashboard_manager.get_dashboard_url(websocket_port)
+                    browser_opened = dashboard_manager.open_browser(monitor_url)
                     args._browser_opened_by_cli = browser_opened
 
                     if not browser_opened:
@@ -971,16 +972,15 @@ def run_session_legacy(args):
         runner.run_interactive(context)
 
 
-# Legacy helper functions - now delegating to SocketIOManager
+# Legacy helper functions - now delegating to UnifiedDashboardManager
 def launch_socketio_monitor(port, logger):
     """Launch the Socket.IO monitoring dashboard (legacy compatibility)."""
-    socketio_manager = SocketIOManager(logger)
-    success, server_info = socketio_manager.start_server(port=port)
+    dashboard_manager = UnifiedDashboardManager(logger)
+    success, server_info = dashboard_manager.start_server(port=port)
 
     if success:
-        # Open browser using DashboardLauncher
-        launcher = DashboardLauncher(logger)
-        browser_opened = launcher._open_browser(server_info.url)
+        # Open browser using UnifiedDashboardManager
+        browser_opened = dashboard_manager.open_browser(server_info.url)
         return success, browser_opened
 
     return False, False
@@ -988,21 +988,21 @@ def launch_socketio_monitor(port, logger):
 
 def _check_socketio_server_running(port, logger):
     """Check if a Socket.IO server is running on the specified port (legacy compatibility)."""
-    socketio_manager = SocketIOManager(logger)
-    return socketio_manager.is_server_running(port)
+    dashboard_manager = UnifiedDashboardManager(logger)
+    return dashboard_manager.is_server_running(port)
 
 
 def _start_standalone_socketio_server(port, logger):
     """Start a standalone Socket.IO server (legacy compatibility)."""
-    socketio_manager = SocketIOManager(logger)
-    success, _ = socketio_manager.start_server(port=port)
+    dashboard_manager = UnifiedDashboardManager(logger)
+    success, _ = dashboard_manager.start_server(port=port)
     return success
 
 
 def open_in_browser_tab(url, logger):
     """Open URL in browser, attempting to reuse existing tabs when possible."""
-    launcher = DashboardLauncher(logger)
-    return launcher._open_browser(url)
+    manager = UnifiedDashboardManager(logger)
+    return manager.open_browser(url)
 
 
 def _check_claude_json_memory(args, logger):

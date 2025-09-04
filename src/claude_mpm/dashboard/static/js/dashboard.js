@@ -1073,35 +1073,7 @@ window.switchTab = function(tabName) {
     }
 };
 
-// File Viewer Modal Functions - REMOVED DUPLICATE (keeping the one at line 1553)
-window.showFileViewerModal = function(filePath, workingDir) {
-    // Use the dashboard's current working directory if not provided
-    if (!workingDir && window.dashboard && window.dashboard.currentWorkingDir) {
-        workingDir = window.dashboard.currentWorkingDir;
-    }
-
-    // Create modal if it doesn't exist
-    let modal = document.getElementById('file-viewer-modal');
-    if (!modal) {
-        modal = createFileViewerModal();
-        document.body.appendChild(modal);
-    }
-
-    // Update modal content
-    updateFileViewerModal(modal, filePath, workingDir);
-
-    // Show the modal as flex container
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden'; // Prevent background scrolling
-};
-
-window.hideFileViewerModal = function() {
-    const modal = document.getElementById('file-viewer-modal');
-    if (modal) {
-        modal.style.display = 'none';
-        document.body.style.overflow = ''; // Restore background scrolling
-    }
-};
+// File Viewer Modal Functions - Removed broken duplicate (using the one at line 1505)
 
 window.copyFileContent = function() {
     const modal = document.getElementById('file-viewer-modal');
@@ -1116,11 +1088,13 @@ window.copyFileContent = function() {
         navigator.clipboard.writeText(text).then(() => {
             // Show brief feedback
             const button = modal.querySelector('.file-content-copy');
-            const originalText = button.textContent;
-            button.textContent = '✅ Copied!';
-            setTimeout(() => {
-                button.textContent = originalText;
-            }, 2000);
+            if (button) {
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            }
         }).catch(err => {
             console.error('Failed to copy text:', err);
         });
@@ -1134,11 +1108,13 @@ window.copyFileContent = function() {
         document.body.removeChild(textarea);
 
         const button = modal.querySelector('.file-content-copy');
-        const originalText = button.textContent;
-        button.textContent = '✅ Copied!';
-        setTimeout(() => {
-            button.textContent = originalText;
-        }, 2000);
+        if (button) {
+            const originalText = button.textContent;
+            button.textContent = '✅ Copied!';
+            setTimeout(() => {
+                button.textContent = originalText;
+            }, 2000);
+        }
     }
 };
 
@@ -1214,13 +1190,27 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
     const filePathElement = modal.querySelector('.file-viewer-file-path');
     const fileSizeElement = modal.querySelector('.file-viewer-file-size');
 
-    filePathElement.textContent = filePath;
-    fileSizeElement.textContent = '';
+    if (filePathElement) {
+        filePathElement.textContent = filePath;
+    }
+    if (fileSizeElement) {
+        fileSizeElement.textContent = '';
+    }
 
     // Show loading state
-    modal.querySelector('.file-viewer-loading').style.display = 'flex';
-    modal.querySelector('.file-viewer-error').style.display = 'none';
-    modal.querySelector('.file-viewer-content-area').style.display = 'none';
+    const loadingElement = modal.querySelector('.file-viewer-loading');
+    const errorElement = modal.querySelector('.file-viewer-error');
+    const contentArea = modal.querySelector('.file-viewer-content-area');
+    
+    if (loadingElement) {
+        loadingElement.style.display = 'flex';
+    }
+    if (errorElement) {
+        errorElement.style.display = 'none';
+    }
+    if (contentArea) {
+        contentArea.style.display = 'none';
+    }
 
     try {
         // Get the Socket.IO client
@@ -1264,7 +1254,10 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
         // File content received successfully
 
         // Hide loading
-        modal.querySelector('.file-viewer-loading').style.display = 'none';
+        const loadingEl = modal.querySelector('.file-viewer-loading');
+        if (loadingEl) {
+            loadingEl.style.display = 'none';
+        }
 
         // Show successful content
         displayFileContent(modal, result);
@@ -1272,7 +1265,10 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
     } catch (error) {
         console.error('❌ Failed to fetch file content:', error);
 
-        modal.querySelector('.file-viewer-loading').style.display = 'none';
+        const loadingEl2 = modal.querySelector('.file-viewer-loading');
+        if (loadingEl2) {
+            loadingEl2.style.display = 'none';
+        }
 
         // Create detailed error message
         let errorMessage = error.message || 'Unknown error occurred';
@@ -1373,21 +1369,25 @@ function displayFileError(modal, result) {
 
     let errorMessage = result.error || 'Unknown error occurred';
 
-    messageElement.innerHTML = `
-        <div class="error-main">${errorMessage}</div>
-        ${result.file_path ? `<div class="error-file">File: ${result.file_path}</div>` : ''}
-        ${result.working_dir ? `<div class="error-dir">Working directory: ${result.working_dir}</div>` : ''}
-    `;
-
-    if (result.suggestions && result.suggestions.length > 0) {
-        suggestionsElement.innerHTML = `
-            <h4>Suggestions:</h4>
-            <ul>
-                ${result.suggestions.map(s => `<li>${s}</li>`).join('')}
-            </ul>
+    if (messageElement) {
+        messageElement.innerHTML = `
+            <div class="error-main">${errorMessage}</div>
+            ${result.file_path ? `<div class="error-file">File: ${result.file_path}</div>` : ''}
+            ${result.working_dir ? `<div class="error-dir">Working directory: ${result.working_dir}</div>` : ''}
         `;
-    } else {
-        suggestionsElement.innerHTML = '';
+    }
+
+    if (suggestionsElement) {
+        if (result.suggestions && result.suggestions.length > 0) {
+            suggestionsElement.innerHTML = `
+                <h4>Suggestions:</h4>
+                <ul>
+                    ${result.suggestions.map(s => `<li>${s}</li>`).join('')}
+                </ul>
+            `;
+        } else {
+            suggestionsElement.innerHTML = '';
+        }
     }
 
     console.log('📋 Displaying file viewer error:', {
@@ -1396,7 +1396,9 @@ function displayFileError(modal, result) {
         suggestions: result.suggestions
     });
 
-    errorArea.style.display = 'block';
+    if (errorArea) {
+        errorArea.style.display = 'block';
+    }
 }
 
 function highlightCode(code, extension) {
@@ -1502,7 +1504,7 @@ function formatFileSize(bytes) {
 }
 
 // File Viewer Modal Functions
-window.showFileViewerModal = function(filePath) {
+window.showFileViewerModal = async function(filePath) {
     // Use the dashboard's current working directory
     let workingDir = '';
     if (window.dashboard && window.dashboard.currentWorkingDir) {
@@ -1514,10 +1516,15 @@ window.showFileViewerModal = function(filePath) {
     if (!modal) {
         modal = createFileViewerModal();
         document.body.appendChild(modal);
+
+        // Small delay to ensure DOM is fully updated
+        await new Promise(resolve => setTimeout(resolve, 10));
     }
 
     // Update modal content
-    updateFileViewerModal(modal, filePath, workingDir);
+    updateFileViewerModal(modal, filePath, workingDir).catch(error => {
+        console.error('Error updating file viewer modal:', error);
+    });
 
     // Show the modal as flex container
     modal.style.display = 'flex';
@@ -1545,11 +1552,13 @@ window.copyFileContent = function() {
         navigator.clipboard.writeText(text).then(() => {
             // Show brief feedback
             const button = modal.querySelector('.file-content-copy');
-            const originalText = button.textContent;
-            button.textContent = '✅ Copied!';
-            setTimeout(() => {
-                button.textContent = originalText;
-            }, 2000);
+            if (button) {
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            }
         }).catch(err => {
             console.error('Failed to copy text:', err);
         });
@@ -1563,11 +1572,13 @@ window.copyFileContent = function() {
         document.body.removeChild(textarea);
 
         const button = modal.querySelector('.file-content-copy');
-        const originalText = button.textContent;
-        button.textContent = '✅ Copied!';
-        setTimeout(() => {
-            button.textContent = originalText;
-        }, 2000);
+        if (button) {
+            const originalText = button.textContent;
+            button.textContent = '✅ Copied!';
+            setTimeout(() => {
+                button.textContent = originalText;
+            }, 2000);
+        }
     }
 };
 
@@ -1592,25 +1603,29 @@ function displayFileContentError(modal, result) {
         errorMessage = `⚠️ ${errorMessage}`;
     }
 
-    messageElement.textContent = errorMessage;
+    if (messageElement) {
+        messageElement.textContent = errorMessage;
+    }
 
     // Add suggestions if available
-    if (result.suggestions && result.suggestions.length > 0) {
-        suggestionsElement.innerHTML = `
-            <h4>Suggestions:</h4>
-            <ul>
-                ${result.suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
-            </ul>
-        `;
-    } else {
-        suggestionsElement.innerHTML = `
-            <h4>Try:</h4>
-            <ul>
-                <li>Check if the file exists and is readable</li>
-                <li>Verify file permissions</li>
-                <li>Ensure the monitoring server has access to this file</li>
-            </ul>
-        `;
+    if (suggestionsElement) {
+        if (result.suggestions && result.suggestions.length > 0) {
+            suggestionsElement.innerHTML = `
+                <h4>Suggestions:</h4>
+                <ul>
+                    ${result.suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
+                </ul>
+            `;
+        } else {
+            suggestionsElement.innerHTML = `
+                <h4>Try:</h4>
+                <ul>
+                    <li>Check if the file exists and is readable</li>
+                    <li>Verify file permissions</li>
+                    <li>Ensure the monitoring server has access to this file</li>
+                </ul>
+            `;
+        }
     }
 
     console.log('📋 Displaying file content error:', {
@@ -1619,7 +1634,9 @@ function displayFileContentError(modal, result) {
         suggestions: result.suggestions
     });
 
-    errorArea.style.display = 'block';
+    if (errorArea) {
+        errorArea.style.display = 'block';
+    }
 }
 
 // Search Viewer Modal Functions

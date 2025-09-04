@@ -1727,27 +1727,34 @@ class CodeTreeAnalyzer:
 
     def _is_internal_node(self, node: CodeNode) -> bool:
         """Check if node is an internal function that should be filtered."""
-        # Filter patterns for internal functions
-        internal_patterns = [
-            "handle",  # Event handlers
-            "on_",  # Event callbacks
-            "_",  # Private methods
-            "get_",  # Simple getters
-            "set_",  # Simple setters
-            "__",  # Python magic methods
-        ]
-
-        name_lower = node.name.lower()
-
-        # Don't filter classes or important public methods
+        # Don't filter classes - always show them
         if node.node_type == "class":
             return False
 
-        # Check patterns
-        for pattern in internal_patterns:
-            if name_lower.startswith(pattern):
-                # Exception: include __init__ methods
-                return node.name != "__init__"
+        # Don't filter variables or imports - they're useful for tree view
+        if node.node_type in ["variable", "import"]:
+            return False
+
+        name_lower = node.name.lower()
+
+        # Filter only very specific internal patterns
+        # Be more conservative - only filter obvious internal handlers
+        if name_lower.startswith("handle_") or name_lower.startswith("on_"):
+            return True
+
+        # Filter Python magic methods except important ones
+        if name_lower.startswith("__") and name_lower.endswith("__"):
+            # Keep important magic methods
+            important_magic = ["__init__", "__call__", "__enter__", "__exit__", "__str__", "__repr__"]
+            return node.name not in important_magic
+
+        # Filter very generic getters/setters only if they're trivial
+        if (name_lower.startswith("get_") or name_lower.startswith("set_")) and len(node.name) <= 8:
+            return True
+
+        # Don't filter single underscore functions - they're often important
+        # (like _setup_logging, _validate_input, etc.)
+        return False
 
         return False
 

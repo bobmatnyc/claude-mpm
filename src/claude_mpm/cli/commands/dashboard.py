@@ -5,21 +5,20 @@ WHY: This module provides CLI commands for managing the web dashboard interface,
 allowing users to start, stop, check status, and open the dashboard in a browser.
 
 DESIGN DECISIONS:
-- Use DashboardLauncher service for consistent dashboard management
+- Use UnifiedMonitorDaemon for integrated dashboard and monitoring
 - Support both foreground and background operation modes
-- Integrate with SocketIO server for real-time event streaming
+- Integrate with EventBus for real-time event streaming
 - Provide browser auto-opening functionality
 """
 
 import signal
 import sys
-import time
 from typing import Optional
 
 from ...constants import DashboardCommands
-from ...services.cli.dashboard_launcher import DashboardLauncher
+from ...services.cli.unified_dashboard_manager import UnifiedDashboardManager
+from ...services.monitor.daemon import UnifiedMonitorDaemon
 from ...services.port_manager import PortManager
-from ...services.socketio.dashboard_server import DashboardServer
 from ..shared import BaseCommand, CommandResult
 
 
@@ -28,7 +27,7 @@ class DashboardCommand(BaseCommand):
 
     def __init__(self):
         super().__init__("dashboard")
-        self.dashboard_launcher = DashboardLauncher(self.logger)
+        self.dashboard_manager = UnifiedDashboardManager(self.logger)
         self.port_manager = PortManager()
         self.server = None
 
@@ -79,20 +78,20 @@ class DashboardCommand(BaseCommand):
         )
 
         # Check if dashboard is already running
-        if self.dashboard_launcher.is_dashboard_running(port):
-            dashboard_url = self.dashboard_launcher.get_dashboard_url(port)
+        if self.dashboard_manager.is_dashboard_running(port):
+            dashboard_url = self.dashboard_manager.get_dashboard_url(port)
             return CommandResult.success_result(
                 f"Dashboard already running at {dashboard_url}",
                 data={"url": dashboard_url, "port": port},
             )
 
         if background:
-            # Use the dashboard launcher for background mode
-            success, browser_opened = self.dashboard_launcher.launch_dashboard(
-                port=port, monitor_mode=True
+            # Use the unified dashboard manager for background mode
+            success, browser_opened = self.dashboard_manager.start_dashboard(
+                port=port, background=True, open_browser=True
             )
             if success:
-                dashboard_url = self.dashboard_launcher.get_dashboard_url(port)
+                dashboard_url = self.dashboard_manager.get_dashboard_url(port)
                 return CommandResult.success_result(
                     f"Dashboard started at {dashboard_url}",
                     data={
@@ -103,110 +102,46 @@ class DashboardCommand(BaseCommand):
                 )
             return CommandResult.error_result("Failed to start dashboard in background")
 
-        # Run in foreground mode
-        server_started = False
+        # Run in foreground mode using unified monitor daemon
+        try:
+            self.logger.info("Starting unified monitor daemon with dashboard...")
+            print(f"Starting unified dashboard and monitor on {host}:{port}...")
+            print("Press Ctrl+C to stop the server")
+            print(
+                "\n✅ Using unified daemon - includes dashboard, monitoring, and EventBus integration\n"
+            )
 
-        # Try stable server first (or if explicitly requested)
-        if use_stable:
-            try:
-                self.logger.info(
-                    "Starting stable dashboard server (no monitor dependency)..."
-                )
-                print(f"Starting stable dashboard server on {host}:{port}...")
-                print("Press Ctrl+C to stop the server")
-                print("\n✅ Using stable server - works without monitor service\n")
+            # Create and start the unified monitor daemon
+            daemon = UnifiedMonitorDaemon(host=host, port=port, daemon_mode=False)
 
-                # Create and run the stable server
-                from ...services.dashboard.stable_server import StableDashboardServer
+            # Set up signal handlers for graceful shutdown
+            def signal_handler(signum, frame):
+                print("\nShutting down unified monitor daemon...")
+                daemon.stop()
+                sys.exit(0)
 
-                stable_server = StableDashboardServer(host=host, port=port, debug=debug)
+            signal.signal(signal.SIGINT, signal_handler)
+            signal.signal(signal.SIGTERM, signal_handler)
 
-                # Set up signal handlers for graceful shutdown
-                def signal_handler(signum, frame):
-                    print("\nShutting down dashboard server...")
-                    sys.exit(0)
+            # Start the daemon (blocking in foreground mode)
+            success = daemon.start()
+            if success:
+                return CommandResult.success_result("Unified monitor daemon stopped")
+            return CommandResult.error_result(
+                "Failed to start unified monitor daemon"
+            )
 
-                signal.signal(signal.SIGINT, signal_handler)
-                signal.signal(signal.SIGTERM, signal_handler)
-
-                # Run the server (blocking)
-                result = stable_server.run()
-                if result:
-                    # Server ran successfully and stopped normally
-                    server_started = True
-                    return CommandResult.success_result("Dashboard server stopped")
-                # Server failed to start (e.g., couldn't find templates)
-                server_started = False
-                self.logger.warning(
-                    "Stable server failed to start, trying advanced server..."
-                )
-
-            except KeyboardInterrupt:
-                print("\nDashboard server stopped by user")
-                return CommandResult.success_result("Dashboard server stopped")
-            except Exception as e:
-                self.logger.warning(f"Stable server failed: {e}")
-                if not getattr(args, "no_fallback", False):
-                    print(f"\n⚠️ Stable server failed: {e}")
-                    print("Attempting fallback to advanced server...")
-                else:
-                    return CommandResult.error_result(
-                        f"Failed to start stable dashboard: {e}"
-                    )
-
-        # Fallback to advanced DashboardServer if stable server failed or not requested
-        if not server_started and not getattr(args, "stable_only", False):
-            try:
-                self.logger.info(
-                    "Attempting to start advanced dashboard server with monitor..."
-                )
-                print(f"\nStarting advanced dashboard server on {host}:{port}...")
-                print("Note: This requires monitor service on port 8766")
-                print("Press Ctrl+C to stop the server")
-
-                # Create and start the Dashboard server (with monitor client)
-                self.server = DashboardServer(host=host, port=port)
-
-                # Set up signal handlers for graceful shutdown
-                def signal_handler(signum, frame):
-                    print("\nShutting down dashboard server...")
-                    if self.server:
-                        self.server.stop_sync()
-                    sys.exit(0)
-
-                signal.signal(signal.SIGINT, signal_handler)
-                signal.signal(signal.SIGTERM, signal_handler)
-
-                # Start the server (this starts in background thread)
-                self.server.start_sync()
-
-                # Keep the main thread alive while server is running
-                # The server runs in a background thread, so we need to block here
-                try:
-                    while self.server.is_running():
-                        time.sleep(1)
-                except KeyboardInterrupt:
-                    # Ctrl+C pressed, stop the server
-                    pass
-
-                # Server has stopped or user interrupted
-                if self.server:
-                    self.server.stop_sync()
-
-                return CommandResult.success_result("Dashboard server stopped")
-
-            except KeyboardInterrupt:
-                print("\nDashboard server stopped by user")
-                return CommandResult.success_result("Dashboard server stopped")
-            except Exception as e:
-                # If both servers fail, provide helpful error message
-                error_msg = f"Failed to start dashboard: {e}\n\n"
-                error_msg += "💡 Troubleshooting tips:\n"
-                error_msg += f"  - Check if port {port} is already in use\n"
-                error_msg += "  - Try running with --stable flag for standalone mode\n"
-                error_msg += "  - Use --debug flag for more details\n"
-                return CommandResult.error_result(error_msg)
-        return None
+        except KeyboardInterrupt:
+            print("\nUnified monitor daemon stopped by user")
+            return CommandResult.success_result("Unified monitor daemon stopped")
+        except Exception as e:
+            self.logger.error(f"Unified monitor daemon failed: {e}")
+            error_msg = f"Failed to start unified monitor daemon: {e}\n\n"
+            error_msg += "💡 Troubleshooting tips:\n"
+            error_msg += f"  - Check if port {port} is already in use\n"
+            error_msg += "  - Use --debug flag for more details\n"
+            error_msg += "  - Check that all dependencies are installed\n"
+            return CommandResult.error_result(error_msg)
 
     def _stop_dashboard(self, args) -> CommandResult:
         """Stop the dashboard server."""
@@ -214,10 +149,10 @@ class DashboardCommand(BaseCommand):
 
         self.logger.info(f"Stopping dashboard on port {port}")
 
-        if not self.dashboard_launcher.is_dashboard_running(port):
+        if not self.dashboard_manager.is_dashboard_running(port):
             return CommandResult.success_result(f"No dashboard running on port {port}")
 
-        if self.dashboard_launcher.stop_dashboard(port):
+        if self.dashboard_manager.stop_dashboard(port):
             return CommandResult.success_result(f"Dashboard stopped on port {port}")
 
         return CommandResult.error_result(f"Failed to stop dashboard on port {port}")
@@ -229,7 +164,7 @@ class DashboardCommand(BaseCommand):
 
         # Check default port first
         default_port = 8765
-        dashboard_running = self.dashboard_launcher.is_dashboard_running(default_port)
+        dashboard_running = self.dashboard_manager.is_dashboard_running(default_port)
 
         status_data = {
             "running": dashboard_running,
@@ -237,17 +172,17 @@ class DashboardCommand(BaseCommand):
         }
 
         if dashboard_running:
-            status_data["url"] = self.dashboard_launcher.get_dashboard_url(default_port)
+            status_data["url"] = self.dashboard_manager.get_dashboard_url(default_port)
 
         # Check all ports if requested
         if show_ports:
             port_status = {}
             for port in range(8765, 8786):
-                is_running = self.dashboard_launcher.is_dashboard_running(port)
+                is_running = self.dashboard_manager.is_dashboard_running(port)
                 port_status[port] = {
                     "running": is_running,
                     "url": (
-                        self.dashboard_launcher.get_dashboard_url(port)
+                        self.dashboard_manager.get_dashboard_url(port)
                         if is_running
                         else None
                     ),
@@ -280,14 +215,14 @@ class DashboardCommand(BaseCommand):
         port = getattr(args, "port", 8765)
 
         # Check if dashboard is running
-        if not self.dashboard_launcher.is_dashboard_running(port):
+        if not self.dashboard_manager.is_dashboard_running(port):
             self.logger.info("Dashboard not running, starting it first...")
             # Start dashboard in background
-            success, browser_opened = self.dashboard_launcher.launch_dashboard(
-                port=port, monitor_mode=True
+            success, browser_opened = self.dashboard_manager.start_dashboard(
+                port=port, background=True, open_browser=True
             )
             if success:
-                dashboard_url = self.dashboard_launcher.get_dashboard_url(port)
+                dashboard_url = self.dashboard_manager.get_dashboard_url(port)
                 return CommandResult.success_result(
                     f"Dashboard started and opened at {dashboard_url}",
                     data={
@@ -298,8 +233,8 @@ class DashboardCommand(BaseCommand):
                 )
             return CommandResult.error_result("Failed to start and open dashboard")
         # Dashboard already running, just open browser
-        dashboard_url = self.dashboard_launcher.get_dashboard_url(port)
-        if self.dashboard_launcher._open_browser(dashboard_url):
+        dashboard_url = self.dashboard_manager.get_dashboard_url(port)
+        if self.dashboard_manager.open_browser(dashboard_url):
             return CommandResult.success_result(
                 f"Opened dashboard at {dashboard_url}",
                 data={"url": dashboard_url, "port": port},

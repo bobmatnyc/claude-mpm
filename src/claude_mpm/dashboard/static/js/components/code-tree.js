@@ -297,9 +297,9 @@ class CodeTree {
         
         // Add tree controls toolbar
         this.addTreeControls();
-        
-        // Add breadcrumb navigation
-        this.addBreadcrumb();
+
+        // Breadcrumb navigation removed - redundant with root node display
+        // this.addBreadcrumb();
 
         if (!container || !container.node()) {
             console.error('Code tree container not found');
@@ -429,7 +429,8 @@ class CodeTree {
      */
     initializeTreeData() {
         const workingDir = this.getWorkingDirectory();
-        const dirName = workingDir ? workingDir.split('/').pop() || 'Project Root' : 'Project Root';
+        // Use a more descriptive root name that doesn't look like a clickable button
+        const dirName = 'Project Root';  // Always use generic name for root
 
         // Use absolute path for consistency with API expectations
         this.treeData = {
@@ -440,7 +441,8 @@ class CodeTree {
             children: [],
             loaded: false,
             expanded: true,  // Start expanded
-            hasChildren: true  // Root always has potential children
+            hasChildren: true,  // Root always has potential children
+            isRoot: true  // Mark as root node for special handling
         };
 
         if (typeof d3 !== 'undefined') {
@@ -549,7 +551,7 @@ class CodeTree {
         // Use REST API for initial discovery (more reliable than WebSocket)
         console.log(`🚀 [ROOT DISCOVERY] Using REST API for root: ${workingDir}`);
         
-        const apiUrl = `${window.location.origin}/api/directory/list?path=${encodeURIComponent(workingDir)}`;
+        const apiUrl = `${window.location.origin}/api/directory?path=${encodeURIComponent(workingDir)}`;
         
         fetch(apiUrl)
             .then(response => {
@@ -562,9 +564,9 @@ class CodeTree {
                 console.log('✅ [ROOT DISCOVERY] REST API response:', data);
                 
                 // Process the response
-                if (data.items && Array.isArray(data.items)) {
+                if (data.contents && Array.isArray(data.contents)) {
                     // Update root node with children
-                    this.treeData.children = data.items.map(item => ({
+                    this.treeData.children = data.contents.map(item => ({
                         name: item.name,
                         path: item.path,
                         type: item.type || (item.is_directory ? 'directory' : 'file'),
@@ -596,8 +598,8 @@ class CodeTree {
                     }
                     
                     // Update stats
-                    const fileCount = data.items.filter(item => !item.is_directory).length;
-                    const dirCount = data.items.filter(item => item.is_directory).length;
+                    const fileCount = data.contents.filter(item => !item.is_directory).length;
+                    const dirCount = data.contents.filter(item => item.is_directory).length;
                     
                     this.stats.files = fileCount;
                     this.updateStats();
@@ -614,7 +616,7 @@ class CodeTree {
                     
                     // Add to events display
                     this.addEventToDisplay(
-                        `📁 Loaded ${data.items.length} items from project root`,
+                        `📁 Loaded ${data.contents.length} items from project root`,
                         'info'
                     );
                 }
@@ -885,7 +887,7 @@ class CodeTree {
     navigateToPath(path) {
         // Implementation for navigating to a specific path
         // This would expand the tree to show the specified path
-        this.updateBreadcrumbPath(path);
+        // this.updateBreadcrumbPath(path); // Breadcrumb removed
         this.showNotification(`Navigating to: ${path}`, 'info');
     }
 
@@ -1622,18 +1624,22 @@ class CodeTree {
                 line: elem.line,
                 methods: elem.methods ? elem.methods.length : 0
             })));
+
+            // Show success message with element count breakdown
+            const fileName = data.path.split('/').pop();
+            const elementCounts = this.getElementCounts(data.elements);
+            const summary = this.formatElementSummary(elementCounts);
+
+            this.showNotification(`${fileName} - ${summary}`, 'success');
+            this.updateBreadcrumb(`${fileName} - AST parsed: ${summary}`, 'success');
         } else {
             const fileName = data.path.split('/').pop();
             console.log('⚠️ [AST ELEMENTS] No elements found in analysis result');
 
-            // Show user-friendly message for files with no AST elements
-            if (fileName.endsWith('__init__.py')) {
-                this.showNotification(`${fileName} is empty or contains only imports`, 'info');
-                this.updateBreadcrumb(`${fileName} - no code elements to display`, 'info');
-            } else {
-                this.showNotification(`${fileName} contains no classes or functions`, 'info');
-                this.updateBreadcrumb(`${fileName} - no AST elements found`, 'info');
-            }
+            // Show accurate message for files with no structural AST elements
+            const fileType = this.getFileTypeDescription(fileName);
+            this.showNotification(`${fileName} - No structural elements to display in tree`, 'info');
+            this.updateBreadcrumb(`${fileName} - ${fileType} analyzed, content not suitable for tree view`, 'info');
         }
 
         // Clear analysis timeout
@@ -1687,6 +1693,9 @@ class CodeTree {
                     childrenCount: children.length,
                     children: children.map(c => ({ name: c.name, type: c.type }))
                 });
+
+                // Auto-expand the file node to show AST tree if it was recently clicked
+                this.autoExpandFileWithAST(data.path, fileNode);
             } else {
                 console.log('⚠️ [FILE NODE] No elements to add as children');
             }
@@ -2686,7 +2695,7 @@ class CodeTree {
             .style('fill', d => this.getNodeColor(d))
             .style('stroke', d => this.getNodeStrokeColor(d))
             .style('stroke-width', d => this.isNodeDirectory(d) ? 2 : 1.5)
-            .style('cursor', 'pointer')  // Add cursor pointer for visual feedback
+            .style('cursor', d => (d.data && (d.data.type === 'root' || d.data.isRoot || d.depth === 0)) ? 'default' : 'pointer')  // No pointer for root
             .on('click', (event, d) => {
                 console.log('🔵 [CIRCLE] Click on circle element!', {
                     nodeName: d?.data?.name,
@@ -2794,7 +2803,7 @@ class CodeTree {
                 // Use bound method
                 this.onNodeClick(event, d);
             })  // CRITICAL FIX: Add click handler to labels
-            .style('cursor', 'pointer');
+            .style('cursor', d => (d.data && (d.data.type === 'root' || d.data.isRoot || d.depth === 0)) ? 'default' : 'pointer');
 
         // Add icons for node types (files only, directories use expand icons)
         nodeEnter.filter(d => !this.isNodeDirectory(d))
@@ -3237,7 +3246,13 @@ class CodeTree {
             console.error('[CodeTree] ERROR: d is null/undefined, cannot continue');
             return;
         }
-        
+
+        // Ignore clicks on root node - it should not be interactive
+        if (d.data && (d.data.type === 'root' || d.data.isRoot || d.depth === 0)) {
+            console.log('🚫 [ROOT CLICK] Ignoring click on root node:', d.data.name);
+            return;
+        }
+
         if (!d.data) {
             console.error('[CodeTree] ERROR: d.data is null/undefined, cannot continue');
             return;
@@ -3407,12 +3422,12 @@ class CodeTree {
                 console.log('📡 [SUBDIRECTORY LOADING] Using REST API for directory:', {
                     originalPath: d.data.path,
                     fullPath: fullPath,
-                    apiUrl: `${window.location.origin}/api/directory/list?path=${encodeURIComponent(fullPath)}`,
+                    apiUrl: `${window.location.origin}/api/directory?path=${encodeURIComponent(fullPath)}`,
                     loadingNodesSize: this.loadingNodes.size,
                     loadingNodesContent: Array.from(this.loadingNodes)
                 });
                 
-                const apiUrl = `${window.location.origin}/api/directory/list?path=${encodeURIComponent(fullPath)}`;
+                const apiUrl = `${window.location.origin}/api/directory?path=${encodeURIComponent(fullPath)}`;
                 
                 fetch(apiUrl)
                     .then(response => {
@@ -3551,28 +3566,40 @@ class CodeTree {
                 this.showNotification(`Error loading directory: ${error.message}`, 'error');
             }
         }
-        // For files that haven't been analyzed, request analysis
-        else if (d.data.type === 'file' && !d.data.analyzed) {
-            // Only analyze files of selected languages
-            const fileLanguage = this.detectLanguage(d.data.path);
-            console.log('🔍 [FILE ANALYSIS] Language check:', {
+        // For files, handle both content display and analysis
+        else if (d.data.type === 'file') {
+            console.log('📄 [FILE CLICK] File clicked:', {
                 fileName: d.data.name,
                 filePath: d.data.path,
-                detectedLanguage: fileLanguage,
-                selectedLanguages: selectedLanguages,
-                isLanguageSelected: selectedLanguages.includes(fileLanguage),
-                shouldAnalyze: selectedLanguages.includes(fileLanguage) || fileLanguage === 'unknown'
+                analyzed: d.data.analyzed
             });
 
-            if (!selectedLanguages.includes(fileLanguage) && fileLanguage !== 'unknown') {
-                console.warn('⚠️ [FILE ANALYSIS] Skipping file:', {
+            // PHASE 1: Display file content in unified data viewer
+            this.displayFileInDataViewer(d);
+
+            // PHASE 2: Handle AST analysis for code files (if not already analyzed)
+            if (!d.data.analyzed) {
+                // Only analyze files of selected languages
+                const fileLanguage = this.detectLanguage(d.data.path);
+                console.log('🔍 [FILE ANALYSIS] Language check:', {
                     fileName: d.data.name,
+                    filePath: d.data.path,
                     detectedLanguage: fileLanguage,
                     selectedLanguages: selectedLanguages,
-                    reason: `${fileLanguage} not in selected languages`
+                    isLanguageSelected: selectedLanguages.includes(fileLanguage),
+                    shouldAnalyze: selectedLanguages.includes(fileLanguage) || fileLanguage === 'unknown'
                 });
-                this.showNotification(`Skipping ${d.data.name} - ${fileLanguage} not selected`, 'warning');
-                return;
+
+                if (!selectedLanguages.includes(fileLanguage) && fileLanguage !== 'unknown') {
+                    console.warn('⚠️ [FILE ANALYSIS] Skipping AST analysis for file:', {
+                        fileName: d.data.name,
+                        detectedLanguage: fileLanguage,
+                        selectedLanguages: selectedLanguages,
+                        reason: `${fileLanguage} not in selected languages`
+                    });
+                    // Still show file content, just skip AST analysis
+                    return;
+                }
             }
             
             // Add pulsing animation immediately
@@ -5316,6 +5343,377 @@ main();
     }
 
     /**
+     * Auto-expand file node to show AST tree after analysis
+     */
+    autoExpandFileWithAST(filePath, fileNode) {
+        console.log('🌳 [AST EXPANSION] Auto-expanding file with AST:', {
+            filePath: filePath,
+            hasChildren: !!(fileNode && fileNode.children && fileNode.children.length > 0)
+        });
+
+        if (!fileNode || !fileNode.children || fileNode.children.length === 0) {
+            console.log('⚠️ [AST EXPANSION] No children to expand');
+            return;
+        }
+
+        // Find the D3 node for this file
+        const d3Node = this.findD3NodeByPath(filePath);
+        if (!d3Node) {
+            console.log('⚠️ [AST EXPANSION] D3 node not found for path:', filePath);
+            return;
+        }
+
+        // Rebuild the D3 hierarchy to include new children
+        this.root = d3.hierarchy(this.treeData);
+
+        // Find the updated D3 node
+        const updatedD3Node = this.findD3NodeByPath(filePath);
+        if (updatedD3Node) {
+            // Expand the file node to show AST elements
+            if (updatedD3Node._children || (updatedD3Node.children && updatedD3Node.children.length === 0)) {
+                updatedD3Node.children = updatedD3Node._children || updatedD3Node.children;
+                updatedD3Node._children = null;
+                updatedD3Node.data.expanded = true;
+
+                console.log('✅ [AST EXPANSION] Expanded file node to show AST elements:', {
+                    filePath: filePath,
+                    childrenCount: updatedD3Node.children ? updatedD3Node.children.length : 0
+                });
+
+                // Update the visualization
+                this.update(this.root);
+
+                // Show notification about AST expansion
+                const fileName = filePath.split('/').pop();
+                const astCount = updatedD3Node.children ? updatedD3Node.children.length : 0;
+                this.showNotification(`📊 ${fileName} - AST tree expanded with ${astCount} elements`, 'success');
+                this.updateBreadcrumb(`${fileName} - Code structure visible in tree`, 'success');
+            }
+        }
+    }
+
+    /**
+     * Display file content in the unified data viewer
+     */
+    displayFileInDataViewer(d) {
+        console.log('📊 [DATA VIEWER] Displaying file in data viewer:', {
+            fileName: d.data.name,
+            filePath: d.data.path,
+            fileType: d.data.type
+        });
+
+        // Create file data object for unified data viewer
+        const fileData = {
+            file_path: d.data.path,
+            name: d.data.name,
+            type: 'file',
+            size: d.data.size || 0,
+            extension: this.getFileExtension(d.data.path),
+            language: this.detectLanguage(d.data.path),
+            operations: [{
+                operation: 'view',
+                timestamp: new Date().toISOString(),
+                source: 'code_tree_click'
+            }],
+            // Add metadata for better display
+            metadata: {
+                clicked_from: 'code_tree',
+                node_type: d.data.type,
+                has_ast: d.data.analyzed || false,
+                tree_path: this.getNodePath(d)
+            }
+        };
+
+        // Use the unified data viewer to display file information
+        if (window.unifiedDataViewer) {
+            window.unifiedDataViewer.display(fileData, 'file_operation');
+            console.log('✅ [DATA VIEWER] File data displayed in unified viewer');
+        } else {
+            console.warn('⚠️ [DATA VIEWER] UnifiedDataViewer not available');
+        }
+
+        // Update module header to show current file
+        const moduleHeader = document.querySelector('.module-data-header h5');
+        if (moduleHeader) {
+            const fileName = d.data.name;
+            const fileIcon = this.getFileIcon(d.data.path);
+            moduleHeader.innerHTML = `${fileIcon} File: ${fileName}`;
+        }
+
+        // Add a small delay, then check if user wants to open full file viewer
+        // This gives them time to see the data viewer content first
+        setTimeout(() => {
+            this.offerFileViewerOption(d);
+        }, 1000);
+    }
+
+    /**
+     * Offer option to open file in full viewer modal
+     */
+    offerFileViewerOption(d) {
+        // Only offer for text files that can be displayed
+        if (!this.isTextFile(d.data.path)) {
+            return;
+        }
+
+        // Create a subtle notification with option to open full viewer
+        const fileName = d.data.name;
+        const notification = document.createElement('div');
+        notification.className = 'file-viewer-offer';
+        notification.innerHTML = `
+            <div class="offer-content">
+                <span class="offer-text">📄 ${fileName} loaded in data viewer</span>
+                <button class="offer-button" onclick="this.parentElement.parentElement.remove(); window.showFileViewerModal && window.showFileViewerModal('${d.data.path}')">
+                    🔍 Open Full Viewer
+                </button>
+                <button class="offer-close" onclick="this.parentElement.parentElement.remove()">×</button>
+            </div>
+        `;
+
+        // Style the notification
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-width: 300px;
+            font-size: 14px;
+        `;
+
+        // Style the button
+        const style = document.createElement('style');
+        style.textContent = `
+            .offer-content {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .offer-text {
+                flex: 1;
+                color: #4a5568;
+            }
+            .offer-button {
+                background: #4299e1;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-size: 12px;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .offer-button:hover {
+                background: #3182ce;
+            }
+            .offer-close {
+                background: none;
+                border: none;
+                color: #a0aec0;
+                cursor: pointer;
+                font-size: 16px;
+                padding: 0;
+                width: 20px;
+                height: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .offer-close:hover {
+                color: #718096;
+            }
+        `;
+
+        document.head.appendChild(style);
+        document.body.appendChild(notification);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+
+    /**
+     * Check if file is a text file that can be displayed
+     */
+    isTextFile(filePath) {
+        if (!filePath) return false;
+
+        const ext = this.getFileExtension(filePath);
+        const textExtensions = [
+            'py', 'js', 'ts', 'jsx', 'tsx', 'html', 'css', 'json', 'md', 'txt',
+            'yml', 'yaml', 'xml', 'sql', 'sh', 'bash', 'dockerfile', 'makefile',
+            'gitignore', 'readme', 'cfg', 'conf', 'ini', 'toml', 'lock'
+        ];
+
+        return textExtensions.includes(ext) ||
+               textExtensions.includes(filePath.toLowerCase().split('/').pop());
+    }
+
+    /**
+     * Get the full path from root to the given node
+     */
+    getNodePath(d) {
+        const path = [];
+        let current = d;
+        while (current) {
+            if (current.data && current.data.name) {
+                path.unshift(current.data.name);
+            }
+            current = current.parent;
+        }
+        return path.join(' > ');
+    }
+
+    /**
+     * Get file extension from path
+     */
+    getFileExtension(filePath) {
+        if (!filePath) return '';
+        const parts = filePath.split('.');
+        return parts.length > 1 ? parts.pop().toLowerCase() : '';
+    }
+
+    /**
+     * Get descriptive file type for user messages
+     */
+    getFileTypeDescription(fileName) {
+        if (!fileName) return 'File';
+
+        const ext = this.getFileExtension(fileName);
+        const baseName = fileName.toLowerCase();
+
+        // Special cases
+        if (baseName.endsWith('__init__.py')) {
+            return 'Python package initialization';
+        }
+        if (baseName === 'makefile') {
+            return 'Build configuration';
+        }
+        if (baseName.includes('config') || baseName.includes('settings')) {
+            return 'Configuration file';
+        }
+        if (baseName.includes('test') || baseName.includes('spec')) {
+            return 'Test file';
+        }
+
+        // By extension
+        const typeMap = {
+            'py': 'Python file',
+            'js': 'JavaScript file',
+            'ts': 'TypeScript file',
+            'jsx': 'React component',
+            'tsx': 'React TypeScript component',
+            'html': 'HTML document',
+            'css': 'Stylesheet',
+            'json': 'JSON data',
+            'md': 'Markdown document',
+            'txt': 'Text file',
+            'yml': 'YAML configuration',
+            'yaml': 'YAML configuration',
+            'xml': 'XML document',
+            'sql': 'SQL script',
+            'sh': 'Shell script',
+            'bash': 'Bash script',
+            'toml': 'TOML configuration',
+            'ini': 'INI configuration'
+        };
+
+        return typeMap[ext] || 'File';
+    }
+
+    /**
+     * Count different types of AST elements
+     */
+    getElementCounts(elements) {
+        const counts = {
+            classes: 0,
+            functions: 0,
+            methods: 0,
+            total: elements.length
+        };
+
+        elements.forEach(elem => {
+            if (elem.type === 'class') {
+                counts.classes++;
+                if (elem.methods) {
+                    counts.methods += elem.methods.length;
+                }
+            } else if (elem.type === 'function') {
+                counts.functions++;
+            }
+        });
+
+        return counts;
+    }
+
+    /**
+     * Format element counts into a readable summary
+     */
+    formatElementSummary(counts) {
+        const parts = [];
+
+        if (counts.classes > 0) {
+            parts.push(`${counts.classes} class${counts.classes !== 1 ? 'es' : ''}`);
+        }
+        if (counts.functions > 0) {
+            parts.push(`${counts.functions} function${counts.functions !== 1 ? 's' : ''}`);
+        }
+        if (counts.methods > 0) {
+            parts.push(`${counts.methods} method${counts.methods !== 1 ? 's' : ''}`);
+        }
+
+        if (parts.length === 0) {
+            return 'Structural elements for tree view';
+        } else if (parts.length === 1) {
+            return parts[0] + ' found';
+        } else if (parts.length === 2) {
+            return parts.join(' and ') + ' found';
+        } else {
+            return parts.slice(0, -1).join(', ') + ', and ' + parts[parts.length - 1] + ' found';
+        }
+    }
+
+    /**
+     * Get file icon based on file type
+     */
+    getFileIcon(filePath) {
+        if (!filePath) return '📄';
+
+        const ext = this.getFileExtension(filePath);
+        const iconMap = {
+            'py': '🐍',
+            'js': '📜',
+            'ts': '📘',
+            'jsx': '⚛️',
+            'tsx': '⚛️',
+            'html': '🌐',
+            'css': '🎨',
+            'json': '📋',
+            'md': '📝',
+            'txt': '📄',
+            'yml': '⚙️',
+            'yaml': '⚙️',
+            'xml': '📰',
+            'sql': '🗃️',
+            'sh': '🐚',
+            'bash': '🐚',
+            'dockerfile': '🐳',
+            'makefile': '🔨',
+            'gitignore': '🚫',
+            'readme': '📖'
+        };
+
+        return iconMap[ext] || iconMap[filePath.toLowerCase().split('/').pop()] || '📄';
+    }
+
+    /**
      * Handle click on source line with AST elements
      */
     onSourceLineClick(lineElement, astElements, node) {
@@ -5444,4 +5842,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-});/* Cache buster: 1756393851 */
+});
