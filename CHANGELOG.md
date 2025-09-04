@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.13] - 2025-09-04
+
+### Fixed
+- Missing quickstart guide at project root that was expected by installation documentation
+- Broken quickstart link in ARCHITECTURE.md documentation
+- Documentation navigation flow by establishing clear path: Installation → Quick Start → Full Docs
+- Duplicate QUICKSTART.md file in docs/user/ directory causing confusion
+
+
 ## [4.2.12] - 2025-09-04
 
 ### Fixed
