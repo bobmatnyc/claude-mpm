@@ -2,14 +2,14 @@
 
 This service manages:
 - HTTP POST event emission for ephemeral hook processes
-- EventBus initialization (optional)
-- Event emission through both channels
+- Direct event emission without EventBus complexity
 
 DESIGN DECISION: Use stateless HTTP POST instead of persistent SocketIO
 connections because hook handlers are ephemeral processes (< 1 second lifetime).
 This eliminates disconnection issues and matches the process lifecycle.
 """
 
+import asyncio
 import os
 import sys
 from datetime import datetime
@@ -25,6 +25,15 @@ try:
 except ImportError:
     REQUESTS_AVAILABLE = False
     requests = None
+
+# Import high-performance event emitter
+try:
+    from claude_mpm.services.monitor.event_emitter import get_event_emitter
+
+    EVENT_EMITTER_AVAILABLE = True
+except ImportError:
+    EVENT_EMITTER_AVAILABLE = False
+    get_event_emitter = None
 
 # Import EventNormalizer for consistent event formatting
 try:
@@ -51,14 +60,8 @@ except ImportError:
             )
 
 
-# Import EventBus for decoupled event distribution
-try:
-    from claude_mpm.services.event_bus import EventBus
-
-    EVENTBUS_AVAILABLE = True
-except ImportError:
-    EVENTBUS_AVAILABLE = False
-    EventBus = None
+# EventBus removed - using direct HTTP POST only
+# This eliminates duplicate events and simplifies the architecture
 
 
 class ConnectionManagerService:
@@ -74,9 +77,7 @@ class ConnectionManagerService:
         self.server_port = int(os.environ.get("CLAUDE_MPM_SERVER_PORT", "8765"))
         self.http_endpoint = f"http://{self.server_host}:{self.server_port}/api/events"
 
-        # Initialize EventBus for in-process event distribution (optional)
-        self.event_bus = None
-        self._initialize_eventbus()
+        # EventBus removed - using direct HTTP POST only
 
         # For backward compatibility with tests
         self.connection_pool = None  # No longer used
@@ -87,26 +88,14 @@ class ConnectionManagerService:
                 file=sys.stderr,
             )
 
-    def _initialize_eventbus(self):
-        """Initialize the EventBus for in-process distribution."""
-        if EVENTBUS_AVAILABLE:
-            try:
-                self.event_bus = EventBus.get_instance()
-                if DEBUG:
-                    print("✅ EventBus initialized for hook handler", file=sys.stderr)
-            except Exception as e:
-                if DEBUG:
-                    print(f"⚠️ Failed to initialize EventBus: {e}", file=sys.stderr)
-                self.event_bus = None
-
     def emit_event(self, namespace: str, event: str, data: dict):
-        """Emit event using HTTP POST and optionally EventBus.
+        """Emit event using high-performance async emitter with HTTP fallback.
 
-        WHY HTTP POST approach:
-        - Stateless: Perfect for ephemeral hook processes
-        - Fire-and-forget: No connection management needed
-        - Fast: Minimal overhead, no handshake
-        - Reliable: Server handles buffering and retries
+        WHY Hybrid approach:
+        - Direct async calls for ultra-low latency in-process events
+        - HTTP POST fallback for cross-process communication
+        - Connection pooling for memory protection
+        - Automatic routing based on availability
         """
         # Create event data for normalization
         raw_event = {
@@ -138,52 +127,103 @@ class ConnectionManagerService:
                     file=sys.stderr,
                 )
 
-        # Primary method: HTTP POST to server
-        # This is fire-and-forget with a short timeout
-        if REQUESTS_AVAILABLE:
+        # Try high-performance async emitter first (direct calls)
+        success = self._try_async_emit(namespace, event, claude_event_data)
+        if success:
+            return
+
+        # Fallback to HTTP POST for cross-process communication
+        self._try_http_emit(namespace, event, claude_event_data)
+
+    def _try_async_emit(self, namespace: str, event: str, data: dict) -> bool:
+        """Try to emit event using high-performance async emitter."""
+        if not EVENT_EMITTER_AVAILABLE:
+            return False
+
+        try:
+            # Run async emission in the current event loop or create one
+            loop = None
             try:
-                # Send HTTP POST with short timeout (fire-and-forget pattern)
-                response = requests.post(
-                    self.http_endpoint,
-                    json=claude_event_data,
-                    timeout=0.5,  # 500ms timeout - don't wait long
-                    headers={"Content-Type": "application/json"},
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                # No running loop, create a new one
+                pass
+
+            if loop:
+                # We're in an async context, create a task
+                task = loop.create_task(self._async_emit(namespace, event, data))
+                # Don't wait for completion to maintain low latency
+                if DEBUG:
+                    print(f"✅ Async emit scheduled: {event}", file=sys.stderr)
+                return True
+            # No event loop, run synchronously
+            success = asyncio.run(self._async_emit(namespace, event, data))
+            if DEBUG and success:
+                print(f"✅ Async emit successful: {event}", file=sys.stderr)
+            return success
+
+        except Exception as e:
+            if DEBUG:
+                print(f"⚠️ Async emit failed: {e}", file=sys.stderr)
+            return False
+
+    async def _async_emit(self, namespace: str, event: str, data: dict) -> bool:
+        """Async helper for event emission."""
+        try:
+            emitter = await get_event_emitter()
+            return await emitter.emit_event(namespace, "claude_event", data)
+        except Exception as e:
+            if DEBUG:
+                print(f"⚠️ Async emitter error: {e}", file=sys.stderr)
+            return False
+
+    def _try_http_emit(self, namespace: str, event: str, data: dict):
+        """Try to emit event using HTTP POST fallback."""
+        if not REQUESTS_AVAILABLE:
+            if DEBUG:
+                print(
+                    "⚠️ requests module not available - cannot emit via HTTP",
+                    file=sys.stderr,
                 )
-                if DEBUG and response.status_code == 204:
-                    print(f"✅ Emitted via HTTP POST: {event}", file=sys.stderr)
-                elif DEBUG and response.status_code != 204:
-                    print(
-                        f"⚠️ HTTP POST returned status {response.status_code} for: {event}",
-                        file=sys.stderr,
-                    )
-            except requests.exceptions.Timeout:
-                # Timeout is expected for fire-and-forget pattern
-                if DEBUG:
-                    print(f"✅ HTTP POST sent (timeout OK): {event}", file=sys.stderr)
-            except requests.exceptions.ConnectionError:
-                # Server might not be running - this is OK
-                if DEBUG:
-                    print(f"⚠️ Server not available for: {event}", file=sys.stderr)
-            except Exception as e:
-                if DEBUG:
-                    print(f"⚠️ Failed to emit via HTTP POST: {e}", file=sys.stderr)
-        elif DEBUG:
-            print(
-                "⚠️ requests module not available - cannot emit via HTTP",
-                file=sys.stderr,
+            return
+
+        try:
+            # Create payload for HTTP API
+            payload = {
+                "namespace": namespace,
+                "event": "claude_event",  # Standard event name for dashboard
+                "data": data,
+            }
+
+            # Send HTTP POST with reasonable timeout
+            response = requests.post(
+                self.http_endpoint,
+                json=payload,
+                timeout=2.0,  # 2 second timeout
+                headers={"Content-Type": "application/json"},
             )
 
-        # Also publish to EventBus for any in-process subscribers
-        if self.event_bus and EVENTBUS_AVAILABLE:
-            try:
-                # Publish to EventBus with topic format: hook.{event}
-                topic = f"hook.{event}"
-                self.event_bus.publish(topic, claude_event_data)
+            if response.status_code in [200, 204]:
                 if DEBUG:
-                    print(f"✅ Published to EventBus: {topic}", file=sys.stderr)
-            except Exception as e:
-                if DEBUG:
-                    print(f"⚠️ Failed to publish to EventBus: {e}", file=sys.stderr)
+                    print(f"✅ HTTP POST successful: {event}", file=sys.stderr)
+            elif DEBUG:
+                print(
+                    f"⚠️ HTTP POST failed with status {response.status_code}: {event}",
+                    file=sys.stderr,
+                )
+
+        except requests.exceptions.Timeout:
+            if DEBUG:
+                print(f"⚠️ HTTP POST timeout for: {event}", file=sys.stderr)
+        except requests.exceptions.ConnectionError:
+            if DEBUG:
+                print(
+                    f"⚠️ HTTP POST connection failed for: {event} (server not running?)",
+                    file=sys.stderr,
+                )
+        except Exception as e:
+            if DEBUG:
+                print(f"⚠️ HTTP POST error for {event}: {e}", file=sys.stderr)
 
     def cleanup(self):
         """Cleanup connections on service destruction."""

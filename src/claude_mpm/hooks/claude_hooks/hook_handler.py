@@ -3,7 +3,7 @@
 
 This handler uses a service-oriented architecture with:
 - StateManagerService: Manages state and delegation tracking
-- ConnectionManagerService: Handles SocketIO and EventBus connections
+- ConnectionManagerService: Handles SocketIO connections with HTTP fallback
 - SubagentResponseProcessor: Processes complex subagent responses
 - DuplicateEventDetector: Detects and filters duplicate events
 
@@ -73,19 +73,10 @@ DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
 Conditional imports with graceful fallbacks for testing and modularity.
 
 WHY conditional imports:
-- EventBus is optional for basic hook functionality
 - Tests may not have full environment setup
 - Allows hooks to work in minimal configurations
 - Graceful degradation when dependencies unavailable
 """
-# Import EventBus availability flag for backward compatibility with tests
-try:
-    from claude_mpm.services.event_bus import EventBus
-
-    EVENTBUS_AVAILABLE = True
-except ImportError:
-    EVENTBUS_AVAILABLE = False
-    EventBus = None
 
 # Import get_connection_pool for backward compatibility with tests
 try:
@@ -241,7 +232,6 @@ class ClaudeHookHandler:
 
         # Backward compatibility properties for tests
         self.connection_pool = self.connection_manager.connection_pool
-        self.event_bus = self.connection_manager.event_bus
 
         # Expose state manager properties for backward compatibility
         self.active_delegations = self.state_manager.active_delegations
