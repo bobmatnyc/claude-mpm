@@ -1745,11 +1745,20 @@ class CodeTreeAnalyzer:
         # Filter Python magic methods except important ones
         if name_lower.startswith("__") and name_lower.endswith("__"):
             # Keep important magic methods
-            important_magic = ["__init__", "__call__", "__enter__", "__exit__", "__str__", "__repr__"]
+            important_magic = [
+                "__init__",
+                "__call__",
+                "__enter__",
+                "__exit__",
+                "__str__",
+                "__repr__",
+            ]
             return node.name not in important_magic
 
         # Filter very generic getters/setters only if they're trivial
-        if (name_lower.startswith("get_") or name_lower.startswith("set_")) and len(node.name) <= 8:
+        if (name_lower.startswith("get_") or name_lower.startswith("set_")) and len(
+            node.name
+        ) <= 8:
             return True
 
         # Don't filter single underscore functions - they're often important
