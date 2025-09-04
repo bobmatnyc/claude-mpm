@@ -273,17 +273,20 @@ class AsyncEventEmitter:
             if self._http_session:
                 try:
                     # Cancel any pending requests
-                    if hasattr(self._http_session, '_connector') and self._http_session._connector:
+                    if (
+                        hasattr(self._http_session, "_connector")
+                        and self._http_session._connector
+                    ):
                         # Give ongoing requests a moment to complete
                         await asyncio.sleep(0.1)
-                    
+
                     # Close the session
                     await self._http_session.close()
-                    
+
                     # CRITICAL: Wait for session to fully close
                     # This prevents the "I/O operation on closed kqueue" error
                     await asyncio.sleep(0.25)
-                    
+
                 except Exception as e:
                     self.logger.debug(f"Error closing HTTP session: {e}")
                 finally:
@@ -294,11 +297,11 @@ class AsyncEventEmitter:
                 try:
                     # Close the connector
                     await self._http_connector.close()
-                    
+
                     # Give the connector adequate time to close all connections
                     # This is critical for preventing kqueue errors
                     await asyncio.sleep(0.5)
-                    
+
                 except Exception as e:
                     self.logger.debug(f"Error closing HTTP connector: {e}")
                 finally:

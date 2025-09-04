@@ -50,7 +50,7 @@ class DaemonLifecycle:
         try:
             # Clean up any existing asyncio event loops before forking
             self._cleanup_event_loops()
-            
+
             # First fork
             pid = os.fork()
             if pid > 0:
@@ -261,17 +261,17 @@ class DaemonLifecycle:
                 self.logger.debug("Removed stale PID file")
         except Exception as e:
             self.logger.error(f"Error removing stale PID file: {e}")
-    
+
     def _cleanup_event_loops(self):
         """Clean up any existing asyncio event loops before forking.
-        
+
         This prevents the 'I/O operation on closed kqueue object' error
         that occurs when forked processes inherit event loops.
         """
         try:
             import asyncio
             import gc
-            
+
             # Try to get the current event loop
             try:
                 loop = asyncio.get_event_loop()
@@ -286,13 +286,13 @@ class DaemonLifecycle:
             except RuntimeError:
                 # No event loop in current thread
                 pass
-            
+
             # Clear the event loop policy to ensure clean state
             asyncio.set_event_loop(None)
-            
+
             # Force garbage collection to clean up any loop resources
             gc.collect()
-            
+
         except ImportError:
             # asyncio not available (unlikely but handle it)
             pass

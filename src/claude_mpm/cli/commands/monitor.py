@@ -70,7 +70,7 @@ class MonitorCommand(BaseCommand):
         if port is None:
             port = 8765  # Default to 8765 for unified monitor
         host = getattr(args, "host", "localhost")
-        
+
         # Check for explicit foreground flag first, then background flag
         # Default to daemon/background mode if neither specified
         if getattr(args, "foreground", False):
