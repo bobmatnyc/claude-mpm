@@ -320,7 +320,7 @@ For detailed migration instructions, see [docs/MIGRATION.md](MIGRATION.md).
 ## Related Documentation
 
 ### User Documentation
-- [Quick Start Guide](../QUICKSTART.md) - Get running in 5 minutes
+- [Quick Start Guide](../../QUICKSTART.md) - Get running in 5 minutes
 - [Memory System](MEMORY.md) - Agent memory documentation
 - [User Guide](user/) - Detailed usage documentation
 
