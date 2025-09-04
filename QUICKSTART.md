@@ -33,25 +33,28 @@ Type any of these commands:
 
 Watch as specialized agents (Research, Engineer, QA) work together!
 
-## 4. Advanced Features (2 minutes)
+## 4. Claude Code Slash Commands (2 minutes)
+
+Claude MPM adds powerful slash commands to your Claude Code sessions:
+
+```bash
+# Project diagnostics and health check
+/mpm-doctor
+
+# Initialize project for Claude MPM (run once per project)
+/mpm-init
+
+# Manage and deploy agents
+/mpm-agents
+```
+
+**Use these commands inside any Claude Code session** - they'll work automatically when Claude MPM is installed.
 
 ### Monitor Real-Time Activity
 ```bash
 claude-mpm run --monitor
 ```
 Opens dashboard at http://localhost:8765 showing agent activity.
-
-### Initialize Project Memory
-```bash
-claude-mpm memory init
-```
-Agents learn your project patterns and conventions.
-
-### Resume Sessions
-```bash
-claude-mpm run --resume
-```
-Continue where you left off.
 
 ## What Just Happened?
 
@@ -76,8 +79,8 @@ claude-mpm run --monitor
 # One-time task
 claude-mpm run -i "your task" --non-interactive
 
-# Resume work
-claude-mpm run --resume
+# Resume previous session
+/resume
 ```
 
 ## 🎯 You're Ready!
@@ -90,15 +93,14 @@ That's it! You now have:
 
 ### Quick Tips
 - Use `--monitor` for complex tasks to see agent collaboration
-- Run `claude-mpm memory init` in new projects
-- Agents learn your patterns over time
-- Resume sessions with `--resume`
+- Run `/mpm-init` in new projects to set up Claude MPM
+- Use `/mpm-doctor` to troubleshoot issues
+- Resume sessions with `/resume` command
 
 ## Next Steps
 
 **New Users**:
 - [Basic Usage Guide](docs/user/02-guides/basic-usage.md) - Essential commands and workflows
-- [Memory System](docs/user/03-features/memory-system.md) - How agents learn
 
 **Full Documentation**:
 - [Complete Documentation](docs/README.md) - All features and capabilities  
@@ -108,9 +110,9 @@ That's it! You now have:
 ## Need Help?
 
 **Common Issues**:
-- **"Agent not found"**: Run `claude-mpm agents fix --all`
+- **"Agent not found"**: Run `/mpm-doctor` to diagnose and fix
 - **Dashboard won't load**: Try `--websocket-port 8766`
-- **Session won't resume**: Use full session ID
+- **Setup issues**: Run `/mpm-init` to initialize project
 
 **Get Support**:
 - [Troubleshooting Guide](docs/user/troubleshooting.md)
