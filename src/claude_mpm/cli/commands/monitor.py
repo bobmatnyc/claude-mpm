@@ -126,9 +126,7 @@ class MonitorCommand(BaseCommand):
         # Restart the daemon
         if daemon.restart():
             return CommandResult.success_result("Unified monitor daemon restarted")
-        return CommandResult.error_result(
-            "Failed to restart unified monitor daemon"
-        )
+        return CommandResult.error_result("Failed to restart unified monitor daemon")
 
     def _status_monitor(self, args) -> CommandResult:
         """Get unified monitor daemon status."""

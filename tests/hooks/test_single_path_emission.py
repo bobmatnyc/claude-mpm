@@ -217,57 +217,73 @@ class TestArchitectureCompliance:
                 pytest.skip(f"File not found: {file_path}")
                 continue
 
-            with open(full_path, 'r', encoding='utf-8') as f:
+            with open(full_path, encoding="utf-8") as f:
                 lines = f.readlines()
 
             for line_num, line in enumerate(lines, 1):
                 # Skip comments and documentation references
-                if (line.strip().startswith('#') or
-                    '"""' in line or "'''" in line or
-                    'docs/developer/EVENT_EMISSION_ARCHITECTURE.md' in line or
-                    'DO NOT add additional emission paths (EventBus' in line or
-                    'EventBus removed' in line):
+                if (
+                    line.strip().startswith("#")
+                    or '"""' in line
+                    or "'''" in line
+                    or "docs/developer/EVENT_EMISSION_ARCHITECTURE.md" in line
+                    or "DO NOT add additional emission paths (EventBus" in line
+                    or "EventBus removed" in line
+                ):
                     continue
 
                 # Check for ACTUAL EventBus usage (not documentation)
-                if (re.search(r'\bevent_bus\s*=', line, re.IGNORECASE) or
-                    re.search(r'EventBus\(', line) or
-                    re.search(r'EVENTBUS_AVAILABLE', line) or
-                    re.search(r'\.event_bus\.', line) or
-                    re.search(r'from.*EventBus', line)):
+                if (
+                    re.search(r"\bevent_bus\s*=", line, re.IGNORECASE)
+                    or re.search(r"EventBus\(", line)
+                    or re.search(r"EVENTBUS_AVAILABLE", line)
+                    or re.search(r"\.event_bus\.", line)
+                    or re.search(r"from.*EventBus", line)
+                ):
                     violations.append(f"{file_path}:{line_num} - {line.strip()}")
 
-        assert not violations, f"Found EventBus references in active files:\n" + "\n".join(violations)
+        assert (
+            not violations
+        ), "Found EventBus references in active files:\n" + "\n".join(violations)
 
     def test_connection_manager_single_emission_path(self):
         """Test that connection manager implements single emission path."""
         project_root = self.get_project_root()
-        connection_manager_path = project_root / "src/claude_mpm/hooks/claude_hooks/services/connection_manager.py"
+        connection_manager_path = (
+            project_root
+            / "src/claude_mpm/hooks/claude_hooks/services/connection_manager.py"
+        )
 
         if not connection_manager_path.exists():
             pytest.skip("Connection manager file not found")
 
-        with open(connection_manager_path, 'r', encoding='utf-8') as f:
+        with open(connection_manager_path, encoding="utf-8") as f:
             content = f.read()
 
         # Verify required methods exist
-        assert 'def emit_event(' in content, "emit_event method not found"
-        assert 'def _try_http_fallback(' in content, "_try_http_fallback method not found"
+        assert "def emit_event(" in content, "emit_event method not found"
+        assert (
+            "def _try_http_fallback(" in content
+        ), "_try_http_fallback method not found"
 
         # Verify single-path pattern in emit_event method
-        lines = content.split('\n')
+        lines = content.split("\n")
         in_emit_method = False
         found_return_after_success = False
 
         for line in lines:
-            if 'def emit_event(' in line:
+            if "def emit_event(" in line:
                 in_emit_method = True
-            elif in_emit_method and (line.strip().startswith('def ') or line.strip().startswith('class ')):
+            elif in_emit_method and (
+                line.strip().startswith("def ") or line.strip().startswith("class ")
+            ):
                 break
-            elif in_emit_method and 'return  # Success' in line:
+            elif in_emit_method and "return  # Success" in line:
                 found_return_after_success = True
 
-        assert found_return_after_success, "Single-path pattern not found: missing 'return # Success' after primary emission"
+        assert (
+            found_return_after_success
+        ), "Single-path pattern not found: missing 'return # Success' after primary emission"
 
     def test_required_architecture_files_exist(self):
         """Test that required architecture documentation files exist."""
@@ -280,49 +296,65 @@ class TestArchitectureCompliance:
 
         for file_path in required_files:
             full_path = project_root / file_path
-            assert full_path.exists(), f"Required architecture file missing: {file_path}"
+            assert (
+                full_path.exists()
+            ), f"Required architecture file missing: {file_path}"
 
     def test_architecture_documentation_references(self):
         """Test that connection manager references architecture documentation."""
         project_root = self.get_project_root()
-        connection_manager_path = project_root / "src/claude_mpm/hooks/claude_hooks/services/connection_manager.py"
+        connection_manager_path = (
+            project_root
+            / "src/claude_mpm/hooks/claude_hooks/services/connection_manager.py"
+        )
 
         if not connection_manager_path.exists():
             pytest.skip("Connection manager file not found")
 
-        with open(connection_manager_path, 'r', encoding='utf-8') as f:
+        with open(connection_manager_path, encoding="utf-8") as f:
             content = f.read()
 
         # Verify documentation references exist
-        assert 'EVENT_EMISSION_ARCHITECTURE.md' in content, "Missing reference to architecture documentation"
-        assert 'SINGLE-PATH EVENT EMISSION ARCHITECTURE' in content, "Missing architecture pattern description"
+        assert (
+            "EVENT_EMISSION_ARCHITECTURE.md" in content
+        ), "Missing reference to architecture documentation"
+        assert (
+            "SINGLE-PATH EVENT EMISSION ARCHITECTURE" in content
+        ), "Missing architecture pattern description"
 
     def test_no_multiple_parallel_emissions(self):
         """Test that emit_event method doesn't have multiple parallel emission calls."""
         project_root = self.get_project_root()
-        connection_manager_path = project_root / "src/claude_mpm/hooks/claude_hooks/services/connection_manager.py"
+        connection_manager_path = (
+            project_root
+            / "src/claude_mpm/hooks/claude_hooks/services/connection_manager.py"
+        )
 
         if not connection_manager_path.exists():
             pytest.skip("Connection manager file not found")
 
-        with open(connection_manager_path, 'r', encoding='utf-8') as f:
+        with open(connection_manager_path, encoding="utf-8") as f:
             content = f.read()
 
-        lines = content.split('\n')
+        lines = content.split("\n")
         in_emit_method = False
         emission_calls = []
 
         for line_num, line in enumerate(lines, 1):
-            if 'def emit_event(' in line:
+            if "def emit_event(" in line:
                 in_emit_method = True
                 emission_calls = []
-            elif in_emit_method and (line.strip().startswith('def ') or line.strip().startswith('class ')):
+            elif in_emit_method and (
+                line.strip().startswith("def ") or line.strip().startswith("class ")
+            ):
                 in_emit_method = False
 
                 # Should have at most 2 emission calls: primary + fallback
-                assert len(emission_calls) <= 2, f"Too many emission calls in emit_event: {emission_calls}"
+                assert (
+                    len(emission_calls) <= 2
+                ), f"Too many emission calls in emit_event: {emission_calls}"
 
-            elif in_emit_method and re.search(r'\.(emit|publish|post)\s*\(', line):
+            elif in_emit_method and re.search(r"\.(emit|publish|post)\s*\(", line):
                 emission_calls.append((line_num, line.strip()))
 
 
