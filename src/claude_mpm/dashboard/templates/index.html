@@ -530,14 +530,27 @@
             });
         };
         
-        // Load dashboard.js first, then other components
-        Promise.all([
-            loadModule('/static/dist/dashboard.js'),
-            loadModule('/static/dist/components/activity-tree.js'),
-            loadModule('/static/js/components/code-tree.js'),  // TEMPORARY: Direct source for debugging
-            loadModule('/static/dist/components/code-viewer.js'),
-            loadModule('/static/dist/components/file-viewer.js')  // File viewer for viewing file contents
-        ]).then(() => {
+        // Load shared services first, then tree modules, then components
+        // Load services sequentially to ensure dependencies are available
+        loadModule('/static/js/shared/tooltip-service.js')
+            .then(() => loadModule('/static/js/shared/dom-helpers.js'))
+            .then(() => loadModule('/static/js/shared/event-bus.js'))
+            .then(() => loadModule('/static/js/shared/logger.js'))
+            .then(() => loadModule('/static/js/components/code-tree/tree-utils.js'))
+            .then(() => loadModule('/static/js/components/code-tree/tree-constants.js'))
+            .then(() => loadModule('/static/js/components/code-tree/tree-search.js'))
+            .then(() => loadModule('/static/js/components/code-tree/tree-breadcrumb.js'))
+            .then(() => {
+                // Now load main components in parallel
+                return Promise.all([
+                    loadModule('/static/dist/dashboard.js'),
+                    loadModule('/static/dist/components/activity-tree.js'),
+                    loadModule('/static/js/components/code-tree.js'),  // TEMPORARY: Direct source for debugging
+                    loadModule('/static/dist/components/code-viewer.js'),
+                    loadModule('/static/dist/components/file-viewer.js')  // File viewer for viewing file contents
+                ]);
+            })
+            .then(() => {
             console.log('All dashboard modules loaded successfully');
             
             // Give modules time to execute and initialize dashboard

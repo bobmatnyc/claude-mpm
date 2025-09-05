@@ -505,6 +505,24 @@ class SocketClient {
             // console.log('Received pong from server');
         });
         
+        // Listen for heartbeat events from server (every 3 minutes)
+        this.socket.on('heartbeat', (data) => {
+            console.log('🫀 Received server heartbeat:', data);
+            // Add heartbeat to event list for visibility
+            this.addEvent({
+                type: 'system',
+                subtype: 'heartbeat',
+                timestamp: data.timestamp || new Date().toISOString(),
+                data: data
+            });
+            
+            // Update last ping time to indicate server is alive
+            this.lastPingTime = Date.now();
+            
+            // Log to console for debugging
+            console.log(`Server heartbeat #${data.heartbeat_number}: ${data.server_uptime_formatted} uptime, ${data.connected_clients} clients connected`);
+        });
+        
         // Session and event handlers (legacy/fallback)
         this.socket.on('session.started', (data) => {
             this.addEvent({ type: 'session', subtype: 'started', timestamp: new Date().toISOString(), data });
