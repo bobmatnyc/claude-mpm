@@ -440,7 +440,8 @@ class UnifiedMonitorServer:
                         capture_output=True,
                         text=True,
                         timeout=2,
-                        cwd=os.getcwd(), check=False,
+                        cwd=os.getcwd(),
+                        check=False,
                     )
                     if result.returncode == 0 and result.stdout.strip():
                         config["gitBranch"] = result.stdout.strip()

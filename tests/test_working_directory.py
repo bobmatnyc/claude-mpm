@@ -43,20 +43,20 @@ async def test_working_directory():
     async def on_hook_event(data):
         nonlocal received_event
         received_event = True
-        print(f"\nReceived hook event:")
+        print("\nReceived hook event:")
         if "data" in data and "working_directory" in data["data"]:
             wd = data["data"]["working_directory"]
             print(f"  Working directory in event: {wd}")
             if wd == actual_cwd:
-                print(f"  ✅ SUCCESS: Working directory matches actual CWD")
+                print("  ✅ SUCCESS: Working directory matches actual CWD")
             else:
-                print(f"  ⚠️ WARNING: Working directory doesn't match")
+                print("  ⚠️ WARNING: Working directory doesn't match")
                 print(f"     Expected: {actual_cwd}")
                 print(f"     Got: {wd}")
 
     @sio.on("claude_event")
     async def on_claude_event(data):
-        print(f"\nReceived claude_event:")
+        print("\nReceived claude_event:")
         if "data" in data:
             if "working_directory" in data["data"]:
                 print(f"  Working directory: {data['data']['working_directory']}")
@@ -64,7 +64,7 @@ async def test_working_directory():
                 print(f"  CWD: {data['data']['cwd']}")
 
     try:
-        print(f"\nConnecting to Socket.IO server at http://localhost:8765...")
+        print("\nConnecting to Socket.IO server at http://localhost:8765...")
         await sio.connect("http://localhost:8765")
 
         # Wait a moment for events
@@ -97,10 +97,10 @@ async def test_working_directory():
         await sio.disconnect()
 
         if received_event:
-            print(f"\n✅ Working directory events are being processed")
+            print("\n✅ Working directory events are being processed")
         else:
             print(
-                f"\n⚠️ No events received - check if server is processing events correctly"
+                "\n⚠️ No events received - check if server is processing events correctly"
             )
 
     except Exception as e:

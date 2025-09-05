@@ -116,14 +116,23 @@ class MonitorCommand(BaseCommand):
         """Stop the unified monitor daemon."""
         self.logger.info("Stopping unified monitor daemon")
 
+        # Get parameters from args or use defaults
+        port = getattr(args, "port", None)
+        if port is None:
+            port = 8765  # Default to 8765 for unified monitor
+        host = getattr(args, "host", "localhost")
+
         # Create daemon instance to check status and stop
-        daemon = UnifiedMonitorDaemon()
+        # For stop, we need to know if it was started in daemon mode
+        # We default to daemon mode since that's the usual case
+        daemon_mode = True
+        daemon = UnifiedMonitorDaemon(host=host, port=port, daemon_mode=daemon_mode)
 
         if not daemon.lifecycle.is_running():
             return CommandResult.success_result("No unified monitor daemon running")
 
-        # Stop the daemon by PID (works for both daemon and foreground mode)
-        if daemon.lifecycle.stop_daemon():
+        # Stop the daemon
+        if daemon.stop():
             return CommandResult.success_result("Unified monitor daemon stopped")
         return CommandResult.error_result("Failed to stop unified monitor daemon")
 
@@ -131,12 +140,24 @@ class MonitorCommand(BaseCommand):
         """Restart the unified monitor daemon."""
         self.logger.info("Restarting unified monitor daemon")
 
-        # Create daemon instance
-        daemon = UnifiedMonitorDaemon()
+        # Get parameters from args or use defaults
+        port = getattr(args, "port", None)
+        if port is None:
+            port = 8765  # Default to 8765 for unified monitor
+        host = getattr(args, "host", "localhost")
+
+        # For restart, default to daemon mode (the usual use case)
+        # unless explicitly running in foreground
+        daemon_mode = not getattr(args, "foreground", False)
+
+        # Create daemon instance with proper parameters
+        daemon = UnifiedMonitorDaemon(host=host, port=port, daemon_mode=daemon_mode)
 
         # Restart the daemon
         if daemon.restart():
-            return CommandResult.success_result("Unified monitor daemon restarted")
+            return CommandResult.success_result(
+                f"Unified monitor daemon restarted on {host}:{port}"
+            )
         return CommandResult.error_result("Failed to restart unified monitor daemon")
 
     def _status_monitor(self, args) -> CommandResult:

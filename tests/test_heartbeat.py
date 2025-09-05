@@ -59,7 +59,7 @@ async def test_heartbeat():
         # Check every second for up to 200 seconds
         for i in range(200):
             if heartbeat_received:
-                print(f"\n✅ SUCCESS: Heartbeat functionality is working!")
+                print("\n✅ SUCCESS: Heartbeat functionality is working!")
                 break
             await asyncio.sleep(1)
             if i % 30 == 0 and i > 0:
@@ -68,7 +68,7 @@ async def test_heartbeat():
                 )
 
         if not heartbeat_received:
-            print(f"\n⚠️ WARNING: No heartbeat received after 200 seconds")
+            print("\n⚠️ WARNING: No heartbeat received after 200 seconds")
             print("This might be normal if the server just started.")
             print("The heartbeat is sent every 3 minutes (180 seconds).")
             print(

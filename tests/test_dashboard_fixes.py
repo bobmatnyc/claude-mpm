@@ -63,7 +63,7 @@ def test_no_hardcoded_paths():
     hardcoded_found = False
 
     for file_path in files_to_check:
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             content = f.read()
             if "/Users/masa" in content:
                 print(f"❌ Hardcoded path found in {file_path.name}")
@@ -77,7 +77,7 @@ def test_no_hardcoded_paths():
 
     # Check server config endpoint exists
     server_file = project_root / "src/claude_mpm/services/monitor/server.py"
-    with open(server_file, "r") as f:
+    with open(server_file) as f:
         content = f.read()
         if "/api/config" in content and "config_handler" in content:
             print("✅ Server config endpoint exists")
@@ -94,7 +94,7 @@ def test_event_emission():
 
     # Check hooks handler emits both event types
     hooks_file = project_root / "src/claude_mpm/services/monitor/handlers/hooks.py"
-    with open(hooks_file, "r") as f:
+    with open(hooks_file) as f:
         content = f.read()
 
     # Check for both event emissions
@@ -158,9 +158,8 @@ def main():
     if all_passed:
         print("\n🎉 All dashboard fixes are working correctly!")
         return 0
-    else:
-        print("\n⚠️ Some tests failed. Please review the errors above.")
-        return 1
+    print("\n⚠️ Some tests failed. Please review the errors above.")
+    return 1
 
 
 if __name__ == "__main__":
