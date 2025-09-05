@@ -60,6 +60,9 @@ class Dashboard {
         console.log('Initializing refactored Claude MPM Dashboard...');
 
         try {
+            // Fetch server configuration first
+            this.fetchServerConfig();
+            
             // Initialize modules in dependency order
             this.initializeSocketManager();
             this.initializeCoreComponents();
@@ -84,6 +87,39 @@ class Dashboard {
             // Re-throw to be caught by DOMContentLoaded handler
             throw error;
         }
+    }
+    
+    /**
+     * Fetch server configuration for dashboard initialization
+     */
+    fetchServerConfig() {
+        fetch('/api/config')
+            .then(response => response.json())
+            .then(config => {
+                // Store config globally for other components
+                window.dashboardConfig = config;
+                
+                // Update initial UI elements if they exist
+                const workingDirEl = document.getElementById('working-dir-path');
+                if (workingDirEl && config.workingDirectory) {
+                    workingDirEl.textContent = config.workingDirectory;
+                }
+                
+                const gitBranchEl = document.getElementById('footer-git-branch');
+                if (gitBranchEl && config.gitBranch) {
+                    gitBranchEl.textContent = config.gitBranch;
+                }
+                
+                console.log('Dashboard configuration loaded:', config);
+            })
+            .catch(error => {
+                console.warn('Failed to fetch server config:', error);
+                // Set default config as fallback
+                window.dashboardConfig = {
+                    workingDirectory: '.',
+                    gitBranch: 'Unknown'
+                };
+            });
     }
     
     /**

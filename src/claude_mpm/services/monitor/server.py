@@ -420,10 +420,40 @@ class UnifiedMonitorServer:
                         }
                     )
 
+            # Configuration endpoint for dashboard initialization
+            async def config_handler(request):
+                """Return configuration for dashboard initialization."""
+                import os
+                import subprocess
+                
+                config = {
+                    "workingDirectory": os.getcwd(),
+                    "gitBranch": "Unknown",
+                    "serverTime": datetime.utcnow().isoformat() + "Z",
+                    "service": "unified-monitor"
+                }
+                
+                # Try to get current git branch
+                try:
+                    result = subprocess.run(
+                        ["git", "branch", "--show-current"],
+                        capture_output=True,
+                        text=True,
+                        timeout=2,
+                        cwd=os.getcwd()
+                    )
+                    if result.returncode == 0 and result.stdout.strip():
+                        config["gitBranch"] = result.stdout.strip()
+                except Exception:
+                    pass  # Keep default "Unknown" value
+                
+                return web.json_response(config)
+
             # Register routes
             self.app.router.add_get("/", dashboard_index)
             self.app.router.add_get("/health", health_check)
             self.app.router.add_get("/version.json", version_handler)
+            self.app.router.add_get("/api/config", config_handler)
             self.app.router.add_get("/api/directory", list_directory)
             self.app.router.add_post("/api/events", api_events_handler)
             self.app.router.add_post("/api/file", api_file_handler)
