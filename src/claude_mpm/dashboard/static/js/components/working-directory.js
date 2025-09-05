@@ -355,12 +355,21 @@ class WorkingDirectoryManager {
         // Fallback to a reasonable default - try to get the current project directory
         // This should be set when the dashboard initializes
 
-        // Try getting from the browser's URL or any other hint about the current project
-        if (window.location.pathname.includes('claude-mpm')) {
-            // We can infer we're in a claude-mpm project
-            const cwdFallback = '/Users/masa/Projects/claude-mpm';
-            console.log('[WORKING-DIR-DEBUG] Using inferred project path as fallback:', cwdFallback);
-            return cwdFallback;
+        // Try getting from events that have a working directory
+        if (window.socketClient && window.socketClient.events) {
+            // Look for the most recent event with a working directory
+            const eventsWithDir = window.socketClient.events
+                .filter(e => e.data && (e.data.working_directory || e.data.cwd || e.data.working_dir))
+                .reverse();
+            
+            if (eventsWithDir.length > 0) {
+                const recentEvent = eventsWithDir[0];
+                const dir = recentEvent.data.working_directory || 
+                           recentEvent.data.cwd || 
+                           recentEvent.data.working_dir;
+                console.log('[WORKING-DIR-DEBUG] Using working directory from recent event:', dir);
+                return dir;
+            }
         }
         const workingDirPath = document.getElementById('working-dir-path');
         if (workingDirPath?.textContent?.trim()) {
@@ -372,9 +381,9 @@ class WorkingDirectoryManager {
             }
         }
 
-        // Final fallback to current directory indicator
-        const fallback = process?.cwd?.() || '/Users/masa/Projects/claude-mpm';
-        console.log('[WORKING-DIR-DEBUG] Using hard-coded fallback directory:', this.repr(fallback));
+        // Final fallback to a generic path
+        const fallback = window.location.hostname === 'localhost' ? '/' : '/';
+        console.log('[WORKING-DIR-DEBUG] Using generic fallback directory:', this.repr(fallback));
         return fallback;
     }
 

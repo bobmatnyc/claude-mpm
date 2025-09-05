@@ -17,6 +17,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.14] - 2025-09-05
+
+### Fixed
+- Dashboard JavaScript refactoring phase 1 with modular code organization
+- File viewer timeout issues by adding FileHandler to monitor server
+- Socket.IO heartbeat system for improved connection monitoring
+- Hardcoded directory paths replaced with dynamic detection
+- Python codebase organization with enhanced core utilities
+
+### Added
+- Shared JavaScript services: tooltip-service, dom-helpers, event-bus, logger
+- Code-tree modules: tree-utils, tree-constants, tree-search, tree-breadcrumb
+- Socket.IO heartbeat events with server status and debug information
+- Enhanced constants.py with organized configuration classes
+- Centralized file operations and error handling utilities
+
+### Changed
+- Code-tree.js reduced from 5,845 lines to manageable modular components
+- File viewer modal now displays at 95% viewport width for better usability
+- Dashboard uses dynamic working directory detection instead of hardcoded paths
+
+
 ## [4.2.13] - 2025-09-04
 
 ### Fixed

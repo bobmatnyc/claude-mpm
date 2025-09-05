@@ -1214,38 +1214,61 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
 
     try {
         // Get the Socket.IO client
-        const socket = window.socket || window.dashboard?.socketClient?.socket;
+        const socket = window.socket || window.dashboard?.socketClient?.socket || window.socketClient?.socket;
+        
+        console.log('[FileViewer] Socket search results:', {
+            'window.socket': !!window.socket,
+            'window.socket.connected': window.socket?.connected,
+            'dashboard.socketClient.socket': !!window.dashboard?.socketClient?.socket,
+            'dashboard.socketClient.socket.connected': window.dashboard?.socketClient?.socket?.connected,
+            'window.socketClient.socket': !!window.socketClient?.socket,
+            'window.socketClient.socket.connected': window.socketClient?.socket?.connected
+        });
+        
         if (!socket) {
-            throw new Error('No socket connection available');
+            throw new Error('No socket connection available. Please ensure the dashboard is connected.');
         }
+        
+        if (!socket.connected) {
+            console.warn('[FileViewer] Socket found but not connected, attempting to use anyway...');
+        }
+        
+        console.log('[FileViewer] Socket found, setting up listener for file_content_response');
 
         // Set up one-time listener for file content response
         const responsePromise = new Promise((resolve, reject) => {
             const responseHandler = (data) => {
+                console.log('[FileViewer] Received file_content_response:', data);
                 if (data.file_path === filePath) {
                     socket.off('file_content_response', responseHandler);
                     if (data.success) {
+                        console.log('[FileViewer] File content loaded successfully');
                         resolve(data);
                     } else {
+                        console.error('[FileViewer] File read failed:', data.error);
                         reject(new Error(data.error || 'Failed to read file'));
                     }
                 }
             };
 
             socket.on('file_content_response', responseHandler);
+            console.log('[FileViewer] Listener registered for file_content_response');
 
             // Timeout after 10 seconds
             setTimeout(() => {
                 socket.off('file_content_response', responseHandler);
-                reject(new Error('Request timeout'));
+                console.error('[FileViewer] Request timeout after 10 seconds');
+                reject(new Error('Request timeout - server did not respond'));
             }, 10000);
         });
 
         // Send file read request
-        socket.emit('read_file', {
+        const requestData = {
             file_path: filePath,
             working_dir: workingDir
-        });
+        };
+        console.log('[FileViewer] Emitting read_file event with data:', requestData);
+        socket.emit('read_file', requestData);
 
         // File viewer request sent
 
@@ -1505,15 +1528,19 @@ function formatFileSize(bytes) {
 
 // File Viewer Modal Functions
 window.showFileViewerModal = async function(filePath) {
+    console.log('[FileViewer] Opening file:', filePath);
+    
     // Use the dashboard's current working directory
     let workingDir = '';
     if (window.dashboard && window.dashboard.currentWorkingDir) {
         workingDir = window.dashboard.currentWorkingDir;
+        console.log('[FileViewer] Using working directory:', workingDir);
     }
 
     // Create modal if it doesn't exist
     let modal = document.getElementById('file-viewer-modal');
     if (!modal) {
+        console.log('[FileViewer] Creating new modal');
         modal = createFileViewerModal();
         document.body.appendChild(modal);
 
@@ -1521,14 +1548,16 @@ window.showFileViewerModal = async function(filePath) {
         await new Promise(resolve => setTimeout(resolve, 10));
     }
 
+    // Show the modal as flex container first (ensures proper rendering)
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+
     // Update modal content
     updateFileViewerModal(modal, filePath, workingDir).catch(error => {
         console.error('Error updating file viewer modal:', error);
+        // Show error in the modal
+        displayFileContentError(modal, { error: error.message });
     });
-
-    // Show the modal as flex container
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden'; // Prevent background scrolling
 };
 
 window.hideFileViewerModal = function() {
@@ -1589,6 +1618,19 @@ function displayFileContentError(modal, result) {
     const errorArea = modal.querySelector('.file-viewer-error');
     const messageElement = modal.querySelector('.error-message');
     const suggestionsElement = modal.querySelector('.error-suggestions');
+    const loadingElement = modal.querySelector('.file-viewer-loading');
+    const contentArea = modal.querySelector('.file-viewer-content-area');
+    
+    // Hide loading and content areas, show error
+    if (loadingElement) {
+        loadingElement.style.display = 'none';
+    }
+    if (contentArea) {
+        contentArea.style.display = 'none';
+    }
+    if (errorArea) {
+        errorArea.style.display = 'flex';
+    }
 
     // Create user-friendly error messages
     let errorMessage = result.error || 'Unknown error occurred';
@@ -1599,6 +1641,10 @@ function displayFileContentError(modal, result) {
         errorMessage = '🔒 Permission denied accessing this file';
     } else if (errorMessage.includes('too large')) {
         errorMessage = '📏 File is too large to display';
+    } else if (errorMessage.includes('socket connection')) {
+        errorMessage = '🔌 Not connected to the server. Please check your connection.';
+    } else if (errorMessage.includes('timeout')) {
+        errorMessage = '⏱️ Request timed out. The server may be busy or unresponsive.';
     } else if (!errorMessage.includes('📁') && !errorMessage.includes('🔒') && !errorMessage.includes('📏')) {
         errorMessage = `⚠️ ${errorMessage}`;
     }

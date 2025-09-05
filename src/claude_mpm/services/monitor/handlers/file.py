@@ -1,93 +1,105 @@
-"""File operation event handlers for Socket.IO.
+"""
+File Handler for Unified Monitor Server
+========================================
 
-WHY: This module handles file-related events including reading file content
-safely with security checks. Separating file operations improves security
-auditing and makes it easier to add file-related features.
+WHY: Provides file reading capabilities for the dashboard file viewer.
+This handler allows the dashboard to display file contents when users
+click on files in the code tree or other file references.
+
+DESIGN DECISIONS:
+- Secure file reading with path validation
+- Size limits to prevent memory issues
+- Compatible with UnifiedMonitorServer architecture
 """
 
 import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from ....core.typing_utils import EventData
+import socketio
+
+from ....core.logging_config import get_logger
 from ....core.unified_paths import get_project_root
-from .base import BaseEventHandler
 
 
-class FileEventHandler(BaseEventHandler):
-    """Handles file operation Socket.IO events.
-
-    WHY: File operations require careful security considerations and
-    consistent error handling. Having a dedicated handler ensures
-    all file operations follow the same security patterns.
+class FileHandler:
+    """Socket.IO handler for file operations in the unified monitor server.
+    
+    WHY: The dashboard needs to display file contents when users click on files,
+    but we must ensure secure file access with proper validation and size limits.
     """
 
-    def register_events(self) -> None:
-        """Register file operation event handlers."""
-        self.logger.info("[FileEventHandler] Starting registration of read_file event handler")
+    def __init__(self, sio: socketio.AsyncServer):
+        """Initialize the file handler.
+        
+        Args:
+            sio: Socket.IO server instance
+        """
+        self.sio = sio
+        self.logger = get_logger(__name__)
 
-        # Capture self reference to avoid closure issues
-        handler_self = self
+    def register(self):
+        """Register Socket.IO event handlers for file operations."""
+        self.logger.info("[FileHandler] Registering file event handlers")
 
         @self.sio.event
         async def read_file(sid, data):
-            """Read file contents safely.
-
+            """Handle file read requests from dashboard clients.
+            
             WHY: The dashboard needs to display file contents when users
             click on files, but we must ensure secure file access with
             proper validation and size limits.
             """
-            handler_self.logger.info(f"[FileEventHandler] Received read_file event from {sid} with data: {data}")
+            self.logger.info(f"[FileHandler] Received read_file event from {sid} with data: {data}")
+            
             try:
                 file_path = data.get("file_path")
                 working_dir = data.get("working_dir", os.getcwd())
                 max_size = data.get("max_size", 1024 * 1024)  # 1MB default limit
 
                 if not file_path:
-                    handler_self.logger.warning(f"[FileEventHandler] Missing file_path in request from {sid}")
-                    await handler_self.emit_to_client(
-                        sid,
+                    self.logger.warning(f"[FileHandler] Missing file_path in request from {sid}")
+                    await self.sio.emit(
                         "file_content_response",
                         {
                             "success": False,
                             "error": "file_path is required",
                             "file_path": file_path,
                         },
+                        room=sid,
                     )
                     return
 
-                # Use the shared file reading logic
-                handler_self.logger.info(f"[FileEventHandler] Reading file: {file_path} from working_dir: {working_dir}")
-                result = await handler_self._read_file_safely(file_path, working_dir, max_size)
+                # Read the file safely
+                self.logger.info(f"[FileHandler] Reading file: {file_path} from working_dir: {working_dir}")
+                result = await self._read_file_safely(file_path, working_dir, max_size)
 
                 # Send the result back to the client
-                handler_self.logger.info(f"[FileEventHandler] Sending file_content_response to {sid}, success: {result.get('success', False)}")
-                await handler_self.emit_to_client(sid, "file_content_response", result)
-                handler_self.logger.info(f"[FileEventHandler] Response sent successfully to {sid}")
+                self.logger.info(f"[FileHandler] Sending file_content_response to {sid}, success: {result.get('success', False)}")
+                await self.sio.emit("file_content_response", result, room=sid)
+                self.logger.info(f"[FileHandler] Response sent successfully to {sid}")
 
             except Exception as e:
-                handler_self.logger.error(f"[FileEventHandler] Exception in read_file handler: {e}", exc_info=True)
-                handler_self.log_error("read_file", e, data)
-                await handler_self.emit_to_client(
-                    sid,
+                self.logger.error(f"[FileHandler] Exception in read_file handler: {e}", exc_info=True)
+                await self.sio.emit(
                     "file_content_response",
                     {
                         "success": False,
                         "error": str(e),
                         "file_path": data.get("file_path", "unknown"),
                     },
+                    room=sid,
                 )
-                handler_self.logger.info(f"[FileEventHandler] Error response sent to {sid}")
-        
-        # Log successful registration
-        self.logger.info("[FileEventHandler] read_file event handler registered successfully")
+                self.logger.info(f"[FileHandler] Error response sent to {sid}")
+
+        self.logger.info("[FileHandler] File event handlers registered successfully")
 
     async def _read_file_safely(
         self,
         file_path: str,
         working_dir: Optional[str] = None,
         max_size: int = 1024 * 1024,
-    ) -> EventData:
+    ) -> Dict[str, Any]:
         """Safely read file content with security checks.
 
         WHY: File reading must be secure to prevent directory traversal attacks
@@ -194,7 +206,7 @@ class FileEventHandler(BaseEventHandler):
             return {"success": False, "error": str(e), "file_path": file_path}
 
     def _read_binary_file(
-        self, real_path: str, file_path: str, file_size: int
+        self, real_path: Path, file_path: str, file_size: int
     ) -> Dict[str, Any]:
         """Handle binary or non-UTF8 files.
 

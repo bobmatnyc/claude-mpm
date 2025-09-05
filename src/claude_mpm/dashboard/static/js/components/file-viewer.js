@@ -248,7 +248,11 @@ class FileViewer {
      * Show the file viewer with file content
      */
     async show(filePath) {
+        console.log('[FileViewer] show() called with path:', filePath);
+        console.log('[FileViewer] initialized:', this.initialized);
+        
         if (!this.initialized) {
+            console.log('[FileViewer] Not initialized, initializing now...');
             this.initialize();
         }
 
@@ -258,6 +262,7 @@ class FileViewer {
         // Update path
         document.getElementById('file-viewer-path').textContent = filePath;
         
+        console.log('[FileViewer] Modal shown, loading file content...');
         // Load file content
         await this.loadFileContent(filePath);
     }
@@ -276,8 +281,11 @@ class FileViewer {
     async loadFileContent(filePath) {
         const codeContent = document.getElementById('file-viewer-code-content');
         
+        console.log('[FileViewer] loadFileContent called with path:', filePath);
+        
         // Check cache first
         if (this.contentCache.has(filePath)) {
+            console.log('[FileViewer] Using cached content for:', filePath);
             this.displayContent(this.contentCache.get(filePath));
             return;
         }
@@ -286,35 +294,62 @@ class FileViewer {
         codeContent.textContent = 'Loading file content...';
         
         try {
-            // Try to fetch file content via API
-            const response = await fetch('/api/file', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ path: filePath })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            
-            if (data.success && data.content !== undefined) {
-                // Cache the content
-                this.contentCache.set(filePath, data.content);
+            // Check if we have a socket connection available
+            if (window.socket && window.socket.connected) {
+                console.log('[FileViewer] Using Socket.IO to load file:', filePath);
                 
-                // Display the content
-                this.displayContent(data.content);
+                // Create a promise to wait for the response
+                const responsePromise = new Promise((resolve, reject) => {
+                    const timeoutId = setTimeout(() => {
+                        console.error('[FileViewer] Socket.IO request timed out for:', filePath);
+                        reject(new Error('Socket.IO request timed out'));
+                    }, 10000); // 10 second timeout
+                    
+                    // Set up one-time listener for the response
+                    window.socket.once('file_content_response', (data) => {
+                        clearTimeout(timeoutId);
+                        console.log('[FileViewer] Received file_content_response:', data);
+                        resolve(data);
+                    });
+                    
+                    // Emit the read_file event
+                    console.log('[FileViewer] Emitting read_file event with data:', {
+                        file_path: filePath,
+                        working_dir: window.workingDirectory || '/',
+                        max_size: 5 * 1024 * 1024  // 5MB limit
+                    });
+                    
+                    window.socket.emit('read_file', {
+                        file_path: filePath,
+                        working_dir: window.workingDirectory || '/',
+                        max_size: 5 * 1024 * 1024  // 5MB limit
+                    });
+                });
                 
-                // Update file info
-                this.updateFileInfo(data);
+                // Wait for the response
+                const data = await responsePromise;
+                
+                if (data.success && data.content !== undefined) {
+                    console.log('[FileViewer] Successfully loaded file content, caching...');
+                    // Cache the content
+                    this.contentCache.set(filePath, data.content);
+                    
+                    // Display the content
+                    this.displayContent(data.content);
+                    
+                    // Update file info
+                    this.updateFileInfo(data);
+                } else {
+                    console.error('[FileViewer] Server returned error:', data.error);
+                    throw new Error(data.error || 'Failed to load file content');
+                }
             } else {
-                throw new Error(data.error || 'Failed to load file content');
+                console.error('[FileViewer] No Socket.IO connection available');
+                throw new Error('No socket connection available. Please ensure the dashboard is connected to the monitoring server.');
             }
         } catch (error) {
-            console.error('Error loading file:', error);
+            console.error('[FileViewer] Error loading file:', error);
+            console.error('[FileViewer] Error stack:', error.stack);
             
             // If API fails, show error message with helpful information
             this.displayError(filePath, error.message);
@@ -516,9 +551,16 @@ class FileViewer {
 const fileViewer = new FileViewer();
 
 // Create global function for easy access
-window.showFileViewerModal = (filePath) => {
-    fileViewer.show(filePath);
-};
+// Only set if not already defined by dashboard.js
+if (!window.showFileViewerModal) {
+    window.showFileViewerModal = (filePath) => {
+        console.log('[FileViewer] showFileViewerModal called with path:', filePath);
+        fileViewer.show(filePath);
+    };
+}
+
+// Expose the singleton for debugging
+window.fileViewerInstance = fileViewer;
 
 // Export for use in other modules
 if (typeof window !== 'undefined') {
