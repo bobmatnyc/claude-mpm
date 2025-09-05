@@ -138,6 +138,15 @@ class UnifiedMonitorDaemon:
     def _run_server(self) -> bool:
         """Run the main server loop."""
         try:
+            # Ensure components exist before starting
+            if not self.health_monitor:
+                self.logger.error("Health monitor not initialized")
+                return False
+
+            if not self.server:
+                self.logger.error("Server not initialized")
+                return False
+
             # Start health monitoring
             self.health_monitor.start()
 
@@ -180,6 +189,23 @@ class UnifiedMonitorDaemon:
         try:
             self.logger.info("Stopping unified monitor daemon")
 
+            # If running in daemon mode and we're not the daemon process itself,
+            # use lifecycle to stop the daemon properly
+            if self.daemon_mode and self.lifecycle.is_running():
+                pid = self.lifecycle.get_pid()
+                if pid and pid != os.getpid():
+                    # We're not the daemon process, so stop it via signal
+                    self.logger.info(f"Stopping daemon process with PID {pid}")
+                    success = self.lifecycle.stop_daemon()
+                    if success:
+                        # Clean up our local state
+                        self.running = False
+                        self.shutdown_event.set()
+                        self.server = None
+                        self.health_monitor = None
+                    return success
+
+            # Otherwise, stop normally (we are the daemon or running in foreground)
             # Signal shutdown
             self.running = False
             self.shutdown_event.set()
@@ -223,14 +249,51 @@ class UnifiedMonitorDaemon:
         """
         self.logger.info("Restarting unified monitor daemon")
 
-        # Stop first
+        # Save daemon mode setting before stopping
+        was_daemon_mode = self.daemon_mode
+
+        # Stop first (this will properly kill daemon process if needed)
         if not self.stop():
             return False
 
         # Wait longer for port to be released properly
         # This is needed because the daemon process may take time to fully cleanup
         self.logger.info("Waiting for port to be fully released...")
-        time.sleep(3)
+
+        # Check if port is actually free, wait up to 10 seconds
+        import socket
+
+        for i in range(10):
+            try:
+                # Try to bind to the port to see if it's free
+                test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                test_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                test_sock.bind((self.host, self.port))
+                test_sock.close()
+                self.logger.info(f"Port {self.port} is now free")
+                break
+            except OSError:
+                if i < 9:
+                    self.logger.debug(
+                        f"Port {self.port} still in use, waiting... ({i+1}/10)"
+                    )
+                    time.sleep(1)
+                else:
+                    self.logger.error(
+                        f"Port {self.port} is still in use after 10 seconds"
+                    )
+                    return False
+
+        # Recreate the server and health monitor after stop() sets them to None
+        self.logger.info(f"Recreating server components for {self.host}:{self.port}")
+        self.server = UnifiedMonitorServer(host=self.host, port=self.port)
+        self.health_monitor = HealthMonitor(port=self.port)
+
+        # Reset the shutdown event for the new run
+        self.shutdown_event.clear()
+
+        # Restore daemon mode setting
+        self.daemon_mode = was_daemon_mode
 
         # Start again
         return self.start()

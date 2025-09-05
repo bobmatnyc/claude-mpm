@@ -36,7 +36,7 @@ def main():
 
     # Run the dashboard
     try:
-        subprocess.run([sys.executable, "-m", "claude_mpm.cli.commands.monitor"])
+        subprocess.run([sys.executable, "-m", "claude_mpm.cli.commands.monitor"], check=False)
     except KeyboardInterrupt:
         print("\n\n✅ Test complete. Check the console for any errors.")
         print("\nExpected behavior:")
