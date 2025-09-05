@@ -4,8 +4,8 @@ This module consolidates all magic numbers and configuration constants
 that were previously scattered throughout the codebase.
 """
 
-from typing import Tuple
 from pathlib import Path
+from typing import Tuple
 
 
 class SystemLimits:
@@ -301,15 +301,16 @@ DEFAULT_TIMEOUT = TimeoutConfig.DEFAULT_TIMEOUT
 # NEW ORGANIZED CONSTANTS (Phase 1 Refactoring)
 # ==============================================================================
 
+
 class NetworkPorts:
     """Network port configuration."""
-    
+
     # Use existing values from NetworkConfig
     DEFAULT_SOCKETIO = NetworkConfig.DEFAULT_SOCKETIO_PORT
     DEFAULT_DASHBOARD = NetworkConfig.DEFAULT_DASHBOARD_PORT
     PORT_RANGE_START = NetworkConfig.SOCKETIO_PORT_RANGE[0]
     PORT_RANGE_END = NetworkConfig.SOCKETIO_PORT_RANGE[1]
-    
+
     @classmethod
     def get_port_range(cls) -> range:
         """Get the valid port range."""
@@ -318,12 +319,12 @@ class NetworkPorts:
 
 class ProjectPaths:
     """Project-specific paths and directories."""
-    
+
     # Claude directories
     CLAUDE_DIR = ".claude"
     CLAUDE_AGENTS_DIR = ".claude/agents"
     CLAUDE_CONFIG_FILE = ".claude/config.yaml"
-    
+
     # MPM directories
     MPM_DIR = ".claude-mpm"
     MPM_SESSION_DIR = ".claude-mpm/session"
@@ -332,28 +333,28 @@ class ProjectPaths:
     MPM_CONFIG_DIR = ".claude-mpm/config"
     MPM_MEMORY_DIR = ".claude-mpm/memory"
     MPM_CACHE_DIR = ".claude-mpm/cache"
-    
+
     # Config files
     MPM_CONFIG_FILE = "config.yaml"
     AGENT_CONFIG_FILE = "agent_config.yaml"
     EXPERIMENTAL_CONFIG = "experimental.json"
     SOCKETIO_CONFIG = "socketio_config.yaml"
-    
+
     # Special files
     EXPERIMENTAL_ACCEPTED = ".experimental_accepted"
     VERSION_FILE = "VERSION"
     BUILD_NUMBER_FILE = "BUILD_NUMBER"
-    
+
     @classmethod
     def get_mpm_home(cls) -> Path:
         """Get the MPM home directory."""
         return Path.home() / cls.MPM_DIR
-    
+
     @classmethod
     def get_project_mpm_dir(cls) -> Path:
         """Get the project-specific MPM directory."""
         return Path.cwd() / cls.MPM_DIR
-    
+
     @classmethod
     def get_claude_dir(cls) -> Path:
         """Get the Claude directory."""
