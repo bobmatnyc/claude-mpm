@@ -156,8 +156,12 @@ export default defineConfig({
 
   // Environment variables
   define: {
-    // Define build-time constants
-    __DEV__: JSON.stringify(process.env.NODE_ENV === 'development'),
-    __VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0')
+    // Define build-time constants - values are replaced at build time
+    // These are string replacements, so the values must be valid JavaScript expressions
+    __DEV__: process.env.NODE_ENV === 'development' ? 'true' : 'false',
+    __VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),
+    // Explicitly handle process.env to prevent it from being referenced in browser code
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
+    'process.env': JSON.stringify({})
   }
 });

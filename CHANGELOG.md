@@ -17,6 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.16] - 2025-09-05
+
+### Fixed
+- Dashboard "process is not defined" error by fixing vite.config.js Node.js code injection
+- Monitor daemon restart error with proper object recreation handling in daemon.py
+- Daemon process termination to properly release port binding during restarts
+- CLI command parameters for reliable monitor restart functionality
+- Dashboard components rebuilt with corrected Vite configuration to prevent browser errors
+
+### Added
+- Comprehensive tests for dashboard fixes and monitor operations
+- Enhanced error handling for monitor daemon lifecycle management
+
+
 ## [4.2.15] - 2025-09-05
 
 ### Fixed
