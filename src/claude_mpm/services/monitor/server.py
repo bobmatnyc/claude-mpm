@@ -425,14 +425,14 @@ class UnifiedMonitorServer:
                 """Return configuration for dashboard initialization."""
                 import os
                 import subprocess
-                
+
                 config = {
                     "workingDirectory": os.getcwd(),
                     "gitBranch": "Unknown",
                     "serverTime": datetime.utcnow().isoformat() + "Z",
-                    "service": "unified-monitor"
+                    "service": "unified-monitor",
                 }
-                
+
                 # Try to get current git branch
                 try:
                     result = subprocess.run(
@@ -440,13 +440,13 @@ class UnifiedMonitorServer:
                         capture_output=True,
                         text=True,
                         timeout=2,
-                        cwd=os.getcwd()
+                        cwd=os.getcwd(), check=False,
                     )
                     if result.returncode == 0 and result.stdout.strip():
                         config["gitBranch"] = result.stdout.strip()
                 except Exception:
                     pass  # Keep default "Unknown" value
-                
+
                 return web.json_response(config)
 
             # Register routes
