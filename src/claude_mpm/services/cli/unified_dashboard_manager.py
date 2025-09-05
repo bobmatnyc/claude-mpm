@@ -154,7 +154,8 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
                     return True
 
             # Try to stop via process management
-            if self.port_manager.is_port_in_use(port):
+            # Check if port is in use (is_port_available returns False if in use)
+            if not self.port_manager.is_port_available(port):
                 # Use port manager to find and stop the process
                 active_instances = self.port_manager.list_active_instances()
                 for instance in active_instances:

@@ -219,10 +219,10 @@ class SessionManager {
         let sessionInfo = 'All Sessions';
         // Use browser-compatible fallback for working directory
         // WHY: Removed process.cwd() Node.js reference - not available in browser
-        // BROWSER FIX: Use dashboard manager or hardcoded fallback
+        // BROWSER FIX: Use dashboard manager or server-provided config
         let workingDir = window.dashboard?.workingDirectoryManager?.getDefaultWorkingDir() || 
-                        window.location.pathname || 
-                        '/Users/masa/Projects/claude-mpm';
+                        window.dashboardConfig?.workingDirectory || 
+                        '.';
         let gitBranch = 'Unknown';
 
         console.log('[SESSION-DEBUG] Initial values - sessionInfo:', sessionInfo, 'workingDir:', workingDir, 'gitBranch:', gitBranch);
@@ -238,8 +238,8 @@ class SessionManager {
                 // Browser-compatible working directory fallback
                 workingDir = sessionData.workingDir || 
                            window.dashboard?.workingDirectoryManager?.getDefaultWorkingDir() || 
-                           window.location.pathname || 
-                           '/Users/masa/Projects/claude-mpm';
+                           window.dashboardConfig?.workingDirectory || 
+                           '.';
                 gitBranch = sessionData.gitBranch || 'Unknown';
             }
         } else if (this.selectedSessionId) {
@@ -253,7 +253,7 @@ class SessionManager {
                 if (!workingDir || !gitBranch) {
                     const sessionData = this.extractSessionInfoFromEvents(this.selectedSessionId);
                     // Browser-compatible fallback - no process.cwd()
-                    workingDir = workingDir || sessionData.workingDir || window.location.pathname || '.';
+                    workingDir = workingDir || sessionData.workingDir || window.dashboardConfig?.workingDirectory || '.';
                     gitBranch = gitBranch || sessionData.gitBranch || '';
                 }
             }

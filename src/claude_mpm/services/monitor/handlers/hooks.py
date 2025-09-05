@@ -93,8 +93,10 @@ class HookHandler:
                 self._update_session_tracking(session_id, processed_event)
 
             # Broadcast to all dashboard clients
-            # Use only one event type to avoid duplication
+            # Emit both event names for compatibility
             await self.sio.emit("hook:event", processed_event)
+            # Also emit as claude_event which is what the dashboard expects
+            await self.sio.emit("claude_event", processed_event)
 
             self.logger.debug(
                 f"Claude hook event processed and broadcasted: {processed_event.get('type', 'unknown')}"
@@ -136,6 +138,8 @@ class HookHandler:
 
             # Broadcast to all dashboard clients
             await self.sio.emit("hook:event", processed_event)
+            # Also emit as claude_event for dashboard compatibility
+            await self.sio.emit("claude_event", processed_event)
 
             self.logger.debug(
                 f"Hook event processed: {processed_event.get('type', 'unknown')}"
@@ -176,6 +180,13 @@ class HookHandler:
 
             # Broadcast session start
             await self.sio.emit("hook:session:started", session_info)
+            # Also emit as claude_event for dashboard
+            await self.sio.emit("claude_event", {
+                "type": "session.started",
+                "session_id": session_id,
+                "data": session_info,
+                "timestamp": asyncio.get_event_loop().time()
+            })
 
             self.logger.info(f"Claude Code session started: {session_id}")
 
@@ -211,6 +222,13 @@ class HookHandler:
 
                 # Broadcast session end
                 await self.sio.emit("hook:session:ended", session_info)
+                # Also emit as claude_event for dashboard
+                await self.sio.emit("claude_event", {
+                    "type": "session.ended",
+                    "session_id": session_id,
+                    "data": session_info,
+                    "timestamp": asyncio.get_event_loop().time()
+                })
 
                 # Remove from active sessions after a delay
                 asyncio.create_task(
