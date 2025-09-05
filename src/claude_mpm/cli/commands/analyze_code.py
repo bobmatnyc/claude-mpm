@@ -20,7 +20,6 @@ from pathlib import Path
 from typing import Any, List, Optional
 
 try:
-    from rich import print as rprint
     from rich.console import Console
     from rich.progress import (
         BarColumn,

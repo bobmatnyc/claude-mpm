@@ -141,7 +141,6 @@ class MonitorCommand(BaseCommand):
 
     def _status_monitor(self, args) -> CommandResult:
         """Get unified monitor daemon status."""
-        verbose = getattr(args, "verbose", False)
 
         # Create daemon instance to check status
         daemon = UnifiedMonitorDaemon()
