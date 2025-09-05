@@ -17,6 +17,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.15] - 2025-09-05
+
+### Fixed
+- Dashboard stop command error caused by incorrect PortManager method call
+- Hardcoded directory paths in dashboard components (session-manager.js, index.html)
+- Event display issues by adding dual emission support ('hook:event' and 'claude_event')
+- Dashboard initialization now fetches working directory from server /api/config endpoint
+- Proper project structure compliance by moving test files to tests/ directory
+
+### Added
+- /api/config endpoint in monitor server providing current working directory
+- Dynamic working directory detection for dashboard components
+- Enhanced event emission compatibility for dashboard real-time updates
+
+### Changed
+- PortManager method call from is_port_in_use() to is_port_available() for consistency
+- Dashboard components now use server-provided working directory instead of hardcoded paths
+
+
 ## [4.2.14] - 2025-09-05
 
 ### Fixed
