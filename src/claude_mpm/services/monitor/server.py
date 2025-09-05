@@ -79,7 +79,7 @@ class UnifiedMonitorServer:
         self.running = False
         self.loop = None
         self.server_thread = None
-        
+
         # Heartbeat tracking
         self.heartbeat_task: Optional[asyncio.Task] = None
         self.server_start_time = time.time()
@@ -200,7 +200,7 @@ class UnifiedMonitorServer:
             self.logger.info(
                 "Using high-performance async event architecture with direct calls"
             )
-            
+
             # Start heartbeat task
             self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
             self.logger.info("Heartbeat task started (3-minute interval)")
@@ -496,29 +496,29 @@ class UnifiedMonitorServer:
             while self.running:
                 # Wait 3 minutes (180 seconds)
                 await asyncio.sleep(180)
-                
+
                 if not self.running:
                     break
-                    
+
                 # Increment heartbeat count
                 self.heartbeat_count += 1
-                
+
                 # Calculate server uptime
                 uptime_seconds = int(time.time() - self.server_start_time)
                 uptime_minutes = uptime_seconds // 60
                 uptime_hours = uptime_minutes // 60
-                
+
                 # Format uptime string
                 if uptime_hours > 0:
                     uptime_str = f"{uptime_hours}h {uptime_minutes % 60}m"
                 else:
                     uptime_str = f"{uptime_minutes}m {uptime_seconds % 60}s"
-                
+
                 # Get connected client count
                 connected_clients = 0
                 if self.dashboard_handler:
                     connected_clients = len(self.dashboard_handler.connected_clients)
-                
+
                 # Create heartbeat data
                 heartbeat_data = {
                     "timestamp": datetime.utcnow().isoformat() + "Z",
@@ -529,9 +529,9 @@ class UnifiedMonitorServer:
                     "heartbeat_number": self.heartbeat_count,
                     "message": f"Server heartbeat #{self.heartbeat_count} - Socket.IO connection active",
                     "service": "unified-monitor",
-                    "port": self.port
+                    "port": self.port,
                 }
-                
+
                 # Emit heartbeat event
                 if self.sio:
                     await self.sio.emit("heartbeat", heartbeat_data)
@@ -539,12 +539,12 @@ class UnifiedMonitorServer:
                         f"Heartbeat #{self.heartbeat_count} sent - "
                         f"{connected_clients} clients connected, uptime: {uptime_str}"
                     )
-                    
+
         except asyncio.CancelledError:
             self.logger.debug("Heartbeat task cancelled")
         except Exception as e:
             self.logger.error(f"Error in heartbeat loop: {e}")
-    
+
     async def _cleanup_async(self):
         """Cleanup async resources."""
         try:
@@ -556,7 +556,7 @@ class UnifiedMonitorServer:
                 except asyncio.CancelledError:
                     pass
                 self.logger.debug("Heartbeat task cancelled")
-            
+
             # Close the Socket.IO server first to stop accepting new connections
             if self.sio:
                 try:

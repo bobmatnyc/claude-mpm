@@ -24,14 +24,14 @@ from ....core.unified_paths import get_project_root
 
 class FileHandler:
     """Socket.IO handler for file operations in the unified monitor server.
-    
+
     WHY: The dashboard needs to display file contents when users click on files,
     but we must ensure secure file access with proper validation and size limits.
     """
 
     def __init__(self, sio: socketio.AsyncServer):
         """Initialize the file handler.
-        
+
         Args:
             sio: Socket.IO server instance
         """
@@ -45,20 +45,24 @@ class FileHandler:
         @self.sio.event
         async def read_file(sid, data):
             """Handle file read requests from dashboard clients.
-            
+
             WHY: The dashboard needs to display file contents when users
             click on files, but we must ensure secure file access with
             proper validation and size limits.
             """
-            self.logger.info(f"[FileHandler] Received read_file event from {sid} with data: {data}")
-            
+            self.logger.info(
+                f"[FileHandler] Received read_file event from {sid} with data: {data}"
+            )
+
             try:
                 file_path = data.get("file_path")
                 working_dir = data.get("working_dir", os.getcwd())
                 max_size = data.get("max_size", 1024 * 1024)  # 1MB default limit
 
                 if not file_path:
-                    self.logger.warning(f"[FileHandler] Missing file_path in request from {sid}")
+                    self.logger.warning(
+                        f"[FileHandler] Missing file_path in request from {sid}"
+                    )
                     await self.sio.emit(
                         "file_content_response",
                         {
@@ -71,16 +75,22 @@ class FileHandler:
                     return
 
                 # Read the file safely
-                self.logger.info(f"[FileHandler] Reading file: {file_path} from working_dir: {working_dir}")
+                self.logger.info(
+                    f"[FileHandler] Reading file: {file_path} from working_dir: {working_dir}"
+                )
                 result = await self._read_file_safely(file_path, working_dir, max_size)
 
                 # Send the result back to the client
-                self.logger.info(f"[FileHandler] Sending file_content_response to {sid}, success: {result.get('success', False)}")
+                self.logger.info(
+                    f"[FileHandler] Sending file_content_response to {sid}, success: {result.get('success', False)}"
+                )
                 await self.sio.emit("file_content_response", result, room=sid)
                 self.logger.info(f"[FileHandler] Response sent successfully to {sid}")
 
             except Exception as e:
-                self.logger.error(f"[FileHandler] Exception in read_file handler: {e}", exc_info=True)
+                self.logger.error(
+                    f"[FileHandler] Exception in read_file handler: {e}", exc_info=True
+                )
                 await self.sio.emit(
                     "file_content_response",
                     {

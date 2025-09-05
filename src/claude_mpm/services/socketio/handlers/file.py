@@ -24,7 +24,9 @@ class FileEventHandler(BaseEventHandler):
 
     def register_events(self) -> None:
         """Register file operation event handlers."""
-        self.logger.info("[FileEventHandler] Starting registration of read_file event handler")
+        self.logger.info(
+            "[FileEventHandler] Starting registration of read_file event handler"
+        )
 
         # Capture self reference to avoid closure issues
         handler_self = self
@@ -37,14 +39,18 @@ class FileEventHandler(BaseEventHandler):
             click on files, but we must ensure secure file access with
             proper validation and size limits.
             """
-            handler_self.logger.info(f"[FileEventHandler] Received read_file event from {sid} with data: {data}")
+            handler_self.logger.info(
+                f"[FileEventHandler] Received read_file event from {sid} with data: {data}"
+            )
             try:
                 file_path = data.get("file_path")
                 working_dir = data.get("working_dir", os.getcwd())
                 max_size = data.get("max_size", 1024 * 1024)  # 1MB default limit
 
                 if not file_path:
-                    handler_self.logger.warning(f"[FileEventHandler] Missing file_path in request from {sid}")
+                    handler_self.logger.warning(
+                        f"[FileEventHandler] Missing file_path in request from {sid}"
+                    )
                     await handler_self.emit_to_client(
                         sid,
                         "file_content_response",
@@ -57,16 +63,27 @@ class FileEventHandler(BaseEventHandler):
                     return
 
                 # Use the shared file reading logic
-                handler_self.logger.info(f"[FileEventHandler] Reading file: {file_path} from working_dir: {working_dir}")
-                result = await handler_self._read_file_safely(file_path, working_dir, max_size)
+                handler_self.logger.info(
+                    f"[FileEventHandler] Reading file: {file_path} from working_dir: {working_dir}"
+                )
+                result = await handler_self._read_file_safely(
+                    file_path, working_dir, max_size
+                )
 
                 # Send the result back to the client
-                handler_self.logger.info(f"[FileEventHandler] Sending file_content_response to {sid}, success: {result.get('success', False)}")
+                handler_self.logger.info(
+                    f"[FileEventHandler] Sending file_content_response to {sid}, success: {result.get('success', False)}"
+                )
                 await handler_self.emit_to_client(sid, "file_content_response", result)
-                handler_self.logger.info(f"[FileEventHandler] Response sent successfully to {sid}")
+                handler_self.logger.info(
+                    f"[FileEventHandler] Response sent successfully to {sid}"
+                )
 
             except Exception as e:
-                handler_self.logger.error(f"[FileEventHandler] Exception in read_file handler: {e}", exc_info=True)
+                handler_self.logger.error(
+                    f"[FileEventHandler] Exception in read_file handler: {e}",
+                    exc_info=True,
+                )
                 handler_self.log_error("read_file", e, data)
                 await handler_self.emit_to_client(
                     sid,
@@ -77,10 +94,14 @@ class FileEventHandler(BaseEventHandler):
                         "file_path": data.get("file_path", "unknown"),
                     },
                 )
-                handler_self.logger.info(f"[FileEventHandler] Error response sent to {sid}")
-        
+                handler_self.logger.info(
+                    f"[FileEventHandler] Error response sent to {sid}"
+                )
+
         # Log successful registration
-        self.logger.info("[FileEventHandler] read_file event handler registered successfully")
+        self.logger.info(
+            "[FileEventHandler] read_file event handler registered successfully"
+        )
 
     async def _read_file_safely(
         self,
