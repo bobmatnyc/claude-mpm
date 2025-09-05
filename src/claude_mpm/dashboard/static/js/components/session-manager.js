@@ -93,7 +93,7 @@ class SessionManager {
         const currentSelection = sessionSelect.value;
 
         // Get the default working directory from various sources
-        let defaultWorkingDir = '/Users/masa/Projects/claude-mpm';
+        let defaultWorkingDir = '/';
         
         // Try to get from working directory manager
         if (window.dashboard && window.dashboard.workingDirectoryManager) {

@@ -32,7 +32,8 @@ function analyzeFileFromPath(filePath) {
 class SimpleCodeView {
     constructor() {
         console.log('[SimpleCodeView] Constructor called');
-        this.currentPath = '/Users/masa/Projects/claude-mpm';
+        // Try to get the current working directory from various sources
+        this.currentPath = this.getInitialPath();
         this.container = null;
         this.apiBase = window.location.origin;
         console.log('[SimpleCodeView] API base:', this.apiBase);
@@ -780,6 +781,48 @@ class SimpleCodeView {
         `;
         
         container.appendChild(legend);
+    }
+    
+    /**
+     * Get initial path from various sources
+     * @returns {string} Initial path to use
+     */
+    getInitialPath() {
+        // Try to get from working directory manager
+        if (window.dashboard && window.dashboard.workingDirectoryManager) {
+            const dir = window.dashboard.workingDirectoryManager.getCurrentWorkingDir();
+            if (dir) return dir;
+        }
+        
+        // Try to get from working directory element
+        const workingDirPath = document.getElementById('working-dir-path');
+        if (workingDirPath && workingDirPath.textContent && workingDirPath.textContent !== 'Loading...') {
+            return workingDirPath.textContent.trim();
+        }
+        
+        // Try to get from footer
+        const footerDir = document.getElementById('footer-working-dir');
+        if (footerDir && footerDir.textContent && footerDir.textContent !== 'Unknown') {
+            return footerDir.textContent.trim();
+        }
+        
+        // Try to get from recent events
+        if (window.socketClient && window.socketClient.events) {
+            const eventsWithDir = window.socketClient.events
+                .filter(e => e.data && (e.data.working_directory || e.data.cwd || e.data.working_dir))
+                .reverse();
+            
+            if (eventsWithDir.length > 0) {
+                const recentEvent = eventsWithDir[0];
+                const dir = recentEvent.data.working_directory || 
+                           recentEvent.data.cwd || 
+                           recentEvent.data.working_dir;
+                if (dir) return dir;
+            }
+        }
+        
+        // Default fallback
+        return '/';
     }
 }
 

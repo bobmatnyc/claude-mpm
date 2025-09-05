@@ -15,6 +15,7 @@ DESIGN DECISIONS:
 
 from .code_analysis import CodeAnalysisHandler
 from .dashboard import DashboardHandler
+from .file import FileHandler
 from .hooks import HookHandler
 
-__all__ = ["CodeAnalysisHandler", "DashboardHandler", "HookHandler"]
+__all__ = ["CodeAnalysisHandler", "DashboardHandler", "FileHandler", "HookHandler"]

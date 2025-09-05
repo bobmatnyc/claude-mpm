@@ -13,10 +13,34 @@
  * 
  * Version: 2025-08-29T15:30:00Z - ALL CENTERING REMOVED
  * Last Update: Completely disabled tree centering/movement on node clicks
+ * 
+ * REFACTORED: 2025-09-05 - Extracted utilities, constants, search, and breadcrumb modules
  */
+
+// Load dependencies - these should be loaded in the HTML before this file
+// Shared services
+// <script src="/static/js/shared/tooltip-service.js"></script>
+// <script src="/static/js/shared/dom-helpers.js"></script>
+// <script src="/static/js/shared/event-bus.js"></script>
+// <script src="/static/js/shared/logger.js"></script>
+// Tree modules
+// <script src="/static/js/components/code-tree/tree-utils.js"></script>
+// <script src="/static/js/components/code-tree/tree-constants.js"></script>
+// <script src="/static/js/components/code-tree/tree-search.js"></script>
+// <script src="/static/js/components/code-tree/tree-breadcrumb.js"></script>
 
 class CodeTree {
     constructor() {
+        // Initialize services
+        this.tooltipService = window.tooltipService || null;
+        this.domHelpers = window.domHelpers || null;
+        this.eventBus = window.eventBus || null;
+        this.logger = window.logger ? window.logger.createComponentLogger('CodeTree') : console;
+        this.treeUtils = window.treeUtils || null;
+        this.treeConstants = window.treeConstants || {};
+        this.treeSearch = window.treeSearch || null;
+        this.treeBreadcrumb = window.treeBreadcrumb || null;
+        
         this.container = null;
         this.svg = null;
         this.treeData = null;
@@ -31,14 +55,14 @@ class CodeTree {
             methods: 0,
             lines: 0
         };
-        // Radial layout settings
+        // Radial layout settings - use constants if available
         this.isRadialLayout = false;  // Toggle for radial vs linear layout - defaulting to linear for better readability
-        this.margin = {top: 20, right: 20, bottom: 20, left: 20};
-        this.width = 960 - this.margin.left - this.margin.right;
-        this.height = 600 - this.margin.top - this.margin.bottom;
+        this.margin = this.treeConstants.DEFAULT_MARGIN || {top: 20, right: 20, bottom: 20, left: 20};
+        this.width = (this.treeConstants.DEFAULT_WIDTH || 960) - this.margin.left - this.margin.right;
+        this.height = (this.treeConstants.DEFAULT_HEIGHT || 600) - this.margin.top - this.margin.bottom;
         this.radius = Math.min(this.width, this.height) / 2;
         this.nodeId = 0;
-        this.duration = 750;
+        this.duration = this.treeConstants.ANIMATION_DURATION || 750;
         this.languageFilter = 'all';
         this.searchTerm = '';
         this.tooltip = null;
