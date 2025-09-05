@@ -71,7 +71,6 @@ class DashboardCommand(BaseCommand):
         host = getattr(args, "host", "localhost")
         background = getattr(args, "background", False)
         use_stable = getattr(args, "stable", True)  # Default to stable server
-        debug = getattr(args, "debug", False)
 
         self.logger.info(
             f"Starting dashboard on {host}:{port} (background: {background}, stable: {use_stable})"
