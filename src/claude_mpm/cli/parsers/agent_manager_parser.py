@@ -22,7 +22,7 @@ def add_agent_manager_subparser(subparsers: argparse._SubParsersAction) -> None:
         description="Comprehensive agent lifecycle management for Claude MPM",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
+Standard Commands:
   claude-mpm agent-manager list                          # List all agents across tiers
   claude-mpm agent-manager create                        # Interactive agent creation
   claude-mpm agent-manager create --id my-agent          # Create agent with ID
@@ -35,6 +35,16 @@ Examples:
   claude-mpm agent-manager reset --dry-run               # Preview agent cleanup
   claude-mpm agent-manager reset --force                 # Remove all claude-mpm agents
   claude-mpm agent-manager reset --project-only          # Clean only project agents
+
+Local Agent Commands:
+  claude-mpm agent-manager create-local --agent-id my-custom  # Create local template
+  claude-mpm agent-manager deploy-local --agent-id my-custom  # Deploy local template
+  claude-mpm agent-manager list-local                         # List local templates
+  claude-mpm agent-manager sync-local                         # Sync templates with deployment
+  claude-mpm agent-manager export-local --output ./agents     # Export templates
+  claude-mpm agent-manager import-local --input ./agents      # Import templates
+  claude-mpm agent-manager delete-local --agent-id my-custom  # Delete single agent
+  claude-mpm agent-manager delete-local --all --backup        # Delete all with backup
 """,
     )
 
@@ -230,4 +240,156 @@ Examples:
         choices=["text", "json"],
         default="text",
         help="Output format (default: text)",
+    )
+
+    # === Interactive Commands ===
+
+    # Create interactive command
+    create_interactive_parser = agent_subparsers.add_parser(
+        "create-interactive", help="🧙‍♂️ Launch step-by-step agent creation wizard"
+    )
+
+    # Manage local interactive command
+    manage_local_parser = agent_subparsers.add_parser(
+        "manage-local", help="🔧 Interactive menu for managing local agents"
+    )
+
+    # Edit interactive command  
+    edit_interactive_parser = agent_subparsers.add_parser(
+        "edit-interactive", help="✏️ Edit agent configuration interactively"
+    )
+    edit_interactive_parser.add_argument(
+        "--agent-id", required=True, help="Agent ID to edit"
+    )
+
+    # Test local command
+    test_local_parser = agent_subparsers.add_parser(
+        "test-local", help="🧪 Test local agent with validation and deployment"
+    )
+    test_local_parser.add_argument(
+        "--agent-id", required=True, help="Agent ID to test"
+    )
+
+    # === Local Agent Commands ===
+
+    # Create local command
+    create_local_parser = agent_subparsers.add_parser(
+        "create-local", help="Create a local JSON agent template"
+    )
+    create_local_parser.add_argument(
+        "--agent-id", required=True, help="Unique agent identifier"
+    )
+    create_local_parser.add_argument("--name", help="Human-readable agent name")
+    create_local_parser.add_argument("--description", help="Agent description")
+    create_local_parser.add_argument("--instructions", help="Agent instructions")
+    create_local_parser.add_argument(
+        "--model",
+        choices=["sonnet", "opus", "haiku"],
+        default="sonnet",
+        help="Model to use (default: sonnet)",
+    )
+    create_local_parser.add_argument(
+        "--tools", help="Tools available to agent (default: *)"
+    )
+    create_local_parser.add_argument("--parent", help="Parent agent to inherit from")
+    create_local_parser.add_argument(
+        "--tier",
+        choices=["project", "user"],
+        default="project",
+        help="Tier level (default: project)",
+    )
+
+    # Deploy local command
+    deploy_local_parser = agent_subparsers.add_parser(
+        "deploy-local", help="Deploy local JSON templates to Claude Code"
+    )
+    deploy_local_parser.add_argument(
+        "--agent-id", help="Specific agent to deploy (deploy all if not specified)"
+    )
+    deploy_local_parser.add_argument(
+        "--force", action="store_true", help="Force deployment even if file exists"
+    )
+    deploy_local_parser.add_argument(
+        "--tier", choices=["project", "user"], help="Filter by tier for bulk deployment"
+    )
+
+    # List local command
+    list_local_parser = agent_subparsers.add_parser(
+        "list-local", help="List all local agent templates"
+    )
+    list_local_parser.add_argument(
+        "--tier", choices=["project", "user"], help="Filter by tier"
+    )
+    list_local_parser.add_argument(
+        "--format",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
+    )
+
+    # Sync local command
+    sync_local_parser = agent_subparsers.add_parser(
+        "sync-local", help="Synchronize local templates with deployed agents"
+    )
+
+    # Export local command
+    export_local_parser = agent_subparsers.add_parser(
+        "export-local", help="Export local templates to a directory"
+    )
+    export_local_parser.add_argument(
+        "--output",
+        default="./exported-agents",
+        help="Output directory (default: ./exported-agents)",
+    )
+
+    # Import local command
+    import_local_parser = agent_subparsers.add_parser(
+        "import-local", help="Import templates from a directory"
+    )
+    import_local_parser.add_argument(
+        "--input", required=True, help="Input directory containing templates"
+    )
+    import_local_parser.add_argument(
+        "--tier",
+        choices=["project", "user"],
+        default="project",
+        help="Tier to import into (default: project)",
+    )
+
+    # Delete local command
+    delete_local_parser = agent_subparsers.add_parser(
+        "delete-local", help="Delete local agent templates with safety checks"
+    )
+    delete_local_parser.add_argument(
+        "--agent-id",
+        nargs="+",
+        dest="agent_id",
+        help="Agent ID(s) to delete (space-separated for multiple)",
+    )
+    delete_local_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Delete all local agents (requires confirmation)",
+    )
+    delete_local_parser.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Skip confirmation prompts",
+    )
+    delete_local_parser.add_argument(
+        "--keep-deployment",
+        action="store_true",
+        help="Keep Claude Code deployment, only delete template",
+    )
+    delete_local_parser.add_argument(
+        "--backup",
+        action="store_true",
+        help="Create backup before deletion",
+    )
+    delete_local_parser.add_argument(
+        "--tier",
+        choices=["project", "user", "all"],
+        default="project",
+        help="Tier to delete from (default: project)",
     )

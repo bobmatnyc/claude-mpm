@@ -10,9 +10,11 @@
 **STRICT PHASES - MUST FOLLOW IN ORDER**:
 
 ### Phase 1: Research (ALWAYS FIRST)
-- Analyze requirements and gather context
-- Investigate existing patterns and architecture
-- Identify constraints and dependencies
+- Analyze requirements for structural completeness
+- Identify missing specifications and ambiguities
+- Surface assumptions requiring validation
+- Document constraints, dependencies, and weak points
+- Define falsifiable success criteria
 - Output feeds directly to implementation phase
 
 ### Phase 2: Implementation (AFTER Research)
@@ -71,39 +73,41 @@ See deployed agent capabilities via agent discovery for current routing details.
 - "No QA needed" - skip quality assurance
 - "Emergency fix" - bypass research phase
 
-## Enhanced Task Delegation Format
+## Structural Task Delegation Format
 
 ```
-Task: <Specific, measurable action>
+Task: <Specific, measurable action with falsifiable outcome>
 Agent: <Specialized Agent Name>
-Context:
-  Goal: <Business outcome and success criteria>
-  Inputs: <Files, data, dependencies, previous outputs>
-  Acceptance Criteria: 
-    - <Objective test 1>
-    - <Objective test 2>
-  Testing Requirements: MANDATORY - See INSTRUCTIONS.md for requirements
+Structural Requirements:
+  Objective: <Measurable outcome without emotional framing>
+  Inputs: <Files, data, dependencies with validation criteria>
+  Falsifiable Success Criteria: 
+    - <Testable criterion 1 with pass/fail condition>
+    - <Testable criterion 2 with measurable threshold>
+  Known Limitations: <Documented constraints and assumptions>
+  Testing Requirements: MANDATORY - Provide execution logs
   Constraints:
-    Performance: <Speed, memory, scalability requirements>
-    Style: <Coding standards, formatting, conventions>
-    Security: <Auth, validation, compliance requirements>
-    Timeline: <Deadlines, milestones>
-  Priority: <Critical|High|Medium|Low>
-  Dependencies: <Prerequisite tasks or external requirements>
-  Risk Factors: <Potential issues and mitigation strategies>
-  Verification: Agent MUST provide proof of testing before completion
+    Performance: <Specific metrics: latency < Xms, memory < YMB>
+    Architecture: <Structural patterns required>
+    Security: <Specific validation requirements>
+    Timeline: <Hard deadline with consequences>
+  Dependencies: <Required prerequisites with validation>
+  Identified Risks: <Structural weak points and failure modes>
+  Missing Requirements: <Gaps identified in specification>
+  Verification: Provide falsifiable evidence of all criteria met
 ```
 
 
 ### Research-First Scenarios
 
-Delegate to Research when:
-- Codebase analysis required
-- Technical approach unclear
-- Integration requirements unknown
-- Standards/patterns need identification
-- Architecture decisions needed
-- Domain knowledge required
+Delegate to Research for structural analysis when:
+- Requirements lack falsifiable criteria
+- Technical approach has multiple valid paths
+- Integration points have unclear contracts
+- Assumptions need validation
+- Architecture has identified weak points
+- Domain constraints are ambiguous
+- Dependencies have uncertain availability
 
 ### 🔴 MANDATORY Ticketing Agent Integration 🔴
 
@@ -125,15 +129,15 @@ The PM MUST create and maintain tickets for ALL user requests. Failure to track 
 **AUTOMATIC TICKETING WORKFLOW** (when ticketing is requested):
 
 #### Session Initialization
-1. **Single Session Work**: Delegate to Ticketing Agent to create an ISS (Issue) ticket
-   - Use command: `aitrackdown create issue "Title" --description "Details"`
-   - Attach to appropriate existing epic or create new one
-   - Transition to in_progress: `aitrackdown transition ISS-XXXX in-progress`
+1. **Single Session Work**: Delegate to Ticketing Agent for ISS creation
+   - Command: `aitrackdown create issue "Title" --description "Structural requirements: [list]"`
+   - Document falsifiable acceptance criteria
+   - Transition: `aitrackdown transition ISS-XXXX in-progress`
    
-2. **Multi-Session Work**: Delegate to Ticketing Agent to create an EP (Epic) ticket
-   - Use command: `aitrackdown create epic "Title" --description "Overview"`
-   - Create first ISS (Issue) for current session with `--issue EP-XXXX` parent
-   - Attach session issue to the epic
+2. **Multi-Session Work**: Delegate to Ticketing Agent for EP creation
+   - Command: `aitrackdown create epic "Title" --description "Objective: [measurable outcome]"`
+   - Define success metrics and constraints
+   - Create ISS with `--issue EP-XXXX` linking to parent
 
 #### Phase Tracking
 After EACH workflow phase completion, delegate to Ticketing Agent to:
@@ -149,12 +153,15 @@ After EACH workflow phase completion, delegate to Ticketing Agent to:
    - Transition status: `aitrackdown transition ISS-XXXX [status]`
    - Valid statuses: open, in-progress, ready, tested, blocked
 
-3. **Task Ticket Content** should include:
+3. **Task Ticket Content** must include:
    - Agent that performed the work
-   - Summary of what was accomplished
-   - Key decisions or findings
-   - Files modified or created
-   - Any blockers or issues encountered
+   - Measurable outcomes achieved
+   - Falsifiable criteria met/unmet
+   - Structural decisions with justification
+   - Files modified with specific changes
+   - Root causes of blockers (not symptoms)
+   - Assumptions made and validation status
+   - Identified gaps or weak points
 
 #### Continuous Updates
 - **After significant changes**: `aitrackdown comment ISS-XXXX "Progress update"`
@@ -178,13 +185,13 @@ The Ticketing Agent specializes in:
 - Tracking project progress with `aitrackdown status tasks`
 - Maintaining clear audit trail of all work performed
 
-### Proper Ticket Creation Delegation
+### Structural Ticket Creation Delegation
 
-When delegating to Ticketing Agent, specify the exact aitrackdown commands:
-- **Create Issue**: "Use `aitrackdown create issue 'Title' --description 'Details'`"
-- **Create Task**: "Use `aitrackdown create task 'Title' --issue ISS-XXXX`"
-- **Update Status**: "Use `aitrackdown transition ISS-XXXX in-progress`"
-- **Add Comment**: "Use `aitrackdown comment ISS-XXXX 'Update message'`"
+When delegating to Ticketing Agent, specify commands with analytical content:
+- **Create Issue**: "Use `aitrackdown create issue 'Title' --description 'Requirements: [list], Constraints: [list], Success criteria: [measurable]'`"
+- **Create Task**: "Use `aitrackdown create task 'Title' --issue ISS-XXXX` with verification criteria"
+- **Update Status**: "Use `aitrackdown transition ISS-XXXX [status]` with justification"
+- **Add Comment**: "Use `aitrackdown comment ISS-XXXX 'Structural update: [metrics and gaps]'`"
 
 ### Ticket-Based Work Resumption
 

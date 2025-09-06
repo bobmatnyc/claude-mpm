@@ -58,6 +58,19 @@ class AgentManagerCommand(AgentCommand):
             "test": self._test_agent,
             "templates": self._list_templates,
             "reset": self._reset_agents,
+            # Interactive commands
+            "create-interactive": self._create_interactive,
+            "manage-local": self._manage_local_interactive,
+            "edit-interactive": self._edit_interactive,
+            "test-local": self._test_local_agent,
+            # Local agent commands
+            "create-local": self._create_local_agent,
+            "deploy-local": self._deploy_local_agents,
+            "list-local": self._list_local_agents,
+            "sync-local": self._sync_local_agents,
+            "export-local": self._export_local_agents,
+            "import-local": self._import_local_agents,
+            "delete-local": self._delete_local_agents,
         }
 
         command = args.agent_manager_command
@@ -78,7 +91,7 @@ class AgentManagerCommand(AgentCommand):
         # Check project level
         project_dir = Path.cwd() / ".claude" / "agents"
         if project_dir.exists():
-            for agent_file in project_dir.glob("*.yaml"):
+            for agent_file in project_dir.glob("*.md"):
                 agents["project"].append(
                     self._read_agent_summary(agent_file, "project")
                 )
@@ -86,7 +99,7 @@ class AgentManagerCommand(AgentCommand):
         # Check user level
         user_dir = Path.home() / ".claude" / "agents"
         if user_dir.exists():
-            for agent_file in user_dir.glob("*.yaml"):
+            for agent_file in user_dir.glob("*.md"):
                 agent_id = agent_file.stem
                 # Skip if overridden by project
                 if not any(a["id"] == agent_id for a in agents["project"]):
@@ -624,8 +637,34 @@ class AgentManagerCommand(AgentCommand):
     def _read_agent_summary(self, agent_file: Path, tier: str) -> Dict[str, Any]:
         """Read agent summary from file."""
         try:
-            # For YAML files, extract basic info
             agent_id = agent_file.stem
+            content = agent_file.read_text()
+
+            # Parse frontmatter for .md files
+            if agent_file.suffix == ".md" and content.startswith("---"):
+                import yaml
+
+                try:
+                    # Extract YAML frontmatter
+                    parts = content.split("---", 2)
+                    if len(parts) >= 2:
+                        frontmatter = yaml.safe_load(parts[1])
+                        if isinstance(frontmatter, dict):
+                            return {
+                                "id": agent_id,
+                                "name": frontmatter.get(
+                                    "name", agent_id.replace("-", " ").title()
+                                ),
+                                "tier": tier,
+                                "file": str(agent_file),
+                                "description": frontmatter.get("description", ""),
+                                "is_local": frontmatter.get("is_local", False),
+                                "priority": frontmatter.get("priority", 1000),
+                            }
+                except Exception:
+                    pass
+
+            # Fallback for files without proper frontmatter
             return {
                 "id": agent_id,
                 "name": agent_id.replace("-", " ").title(),
@@ -643,14 +682,16 @@ class AgentManagerCommand(AgentCommand):
         if agents["project"]:
             output += "[P] PROJECT LEVEL (Highest Priority)\n"
             for agent in agents["project"]:
-                output += f"    {agent['id']:<20} - {agent.get('name', agent['id'])}\n"
+                local_indicator = " [LOCAL-PROJECT]" if agent.get("is_local") else ""
+                output += f"    {agent['id']:<20} - {agent.get('name', agent['id'])}{local_indicator}\n"
             output += "\n"
 
         # User agents
         if agents["user"]:
             output += "[U] USER LEVEL\n"
             for agent in agents["user"]:
-                output += f"    {agent['id']:<20} - {agent.get('name', agent['id'])}\n"
+                local_indicator = " [LOCAL-USER]" if agent.get("is_local") else ""
+                output += f"    {agent['id']:<20} - {agent.get('name', agent['id'])}{local_indicator}\n"
             output += "\n"
 
         # System agents
@@ -692,12 +733,567 @@ class AgentManagerCommand(AgentCommand):
         # Load predefined PM templates
         return "# PM Instructions Template\n"
 
+    def _create_local_agent(self, args) -> CommandResult:
+        """Create a new local agent template.
+
+        Creates a JSON template in .claude-mpm/agents/ directory.
+        """
+        try:
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
+
+            manager = LocalAgentTemplateManager()
+
+            # Get arguments
+            agent_id = getattr(args, "agent_id", None)
+            if not agent_id:
+                return CommandResult.error_result(
+                    "--agent-id is required for create-local"
+                )
+
+            name = getattr(args, "name", agent_id.replace("_", " ").title())
+            description = getattr(args, "description", f"Local {agent_id} agent")
+            instructions = getattr(
+                args, "instructions", f"Custom instructions for {agent_id}"
+            )
+            model = getattr(args, "model", "sonnet")
+            tools = getattr(args, "tools", "*")
+            parent_agent = getattr(args, "parent", None)
+            tier = getattr(args, "tier", "project")
+
+            # Create template
+            template = manager.create_local_template(
+                agent_id=agent_id,
+                name=name,
+                description=description,
+                instructions=instructions,
+                model=model,
+                tools=tools,
+                parent_agent=parent_agent,
+                tier=tier,
+            )
+
+            # Validate template
+            is_valid, errors = manager.validate_local_template(template)
+            if not is_valid:
+                return CommandResult.error_result(
+                    f"Invalid template: {', '.join(errors)}"
+                )
+
+            # Save template
+            template_file = manager.save_local_template(template, tier)
+
+            return CommandResult.success_result(
+                f"Created local agent template: {template_file}\n"
+                f"Deploy with: claude-mpm agent-manager deploy-local --agent-id {agent_id}"
+            )
+
+        except Exception as e:
+            return CommandResult.error_result(f"Failed to create local agent: {e}")
+
+    def _deploy_local_agents(self, args) -> CommandResult:
+        """Deploy local JSON templates to Claude Code."""
+        try:
+            from ...services.agents.deployment.local_template_deployment import (
+                LocalTemplateDeploymentService,
+            )
+
+            service = LocalTemplateDeploymentService()
+
+            # Check for specific agent
+            agent_id = getattr(args, "agent_id", None)
+            force = getattr(args, "force", False)
+
+            if agent_id:
+                # Deploy single agent
+                success = service.deploy_single_local_template(agent_id, force)
+                if success:
+                    return CommandResult.success_result(
+                        f"Deployed local agent: {agent_id}"
+                    )
+                return CommandResult.error_result(
+                    f"Failed to deploy local agent: {agent_id}"
+                )
+
+            # Deploy all local agents
+            tier_filter = getattr(args, "tier", None)
+            results = service.deploy_local_templates(force, tier_filter)
+
+            # Format output
+            output = "Local Agent Deployment Results:\n"
+            output += f"  Deployed: {len(results['deployed'])}\n"
+            output += f"  Updated: {len(results['updated'])}\n"
+            output += f"  Skipped: {len(results['skipped'])}\n"
+            output += f"  Errors: {len(results['errors'])}\n"
+
+            if results["deployed"]:
+                output += f"\nDeployed agents: {', '.join(results['deployed'])}"
+            if results["updated"]:
+                output += f"\nUpdated agents: {', '.join(results['updated'])}"
+            if results["errors"]:
+                output += "\nErrors:\n"
+                for error in results["errors"]:
+                    output += f"  - {error}\n"
+
+            return CommandResult.success_result(output, data=results)
+
+        except Exception as e:
+            return CommandResult.error_result(f"Failed to deploy local agents: {e}")
+
+    def _list_local_agents(self, args) -> CommandResult:
+        """List all local agent templates."""
+        try:
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
+
+            manager = LocalAgentTemplateManager()
+
+            # Get tier filter
+            tier = getattr(args, "tier", None)
+            templates = manager.list_local_templates(tier)
+
+            if not templates:
+                return CommandResult.success_result("No local agent templates found")
+
+            # Format output
+            output_format = getattr(args, "format", "text")
+
+            if output_format == "json":
+                data = [
+                    {
+                        "id": t.agent_id,
+                        "name": t.metadata.get("name", t.agent_id),
+                        "version": t.agent_version,
+                        "author": t.author,
+                        "tier": t.tier,
+                        "tags": t.metadata.get("tags", []),
+                    }
+                    for t in templates
+                ]
+                return CommandResult.success_result("Local agents", data=data)
+
+            # Text format
+            output = "Local Agent Templates:\n\n"
+
+            # Group by tier
+            project_agents = [t for t in templates if t.tier == "project"]
+            user_agents = [t for t in templates if t.tier == "user"]
+
+            if project_agents:
+                output += "PROJECT AGENTS:\n"
+                for template in project_agents:
+                    output += f"  • {template.agent_id} (v{template.agent_version})"
+                    output += f" - {template.metadata.get('name', template.agent_id)}\n"
+                    if template.metadata.get("description"):
+                        output += f"    {template.metadata['description']}\n"
+                output += "\n"
+
+            if user_agents:
+                output += "USER AGENTS:\n"
+                for template in user_agents:
+                    output += f"  • {template.agent_id} (v{template.agent_version})"
+                    output += f" - {template.metadata.get('name', template.agent_id)}\n"
+                    if template.metadata.get("description"):
+                        output += f"    {template.metadata['description']}\n"
+
+            return CommandResult.success_result(output)
+
+        except Exception as e:
+            return CommandResult.error_result(f"Failed to list local agents: {e}")
+
+    def _sync_local_agents(self, args) -> CommandResult:
+        """Synchronize local templates with deployed agents."""
+        try:
+            from ...services.agents.deployment.local_template_deployment import (
+                LocalTemplateDeploymentService,
+            )
+
+            service = LocalTemplateDeploymentService()
+            results = service.sync_local_templates()
+
+            # Format output
+            output = "Local Agent Synchronization:\n"
+            output += f"  Added: {len(results['added'])}\n"
+            output += f"  Updated: {len(results['updated'])}\n"
+            output += f"  Removed: {len(results['removed'])}\n"
+
+            if results["added"]:
+                output += f"\nAdded agents: {', '.join(results['added'])}"
+            if results["updated"]:
+                output += f"\nUpdated agents: {', '.join(results['updated'])}"
+            if results["removed"]:
+                output += f"\nRemoved agents: {', '.join(results['removed'])}"
+            if results["errors"]:
+                output += "\nErrors:\n"
+                for error in results["errors"]:
+                    output += f"  - {error}\n"
+
+            return CommandResult.success_result(output, data=results)
+
+        except Exception as e:
+            return CommandResult.error_result(f"Failed to sync local agents: {e}")
+
+    def _export_local_agents(self, args) -> CommandResult:
+        """Export local agent templates to a directory."""
+        try:
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
+
+            manager = LocalAgentTemplateManager()
+
+            # Get output directory
+            output_dir = getattr(args, "output", "./exported-agents")
+            output_path = Path(output_dir)
+
+            count = manager.export_local_templates(output_path)
+
+            return CommandResult.success_result(
+                f"Exported {count} local agent templates to {output_path}"
+            )
+
+        except Exception as e:
+            return CommandResult.error_result(f"Failed to export local agents: {e}")
+
+    def _import_local_agents(self, args) -> CommandResult:
+        """Import agent templates from a directory."""
+        try:
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
+
+            manager = LocalAgentTemplateManager()
+
+            # Get input directory
+            input_dir = getattr(args, "input", None)
+            if not input_dir:
+                return CommandResult.error_result("--input directory is required")
+
+            input_path = Path(input_dir)
+            if not input_path.exists():
+                return CommandResult.error_result(
+                    f"Input directory does not exist: {input_path}"
+                )
+
+            # Get tier
+            tier = getattr(args, "tier", "project")
+
+            count = manager.import_local_templates(input_path, tier)
+
+            return CommandResult.success_result(
+                f"Imported {count} local agent templates from {input_path}"
+            )
+
+        except Exception as e:
+            return CommandResult.error_result(f"Failed to import local agents: {e}")
+
+    def _create_interactive(self, args) -> CommandResult:
+        """Launch interactive agent creation wizard."""
+        try:
+            from ...cli.interactive.agent_wizard import run_interactive_agent_wizard
+
+            # Run the interactive wizard
+            exit_code = run_interactive_agent_wizard()
+
+            if exit_code == 0:
+                return CommandResult.success_result(
+                    "Interactive agent creation completed"
+                )
+            return CommandResult.error_result(
+                "Interactive agent creation failed or cancelled"
+            )
+
+        except Exception as e:
+            return CommandResult.error_result(f"Interactive creation failed: {e}")
+
+    def _manage_local_interactive(self, args) -> CommandResult:
+        """Launch interactive agent management menu."""
+        try:
+            from ...cli.interactive.agent_wizard import run_interactive_agent_manager
+
+            # Run the interactive management menu
+            exit_code = run_interactive_agent_manager()
+
+            if exit_code == 0:
+                return CommandResult.success_result(
+                    "Interactive agent management completed"
+                )
+            return CommandResult.error_result(
+                "Interactive agent management failed or cancelled"
+            )
+
+        except Exception as e:
+            return CommandResult.error_result(f"Interactive management failed: {e}")
+
+    def _edit_interactive(self, args) -> CommandResult:
+        """Edit agent configuration interactively."""
+        try:
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
+
+            agent_id = getattr(args, "agent_id", None)
+            if not agent_id:
+                return CommandResult.error_result(
+                    "--agent-id is required for edit-interactive"
+                )
+
+            manager = LocalAgentTemplateManager()
+            template = manager.get_local_template(agent_id)
+
+            if not template:
+                return CommandResult.error_result(f"Local agent '{agent_id}' not found")
+
+            # Get template file path
+            if template.tier == "project":
+                template_file = manager.project_agents_dir / f"{agent_id}.json"
+            else:
+                template_file = manager.user_agents_dir / f"{agent_id}.json"
+
+            # Open in editor
+            import os
+            import subprocess
+
+            editor = os.environ.get("EDITOR", "nano")
+            print(f"Opening {template_file} in {editor}...")
+
+            try:
+                result = subprocess.run([editor, str(template_file)], check=True)
+                return CommandResult.success_result(
+                    f"Agent '{agent_id}' edited successfully"
+                )
+            except subprocess.CalledProcessError:
+                return CommandResult.error_result("Editor exited with error")
+            except FileNotFoundError:
+                return CommandResult.error_result(
+                    f"Editor '{editor}' not found. Set EDITOR environment variable."
+                )
+
+        except Exception as e:
+            return CommandResult.error_result(f"Interactive edit failed: {e}")
+
+    def _test_local_agent(self, args) -> CommandResult:
+        """Test a local agent with sample task."""
+        try:
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
+
+            agent_id = getattr(args, "agent_id", None)
+            if not agent_id:
+                return CommandResult.error_result(
+                    "--agent-id is required for test-local"
+                )
+
+            manager = LocalAgentTemplateManager()
+            template = manager.get_local_template(agent_id)
+
+            if not template:
+                return CommandResult.error_result(f"Local agent '{agent_id}' not found")
+
+            # Validate template
+            is_valid, errors = manager.validate_local_template(template)
+
+            if not is_valid:
+                error_msg = f"Agent '{agent_id}' validation failed:\n"
+                error_msg += "\n".join(f"  • {error}" for error in errors)
+                return CommandResult.error_result(error_msg)
+
+            # Check if agent is deployed
+            from ...services.agents.deployment.local_template_deployment import (
+                LocalTemplateDeploymentService,
+            )
+
+            deployment_service = LocalTemplateDeploymentService()
+
+            # Test deployment
+            try:
+                success = deployment_service.deploy_single_local_template(
+                    agent_id, force=True
+                )
+                if not success:
+                    return CommandResult.error_result(
+                        f"Failed to deploy agent '{agent_id}' for testing"
+                    )
+            except Exception as deploy_error:
+                return CommandResult.error_result(f"Deployment failed: {deploy_error}")
+
+            # Success message with usage instructions
+            success_msg = (
+                f"✅ Agent '{agent_id}' is valid and deployed successfully!\n\n"
+            )
+            success_msg += "🧪 Test your agent:\n"
+            success_msg += (
+                f'   claude-mpm run --agent {agent_id} "Test task for this agent"\n\n'
+            )
+            success_msg += "📊 Agent Details:\n"
+            success_msg += f"   Name: {template.metadata.get('name', agent_id)}\n"
+            success_msg += (
+                f"   Model: {template.capabilities.get('model', 'unknown')}\n"
+            )
+            success_msg += f"   Version: {template.agent_version}\n"
+            success_msg += f"   Tier: {template.tier}\n"
+
+            if template.parent_agent:
+                success_msg += f"   Inherits: {template.parent_agent}\n"
+
+            return CommandResult.success_result(success_msg)
+
+        except Exception as e:
+            return CommandResult.error_result(f"Local agent test failed: {e}")
+
+    def _delete_local_agents(self, args) -> CommandResult:
+        """Delete local agent templates with comprehensive options."""
+        try:
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
+
+            manager = LocalAgentTemplateManager()
+
+            # Get command arguments
+            agent_ids = getattr(args, "agent_id", [])
+            delete_all = getattr(args, "all", False)
+            tier = getattr(args, "tier", "project")
+            force = getattr(args, "force", False)
+            keep_deployment = getattr(args, "keep_deployment", False)
+            backup = getattr(args, "backup", False)
+
+            # Validate arguments
+            if not agent_ids and not delete_all:
+                return CommandResult.error_result(
+                    "Either --agent-id or --all must be specified"
+                )
+
+            if delete_all and agent_ids:
+                return CommandResult.error_result(
+                    "Cannot use both --agent-id and --all together"
+                )
+
+            # Get agents to delete
+            if delete_all:
+                # Get all local agents for the specified tier
+                templates = manager.list_local_templates(
+                    tier=None if tier == "all" else tier
+                )
+                if not templates:
+                    return CommandResult.success_result(
+                        f"No local agents found in {tier} tier(s)"
+                    )
+                agent_ids = [t.agent_id for t in templates]
+
+                # Strong confirmation for --all
+                if not force:
+                    print(f"\n⚠️  WARNING: This will delete ALL {len(agent_ids)} local agents in {tier} tier(s)!")
+                    print("\nAgents to be deleted:")
+                    for agent_id in agent_ids:
+                        print(f"  - {agent_id}")
+                    
+                    confirm = input("\nType 'DELETE ALL' to confirm: ").strip()
+                    if confirm != "DELETE ALL":
+                        return CommandResult.error_result("Deletion cancelled")
+            else:
+                # Validate that agents exist
+                missing_agents = []
+                for agent_id in agent_ids:
+                    template = manager.get_local_template(agent_id)
+                    if not template:
+                        missing_agents.append(agent_id)
+
+                if missing_agents:
+                    return CommandResult.error_result(
+                        f"Agent(s) not found: {', '.join(missing_agents)}"
+                    )
+
+                # Confirmation for multiple agents
+                if len(agent_ids) > 1 and not force:
+                    print(f"\n⚠️  This will delete {len(agent_ids)} agents:")
+                    for agent_id in agent_ids:
+                        print(f"  - {agent_id}")
+                    
+                    confirm = input("\nAre you sure? [y/N]: ").strip().lower()
+                    if confirm not in ["y", "yes"]:
+                        return CommandResult.error_result("Deletion cancelled")
+
+                # Confirmation for single agent
+                elif len(agent_ids) == 1 and not force:
+                    template = manager.get_local_template(agent_ids[0])
+                    print(f"\n📋 Agent to delete:")
+                    print(f"  ID: {template.agent_id}")
+                    print(f"  Name: {template.metadata.get('name', template.agent_id)}")
+                    print(f"  Tier: {template.tier}")
+                    
+                    confirm = input("\nAre you sure? [y/N]: ").strip().lower()
+                    if confirm not in ["y", "yes"]:
+                        return CommandResult.error_result("Deletion cancelled")
+
+            # Perform deletion
+            if len(agent_ids) == 1:
+                # Single deletion
+                result = manager.delete_local_template(
+                    agent_id=agent_ids[0],
+                    tier=tier,
+                    delete_deployment=not keep_deployment,
+                    backup_first=backup,
+                )
+
+                if result["success"]:
+                    message = f"✅ Successfully deleted agent '{agent_ids[0]}'"
+                    if result["backup_location"]:
+                        message += f"\n   Backup saved to: {result['backup_location']}"
+                    message += f"\n   Removed {len(result['deleted_files'])} file(s)"
+                    return CommandResult.success_result(message)
+                else:
+                    errors = "\n".join(result["errors"])
+                    return CommandResult.error_result(
+                        f"Failed to delete agent '{agent_ids[0]}':\n{errors}"
+                    )
+            else:
+                # Multiple deletion
+                results = manager.delete_multiple_templates(
+                    agent_ids=agent_ids,
+                    tier=tier,
+                    delete_deployment=not keep_deployment,
+                    backup_first=backup,
+                )
+
+                # Format results
+                message = ""
+                if results["successful"]:
+                    message = f"✅ Successfully deleted {len(results['successful'])} agent(s):\n"
+                    for agent_id in results["successful"]:
+                        message += f"   - {agent_id}\n"
+
+                if results["failed"]:
+                    if message:
+                        message += "\n"
+                    message += f"❌ Failed to delete {len(results['failed'])} agent(s):\n"
+                    for agent_id in results["failed"]:
+                        errors = results["details"][agent_id]["errors"]
+                        message += f"   - {agent_id}: {', '.join(errors)}\n"
+
+                if not message:
+                    message = "No agents were deleted"
+
+                return CommandResult.success_result(message.strip()) if results["successful"] else CommandResult.error_result(message.strip())
+
+        except Exception as e:
+            return CommandResult.error_result(f"Failed to delete local agents: {e}")
+
     def _show_help(self) -> CommandResult:
         """Show help for agent manager."""
         help_text = """
 Agent Manager - Comprehensive Agent Lifecycle Management
 
-Commands:
+Interactive Commands (Recommended):
+  create-interactive  🧙‍♂️ Launch step-by-step agent creation wizard
+  manage-local        🔧 Interactive menu for managing local agents  
+  edit-interactive    ✏️  Edit agent configuration interactively
+  test-local          🧪 Test local agent with validation and deployment
+
+Standard Commands:
   list          List all agents across tiers with hierarchy
   create        Create a new agent (interactive or with arguments)
   variant       Create an agent variant based on existing agent
@@ -708,7 +1304,22 @@ Commands:
   templates     List available agent templates
   reset         Remove claude-mpm authored agents for clean install
 
-Examples:
+Local Agent Commands:
+  create-local  Create a local JSON agent template in .claude-mpm/agents/
+  deploy-local  Deploy local JSON templates to Claude Code
+  list-local    List all local agent templates
+  sync-local    Synchronize local templates with deployed agents
+  export-local  Export local templates to a directory
+  import-local  Import templates from a directory
+  delete-local  Delete local agent templates with safety checks
+
+Interactive Examples:
+  claude-mpm agent-manager create-interactive
+  claude-mpm agent-manager manage-local
+  claude-mpm agent-manager edit-interactive --agent-id my-agent
+  claude-mpm agent-manager test-local --agent-id my-agent
+
+Standard Examples:
   claude-mpm agent-manager list
   claude-mpm agent-manager create --id my-agent --name "My Agent"
   claude-mpm agent-manager variant --base research --id research-v2
@@ -717,7 +1328,32 @@ Examples:
   claude-mpm agent-manager reset --dry-run
   claude-mpm agent-manager reset --force --project-only
 
-Note: PM customization writes to .claude-mpm/INSTRUCTIONS.md, not CLAUDE.md
+Local Agent Examples:
+  claude-mpm agent-manager create-local --agent-id custom-research --name "Custom Research"
+  claude-mpm agent-manager deploy-local --agent-id custom-research
+  claude-mpm agent-manager list-local --tier project
+  claude-mpm agent-manager sync-local
+  claude-mpm agent-manager export-local --output ./my-agents
+  claude-mpm agent-manager import-local --input ./shared-agents --tier user
+  claude-mpm agent-manager delete-local --agent-id custom-qa
+  claude-mpm agent-manager delete-local --agent-id qa research --force
+  claude-mpm agent-manager delete-local --all --tier project --backup
+
+Interactive Features:
+  ✨ Step-by-step guided agent creation
+  🎯 Intelligent defaults and suggestions  
+  🔍 Real-time validation with helpful errors
+  👁️  Preview configurations before creation
+  🏗️  Inherit from existing system agents
+  📝 Management menu for all local agents
+  🚀 One-click deployment and testing
+
+Notes:
+  • Interactive mode provides the best user experience
+  • PM customization writes to .claude-mpm/INSTRUCTIONS.md, not CLAUDE.md
+  • Local agents are stored as JSON templates in .claude-mpm/agents/
+  • Local project agents override system agents with the same name
+  • Project name is used as the "author" field for local agents
 """
         return CommandResult.success_result(help_text)
 
