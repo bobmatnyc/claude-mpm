@@ -17,6 +17,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.17] - 2025-09-06
+
+### Added
+- Comprehensive local agent template support with JSON storage in `.claude-mpm/agents/`
+- Interactive agent creation wizard with step-by-step guidance
+- Full CRUD operations for local agents (create, deploy, edit, delete)
+- Import/export functionality for sharing agents between projects
+- Three-tier priority system: PROJECT > USER > SYSTEM
+- 10 new CLI commands for local agent management
+- Delete functionality with backup and safety features
+- Interactive management menu with proper flow control
+
+### Changed
+- PM framework now uses analytical principles for more rigorous analysis
+- Removed affirmative language in favor of structural merit assessment
+- Local agents override system agents with same name
+- Agent manager menu now returns to main menu after operations
+
+### Fixed
+- Interactive menu flow to properly return to main menu instead of exiting
+- Duplicate success messages in agent management operations
+
+
 ## [4.2.16] - 2025-09-05
 
 ### Fixed
