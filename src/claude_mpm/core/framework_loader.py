@@ -1143,7 +1143,15 @@ Extract tickets from these patterns:
 
     def _generate_agent_capabilities_section(self) -> str:
         """Generate dynamic agent capabilities section from deployed agents.
-        Uses caching to avoid repeated file I/O and parsing operations."""
+        Uses caching to avoid repeated file I/O and parsing operations.
+
+        Now includes support for local JSON templates with proper priority:
+        1. Project local agents (.claude-mpm/agents/*.json) - highest priority
+        2. Deployed project agents (.claude/agents/*.md)
+        3. User local agents (~/.claude-mpm/agents/*.json)
+        4. Deployed user agents (~/.claude/agents/*.md)
+        5. System agents - lowest priority
+        """
 
         # Try to get from cache first
         cached_capabilities = self._cache_manager.get_capabilities()
@@ -1159,17 +1167,25 @@ Extract tickets from these patterns:
         try:
             from pathlib import Path
 
+            # First check for local JSON templates (highest priority)
+            local_agents = self._discover_local_json_templates()
+
             # Read directly from deployed agents in .claude/agents/
             # Check multiple locations for deployed agents
-            # Priority order: project > user home > fallback
+            # Priority order: local templates > project > user home > fallback
             agents_dirs = [
                 Path.cwd() / ".claude" / "agents",  # Project-specific agents
                 Path.home() / ".claude" / "agents",  # User's system agents
             ]
 
             # Collect agents from all directories with proper precedence
+            # Local agents override deployed agents with the same name
             # Project agents override user agents with the same name
             all_agents = {}  # key: agent_id, value: (agent_data, priority)
+
+            # Add local agents first (highest priority)
+            for agent_id, agent_data in local_agents.items():
+                all_agents[agent_id] = (agent_data, -1)  # Priority -1 for local agents
 
             for priority, potential_dir in enumerate(agents_dirs):
                 if potential_dir.exists() and any(potential_dir.glob("*.md")):
@@ -1206,6 +1222,14 @@ Extract tickets from these patterns:
             project_agents = [aid for aid, (_, pri) in all_agents.items() if pri == 0]
             user_agents = [aid for aid, (_, pri) in all_agents.items() if pri == 1]
 
+            # Include local agents in logging
+            local_json_agents = [
+                aid for aid, (_, pri) in all_agents.items() if pri == -1
+            ]
+            if local_json_agents:
+                self.logger.info(
+                    f"Loaded {len(local_json_agents)} local JSON agents: {', '.join(sorted(local_json_agents))}"
+                )
             if project_agents:
                 self.logger.info(
                     f"Loaded {len(project_agents)} project agents: {', '.join(sorted(project_agents))}"
@@ -1242,7 +1266,12 @@ Extract tickets from these patterns:
                 if display_name.lower() == "qa agent":
                     display_name = "QA Agent"
 
-                section += f"\n### {display_name} (`{agent['id']}`)\n"
+                # Add local indicator if this is a local agent
+                if agent.get("is_local"):
+                    tier_label = f" [LOCAL-{agent.get('tier', 'PROJECT').upper()}]"
+                    section += f"\n### {display_name} (`{agent['id']}`) {tier_label}\n"
+                else:
+                    section += f"\n### {display_name} (`{agent['id']}`)\n"
                 section += f"{agent['description']}\n"
 
                 # Add routing information if available
@@ -1625,6 +1654,94 @@ Extract tickets from these patterns:
                 f"Could not load memory routing from template for {agent_name}: {e}"
             )
             return None
+
+    def _discover_local_json_templates(self) -> Dict[str, Dict[str, Any]]:
+        """Discover local JSON agent templates from .claude-mpm/agents/ directories.
+
+        Returns:
+            Dictionary mapping agent IDs to agent metadata
+        """
+        import json
+        from pathlib import Path
+
+        local_agents = {}
+
+        # Check for local JSON templates in priority order
+        template_dirs = [
+            Path.cwd()
+            / ".claude-mpm"
+            / "agents",  # Project local agents (highest priority)
+            Path.home() / ".claude-mpm" / "agents",  # User local agents
+        ]
+
+        for priority, template_dir in enumerate(template_dirs):
+            if not template_dir.exists():
+                continue
+
+            for json_file in template_dir.glob("*.json"):
+                try:
+                    with open(json_file) as f:
+                        template_data = json.load(f)
+
+                    # Extract agent metadata
+                    agent_id = template_data.get("agent_id", json_file.stem)
+
+                    # Skip if already found at higher priority
+                    if agent_id in local_agents:
+                        continue
+
+                    # Extract metadata
+                    metadata = template_data.get("metadata", {})
+
+                    # Build agent data in expected format
+                    agent_data = {
+                        "id": agent_id,
+                        "display_name": metadata.get(
+                            "name", agent_id.replace("_", " ").title()
+                        ),
+                        "description": metadata.get(
+                            "description", f"Local {agent_id} agent"
+                        ),
+                        "tools": self._extract_tools_from_template(template_data),
+                        "is_local": True,
+                        "tier": "project" if priority == 0 else "user",
+                        "author": template_data.get("author", "local"),
+                        "version": template_data.get("agent_version", "1.0.0"),
+                    }
+
+                    local_agents[agent_id] = agent_data
+                    self.logger.debug(
+                        f"Discovered local JSON agent: {agent_id} from {template_dir}"
+                    )
+
+                except Exception as e:
+                    self.logger.warning(
+                        f"Failed to parse local JSON template {json_file}: {e}"
+                    )
+
+        return local_agents
+
+    def _extract_tools_from_template(self, template_data: Dict[str, Any]) -> str:
+        """Extract tools string from template data.
+
+        Args:
+            template_data: JSON template data
+
+        Returns:
+            Tools string for display
+        """
+        capabilities = template_data.get("capabilities", {})
+        tools = capabilities.get("tools", "*")
+
+        if tools == "*":
+            return "All Tools"
+        if isinstance(tools, list):
+            return ", ".join(tools) if tools else "Standard Tools"
+        if isinstance(tools, str):
+            if "," in tools:
+                return tools
+            return tools
+        return "Standard Tools"
 
     def _load_routing_from_template(self, agent_name: str) -> Optional[Dict[str, Any]]:
         """Load routing metadata from agent JSON template.

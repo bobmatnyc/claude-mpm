@@ -167,10 +167,25 @@ class UnifiedAgentRegistry:
         if project_path.exists():
             self.discovery_paths.append(project_path)
 
+        # Also check for local JSON templates in .claude-mpm/agents/
+        local_project_path = self.path_manager.project_root / ".claude-mpm" / "agents"
+        if (
+            local_project_path.exists()
+            and local_project_path not in self.discovery_paths
+        ):
+            self.discovery_paths.append(local_project_path)
+            logger.debug(f"Added local project templates path: {local_project_path}")
+
         # User-level agents
         user_path = self.path_manager.get_user_agents_dir()
         if user_path.exists():
             self.discovery_paths.append(user_path)
+
+        # Also check for user JSON templates in ~/.claude-mpm/agents/
+        local_user_path = Path.home() / ".claude-mpm" / "agents"
+        if local_user_path.exists() and local_user_path not in self.discovery_paths:
+            self.discovery_paths.append(local_user_path)
+            logger.debug(f"Added local user templates path: {local_user_path}")
 
         # System-level agents (includes templates as a subdirectory)
         system_path = self.path_manager.get_system_agents_dir()
@@ -328,7 +343,40 @@ class UnifiedAgentRegistry:
                 file_path, agent_format
             )
 
-            return AgentMetadata(
+            # For JSON files, extract additional metadata
+            version = "1.0.0"
+            author = ""
+            tags = []
+
+            if agent_format == AgentFormat.JSON:
+                try:
+                    content = file_path.read_text(encoding="utf-8")
+                    data = json.loads(content)
+
+                    # Extract version
+                    version = data.get("agent_version", data.get("version", "1.0.0"))
+
+                    # Extract author (use project name for local agents)
+                    author = data.get("author", "")
+                    if not author and ".claude-mpm" in str(file_path):
+                        # For local agents, use project directory name as author
+                        project_root = file_path
+                        while project_root.parent != project_root:
+                            if (project_root / ".claude-mpm").exists():
+                                author = project_root.name
+                                break
+                            project_root = project_root.parent
+
+                    # Extract tags
+                    if "metadata" in data:
+                        tags = data["metadata"].get("tags", [])
+
+                except Exception as e:
+                    logger.debug(
+                        f"Could not extract extra JSON metadata from {file_path}: {e}"
+                    )
+
+            metadata = AgentMetadata(
                 name=agent_name,
                 agent_type=agent_type,
                 tier=tier,
@@ -337,7 +385,23 @@ class UnifiedAgentRegistry:
                 last_modified=file_path.stat().st_mtime,
                 description=description,
                 specializations=specializations,
+                version=version,
+                author=author,
+                tags=tags,
             )
+
+            # Set higher priority for local agents
+            if ".claude-mpm" in str(file_path):
+                if tier == AgentTier.PROJECT:
+                    # Highest priority for project-local agents
+                    metadata.tags.append("local")
+                    metadata.tags.append("project")
+                elif tier == AgentTier.USER:
+                    # High priority for user-local agents
+                    metadata.tags.append("local")
+                    metadata.tags.append("user")
+
+            return metadata
 
         except Exception as e:
             logger.error(f"Failed to create metadata for {file_path}: {e}")
@@ -387,8 +451,26 @@ class UnifiedAgentRegistry:
 
             if agent_format == AgentFormat.JSON:
                 data = json.loads(content)
-                description = data.get("description", "")
-                specializations = data.get("specializations", [])
+
+                # Handle local agent JSON templates with metadata structure
+                if "metadata" in data:
+                    metadata = data["metadata"]
+                    description = metadata.get(
+                        "description", data.get("description", "")
+                    )
+                    specializations = metadata.get(
+                        "specializations", data.get("specializations", [])
+                    )
+
+                    # Extract tags as specializations if present
+                    tags = metadata.get("tags", [])
+                    if tags and not specializations:
+                        specializations = tags
+                else:
+                    # Fallback to direct fields
+                    description = data.get("description", "")
+                    specializations = data.get("specializations", [])
+
             elif agent_format in [AgentFormat.YAML, AgentFormat.YAML]:
                 try:
                     import yaml
