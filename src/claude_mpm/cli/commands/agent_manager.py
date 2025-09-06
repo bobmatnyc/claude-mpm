@@ -1060,7 +1060,7 @@ class AgentManagerCommand(AgentCommand):
             print(f"Opening {template_file} in {editor}...")
 
             try:
-                result = subprocess.run([editor, str(template_file)], check=True)
+                subprocess.run([editor, str(template_file)], check=True)
                 return CommandResult.success_result(
                     f"Agent '{agent_id}' edited successfully"
                 )
@@ -1295,7 +1295,7 @@ Agent Manager - Comprehensive Agent Lifecycle Management
 
 Interactive Commands (Recommended):
   create-interactive  🧙‍♂️ Launch step-by-step agent creation wizard
-  manage-local        🔧 Interactive menu for managing local agents  
+  manage-local        🔧 Interactive menu for managing local agents
   edit-interactive    ✏️  Edit agent configuration interactively
   test-local          🧪 Test local agent with validation and deployment
 
@@ -1347,7 +1347,7 @@ Local Agent Examples:
 
 Interactive Features:
   ✨ Step-by-step guided agent creation
-  🎯 Intelligent defaults and suggestions  
+  🎯 Intelligent defaults and suggestions
   🔍 Real-time validation with helpful errors
   👁️  Preview configurations before creation
   🏗️  Inherit from existing system agents
