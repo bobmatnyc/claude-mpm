@@ -72,7 +72,7 @@ def test_delete_functionality():
             backup_first=False,
         )
         if result["success"]:
-            print(f"   ✅ Deleted test-agent-1")
+            print("   ✅ Deleted test-agent-1")
             print(f"   Removed files: {len(result['deleted_files'])}")
         else:
             print(f"   ❌ Failed: {result['errors']}")
@@ -86,7 +86,7 @@ def test_delete_functionality():
             backup_first=True,
         )
         if result["success"]:
-            print(f"   ✅ Deleted test-agent-2")
+            print("   ✅ Deleted test-agent-2")
             print(f"   Backup location: {result['backup_location']}")
         else:
             print(f"   ❌ Failed: {result['errors']}")
@@ -100,10 +100,10 @@ def test_delete_functionality():
             backup_first=False,
         )
         if not result["success"]:
-            print(f"   ✅ Correctly prevented deletion of system agent")
+            print("   ✅ Correctly prevented deletion of system agent")
             print(f"   Error: {result['errors'][0]}")
         else:
-            print(f"   ❌ System agent protection failed!")
+            print("   ❌ System agent protection failed!")
 
         # Create more agents for bulk deletion test
         print("\n6. Creating agents for bulk deletion test...")

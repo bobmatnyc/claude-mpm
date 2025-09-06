@@ -254,7 +254,7 @@ Local Agent Commands:
         "manage-local", help="🔧 Interactive menu for managing local agents"
     )
 
-    # Edit interactive command  
+    # Edit interactive command
     edit_interactive_parser = agent_subparsers.add_parser(
         "edit-interactive", help="✏️ Edit agent configuration interactively"
     )
@@ -266,9 +266,7 @@ Local Agent Commands:
     test_local_parser = agent_subparsers.add_parser(
         "test-local", help="🧪 Test local agent with validation and deployment"
     )
-    test_local_parser.add_argument(
-        "--agent-id", required=True, help="Agent ID to test"
-    )
+    test_local_parser.add_argument("--agent-id", required=True, help="Agent ID to test")
 
     # === Local Agent Commands ===
 

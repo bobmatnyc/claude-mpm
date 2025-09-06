@@ -1186,11 +1186,13 @@ class AgentManagerCommand(AgentCommand):
 
                 # Strong confirmation for --all
                 if not force:
-                    print(f"\n⚠️  WARNING: This will delete ALL {len(agent_ids)} local agents in {tier} tier(s)!")
+                    print(
+                        f"\n⚠️  WARNING: This will delete ALL {len(agent_ids)} local agents in {tier} tier(s)!"
+                    )
                     print("\nAgents to be deleted:")
                     for agent_id in agent_ids:
                         print(f"  - {agent_id}")
-                    
+
                     confirm = input("\nType 'DELETE ALL' to confirm: ").strip()
                     if confirm != "DELETE ALL":
                         return CommandResult.error_result("Deletion cancelled")
@@ -1212,7 +1214,7 @@ class AgentManagerCommand(AgentCommand):
                     print(f"\n⚠️  This will delete {len(agent_ids)} agents:")
                     for agent_id in agent_ids:
                         print(f"  - {agent_id}")
-                    
+
                     confirm = input("\nAre you sure? [y/N]: ").strip().lower()
                     if confirm not in ["y", "yes"]:
                         return CommandResult.error_result("Deletion cancelled")
@@ -1220,11 +1222,11 @@ class AgentManagerCommand(AgentCommand):
                 # Confirmation for single agent
                 elif len(agent_ids) == 1 and not force:
                     template = manager.get_local_template(agent_ids[0])
-                    print(f"\n📋 Agent to delete:")
+                    print("\n📋 Agent to delete:")
                     print(f"  ID: {template.agent_id}")
                     print(f"  Name: {template.metadata.get('name', template.agent_id)}")
                     print(f"  Tier: {template.tier}")
-                    
+
                     confirm = input("\nAre you sure? [y/N]: ").strip().lower()
                     if confirm not in ["y", "yes"]:
                         return CommandResult.error_result("Deletion cancelled")
@@ -1245,39 +1247,43 @@ class AgentManagerCommand(AgentCommand):
                         message += f"\n   Backup saved to: {result['backup_location']}"
                     message += f"\n   Removed {len(result['deleted_files'])} file(s)"
                     return CommandResult.success_result(message)
-                else:
-                    errors = "\n".join(result["errors"])
-                    return CommandResult.error_result(
-                        f"Failed to delete agent '{agent_ids[0]}':\n{errors}"
-                    )
-            else:
-                # Multiple deletion
-                results = manager.delete_multiple_templates(
-                    agent_ids=agent_ids,
-                    tier=tier,
-                    delete_deployment=not keep_deployment,
-                    backup_first=backup,
+                errors = "\n".join(result["errors"])
+                return CommandResult.error_result(
+                    f"Failed to delete agent '{agent_ids[0]}':\n{errors}"
                 )
+            # Multiple deletion
+            results = manager.delete_multiple_templates(
+                agent_ids=agent_ids,
+                tier=tier,
+                delete_deployment=not keep_deployment,
+                backup_first=backup,
+            )
 
-                # Format results
-                message = ""
-                if results["successful"]:
-                    message = f"✅ Successfully deleted {len(results['successful'])} agent(s):\n"
-                    for agent_id in results["successful"]:
-                        message += f"   - {agent_id}\n"
+            # Format results
+            message = ""
+            if results["successful"]:
+                message = f"✅ Successfully deleted {len(results['successful'])} agent(s):\n"
+                for agent_id in results["successful"]:
+                    message += f"   - {agent_id}\n"
 
-                if results["failed"]:
-                    if message:
-                        message += "\n"
-                    message += f"❌ Failed to delete {len(results['failed'])} agent(s):\n"
-                    for agent_id in results["failed"]:
-                        errors = results["details"][agent_id]["errors"]
-                        message += f"   - {agent_id}: {', '.join(errors)}\n"
+            if results["failed"]:
+                if message:
+                    message += "\n"
+                message += (
+                    f"❌ Failed to delete {len(results['failed'])} agent(s):\n"
+                )
+                for agent_id in results["failed"]:
+                    errors = results["details"][agent_id]["errors"]
+                    message += f"   - {agent_id}: {', '.join(errors)}\n"
 
-                if not message:
-                    message = "No agents were deleted"
+            if not message:
+                message = "No agents were deleted"
 
-                return CommandResult.success_result(message.strip()) if results["successful"] else CommandResult.error_result(message.strip())
+            return (
+                CommandResult.success_result(message.strip())
+                if results["successful"]
+                else CommandResult.error_result(message.strip())
+            )
 
         except Exception as e:
             return CommandResult.error_result(f"Failed to delete local agents: {e}")

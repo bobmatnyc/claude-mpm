@@ -708,41 +708,43 @@ class AgentWizard:
         print(f"   Name: {template.metadata.get('name', template.agent_id)}")
         print(f"   Tier: {template.tier}")
         print(f"   Location: {self._get_template_path(template)}")
-        
+
         # Check if deployed
         deployment_file = Path.cwd() / ".claude" / "agents" / f"{template.agent_id}.md"
         if deployment_file.exists():
             print(f"   Deployed: Yes ({deployment_file})")
         else:
-            print(f"   Deployed: No")
-        
+            print("   Deployed: No")
+
         print("\nDelete options:")
         print("   [1] Delete template and deployment")
         print("   [2] Delete template only (keep deployment)")
         print("   [3] Cancel")
-        
+
         option = input("\nSelect option [1-3]: ").strip()
-        
+
         if option == "3":
             return False, "Deletion cancelled"
-        
-        delete_deployment = (option == "1")
-        
+
+        delete_deployment = option == "1"
+
         # Confirmation
-        print(f"\n⚠️  This will permanently delete:")
+        print("\n⚠️  This will permanently delete:")
         print(f"   - Template: {self._get_template_path(template)}")
         if delete_deployment and deployment_file.exists():
             print(f"   - Deployment: {deployment_file}")
-        
+
         # Ask about backup
-        backup_choice = input("\nCreate backup before deletion? [y/N]: ").strip().lower()
+        backup_choice = (
+            input("\nCreate backup before deletion? [y/N]: ").strip().lower()
+        )
         backup_first = backup_choice in ["y", "yes"]
-        
+
         confirm = input("\nAre you sure? Type 'DELETE' to confirm: ").strip()
-        
+
         if confirm != "DELETE":
             return False, "Deletion cancelled"
-        
+
         # Perform deletion
         result = self.manager.delete_local_template(
             agent_id=template.agent_id,
@@ -750,16 +752,15 @@ class AgentWizard:
             delete_deployment=delete_deployment,
             backup_first=backup_first,
         )
-        
+
         if result["success"]:
             message = f"✅ Agent '{template.agent_id}' deleted successfully"
             if result["backup_location"]:
                 message += f"\n   Backup saved to: {result['backup_location']}"
             message += f"\n   Removed {len(result['deleted_files'])} file(s)"
             return True, message
-        else:
-            errors = "\n".join(result["errors"])
-            return False, f"Failed to delete agent:\n{errors}"
+        errors = "\n".join(result["errors"])
+        return False, f"Failed to delete agent:\n{errors}"
 
     def _export_single_agent(self, template: LocalAgentTemplate) -> Tuple[bool, str]:
         """Export a single agent."""
@@ -812,36 +813,33 @@ class AgentWizard:
         """Get the file path for a template."""
         if template.tier == "project":
             return self.manager.project_agents_dir / f"{template.agent_id}.json"
-        else:
-            return self.manager.user_agents_dir / f"{template.agent_id}.json"
+        return self.manager.user_agents_dir / f"{template.agent_id}.json"
 
-    def _interactive_delete_menu(
-        self, templates: list
-    ) -> Tuple[bool, str]:
+    def _interactive_delete_menu(self, templates: list) -> Tuple[bool, str]:
         """Interactive deletion menu for multiple agents."""
         print("\n🗑️  Delete Agents")
         print("=" * 50)
-        
+
         if not templates:
             return False, "No agents available to delete"
-        
+
         print("\nAvailable agents:")
         for i, template in enumerate(templates, 1):
             tier_icon = "🏢" if template.tier == "project" else "👤"
             print(
                 f"   [{i}] {tier_icon} {template.agent_id} - {template.metadata.get('name', template.agent_id)}"
             )
-        
+
         print("\n[all] Select all agents")
         print("[0] Cancel")
-        
+
         selection = input(
             "\nSelect agents to delete (comma-separated numbers or 'all'): "
         ).strip()
-        
+
         if selection == "0" or not selection:
             return False, "Deletion cancelled"
-        
+
         # Parse selection
         selected_templates = []
         if selection.lower() == "all":
@@ -856,42 +854,44 @@ class AgentWizard:
                         print(f"⚠️  Invalid selection: {idx + 1}")
             except ValueError:
                 return False, "Invalid selection format"
-        
+
         if not selected_templates:
             return False, "No valid agents selected"
-        
+
         # Show what will be deleted
         print(f"\n📋 Selected {len(selected_templates)} agent(s) for deletion:")
         for template in selected_templates:
             tier_icon = "🏢" if template.tier == "project" else "👤"
             print(f"   - {tier_icon} {template.agent_id}")
-        
+
         # Deletion options
         print("\nDelete options:")
         print("   [1] Delete templates and deployments")
         print("   [2] Delete templates only (keep deployments)")
         print("   [3] Cancel")
-        
+
         option = input("\nSelect option [1-3]: ").strip()
-        
+
         if option == "3":
             return False, "Deletion cancelled"
-        
-        delete_deployment = (option == "1")
-        
+
+        delete_deployment = option == "1"
+
         # Ask about backup
-        backup_choice = input("\nCreate backups before deletion? [y/N]: ").strip().lower()
+        backup_choice = (
+            input("\nCreate backups before deletion? [y/N]: ").strip().lower()
+        )
         backup_first = backup_choice in ["y", "yes"]
-        
+
         # Strong confirmation for multiple deletions
         if len(selected_templates) > 1:
             print(f"\n⚠️  WARNING: This will delete {len(selected_templates)} agents!")
-        
+
         confirm = input("\nAre you sure? Type 'DELETE ALL' to confirm: ").strip()
-        
+
         if confirm != "DELETE ALL":
             return False, "Deletion cancelled"
-        
+
         # Perform bulk deletion
         agent_ids = [t.agent_id for t in selected_templates]
         results = self.manager.delete_multiple_templates(
@@ -900,21 +900,23 @@ class AgentWizard:
             delete_deployment=delete_deployment,
             backup_first=backup_first,
         )
-        
+
         # Format results
         if results["successful"]:
-            message = f"✅ Successfully deleted {len(results['successful'])} agent(s):\n"
+            message = (
+                f"✅ Successfully deleted {len(results['successful'])} agent(s):\n"
+            )
             for agent_id in results["successful"]:
                 message += f"   - {agent_id}\n"
         else:
             message = ""
-        
+
         if results["failed"]:
             message += f"❌ Failed to delete {len(results['failed'])} agent(s):\n"
             for agent_id in results["failed"]:
                 errors = results["details"][agent_id]["errors"]
                 message += f"   - {agent_id}: {', '.join(errors)}\n"
-        
+
         return len(results["successful"]) > 0, message.strip()
 
 

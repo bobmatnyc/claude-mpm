@@ -393,7 +393,9 @@ class LocalAgentTemplateManager:
 
         # Check for deployment
         if delete_deployment:
-            deployment_file = self.working_directory / ".claude" / "agents" / f"{agent_id}.md"
+            deployment_file = (
+                self.working_directory / ".claude" / "agents" / f"{agent_id}.md"
+            )
             if deployment_file.exists():
                 files_to_delete.append(("deployment", "agent", deployment_file))
 
@@ -423,9 +425,7 @@ class LocalAgentTemplateManager:
                 else:
                     file_path.unlink()
                     result["deleted_files"].append(str(file_path))
-                    logger.info(
-                        f"Deleted {tier_name} {file_type}: {file_path.name}"
-                    )
+                    logger.info(f"Deleted {tier_name} {file_type}: {file_path.name}")
             except Exception as e:
                 error_msg = f"Failed to delete {file_path}: {e}"
                 result["errors"].append(error_msg)
