@@ -38,6 +38,10 @@ recursive-include src/claude_mpm/dashboard *.html *.css *.js *.json
 recursive-include src/claude_mpm/dashboard/templates *.html
 recursive-include src/claude_mpm/dashboard/static *.css *.js *.json
 
+# Include monitor service files
+recursive-include src/claude_mpm/services/monitor *.py
+recursive-include src/claude_mpm/services/communication *.py
+
 # Exclude test and cache files
 global-exclude __pycache__
 global-exclude *.py[co]

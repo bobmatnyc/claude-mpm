@@ -17,6 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.21] - 2025-09-08
+
+### Added
+- Monitor optional dependency group `[monitor]` for pipx installation support
+- Comprehensive PIPX_INSTALLATION.md documentation
+- Dependency verification script `scripts/check_monitor_deps.py`
+
+### Fixed
+- Fixed pipx installation missing socketio and monitor dependencies
+- Ensured all monitor service files are included in package distribution
+- Resolved "module 'claude_mpm.services.monitor' has no attribute 'server'" error
+
+### Changed
+- Updated MANIFEST.in to explicitly include monitor and communication service files
+- Consolidated monitor dependencies in optional dependency group
+
+
 ## [4.2.18] - 2025-09-08
 
 ### Fixed
