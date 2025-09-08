@@ -5,7 +5,7 @@ Extracted from AgentDeploymentService to reduce complexity and improve maintaina
 """
 
 import logging
-from typing import Dict, Any, Optional, Tuple, List
+from typing import Any, Dict, Optional, Tuple
 
 from claude_mpm.core.config import Config
 
@@ -36,11 +36,11 @@ class DeploymentConfigLoader:
 
         # Get new configuration format first, fall back to legacy
         disabled_agents = config.get("agent_deployment.disabled_agents", [])
-        
+
         # Fall back to legacy excluded_agents if disabled_agents is empty
         if not disabled_agents:
             disabled_agents = config.get("agent_deployment.excluded_agents", [])
-        
+
         case_sensitive = config.get("agent_deployment.case_sensitive", False)
         exclude_dependencies = config.get(
             "agent_deployment.exclude_dependencies", False
@@ -57,75 +57,101 @@ class DeploymentConfigLoader:
             self.logger.debug(f"Exclude dependencies: {exclude_dependencies}")
 
         return config, disabled_agents
-    
-    def get_deployment_settings(self, config: Optional[Config] = None) -> Dict[str, Any]:
+
+    def get_deployment_settings(
+        self, config: Optional[Config] = None
+    ) -> Dict[str, Any]:
         """
         Get comprehensive deployment settings from configuration.
-        
+
         Args:
             config: Optional configuration object
-            
+
         Returns:
             Dictionary of deployment settings
         """
         if config is None:
             config = Config()
-        
+
         return {
             "enabled_agents": config.get("agent_deployment.enabled_agents", []),
-            "disabled_agents": config.get("agent_deployment.disabled_agents", []) or 
-                               config.get("agent_deployment.excluded_agents", []),
-            "deploy_system_agents": config.get("agent_deployment.deploy_system_agents", True),
-            "deploy_local_agents": config.get("agent_deployment.deploy_local_agents", True),
-            "deploy_user_agents": config.get("agent_deployment.deploy_user_agents", True),
-            "prefer_local_over_system": config.get("agent_deployment.prefer_local_over_system", True),
-            "version_comparison": config.get("agent_deployment.version_comparison", True),
+            "disabled_agents": config.get("agent_deployment.disabled_agents", [])
+            or config.get("agent_deployment.excluded_agents", []),
+            "deploy_system_agents": config.get(
+                "agent_deployment.deploy_system_agents", True
+            ),
+            "deploy_local_agents": config.get(
+                "agent_deployment.deploy_local_agents", True
+            ),
+            "deploy_user_agents": config.get(
+                "agent_deployment.deploy_user_agents", True
+            ),
+            "prefer_local_over_system": config.get(
+                "agent_deployment.prefer_local_over_system", True
+            ),
+            "version_comparison": config.get(
+                "agent_deployment.version_comparison", True
+            ),
             "case_sensitive": config.get("agent_deployment.case_sensitive", False),
-            "exclude_dependencies": config.get("agent_deployment.exclude_dependencies", False),
+            "exclude_dependencies": config.get(
+                "agent_deployment.exclude_dependencies", False
+            ),
         }
-    
-    def should_deploy_agent(self, agent_id: str, agent_source: str, config: Optional[Config] = None) -> bool:
+
+    def should_deploy_agent(
+        self, agent_id: str, agent_source: str, config: Optional[Config] = None
+    ) -> bool:
         """
         Check if an agent should be deployed based on configuration.
-        
+
         Args:
             agent_id: The agent identifier
             agent_source: The source of the agent ('system', 'local', 'user')
             config: Optional configuration object
-            
+
         Returns:
             True if the agent should be deployed, False otherwise
         """
         settings = self.get_deployment_settings(config)
-        
+
         # Check if the source type is enabled
         if agent_source == "system" and not settings["deploy_system_agents"]:
-            self.logger.debug(f"Skipping system agent {agent_id} - system agents disabled")
+            self.logger.debug(
+                f"Skipping system agent {agent_id} - system agents disabled"
+            )
             return False
-        elif agent_source == "local" and not settings["deploy_local_agents"]:
-            self.logger.debug(f"Skipping local agent {agent_id} - local agents disabled")
+        if agent_source == "local" and not settings["deploy_local_agents"]:
+            self.logger.debug(
+                f"Skipping local agent {agent_id} - local agents disabled"
+            )
             return False
-        elif agent_source == "user" and not settings["deploy_user_agents"]:
+        if agent_source == "user" and not settings["deploy_user_agents"]:
             self.logger.debug(f"Skipping user agent {agent_id} - user agents disabled")
             return False
-        
+
         # Normalize agent_id for comparison if not case sensitive
         check_id = agent_id if settings["case_sensitive"] else agent_id.lower()
-        
+
         # Check enabled list (if specified, only these agents are deployed)
         enabled = settings["enabled_agents"]
         if enabled:
-            enabled_list = enabled if settings["case_sensitive"] else [a.lower() for a in enabled]
+            enabled_list = (
+                enabled if settings["case_sensitive"] else [a.lower() for a in enabled]
+            )
             if check_id not in enabled_list:
                 self.logger.debug(f"Skipping agent {agent_id} - not in enabled list")
                 return False
-        
+
         # Check disabled list
         disabled = settings["disabled_agents"]
         if disabled:
-            disabled_list = disabled if settings["case_sensitive"] else [a.lower() for a in disabled]
+            disabled_list = (
+                disabled
+                if settings["case_sensitive"]
+                else [a.lower() for a in disabled]
+            )
             if check_id in disabled_list:
                 self.logger.debug(f"Skipping agent {agent_id} - in disabled list")
                 return False
-        
+
         return True
