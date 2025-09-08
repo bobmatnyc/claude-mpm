@@ -177,6 +177,12 @@ class WorkingDirectoryManager {
         console.log('[WORKING-DIR-DEBUG] setWorkingDirectory called with:', this.repr(dir));
 
         this.currentWorkingDir = dir;
+        
+        // Store in session storage for persistence during the session
+        if (dir && this.validateDirectoryPath(dir)) {
+            sessionStorage.setItem('currentWorkingDirectory', dir);
+            console.log('[WORKING-DIR-DEBUG] Stored working directory in session storage:', dir);
+        }
 
         // Update UI
         const pathElement = document.getElementById('working-dir-path');
@@ -381,9 +387,26 @@ class WorkingDirectoryManager {
             }
         }
 
-        // Final fallback to a generic path
-        const fallback = window.location.hostname === 'localhost' ? '/' : '/';
-        console.log('[WORKING-DIR-DEBUG] Using generic fallback directory:', this.repr(fallback));
+        // Try to get from session storage or environment
+        const sessionWorkingDir = sessionStorage.getItem('currentWorkingDirectory');
+        if (sessionWorkingDir && this.validateDirectoryPath(sessionWorkingDir)) {
+            console.log('[WORKING-DIR-DEBUG] Using session storage working directory:', this.repr(sessionWorkingDir));
+            return sessionWorkingDir;
+        }
+        
+        // Try to get the current working directory from environment/process
+        // This should be the directory where claude-mpm was started from
+        const processWorkingDir = window.processWorkingDirectory || process?.cwd?.() || null;
+        if (processWorkingDir && this.validateDirectoryPath(processWorkingDir)) {
+            console.log('[WORKING-DIR-DEBUG] Using process working directory:', this.repr(processWorkingDir));
+            return processWorkingDir;
+        }
+        
+        // Final fallback - use current working directory if available, otherwise home directory
+        // Never default to root "/" as it's not a useful default for code viewing
+        const homeDir = window.homeDirectory || process?.env?.HOME || process?.env?.USERPROFILE || null;
+        const fallback = homeDir || process?.cwd?.() || os?.homedir?.() || '/Users/masa';
+        console.log('[WORKING-DIR-DEBUG] Using fallback directory (home or cwd):', this.repr(fallback));
         return fallback;
     }
 

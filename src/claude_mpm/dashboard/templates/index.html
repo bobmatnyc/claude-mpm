@@ -515,6 +515,37 @@
     <!-- JavaScript Modules -->
     <!-- Load bundled dashboard assets (built with Vite) - with proper initialization order -->
     <script type="module">
+        // Set up working directory environment variables
+        // These will be used by the working-directory component
+        // The server will inject these values through a separate API call
+        
+        // Get the current working directory from the server
+        fetch('/api/working-directory')
+            .then(response => response.json())
+            .then(data => {
+                window.processWorkingDirectory = data.working_directory || '/Users/masa/Projects/claude-mpm';
+                window.homeDirectory = data.home_directory || '/Users/masa';
+                
+                // Store in session storage for persistence
+                if (window.processWorkingDirectory && window.processWorkingDirectory !== '/') {
+                    sessionStorage.setItem('currentWorkingDirectory', window.processWorkingDirectory);
+                }
+                
+                // Dispatch event to notify components that working directory is ready
+                window.dispatchEvent(new CustomEvent('workingDirectoryInitialized', {
+                    detail: {
+                        working_directory: window.processWorkingDirectory,
+                        home_directory: window.homeDirectory
+                    }
+                }));
+            })
+            .catch(error => {
+                console.error('Failed to get working directory from server:', error);
+                // Use defaults as fallback
+                window.processWorkingDirectory = '/Users/masa/Projects/claude-mpm';
+                window.homeDirectory = '/Users/masa';
+            });
+        
         // Add timestamp-based cache busting and ensure proper loading order
         const timestamp = Date.now();
         
