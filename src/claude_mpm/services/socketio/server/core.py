@@ -392,6 +392,33 @@ class SocketIOServerCore:
         # Register the HTTP POST endpoint
         self.app.router.add_post("/api/events", api_events_handler)
         self.logger.info("✅ HTTP API endpoint registered at /api/events")
+        
+        # Add working directory endpoint
+        async def working_directory_handler(request):
+            """Handle GET /api/working-directory to provide current working directory."""
+            import os
+            from pathlib import Path
+            
+            try:
+                working_dir = os.getcwd()
+                home_dir = str(Path.home())
+                
+                return web.json_response({
+                    "working_directory": working_dir,
+                    "home_directory": home_dir,
+                    "process_cwd": working_dir,
+                    "session_id": getattr(self, 'session_id', None)
+                })
+            except Exception as e:
+                self.logger.error(f"Error getting working directory: {e}")
+                return web.json_response({
+                    "working_directory": "/Users/masa/Projects/claude-mpm",
+                    "home_directory": "/Users/masa",
+                    "error": str(e)
+                }, status=500)
+        
+        self.app.router.add_get("/api/working-directory", working_directory_handler)
+        self.logger.info("✅ Working directory endpoint registered at /api/working-directory")
 
         # Add file reading endpoint for source viewer
         async def file_read_handler(request):
