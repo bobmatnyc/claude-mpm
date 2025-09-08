@@ -885,30 +885,34 @@ class AgentsCommand(AgentCommand):
             self.logger.error(f"Error during cleanup: {e}", exc_info=True)
             return CommandResult.error_result(f"Error during cleanup: {e}")
 
-
     def _create_local_agent(self, args) -> CommandResult:
         """Create a new local agent template."""
         try:
             if getattr(args, "interactive", False):
                 # Launch interactive wizard
                 from ..interactive.agent_wizard import run_interactive_agent_wizard
+
                 exit_code = run_interactive_agent_wizard()
                 if exit_code == 0:
                     return CommandResult.success_result("Agent created successfully")
                 return CommandResult.error_result("Agent creation cancelled or failed")
-            
+
             # Non-interactive creation
-            from ...services.agents.local_template_manager import LocalAgentTemplateManager
-            
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
+
             agent_id = getattr(args, "agent_id", None)
             if not agent_id:
-                return CommandResult.error_result("--agent-id is required for non-interactive creation")
-            
+                return CommandResult.error_result(
+                    "--agent-id is required for non-interactive creation"
+                )
+
             manager = LocalAgentTemplateManager()
             name = getattr(args, "name", agent_id.replace("-", " ").title())
             model = getattr(args, "model", "sonnet")
             inherit_from = getattr(args, "inherit_from", None)
-            
+
             # Create basic template
             template = manager.create_local_template(
                 agent_id=agent_id,
@@ -917,81 +921,94 @@ class AgentsCommand(AgentCommand):
                 instructions="# Agent Instructions\n\nCustomize this agent's behavior here.",
                 model=model,
                 parent_agent=inherit_from,
-                tier="project"
+                tier="project",
             )
-            
+
             if template:
                 return CommandResult.success_result(
                     f"Created local agent '{agent_id}' in .claude-mpm/agents/",
-                    data={"agent_id": agent_id, "path": f".claude-mpm/agents/{agent_id}.json"}
+                    data={
+                        "agent_id": agent_id,
+                        "path": f".claude-mpm/agents/{agent_id}.json",
+                    },
                 )
             return CommandResult.error_result("Failed to create agent template")
-            
+
         except Exception as e:
             self.logger.error(f"Error creating local agent: {e}", exc_info=True)
             return CommandResult.error_result(f"Error creating local agent: {e}")
-    
+
     def _edit_local_agent(self, args) -> CommandResult:
         """Edit a local agent template."""
         try:
             agent_id = getattr(args, "agent_id", None)
             if not agent_id:
                 return CommandResult.error_result("agent_id is required")
-            
-            from ...services.agents.local_template_manager import LocalAgentTemplateManager
-            import subprocess
+
             import os
-            
+            import subprocess
+
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
+
             manager = LocalAgentTemplateManager()
             template = manager.get_local_template(agent_id)
-            
+
             if not template:
                 return CommandResult.error_result(f"Local agent '{agent_id}' not found")
-            
+
             # Get template file path
             template_file = None
             if template.tier == "project":
                 template_file = manager.project_agents_dir / f"{agent_id}.json"
             else:
                 template_file = manager.user_agents_dir / f"{agent_id}.json"
-            
+
             if not template_file or not template_file.exists():
-                return CommandResult.error_result(f"Template file not found for '{agent_id}'")
-            
+                return CommandResult.error_result(
+                    f"Template file not found for '{agent_id}'"
+                )
+
             if getattr(args, "interactive", False):
                 # Launch interactive editor
                 from ..interactive.agent_wizard import AgentWizard
+
                 wizard = AgentWizard()
                 success, message = wizard._edit_agent_config(template)
                 if success:
                     return CommandResult.success_result(message)
                 return CommandResult.error_result(message)
-            
+
             # Use system editor
             editor = getattr(args, "editor", None) or os.environ.get("EDITOR", "nano")
             subprocess.run([editor, str(template_file)], check=True)
-            return CommandResult.success_result(f"Agent '{agent_id}' edited successfully")
-            
+            return CommandResult.success_result(
+                f"Agent '{agent_id}' edited successfully"
+            )
+
         except subprocess.CalledProcessError:
             return CommandResult.error_result("Editor exited with error")
         except Exception as e:
             self.logger.error(f"Error editing local agent: {e}", exc_info=True)
             return CommandResult.error_result(f"Error editing local agent: {e}")
-    
+
     def _delete_local_agent(self, args) -> CommandResult:
         """Delete local agent templates."""
         try:
             agent_ids = getattr(args, "agent_ids", [])
             if not agent_ids:
                 return CommandResult.error_result("No agent IDs specified")
-            
-            from ...services.agents.local_template_manager import LocalAgentTemplateManager
-            
+
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
+
             manager = LocalAgentTemplateManager()
             force = getattr(args, "force", False)
             keep_deployment = getattr(args, "keep_deployment", False)
             backup = getattr(args, "backup", False)
-            
+
             # Confirmation if not forced
             if not force:
                 print(f"\n⚠️  This will delete {len(agent_ids)} agent(s):")
@@ -1000,14 +1017,14 @@ class AgentsCommand(AgentCommand):
                 confirm = input("\nAre you sure? [y/N]: ").strip().lower()
                 if confirm not in ["y", "yes"]:
                     return CommandResult.error_result("Deletion cancelled")
-            
+
             # Delete agents
             if len(agent_ids) == 1:
                 result = manager.delete_local_template(
                     agent_id=agent_ids[0],
                     tier="all",
                     delete_deployment=not keep_deployment,
-                    backup_first=backup
+                    backup_first=backup,
                 )
                 if result["success"]:
                     message = f"Successfully deleted agent '{agent_ids[0]}'"
@@ -1017,65 +1034,72 @@ class AgentsCommand(AgentCommand):
                 return CommandResult.error_result(
                     f"Failed to delete agent: {', '.join(result['errors'])}"
                 )
-            else:
-                results = manager.delete_multiple_templates(
-                    agent_ids=agent_ids,
-                    tier="all",
-                    delete_deployment=not keep_deployment,
-                    backup_first=backup
+            results = manager.delete_multiple_templates(
+                agent_ids=agent_ids,
+                tier="all",
+                delete_deployment=not keep_deployment,
+                backup_first=backup,
+            )
+
+            message = ""
+            if results["successful"]:
+                message = (
+                    f"Successfully deleted {len(results['successful'])} agent(s):\n"
                 )
-                
-                message = ""
-                if results["successful"]:
-                    message = f"Successfully deleted {len(results['successful'])} agent(s):\n"
-                    for agent_id in results["successful"]:
-                        message += f"  - {agent_id}\n"
-                
-                if results["failed"]:
-                    if message:
-                        message += "\n"
-                    message += f"Failed to delete {len(results['failed'])} agent(s):\n"
-                    for agent_id in results["failed"]:
-                        errors = results["details"][agent_id]["errors"]
-                        message += f"  - {agent_id}: {', '.join(errors)}\n"
-                
-                if results["successful"]:
-                    return CommandResult.success_result(message.strip(), data=results)
-                return CommandResult.error_result(message.strip(), data=results)
-                
+                for agent_id in results["successful"]:
+                    message += f"  - {agent_id}\n"
+
+            if results["failed"]:
+                if message:
+                    message += "\n"
+                message += f"Failed to delete {len(results['failed'])} agent(s):\n"
+                for agent_id in results["failed"]:
+                    errors = results["details"][agent_id]["errors"]
+                    message += f"  - {agent_id}: {', '.join(errors)}\n"
+
+            if results["successful"]:
+                return CommandResult.success_result(message.strip(), data=results)
+            return CommandResult.error_result(message.strip(), data=results)
+
         except Exception as e:
             self.logger.error(f"Error deleting local agents: {e}", exc_info=True)
             return CommandResult.error_result(f"Error deleting local agents: {e}")
-    
+
     def _manage_local_agents(self, args) -> CommandResult:
         """Launch interactive management menu for local agents."""
         try:
             from ..interactive.agent_wizard import run_interactive_agent_manager
+
             exit_code = run_interactive_agent_manager()
             if exit_code == 0:
                 return CommandResult.success_result("Agent management completed")
             return CommandResult.error_result("Agent management failed or cancelled")
-            
+
         except Exception as e:
             self.logger.error(f"Error managing local agents: {e}", exc_info=True)
             return CommandResult.error_result(f"Error managing local agents: {e}")
-    
+
     def _configure_deployment(self, args) -> CommandResult:
         """Configure agent deployment settings."""
         try:
             from pathlib import Path
+
             import yaml
+
             from claude_mpm.core.config import Config
-            
+
             config = Config()
             config_path = Path.cwd() / ".claude-mpm" / "configuration.yaml"
-            
+
             # Handle show command
             if getattr(args, "show", False):
-                from ...services.agents.deployment.deployment_config_loader import DeploymentConfigLoader
+                from ...services.agents.deployment.deployment_config_loader import (
+                    DeploymentConfigLoader,
+                )
+
                 loader = DeploymentConfigLoader(self.logger)
                 settings = loader.get_deployment_settings(config)
-                
+
                 print("\n📋 Agent Deployment Configuration")
                 print("=" * 50)
                 print(f"Configuration file: {config_path}")
@@ -1083,232 +1107,259 @@ class AgentsCommand(AgentCommand):
                 print(f"  Deploy system agents: {settings['deploy_system_agents']}")
                 print(f"  Deploy local agents: {settings['deploy_local_agents']}")
                 print(f"  Deploy user agents: {settings['deploy_user_agents']}")
-                print(f"  Prefer local over system: {settings['prefer_local_over_system']}")
+                print(
+                    f"  Prefer local over system: {settings['prefer_local_over_system']}"
+                )
                 print(f"  Version comparison: {settings['version_comparison']}")
-                
-                if settings['enabled_agents']:
-                    print(f"\n✅ Enabled agents: {', '.join(settings['enabled_agents'])}")
+
+                if settings["enabled_agents"]:
+                    print(
+                        f"\n✅ Enabled agents: {', '.join(settings['enabled_agents'])}"
+                    )
                 else:
                     print("\n✅ Enabled agents: All (no restrictions)")
-                    
-                if settings['disabled_agents']:
-                    print(f"❌ Disabled agents: {', '.join(settings['disabled_agents'])}")
+
+                if settings["disabled_agents"]:
+                    print(
+                        f"❌ Disabled agents: {', '.join(settings['disabled_agents'])}"
+                    )
                 else:
                     print("❌ Disabled agents: None")
-                    
+
                 print("\n" + "=" * 50)
-                return CommandResult.success_result("Displayed deployment configuration")
-            
+                return CommandResult.success_result(
+                    "Displayed deployment configuration"
+                )
+
             # Handle interactive mode
             if getattr(args, "interactive", False):
                 return self._configure_deployment_interactive(config_path)
-            
+
             # Load current configuration
             if not config_path.exists():
                 config_path.parent.mkdir(parents=True, exist_ok=True)
                 config_data = {}
             else:
-                with open(config_path, 'r') as f:
+                with open(config_path) as f:
                     config_data = yaml.safe_load(f) or {}
-            
+
             # Ensure agent_deployment section exists
-            if 'agent_deployment' not in config_data:
-                config_data['agent_deployment'] = {}
-            
+            if "agent_deployment" not in config_data:
+                config_data["agent_deployment"] = {}
+
             modified = False
-            
+
             # Handle enable/disable operations
             if getattr(args, "enable_all", False):
-                config_data['agent_deployment']['enabled_agents'] = []
-                config_data['agent_deployment']['disabled_agents'] = []
+                config_data["agent_deployment"]["enabled_agents"] = []
+                config_data["agent_deployment"]["disabled_agents"] = []
                 print("✅ Enabled all agents for deployment")
                 modified = True
-                
+
             if getattr(args, "enable_system", False):
-                config_data['agent_deployment']['deploy_system_agents'] = True
+                config_data["agent_deployment"]["deploy_system_agents"] = True
                 print("✅ Enabled system agents for deployment")
                 modified = True
-                
+
             if getattr(args, "disable_system", False):
-                config_data['agent_deployment']['deploy_system_agents'] = False
+                config_data["agent_deployment"]["deploy_system_agents"] = False
                 print("❌ Disabled system agents from deployment")
                 modified = True
-                
+
             if getattr(args, "enable_local", False):
-                config_data['agent_deployment']['deploy_local_agents'] = True
+                config_data["agent_deployment"]["deploy_local_agents"] = True
                 print("✅ Enabled local agents for deployment")
                 modified = True
-                
+
             if getattr(args, "disable_local", False):
-                config_data['agent_deployment']['deploy_local_agents'] = False
+                config_data["agent_deployment"]["deploy_local_agents"] = False
                 print("❌ Disabled local agents from deployment")
                 modified = True
-                
+
             if getattr(args, "enable", None):
-                enabled = config_data['agent_deployment'].get('enabled_agents', [])
-                disabled = config_data['agent_deployment'].get('disabled_agents', [])
-                
+                enabled = config_data["agent_deployment"].get("enabled_agents", [])
+                disabled = config_data["agent_deployment"].get("disabled_agents", [])
+
                 for agent_id in args.enable:
                     if agent_id not in enabled:
                         enabled.append(agent_id)
                     if agent_id in disabled:
                         disabled.remove(agent_id)
-                        
-                config_data['agent_deployment']['enabled_agents'] = enabled
-                config_data['agent_deployment']['disabled_agents'] = disabled
+
+                config_data["agent_deployment"]["enabled_agents"] = enabled
+                config_data["agent_deployment"]["disabled_agents"] = disabled
                 print(f"✅ Enabled agents: {', '.join(args.enable)}")
                 modified = True
-                
+
             if getattr(args, "disable", None):
-                disabled = config_data['agent_deployment'].get('disabled_agents', [])
-                
+                disabled = config_data["agent_deployment"].get("disabled_agents", [])
+
                 for agent_id in args.disable:
                     if agent_id not in disabled:
                         disabled.append(agent_id)
-                        
-                config_data['agent_deployment']['disabled_agents'] = disabled
+
+                config_data["agent_deployment"]["disabled_agents"] = disabled
                 print(f"❌ Disabled agents: {', '.join(args.disable)}")
                 modified = True
-            
+
             # Save configuration if modified
             if modified:
-                with open(config_path, 'w') as f:
+                with open(config_path, "w") as f:
                     yaml.dump(config_data, f, default_flow_style=False, sort_keys=False)
                 print(f"\n💾 Configuration saved to {config_path}")
                 return CommandResult.success_result("Deployment configuration updated")
-            
+
             # If no modifications were made and not showing, display help
             if not getattr(args, "show", False):
                 print("No configuration changes specified. Use --help for options.")
                 return CommandResult.success_result("No changes made")
-                
+
         except Exception as e:
             self.logger.error(f"Error configuring deployment: {e}", exc_info=True)
             return CommandResult.error_result(f"Error configuring deployment: {e}")
-    
+
     def _configure_deployment_interactive(self, config_path: Path) -> CommandResult:
         """Interactive mode for configuring agent deployment."""
         try:
             import yaml
-            from ...utils.ui_helpers import prompt_choice, prompt_yes_no, prompt_multiselect
-            
+
+            from ...utils.ui_helpers import (
+                prompt_choice,
+                prompt_multiselect,
+                prompt_yes_no,
+            )
+
             # Load current configuration
             if config_path.exists():
-                with open(config_path, 'r') as f:
+                with open(config_path) as f:
                     config_data = yaml.safe_load(f) or {}
             else:
                 config_data = {}
-                
-            if 'agent_deployment' not in config_data:
-                config_data['agent_deployment'] = {}
-            
-            settings = config_data['agent_deployment']
-            
+
+            if "agent_deployment" not in config_data:
+                config_data["agent_deployment"] = {}
+
+            settings = config_data["agent_deployment"]
+
             print("\n🎮 Interactive Agent Deployment Configuration")
             print("=" * 50)
-            
+
             # Configure source types
-            settings['deploy_system_agents'] = prompt_yes_no(
+            settings["deploy_system_agents"] = prompt_yes_no(
                 "Deploy system agents?",
-                default=settings.get('deploy_system_agents', True)
+                default=settings.get("deploy_system_agents", True),
             )
-            
-            settings['deploy_local_agents'] = prompt_yes_no(
+
+            settings["deploy_local_agents"] = prompt_yes_no(
                 "Deploy local project agents?",
-                default=settings.get('deploy_local_agents', True)
+                default=settings.get("deploy_local_agents", True),
             )
-            
-            settings['deploy_user_agents'] = prompt_yes_no(
+
+            settings["deploy_user_agents"] = prompt_yes_no(
                 "Deploy user-level agents?",
-                default=settings.get('deploy_user_agents', True)
+                default=settings.get("deploy_user_agents", True),
             )
-            
+
             # Configure version behavior
-            settings['prefer_local_over_system'] = prompt_yes_no(
+            settings["prefer_local_over_system"] = prompt_yes_no(
                 "Should local agents override system agents with same ID?",
-                default=settings.get('prefer_local_over_system', True)
+                default=settings.get("prefer_local_over_system", True),
             )
-            
-            settings['version_comparison'] = prompt_yes_no(
+
+            settings["version_comparison"] = prompt_yes_no(
                 "Compare versions across sources and deploy highest?",
-                default=settings.get('version_comparison', True)
+                default=settings.get("version_comparison", True),
             )
-            
+
             # Configure specific agents
             choice = prompt_choice(
                 "How would you like to configure specific agents?",
-                ["No restrictions (all agents enabled)", "Specify disabled agents", "Specify enabled agents only"]
+                [
+                    "No restrictions (all agents enabled)",
+                    "Specify disabled agents",
+                    "Specify enabled agents only",
+                ],
             )
-            
+
             if choice == "No restrictions (all agents enabled)":
-                settings['enabled_agents'] = []
-                settings['disabled_agents'] = []
+                settings["enabled_agents"] = []
+                settings["disabled_agents"] = []
             elif choice == "Specify disabled agents":
                 # Get list of available agents
                 from ...services.agents.listing_service import AgentListingService
+
                 listing_service = AgentListingService()
                 agents, _ = listing_service.list_all_agents()
                 agent_ids = sorted(set(agent.name for agent in agents))
-                
+
                 if agent_ids:
                     disabled = prompt_multiselect(
                         "Select agents to disable:",
                         agent_ids,
-                        default=settings.get('disabled_agents', [])
+                        default=settings.get("disabled_agents", []),
                     )
-                    settings['disabled_agents'] = disabled
-                    settings['enabled_agents'] = []
+                    settings["disabled_agents"] = disabled
+                    settings["enabled_agents"] = []
                 else:
                     print("No agents found to configure")
             else:  # Specify enabled agents only
                 from ...services.agents.listing_service import AgentListingService
+
                 listing_service = AgentListingService()
                 agents, _ = listing_service.list_all_agents()
                 agent_ids = sorted(set(agent.name for agent in agents))
-                
+
                 if agent_ids:
                     enabled = prompt_multiselect(
                         "Select agents to enable (others will be disabled):",
                         agent_ids,
-                        default=settings.get('enabled_agents', [])
+                        default=settings.get("enabled_agents", []),
                     )
-                    settings['enabled_agents'] = enabled
-                    settings['disabled_agents'] = []
+                    settings["enabled_agents"] = enabled
+                    settings["disabled_agents"] = []
                 else:
                     print("No agents found to configure")
-            
+
             # Save configuration
-            config_data['agent_deployment'] = settings
-            
+            config_data["agent_deployment"] = settings
+
             # Ensure parent directory exists
             config_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            with open(config_path, 'w') as f:
+
+            with open(config_path, "w") as f:
                 yaml.dump(config_data, f, default_flow_style=False, sort_keys=False)
-            
+
             print(f"\n✅ Configuration saved to {config_path}")
-            
+
             # Show summary
             print("\n📋 New Configuration Summary:")
-            print(f"  System agents: {'Enabled' if settings.get('deploy_system_agents', True) else 'Disabled'}")
-            print(f"  Local agents: {'Enabled' if settings.get('deploy_local_agents', True) else 'Disabled'}")
-            print(f"  User agents: {'Enabled' if settings.get('deploy_user_agents', True) else 'Disabled'}")
-            
-            if settings.get('enabled_agents'):
+            print(
+                f"  System agents: {'Enabled' if settings.get('deploy_system_agents', True) else 'Disabled'}"
+            )
+            print(
+                f"  Local agents: {'Enabled' if settings.get('deploy_local_agents', True) else 'Disabled'}"
+            )
+            print(
+                f"  User agents: {'Enabled' if settings.get('deploy_user_agents', True) else 'Disabled'}"
+            )
+
+            if settings.get("enabled_agents"):
                 print(f"  Enabled specific: {', '.join(settings['enabled_agents'])}")
-            elif settings.get('disabled_agents'):
+            elif settings.get("disabled_agents"):
                 print(f"  Disabled specific: {', '.join(settings['disabled_agents'])}")
             else:
                 print("  All agents enabled")
-                
+
             return CommandResult.success_result("Interactive configuration completed")
-            
+
         except KeyboardInterrupt:
             print("\n\nConfiguration cancelled.")
             return CommandResult.error_result("Configuration cancelled by user")
         except Exception as e:
             self.logger.error(f"Error in interactive configuration: {e}", exc_info=True)
-            return CommandResult.error_result(f"Error in interactive configuration: {e}")
+            return CommandResult.error_result(
+                f"Error in interactive configuration: {e}"
+            )
 
 
 def manage_agents(args):

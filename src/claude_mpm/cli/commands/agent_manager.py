@@ -1262,16 +1262,16 @@ class AgentManagerCommand(AgentCommand):
             # Format results
             message = ""
             if results["successful"]:
-                message = f"✅ Successfully deleted {len(results['successful'])} agent(s):\n"
+                message = (
+                    f"✅ Successfully deleted {len(results['successful'])} agent(s):\n"
+                )
                 for agent_id in results["successful"]:
                     message += f"   - {agent_id}\n"
 
             if results["failed"]:
                 if message:
                     message += "\n"
-                message += (
-                    f"❌ Failed to delete {len(results['failed'])} agent(s):\n"
-                )
+                message += f"❌ Failed to delete {len(results['failed'])} agent(s):\n"
                 for agent_id in results["failed"]:
                     errors = results["details"][agent_id]["errors"]
                     message += f"   - {agent_id}: {', '.join(errors)}\n"
