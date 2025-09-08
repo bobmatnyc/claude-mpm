@@ -17,6 +17,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.18] - 2025-09-08
+
+### Fixed
+- Code viewer no longer defaults to root directory (/)
+- Enhanced working directory detection with multiple fallback strategies
+- Added session storage persistence for working directory
+- Created /api/working-directory endpoint to provide actual cwd
+
+### Added
+- Configure.yaml support for controlling agent deployment
+- New `/mpm-agents configure` command for managing deployment settings
+- Agent deployment enable/disable functionality per agent or category
+- Interactive configuration mode for agent deployment settings
+
+### Changed
+- Working directory now persists in session storage during browser session
+- Code viewer uses home or project directory as fallback instead of root
+- Enhanced DeploymentConfigLoader with comprehensive deployment settings
+
+
 ## [4.2.17] - 2025-09-06
 
 ### Added
