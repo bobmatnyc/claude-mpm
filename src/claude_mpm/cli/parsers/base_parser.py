@@ -345,6 +345,14 @@ def create_parser(
     except ImportError:
         pass
 
+    # Add uninstall command parser
+    try:
+        from ..commands.uninstall import add_uninstall_parser
+
+        add_uninstall_parser(subparsers)
+    except ImportError:
+        pass
+
     # Add debug command parser
     try:
         from .debug_parser import add_debug_subparser

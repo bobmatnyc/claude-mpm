@@ -399,6 +399,16 @@ def _execute_command(command: str, args) -> int:
         result = manage_mpm_init(args)
         return result if result is not None else 0
 
+    # Handle uninstall command with lazy import
+    if command == "uninstall":
+        # Lazy import to avoid loading unless needed
+        from .commands.uninstall import UninstallCommand
+
+        cmd = UninstallCommand()
+        result = cmd.execute(args)
+        # Convert CommandResult to exit code
+        return result.exit_code if result else 0
+
     # Map stable commands to their implementations
     command_map = {
         CLICommands.RUN.value: run_session,

@@ -75,8 +75,11 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
         self._lock = threading.Lock()
 
     def start_dashboard(
-        self, port: int = 8765, background: bool = False, open_browser: bool = True,
-        force_restart: bool = False
+        self,
+        port: int = 8765,
+        background: bool = False,
+        open_browser: bool = True,
+        force_restart: bool = False,
     ) -> Tuple[bool, bool]:
         """
         Start the dashboard using unified daemon.
@@ -95,19 +98,23 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
             daemon = UnifiedMonitorDaemon(
                 host="localhost", port=port, daemon_mode=background
             )
-            
+
             # Check if it's our service running
             is_ours, pid = daemon.lifecycle.is_our_service("localhost")
-            
+
             if is_ours and not force_restart:
                 # Our service is already running, just open browser if needed
-                self.logger.info(f"Our dashboard already running on port {port} (PID: {pid})")
+                self.logger.info(
+                    f"Our dashboard already running on port {port} (PID: {pid})"
+                )
                 browser_opened = False
                 if open_browser:
                     browser_opened = self.open_browser(self.get_dashboard_url(port))
                 return True, browser_opened
-            elif is_ours and force_restart:
-                self.logger.info(f"Force restarting our dashboard on port {port} (PID: {pid})")
+            if is_ours and force_restart:
+                self.logger.info(
+                    f"Force restarting our dashboard on port {port} (PID: {pid})"
+                )
             elif self.is_dashboard_running(port) and not force_restart:
                 # Different service is using the port
                 self.logger.warning(f"Port {port} is in use by a different service")

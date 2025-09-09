@@ -17,6 +17,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.25] - 2025-09-09
+
+### Fixed
+- Fixed hook installation for pipx and remote installations
+- Hook files are now properly included in package distribution
+- Automatic hook installation when monitor starts
+- Improved service detection for monitor force restart
+
+### Added
+- `claude-mpm uninstall` command for clean hook removal
+- Better hook script detection across installation types
+- Automatic hook configuration for monitor integration
+
+### Changed
+- Hook files are now included as package-data in pyproject.toml
+- Monitor automatically installs hooks if they're missing
+- Enhanced detection of hook script location for different installation types
+
+
 ## [4.2.24] - 2025-09-09
 
 ### Fixed

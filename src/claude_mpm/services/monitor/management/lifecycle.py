@@ -13,6 +13,7 @@ DESIGN DECISIONS:
 - Log file redirection for daemon mode
 """
 
+import json
 import os
 import signal
 import socket
@@ -21,7 +22,6 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Optional, Tuple
-import json
 
 from ....core.logging_config import get_logger
 
@@ -57,9 +57,11 @@ class DaemonLifecycle:
         try:
             # Clean up any existing asyncio event loops before forking
             self._cleanup_event_loops()
-            
+
             # Create a temporary file for startup status communication
-            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.status') as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w", delete=False, suffix=".status"
+            ) as f:
                 self.startup_status_file = f.name
                 f.write("starting")
 
@@ -91,7 +93,7 @@ class DaemonLifecycle:
 
         # Set up error logging before redirecting streams
         self._setup_early_error_logging()
-        
+
         # Write PID file first (before stream redirection)
         try:
             self.write_pid_file()
@@ -106,7 +108,7 @@ class DaemonLifecycle:
         self._setup_signal_handlers()
 
         self.logger.info(f"Daemon process started with PID {os.getpid()}")
-        
+
         # Report successful startup (after basic setup but before server start)
         self._report_startup_success()
         return True
@@ -366,83 +368,93 @@ class DaemonLifecycle:
 
     def _parent_wait_for_startup(self, child_pid: int, timeout: float = 10.0) -> bool:
         """Parent process waits for child daemon to report startup status.
-        
+
         Args:
             child_pid: PID of the child process
             timeout: Maximum time to wait for startup
-            
+
         Returns:
             True if child started successfully, False otherwise
         """
         import time
+
         start_time = time.time()
-        
+
         # Wait for child to update status file
         while time.time() - start_time < timeout:
             try:
                 # Check if status file exists and read it
                 if self.startup_status_file and Path(self.startup_status_file).exists():
-                    with open(self.startup_status_file, 'r') as f:
+                    with open(self.startup_status_file) as f:
                         status = f.read().strip()
-                    
+
                     if status == "success":
                         # Child started successfully
                         self._cleanup_status_file()
                         return True
-                    elif status.startswith("error:"):
+                    if status.startswith("error:"):
                         # Child reported an error
                         error_msg = status[6:]  # Remove "error:" prefix
                         self.logger.error(f"Daemon startup failed: {error_msg}")
-                        print(f"Error: Failed to start monitor daemon: {error_msg}", file=sys.stderr)
+                        print(
+                            f"Error: Failed to start monitor daemon: {error_msg}",
+                            file=sys.stderr,
+                        )
                         self._cleanup_status_file()
                         return False
-                    elif status == "starting":
+                    if status == "starting":
                         # Still starting, continue waiting
                         pass
-                    
+
                 # Also check if child process is still alive
                 try:
                     os.kill(child_pid, 0)  # Check if process exists
                 except ProcessLookupError:
                     # Child process died
                     self.logger.error("Child daemon process died during startup")
-                    print("Error: Monitor daemon process died during startup", file=sys.stderr)
+                    print(
+                        "Error: Monitor daemon process died during startup",
+                        file=sys.stderr,
+                    )
                     self._cleanup_status_file()
                     return False
-                    
+
             except Exception as e:
                 self.logger.debug(f"Error checking startup status: {e}")
-            
+
             time.sleep(0.1)  # Check every 100ms
-        
+
         # Timeout reached
         self.logger.error(f"Daemon startup timed out after {timeout} seconds")
-        print(f"Error: Monitor daemon startup timed out after {timeout} seconds", file=sys.stderr)
+        print(
+            f"Error: Monitor daemon startup timed out after {timeout} seconds",
+            file=sys.stderr,
+        )
         self._cleanup_status_file()
         return False
-    
+
     def _report_startup_success(self):
         """Report successful startup to parent process."""
         if self.startup_status_file:
             try:
-                with open(self.startup_status_file, 'w') as f:
+                with open(self.startup_status_file, "w") as f:
                     f.write("success")
             except Exception as e:
                 self.logger.error(f"Failed to report startup success: {e}")
-    
+
     def _report_startup_error(self, error_msg: str):
         """Report startup error to parent process.
-        
+
         Args:
             error_msg: Error message to report
         """
         if self.startup_status_file:
             try:
-                with open(self.startup_status_file, 'w') as f:
+                with open(self.startup_status_file, "w") as f:
                     f.write(f"error:{error_msg}")
             except Exception:
                 pass  # Can't report if file write fails
-    
+
     def _cleanup_status_file(self):
         """Clean up the temporary status file."""
         if self.startup_status_file:
@@ -452,10 +464,10 @@ class DaemonLifecycle:
                 pass  # Ignore cleanup errors
             finally:
                 self.startup_status_file = None
-    
+
     def _setup_early_error_logging(self):
         """Set up error logging before stream redirection.
-        
+
         This ensures we can capture and report errors that occur during
         daemon initialization, especially port binding errors.
         """
@@ -465,27 +477,30 @@ class DaemonLifecycle:
                 default_log = Path.home() / ".claude-mpm" / "monitor-daemon.log"
                 default_log.parent.mkdir(parents=True, exist_ok=True)
                 self.log_file = default_log
-                
+
             # Configure logger to write to file immediately
             import logging
+
             file_handler = logging.FileHandler(self.log_file)
             file_handler.setLevel(logging.DEBUG)
             formatter = logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
             )
             file_handler.setFormatter(formatter)
             self.logger.addHandler(file_handler)
-            
+
         except Exception as e:
             # If we can't set up logging, at least try to report the error
             self._report_startup_error(f"Failed to setup error logging: {e}")
-    
-    def verify_port_available(self, host: str = "localhost") -> Tuple[bool, Optional[str]]:
+
+    def verify_port_available(
+        self, host: str = "localhost"
+    ) -> Tuple[bool, Optional[str]]:
         """Verify that the port is available for binding.
-        
+
         Args:
             host: Host to check port on
-            
+
         Returns:
             Tuple of (is_available, error_message)
         """
@@ -498,57 +513,61 @@ class DaemonLifecycle:
         except OSError as e:
             error_msg = f"Port {self.port} is already in use or cannot be bound: {e}"
             return False, error_msg
-    
+
     def is_our_service(self, host: str = "localhost") -> Tuple[bool, Optional[int]]:
         """Check if the service on the port is our Socket.IO service.
-        
+
         This uses multiple detection methods:
         1. Check health endpoint for service signature
         2. Check Socket.IO namespace availability
         3. Check process ownership if PID file exists
-        
+
         Args:
             host: Host to check
-            
+
         Returns:
             Tuple of (is_ours, pid_if_found)
         """
         self.logger.debug(f"Checking if service on {host}:{self.port} is ours")
-        
+
         try:
             # Method 1: Check health endpoint
-            import urllib.request
             import urllib.error
-            
+            import urllib.request
+
             health_url = f"http://{host}:{self.port}/health"
             self.logger.debug(f"Checking health endpoint: {health_url}")
-            
+
             try:
                 req = urllib.request.Request(health_url)
-                req.add_header('User-Agent', 'claude-mpm-monitor')
-                
+                req.add_header("User-Agent", "claude-mpm-monitor")
+
                 with urllib.request.urlopen(req, timeout=3) as response:
                     if response.status == 200:
                         data = json.loads(response.read().decode())
                         self.logger.debug(f"Health endpoint response: {data}")
-                        
+
                         # Check for our service signature
                         service_name = data.get("service")
                         if service_name == "claude-mpm-monitor":
                             # Try to get PID from response
                             pid = data.get("pid")
                             if pid:
-                                self.logger.info(f"Found our claude-mpm-monitor service via health endpoint, PID: {pid}")
+                                self.logger.info(
+                                    f"Found our claude-mpm-monitor service via health endpoint, PID: {pid}"
+                                )
                                 return True, pid
-                            else:
-                                # Service is ours but no PID in response
-                                # Try to get from PID file
-                                file_pid = self.get_pid()
-                                self.logger.info(f"Found our claude-mpm-monitor service via health endpoint, PID from file: {file_pid}")
-                                return True, file_pid
-                        else:
-                            self.logger.debug(f"Service name '{service_name}' does not match 'claude-mpm-monitor'")
-                            
+                            # Service is ours but no PID in response
+                            # Try to get from PID file
+                            file_pid = self.get_pid()
+                            self.logger.info(
+                                f"Found our claude-mpm-monitor service via health endpoint, PID from file: {file_pid}"
+                            )
+                            return True, file_pid
+                        self.logger.debug(
+                            f"Service name '{service_name}' does not match 'claude-mpm-monitor'"
+                        )
+
             except urllib.error.URLError as e:
                 self.logger.debug(f"Health endpoint not accessible: {e}")
             except urllib.error.HTTPError as e:
@@ -557,7 +576,7 @@ class DaemonLifecycle:
                 self.logger.debug(f"Health endpoint invalid JSON: {e}")
             except Exception as e:
                 self.logger.debug(f"Health endpoint check failed: {e}")
-            
+
             # Method 2: Check if PID file exists and process matches
             pid = self.get_pid()
             if pid:
@@ -566,116 +585,139 @@ class DaemonLifecycle:
                     # Check if process exists
                     os.kill(pid, 0)
                     self.logger.debug(f"Process {pid} exists")
-                    
+
                     # Process exists, check if it's using our port
                     # This requires psutil for accurate port checking
                     try:
                         import psutil
+
                         process = psutil.Process(pid)
-                        
+
                         # Check process command line for our service
-                        cmdline = ' '.join(process.cmdline())
-                        if 'claude_mpm' in cmdline or 'claude-mpm' in cmdline:
-                            if 'monitor' in cmdline:
-                                self.logger.info(f"Found our claude-mpm monitor process via PID file, PID: {pid}")
+                        cmdline = " ".join(process.cmdline())
+                        if "claude_mpm" in cmdline or "claude-mpm" in cmdline:
+                            if "monitor" in cmdline:
+                                self.logger.info(
+                                    f"Found our claude-mpm monitor process via PID file, PID: {pid}"
+                                )
                                 return True, pid
-                        
+
                         # Also check if it's listening on our port
                         connections = process.connections()
                         for conn in connections:
-                            if conn.laddr.port == self.port and conn.status == 'LISTEN':
-                                self.logger.info(f"Found process {pid} listening on our port {self.port}")
+                            if conn.laddr.port == self.port and conn.status == "LISTEN":
+                                self.logger.info(
+                                    f"Found process {pid} listening on our port {self.port}"
+                                )
                                 # Double-check it's a Python process (likely ours)
-                                if 'python' in process.name().lower():
-                                    self.logger.info(f"Confirmed as Python process, assuming it's our service")
+                                if "python" in process.name().lower():
+                                    self.logger.info(
+                                        "Confirmed as Python process, assuming it's our service"
+                                    )
                                     return True, pid
-                                    
+
                     except ImportError:
                         # psutil not available, but we have a PID file and process exists
                         # Assume it's ours since we manage the PID file
-                        self.logger.info(f"Found process with our PID file: {pid}, assuming it's ours (psutil not available)")
+                        self.logger.info(
+                            f"Found process with our PID file: {pid}, assuming it's ours (psutil not available)"
+                        )
                         return True, pid
                     except psutil.NoSuchProcess:
                         self.logger.debug(f"Process {pid} no longer exists")
                     except psutil.AccessDenied:
                         # Can't access process info, but it exists - likely ours
-                        self.logger.info(f"Process {pid} exists but access denied, assuming it's ours")
+                        self.logger.info(
+                            f"Process {pid} exists but access denied, assuming it's ours"
+                        )
                         return True, pid
                     except Exception as e:
                         self.logger.debug(f"Error checking process {pid}: {e}")
-                        
+
                 except (OSError, ProcessLookupError):
                     # Process doesn't exist
                     self.logger.debug(f"Process {pid} does not exist")
                     self._cleanup_stale_pid_file()
-            
+
             # Method 3: Try Socket.IO connection to check namespace
             try:
                 import socketio
+
                 sio_client = socketio.Client()
-                
+
                 # Try to connect with a short timeout
                 connected = False
+
                 def on_connect():
                     nonlocal connected
                     connected = True
-                
-                sio_client.on('connect', on_connect)
-                
+
+                sio_client.on("connect", on_connect)
+
                 try:
-                    sio_client.connect(f'http://{host}:{self.port}', wait_timeout=2)
+                    sio_client.connect(f"http://{host}:{self.port}", wait_timeout=2)
                     if connected:
                         # Successfully connected to Socket.IO
                         sio_client.disconnect()
-                        
+
                         # Check for orphaned process (no PID file but service running)
                         try:
                             # Try to find process using the port
                             import psutil
-                            for proc in psutil.process_iter(['pid', 'name']):
+
+                            for proc in psutil.process_iter(["pid", "name"]):
                                 try:
                                     for conn in proc.connections():
-                                        if conn.laddr.port == self.port and conn.status == 'LISTEN':
+                                        if (
+                                            conn.laddr.port == self.port
+                                            and conn.status == "LISTEN"
+                                        ):
                                             # Found process listening on our port
-                                            if 'python' in proc.name().lower():
-                                                self.logger.debug(f"Found likely orphaned claude-mpm service on port {self.port}, PID: {proc.pid}")
+                                            if "python" in proc.name().lower():
+                                                self.logger.debug(
+                                                    f"Found likely orphaned claude-mpm service on port {self.port}, PID: {proc.pid}"
+                                                )
                                                 return True, proc.pid
                                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                                     continue
                         except ImportError:
                             pass
-                        
+
                         # Socket.IO service exists but can't determine if it's ours
-                        self.logger.debug(f"Found Socket.IO service on port {self.port}, but cannot confirm ownership")
+                        self.logger.debug(
+                            f"Found Socket.IO service on port {self.port}, but cannot confirm ownership"
+                        )
                         return False, None
-                        
+
                 except Exception:
                     pass
                 finally:
                     if sio_client.connected:
                         sio_client.disconnect()
-                        
+
             except ImportError:
                 # socketio not available
                 pass
             except Exception as e:
                 self.logger.debug(f"Error checking Socket.IO connection: {e}")
-            
+
             # Method 4: Final fallback - if we have a PID file and can't definitively say it's NOT ours
             # This handles edge cases where the health endpoint might be temporarily unavailable
             if pid and self.pid_file.exists():
                 try:
                     # One more check - see if process exists
                     os.kill(pid, 0)
-                    self.logger.info(f"PID file exists with valid process {pid}, assuming it's our stale service")
+                    self.logger.info(
+                        f"PID file exists with valid process {pid}, assuming it's our stale service"
+                    )
                     return True, pid
                 except (OSError, ProcessLookupError):
                     pass
-            
+
             # No service detected or not ours
             self.logger.debug("Service not detected as ours")
             return False, None
-            
+
         except Exception as e:
             self.logger.error(f"Error checking if service is ours: {e}", exc_info=True)
             return False, None
