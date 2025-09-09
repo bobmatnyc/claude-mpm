@@ -151,7 +151,7 @@ class MonitorCommand(BaseCommand):
 
     def _stop_monitor(self, args) -> CommandResult:
         """Stop the unified monitor daemon."""
-        self.logger.info("Stopping unified monitor daemon")
+        # Don't log here - the daemon will log when it stops
 
         # Get parameters from args or use defaults
         port = getattr(args, "port", None)

@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.26] - 2025-09-09
+
+### Fixed
+- Enhanced monitor cleanup to kill processes using port before checking availability
+- Fixed hook handler script to properly detect and work with pipx installations
+- Removed duplicate logging messages from monitor stop operation
+- Monitor now properly cleans up orphaned processes on startup
+- Force restart now works reliably with proper cleanup
+
+
 ## [4.2.25] - 2025-09-09
 
 ### Fixed
