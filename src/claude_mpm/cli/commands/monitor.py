@@ -105,12 +105,44 @@ class MonitorCommand(BaseCommand):
 
         # Start the daemon
         if self.daemon.start():
-            mode_info = " in background" if daemon_mode else " in foreground"
+            # For daemon mode, verify it actually started
+            if daemon_mode:
+                # Give it a moment to fully initialize
+                import time
+                time.sleep(0.5)
+                
+                # Check if it's actually running
+                if not self.daemon.lifecycle.is_running():
+                    return CommandResult.error_result(
+                        "Monitor daemon failed to start. Check ~/.claude-mpm/monitor-daemon.log for details."
+                    )
+                
+                # Get the actual PID
+                actual_pid = self.daemon.lifecycle.get_pid()
+                mode_info = f" in background (PID: {actual_pid})"
+            else:
+                mode_info = " in foreground"
+            
             return CommandResult.success_result(
                 f"Unified monitor daemon started on {host}:{port}{mode_info}",
                 data={"url": f"http://{host}:{port}", "port": port, "mode": mode_str},
             )
-        return CommandResult.error_result("Failed to start unified monitor daemon")
+        
+        # Check if error was due to port already in use
+        import socket
+        try:
+            test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            test_sock.connect((host, port))
+            test_sock.close()
+            return CommandResult.error_result(
+                f"Port {port} is already in use. Try 'claude-mpm monitor stop' first or use a different port."
+            )
+        except:
+            pass
+        
+        return CommandResult.error_result(
+            "Failed to start unified monitor daemon. Check ~/.claude-mpm/monitor-daemon.log for details."
+        )
 
     def _stop_monitor(self, args) -> CommandResult:
         """Stop the unified monitor daemon."""

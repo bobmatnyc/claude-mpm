@@ -79,6 +79,7 @@ class UnifiedMonitorServer:
         self.running = False
         self.loop = None
         self.server_thread = None
+        self.startup_error = None  # Track startup errors
 
         # Heartbeat tracking
         self.heartbeat_task: Optional[asyncio.Task] = None
@@ -106,10 +107,15 @@ class UnifiedMonitorServer:
             for _ in range(50):  # Wait up to 5 seconds
                 if self.running:
                     break
+                if self.startup_error:
+                    # Server thread reported an error
+                    self.logger.error(f"Server startup failed: {self.startup_error}")
+                    return False
                 time.sleep(0.1)
 
             if not self.running:
-                self.logger.error("Server failed to start within timeout")
+                error_msg = self.startup_error or "Server failed to start within timeout"
+                self.logger.error(error_msg)
                 return False
 
             self.logger.info("Unified monitor server started successfully")
@@ -131,8 +137,17 @@ class UnifiedMonitorServer:
             # Run the async server
             loop.run_until_complete(self._start_async_server())
 
+        except OSError as e:
+            # Specific handling for port binding errors
+            if "Address already in use" in str(e) or "[Errno 48]" in str(e):
+                self.logger.error(f"Port {self.port} is already in use: {e}")
+                self.startup_error = f"Port {self.port} is already in use"
+            else:
+                self.logger.error(f"OS error in server thread: {e}")
+                self.startup_error = str(e)
         except Exception as e:
             self.logger.error(f"Error in server thread: {e}")
+            self.startup_error = str(e)
         finally:
             # Always ensure loop cleanup happens
             if loop is not None:
@@ -212,11 +227,23 @@ class UnifiedMonitorServer:
             self.runner = web.AppRunner(self.app)
             await self.runner.setup()
 
-            self.site = web.TCPSite(self.runner, self.host, self.port)
-            await self.site.start()
-
-            self.running = True
-            self.logger.info(f"Server running on http://{self.host}:{self.port}")
+            try:
+                self.site = web.TCPSite(self.runner, self.host, self.port)
+                await self.site.start()
+                
+                self.running = True
+                self.logger.info(f"Server running on http://{self.host}:{self.port}")
+            except OSError as e:
+                # Port binding error - make sure it's reported clearly
+                if "Address already in use" in str(e) or "[Errno 48]" in str(e):
+                    error_msg = f"Port {self.port} is already in use. Another process may be using this port."
+                    self.logger.error(error_msg)
+                    self.startup_error = error_msg
+                    raise OSError(error_msg) from e
+                else:
+                    self.logger.error(f"Failed to bind to {self.host}:{self.port}: {e}")
+                    self.startup_error = str(e)
+                    raise
 
             # Keep the server running
             while self.running:
