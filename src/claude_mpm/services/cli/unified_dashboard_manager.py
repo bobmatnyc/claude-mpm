@@ -122,7 +122,9 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
                 daemon_mgr.cleanup_port_conflicts()
             elif self.is_dashboard_running(port) and not force_restart:
                 # Different service is using the port - try to clean it up
-                self.logger.warning(f"Port {port} is in use by a different service, attempting cleanup")
+                self.logger.warning(
+                    f"Port {port} is in use by a different service, attempting cleanup"
+                )
                 daemon_mgr = DaemonManager(port=port, host="localhost")
                 daemon_mgr.cleanup_port_conflicts()
                 # Brief pause to ensure cleanup is complete
@@ -134,41 +136,49 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
 
             if background:
                 # Always try to clean up first before starting
-                self.logger.info(f"Pre-emptively cleaning up port {port} before starting daemon")
+                self.logger.info(
+                    f"Pre-emptively cleaning up port {port} before starting daemon"
+                )
                 daemon_mgr = DaemonManager(port=port, host="localhost")
                 if not daemon_mgr.cleanup_port_conflicts():
                     self.logger.error(f"Failed to clean up port {port}, cannot proceed")
                     return False, False
-                    
+
                 # Try to start daemon with retry on port conflicts
                 max_retries = 3
                 retry_count = 0
                 success = False
-                
+
                 while retry_count < max_retries and not success:
                     if retry_count > 0:
-                        self.logger.info(f"Retry {retry_count}/{max_retries}: Cleaning up port {port}")
+                        self.logger.info(
+                            f"Retry {retry_count}/{max_retries}: Cleaning up port {port}"
+                        )
                         daemon_mgr = DaemonManager(port=port, host="localhost")
                         if not daemon_mgr.cleanup_port_conflicts():
                             self.logger.error(f"Cleanup failed on retry {retry_count}")
                             break
                         time.sleep(3)  # Longer wait for cleanup to complete
-                    
+
                     # Start daemon in background mode with force restart if needed
                     success = daemon.start(force_restart=True)  # Always force restart
-                    
+
                     if not success and retry_count < max_retries - 1:
                         # Check if it's a port conflict
                         if not self.port_manager.is_port_available(port):
-                            self.logger.warning(f"Port {port} still in use, will retry cleanup")
+                            self.logger.warning(
+                                f"Port {port} still in use, will retry cleanup"
+                            )
                             retry_count += 1
                         else:
                             # Different kind of failure, don't retry
-                            self.logger.error(f"Daemon start failed for reason other than port conflict")
+                            self.logger.error(
+                                "Daemon start failed for reason other than port conflict"
+                            )
                             break
                     else:
                         break
-                
+
                 if success:
                     with self._lock:
                         self._background_daemons[port] = daemon
@@ -356,12 +366,12 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
     def _cleanup_port_conflicts(self, port: int) -> bool:
         """
         Try to clean up any processes using our port.
-        
+
         Delegates to the consolidated DaemonManager for consistent behavior.
-        
+
         Args:
             port: Port to clean up
-            
+
         Returns:
             True if cleanup was successful or not needed
         """

@@ -64,9 +64,9 @@ class UnifiedMonitorDaemon:
             port=port,
             host=host,
             pid_file=pid_file or self._get_default_pid_file(),
-            log_file=log_file
+            log_file=log_file,
         )
-        
+
         # Keep lifecycle for backward compatibility (delegates to daemon_manager)
         self.lifecycle = DaemonLifecycle(
             pid_file=pid_file or self._get_default_pid_file(),
@@ -113,9 +113,9 @@ class UnifiedMonitorDaemon:
 
     def _cleanup_port_conflicts(self) -> bool:
         """Try to clean up any processes using our port.
-        
+
         Delegates to the consolidated DaemonManager for consistent behavior.
-        
+
         Returns:
             True if cleanup was successful, False otherwise
         """
@@ -128,11 +128,13 @@ class UnifiedMonitorDaemon:
             force_restart: If True, restart existing service if it's ours
         """
         self.logger.info("Starting unified monitor daemon in background mode")
-        
+
         # Always use daemon manager for cleanup first
         # This ensures consistent behavior and prevents race conditions
         if force_restart:
-            self.logger.info("Force restart requested, cleaning up any existing processes...")
+            self.logger.info(
+                "Force restart requested, cleaning up any existing processes..."
+            )
             if not self.daemon_manager.cleanup_port_conflicts(max_retries=3):
                 self.logger.error(f"Failed to clean up port {self.port}")
                 return False
@@ -146,11 +148,13 @@ class UnifiedMonitorDaemon:
                 self.logger.warning(f"Daemon already running with PID {existing_pid}")
                 return False
             # Force restart was already handled above
-            
+
         # Check for our service on the port
         is_ours, pid = self.daemon_manager.is_our_service()
         if is_ours and pid and not force_restart:
-            self.logger.warning(f"Our service already running on port {self.port} (PID: {pid})")
+            self.logger.warning(
+                f"Our service already running on port {self.port} (PID: {pid})"
+            )
             return False
 
         # Wait for any pre-warming threads to complete before forking
@@ -165,7 +169,7 @@ class UnifiedMonitorDaemon:
         # We're now in the daemon process
         # Update our PID references
         self.lifecycle.pid_file = self.daemon_manager.pid_file
-        
+
         # Start the server in daemon mode
         try:
             result = self._run_server()
@@ -188,7 +192,7 @@ class UnifiedMonitorDaemon:
             force_restart: If True, restart existing service if it's ours
         """
         self.logger.info(f"Starting unified monitor daemon on {self.host}:{self.port}")
-        
+
         # Use daemon manager for consistent port cleanup
         # This helps with race conditions where old processes haven't fully released the port
         if force_restart:
