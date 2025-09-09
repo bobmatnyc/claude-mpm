@@ -23,26 +23,26 @@ def check_module(module_name):
 def check_monitor_dependencies():
     """Check if all monitor dependencies are installed."""
     required_modules = {
-        'socketio': 'python-socketio',
-        'aiohttp': 'aiohttp',
-        'aiohttp_cors': 'aiohttp-cors',
-        'engineio': 'python-engineio',
-        'aiofiles': 'aiofiles',
-        'websockets': 'websockets'
+        "socketio": "python-socketio",
+        "aiohttp": "aiohttp",
+        "aiohttp_cors": "aiohttp-cors",
+        "engineio": "python-engineio",
+        "aiofiles": "aiofiles",
+        "websockets": "websockets",
     }
-    
+
     missing = []
     for module, package in required_modules.items():
         if not check_module(module):
             missing.append(package)
-    
+
     return missing
 
 
 def install_with_pipx(packages):
     """Install packages using pipx inject."""
     try:
-        cmd = ['pipx', 'inject', 'claude-mpm'] + packages
+        cmd = ["pipx", "inject", "claude-mpm"] + packages
         print(f"Running: {' '.join(cmd)}")
         subprocess.run(cmd, check=True)
         return True
@@ -57,7 +57,7 @@ def install_with_pipx(packages):
 def install_with_pip(packages):
     """Install packages using pip."""
     try:
-        cmd = [sys.executable, '-m', 'pip', 'install'] + packages
+        cmd = [sys.executable, "-m", "pip", "install"] + packages
         print(f"Running: {' '.join(cmd)}")
         subprocess.run(cmd, check=True)
         return True
@@ -69,19 +69,19 @@ def install_with_pip(packages):
 def main():
     """Main entry point."""
     print("🔍 Checking claude-mpm monitor dependencies...")
-    
+
     missing = check_monitor_dependencies()
-    
+
     if not missing:
         print("✅ All monitor dependencies are installed!")
         print("🚀 You can start the monitor with: claude-mpm --monitor")
         return 0
-    
+
     print(f"\n⚠️  Missing monitor dependencies: {', '.join(missing)}")
-    
+
     # Check if we're in a pipx environment
-    in_pipx = 'pipx' in sys.executable or '.local/pipx' in sys.executable
-    
+    in_pipx = "pipx" in sys.executable or ".local/pipx" in sys.executable
+
     if in_pipx:
         print("\n📦 Detected pipx installation")
         print("Installing missing dependencies...")
@@ -89,23 +89,20 @@ def main():
             print("✅ Dependencies installed successfully!")
             print("🚀 You can now start the monitor with: claude-mpm --monitor")
             return 0
-        else:
-            print("\n❌ Automatic installation failed")
-            print("Please run manually:")
-            print(f"  pipx inject claude-mpm {' '.join(missing)}")
-            return 1
-    else:
-        print("\n📦 Installing missing dependencies with pip...")
-        if install_with_pip(missing):
-            print("✅ Dependencies installed successfully!")
-            print("🚀 You can now start the monitor with: claude-mpm --monitor")
-            return 0
-        else:
-            print("\n❌ Automatic installation failed")
-            print("Please install manually:")
-            print(f"  pip install {' '.join(missing)}")
-            return 1
+        print("\n❌ Automatic installation failed")
+        print("Please run manually:")
+        print(f"  pipx inject claude-mpm {' '.join(missing)}")
+        return 1
+    print("\n📦 Installing missing dependencies with pip...")
+    if install_with_pip(missing):
+        print("✅ Dependencies installed successfully!")
+        print("🚀 You can now start the monitor with: claude-mpm --monitor")
+        return 0
+    print("\n❌ Automatic installation failed")
+    print("Please install manually:")
+    print(f"  pip install {' '.join(missing)}")
+    return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

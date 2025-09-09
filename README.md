@@ -25,10 +25,17 @@ pip install claude-mpm
 
 Or with pipx (recommended for isolated installation):
 ```bash
+# Install with monitor support (recommended)
+pipx install "claude-mpm[monitor]"
+
+# Basic installation without monitor
 pipx install claude-mpm
+
 # Configure MCP for pipx users:
 claude-mpm mcp-pipx-config
 ```
+
+**💡 Pipx Tip**: Use `"claude-mpm[monitor]"` to get full monitoring dashboard functionality! The `[monitor]` optional dependency includes Socket.IO and async web server components needed for real-time agent monitoring.
 
 **🎉 Pipx Support Now Fully Functional!** Recent improvements ensure complete compatibility:
 - ✅ Socket.IO daemon script path resolution (fixed)

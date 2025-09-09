@@ -57,9 +57,11 @@ class UnifiedMonitorDaemon:
         self.daemon_mode = daemon_mode
         self.logger = get_logger(__name__)
 
-        # Daemon management
+        # Daemon management with port for verification
         self.lifecycle = DaemonLifecycle(
-            pid_file=pid_file or self._get_default_pid_file(), log_file=log_file
+            pid_file=pid_file or self._get_default_pid_file(), 
+            log_file=log_file,
+            port=port
         )
 
         # Core server
@@ -102,6 +104,13 @@ class UnifiedMonitorDaemon:
             existing_pid = self.lifecycle.get_pid()
             self.logger.warning(f"Daemon already running with PID {existing_pid}")
             return False
+        
+        # Verify port is available before forking
+        port_available, error_msg = self.lifecycle.verify_port_available(self.host)
+        if not port_available:
+            self.logger.error(error_msg)
+            print(f"Error: {error_msg}", file=sys.stderr)
+            return False
 
         # Wait for any pre-warming threads to complete before forking
         self._wait_for_prewarm_completion()
@@ -112,7 +121,17 @@ class UnifiedMonitorDaemon:
             return False
 
         # Start the server in daemon mode
-        return self._run_server()
+        # This will run in the child process
+        try:
+            result = self._run_server()
+            if not result:
+                # Report failure before exiting
+                self.lifecycle._report_startup_error("Failed to start server")
+            return result
+        except Exception as e:
+            # Report any exceptions during startup
+            self.lifecycle._report_startup_error(f"Server startup exception: {e}")
+            raise
 
     def _start_foreground(self) -> bool:
         """Start in foreground mode."""
@@ -140,11 +159,17 @@ class UnifiedMonitorDaemon:
         try:
             # Ensure components exist before starting
             if not self.health_monitor:
-                self.logger.error("Health monitor not initialized")
+                error_msg = "Health monitor not initialized"
+                self.logger.error(error_msg)
+                if self.daemon_mode:
+                    self.lifecycle._report_startup_error(error_msg)
                 return False
 
             if not self.server:
-                self.logger.error("Server not initialized")
+                error_msg = "Server not initialized"
+                self.logger.error(error_msg)
+                if self.daemon_mode:
+                    self.lifecycle._report_startup_error(error_msg)
                 return False
 
             # Start health monitoring
@@ -153,11 +178,18 @@ class UnifiedMonitorDaemon:
             # Start the unified server
             success = self.server.start()
             if not success:
-                self.logger.error("Failed to start unified monitor server")
+                error_msg = "Failed to start unified monitor server"
+                self.logger.error(error_msg)
+                if self.daemon_mode:
+                    self.lifecycle._report_startup_error(error_msg)
                 return False
 
             self.running = True
             self.logger.info("Unified monitor daemon started successfully")
+            
+            # Report successful startup to parent (for daemon mode)
+            if self.daemon_mode:
+                self.lifecycle._report_startup_success()
 
             # Keep running until shutdown
             if self.daemon_mode:

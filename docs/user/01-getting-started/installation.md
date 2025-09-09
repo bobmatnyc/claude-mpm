@@ -12,7 +12,7 @@ This guide covers all methods for installing Claude MPM on your system.
 
 ## Installation Methods
 
-Claude MPM can be installed in three ways, depending on your needs:
+Claude MPM can be installed in four ways, depending on your needs:
 
 ### Option 1: UV (Recommended)
 
@@ -31,7 +31,30 @@ cd claude-mpm
 uv pip install -e .
 ```
 
-### Option 2: pip (Traditional)
+### Option 2: pipx (Isolated Global Installation)
+
+Using pipx for isolated package management:
+
+```bash
+# Install pipx if you haven't already
+python -m pip install --user pipx
+python -m pipx ensurepath
+
+# Install with monitor support (recommended)
+pipx install "claude-mpm[monitor]"
+
+# Or basic installation without monitor
+pipx install claude-mpm
+
+# Configure MCP for pipx users:
+claude-mpm mcp-pipx-config
+```
+
+**✨ Recommended for most users**: pipx provides clean isolation without virtual environment management.
+
+**📊 For complete pipx setup including troubleshooting, see [PIPX Installation Guide](../../PIPX_INSTALLATION.md)**
+
+### Option 3: pip (Traditional)
 
 Using pip with a virtual environment:
 
@@ -49,7 +72,7 @@ cd claude-mpm
 pip install -e .
 ```
 
-### Option 3: npm (Wrapper)
+### Option 4: npm (Wrapper)
 
 The npm package provides a convenient wrapper that will install the Python package on first run:
 
@@ -118,11 +141,13 @@ If using Homebrew Python, you might encounter PEP 668 restrictions. Solutions:
    pip install claude-mpm
    ```
 
-3. **Use pipx for global tools**:
+3. **Use pipx for global tools** (recommended):
    ```bash
    brew install pipx
-   pipx install claude-mpm
+   pipx install "claude-mpm[monitor]"
    ```
+
+**💡 For complete pipx setup including monitor support, see [PIPX Installation Guide](../../PIPX_INSTALLATION.md)**
 
 ### Linux
 

@@ -4,12 +4,21 @@ Get Claude MPM running in 5 minutes or less!
 
 ## 1. Install (30 seconds)
 
+**Recommended: pipx with monitor support**
 ```bash
-# Quick install
+# Install with full monitor dashboard functionality
+pipx install "claude-mpm[monitor]"
+```
+
+**Alternative: pip (requires virtual environment)**
+```bash
+# Basic installation
 pip install claude-mpm
 ```
 
 **Requirements**: Python 3.8+, Claude Code
+
+**Why `[monitor]`?** Enables the real-time dashboard that shows agent collaboration in action. Without it, monitoring features won't work!
 
 ## 2. Start Claude MPM (10 seconds)
 
@@ -111,7 +120,8 @@ That's it! You now have:
 
 **Common Issues**:
 - **"Agent not found"**: Run `/mpm-doctor` to diagnose and fix
-- **Dashboard won't load**: Try `--websocket-port 8766`
+- **Dashboard won't load**: Check if you installed with `[monitor]`: `pipx install "claude-mpm[monitor]"`
+- **Monitor not working**: Run dependency checker: `python scripts/check_monitor_deps.py`
 - **Setup issues**: Run `/mpm-init` to initialize project
 
 **Get Support**:

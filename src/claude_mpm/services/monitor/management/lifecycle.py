@@ -15,10 +15,12 @@ DESIGN DECISIONS:
 
 import os
 import signal
+import socket
 import sys
+import tempfile
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 from ....core.logging_config import get_logger
 
@@ -30,16 +32,20 @@ class DaemonLifecycle:
     handling, and graceful shutdown capabilities.
     """
 
-    def __init__(self, pid_file: str, log_file: Optional[str] = None):
+    def __init__(self, pid_file: str, log_file: Optional[str] = None, port: int = 8765):
         """Initialize daemon lifecycle manager.
 
         Args:
             pid_file: Path to PID file
             log_file: Path to log file for daemon mode
+            port: Port number for startup verification
         """
         self.pid_file = Path(pid_file)
         self.log_file = Path(log_file) if log_file else None
+        self.port = port
         self.logger = get_logger(__name__)
+        # Create a temporary file for startup status communication
+        self.startup_status_file = None
 
     def daemonize(self) -> bool:
         """Daemonize the current process.
@@ -50,14 +56,20 @@ class DaemonLifecycle:
         try:
             # Clean up any existing asyncio event loops before forking
             self._cleanup_event_loops()
+            
+            # Create a temporary file for startup status communication
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.status') as f:
+                self.startup_status_file = f.name
+                f.write("starting")
 
             # First fork
             pid = os.fork()
             if pid > 0:
-                # Parent process exits
-                sys.exit(0)
+                # Parent process - wait for child to confirm startup
+                return self._parent_wait_for_startup(pid)
         except OSError as e:
             self.logger.error(f"First fork failed: {e}")
+            self._report_startup_error(f"First fork failed: {e}")
             return False
 
         # Decouple from parent environment
@@ -69,22 +81,33 @@ class DaemonLifecycle:
             # Second fork
             pid = os.fork()
             if pid > 0:
-                # Parent process exits
+                # First child process exits
                 sys.exit(0)
         except OSError as e:
             self.logger.error(f"Second fork failed: {e}")
+            self._report_startup_error(f"Second fork failed: {e}")
+            return False
+
+        # Set up error logging before redirecting streams
+        self._setup_early_error_logging()
+        
+        # Write PID file first (before stream redirection)
+        try:
+            self.write_pid_file()
+        except Exception as e:
+            self._report_startup_error(f"Failed to write PID file: {e}")
             return False
 
         # Redirect standard file descriptors
         self._redirect_streams()
 
-        # Write PID file
-        self.write_pid_file()
-
         # Setup signal handlers
         self._setup_signal_handlers()
 
         self.logger.info(f"Daemon process started with PID {os.getpid()}")
+        
+        # Report successful startup (after basic setup but before server start)
+        self._report_startup_success()
         return True
 
     def _redirect_streams(self):
@@ -105,13 +128,16 @@ class DaemonLifecycle:
                     os.dup2(log_out.fileno(), sys.stdout.fileno())
                     os.dup2(log_out.fileno(), sys.stderr.fileno())
             else:
-                # Redirect to /dev/null
-                with open("/dev/null", "w") as null_out:
-                    os.dup2(null_out.fileno(), sys.stdout.fileno())
-                    os.dup2(null_out.fileno(), sys.stderr.fileno())
+                # Default to a daemon log file instead of /dev/null for errors
+                default_log = Path.home() / ".claude-mpm" / "monitor-daemon.log"
+                default_log.parent.mkdir(parents=True, exist_ok=True)
+                with open(default_log, "a") as log_out:
+                    os.dup2(log_out.fileno(), sys.stdout.fileno())
+                    os.dup2(log_out.fileno(), sys.stderr.fileno())
 
         except Exception as e:
             self.logger.error(f"Error redirecting streams: {e}")
+            self._report_startup_error(f"Failed to redirect streams: {e}")
 
     def write_pid_file(self):
         """Write PID to PID file."""
@@ -336,3 +362,138 @@ class DaemonLifecycle:
                 self.logger.debug(f"Error getting process info: {e}")
 
         return status
+
+    def _parent_wait_for_startup(self, child_pid: int, timeout: float = 10.0) -> bool:
+        """Parent process waits for child daemon to report startup status.
+        
+        Args:
+            child_pid: PID of the child process
+            timeout: Maximum time to wait for startup
+            
+        Returns:
+            True if child started successfully, False otherwise
+        """
+        import time
+        start_time = time.time()
+        
+        # Wait for child to update status file
+        while time.time() - start_time < timeout:
+            try:
+                # Check if status file exists and read it
+                if self.startup_status_file and Path(self.startup_status_file).exists():
+                    with open(self.startup_status_file, 'r') as f:
+                        status = f.read().strip()
+                    
+                    if status == "success":
+                        # Child started successfully
+                        self._cleanup_status_file()
+                        return True
+                    elif status.startswith("error:"):
+                        # Child reported an error
+                        error_msg = status[6:]  # Remove "error:" prefix
+                        self.logger.error(f"Daemon startup failed: {error_msg}")
+                        print(f"Error: Failed to start monitor daemon: {error_msg}", file=sys.stderr)
+                        self._cleanup_status_file()
+                        return False
+                    elif status == "starting":
+                        # Still starting, continue waiting
+                        pass
+                    
+                # Also check if child process is still alive
+                try:
+                    os.kill(child_pid, 0)  # Check if process exists
+                except ProcessLookupError:
+                    # Child process died
+                    self.logger.error("Child daemon process died during startup")
+                    print("Error: Monitor daemon process died during startup", file=sys.stderr)
+                    self._cleanup_status_file()
+                    return False
+                    
+            except Exception as e:
+                self.logger.debug(f"Error checking startup status: {e}")
+            
+            time.sleep(0.1)  # Check every 100ms
+        
+        # Timeout reached
+        self.logger.error(f"Daemon startup timed out after {timeout} seconds")
+        print(f"Error: Monitor daemon startup timed out after {timeout} seconds", file=sys.stderr)
+        self._cleanup_status_file()
+        return False
+    
+    def _report_startup_success(self):
+        """Report successful startup to parent process."""
+        if self.startup_status_file:
+            try:
+                with open(self.startup_status_file, 'w') as f:
+                    f.write("success")
+            except Exception as e:
+                self.logger.error(f"Failed to report startup success: {e}")
+    
+    def _report_startup_error(self, error_msg: str):
+        """Report startup error to parent process.
+        
+        Args:
+            error_msg: Error message to report
+        """
+        if self.startup_status_file:
+            try:
+                with open(self.startup_status_file, 'w') as f:
+                    f.write(f"error:{error_msg}")
+            except Exception:
+                pass  # Can't report if file write fails
+    
+    def _cleanup_status_file(self):
+        """Clean up the temporary status file."""
+        if self.startup_status_file:
+            try:
+                Path(self.startup_status_file).unlink(missing_ok=True)
+            except Exception:
+                pass  # Ignore cleanup errors
+            finally:
+                self.startup_status_file = None
+    
+    def _setup_early_error_logging(self):
+        """Set up error logging before stream redirection.
+        
+        This ensures we can capture and report errors that occur during
+        daemon initialization, especially port binding errors.
+        """
+        try:
+            # If no log file specified, create a default one
+            if not self.log_file:
+                default_log = Path.home() / ".claude-mpm" / "monitor-daemon.log"
+                default_log.parent.mkdir(parents=True, exist_ok=True)
+                self.log_file = default_log
+                
+            # Configure logger to write to file immediately
+            import logging
+            file_handler = logging.FileHandler(self.log_file)
+            file_handler.setLevel(logging.DEBUG)
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+            file_handler.setFormatter(formatter)
+            self.logger.addHandler(file_handler)
+            
+        except Exception as e:
+            # If we can't set up logging, at least try to report the error
+            self._report_startup_error(f"Failed to setup error logging: {e}")
+    
+    def verify_port_available(self, host: str = "localhost") -> Tuple[bool, Optional[str]]:
+        """Verify that the port is available for binding.
+        
+        Args:
+            host: Host to check port on
+            
+        Returns:
+            Tuple of (is_available, error_message)
+        """
+        try:
+            test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            test_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            test_sock.bind((host, self.port))
+            test_sock.close()
+            return True, None
+        except OSError as e:
+            error_msg = f"Port {self.port} is already in use or cannot be bound: {e}"
+            return False, error_msg
