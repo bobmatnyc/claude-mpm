@@ -25,6 +25,7 @@ import requests
 
 from ...core.logging_config import get_logger
 from ...services.monitor.daemon import UnifiedMonitorDaemon
+from ...services.monitor.daemon_manager import DaemonManager
 from ...services.port_manager import PortManager
 
 
@@ -99,8 +100,9 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
                 host="localhost", port=port, daemon_mode=background
             )
 
-            # Check if it's our service running
-            is_ours, pid = daemon.lifecycle.is_our_service("localhost")
+            # Use daemon manager to check service ownership
+            daemon_mgr = DaemonManager(port=port, host="localhost")
+            is_ours, pid = daemon_mgr.is_our_service()
 
             if is_ours and not force_restart:
                 # Our service is already running, just open browser if needed
@@ -115,12 +117,14 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
                 self.logger.info(
                     f"Force restarting our dashboard on port {port} (PID: {pid})"
                 )
-                # Clean up the existing service before restart
-                self._cleanup_port_conflicts(port)
+                # Use daemon manager for cleanup
+                daemon_mgr = DaemonManager(port=port, host="localhost")
+                daemon_mgr.cleanup_port_conflicts()
             elif self.is_dashboard_running(port) and not force_restart:
                 # Different service is using the port - try to clean it up
                 self.logger.warning(f"Port {port} is in use by a different service, attempting cleanup")
-                self._cleanup_port_conflicts(port)
+                daemon_mgr = DaemonManager(port=port, host="localhost")
+                daemon_mgr.cleanup_port_conflicts()
                 # Brief pause to ensure cleanup is complete
                 time.sleep(1)
 
@@ -131,7 +135,8 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
             if background:
                 # Always try to clean up first before starting
                 self.logger.info(f"Pre-emptively cleaning up port {port} before starting daemon")
-                if not self._cleanup_port_conflicts(port):
+                daemon_mgr = DaemonManager(port=port, host="localhost")
+                if not daemon_mgr.cleanup_port_conflicts():
                     self.logger.error(f"Failed to clean up port {port}, cannot proceed")
                     return False, False
                     
@@ -143,7 +148,8 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
                 while retry_count < max_retries and not success:
                     if retry_count > 0:
                         self.logger.info(f"Retry {retry_count}/{max_retries}: Cleaning up port {port}")
-                        if not self._cleanup_port_conflicts(port):
+                        daemon_mgr = DaemonManager(port=port, host="localhost")
+                        if not daemon_mgr.cleanup_port_conflicts():
                             self.logger.error(f"Cleanup failed on retry {retry_count}")
                             break
                         time.sleep(3)  # Longer wait for cleanup to complete
@@ -351,90 +357,16 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
         """
         Try to clean up any processes using our port.
         
+        Delegates to the consolidated DaemonManager for consistent behavior.
+        
         Args:
             port: Port to clean up
             
         Returns:
             True if cleanup was successful or not needed
         """
-        try:
-            import subprocess
-            import signal
-            import time
-            
-            # Find processes using the port
-            result = subprocess.run(
-                ["lsof", "-ti", f":{port}"],
-                capture_output=True,
-                text=True
-            )
-            
-            if result.returncode == 0 and result.stdout.strip():
-                pids = result.stdout.strip().split('\n')
-                self.logger.info(f"Found processes using port {port}: {pids}")
-                
-                for pid_str in pids:
-                    try:
-                        pid = int(pid_str.strip())
-                        # Try graceful termination first
-                        import os
-                        os.kill(pid, signal.SIGTERM)
-                        self.logger.info(f"Sent SIGTERM to process {pid}")
-                    except (ValueError, ProcessLookupError) as e:
-                        self.logger.debug(f"Could not terminate process {pid_str}: {e}")
-                        continue
-                
-                # Give processes time to shut down gracefully
-                time.sleep(3)
-                
-                # Check if port is still in use and force kill if needed
-                result = subprocess.run(
-                    ["lsof", "-ti", f":{port}"],
-                    capture_output=True,
-                    text=True
-                )
-                
-                if result.returncode == 0 and result.stdout.strip():
-                    remaining_pids = result.stdout.strip().split('\n')
-                    self.logger.warning(f"Processes still using port {port}: {remaining_pids}, force killing")
-                    
-                    for pid_str in remaining_pids:
-                        try:
-                            pid = int(pid_str.strip())
-                            os.kill(pid, signal.SIGKILL)
-                            self.logger.info(f"Force killed process {pid}")
-                        except (ValueError, ProcessLookupError) as e:
-                            self.logger.debug(f"Could not force kill process {pid_str}: {e}")
-                            continue
-                    
-                    # Longer pause after force kill to ensure port is fully released
-                    time.sleep(5)
-                    
-                # Final verification that port is actually free
-                final_check = subprocess.run(
-                    ["lsof", "-ti", f":{port}"],
-                    capture_output=True,
-                    text=True
-                )
-                
-                if final_check.returncode == 0 and final_check.stdout.strip():
-                    self.logger.error(f"Failed to clean up port {port} - processes still running: {final_check.stdout.strip()}")
-                    return False
-                
-                self.logger.info(f"Successfully cleaned up processes on port {port}")
-                return True
-            else:
-                self.logger.debug(f"No processes found using port {port}")
-                return True
-                
-        except FileNotFoundError:
-            # lsof not available, try alternative approach
-            self.logger.debug("lsof not available, skipping port cleanup")
-            return True
-        except Exception as e:
-            self.logger.warning(f"Error during port cleanup: {e}")
-            # Continue anyway - the port check will catch actual conflicts
-            return True
+        daemon_mgr = DaemonManager(port=port, host="localhost")
+        return daemon_mgr.cleanup_port_conflicts()
 
     def start_server(
         self, port: Optional[int] = None, timeout: int = 30, force_restart: bool = True
