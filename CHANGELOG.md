@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.28] - 2025-09-09
+
+### Fixed
+- Fixed UnboundLocalError for 'time' module in monitor cleanup retry logic
+- Removed redundant conditional import of time module
+
+
 ## [4.2.27] - 2025-09-09
 
 ### Fixed

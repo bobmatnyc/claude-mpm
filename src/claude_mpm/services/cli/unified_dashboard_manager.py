@@ -122,7 +122,6 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
                 self.logger.warning(f"Port {port} is in use by a different service, attempting cleanup")
                 self._cleanup_port_conflicts(port)
                 # Brief pause to ensure cleanup is complete
-                import time
                 time.sleep(1)
 
             self.logger.info(
