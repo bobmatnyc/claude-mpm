@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.29] - 2025-09-09
+
+### Fixed
+- Enhanced monitor port cleanup with more aggressive process termination
+- Added pre-emptive cleanup before daemon start
+- Increased wait times after SIGKILL to ensure port release (5 seconds)
+- Added final verification check after cleanup to ensure port is free
+- Always use force_restart=True for daemon to ensure clean startup
+- Better error handling when cleanup fails
+
+
 ## [4.2.28] - 2025-09-09
 
 ### Fixed
