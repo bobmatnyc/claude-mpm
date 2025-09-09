@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.2.35] - 2025-09-09
+
+### Fixed
+- Critical fix for false positive "Port already in use" errors in monitor startup
+- Changed port availability check to accept either IPv4 OR IPv6 availability (was requiring both)
+- Improved error detection to include Linux-specific errno codes
+
 ## [4.2.34] - 2025-09-09
 
 ### Fixed
