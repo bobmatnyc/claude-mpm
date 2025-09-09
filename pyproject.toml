@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-mpm"
-version = "4.2.24"
+version = "4.2.25"
 description = "Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation and ticket tracking"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -78,7 +78,7 @@ ignore-imports = false
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "4.2.24"
+version = "4.2.25"
 version_files = [ "VERSION", "src/claude_mpm/VERSION", "package.json:version",]
 tag_format = "v$version"
 update_changelog_on_bump = true
@@ -89,7 +89,7 @@ changelog_incremental = true
 "tests/*" = [ "F403", "F405",]
 
 [tool.setuptools.package-data]
-claude_mpm = [ "VERSION", "BUILD_NUMBER", "scripts/*", "commands/*.md", "dashboard/*.html", "dashboard/templates/*.html", "dashboard/static/*.css", "dashboard/static/*.js", "dashboard/static/css/*.css", "dashboard/static/js/*.js", "dashboard/static/js/components/*.js", "agents/*.md", "agents/*.json", "agents/*.yaml", "agents/templates/*.json", "agents/schema/*.json",]
+claude_mpm = [ "VERSION", "BUILD_NUMBER", "scripts/*", "scripts/*.sh", "commands/*.md", "dashboard/*.html", "dashboard/templates/*.html", "dashboard/static/*.css", "dashboard/static/*.js", "dashboard/static/css/*.css", "dashboard/static/js/*.js", "dashboard/static/js/components/*.js", "agents/*.md", "agents/*.json", "agents/*.yaml", "agents/templates/*.json", "agents/schema/*.json", "hooks/**/*.py", "hooks/**/*.sh", "hooks/claude_hooks/*", "hooks/claude_hooks/**/*",]
 
 [tool.pytest.ini_options]
 testpaths = [ "tests",]

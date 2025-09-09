@@ -115,7 +115,9 @@ class UnifiedMonitorServer:
                 time.sleep(0.1)
 
             if not self.running:
-                error_msg = self.startup_error or "Server failed to start within timeout"
+                error_msg = (
+                    self.startup_error or "Server failed to start within timeout"
+                )
                 self.logger.error(error_msg)
                 return False
 
@@ -231,7 +233,7 @@ class UnifiedMonitorServer:
             try:
                 self.site = web.TCPSite(self.runner, self.host, self.port)
                 await self.site.start()
-                
+
                 self.running = True
                 self.logger.info(f"Server running on http://{self.host}:{self.port}")
             except OSError as e:
@@ -241,10 +243,9 @@ class UnifiedMonitorServer:
                     self.logger.error(error_msg)
                     self.startup_error = error_msg
                     raise OSError(error_msg) from e
-                else:
-                    self.logger.error(f"Failed to bind to {self.host}:{self.port}: {e}")
-                    self.startup_error = str(e)
-                    raise
+                self.logger.error(f"Failed to bind to {self.host}:{self.port}: {e}")
+                self.startup_error = str(e)
+                raise
 
             # Keep the server running
             while self.running:
@@ -312,12 +313,14 @@ class UnifiedMonitorServer:
                 # Get version from VERSION file
                 version = "1.0.0"
                 try:
-                    version_file = Path(__file__).parent.parent.parent.parent.parent / "VERSION"
+                    version_file = (
+                        Path(__file__).parent.parent.parent.parent.parent / "VERSION"
+                    )
                     if version_file.exists():
                         version = version_file.read_text().strip()
                 except Exception:
                     pass
-                
+
                 return web.json_response(
                     {
                         "status": "healthy",
