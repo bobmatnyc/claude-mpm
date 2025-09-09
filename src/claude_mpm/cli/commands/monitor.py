@@ -91,8 +91,11 @@ class MonitorCommand(BaseCommand):
             host=host, port=port, daemon_mode=daemon_mode
         )
 
+        # Get force restart flag
+        force_restart = getattr(args, "force", False)
+        
         # Check if already running
-        if self.daemon.lifecycle.is_running():
+        if self.daemon.lifecycle.is_running() and not force_restart:
             existing_pid = self.daemon.lifecycle.get_pid()
             return CommandResult.success_result(
                 f"Unified monitor daemon already running with PID {existing_pid}",
@@ -103,8 +106,8 @@ class MonitorCommand(BaseCommand):
                 },
             )
 
-        # Start the daemon
-        if self.daemon.start():
+        # Start the daemon (with force restart if specified)
+        if self.daemon.start(force_restart=force_restart):
             # For daemon mode, verify it actually started
             if daemon_mode:
                 # Give it a moment to fully initialize

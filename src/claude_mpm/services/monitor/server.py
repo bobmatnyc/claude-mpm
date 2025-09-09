@@ -15,6 +15,7 @@ DESIGN DECISIONS:
 """
 
 import asyncio
+import os
 import threading
 import time
 from datetime import datetime
@@ -308,12 +309,23 @@ class UnifiedMonitorServer:
 
             # Health check
             async def health_check(request):
+                # Get version from VERSION file
+                version = "1.0.0"
+                try:
+                    version_file = Path(__file__).parent.parent.parent.parent.parent / "VERSION"
+                    if version_file.exists():
+                        version = version_file.read_text().strip()
+                except Exception:
+                    pass
+                
                 return web.json_response(
                     {
                         "status": "healthy",
-                        "service": "unified-monitor",
-                        "version": "1.0.0",
+                        "service": "claude-mpm-monitor",  # Important: must match what is_our_service() checks
+                        "version": version,
                         "port": self.port,
+                        "pid": os.getpid(),
+                        "uptime": int(time.time() - self.server_start_time),
                     }
                 )
 
