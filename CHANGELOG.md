@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-## v4.2.33 (2025-09-09)
+## [4.2.33] - 2025-09-09
 
 ### Fixed
 - Prevent race conditions in dashboard daemon restart logic by letting daemon.start() handle its own cleanup
