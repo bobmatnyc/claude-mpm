@@ -35,7 +35,8 @@ dependencies:
   # Pip dependencies for packages not in conda or for editable install
   - pip:
     # Install claude-mpm in editable mode with all extras
-    - -e .[dev,agents]
+    # NOTE: Currently has dependency conflicts - use venv instead
+    # - -e .[dev,agents]
     
     # Additional pip-only dependencies
     - ai-trackdown-pytools>=1.4.0

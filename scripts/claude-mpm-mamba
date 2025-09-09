@@ -69,6 +69,7 @@ init_conda() {
     if [[ -z "$CONDA_DEFAULT_ENV" ]]; then
         # Try common conda installation locations
         CONDA_BASES=(
+            "/opt/homebrew/Caskroom/miniforge/base"
             "$HOME/mambaforge"
             "$HOME/miniforge3"
             "$HOME/miniconda3"
@@ -87,15 +88,23 @@ init_conda() {
                 if [[ -f "$base/etc/profile.d/mamba.sh" ]]; then
                     source "$base/etc/profile.d/mamba.sh"
                 fi
-                break
+                
+                # Test if conda activate is now available
+                if command -v conda &> /dev/null; then
+                    print_debug "Conda initialization successful"
+                    return 0
+                fi
             fi
         done
+        
+        print_debug "Could not initialize conda - conda activate may not work"
     fi
 }
 
 # Function to check if environment exists
 env_exists() {
-    $CONDA_CMD env list | grep -q "^$ENV_NAME "
+    # Handle both conda and mamba output formats
+    $CONDA_CMD env list | grep -q -E "(^$ENV_NAME\s+|\s+$ENV_NAME\s+)"
     return $?
 }
 
