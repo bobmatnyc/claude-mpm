@@ -5,956 +5,481 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-
 ## [Unreleased]
 
-### Added
+## v4.2.31 (2025-09-09)
 
-### Changed
+### Feat
 
-### Fixed
+- consolidate daemon management into single DaemonManager service (v4.2.31)
 
-### Removed
+### Fix
 
+- enhance monitor cleanup with more aggressive process termination
+- resolve Mamba environment detection and document dependency conflicts
+- resolve UnboundLocalError in monitor cleanup code
+- resolve monitor cleanup race condition for --monitor flag
 
-## [4.2.29] - 2025-09-09
+## v4.2.25 (2025-09-09)
 
-### Fixed
-- Enhanced monitor port cleanup with more aggressive process termination
-- Added pre-emptive cleanup before daemon start
-- Increased wait times after SIGKILL to ensure port release (5 seconds)
-- Added final verification check after cleanup to ensure port is free
-- Always use force_restart=True for daemon to ensure clean startup
-- Better error handling when cleanup fails
+## v4.2.24 (2025-09-08)
 
+## v4.2.23 (2025-09-08)
 
-## [4.2.28] - 2025-09-09
+### Feat
 
-### Fixed
-- Fixed UnboundLocalError for 'time' module in monitor cleanup retry logic
-- Removed redundant conditional import of time module
+- add Socket.IO service detection and automatic restart (v4.2.23)
 
+## v4.2.22 (2025-09-08)
 
-## [4.2.27] - 2025-09-09
+### Fix
 
-### Fixed
-- Fixed monitor cleanup race condition when using --monitor flag
-- Added retry logic with up to 3 attempts for port conflicts
-- Increased wait times after cleanup to ensure processes fully terminate
-- Added cleanup for foreground mode with force_restart option
-- Improved synchronization between port cleanup and server startup
+- resolve monitor daemon silent failures and enhance pipx documentation (v4.2.22)
 
+## v4.2.21 (2025-09-08)
 
-## [4.2.26] - 2025-09-09
+### Feat
 
-### Fixed
-- Enhanced monitor cleanup to kill processes using port before checking availability
-- Fixed hook handler script to properly detect and work with pipx installations
-- Removed duplicate logging messages from monitor stop operation
-- Monitor now properly cleans up orphaned processes on startup
-- Force restart now works reliably with proper cleanup
+- add monitor optional dependencies for pipx installation (v4.2.21)
 
+### Fix
 
-## [4.2.25] - 2025-09-09
+- add missing socketio_daemon.py and launch_monitor.py scripts
 
-### Fixed
-- Fixed hook installation for pipx and remote installations
-- Hook files are now properly included in package distribution
-- Automatic hook installation when monitor starts
-- Improved service detection for monitor force restart
+## v4.2.18 (2025-09-08)
 
-### Added
-- `claude-mpm uninstall` command for clean hook removal
-- Better hook script detection across installation types
-- Automatic hook configuration for monitor integration
+### BREAKING CHANGE
 
-### Changed
-- Hook files are now included as package-data in pyproject.toml
-- Monitor automatically installs hooks if they're missing
-- Enhanced detection of hook script location for different installation types
+- Removed deprecated socketio commands, use 'claude-mpm monitor' instead
 
+### Feat
 
-## [4.2.24] - 2025-09-09
+- add comprehensive local agent template support with interactive management
+- add JSON support to dashboard code viewer
 
-### Fixed
-- Fixed service detection logic to correctly identify Claude MPM monitor services and enable force restart
-- Enhanced service detection with multiple fallback methods and clearer error messages
+### Fix
 
-### Changed
-- Improved monitor daemon force restart capability with better service identification
-- Enhanced error reporting for service detection failures
+- prevent code viewer from defaulting to root directory
+- remove remaining linting issues for release
+- resolve dashboard "process is not defined" error and monitor daemon restart issues
+- resolve dashboard stop command error and eliminate hardcoded paths
+- comprehensive dashboard improvements, JS refactoring phase 1, and version bump to 4.2.14
+- resolve missing quickstart guide and fix documentation navigation
+- resolve monitor daemon process management and status detection
+- consolidate monitoring architecture and enhance dashboard UI
+- eliminate duplicate events with single-path emission architecture
+- dashboard code tree root node directory identification
+- dashboard code viewer and Socket.IO event handling
+- dashboard code tree root node directory identification
+- remove duplicate content pane and improve code tree data display
+- add defensive import handling for outdated installations
+- dashboard code viewer displays content in correct tab
 
+## v4.2.7 (2025-09-03)
 
-## [4.2.23] - 2025-09-09
+### Fix
 
-### Added
-- Socket.IO service detection to identify if port 8765 hosts our monitor service
-- Automatic restart of stale Socket.IO daemons with latest code
-- Health endpoint with service signature for identification
-- Orphaned process detection and recovery (processes without PID files)
-- Force restart capability with --force flag in monitor command
+- dashboard resilience and real event serving
 
-### Fixed
-- Monitor now automatically restarts with latest code after upgrades
-- Session identification properly works after service restart
-- CLI integration for force restart flag now properly implemented
+## v4.2.6 (2025-09-03)
 
-### Changed
-- Monitor startup sequence now checks for existing services and restarts if needed
-- Default behavior is to force restart when existing service detected
-- Health endpoint enhanced with service signature "claude-mpm-monitor"
+### Fix
 
+- dashboard service now works reliably without monitor dependency
+- improve Socket.IO client connection resilience
+- dashboard AST viewer now displays real file content instead of mock data
 
-## [4.2.22] - 2025-09-09
+## v4.2.30 (2025-09-09)
 
-### Fixed
-- Monitor daemon no longer fails silently on remote machines
-- Added proper parent-child process verification during daemon startup
-- Error messages now properly displayed instead of being redirected to /dev/null
-- Port conflicts detected early with clear error messages and errno details
-- Daemon errors now logged to ~/.claude-mpm/monitor-daemon.log by default
-
-### Changed
-- Enhanced pipx installation documentation in QUICKSTART.md, README.md, and installation.md
-- Made `pipx install "claude-mpm[monitor]"` the primary recommended installation method
-- Added prominent links to PIPX_INSTALLATION.md throughout documentation
-
-### Added
-- Parent process startup verification mechanism with 10-second timeout
-- Comprehensive error logging strategy for daemon mode
-- Early port availability checking before daemon forking
-- Startup status communication between parent and child processes
+### Feat
 
-
-## [4.2.21] - 2025-09-08
-
-### Added
-- Monitor optional dependency group `[monitor]` for pipx installation support
-- Comprehensive PIPX_INSTALLATION.md documentation
-- Dependency verification script `scripts/check_monitor_deps.py`
-
-### Fixed
-- Fixed pipx installation missing socketio and monitor dependencies
-- Ensured all monitor service files are included in package distribution
-- Resolved "module 'claude_mpm.services.monitor' has no attribute 'server'" error
-
-### Changed
-- Updated MANIFEST.in to explicitly include monitor and communication service files
-- Consolidated monitor dependencies in optional dependency group
-
-
-## [4.2.18] - 2025-09-08
+- consolidate daemon management into single DaemonManager service (v4.2.31)
 
-### Fixed
-- Code viewer no longer defaults to root directory (/)
-- Enhanced working directory detection with multiple fallback strategies
-- Added session storage persistence for working directory
-- Created /api/working-directory endpoint to provide actual cwd
+### Fix
 
-### Added
-- Configure.yaml support for controlling agent deployment
-- New `/mpm-agents configure` command for managing deployment settings
-- Agent deployment enable/disable functionality per agent or category
-- Interactive configuration mode for agent deployment settings
+- enhance monitor cleanup with more aggressive process termination
+- resolve Mamba environment detection and document dependency conflicts
+- resolve UnboundLocalError in monitor cleanup code
+- resolve monitor cleanup race condition for --monitor flag
 
-### Changed
-- Working directory now persists in session storage during browser session
-- Code viewer uses home or project directory as fallback instead of root
-- Enhanced DeploymentConfigLoader with comprehensive deployment settings
-
-
-## [4.2.17] - 2025-09-06
+## v4.2.25 (2025-09-09)
 
-### Added
-- Comprehensive local agent template support with JSON storage in `.claude-mpm/agents/`
-- Interactive agent creation wizard with step-by-step guidance
-- Full CRUD operations for local agents (create, deploy, edit, delete)
-- Import/export functionality for sharing agents between projects
-- Three-tier priority system: PROJECT > USER > SYSTEM
-- 10 new CLI commands for local agent management
-- Delete functionality with backup and safety features
-- Interactive management menu with proper flow control
-
-### Changed
-- PM framework now uses analytical principles for more rigorous analysis
-- Removed affirmative language in favor of structural merit assessment
-- Local agents override system agents with same name
-- Agent manager menu now returns to main menu after operations
+## v4.2.24 (2025-09-08)
 
-### Fixed
-- Interactive menu flow to properly return to main menu instead of exiting
-- Duplicate success messages in agent management operations
+## v4.2.23 (2025-09-08)
 
+### Feat
 
-## [4.2.16] - 2025-09-05
+- add Socket.IO service detection and automatic restart (v4.2.23)
 
-### Fixed
-- Dashboard "process is not defined" error by fixing vite.config.js Node.js code injection
-- Monitor daemon restart error with proper object recreation handling in daemon.py
-- Daemon process termination to properly release port binding during restarts
-- CLI command parameters for reliable monitor restart functionality
-- Dashboard components rebuilt with corrected Vite configuration to prevent browser errors
+## v4.2.22 (2025-09-08)
 
-### Added
-- Comprehensive tests for dashboard fixes and monitor operations
-- Enhanced error handling for monitor daemon lifecycle management
+### Fix
 
+- resolve monitor daemon silent failures and enhance pipx documentation (v4.2.22)
 
-## [4.2.15] - 2025-09-05
+## v4.2.21 (2025-09-08)
 
-### Fixed
-- Dashboard stop command error caused by incorrect PortManager method call
-- Hardcoded directory paths in dashboard components (session-manager.js, index.html)
-- Event display issues by adding dual emission support ('hook:event' and 'claude_event')
-- Dashboard initialization now fetches working directory from server /api/config endpoint
-- Proper project structure compliance by moving test files to tests/ directory
+### Feat
 
-### Added
-- /api/config endpoint in monitor server providing current working directory
-- Dynamic working directory detection for dashboard components
-- Enhanced event emission compatibility for dashboard real-time updates
+- add monitor optional dependencies for pipx installation (v4.2.21)
 
-### Changed
-- PortManager method call from is_port_in_use() to is_port_available() for consistency
-- Dashboard components now use server-provided working directory instead of hardcoded paths
+### Fix
 
+- add missing socketio_daemon.py and launch_monitor.py scripts
 
-## [4.2.14] - 2025-09-05
+## v4.2.18 (2025-09-08)
 
-### Fixed
-- Dashboard JavaScript refactoring phase 1 with modular code organization
-- File viewer timeout issues by adding FileHandler to monitor server
-- Socket.IO heartbeat system for improved connection monitoring
-- Hardcoded directory paths replaced with dynamic detection
-- Python codebase organization with enhanced core utilities
+### BREAKING CHANGE
 
-### Added
-- Shared JavaScript services: tooltip-service, dom-helpers, event-bus, logger
-- Code-tree modules: tree-utils, tree-constants, tree-search, tree-breadcrumb
-- Socket.IO heartbeat events with server status and debug information
-- Enhanced constants.py with organized configuration classes
-- Centralized file operations and error handling utilities
+- Removed deprecated socketio commands, use 'claude-mpm monitor' instead
 
-### Changed
-- Code-tree.js reduced from 5,845 lines to manageable modular components
-- File viewer modal now displays at 95% viewport width for better usability
-- Dashboard uses dynamic working directory detection instead of hardcoded paths
+### Feat
 
+- add comprehensive local agent template support with interactive management
+- add JSON support to dashboard code viewer
 
-## [4.2.13] - 2025-09-04
+### Fix
 
-### Fixed
-- Missing quickstart guide at project root that was expected by installation documentation
-- Broken quickstart link in ARCHITECTURE.md documentation
-- Documentation navigation flow by establishing clear path: Installation → Quick Start → Full Docs
-- Duplicate QUICKSTART.md file in docs/user/ directory causing confusion
+- prevent code viewer from defaulting to root directory
+- remove remaining linting issues for release
+- resolve dashboard "process is not defined" error and monitor daemon restart issues
+- resolve dashboard stop command error and eliminate hardcoded paths
+- comprehensive dashboard improvements, JS refactoring phase 1, and version bump to 4.2.14
+- resolve missing quickstart guide and fix documentation navigation
+- resolve monitor daemon process management and status detection
+- consolidate monitoring architecture and enhance dashboard UI
+- eliminate duplicate events with single-path emission architecture
+- dashboard code tree root node directory identification
+- dashboard code viewer and Socket.IO event handling
+- dashboard code tree root node directory identification
+- remove duplicate content pane and improve code tree data display
+- add defensive import handling for outdated installations
+- dashboard code viewer displays content in correct tab
 
+## v4.2.7 (2025-09-03)
 
-## [4.2.12] - 2025-09-04
+### Fix
 
-### Fixed
-- Monitor daemon process management and status detection
-- Background/daemon mode now default with --foreground flag for debugging
-- Asyncio cleanup errors preventing clean event loop shutdown
-- PID file management across all monitor operation modes
-- Socket.IO server initialization error handling
-- Structure violations by moving test files to correct /tests/ directory
+- dashboard resilience and real event serving
 
-### Changed
-- Monitor daemon now starts in background by default
-- Enhanced process lifecycle management for better reliability
+## v4.2.6 (2025-09-03)
 
+### Fix
 
-## [4.2.10] - 2025-09-04
+- dashboard service now works reliably without monitor dependency
+- improve Socket.IO client connection resilience
+- dashboard AST viewer now displays real file content instead of mock data
 
-### Fixed
-- Dashboard code viewer Socket.IO event handling for directory discovery
-- JavaScript this context binding in code tree event handlers  
-- Root node directory flag for proper directory handling
-- UI layout to use full width after removing duplicate content pane
-- Dashboard server resilience with proper error handling
-- Applied comprehensive linting fixes across codebase
+## v4.2.3 (2025-09-03)
 
-### Added
-- Missing Socket.IO event handlers for code:discover:top_level in stable server
-- JSON file support with syntax highlighting in code viewer
+### Feat
 
+- improve agent deployment and description formatting
+- add single-line description formatting to agent deployer
+- implement BASE agent instruction system and Google Cloud Ops agent
+- enhance file viewing in activity data viewer for single file operations
+- add simple directory browser as alternative to complex D3 tree view
 
-## [4.2.9] - 2025-09-03
+### Fix
 
-### Fixed
-- Defensive import handling for outdated installations
-- Dashboard code viewer displays content in correct tab
+- dashboard monitoring and source viewer improvements
+- improve YAML descriptions with single-line format and commentary
+- improve monitor launch error messages and add fallback dashboard launcher
+- resolve 'Already loading' issue in code tree directory navigation
 
-## [4.2.8] - 2025-09-03
+## v4.1.29 (2025-08-31)
 
-### Added
-- JSON file support in dashboard code viewer with syntax highlighting for .json, .jsonl, and .geojson files
+### Fix
 
-## [4.2.7] - 2025-01-03
+- prevent duplicate empty directory events in code explorer
 
-### 🐛 Bug Fixes
-- **Dashboard Resilience**: Added comprehensive error recovery mechanisms to StableDashboardServer
-- **WebSocket Connections**: Fixed WebSocket connection issues and improved stability
-- **Code Viewer**: Fixed file read API to work correctly with project files
-- **Event Handling**: Fixed event serving to use real events instead of mock data
+## v4.1.28 (2025-08-31)
 
-### ✨ New Features
-- **Health Check Endpoint**: Added `/health` endpoint for monitoring dashboard status
-- **Real Event Serving**: Implemented `/api/events` endpoint for receiving and serving real events
-- **Event Broadcasting**: Added Socket.IO event broadcasting to connected clients
-- **Circular Buffer**: Added event storage with circular buffer (max 1000 events)
-- **Auto-Restart**: Implemented auto-restart capability on failures
+### Fix
 
-### ⚡ Improvements
-- **Error Handling**: Improved error handling and recovery throughout dashboard server
-- **Fallback HTML**: Added fallback HTML serving mechanism for better resilience
-- **Connection Recovery**: Better connection error recovery in dashboard
-- **Debug Logging**: Enhanced debug output for troubleshooting issues
+- resolve backend issue with empty directory children in code explorer
 
-## [4.2.6] - 2025-01-03
+## v4.1.27 (2025-08-31)
 
-### 🐛 Critical Bug Fixes
-- **Dashboard Service**: Fixed critical production issue where dashboard was not responding on localhost:8765
-- **Monitor Dependency**: Removed broken dependency on monitor service (port 8766) that doesn't exist in production
-- **Default Server**: Changed to use StableDashboardServer by default which works standalone
+### Feat
 
-### ⚡ Improvements
-- **Fallback Mechanism**: Added automatic fallback to stable server if advanced server fails
-- **Error Handling**: Improved error messages and debug logging for dashboard issues
-- **Documentation**: Added comprehensive troubleshooting guide for dashboard service
+- strengthen PM testing and observability requirements
+- web qa agent v1.8.0 adds safari testing with applescript
+- web qa agent v1.7.0 with 4-phase progressive testing
 
-### 📝 Documentation
-- **Troubleshooting Guide**: Created detailed guide at `docs/developer/11-dashboard/TROUBLESHOOTING.md`
-- **Common Issues**: Documented solutions for connection refused, port conflicts, and missing dependencies
+### Fix
 
+- add debug logging for code explorer empty directory issue
+- code explorer showing empty directory for src
+- add missing .mjs and .cjs extensions to CODE_EXTENSIONS
+- todowrite viewer horizontal status bar display
+- activity viewer tools persistence and data viewer improvements
+- resolve activity viewer tool display issues
+- implement proper activity viewer display rules for TodoWrite
+- resolve repeated agent upgrade notifications by fixing author field check
+- include version metadata in deployed agent frontmatter
+- dashboard activity tree persistence and proper event handling
+- dashboard activity viewer persistence and nesting improvements
+- add missing __init__.py files for proper package distribution
 
-## [4.2.5] - 2025-01-03
+### Refactor
 
-### 🐛 Bug Fixes
-- **Socket.IO Client**: Fixed connection error messages appearing even when connection succeeds
-- **Connection Resilience**: Client now tries multiple hostname formats (localhost, 127.0.0.1)
-- **Logging**: Suppressed misleading error messages when fallback connections succeed
+- consolidate and strengthen PM instructions for firm behavioral enforcement
 
-### ⚡ Improvements
-- **Connection Logic**: More robust connection handling for different system configurations
-- **Error Reporting**: Only shows error when ALL connection attempts fail
-- **Debug Logging**: Individual connection failures logged at debug level to reduce confusion
+## v4.1.14 (2025-08-29)
 
+### Fix
 
-## [4.2.4] - 2025-01-03
+- pipx installation issues and enhance Ops agent security
+- dashboard code panel multi-level navigation and remove centering
 
-### 🐛 Bug Fixes
-- **Dashboard AST Viewer**: Fixed to display real file content instead of mock data
-- **File Reading API**: Added `/api/file/read` endpoint to SocketIO server for actual file content
-- **Source Viewer**: JavaScript client now fetches real content via API instead of placeholders
+## v4.1.13 (2025-08-28)
 
-### ✨ Features
-- **Security**: Added path validation to ensure files are only read from within project directory
-- **Encoding Support**: Multiple file encoding support (UTF-8, Latin-1, CP1252)
-- **Metadata**: Returns file metadata (name, lines, size) along with content
+### Fix
 
+- restore agent metadata and improve dashboard stability
 
-## [4.2.3] - 2025-01-03
+## v4.1.12 (2025-08-28)
 
-### 🐛 Bug Fixes
-- **Monitor/Dashboard**: Fixed default port configuration (was 8766, now 8765)
-- **Source Viewer**: Fixed HTML double-escaping in syntax highlighting
-- **Dashboard Server**: Improved stability and event handling
+### Feat
 
-### 📚 Documentation
-- **Monitor Guide**: Added comprehensive documentation at docs/MONITOR.md
-- **CLAUDE.md**: Added link to monitor documentation
-- **Dashboard Scripts**: Added helper scripts for development
+- add PM instruction reinforcement system and improve dashboard visualization
 
-### ⚡ Improvements
-- **Unified Server**: Dashboard now correctly serves both UI and monitoring on port 8765
-- **Event Flow**: Clarified requirement for `--monitor` flag when starting Claude MPM
-- **Syntax Highlighting**: Rewrote highlighting engine to prevent HTML entity issues
+### Fix
 
+- improve ruff linting configuration and resolve syntax errors
 
-## [4.2.2] - 2025-01-01
+## v4.1.11 (2025-08-27)
 
-### ✨ Features
-- **Agent Deployment**: Added single-line formatting for agent descriptions to remove newlines
-- **Non-MPM Filtering**: Implemented filtering of non-MPM agents based on author/version fields
-- **User Agent Handling**: Added graceful handling of user-created agents without templates
-- **YAML Formatting**: Fixed descriptions to use single-line format with \n escapes
-- **Example Format**: Updated descriptions to use single example with commentary
+### Feat
 
-### 🐛 Bug Fixes
-- **Description Formatting**: Fixed multi-line YAML pipe format to single-line with escapes
-- **Orphaned Detection**: Improved to distinguish between user and system orphaned agents
+- add mpm-init command and git branding customization v4.1.11
 
-### 🛠️ Improvements
-- **Agent Deployer**: Enhanced to automatically format descriptions properly
-- **Logging**: User agents now logged at DEBUG level instead of INFO
-- **Configuration**: Added `filter_non_mpm_agents` config option (default: true)
+## v4.1.10 (2025-08-26)
 
+### Fix
 
-## [4.2.1] - 2024-09-01
+- properly handle code analysis events in dashboard
 
-### 🐛 Bug Fixes
-- **Monitor Launch**: Fixed misleading error message about non-existent `launch_socketio_dashboard.py` script
-- **Mamba Environment**: Fixed tree-sitter dependency issue by moving from conda to pip dependencies
-- **Project Structure**: Cleaned up root directory by moving test artifacts and documentation to proper locations
-- **Dashboard Launch**: Added proper standalone launcher script at `scripts/launch_dashboard.py`
-- **Dependency Checking**: Enhanced SocketIOManager with better dependency checking and error messages
+## v4.1.9 (2025-08-26)
 
-### ✨ Improvements
-- **Monitor Guidance**: Improved error messages to guide users to correct `--monitor` usage
-- **Environment Support**: Both Mamba and venv environments now work correctly
-- **Structure Organization**: Moved 40+ misplaced files to appropriate directories
-- **Error Handling**: Better error messages for missing monitoring dependencies
+### Feat
 
-### 📚 Documentation
-- Added clear instructions for launching monitor in multiple ways
-- Fixed incorrect script paths in error messages
-- Improved dependency installation guidance
+- add mermaid diagram generation for Code Analyzer v4.1.9
+- add Claude Code version checking for hook monitoring
 
+### Fix
 
-## [4.2.0] - 2025-09-01
+- correct hook matcher syntax for Claude Code compatibility
+- resolve dashboard event broadcasting issues
 
-### 🎯 Major Features
-- **BASE Agent Instruction System**: Implemented comprehensive BASE instruction files for all core agent types (ENGINEER, QA, OPS, RESEARCH, DOCUMENTATION) that automatically load and merge with agent-specific instructions
-- **Google Cloud Ops Agent**: Added new specialized agent for Google Cloud Platform operations with OAuth, Service Account, and gcloud CLI expertise
-- **Automatic Instruction Inheritance**: Agent template builder now automatically loads BASE instructions based on agent type, reducing template duplication by 50-70%
+## v4.1.8 (2025-08-25)
 
-### ✨ Enhancements
-- **PM Verification Requirements**: Added mandatory end-of-session verification requiring QA agent testing and deployment verification before work completion
-- **Simple Code Browser Filtering**: Added comprehensive file/folder filtering matching main explorer behavior (hides dot files, shows only code-relevant directories)
-- **File Viewing Enhancement**: Enhanced activity data viewer with clickable file paths, keyboard shortcuts (V key, Ctrl+Click), and file type icons for single file operations
-- **Loading State Management**: Fixed "Already loading" issue in code tree by properly clearing loadingNodes Set in error scenarios
-
-### 🔧 Technical Improvements
-- Added `_load_base_agent_instructions()` method to AgentTemplateBuilder for dynamic BASE file loading
-- Implemented GitignoreManager integration in simple directory API for consistent filtering
-- Enhanced unified data viewer with file type detection and accessibility features
-- Improved error recovery in code tree WebSocket handlers
+### Feat
 
-### 📚 Documentation
-- Created BASE instruction files documenting common patterns for each agent type
-- Updated BASE_PM.md with comprehensive verification requirements
-- Added 21 total agents now benefiting from BASE instruction inheritance
-
-### 🐛 Bug Fixes
-- Fixed directory loading state management preventing "Already loading: src" errors
-- Resolved WebSocket error recovery issues in code tree component
-- Fixed simple code browser to properly filter system files and build artifacts
-
-## [4.1.29] - 2025-08-31
-
-### Fixed
-- **Code Explorer**: Prevented duplicate empty directory events
-  - Commented out emit_directory_discovered call that was sending empty children array
-  - Fixed Socket.IO handler to pass emit_events=False to prevent stdout emitter creation
-  - Eliminates conflicting directory discovered events being sent to frontend
-  - Frontend now properly receives directory contents from backend
-
-## [4.1.28] - 2025-08-31
-
-### Fixed
-- **Code Explorer**: Fixed backend issue causing empty directory children
-  - Fixed spreading of result object that was overwriting path and name fields
-  - Backend now explicitly sends children array instead of spreading result
-  - Added debug logging to track children being sent
-  - Properly preserves directory discovery data structure
-
-## [4.1.27] - 2025-08-31
-
-### Fixed
-- **Code Explorer**: Resolved persistent "Empty directory" issue for src folder
-  - Fixed improper if/else block structure in onDirectoryDiscovered method
-  - Added comprehensive error handling for missing children data
-  - Added debug logging to track directory discovery flow
-  - Now properly handles both populated and empty directories
-
-## [4.1.26] - 2025-08-31
-
-### Fixed
-- **Code Explorer**: Fixed "Empty directory: src" issue
-  - Fixed `has_code_files` method to properly skip .egg-info directories during recursion
-  - The method now correctly detects Python files in subdirectories like src/claude_mpm
-  - Directories with code only in subdirectories are now properly included
-
-## [4.1.25] - 2025-08-31
-
-### Fixed
-- **Dashboard Performance**: Resolved "page not responding" issue
-  - Fixed infinite loop in session filter initialization
-  - Added retry counter to prevent infinite retry attempts
-  - Improved error handling with graceful component failure recovery
-
-- **Code Explorer**: Fixed directory traversal showing empty directories
-  - Added missing .mjs and .cjs extensions to CODE_EXTENSIONS
-  - Directories with JavaScript modules now display correctly
-
-### Changed
-- **Files Pane**: Removed git tracking functionality
-  - Simplified to focus on file viewing and diff capabilities
-  - Integrated UnifiedDataViewer for consistent display
-  - Removed dependency on git status tracking
-
-- **Data Viewers**: Consolidated all viewers using UnifiedDataViewer
-  - Activity viewer now serves as the base for all data display
-  - Consistent interface across all viewer components
-  - Improved maintainability with single source of truth
-
-## [4.1.24] - 2025-08-31
-
-### Changed
-- **TodoWrite Data Viewer**: Status bar now displays horizontally in a single row
-  - Shows "✅ X Done  🔄 Y Active  ⏳ Z Pending" format
-  - More compact and scannable view
-  - Improved visual consistency
-
-### Fixed
-- **Ops Agent Version Detection**: Investigated version 0.0.0 display issue
-  - Confirmed version extraction is working correctly
-  - Both template and deployed versions properly show 2.2.2
-
-## [4.1.23] - 2025-08-30
-
-### Fixed
-- **Activity Viewer Tools Persistence**: Fixed tools disappearing after a few seconds
-  - Preserved accumulated data (tools, agents, todos) during session updates
-  - Added debounced rendering to prevent excessive DOM rebuilds
-  - Tools now properly persist and update in place
-
-### Changed
-- **Data Viewer Improvements**: Enhanced all data viewers for better clarity
-  - TodoWrite viewer now shows todos list and status summary immediately after title
-  - All viewers now highlight primary data with secondary details in collapsible JSON
-  - Added visual status indicators and improved styling
-  - Tool-specific displays for file operations, commands, and searches
-  - Added comprehensive CSS styling for improved readability
-
-## [4.1.22] - 2025-08-30
-
-### Fixed
-- **Agent Version Check**: Fixed repeated agent upgrade notifications
-  - Corrected author field check in agent_version_manager.py
-  - Now accepts multiple author formats ("claude-mpm", "Claude MPM Team", etc.)
-  - Resolves issue where system agents were incorrectly skipped during version checks
-  - Agents now properly deploy updates when available
-
-## [4.1.21] - 2025-08-30
-
-### Changed
-- **PM Instructions**: Consolidated and strengthened delegation and testing requirements
-  - Eliminated redundancy across INSTRUCTIONS, WORKFLOW, BASE_PM, and MEMORY files
-  - Used first-person language for stronger behavioral enforcement
-  - Made testing requirements absolutely non-negotiable with instant rejection protocol
-  - Simplified core operating rules from 17 to 6 clear directives
-  - Added clear file purpose headers to prevent future overlap
-  - Strengthened untested work protocol: "untested work = unacceptable work"
-
-### Fixed
-- **PM Testing Enforcement**: PM now instantly rejects any untested work from agents
-  - No longer accepts "I didn't test it" responses
-  - Requires proof of testing (logs, output, screenshots)
-  - Automatically re-delegates untested work
-
-## [4.1.20] - 2025-08-30
-
-### Fixed
-- **Agent Deployment**: Include version metadata in deployed agent frontmatter
-  - Fixed agent_template_builder.py to include version field in frontmatter
-  - Added optional metadata fields (color, author, tags, priority, category)
-  - Prevents false update notifications on agent restart
-  - Ensures Claude Code recognizes deployed agent versions correctly
-
-## [4.1.19] - 2025-08-30
-
-### Added
-- **Web QA Agent v1.8.0**: Added Safari testing with AppleScript for macOS
-  - Added 5th phase: Safari testing with AppleScript automation
-  - Comprehensive AppleScript automation commands for Safari testing
-  - Safari vs Playwright comparison guide
-  - Enhanced progressive testing: API → Routes → Links2 → Safari → Playwright
-
-## [4.1.18] - 2025-08-30
-
-### Added
-- **Web QA Agent v1.7.0**: Enhanced testing capabilities with 4-phase progressive testing
-  - Implemented API → Routes → Links2 → Playwright testing progression
-  - Enhanced metadata with new tags and keywords for web QA automation
-  - Improved testing efficiency with granular progression and better error handling
-
-## [4.1.17] - 2025-08-30
-
-### Fixed
-- **Dashboard Activity Tree**: Enhanced persistence and proper event handling
-  - Fixed activity tree to persist unique instances of TodoWrite, agents, and tools
-  - Prevented list from disappearing between events
-  - Tree now only resets on new user prompts, not on every update
-  - TodoWrite always appears first under each agent/subagent
-  - Added call/update counters for multiple invocations
-  - Fixed in-place updates instead of replacing items
-
-### Added
-- **Git Hooks Setup**: Added setup script with commit message format instructions
-  - Added scripts/setup-git-hooks.sh for consistent commit formatting
-  - Integrated commit message format instructions in development workflow
-
-## [4.1.16] - 2025-08-30
-
-### Fixed
-- **Dashboard Activity Viewer**: Improved persistence and nesting structure
-  - Updated activity-tree.js to persist agents and tools instead of replacing them
-  - Implemented proper nesting structure (PM → TodoWrite → Subagents → Tools)
-  - Added collapsed state behavior showing current status
-  - Added visual indicators for active items with CSS animations
-  - Fixed issue where agents and tools were being replaced instead of accumulated
-
-## [4.1.15] - 2025-08-29
-
-### Fixed
-- **Package Distribution**: Added missing `__init__.py` files to ensure proper package distribution
-  - Added `__init__.py` to `src/claude_mpm/commands/` directory
-  - Added `__init__.py` to `src/claude_mpm/dashboard/` directory  
-  - Added `__init__.py` to `src/claude_mpm/experimental/` directory
-  - Added `__init__.py` to `src/claude_mpm/schemas/` directory
-  - Added `__init__.py` to `src/claude_mpm/tools/` directory
-  - Fixes issue where these modules were not being included in distributed packages
-
-### Added  
-- **Ops Agent v2.2.2**: Enhanced git commit authority with comprehensive security verification
-  - Advanced git commit capabilities with pre-commit security scanning
-  - Automated security verification against prohibited patterns (secrets, credentials, API keys)
-  - Integration with `make quality` for comprehensive code quality checks
-  - Smart context-aware git operations with branch management and merge conflict resolution
-  - Secure commit message generation following conventional commit standards
-  - Real-time security feedback and immediate threat detection
-
-## [4.1.14] - 2025-08-29
-
-### Fixed
-- **Dashboard Code Panel Navigation**: Fixed multi-level directory exploration with proper click handlers
-- **Tree Positioning Behavior**: Removed automatic centering/movement that caused disorienting user experience
-- **Interactive Element Handling**: Added comprehensive click handlers to all visual elements (circles, text, icons)
-- **Visual Feedback System**: Enhanced chevron icons and loading indicators for better user interaction
-- **Navigation State Management**: Improved subdirectory click handlers after tree updates
-- **D3 Zoom Behavior**: Disabled automatic zoom to maintain stationary tree per user preference
-- **Pipx Installation Issues**: Resolved critical resource path resolution for pipx users
-  - Fixed "socketio_daemon_wrapper.py not found" error reported by users
-  - Fixed commands directory access failures in pipx environments
-  - Implemented `get_package_resource_path()` for proper resource resolution
-  - Enhanced path detection with `importlib.resources` fallback mechanism
-  - Full Python 3.13+ compatibility in pipx environments
-
-### Added
-- **Diagnostic Logging**: Comprehensive logging system for debugging code panel navigation issues
-- **Enhanced Click Detection**: Multi-target click handling for improved user interaction reliability
-- **Resource Path Resolution**: New unified path management system for proper resource packaging
-  - Cross-platform compatibility for Windows, macOS, Linux
-  - Automatic fallback to filesystem paths when resources API unavailable
-
-
-## [4.1.13] - 2025-08-29
-
-### Added
-- **Unified Data Viewer Component**: New dashboard visualization component for improved data rendering
-- **Validation Scripts**: Comprehensive development workflow scripts for activity structure and dashboard state verification
-- **PM Instruction Reinforcement System**: Enhanced instruction drift prevention with improved monitoring capabilities
-- **Comprehensive Test Suite Additions**: Expanded test coverage across SocketIO, dashboard, and activity management modules
-
-### Changed
-- **Dashboard Stability Improvements**: Enhanced activity session data handling and visualization robustness
-- **SocketIO Architecture Enhancements**: Improved connection reliability and event handling architecture
-- **Agent Metadata Handling**: Enhanced Claude Code compatibility with improved agent metadata processing
-
-### Fixed
-- **Activity Session Data Issues**: Resolved critical data handling problems in dashboard activity visualization
-- **Linting Configuration**: Fixed ruff configuration issues resulting in 77% error reduction
-- **SocketIO Connection Reliability**: Addressed connection stability and event routing issues
-- **Dashboard Visualization Bugs**: Fixed various UI rendering and data display issues
-
-## [4.1.12] - 2025-08-28
-
-### Added
-- **PM Instruction Reinforcement System**: Advanced instruction drift prevention system
-  - Comprehensive monitoring of PM behavior through specialized Hook Service
-  - Automatic detection of instruction deviations and compliance violations  
-  - Real-time feedback mechanism to reinforce proper PM adherence
-  - Enhanced Claude Code integration with improved hook monitoring
-  - Systematic prevention of PM agents ignoring core instructions
-
-### Changed
-- **Dashboard UI Improvements**: Enhanced code tree visualization and component responsiveness
-- **Configuration Management**: Improved system configuration validation and error handling
-- **Code Tree Analysis**: Better filtering and visualization of project structures
-
-### Fixed
-- **Test Infrastructure**: Comprehensive test cleanup and organization improvements
-- **Documentation Structure**: Fixed inconsistencies in project documentation
-- **Code Quality**: Resolved linting issues and improved code consistency
-
-## [4.1.11] - 2025-08-27
-
-### Added
-- **MPM-Init Command**: New `claude-mpm mpm-init` command for project initialization
-  - Delegates to Agentic Coder Optimizer agent for comprehensive project setup
-  - Creates CLAUDE.md documentation optimized for AI agents
-  - Establishes single-path workflows (ONE way to do ANYTHING)
-  - Configures development tools (linting, formatting, testing)
-  - Initializes memory systems for project knowledge
-  - Supports project types (web, api, cli, library, etc.) and frameworks
-  - Includes `--use-venv` flag to bypass mamba/conda environment issues
-  - Comprehensive documentation in `docs/user/commands/mpm-init.md`
-
-- **Git Branding Customization**: Automatic Claude MPM branding for commits and PRs
-  - Custom git hooks replace Claude Code references with Claude MPM
-  - New emoji 🤖👥 representing AI orchestrating a team
-  - Updates repository URL to correct GitHub project
-  - Wrapper scripts for git and GitHub CLI operations
-  - Documentation in `docs/user/claude-mpm-branding.md`
-
-### Changed
-- **Git Commit Messages**: Now use 🤖👥 emoji and link to github.com/bobmatnyc/claude-mpm
-
-### Fixed
-- **MPM-Init Environment Issues**: Added automatic fallback to Python venv when mamba/conda fails
-- **MPM-Init Command Construction**: Corrected argument ordering and removed invalid --agent flag
-- **MPM-Init Prompt Passing**: Fixed "filename too long" error by using temporary files
-
-## [4.1.10] - 2025-08-26
-
-### Fixed
-- **Code Quality**: Comprehensive linting fixes and improvements across entire codebase
-  - Fixed ruff configuration to use new [lint] section format
-  - Applied auto-formatting with black and isort
-  - Resolved import sorting and organization issues
-  - Fixed numerous linting warnings in tests and scripts
-
-### Changed
-- **Dashboard UI**: Enhanced code tree component with improved visualization
-- **Project Structure**: Moved test files from root to proper test directories
-- **Code Consistency**: Improved maintainability through comprehensive formatting
-
-## [4.1.9] - 2025-08-26
-
-### Added
-- **Mermaid Diagram Generation**: New code visualization feature for creating architecture diagrams
-  - Comprehensive mermaid visualization service with support for multiple diagram types
-  - New `claude-mpm analyze` command with `--mermaid` option for diagram generation
-  - Support for class diagrams, flow charts, component diagrams, and sequence diagrams
-  - Automatic relationship detection including inheritance, composition, and dependencies
-  - Export to various formats (SVG, PNG, HTML) with automatic rendering
-  - Integration with Code Analyzer agent for enhanced code analysis capabilities
-
-### Fixed
-- **Hook Matcher Syntax**: Corrected hook matcher syntax for Claude Code compatibility
-- **Dashboard Event Broadcasting**: Resolved issues with dashboard event field protection and broadcasting
-- **Claude Code Version Checking**: Added version checking for better hook monitoring compatibility
-
-### Changed
-- **Code Analyzer Agent**: Enhanced with mermaid diagram generation capabilities
-- **Dashboard Stability**: Improved connection management and event handling
-
-## [4.1.8] - 2025-08-26
-
-### Fixed
-- **Hook Management and Configuration**: Enhanced developer experience with better tooling
-  - Added comprehensive hook management CLI commands for Claude Code integration
-  - Fixed dashboard event field protection in tests
-  - Improved error handling and validation in hook installer
-
-### Added
-- **Hook Installer**: New automated setup tool for Claude Code hook deployment
-  - Automatic detection and installation of hooks in Claude Code environment
-  - Support for both global and project-specific hook installations
-  - Comprehensive documentation for advanced hook deployment strategies
-- **Dashboard Connection Documentation**: Added troubleshooting guide for connection issues
-
-### Changed
-- **Agent Manager v1.3.0**: Major documentation and configuration improvements
-  - Added comprehensive configuration documentation with examples
-  - Enhanced variant creation and deployment guidance
-  - Improved customization workflow documentation
-
-## [4.1.7] - 2025-08-26
-
-### Fixed
-- **Dashboard/SocketIO Connection Stability**: Improved connection management and error handling
-  - Enhanced SocketIO server connection management with better error recovery
-  - Improved client-side reconnection logic and stability
-  - Added comprehensive connection monitoring and debugging capabilities
-  - Fixed event bus direct relay for more reliable message passing
-  - Enhanced connection manager with better tracking and cleanup
-
-### Changed
-- **Agent Manager Update (v1.1.0)**: Enhanced customization knowledge and documentation
-  - Added detailed variant creation and deployment documentation
-  - Improved guidance for agent customization workflows
-  - Better examples for agent hierarchy and variant management
-
-## [4.1.6] - 2025-08-25
-
-### Added
-- **Instructions Check for mpm-doctor**: New diagnostic check to detect duplicate CLAUDE.md files and conflicting instructions
-  - Detects misplaced CLAUDE.md files (should only be in project root)
-  - Identifies duplicate content blocks between instruction files
-  - Finds conflicting PM directives and agent definitions
-  - Validates separation of concerns between CLAUDE.md and INSTRUCTIONS.md
-  - Provides clear remediation guidance for each issue type
-
-### Fixed
-- **Instruction File Cleanup**: Removed duplicate and conflicting instruction files
-  - Deleted misplaced test CLAUDE.md from tests/isolated-test/
-  - Removed conflicting global INSTRUCTIONS.md from ~/.claude/
-  - Cleaned up backup directories with duplicate instructions
-  - Consolidated OUTPUT_STYLE.md to single location in docs/developer/
-
-## [4.1.5] - 2025-08-25
-
-### Changed
-- Version bump for release preparation
-
-## [4.1.4] - 2025-08-25
-
-### Changed
-- **Agent Template Optimizations**: Achieved 75% average size reduction across all agent templates (140KB saved)
-- **Code Analyzer Agent**: Reduced from 20KB to 4.6KB (77% reduction) through memory pattern optimization
-- **Web QA Agent**: Reduced from 31KB to 5.9KB (81% reduction) with improved memory management
-- **Memory Safety**: Implemented clear Read→Extract→Summarize→Discard pattern across all templates
-- **Template Versioning**: All agent templates now versioned for automatic redeployment
-- **Token Efficiency**: All optimized agents now under 8KB for efficient token usage
-
-## [4.1.3] - 2025-08-25
-
-### Changed
-
-- **God Class Refactoring**: Eliminated 7 major god classes (36.7% code reduction)
-- **Service-Oriented Architecture**: Created 29+ specialized services following SOLID principles  
-- **Test Coverage**: Added 750+ unit tests using TDD approach
-- **Dependency Injection**: Improved architecture with dependency injection
-- **Backward Compatibility**: Maintained 100% backward compatibility during refactoring
-- **Code Quality**: Comprehensive linting and formatting improvements
-
-## [4.1.2] - 2025-08-24
-
-### Fixed
-
-- **Logger Symlink Creation**: Fixed FileExistsError in logger.py symlink creation with thread-safe locking
-- **Code Quality Improvements**: Resolved 19 undefined names across the codebase
-- **Import Cleanup**: Fixed 12+ duplicate import statements throughout the project
-- **Syntax Corrections**: Corrected 1 syntax error in codebase
-- **Linting Compliance**: 77% reduction in linting issues through comprehensive cleanup
-- **Code Formatting**: Applied consistent code formatting with Black and isort
-- **Thread Safety**: Added thread-safe locking for symlink operations
-
-## [4.1.1] - 2025-08-23
-
-### Added
-
-- **Enhanced Web QA Agent (v1.3.0)**: Python Playwright support for browser testing
-  - Browser automation capabilities for testing web applications
-  - Screenshot capture and visual validation features
-  - Improved coordination with Web UI agent for test handoffs
-
-### Changed
-
-- **Agent Templates**: Updated Web QA and Web UI agent templates with enhanced capabilities
-- **Version Management**: Added comprehensive version management script for automated releases
-
-### Fixed
-
-- **Web Agent Coordination**: Improved handoff mechanisms between Web UI and Web QA agents
-
-## [4.0.34] - 2025-08-22
-
-### Fixed
-- Documentation agent MCP tool fix
-- Enhanced Documentation agent memory protection
-
-## [4.1.0] - 2025-08-22
-
-### Added
-
-- **Script Organization**: Comprehensive scripts directory restructuring into logical subdirectories
-  - `scripts/development/` - Development and debugging tools
-  - `scripts/monitoring/` - Runtime monitoring utilities  
-  - `scripts/utilities/` - MCP and configuration tools
-  - `scripts/verification/` - System verification and testing scripts
-- **Consolidated MCP Documentation**: Single comprehensive MCP setup guide covering all installation methods
-  - Integrated pipx, pip, and source installation instructions
-  - Enhanced troubleshooting section with installation-specific guidance
-  - Removed redundant MCP documentation files for cleaner structure
-- **Enhanced Documentation Navigation**: Updated docs/README.md with improved structure and valid links
-- **Socket.IO Stability Improvements**: Major reliability enhancements for real-time communication
-  - Improved error handling and connection management
-  - Enhanced event routing and processing
-  - Better dashboard integration and stability
-
-### Changed
-
-- **Documentation Structure**: Streamlined documentation with consolidated guides and improved organization
-- **Project Organization**: Better file organization with clear purpose-based script categorization
-- **MCP Setup Process**: Unified setup guide replacing multiple scattered documentation files
-
-### Fixed
-
-- **Socket.IO Connection Issues**: Resolved WebSocket connection problems in dashboard
-- **Event Processing**: Fixed event parsing showing events as "unknown" due to field overwriting
-- **Dashboard JavaScript Errors**: Corrected JavaScript errors in file-tool-tracker.js and event-viewer.js
-- **Hook Event Routing**: Improved hook.* prefixed event handling
-- **Documentation Links**: Fixed broken links and outdated references throughout documentation
-
-### Removed
-
-- **Redundant MCP Documentation**: Consolidated multiple MCP setup files into single comprehensive guide
-- **Deprecated Scripts**: Cleaned up obsolete scripts and moved active ones to organized subdirectories
-## [4.0.33] - 2025-08-22
-
-### Added
-
-- Monitor UI build tracking system (separate from main versioning)
-- Hierarchical agent display with PM at top level
-- Implied PM detection for orphan agents
-- Agent-inference component with delegation hierarchy
-- Visual distinction for implied vs explicit PM nodes
-- Comprehensive test coverage for new agent hierarchy features
-- Performance optimization documentation and test scripts
-- Enhanced memory system integration with hook handler improvements
-
-### Changed
-
-### Fixed
-
-### Removed
-
-## [4.0.32] - 2025-08-22
-
-### Fixed
-
-- **CRITICAL**: Prevent automatic file creation in .claude/ directory during startup
-- Disabled automatic system instructions deployment to .claude/ directory
-- Framework now loads custom instructions from .claude-mpm/ directories
-- Prevents conflicts with Claude Code's .claude/ directory management
-- Files only created when explicitly requested by user
-- Updated framework_loader.py to read from .claude-mpm/ with proper precedence
-- Added safe deployment methods to system_instructions_deployer.py
-- Comprehensive test coverage for directory loading behavior
-
-
-### Added
-
-### Changed
-
-### Fixed
-
-### Removed
-
-
-## [4.0.31] - 2025-08-22
-
-### Fixed
-
-- **CRITICAL**: Prevent SystemInstructionsDeployer from creating CLAUDE.md files during startup
-- Fix deployer to keep INSTRUCTIONS.md as-is instead of renaming to CLAUDE.md
-- Prevents Claude Code from automatically reading duplicate PM instructions
-- Resolves instruction conflicts that caused startup behavior issues
+- improve event monitoring and debugging tools
+
+### Fix
+
+- enhance hook management and agent-manager configuration
+- critical dashboard connection failures - event handler registration and connection resilience
+
+## v4.1.7 (2025-08-25)
+
+### Fix
+
+- improve dashboard/SocketIO connection stability and update agent-manager (v1.1.0)
+- resolve linting issues in scripts directory
+
+### Refactor
+
+- reduce complexity in scripts directory
+
+## v4.1.6 (2025-08-25)
+
+### Feat
+
+- add instructions check to mpm-doctor for detecting duplicate CLAUDE.md files
+
+### Fix
+
+- resolve MountError in Textual TUI by yielding ListView items directly
+
+## v4.1.5 (2025-08-25)
+
+### Feat
+
+- add development test files
+- optimize agent templates for memory safety and clarity
+- complete god class refactoring and service architecture implementation
+
+### Fix
+
+- apply automated linting fixes for release build
+
+### Refactor
+
+- update core registries for refactored services
+- eliminate god classes in agent deployment
+- eliminate god classes in ticket services
+- eliminate god classes in project analyzer
+- eliminate god classes in monitoring subsystem
+- eliminate god class in tickets.py
+- eliminate god class in analyzer.py
+- eliminate god classes in monitoring and agent_lifecycle_manager
+- Extract services from hook_handler.py god class
+- Major god class elimination - Phase 1 complete
+- extract services from agent_deployment.py to reduce complexity
+
+## v4.1.2 (2025-08-24)
+
+### Fix
+
+- resolve FileExistsError in logger symlink creation and comprehensive linting cleanup
+
+## v4.1.1 (2025-08-23)
+
+## v4.1.0 (2025-08-22)
+
+### BREAKING CHANGE
+
+- All agents now deploy to project-level .claude/agents directory
+regardless of tier or source. This simplifies deployment logic and improves
+project isolation while maintaining agent discovery from multiple sources.
+
+### Feat
+
+- bump version to 4.1.0
+- **deployment**: standardize all agent deployment to project-level .claude directory
+- add hierarchical agent display and monitor UI build tracking system
+
+### Fix
+
+- restore test scripts and update documentation paths
+- improve Socket.IO stability and connection reliability
+- **agents**: fix MCP tool name and enhance Documentation agent memory protection
+- prevent automatic file creation in .claude/ directory during startup
+- prevent CLAUDE.md creation during startup in SystemInstructionsDeployer
+- update pyproject.toml version to 4.0.30 for PyPI publication
+- correct PM customization documentation to reference .claude-mpm/INSTRUCTIONS.md
+
+### Refactor
+
+- reorganize scripts directory and remove obsolete test files
+
+## v4.0.29 (2025-08-21)
+
+## v4.0.28 (2025-08-21)
+
+## v4.0.25 (2025-08-20)
+
+### Fix
+
+- resolve agent upgrade persistence and JSON template issues
+
+## v4.0.24 (2025-08-20)
+
+### Fix
+
+- update MCP installation to use claude-mpm command instead of Python script
+
+## v4.0.23 (2025-08-20)
+
+### Feat
+
+- add comprehensive memory protection to all file-processing agents
+
+## v4.0.22 (2025-08-19)
+
+### Fix
+
+- implement NLP-based memory deduplication and standardize simple list format
+- implement NLP-based memory deduplication and standardize simple list format
+- correct version format in CHANGELOG.md for 4.0.19
+- add memory management instructions to QA agent
+
+### Refactor
+
+- move MCP server script to proper module location
+
+## v4.0.18 (2025-08-18)
+
+### Feat
+
+- implement MCP gateway singleton installation and startup verification
+
+## v4.0.17 (2025-08-18)
+
+### Feat
+
+- add automated release system and Makefile targets
+
+### Fix
+
+- resolve dynamic agent capabilities loading issues
+
+## v4.0.16 (2025-08-18)
+
+## v4.0.15 (2025-08-18)
+
+### Feat
+
+- reorganize release notes and enhance structure linter
+
+### Fix
+
+- resolve pipx installation framework loading and agent deployment issues
+- add importlib.resources support for loading INSTRUCTIONS.md in pipx installations
+- sync src/claude_mpm/VERSION to match root VERSION (4.0.13)
+- sync src/claude_mpm/VERSION to match root VERSION (4.0.12)
+- sync version files and increment build number
+- resolve test failures in interactive and oneshot sessions
+
+### Refactor
+
+- consolidate version management to use only Commitizen
+
+## v4.0.10 (2025-08-18)
+
+## v4.0.9 (2025-08-18)
+
+### Fix
+
+- include build number in CLI --version display
+
+## v4.0.8 (2025-08-18)
+
+### Fix
+
+- update commitizen version to 4.0.7 for version sync
+
+## v4.0.7 (2025-08-18)
+
+### Feat
+
+- comprehensive scripts directory cleanup
+- implement automatic build number tracking
+- add build number increment to release process
+
+### Fix
+
+- update test script to run core tests only
+- remove tracked node_modules and package-lock.json files
+- update session management tests to work with current implementation
+- remove obsolete ticket-related tests
+
+## v4.0.6 (2025-08-18)
+
+### Fix
+
+- correct Python syntax in Makefile release-sync-versions
+- restore [Unreleased] section and correct version format in CHANGELOG.md
+- format CHANGELOG.md to meet structure requirements
+- correct commitizen bump syntax in Makefile
+- add current directory to framework detection candidates
+
+## v4.0.4 (2025-08-18)
 
 ## v4.0.30 (2025-08-22)
 ### Fix
