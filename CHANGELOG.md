@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.2.34] - 2025-09-09
+
+### Fixed
+- Improved daemon lifecycle management stability
+- Enhanced error handling for edge cases in monitor startup
+
 ## [4.2.33] - 2025-09-09
 
 ### Fixed
