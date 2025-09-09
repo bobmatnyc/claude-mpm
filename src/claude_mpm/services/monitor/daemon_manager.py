@@ -143,14 +143,29 @@ class DaemonManager:
         Returns:
             True if port is available, False otherwise
         """
+        # Try to bind to the port using the same method as the actual server
+        # We only need to check if we can bind to at least one address family
         try:
+            # Try IPv4 first (most common)
             test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             test_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            test_sock.bind((self.host, self.port))
+            
+            # Use 127.0.0.1 for localhost to match what the server does
+            bind_host = "127.0.0.1" if self.host == "localhost" else self.host
+            test_sock.bind((bind_host, self.port))
             test_sock.close()
             return True
         except OSError:
-            return False
+            # IPv4 failed, try IPv6
+            try:
+                test_sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+                test_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                test_sock.bind(("::1", self.port))
+                test_sock.close()
+                return True
+            except:
+                # Both IPv4 and IPv6 failed - port is in use
+                return False
 
     def _kill_processes_on_port(self) -> bool:
         """Kill processes using the daemon port.
