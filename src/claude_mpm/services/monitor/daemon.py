@@ -263,8 +263,8 @@ class UnifiedMonitorDaemon:
             cleaned = self._cleanup_port_conflicts()
             
             if cleaned:
-                # Wait a moment for port to be released
-                time.sleep(2)
+                # Wait longer for port to be released to avoid race conditions
+                time.sleep(3)
                 # Check again
                 port_available, error_msg = self.lifecycle.verify_port_available(self.host)
                 
@@ -302,6 +302,13 @@ class UnifiedMonitorDaemon:
             force_restart: If True, restart existing service if it's ours
         """
         self.logger.info(f"Starting unified monitor daemon on {self.host}:{self.port}")
+        
+        # Clean up any processes on the port before checking service status
+        # This helps with race conditions where old processes haven't fully released the port
+        if force_restart:
+            self.logger.info("Force restart requested, cleaning up port conflicts...")
+            self._cleanup_port_conflicts()
+            time.sleep(1)  # Brief pause to ensure port is released
 
         # Check if already running (check PID file even in foreground mode)
         if self.lifecycle.is_running():
