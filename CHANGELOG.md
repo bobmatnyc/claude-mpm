@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.24] - 2025-09-09
+
+### Fixed
+- Fixed service detection logic to correctly identify Claude MPM monitor services and enable force restart
+- Enhanced service detection with multiple fallback methods and clearer error messages
+
+### Changed
+- Improved monitor daemon force restart capability with better service identification
+- Enhanced error reporting for service detection failures
+
+
 ## [4.2.23] - 2025-09-09
 
 ### Added

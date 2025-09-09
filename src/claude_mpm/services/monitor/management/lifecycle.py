@@ -513,60 +513,101 @@ class DaemonLifecycle:
         Returns:
             Tuple of (is_ours, pid_if_found)
         """
+        self.logger.debug(f"Checking if service on {host}:{self.port} is ours")
+        
         try:
             # Method 1: Check health endpoint
             import urllib.request
             import urllib.error
             
             health_url = f"http://{host}:{self.port}/health"
+            self.logger.debug(f"Checking health endpoint: {health_url}")
+            
             try:
-                with urllib.request.urlopen(health_url, timeout=2) as response:
+                req = urllib.request.Request(health_url)
+                req.add_header('User-Agent', 'claude-mpm-monitor')
+                
+                with urllib.request.urlopen(req, timeout=3) as response:
                     if response.status == 200:
                         data = json.loads(response.read().decode())
+                        self.logger.debug(f"Health endpoint response: {data}")
+                        
                         # Check for our service signature
-                        if data.get("service") == "claude-mpm-monitor":
+                        service_name = data.get("service")
+                        if service_name == "claude-mpm-monitor":
                             # Try to get PID from response
                             pid = data.get("pid")
                             if pid:
-                                self.logger.debug(f"Found our service via health endpoint, PID: {pid}")
+                                self.logger.info(f"Found our claude-mpm-monitor service via health endpoint, PID: {pid}")
                                 return True, pid
                             else:
                                 # Service is ours but no PID in response
                                 # Try to get from PID file
                                 file_pid = self.get_pid()
-                                self.logger.debug(f"Found our service via health endpoint, PID from file: {file_pid}")
+                                self.logger.info(f"Found our claude-mpm-monitor service via health endpoint, PID from file: {file_pid}")
                                 return True, file_pid
-            except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError):
-                # Health endpoint not accessible or invalid response
-                pass
+                        else:
+                            self.logger.debug(f"Service name '{service_name}' does not match 'claude-mpm-monitor'")
+                            
+            except urllib.error.URLError as e:
+                self.logger.debug(f"Health endpoint not accessible: {e}")
+            except urllib.error.HTTPError as e:
+                self.logger.debug(f"Health endpoint HTTP error: {e}")
+            except json.JSONDecodeError as e:
+                self.logger.debug(f"Health endpoint invalid JSON: {e}")
+            except Exception as e:
+                self.logger.debug(f"Health endpoint check failed: {e}")
             
             # Method 2: Check if PID file exists and process matches
             pid = self.get_pid()
             if pid:
+                self.logger.debug(f"Checking PID from file: {pid}")
                 try:
                     # Check if process exists
                     os.kill(pid, 0)
+                    self.logger.debug(f"Process {pid} exists")
                     
                     # Process exists, check if it's using our port
                     # This requires psutil for accurate port checking
                     try:
                         import psutil
                         process = psutil.Process(pid)
+                        
+                        # Check process command line for our service
+                        cmdline = ' '.join(process.cmdline())
+                        if 'claude_mpm' in cmdline or 'claude-mpm' in cmdline:
+                            if 'monitor' in cmdline:
+                                self.logger.info(f"Found our claude-mpm monitor process via PID file, PID: {pid}")
+                                return True, pid
+                        
+                        # Also check if it's listening on our port
                         connections = process.connections()
                         for conn in connections:
-                            if conn.laddr.port == self.port:
-                                self.logger.debug(f"Found our service via PID file, PID: {pid}")
-                                return True, pid
+                            if conn.laddr.port == self.port and conn.status == 'LISTEN':
+                                self.logger.info(f"Found process {pid} listening on our port {self.port}")
+                                # Double-check it's a Python process (likely ours)
+                                if 'python' in process.name().lower():
+                                    self.logger.info(f"Confirmed as Python process, assuming it's our service")
+                                    return True, pid
+                                    
                     except ImportError:
-                        # psutil not available, assume it's ours if PID matches
-                        self.logger.debug(f"Found process with our PID file: {pid}, assuming it's ours")
+                        # psutil not available, but we have a PID file and process exists
+                        # Assume it's ours since we manage the PID file
+                        self.logger.info(f"Found process with our PID file: {pid}, assuming it's ours (psutil not available)")
                         return True, pid
-                    except Exception:
-                        pass
+                    except psutil.NoSuchProcess:
+                        self.logger.debug(f"Process {pid} no longer exists")
+                    except psutil.AccessDenied:
+                        # Can't access process info, but it exists - likely ours
+                        self.logger.info(f"Process {pid} exists but access denied, assuming it's ours")
+                        return True, pid
+                    except Exception as e:
+                        self.logger.debug(f"Error checking process {pid}: {e}")
                         
                 except (OSError, ProcessLookupError):
                     # Process doesn't exist
-                    pass
+                    self.logger.debug(f"Process {pid} does not exist")
+                    self._cleanup_stale_pid_file()
             
             # Method 3: Try Socket.IO connection to check namespace
             try:
@@ -620,9 +661,21 @@ class DaemonLifecycle:
             except Exception as e:
                 self.logger.debug(f"Error checking Socket.IO connection: {e}")
             
+            # Method 4: Final fallback - if we have a PID file and can't definitively say it's NOT ours
+            # This handles edge cases where the health endpoint might be temporarily unavailable
+            if pid and self.pid_file.exists():
+                try:
+                    # One more check - see if process exists
+                    os.kill(pid, 0)
+                    self.logger.info(f"PID file exists with valid process {pid}, assuming it's our stale service")
+                    return True, pid
+                except (OSError, ProcessLookupError):
+                    pass
+            
             # No service detected or not ours
+            self.logger.debug("Service not detected as ours")
             return False, None
             
         except Exception as e:
-            self.logger.error(f"Error checking if service is ours: {e}")
+            self.logger.error(f"Error checking if service is ours: {e}", exc_info=True)
             return False, None
