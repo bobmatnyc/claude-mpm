@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## v4.2.32 (2025-09-09)
+
+### Feat
+
+- consolidate daemon management into single DaemonManager service (v4.2.31)
+
+### Fix
+
+- enhance monitor cleanup with more aggressive process termination
+- resolve Mamba environment detection and document dependency conflicts
+- resolve UnboundLocalError in monitor cleanup code
+- resolve monitor cleanup race condition for --monitor flag
+
+## v4.2.25 (2025-09-09)
+
+## v4.2.24 (2025-09-08)
+
+## v4.2.23 (2025-09-08)
+
+### Feat
+
+- add Socket.IO service detection and automatic restart (v4.2.23)
+
+## v4.2.22 (2025-09-08)
+
+### Fix
+
+- resolve monitor daemon silent failures and enhance pipx documentation (v4.2.22)
+
+## v4.2.21 (2025-09-08)
+
+### Feat
+
+- add monitor optional dependencies for pipx installation (v4.2.21)
+
+### Fix
+
+- add missing socketio_daemon.py and launch_monitor.py scripts
+
+## v4.2.18 (2025-09-08)
+
+### BREAKING CHANGE
+
+- Removed deprecated socketio commands, use 'claude-mpm monitor' instead
+
+### Feat
+
+- add comprehensive local agent template support with interactive management
+- add JSON support to dashboard code viewer
+
+### Fix
+
+- prevent code viewer from defaulting to root directory
+- remove remaining linting issues for release
+- resolve dashboard "process is not defined" error and monitor daemon restart issues
+- resolve dashboard stop command error and eliminate hardcoded paths
+- comprehensive dashboard improvements, JS refactoring phase 1, and version bump to 4.2.14
+- resolve missing quickstart guide and fix documentation navigation
+- resolve monitor daemon process management and status detection
+- consolidate monitoring architecture and enhance dashboard UI
+- eliminate duplicate events with single-path emission architecture
+- dashboard code tree root node directory identification
+- dashboard code viewer and Socket.IO event handling
+- dashboard code tree root node directory identification
+- remove duplicate content pane and improve code tree data display
+- add defensive import handling for outdated installations
+- dashboard code viewer displays content in correct tab
+
+## v4.2.7 (2025-09-03)
+
+### Fix
+
+- dashboard resilience and real event serving
+
+## v4.2.6 (2025-09-03)
+
+### Fix
+
+- dashboard service now works reliably without monitor dependency
+- improve Socket.IO client connection resilience
+- dashboard AST viewer now displays real file content instead of mock data
+
 ## v4.2.31 (2025-09-09)
 
 ### Feat
