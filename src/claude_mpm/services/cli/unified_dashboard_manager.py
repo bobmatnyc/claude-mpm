@@ -117,33 +117,23 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
                 self.logger.info(
                     f"Force restarting our dashboard on port {port} (PID: {pid})"
                 )
-                # Use daemon manager for cleanup
-                daemon_mgr = DaemonManager(port=port, host="localhost")
-                daemon_mgr.cleanup_port_conflicts()
+                # Don't cleanup here - let daemon.start(force_restart=True) handle it
+                # This prevents race conditions where we kill the service we're trying to start
             elif self.is_dashboard_running(port) and not force_restart:
-                # Different service is using the port - try to clean it up
+                # Different service is using the port - don't clean it up without force_restart
                 self.logger.warning(
-                    f"Port {port} is in use by a different service, attempting cleanup"
+                    f"Port {port} is in use by a different service. Use force_restart to override."
                 )
-                daemon_mgr = DaemonManager(port=port, host="localhost")
-                daemon_mgr.cleanup_port_conflicts()
-                # Brief pause to ensure cleanup is complete
-                time.sleep(1)
+                return False, False
 
             self.logger.info(
                 f"Starting unified dashboard on port {port} (background: {background}, force_restart: {force_restart})"
             )
 
             if background:
-                # Always try to clean up first before starting
-                self.logger.info(
-                    f"Pre-emptively cleaning up port {port} before starting daemon"
-                )
-                daemon_mgr = DaemonManager(port=port, host="localhost")
-                if not daemon_mgr.cleanup_port_conflicts():
-                    self.logger.error(f"Failed to clean up port {port}, cannot proceed")
-                    return False, False
-
+                # The daemon.start() method will handle cleanup when force_restart=True
+                # We don't need pre-emptive cleanup here as it causes race conditions
+                
                 # Try to start daemon with retry on port conflicts
                 max_retries = 3
                 retry_count = 0
@@ -151,6 +141,7 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
 
                 while retry_count < max_retries and not success:
                     if retry_count > 0:
+                        # Only cleanup on retries, not on first attempt
                         self.logger.info(
                             f"Retry {retry_count}/{max_retries}: Cleaning up port {port}"
                         )
@@ -160,8 +151,9 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
                             break
                         time.sleep(3)  # Longer wait for cleanup to complete
 
-                    # Start daemon in background mode with force restart if needed
-                    success = daemon.start(force_restart=True)  # Always force restart
+                    # Start daemon in background mode with force restart
+                    # The daemon.start() method handles its own cleanup when force_restart=True
+                    success = daemon.start(force_restart=force_restart)
 
                     if not success and retry_count < max_retries - 1:
                         # Check if it's a port conflict
