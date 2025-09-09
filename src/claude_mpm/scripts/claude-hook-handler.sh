@@ -61,9 +61,20 @@ set -e
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Determine the claude-mpm root
-# The script is at src/claude_mpm/scripts/, so we go up 3 levels
-CLAUDE_MPM_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# Determine the claude-mpm root based on installation type
+# Check if we're in a pipx installation
+if [[ "$SCRIPT_DIR" == *"/.local/pipx/venvs/claude-mpm/"* ]]; then
+    # pipx installation - script is at lib/python*/site-packages/claude_mpm/scripts/
+    # The venv root is what we need for Python detection
+    CLAUDE_MPM_ROOT="$(echo "$SCRIPT_DIR" | sed 's|/lib/python.*/site-packages/.*||')"
+elif [[ "$SCRIPT_DIR" == *"/site-packages/claude_mpm/scripts"* ]]; then
+    # Regular pip installation - script is in site-packages
+    # Use the Python environment root
+    CLAUDE_MPM_ROOT="$(python3 -c 'import sys; print(sys.prefix)')"
+else
+    # Development installation - script is at src/claude_mpm/scripts/, so we go up 3 levels
+    CLAUDE_MPM_ROOT="$(cd "$SCRIPT_DIR/../../.." 2>/dev/null && pwd || echo "$SCRIPT_DIR")"
+fi
 
 # Debug logging (can be enabled via environment variable)
 if [ "${CLAUDE_MPM_HOOK_DEBUG}" = "true" ]; then
@@ -102,7 +113,16 @@ fi
 # Absolute path to Python executable with claude-mpm dependencies
 #
 find_python_command() {
-    # 1. Check for project-local virtual environment (common in development)
+    # 1. Check if we're in a pipx installation first
+    if [[ "$SCRIPT_DIR" == *"/.local/pipx/venvs/claude-mpm/"* ]]; then
+        # pipx installation - use the pipx venv's Python directly
+        if [ -f "$CLAUDE_MPM_ROOT/bin/python" ]; then
+            echo "$CLAUDE_MPM_ROOT/bin/python"
+            return
+        fi
+    fi
+    
+    # 2. Check for project-local virtual environment (common in development)
     if [ -f "$CLAUDE_MPM_ROOT/venv/bin/activate" ]; then
         source "$CLAUDE_MPM_ROOT/venv/bin/activate"
         echo "$CLAUDE_MPM_ROOT/venv/bin/python"
@@ -122,8 +142,14 @@ find_python_command() {
 # Set up Python command
 PYTHON_CMD=$(find_python_command)
 
-# Check if we're in a development environment (has src directory)
-if [ -d "$CLAUDE_MPM_ROOT/src" ]; then
+# Check installation type and set PYTHONPATH accordingly
+if [[ "$SCRIPT_DIR" == *"/.local/pipx/venvs/claude-mpm/"* ]]; then
+    # pipx installation - claude_mpm is already in the venv's site-packages
+    # No need to modify PYTHONPATH
+    if [ "${CLAUDE_MPM_HOOK_DEBUG}" = "true" ]; then
+        echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] pipx installation detected" >> /tmp/claude-mpm-hook.log
+    fi
+elif [ -d "$CLAUDE_MPM_ROOT/src" ]; then
     # Development install - add src to PYTHONPATH
     export PYTHONPATH="$CLAUDE_MPM_ROOT/src:$PYTHONPATH"
     
@@ -131,7 +157,7 @@ if [ -d "$CLAUDE_MPM_ROOT/src" ]; then
         echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Development environment detected" >> /tmp/claude-mpm-hook.log
     fi
 else
-    # Pip install - claude_mpm should be in site-packages
+    # Regular pip install - claude_mpm should be in site-packages
     # No need to modify PYTHONPATH
     if [ "${CLAUDE_MPM_HOOK_DEBUG}" = "true" ]; then
         echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Pip installation detected" >> /tmp/claude-mpm-hook.log
