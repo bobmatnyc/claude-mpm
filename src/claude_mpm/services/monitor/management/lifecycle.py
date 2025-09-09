@@ -21,6 +21,7 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Optional, Tuple
+import json
 
 from ....core.logging_config import get_logger
 
@@ -497,3 +498,131 @@ class DaemonLifecycle:
         except OSError as e:
             error_msg = f"Port {self.port} is already in use or cannot be bound: {e}"
             return False, error_msg
+    
+    def is_our_service(self, host: str = "localhost") -> Tuple[bool, Optional[int]]:
+        """Check if the service on the port is our Socket.IO service.
+        
+        This uses multiple detection methods:
+        1. Check health endpoint for service signature
+        2. Check Socket.IO namespace availability
+        3. Check process ownership if PID file exists
+        
+        Args:
+            host: Host to check
+            
+        Returns:
+            Tuple of (is_ours, pid_if_found)
+        """
+        try:
+            # Method 1: Check health endpoint
+            import urllib.request
+            import urllib.error
+            
+            health_url = f"http://{host}:{self.port}/health"
+            try:
+                with urllib.request.urlopen(health_url, timeout=2) as response:
+                    if response.status == 200:
+                        data = json.loads(response.read().decode())
+                        # Check for our service signature
+                        if data.get("service") == "claude-mpm-monitor":
+                            # Try to get PID from response
+                            pid = data.get("pid")
+                            if pid:
+                                self.logger.debug(f"Found our service via health endpoint, PID: {pid}")
+                                return True, pid
+                            else:
+                                # Service is ours but no PID in response
+                                # Try to get from PID file
+                                file_pid = self.get_pid()
+                                self.logger.debug(f"Found our service via health endpoint, PID from file: {file_pid}")
+                                return True, file_pid
+            except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError):
+                # Health endpoint not accessible or invalid response
+                pass
+            
+            # Method 2: Check if PID file exists and process matches
+            pid = self.get_pid()
+            if pid:
+                try:
+                    # Check if process exists
+                    os.kill(pid, 0)
+                    
+                    # Process exists, check if it's using our port
+                    # This requires psutil for accurate port checking
+                    try:
+                        import psutil
+                        process = psutil.Process(pid)
+                        connections = process.connections()
+                        for conn in connections:
+                            if conn.laddr.port == self.port:
+                                self.logger.debug(f"Found our service via PID file, PID: {pid}")
+                                return True, pid
+                    except ImportError:
+                        # psutil not available, assume it's ours if PID matches
+                        self.logger.debug(f"Found process with our PID file: {pid}, assuming it's ours")
+                        return True, pid
+                    except Exception:
+                        pass
+                        
+                except (OSError, ProcessLookupError):
+                    # Process doesn't exist
+                    pass
+            
+            # Method 3: Try Socket.IO connection to check namespace
+            try:
+                import socketio
+                sio_client = socketio.Client()
+                
+                # Try to connect with a short timeout
+                connected = False
+                def on_connect():
+                    nonlocal connected
+                    connected = True
+                
+                sio_client.on('connect', on_connect)
+                
+                try:
+                    sio_client.connect(f'http://{host}:{self.port}', wait_timeout=2)
+                    if connected:
+                        # Successfully connected to Socket.IO
+                        sio_client.disconnect()
+                        
+                        # Check for orphaned process (no PID file but service running)
+                        try:
+                            # Try to find process using the port
+                            import psutil
+                            for proc in psutil.process_iter(['pid', 'name']):
+                                try:
+                                    for conn in proc.connections():
+                                        if conn.laddr.port == self.port and conn.status == 'LISTEN':
+                                            # Found process listening on our port
+                                            if 'python' in proc.name().lower():
+                                                self.logger.debug(f"Found likely orphaned claude-mpm service on port {self.port}, PID: {proc.pid}")
+                                                return True, proc.pid
+                                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                                    continue
+                        except ImportError:
+                            pass
+                        
+                        # Socket.IO service exists but can't determine if it's ours
+                        self.logger.debug(f"Found Socket.IO service on port {self.port}, but cannot confirm ownership")
+                        return False, None
+                        
+                except Exception:
+                    pass
+                finally:
+                    if sio_client.connected:
+                        sio_client.disconnect()
+                        
+            except ImportError:
+                # socketio not available
+                pass
+            except Exception as e:
+                self.logger.debug(f"Error checking Socket.IO connection: {e}")
+            
+            # No service detected or not ours
+            return False, None
+            
+        except Exception as e:
+            self.logger.error(f"Error checking if service is ours: {e}")
+            return False, None

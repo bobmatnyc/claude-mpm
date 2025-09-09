@@ -81,29 +81,76 @@ class UnifiedMonitorDaemon:
         claude_mpm_dir.mkdir(exist_ok=True)
         return str(claude_mpm_dir / "monitor-daemon.pid")
 
-    def start(self) -> bool:
+    def start(self, force_restart: bool = False) -> bool:
         """Start the unified monitor daemon.
+
+        Args:
+            force_restart: If True, restart existing service if it's ours
 
         Returns:
             True if started successfully, False otherwise
         """
         try:
             if self.daemon_mode:
-                return self._start_daemon()
-            return self._start_foreground()
+                return self._start_daemon(force_restart=force_restart)
+            return self._start_foreground(force_restart=force_restart)
         except Exception as e:
             self.logger.error(f"Failed to start unified monitor daemon: {e}")
             return False
 
-    def _start_daemon(self) -> bool:
-        """Start as background daemon process."""
+    def _start_daemon(self, force_restart: bool = False) -> bool:
+        """Start as background daemon process.
+        
+        Args:
+            force_restart: If True, restart existing service if it's ours
+        """
         self.logger.info("Starting unified monitor daemon in background mode")
 
         # Check if already running
         if self.lifecycle.is_running():
             existing_pid = self.lifecycle.get_pid()
-            self.logger.warning(f"Daemon already running with PID {existing_pid}")
-            return False
+            
+            if force_restart:
+                # Check if it's our service
+                is_ours, pid = self.lifecycle.is_our_service(self.host)
+                if is_ours:
+                    self.logger.info(f"Force restarting our existing daemon (PID: {pid or existing_pid})")
+                    # Stop the existing daemon
+                    if self.lifecycle.stop_daemon():
+                        # Wait a moment for port to be released
+                        time.sleep(2)
+                    else:
+                        self.logger.error("Failed to stop existing daemon for restart")
+                        return False
+                else:
+                    self.logger.warning(f"Daemon already running with PID {existing_pid}, but it's not our service")
+                    return False
+            else:
+                self.logger.warning(f"Daemon already running with PID {existing_pid}")
+                return False
+        
+        # Check for orphaned processes (service running but no PID file)
+        elif force_restart:
+            is_ours, pid = self.lifecycle.is_our_service(self.host)
+            if is_ours and pid:
+                self.logger.info(f"Found orphaned claude-mpm service (PID: {pid}), force restarting")
+                # Try to kill the orphaned process
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                    # Wait for it to exit
+                    for _ in range(10):
+                        try:
+                            os.kill(pid, 0)  # Check if still exists
+                            time.sleep(0.5)
+                        except ProcessLookupError:
+                            break
+                    else:
+                        # Force kill if still running
+                        os.kill(pid, signal.SIGKILL)
+                        time.sleep(1)
+                except Exception as e:
+                    self.logger.error(f"Failed to kill orphaned process: {e}")
+                    return False
         
         # Verify port is available before forking
         port_available, error_msg = self.lifecycle.verify_port_available(self.host)
@@ -133,17 +180,61 @@ class UnifiedMonitorDaemon:
             self.lifecycle._report_startup_error(f"Server startup exception: {e}")
             raise
 
-    def _start_foreground(self) -> bool:
-        """Start in foreground mode."""
+    def _start_foreground(self, force_restart: bool = False) -> bool:
+        """Start in foreground mode.
+        
+        Args:
+            force_restart: If True, restart existing service if it's ours
+        """
         self.logger.info(f"Starting unified monitor daemon on {self.host}:{self.port}")
 
         # Check if already running (check PID file even in foreground mode)
         if self.lifecycle.is_running():
             existing_pid = self.lifecycle.get_pid()
-            self.logger.warning(
-                f"Monitor daemon already running with PID {existing_pid}"
-            )
-            return False
+            
+            if force_restart:
+                # Check if it's our service
+                is_ours, pid = self.lifecycle.is_our_service(self.host)
+                if is_ours:
+                    self.logger.info(f"Force restarting our existing daemon (PID: {pid or existing_pid})")
+                    # Stop the existing daemon
+                    if self.lifecycle.stop_daemon():
+                        # Wait a moment for port to be released
+                        time.sleep(2)
+                    else:
+                        self.logger.error("Failed to stop existing daemon for restart")
+                        return False
+                else:
+                    self.logger.warning(f"Monitor daemon already running with PID {existing_pid}, but it's not our service")
+                    return False
+            else:
+                self.logger.warning(
+                    f"Monitor daemon already running with PID {existing_pid}"
+                )
+                return False
+        
+        # Check for orphaned processes (service running but no PID file)
+        elif force_restart:
+            is_ours, pid = self.lifecycle.is_our_service(self.host)
+            if is_ours and pid:
+                self.logger.info(f"Found orphaned claude-mpm service (PID: {pid}), force restarting")
+                # Try to kill the orphaned process
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                    # Wait for it to exit
+                    for _ in range(10):
+                        try:
+                            os.kill(pid, 0)  # Check if still exists
+                            time.sleep(0.5)
+                        except ProcessLookupError:
+                            break
+                    else:
+                        # Force kill if still running
+                        os.kill(pid, signal.SIGKILL)
+                        time.sleep(1)
+                except Exception as e:
+                    self.logger.error(f"Failed to kill orphaned process: {e}")
+                    return False
 
         # Setup signal handlers for graceful shutdown
         self._setup_signal_handlers()
