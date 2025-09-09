@@ -171,6 +171,26 @@ Both environments set these variables:
 | Python-only packages | Good | Excellent |
 | Corporate Environments | May need proxy config | Usually works |
 
+## Known Issues
+
+### ⚠️ Current Mamba Environment Issue
+
+**Status**: There is currently a dependency conflict in the Mamba environment that prevents proper installation.
+
+**Issue**: Conflict between `docstring-parser` versions required by different packages:
+- `claude-mpm[agents,dev]` requires `docstring-parser>=0.15.0`  
+- `pydoc-markdown` requires `docstring-parser<0.12`
+
+**Workaround**: Use the `--use-venv` flag to force venv usage until this is resolved:
+
+```bash
+# Use venv instead of Mamba for now
+./scripts/claude-mpm --use-venv --help
+./scripts/claude-mpm --use-venv run
+```
+
+**Resolution**: We are working to resolve this dependency conflict. Track progress in issue [#TBD].
+
 ## Troubleshooting
 
 ### Mamba Issues
