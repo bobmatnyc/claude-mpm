@@ -24,6 +24,7 @@ from typing import Optional
 
 from ...core.logging_config import get_logger
 from ..hook_installer_service import HookInstallerService
+from .daemon_manager import DaemonManager
 from .management.health import HealthMonitor
 from .management.lifecycle import DaemonLifecycle
 from .server import UnifiedMonitorServer
@@ -58,7 +59,15 @@ class UnifiedMonitorDaemon:
         self.daemon_mode = daemon_mode
         self.logger = get_logger(__name__)
 
-        # Daemon management with port for verification
+        # Use new consolidated DaemonManager for all daemon operations
+        self.daemon_manager = DaemonManager(
+            port=port,
+            host=host,
+            pid_file=pid_file or self._get_default_pid_file(),
+            log_file=log_file
+        )
+        
+        # Keep lifecycle for backward compatibility (delegates to daemon_manager)
         self.lifecycle = DaemonLifecycle(
             pid_file=pid_file or self._get_default_pid_file(),
             log_file=log_file,
@@ -105,83 +114,12 @@ class UnifiedMonitorDaemon:
     def _cleanup_port_conflicts(self) -> bool:
         """Try to clean up any processes using our port.
         
+        Delegates to the consolidated DaemonManager for consistent behavior.
+        
         Returns:
             True if cleanup was successful, False otherwise
         """
-        try:
-            # Find process using the port
-            import subprocess
-            result = subprocess.run(
-                ["lsof", "-ti", f":{self.port}"],
-                capture_output=True,
-                text=True
-            )
-            
-            if result.returncode == 0 and result.stdout.strip():
-                pids = result.stdout.strip().split('\n')
-                for pid_str in pids:
-                    try:
-                        pid = int(pid_str.strip())
-                        self.logger.info(f"Found process {pid} using port {self.port}")
-                        
-                        # Check if it's a claude-mpm process
-                        process_info = subprocess.run(
-                            ["ps", "-p", str(pid), "-o", "comm="],
-                            capture_output=True,
-                            text=True
-                        )
-                        
-                        if "python" in process_info.stdout.lower() or "claude" in process_info.stdout.lower():
-                            self.logger.info(f"Killing process {pid} (appears to be Python/Claude related)")
-                            os.kill(pid, signal.SIGTERM)
-                            time.sleep(1)
-                            
-                            # Check if still alive
-                            try:
-                                os.kill(pid, 0)
-                                # Still alive, force kill
-                                self.logger.warning(f"Process {pid} didn't terminate, force killing")
-                                os.kill(pid, signal.SIGKILL)
-                                time.sleep(1)
-                            except ProcessLookupError:
-                                pass
-                        else:
-                            self.logger.warning(f"Process {pid} is not a Claude MPM process: {process_info.stdout}")
-                            return False
-                    except (ValueError, ProcessLookupError) as e:
-                        self.logger.debug(f"Error handling PID {pid_str}: {e}")
-                        continue
-                
-                return True
-                
-        except FileNotFoundError:
-            # lsof not available, try alternative method
-            self.logger.debug("lsof not available, using alternative cleanup")
-            
-            # Check if there's an orphaned service we can identify
-            is_ours, pid = self.lifecycle.is_our_service(self.host)
-            if is_ours and pid:
-                try:
-                    self.logger.info(f"Killing orphaned Claude MPM service (PID: {pid})")
-                    os.kill(pid, signal.SIGTERM)
-                    time.sleep(1)
-                    
-                    # Check if still alive
-                    try:
-                        os.kill(pid, 0)
-                        os.kill(pid, signal.SIGKILL)
-                        time.sleep(1)
-                    except ProcessLookupError:
-                        pass
-                    
-                    return True
-                except Exception as e:
-                    self.logger.error(f"Failed to kill process: {e}")
-                    
-        except Exception as e:
-            self.logger.error(f"Error during port cleanup: {e}")
-            
-        return False
+        return self.daemon_manager.cleanup_port_conflicts()
 
     def _start_daemon(self, force_restart: bool = False) -> bool:
         """Start as background daemon process.
@@ -190,109 +128,57 @@ class UnifiedMonitorDaemon:
             force_restart: If True, restart existing service if it's ours
         """
         self.logger.info("Starting unified monitor daemon in background mode")
+        
+        # Always use daemon manager for cleanup first
+        # This ensures consistent behavior and prevents race conditions
+        if force_restart:
+            self.logger.info("Force restart requested, cleaning up any existing processes...")
+            if not self.daemon_manager.cleanup_port_conflicts(max_retries=3):
+                self.logger.error(f"Failed to clean up port {self.port}")
+                return False
+            # Wait for port to be fully released
+            time.sleep(2)
 
-        # Check if already running
-        if self.lifecycle.is_running():
-            existing_pid = self.lifecycle.get_pid()
-
-            if force_restart:
-                # Check if it's our service
-                self.logger.debug(
-                    f"Checking if existing daemon (PID: {existing_pid}) is our service..."
-                )
-                is_ours, detected_pid = self.lifecycle.is_our_service(self.host)
-
-                if is_ours:
-                    self.logger.info(
-                        f"Force restarting our existing claude-mpm monitor daemon (PID: {detected_pid or existing_pid})"
-                    )
-                    # Stop the existing daemon
-                    if self.lifecycle.stop_daemon():
-                        # Wait a moment for port to be released
-                        time.sleep(2)
-                    else:
-                        self.logger.error("Failed to stop existing daemon for restart")
-                        return False
-                else:
-                    self.logger.warning(
-                        f"Port {self.port} is in use by another service (PID: {existing_pid}). Cannot force restart."
-                    )
-                    self.logger.info(
-                        "To restart the claude-mpm monitor, first stop the other service or use a different port."
-                    )
-                    return False
-            else:
+        # Check if already running via daemon manager
+        if self.daemon_manager.is_running():
+            existing_pid = self.daemon_manager.get_pid()
+            if not force_restart:
                 self.logger.warning(f"Daemon already running with PID {existing_pid}")
                 return False
-
-        # Check for orphaned processes (service running but no PID file)
-        elif force_restart:
-            self.logger.debug(
-                "No PID file found, checking for orphaned claude-mpm service..."
-            )
-            is_ours, pid = self.lifecycle.is_our_service(self.host)
-            if is_ours and pid:
-                self.logger.info(
-                    f"Found orphaned claude-mpm monitor service (PID: {pid}), force restarting"
-                )
-                # Try to kill the orphaned process
-                try:
-                    os.kill(pid, signal.SIGTERM)
-                    # Wait for it to exit
-                    for _ in range(10):
-                        try:
-                            os.kill(pid, 0)  # Check if still exists
-                            time.sleep(0.5)
-                        except ProcessLookupError:
-                            break
-                    else:
-                        # Force kill if still running
-                        os.kill(pid, signal.SIGKILL)
-                        time.sleep(1)
-                except Exception as e:
-                    self.logger.error(f"Failed to kill orphaned process: {e}")
-                    return False
-
-        # Check port availability and clean up if needed
-        port_available, error_msg = self.lifecycle.verify_port_available(self.host)
-        if not port_available:
-            self.logger.warning(f"Port {self.port} is not available: {error_msg}")
+            # Force restart was already handled above
             
-            # Try to identify and kill any process using the port
-            self.logger.info("Attempting to clean up processes on port...")
-            cleaned = self._cleanup_port_conflicts()
-            
-            if cleaned:
-                # Wait longer for port to be released to avoid race conditions
-                time.sleep(3)
-                # Check again
-                port_available, error_msg = self.lifecycle.verify_port_available(self.host)
-                
-            if not port_available:
-                self.logger.error(f"Port {self.port} is still not available after cleanup: {error_msg}")
-                print(f"Error: {error_msg}", file=sys.stderr)
-                print(f"Try 'claude-mpm monitor stop' or use --force flag", file=sys.stderr)
-                return False
+        # Check for our service on the port
+        is_ours, pid = self.daemon_manager.is_our_service()
+        if is_ours and pid and not force_restart:
+            self.logger.warning(f"Our service already running on port {self.port} (PID: {pid})")
+            return False
 
         # Wait for any pre-warming threads to complete before forking
         self._wait_for_prewarm_completion()
 
-        # Daemonize the process
-        success = self.lifecycle.daemonize()
+        # Use daemon manager's daemonize which includes cleanup
+        self.daemon_manager.startup_status_file = None  # Reset status file
+        success = self.daemon_manager.daemonize()
         if not success:
             return False
 
+        # We're now in the daemon process
+        # Update our PID references
+        self.lifecycle.pid_file = self.daemon_manager.pid_file
+        
         # Start the server in daemon mode
-        # This will run in the child process
         try:
             result = self._run_server()
             if not result:
                 # Report failure before exiting
-                self.lifecycle._report_startup_error("Failed to start server")
+                self.daemon_manager._report_startup_error("Failed to start server")
+            else:
+                # Report success
+                self.daemon_manager._report_startup_success()
             return result
         except Exception as e:
             # Report any exceptions during startup
-            self.lifecycle._report_startup_error(f"Server startup exception: {e}")
+            self.daemon_manager._report_startup_error(f"Server startup exception: {e}")
             raise
 
     def _start_foreground(self, force_restart: bool = False) -> bool:
@@ -303,11 +189,11 @@ class UnifiedMonitorDaemon:
         """
         self.logger.info(f"Starting unified monitor daemon on {self.host}:{self.port}")
         
-        # Clean up any processes on the port before checking service status
+        # Use daemon manager for consistent port cleanup
         # This helps with race conditions where old processes haven't fully released the port
         if force_restart:
             self.logger.info("Force restart requested, cleaning up port conflicts...")
-            self._cleanup_port_conflicts()
+            self.daemon_manager.cleanup_port_conflicts(max_retries=2)
             time.sleep(1)  # Brief pause to ensure port is released
 
         # Check if already running (check PID file even in foreground mode)
@@ -319,7 +205,7 @@ class UnifiedMonitorDaemon:
                 self.logger.debug(
                     f"Checking if existing daemon (PID: {existing_pid}) is our service..."
                 )
-                is_ours, detected_pid = self.lifecycle.is_our_service(self.host)
+                is_ours, detected_pid = self.daemon_manager.is_our_service()
 
                 if is_ours:
                     self.logger.info(
@@ -351,7 +237,7 @@ class UnifiedMonitorDaemon:
             self.logger.debug(
                 "No PID file found, checking for orphaned claude-mpm service..."
             )
-            is_ours, pid = self.lifecycle.is_our_service(self.host)
+            is_ours, pid = self.daemon_manager.is_our_service()
             if is_ours and pid:
                 self.logger.info(
                     f"Found orphaned claude-mpm monitor service (PID: {pid}), force restarting"
