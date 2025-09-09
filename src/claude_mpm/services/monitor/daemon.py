@@ -102,6 +102,87 @@ class UnifiedMonitorDaemon:
             self.logger.error(f"Failed to start unified monitor daemon: {e}")
             return False
 
+    def _cleanup_port_conflicts(self) -> bool:
+        """Try to clean up any processes using our port.
+        
+        Returns:
+            True if cleanup was successful, False otherwise
+        """
+        try:
+            # Find process using the port
+            import subprocess
+            result = subprocess.run(
+                ["lsof", "-ti", f":{self.port}"],
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode == 0 and result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                for pid_str in pids:
+                    try:
+                        pid = int(pid_str.strip())
+                        self.logger.info(f"Found process {pid} using port {self.port}")
+                        
+                        # Check if it's a claude-mpm process
+                        process_info = subprocess.run(
+                            ["ps", "-p", str(pid), "-o", "comm="],
+                            capture_output=True,
+                            text=True
+                        )
+                        
+                        if "python" in process_info.stdout.lower() or "claude" in process_info.stdout.lower():
+                            self.logger.info(f"Killing process {pid} (appears to be Python/Claude related)")
+                            os.kill(pid, signal.SIGTERM)
+                            time.sleep(1)
+                            
+                            # Check if still alive
+                            try:
+                                os.kill(pid, 0)
+                                # Still alive, force kill
+                                self.logger.warning(f"Process {pid} didn't terminate, force killing")
+                                os.kill(pid, signal.SIGKILL)
+                                time.sleep(1)
+                            except ProcessLookupError:
+                                pass
+                        else:
+                            self.logger.warning(f"Process {pid} is not a Claude MPM process: {process_info.stdout}")
+                            return False
+                    except (ValueError, ProcessLookupError) as e:
+                        self.logger.debug(f"Error handling PID {pid_str}: {e}")
+                        continue
+                
+                return True
+                
+        except FileNotFoundError:
+            # lsof not available, try alternative method
+            self.logger.debug("lsof not available, using alternative cleanup")
+            
+            # Check if there's an orphaned service we can identify
+            is_ours, pid = self.lifecycle.is_our_service(self.host)
+            if is_ours and pid:
+                try:
+                    self.logger.info(f"Killing orphaned Claude MPM service (PID: {pid})")
+                    os.kill(pid, signal.SIGTERM)
+                    time.sleep(1)
+                    
+                    # Check if still alive
+                    try:
+                        os.kill(pid, 0)
+                        os.kill(pid, signal.SIGKILL)
+                        time.sleep(1)
+                    except ProcessLookupError:
+                        pass
+                    
+                    return True
+                except Exception as e:
+                    self.logger.error(f"Failed to kill process: {e}")
+                    
+        except Exception as e:
+            self.logger.error(f"Error during port cleanup: {e}")
+            
+        return False
+
     def _start_daemon(self, force_restart: bool = False) -> bool:
         """Start as background daemon process.
 
@@ -172,12 +253,26 @@ class UnifiedMonitorDaemon:
                     self.logger.error(f"Failed to kill orphaned process: {e}")
                     return False
 
-        # Verify port is available before forking
+        # Check port availability and clean up if needed
         port_available, error_msg = self.lifecycle.verify_port_available(self.host)
         if not port_available:
-            self.logger.error(error_msg)
-            print(f"Error: {error_msg}", file=sys.stderr)
-            return False
+            self.logger.warning(f"Port {self.port} is not available: {error_msg}")
+            
+            # Try to identify and kill any process using the port
+            self.logger.info("Attempting to clean up processes on port...")
+            cleaned = self._cleanup_port_conflicts()
+            
+            if cleaned:
+                # Wait a moment for port to be released
+                time.sleep(2)
+                # Check again
+                port_available, error_msg = self.lifecycle.verify_port_available(self.host)
+                
+            if not port_available:
+                self.logger.error(f"Port {self.port} is still not available after cleanup: {error_msg}")
+                print(f"Error: {error_msg}", file=sys.stderr)
+                print(f"Try 'claude-mpm monitor stop' or use --force flag", file=sys.stderr)
+                return False
 
         # Wait for any pre-warming threads to complete before forking
         self._wait_for_prewarm_completion()
@@ -374,7 +469,7 @@ class UnifiedMonitorDaemon:
                 pid = self.lifecycle.get_pid()
                 if pid and pid != os.getpid():
                     # We're not the daemon process, so stop it via signal
-                    self.logger.info(f"Stopping daemon process with PID {pid}")
+                    # Don't log here - lifecycle.stop_daemon will log
                     success = self.lifecycle.stop_daemon()
                     if success:
                         # Clean up our local state
