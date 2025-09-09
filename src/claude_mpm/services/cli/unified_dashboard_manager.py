@@ -75,7 +75,8 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
         self._lock = threading.Lock()
 
     def start_dashboard(
-        self, port: int = 8765, background: bool = False, open_browser: bool = True
+        self, port: int = 8765, background: bool = False, open_browser: bool = True,
+        force_restart: bool = False
     ) -> Tuple[bool, bool]:
         """
         Start the dashboard using unified daemon.
@@ -84,30 +85,41 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
             port: Port to run dashboard on
             background: Whether to run in background mode
             open_browser: Whether to open browser automatically
+            force_restart: If True, restart existing service if it's ours
 
         Returns:
             Tuple of (success, browser_opened)
         """
         try:
-            # Check if already running
-            if self.is_dashboard_running(port):
-                self.logger.info(f"Dashboard already running on port {port}")
+            # Create daemon instance to check service status
+            daemon = UnifiedMonitorDaemon(
+                host="localhost", port=port, daemon_mode=background
+            )
+            
+            # Check if it's our service running
+            is_ours, pid = daemon.lifecycle.is_our_service("localhost")
+            
+            if is_ours and not force_restart:
+                # Our service is already running, just open browser if needed
+                self.logger.info(f"Our dashboard already running on port {port} (PID: {pid})")
                 browser_opened = False
                 if open_browser:
                     browser_opened = self.open_browser(self.get_dashboard_url(port))
                 return True, browser_opened
+            elif is_ours and force_restart:
+                self.logger.info(f"Force restarting our dashboard on port {port} (PID: {pid})")
+            elif self.is_dashboard_running(port) and not force_restart:
+                # Different service is using the port
+                self.logger.warning(f"Port {port} is in use by a different service")
+                return False, False
 
             self.logger.info(
-                f"Starting unified dashboard on port {port} (background: {background})"
+                f"Starting unified dashboard on port {port} (background: {background}, force_restart: {force_restart})"
             )
 
             if background:
-                # Start daemon in background mode
-                daemon = UnifiedMonitorDaemon(
-                    host="localhost", port=port, daemon_mode=True
-                )
-
-                success = daemon.start()
+                # Start daemon in background mode with force restart if needed
+                success = daemon.start(force_restart=force_restart)
                 if success:
                     with self._lock:
                         self._background_daemons[port] = daemon
@@ -293,7 +305,7 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
         return self.port_manager.find_available_port(preferred_port)
 
     def start_server(
-        self, port: Optional[int] = None, timeout: int = 30
+        self, port: Optional[int] = None, timeout: int = 30, force_restart: bool = True
     ) -> Tuple[bool, DashboardInfo]:
         """
         Start the server (compatibility method for SocketIOManager interface).
@@ -301,6 +313,7 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
         Args:
             port: Port to use (finds available if None)
             timeout: Timeout for startup
+            force_restart: If True, restart existing service if it's ours
 
         Returns:
             Tuple of (success, DashboardInfo)
@@ -308,8 +321,9 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
         if port is None:
             port = self.find_available_port()
 
+        # Use force_restart to ensure we're using the latest code
         success, browser_opened = self.start_dashboard(
-            port=port, background=True, open_browser=False
+            port=port, background=True, open_browser=False, force_restart=force_restart
         )
 
         if success:

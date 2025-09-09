@@ -17,6 +17,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.23] - 2025-09-09
+
+### Added
+- Socket.IO service detection to identify if port 8765 hosts our monitor service
+- Automatic restart of stale Socket.IO daemons with latest code
+- Health endpoint with service signature for identification
+- Orphaned process detection and recovery (processes without PID files)
+- Force restart capability with --force flag in monitor command
+
+### Fixed
+- Monitor now automatically restarts with latest code after upgrades
+- Session identification properly works after service restart
+- CLI integration for force restart flag now properly implemented
+
+### Changed
+- Monitor startup sequence now checks for existing services and restarts if needed
+- Default behavior is to force restart when existing service detected
+- Health endpoint enhanced with service signature "claude-mpm-monitor"
+
+
 ## [4.2.22] - 2025-09-09
 
 ### Fixed
