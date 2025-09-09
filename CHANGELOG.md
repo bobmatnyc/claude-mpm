@@ -17,6 +17,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.22] - 2025-09-09
+
+### Fixed
+- Monitor daemon no longer fails silently on remote machines
+- Added proper parent-child process verification during daemon startup
+- Error messages now properly displayed instead of being redirected to /dev/null
+- Port conflicts detected early with clear error messages and errno details
+- Daemon errors now logged to ~/.claude-mpm/monitor-daemon.log by default
+
+### Changed
+- Enhanced pipx installation documentation in QUICKSTART.md, README.md, and installation.md
+- Made `pipx install "claude-mpm[monitor]"` the primary recommended installation method
+- Added prominent links to PIPX_INSTALLATION.md throughout documentation
+
+### Added
+- Parent process startup verification mechanism with 10-second timeout
+- Comprehensive error logging strategy for daemon mode
+- Early port availability checking before daemon forking
+- Startup status communication between parent and child processes
+
+
 ## [4.2.21] - 2025-09-08
 
 ### Added
