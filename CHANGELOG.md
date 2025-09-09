@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
+## [4.2.27] - 2025-09-09
+
+### Fixed
+- Fixed monitor cleanup race condition when using --monitor flag
+- Added retry logic with up to 3 attempts for port conflicts
+- Increased wait times after cleanup to ensure processes fully terminate
+- Added cleanup for foreground mode with force_restart option
+- Improved synchronization between port cleanup and server startup
+
+
 ## [4.2.26] - 2025-09-09
 
 ### Fixed
