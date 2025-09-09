@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Deprecated
+
+### Fixed
+
+### Removed
+
+### Security
+
+## v4.2.33 (2025-09-09)
+
+### Fixed
+- Prevent race conditions in dashboard daemon restart logic by letting daemon.start() handle its own cleanup
+- Fix daemon self-termination issue where monitor would kill its own service on startup
+
 ## v4.2.32 (2025-09-09)
 
 ### Feat
