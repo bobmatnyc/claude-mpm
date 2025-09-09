@@ -129,6 +129,12 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
             )
 
             if background:
+                # Always try to clean up first before starting
+                self.logger.info(f"Pre-emptively cleaning up port {port} before starting daemon")
+                if not self._cleanup_port_conflicts(port):
+                    self.logger.error(f"Failed to clean up port {port}, cannot proceed")
+                    return False, False
+                    
                 # Try to start daemon with retry on port conflicts
                 max_retries = 3
                 retry_count = 0
@@ -137,11 +143,13 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
                 while retry_count < max_retries and not success:
                     if retry_count > 0:
                         self.logger.info(f"Retry {retry_count}/{max_retries}: Cleaning up port {port}")
-                        self._cleanup_port_conflicts(port)
-                        time.sleep(2)  # Wait for cleanup to complete
+                        if not self._cleanup_port_conflicts(port):
+                            self.logger.error(f"Cleanup failed on retry {retry_count}")
+                            break
+                        time.sleep(3)  # Longer wait for cleanup to complete
                     
                     # Start daemon in background mode with force restart if needed
-                    success = daemon.start(force_restart=force_restart or retry_count > 0)
+                    success = daemon.start(force_restart=True)  # Always force restart
                     
                     if not success and retry_count < max_retries - 1:
                         # Check if it's a port conflict
@@ -150,6 +158,7 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
                             retry_count += 1
                         else:
                             # Different kind of failure, don't retry
+                            self.logger.error(f"Daemon start failed for reason other than port conflict")
                             break
                     else:
                         break
@@ -398,8 +407,19 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
                             self.logger.debug(f"Could not force kill process {pid_str}: {e}")
                             continue
                     
-                    # Brief pause after force kill to ensure port is released
-                    time.sleep(2)
+                    # Longer pause after force kill to ensure port is fully released
+                    time.sleep(5)
+                    
+                # Final verification that port is actually free
+                final_check = subprocess.run(
+                    ["lsof", "-ti", f":{port}"],
+                    capture_output=True,
+                    text=True
+                )
+                
+                if final_check.returncode == 0 and final_check.stdout.strip():
+                    self.logger.error(f"Failed to clean up port {port} - processes still running: {final_check.stdout.strip()}")
+                    return False
                 
                 self.logger.info(f"Successfully cleaned up processes on port {port}")
                 return True
