@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Optional
 
 from ...core.logging_config import get_logger
+from ..hook_installer_service import HookInstallerService
 from .management.health import HealthMonitor
 from .management.lifecycle import DaemonLifecycle
 from .server import UnifiedMonitorServer
@@ -59,9 +60,9 @@ class UnifiedMonitorDaemon:
 
         # Daemon management with port for verification
         self.lifecycle = DaemonLifecycle(
-            pid_file=pid_file or self._get_default_pid_file(), 
+            pid_file=pid_file or self._get_default_pid_file(),
             log_file=log_file,
-            port=port
+            port=port,
         )
 
         # Core server
@@ -69,6 +70,9 @@ class UnifiedMonitorDaemon:
 
         # Health monitoring
         self.health_monitor = HealthMonitor(port=port)
+
+        # Hook installer service
+        self.hook_installer = HookInstallerService()
 
         # State
         self.running = False
@@ -100,7 +104,7 @@ class UnifiedMonitorDaemon:
 
     def _start_daemon(self, force_restart: bool = False) -> bool:
         """Start as background daemon process.
-        
+
         Args:
             force_restart: If True, restart existing service if it's ours
         """
@@ -109,14 +113,18 @@ class UnifiedMonitorDaemon:
         # Check if already running
         if self.lifecycle.is_running():
             existing_pid = self.lifecycle.get_pid()
-            
+
             if force_restart:
                 # Check if it's our service
-                self.logger.debug(f"Checking if existing daemon (PID: {existing_pid}) is our service...")
+                self.logger.debug(
+                    f"Checking if existing daemon (PID: {existing_pid}) is our service..."
+                )
                 is_ours, detected_pid = self.lifecycle.is_our_service(self.host)
-                
+
                 if is_ours:
-                    self.logger.info(f"Force restarting our existing claude-mpm monitor daemon (PID: {detected_pid or existing_pid})")
+                    self.logger.info(
+                        f"Force restarting our existing claude-mpm monitor daemon (PID: {detected_pid or existing_pid})"
+                    )
                     # Stop the existing daemon
                     if self.lifecycle.stop_daemon():
                         # Wait a moment for port to be released
@@ -125,19 +133,27 @@ class UnifiedMonitorDaemon:
                         self.logger.error("Failed to stop existing daemon for restart")
                         return False
                 else:
-                    self.logger.warning(f"Port {self.port} is in use by another service (PID: {existing_pid}). Cannot force restart.")
-                    self.logger.info("To restart the claude-mpm monitor, first stop the other service or use a different port.")
+                    self.logger.warning(
+                        f"Port {self.port} is in use by another service (PID: {existing_pid}). Cannot force restart."
+                    )
+                    self.logger.info(
+                        "To restart the claude-mpm monitor, first stop the other service or use a different port."
+                    )
                     return False
             else:
                 self.logger.warning(f"Daemon already running with PID {existing_pid}")
                 return False
-        
+
         # Check for orphaned processes (service running but no PID file)
         elif force_restart:
-            self.logger.debug("No PID file found, checking for orphaned claude-mpm service...")
+            self.logger.debug(
+                "No PID file found, checking for orphaned claude-mpm service..."
+            )
             is_ours, pid = self.lifecycle.is_our_service(self.host)
             if is_ours and pid:
-                self.logger.info(f"Found orphaned claude-mpm monitor service (PID: {pid}), force restarting")
+                self.logger.info(
+                    f"Found orphaned claude-mpm monitor service (PID: {pid}), force restarting"
+                )
                 # Try to kill the orphaned process
                 try:
                     os.kill(pid, signal.SIGTERM)
@@ -155,7 +171,7 @@ class UnifiedMonitorDaemon:
                 except Exception as e:
                     self.logger.error(f"Failed to kill orphaned process: {e}")
                     return False
-        
+
         # Verify port is available before forking
         port_available, error_msg = self.lifecycle.verify_port_available(self.host)
         if not port_available:
@@ -186,7 +202,7 @@ class UnifiedMonitorDaemon:
 
     def _start_foreground(self, force_restart: bool = False) -> bool:
         """Start in foreground mode.
-        
+
         Args:
             force_restart: If True, restart existing service if it's ours
         """
@@ -195,14 +211,18 @@ class UnifiedMonitorDaemon:
         # Check if already running (check PID file even in foreground mode)
         if self.lifecycle.is_running():
             existing_pid = self.lifecycle.get_pid()
-            
+
             if force_restart:
                 # Check if it's our service
-                self.logger.debug(f"Checking if existing daemon (PID: {existing_pid}) is our service...")
+                self.logger.debug(
+                    f"Checking if existing daemon (PID: {existing_pid}) is our service..."
+                )
                 is_ours, detected_pid = self.lifecycle.is_our_service(self.host)
-                
+
                 if is_ours:
-                    self.logger.info(f"Force restarting our existing claude-mpm monitor daemon (PID: {detected_pid or existing_pid})")
+                    self.logger.info(
+                        f"Force restarting our existing claude-mpm monitor daemon (PID: {detected_pid or existing_pid})"
+                    )
                     # Stop the existing daemon
                     if self.lifecycle.stop_daemon():
                         # Wait a moment for port to be released
@@ -211,21 +231,29 @@ class UnifiedMonitorDaemon:
                         self.logger.error("Failed to stop existing daemon for restart")
                         return False
                 else:
-                    self.logger.warning(f"Port {self.port} is in use by another service (PID: {existing_pid}). Cannot force restart.")
-                    self.logger.info("To restart the claude-mpm monitor, first stop the other service or use a different port.")
+                    self.logger.warning(
+                        f"Port {self.port} is in use by another service (PID: {existing_pid}). Cannot force restart."
+                    )
+                    self.logger.info(
+                        "To restart the claude-mpm monitor, first stop the other service or use a different port."
+                    )
                     return False
             else:
                 self.logger.warning(
                     f"Monitor daemon already running with PID {existing_pid}"
                 )
                 return False
-        
+
         # Check for orphaned processes (service running but no PID file)
         elif force_restart:
-            self.logger.debug("No PID file found, checking for orphaned claude-mpm service...")
+            self.logger.debug(
+                "No PID file found, checking for orphaned claude-mpm service..."
+            )
             is_ours, pid = self.lifecycle.is_our_service(self.host)
             if is_ours and pid:
-                self.logger.info(f"Found orphaned claude-mpm monitor service (PID: {pid}), force restarting")
+                self.logger.info(
+                    f"Found orphaned claude-mpm monitor service (PID: {pid}), force restarting"
+                )
                 # Try to kill the orphaned process
                 try:
                     os.kill(pid, signal.SIGTERM)
@@ -271,6 +299,26 @@ class UnifiedMonitorDaemon:
                     self.lifecycle._report_startup_error(error_msg)
                 return False
 
+            # Check and install hooks if needed
+            try:
+                if not self.hook_installer.is_hooks_configured():
+                    self.logger.info("Claude Code hooks not configured, installing...")
+                    if self.hook_installer.install_hooks():
+                        self.logger.info("Claude Code hooks installed successfully")
+                    else:
+                        # Don't fail startup if hook installation fails
+                        # The monitor can still function without hooks
+                        self.logger.warning(
+                            "Failed to install Claude Code hooks. Monitor will run without hook integration."
+                        )
+                else:
+                    self.logger.info("Claude Code hooks are already configured")
+            except Exception as e:
+                # Don't fail startup if hook checking fails
+                self.logger.warning(
+                    f"Error checking/installing hooks: {e}. Monitor will run without hook integration."
+                )
+
             # Start health monitoring
             self.health_monitor.start()
 
@@ -285,7 +333,7 @@ class UnifiedMonitorDaemon:
 
             self.running = True
             self.logger.info("Unified monitor daemon started successfully")
-            
+
             # Report successful startup to parent (for daemon mode)
             if self.daemon_mode:
                 self.lifecycle._report_startup_success()
