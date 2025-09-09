@@ -61,12 +61,12 @@ Following the TSK-0053 refactoring, Claude MPM features:
 
 ### Development Environment
 
-Claude MPM now supports both Mamba (recommended) and traditional Python venv environments:
+Claude MPM supports both Mamba and traditional Python venv environments:
 
-- **Automatic detection**: `./scripts/claude-mpm` auto-detects and uses the best available environment
-- **Mamba setup**: See [docs/user/getting-started/DEVELOPMENT_SETUP.md](docs/user/getting-started/DEVELOPMENT_SETUP.md) for Mamba installation and benefits
-- **Force venv**: Use `./scripts/claude-mpm --use-venv` to use traditional venv even if Mamba is available
-- **Benefits of Mamba**: 50-80% faster dependency resolution, optimized binaries, better reproducibility
+- **Current Recommendation**: Use `./scripts/claude-mpm --use-venv` due to Mamba dependency conflicts
+- **Automatic detection**: `./scripts/claude-mpm` auto-detects environments but may encounter Mamba issues
+- **Mamba status**: Currently experiencing dependency conflicts (see [DEVELOPMENT_SETUP.md](docs/user/getting-started/DEVELOPMENT_SETUP.md))
+- **Force venv**: Use `./scripts/claude-mpm --use-venv` for reliable operation
 
 ### Critical Principles
 
