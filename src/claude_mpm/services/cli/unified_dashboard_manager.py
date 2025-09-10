@@ -133,7 +133,7 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
             if background:
                 # The daemon.start() method will handle cleanup when force_restart=True
                 # We don't need pre-emptive cleanup here as it causes race conditions
-                
+
                 # Try to start daemon with retry on port conflicts
                 max_retries = 3
                 retry_count = 0
