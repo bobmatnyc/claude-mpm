@@ -1,6 +1,6 @@
-<!-- WORKFLOW_VERSION: 0003 -->
-<!-- LAST_MODIFIED: 2025-08-30T00:00:00Z -->
-<!-- PURPOSE: Defines the 4-phase workflow and ticketing requirements -->
+<!-- WORKFLOW_VERSION: 0004 -->
+<!-- LAST_MODIFIED: 2025-09-10T00:00:00Z -->
+<!-- PURPOSE: Defines the 5-phase workflow with mandatory Code Analyzer review -->
 <!-- THIS FILE: The sequence of work and how to track it -->
 
 # PM Workflow Configuration
@@ -15,15 +15,66 @@
 - Surface assumptions requiring validation
 - Document constraints, dependencies, and weak points
 - Define falsifiable success criteria
-- Output feeds directly to implementation phase
+- Output feeds directly to Code Analyzer review phase
 
-### Phase 2: Implementation (AFTER Research)
+### Phase 2: Code Analyzer Review (AFTER Research, BEFORE Implementation)
+**🔴 MANDATORY SOLUTION REVIEW - NO EXCEPTIONS 🔴**
+
+The PM MUST delegate ALL proposed solutions to Code Analyzer Agent for review before implementation:
+
+**Review Requirements**:
+- Code Analyzer Agent uses Opus model and deep reasoning
+- Reviews proposed approach for best practices and direct solutions
+- NEVER writes code, only analyzes and reviews
+- Focuses on re-thinking approaches and avoiding common pitfalls
+- Provides suggestions for improved implementations
+
+**Delegation Format**:
+```
+Task: Review proposed solution before implementation
+Agent: Code Analyzer
+Model: Opus (configured)
+Instructions:
+  - Use think or deepthink to analyze the proposed solution
+  - Focus on best practices and direct approaches
+  - Identify potential issues, anti-patterns, or inefficiencies
+  - Suggest improved approaches if needed
+  - Consider human vs AI differences in problem-solving
+  - DO NOT implement code, only analyze and review
+  - Return approval or specific improvements needed
+```
+
+**Review Outcomes**:
+- **APPROVED**: Solution follows best practices, proceed to implementation
+- **NEEDS IMPROVEMENT**: Specific changes required before implementation
+- **ALTERNATIVE APPROACH**: Fundamental re-thinking needed
+- **BLOCKED**: Critical issues preventing safe implementation
+
+**What Code Analyzer Reviews**:
+- Solution architecture and design patterns
+- Algorithm efficiency and direct approaches
+- Error handling and edge case coverage
+- Security considerations and vulnerabilities
+- Performance implications and bottlenecks
+- Maintainability and code organization
+- Best practices for the specific technology stack
+- Human-centric vs AI-centric solution differences
+
+**Review Triggers Re-Research**:
+If Code Analyzer identifies fundamental issues:
+1. Return to Research Agent with specific concerns
+2. Research Agent addresses identified gaps
+3. Submit revised approach to Code Analyzer
+4. Continue until APPROVED status achieved
+
+### Phase 3: Implementation (AFTER Code Analyzer Approval)
 - Engineer Agent for code implementation
 - Data Engineer Agent for data pipelines/ETL
 - Security Agent for security implementations
 - Ops Agent for infrastructure/deployment
+- Implementation MUST follow Code Analyzer recommendations
 
-### Phase 3: Quality Assurance (AFTER Implementation)
+### Phase 4: Quality Assurance (AFTER Implementation)
 
 The PM routes QA work based on agent capabilities discovered at runtime. QA agents are selected dynamically based on their routing metadata (keywords, paths, file extensions) matching the implementation context.
 
@@ -61,7 +112,104 @@ See deployed agent capabilities via agent discovery for current routing details.
 - Performance and security validation where applicable
 - Clear, standardized output format for tracking and reporting
 
-### Phase 4: Documentation (ONLY after QA sign-off)
+### Security Review for Git Push Operations (MANDATORY)
+
+**🔴 AUTOMATIC SECURITY REVIEW IS MANDATORY BEFORE ANY PUSH TO ORIGIN 🔴**
+
+When the PM is asked to push changes to origin, a security review MUST be triggered automatically. This is NOT optional and cannot be skipped except in documented emergency situations.
+
+**Security Review Requirements**:
+
+The PM MUST delegate to Security Agent before any `git push` operation for comprehensive credential scanning:
+
+1. **Automatic Trigger Points**:
+   - Before any `git push origin` command
+   - When user requests "push to remote" or "push changes"
+   - After completing git commits but before remote operations
+   - When synchronizing local changes with remote repository
+
+2. **Security Agent Review Scope**:
+   - **API Keys & Tokens**: AWS, Azure, GCP, GitHub, OpenAI, Anthropic, etc.
+   - **Passwords & Secrets**: Hardcoded passwords, authentication strings
+   - **Private Keys**: SSH keys, SSL certificates, PEM files, encryption keys
+   - **Environment Configuration**: .env files with production credentials
+   - **Database Credentials**: Connection strings with embedded passwords
+   - **Service Accounts**: JSON key files, service account credentials
+   - **Webhook URLs**: URLs containing authentication tokens
+   - **Configuration Files**: Settings with sensitive data
+
+3. **Review Process**:
+   ```bash
+   # PM executes before pushing:
+   git diff origin/main HEAD  # Identify all changed files
+   git log origin/main..HEAD --name-only  # List all files in new commits
+   ```
+   
+   Then delegate to Security Agent with:
+   ```
+   Task: Security review for git push operation
+   Agent: Security Agent
+   Structural Requirements:
+     Objective: Scan all committed files for leaked credentials before push
+     Inputs: 
+       - List of changed files from git diff
+       - Content of all modified/new files
+     Falsifiable Success Criteria:
+       - Zero hardcoded credentials detected
+       - No API keys or tokens in code
+       - No private keys committed
+       - All sensitive config externalized
+     Known Limitations: Cannot detect encrypted secrets
+     Testing Requirements: MANDATORY - Provide scan results log
+     Constraints:
+       Security: Block push if ANY secrets detected
+       Timeline: Complete within 2 minutes
+     Dependencies: Git diff output available
+     Identified Risks: False positives on example keys
+     Verification: Provide detailed scan report with findings
+   ```
+
+4. **Push Blocking Conditions**:
+   - ANY detected credentials = BLOCK PUSH
+   - Suspicious patterns requiring manual review = BLOCK PUSH
+   - Unable to scan files (access issues) = BLOCK PUSH
+   - Security Agent unavailable = BLOCK PUSH
+
+5. **Required Remediation Before Push**:
+   - Remove detected credentials from code
+   - Move secrets to environment variables
+   - Add detected files to .gitignore if appropriate
+   - Use secret management service references
+   - Re-run security scan after remediation
+
+6. **Emergency Override** (ONLY for critical production fixes):
+   ```bash
+   # User must explicitly state and document:
+   "EMERGENCY: Override security review for push - [justification]"
+   ```
+   - PM must log override reason
+   - Create immediate follow-up ticket for security remediation
+   - Notify security team of override usage
+
+**Example Security Review Delegation**:
+```
+Task: Pre-push security scan for credentials
+Agent: Security Agent
+Structural Requirements:
+  Objective: Prevent credential leaks to remote repository
+  Inputs: 
+    - Changed files: src/api/config.py, .env.example, deploy/scripts/setup.sh
+    - Commit range: abc123..def456
+  Falsifiable Success Criteria:
+    - No AWS access keys (pattern: AKIA[0-9A-Z]{16})
+    - No API tokens (pattern: [a-zA-Z0-9]{32,})
+    - No private keys (pattern: -----BEGIN.*PRIVATE KEY-----)
+    - No hardcoded passwords in connection strings
+  Testing Requirements: Scan all file contents and report findings
+  Verification: Clean scan report or detailed list of blocked items
+```
+
+### Phase 5: Documentation (ONLY after QA sign-off)
 - API documentation updates
 - User guides and tutorials
 - Architecture documentation
@@ -144,6 +292,7 @@ After EACH workflow phase completion, delegate to Ticketing Agent to:
 
 1. **Create TSK (Task) ticket** for the completed phase:
    - **Research Phase**: `aitrackdown create task "Research findings" --issue ISS-XXXX`
+   - **Code Analyzer Review Phase**: `aitrackdown create task "Solution review and approval" --issue ISS-XXXX`
    - **Implementation Phase**: `aitrackdown create task "Code implementation" --issue ISS-XXXX`
    - **QA Phase**: `aitrackdown create task "Testing results" --issue ISS-XXXX`
    - **Documentation Phase**: `aitrackdown create task "Documentation updates" --issue ISS-XXXX`
@@ -173,9 +322,10 @@ After EACH workflow phase completion, delegate to Ticketing Agent to:
 EP-0001: Authentication System Overhaul (Epic)
 └── ISS-0001: Implement OAuth2 Support (Session Issue)
     ├── TSK-0001: Research OAuth2 patterns and existing auth (Research Agent)
-    ├── TSK-0002: Implement OAuth2 provider integration (Engineer Agent)
-    ├── TSK-0003: Test OAuth2 implementation (QA Agent)
-    └── TSK-0004: Document OAuth2 setup and API (Documentation Agent)
+    ├── TSK-0002: Review proposed OAuth2 solution (Code Analyzer Agent)
+    ├── TSK-0003: Implement OAuth2 provider integration (Engineer Agent)
+    ├── TSK-0004: Test OAuth2 implementation (QA Agent)
+    └── TSK-0005: Document OAuth2 setup and API (Documentation Agent)
 ```
 
 The Ticketing Agent specializes in:
