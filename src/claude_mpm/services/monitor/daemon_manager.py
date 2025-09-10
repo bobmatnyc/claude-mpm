@@ -771,18 +771,32 @@ class DaemonManager:
 
     def _report_startup_success(self):
         """Report successful startup to parent process."""
-        if self.startup_status_file and Path(self.startup_status_file).exists():
+        if self.startup_status_file:
             try:
+                # Don't check if file exists - we need to write to it regardless
+                # The parent created it and is waiting for us to update it
                 with open(self.startup_status_file, "w") as f:
                     f.write("success")
+                    f.flush()  # Ensure it's written immediately
+                    os.fsync(f.fileno())  # Force write to disk
             except Exception as e:
-                self.logger.error(f"Error reporting startup success: {e}")
+                # Logging might not work in daemon process after fork
+                pass
 
     def _report_startup_error(self, error: str):
         """Report startup error to parent process."""
-        if self.startup_status_file and Path(self.startup_status_file).exists():
+        if self.startup_status_file:
             try:
+                # Don't check if file exists - we need to write to it regardless
                 with open(self.startup_status_file, "w") as f:
                     f.write(f"error:{error}")
+                    f.flush()  # Ensure it's written immediately
+                    os.fsync(f.fileno())  # Force write to disk
             except Exception as e:
-                self.logger.error(f"Error reporting startup error: {e}")
+                # Try to write error to a debug file since logging might not work
+                try:
+                    with open("/tmp/daemon_debug_error.txt", "a") as debug:
+                        debug.write(f"Error reporting error: {e}\n")
+                        debug.write(f"Status file: {self.startup_status_file}\n")
+                except:
+                    pass
