@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.2.36] - 2025-09-10
+
+### Fixed
+- Fixed daemon startup race condition where success was reported before server actually started
+- Fixed process cleanup to specifically target monitor/socketio processes, not general Claude instances
+- Fixed cleanup logic to continue when encountering non-monitor processes (like Chrome) on the port
+- Monitor now properly reports server startup failures to parent process
+
 ## [4.2.35] - 2025-09-09
 
 ### Fixed
