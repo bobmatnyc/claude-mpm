@@ -106,8 +106,11 @@ def main(argv: Optional[list] = None):
         # Check for MCP auto-configuration (pipx installations)
         _check_mcp_auto_configuration()
 
-    # Verify MCP Gateway configuration on startup (non-blocking)
-    _verify_mcp_gateway_startup()
+    # DISABLED: MCP pre-warming causes fork() issues with monitor daemon (v4.2.39)
+    # The pre-warming creates background threads that interfere with the monitor's
+    # daemonization process, causing race conditions and port binding errors.
+    # Accepting the 11.9s delay on first MCP use is better than a broken monitor.
+    # _verify_mcp_gateway_startup()
 
     # Set up logging
     # Special case: For MCP start command, we need minimal logging to avoid stdout interference
