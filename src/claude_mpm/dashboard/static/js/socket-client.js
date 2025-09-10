@@ -351,8 +351,8 @@ class SocketClient {
             timeout: 30000,  // Increased connection timeout to 30 seconds
             forceNew: true,
             transports: ['websocket', 'polling'],
-            pingInterval: 30000,  // Increased ping interval for stability
-            pingTimeout: 60000    // Much longer timeout for better stability
+            // Remove client-side ping configuration - let server control this
+            // The server now properly configures: ping_interval=30s, ping_timeout=60s
         });
 
         this.setupSocketHandlers();

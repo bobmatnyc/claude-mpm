@@ -19,6 +19,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.2.41] - 2025-01-10
+
+### Fixed
+- **Claude Tree visualization**: Fixed Claude Tree tab to properly display D3.js visualization instead of event entries
+- **Dashboard event handling**: Enhanced code-viewer.js with MutationObserver protection and proper event subscription
+- **Real-time updates**: Fixed event subscription for real-time file operation tracking in Claude Tree
+- **UI cleanliness**: Removed redundant session selector from Claude Tree interface
+
+### Added
+- **React Engineer agent**: Comprehensive React patterns and best practices for React development
+- **Code Conciseness Mandate**: Enhanced BASE_ENGINEER with strict code quality guidelines
+- **Debug First Protocol**: Systematic problem-solving approach for engineering tasks
+- **Agent Selection Decision Matrix**: Clear PM instructions for appropriate agent selection
+
+### Changed  
+- **Engineering standards**: Updated BASE_ENGINEER with enhanced debugging and code quality protocols
+- **PM instructions**: Added comprehensive Agent Selection Decision Matrix for better task delegation
+
 ## [4.2.40] - 2025-01-10
 
 ### Fixed
