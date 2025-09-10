@@ -223,9 +223,32 @@ class DaemonManager:
                         text=True, check=False,
                     )
 
+                    # Get full command to check if it's our monitor process
+                    cmd_info = subprocess.run(
+                        ["ps", "-p", str(pid), "-o", "command="],
+                        capture_output=True,
+                        text=True, check=False,
+                    )
+                    
+                    if cmd_info.returncode != 0:
+                        continue
+                        
+                    full_command = cmd_info.stdout.strip().lower()
                     process_name = process_info.stdout.strip().lower()
-                    if "python" in process_name or "claude" in process_name:
-                        self.logger.info(f"Killing Python/Claude process {pid}")
+                    
+                    # Check if this is our monitor/socketio process specifically
+                    # Look for monitor, socketio, dashboard, or our specific port
+                    is_monitor = any([
+                        "monitor" in full_command,
+                        "socketio" in full_command,
+                        "dashboard" in full_command,
+                        f"port={self.port}" in full_command,
+                        f":{self.port}" in full_command,
+                        "unified_monitor" in full_command,
+                    ])
+                    
+                    if is_monitor and "python" in process_name:
+                        self.logger.info(f"Killing monitor process {pid}: {full_command[:100]}")
                         os.kill(pid, signal.SIGTERM)
 
                         # Wait briefly for graceful shutdown
@@ -242,10 +265,12 @@ class DaemonManager:
                         except ProcessLookupError:
                             pass  # Process already dead
                     else:
-                        self.logger.warning(
-                            f"Process {pid} ({process_name}) is not a Claude MPM process"
+                        # Not a monitor process - log but don't fail
+                        self.logger.info(
+                            f"Skipping non-monitor process {pid} ({process_name})"
                         )
-                        return False
+                        # Continue to next PID - don't return False
+                        continue
 
                 except (ValueError, ProcessLookupError) as e:
                     self.logger.debug(f"Error handling PID {pid_str}: {e}")
@@ -303,13 +328,16 @@ class DaemonManager:
             return False
 
     def _kill_claude_mpm_processes(self) -> bool:
-        """Kill any claude-mpm monitor processes.
+        """Kill any claude-mpm monitor processes specifically.
+        
+        This targets monitor/dashboard/socketio processes only,
+        NOT general Claude instances.
 
         Returns:
             True if successful, False on error
         """
         try:
-            # Look for claude-mpm monitor processes
+            # Look for monitor-specific processes
             result = subprocess.run(["ps", "aux"], capture_output=True, text=True, check=False)
 
             if result.returncode != 0:
@@ -319,7 +347,12 @@ class DaemonManager:
             killed_any = False
 
             for line in lines:
-                if "claude" in line.lower() and "monitor" in line.lower():
+                line_lower = line.lower()
+                # Only target monitor/dashboard/socketio processes
+                if any(["monitor" in line_lower and "claude" in line_lower,
+                        "dashboard" in line_lower and "claude" in line_lower,
+                        "socketio" in line_lower,
+                        f":{self.port}" in line_lower and "python" in line_lower]):
                     parts = line.split()
                     if len(parts) > 1:
                         try:
@@ -513,11 +546,12 @@ class DaemonManager:
 
         self.logger.info(f"Daemon process started with PID {os.getpid()}")
 
-        # Report successful startup
-        self._report_startup_success()
+        # DO NOT report success here - let the caller report after starting the service
+        # This prevents race conditions where we report success before the server starts
+        # self._report_startup_success()  # REMOVED - caller must report
 
         # Note: Daemon process continues running
-        # Caller is responsible for running the actual service
+        # Caller is responsible for running the actual service AND reporting status
         return True
 
     def stop_daemon(self, timeout: int = 10) -> bool:
