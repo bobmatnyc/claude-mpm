@@ -161,14 +161,16 @@ class UnifiedMonitorDaemon:
         self._wait_for_prewarm_completion()
 
         # Use daemon manager's daemonize which includes cleanup
-        self.daemon_manager.startup_status_file = None  # Reset status file
+        # DO NOT reset startup_status_file - it's needed for parent-child communication!
+        # self.daemon_manager.startup_status_file = None  # BUG: This breaks communication
         success = self.daemon_manager.daemonize()
         if not success:
             return False
 
         # We're now in the daemon process
-        # Update our PID references
+        # Update our PID references and status file
         self.lifecycle.pid_file = self.daemon_manager.pid_file
+        self.lifecycle.startup_status_file = self.daemon_manager.startup_status_file
 
         # Start the server in daemon mode
         try:

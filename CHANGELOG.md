@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.2.37] - 2025-09-10
+
+### Fixed
+- Fixed critical daemon startup communication bug where startup_status_file was reset before fork
+- Fixed status file synchronization between daemon_manager and lifecycle components
+- Removed file existence check in _report_startup_success to ensure status is always written
+- Added fsync to ensure immediate write of status updates to disk
+- Monitor now properly reports startup success to parent process
+
 ## [4.2.36] - 2025-09-10
 
 ### Fixed
