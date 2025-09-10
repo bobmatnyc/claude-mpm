@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.2.39] - 2025-01-10
+
+### Fixed
+- **MCP pre-warming disabled**: Disabled MCP server pre-warming to prevent fork() race conditions
+- **Monitor reliability**: Monitor daemon now starts successfully despite misleading error messages
+- **Thread count reduction**: Reduced background thread count from 4+ to 2 for cleaner forking
+
+### Technical Details
+- Commented out `_verify_mcp_gateway_startup()` call which was creating background threads
+- This eliminates the 11.9s MCP startup delay but ensures monitor reliability
+- Monitor still shows error messages but actually starts and works correctly
+- The remaining threads (health monitor and server) are daemon threads that don't block fork
+
 ## [4.2.38] - 2025-01-10
 
 ### Fixed
