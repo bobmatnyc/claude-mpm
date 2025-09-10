@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  claude-mpm-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    image: claude-mpm:test
+    container_name: claude-mpm-test
+    ports:
+      - "8765:8765"
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: |
+      bash -c "
+        echo 'Testing claude-mpm monitor startup...'
+        pip install claude-mpm==4.2.37
+        claude-mpm --version
+        claude-mpm monitor start
+        sleep 5
+        claude-mpm monitor status
+        curl -s http://localhost:8765 | head -10
+        echo 'Test complete!'
+      "

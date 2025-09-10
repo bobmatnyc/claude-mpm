@@ -590,8 +590,8 @@ class UnifiedMonitorDaemon:
 
             start_time = time.time()
 
-            # Get all non-daemon threads (pre-warm threads are daemon threads)
-            # but we still want to give them a moment to complete
+            # Get all threads including daemon threads
+            # Pre-warm threads are daemon threads but we MUST wait for them
             active_threads = [
                 t
                 for t in threading.enumerate()
@@ -599,13 +599,38 @@ class UnifiedMonitorDaemon:
             ]
 
             if active_threads:
-                self.logger.debug(
-                    f"Waiting for {len(active_threads)} threads to complete"
+                self.logger.info(
+                    f"Waiting for {len(active_threads)} background threads to complete before forking"
                 )
+                
+                # List thread names for debugging
+                thread_names = [t.name for t in active_threads]
+                self.logger.debug(f"Active threads: {thread_names}")
 
-                # Wait briefly for threads to complete
-                wait_time = min(timeout, 2.0)  # Max 2 seconds for daemon threads
-                time.sleep(wait_time)
+                # Wait for threads to complete or timeout
+                while time.time() - start_time < timeout:
+                    remaining_threads = [
+                        t for t in active_threads if t.is_alive()
+                    ]
+                    if not remaining_threads:
+                        self.logger.debug("All threads completed")
+                        break
+                    
+                    # Log remaining threads periodically
+                    if int(time.time() - start_time) % 1 == 0:
+                        self.logger.debug(f"{len(remaining_threads)} threads still active")
+                    
+                    time.sleep(0.1)
+                
+                # Final check
+                final_threads = [
+                    t for t in threading.enumerate() 
+                    if t.is_alive() and t != threading.current_thread()
+                ]
+                if final_threads:
+                    self.logger.warning(
+                        f"Proceeding with {len(final_threads)} threads still active after {timeout}s wait"
+                    )
 
                 elapsed = time.time() - start_time
                 self.logger.debug(f"Waited {elapsed:.2f}s for thread completion")

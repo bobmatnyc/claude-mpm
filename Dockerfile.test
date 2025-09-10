@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    lsof \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Install claude-mpm (will use latest from PyPI)
+RUN pip install --no-cache-dir claude-mpm
+
+# Expose the monitor port
+EXPOSE 8765
+
+# Default command to test monitor
+CMD ["bash", "-c", "claude-mpm --version && claude-mpm monitor start --foreground"]
