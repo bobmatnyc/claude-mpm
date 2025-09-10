@@ -20,7 +20,38 @@ claude-mpm monitor start
 
 The monitor daemon automatically receives events from Claude Code sessions - **no additional configuration needed**. When you run Claude Code with claude-mpm hooks installed, events are automatically sent to the monitor daemon via EventBus integration.
 
+## Important Process Management Notes
+
+### ⚠️ CRITICAL: Never Kill Claude Processes
+
+**The monitor daemon and its related processes (socketio, dashboard) are OUR OWN claude-mpm processes, NOT Claude processes.**
+
+- ✅ **Monitor processes we control**: `monitor`, `socketio`, `dashboard`, `claude-mpm`
+- ❌ **NEVER kill Claude processes**: These are user's active Claude sessions
+- The monitor daemon manages its own lifecycle and cleans up its own processes
+- When stopping the monitor, it only stops claude-mpm owned processes
+
+### Process Identification
+The monitor daemon specifically looks for:
+- Processes with "monitor" in the command line
+- Processes with "socketio" in the command line  
+- Processes with "dashboard" in the command line
+- Processes bound to port 8765
+
+These are ALL claude-mpm internal processes, not Claude user sessions.
+
 ## Architecture
+
+### Subprocess-Based Daemon Implementation (v4.2.40+)
+
+As of v4.2.40, the monitor daemon uses a **subprocess-based approach** instead of fork() to avoid Python threading issues:
+
+1. **Parent Process**: Launches monitor via `subprocess.Popen()`
+2. **Subprocess Daemon**: Runs in a clean process without inherited threads
+3. **Environment Variable**: `CLAUDE_MPM_SUBPROCESS_DAEMON=1` prevents recursive subprocess creation
+4. **No Fork Issues**: Avoids all fork() + threading race conditions
+
+This ensures reliable daemon startup without false error messages or race conditions.
 
 ### Unified Monitor Daemon (Port 8765)
 
@@ -177,6 +208,20 @@ socket.on('hook.pre_tool', (data) => {
 ```
 
 ## Troubleshooting
+
+### Monitor Startup Issues (Fixed in v4.2.40)
+
+Prior to v4.2.40, the monitor daemon could experience race conditions during startup due to Python's fork() incompatibility with threading. This has been resolved by using a subprocess-based approach:
+
+**Symptoms (pre-v4.2.40)**:
+- "Monitor daemon exited with code 0" error despite successful startup
+- Race conditions between MCP pre-warming threads and fork()
+- False error messages even when monitor was running
+
+**Solution (v4.2.40+)**:
+- Subprocess-based daemon launch eliminates fork() issues
+- Clean process isolation without inherited threads
+- Reliable startup without false errors
 
 ### Events Not Appearing
 

@@ -157,35 +157,67 @@ class UnifiedMonitorDaemon:
             )
             return False
 
-        # Wait for any pre-warming threads to complete before forking
-        self._wait_for_prewarm_completion()
+        # Use subprocess approach for clean daemon startup (v4.2.40)
+        # This avoids all fork() + threading issues by starting in a fresh process
+        # The daemon_manager.use_subprocess_daemon() now checks for CLAUDE_MPM_SUBPROCESS_DAEMON
+        # environment variable to prevent infinite recursion
+        if self.daemon_manager.use_subprocess_daemon():
+            # Start using subprocess - this returns immediately in parent
+            success = self.daemon_manager.start_daemon_subprocess()
+            return success
 
-        # Use daemon manager's daemonize which includes cleanup
-        # DO NOT reset startup_status_file - it's needed for parent-child communication!
-        # self.daemon_manager.startup_status_file = None  # BUG: This breaks communication
-        success = self.daemon_manager.daemonize()
-        if not success:
-            return False
+        # Check if we're in subprocess mode (environment variable set)
+        if os.environ.get("CLAUDE_MPM_SUBPROCESS_DAEMON") == "1":
+            # We're in a subprocess started by start_daemon_subprocess
+            # We need to write the PID file ourselves since parent didn't
+            self.logger.info("Running in subprocess daemon mode, writing PID file")
+            self.daemon_manager.write_pid_file()
 
-        # We're now in the daemon process
-        # Update our PID references and status file
-        self.lifecycle.pid_file = self.daemon_manager.pid_file
-        self.lifecycle.startup_status_file = self.daemon_manager.startup_status_file
+            # Setup signal handlers for graceful shutdown
+            self._setup_signal_handlers()
 
-        # Start the server in daemon mode
-        try:
-            result = self._run_server()
-            if not result:
-                # Report failure before exiting
-                self.daemon_manager._report_startup_error("Failed to start server")
-            else:
-                # Report success
-                self.daemon_manager._report_startup_success()
-            return result
-        except Exception as e:
-            # Report any exceptions during startup
-            self.daemon_manager._report_startup_error(f"Server startup exception: {e}")
-            raise
+            # Start the server (this will run until shutdown)
+            try:
+                result = self._run_server()
+                if not result:
+                    self.logger.error("Failed to start server in subprocess mode")
+                return result
+            except Exception as e:
+                self.logger.error(f"Server startup exception in subprocess: {e}")
+                raise
+        else:
+            # Legacy fork approach (kept for compatibility but not used by default)
+            # Wait for any pre-warming threads to complete before forking
+            self._wait_for_prewarm_completion()
+
+            # Use daemon manager's daemonize which includes cleanup
+            # DO NOT reset startup_status_file - it's needed for parent-child communication!
+            # self.daemon_manager.startup_status_file = None  # BUG: This breaks communication
+            success = self.daemon_manager.daemonize()
+            if not success:
+                return False
+
+            # We're now in the daemon process
+            # Update our PID references and status file
+            self.lifecycle.pid_file = self.daemon_manager.pid_file
+            self.lifecycle.startup_status_file = self.daemon_manager.startup_status_file
+
+            # Start the server in daemon mode
+            try:
+                result = self._run_server()
+                if not result:
+                    # Report failure before exiting
+                    self.daemon_manager._report_startup_error("Failed to start server")
+                else:
+                    # Report success
+                    self.daemon_manager._report_startup_success()
+                return result
+            except Exception as e:
+                # Report any exceptions during startup
+                self.daemon_manager._report_startup_error(
+                    f"Server startup exception: {e}"
+                )
+                raise
 
     def _start_foreground(self, force_restart: bool = False) -> bool:
         """Start in foreground mode.
@@ -602,29 +634,30 @@ class UnifiedMonitorDaemon:
                 self.logger.info(
                     f"Waiting for {len(active_threads)} background threads to complete before forking"
                 )
-                
+
                 # List thread names for debugging
                 thread_names = [t.name for t in active_threads]
                 self.logger.debug(f"Active threads: {thread_names}")
 
                 # Wait for threads to complete or timeout
                 while time.time() - start_time < timeout:
-                    remaining_threads = [
-                        t for t in active_threads if t.is_alive()
-                    ]
+                    remaining_threads = [t for t in active_threads if t.is_alive()]
                     if not remaining_threads:
                         self.logger.debug("All threads completed")
                         break
-                    
+
                     # Log remaining threads periodically
                     if int(time.time() - start_time) % 1 == 0:
-                        self.logger.debug(f"{len(remaining_threads)} threads still active")
-                    
+                        self.logger.debug(
+                            f"{len(remaining_threads)} threads still active"
+                        )
+
                     time.sleep(0.1)
-                
+
                 # Final check
                 final_threads = [
-                    t for t in threading.enumerate() 
+                    t
+                    for t in threading.enumerate()
                     if t.is_alive() and t != threading.current_thread()
                 ]
                 if final_threads:

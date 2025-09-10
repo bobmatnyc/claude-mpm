@@ -239,7 +239,11 @@ class UnifiedMonitorServer:
             except OSError as e:
                 # Port binding error - make sure it's reported clearly
                 # Check for common port binding errors
-                if "Address already in use" in str(e) or "[Errno 48]" in str(e) or "[Errno 98]" in str(e):
+                if (
+                    "Address already in use" in str(e)
+                    or "[Errno 48]" in str(e)
+                    or "[Errno 98]" in str(e)
+                ):
                     error_msg = f"Port {self.port} is already in use. Another process may be using this port."
                     self.logger.error(error_msg)
                     self.startup_error = error_msg

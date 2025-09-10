@@ -149,7 +149,7 @@ class DaemonManager:
             # Try IPv4 first (most common)
             test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             test_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            
+
             # Use 127.0.0.1 for localhost to match what the server does
             bind_host = "127.0.0.1" if self.host == "localhost" else self.host
             test_sock.bind((bind_host, self.port))
@@ -201,7 +201,10 @@ class DaemonManager:
         try:
             # Find processes using the port
             result = subprocess.run(
-                ["lsof", "-ti", f":{self.port}"], capture_output=True, text=True, check=False
+                ["lsof", "-ti", f":{self.port}"],
+                capture_output=True,
+                text=True,
+                check=False,
             )
 
             if result.returncode != 0 or not result.stdout.strip():
@@ -220,35 +223,41 @@ class DaemonManager:
                     process_info = subprocess.run(
                         ["ps", "-p", str(pid), "-o", "comm="],
                         capture_output=True,
-                        text=True, check=False,
+                        text=True,
+                        check=False,
                     )
 
                     # Get full command to check if it's our monitor process
                     cmd_info = subprocess.run(
                         ["ps", "-p", str(pid), "-o", "command="],
                         capture_output=True,
-                        text=True, check=False,
+                        text=True,
+                        check=False,
                     )
-                    
+
                     if cmd_info.returncode != 0:
                         continue
-                        
+
                     full_command = cmd_info.stdout.strip().lower()
                     process_name = process_info.stdout.strip().lower()
-                    
+
                     # Check if this is our monitor/socketio process specifically
                     # Look for monitor, socketio, dashboard, or our specific port
-                    is_monitor = any([
-                        "monitor" in full_command,
-                        "socketio" in full_command,
-                        "dashboard" in full_command,
-                        f"port={self.port}" in full_command,
-                        f":{self.port}" in full_command,
-                        "unified_monitor" in full_command,
-                    ])
-                    
+                    is_monitor = any(
+                        [
+                            "monitor" in full_command,
+                            "socketio" in full_command,
+                            "dashboard" in full_command,
+                            f"port={self.port}" in full_command,
+                            f":{self.port}" in full_command,
+                            "unified_monitor" in full_command,
+                        ]
+                    )
+
                     if is_monitor and "python" in process_name:
-                        self.logger.info(f"Killing monitor process {pid}: {full_command[:100]}")
+                        self.logger.info(
+                            f"Killing monitor process {pid}: {full_command[:100]}"
+                        )
                         os.kill(pid, signal.SIGTERM)
 
                         # Wait briefly for graceful shutdown
@@ -329,7 +338,7 @@ class DaemonManager:
 
     def _kill_claude_mpm_processes(self) -> bool:
         """Kill any claude-mpm monitor processes specifically.
-        
+
         This targets monitor/dashboard/socketio processes only,
         NOT general Claude instances.
 
@@ -338,7 +347,9 @@ class DaemonManager:
         """
         try:
             # Look for monitor-specific processes
-            result = subprocess.run(["ps", "aux"], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                ["ps", "aux"], capture_output=True, text=True, check=False
+            )
 
             if result.returncode != 0:
                 return False
@@ -349,10 +360,14 @@ class DaemonManager:
             for line in lines:
                 line_lower = line.lower()
                 # Only target monitor/dashboard/socketio processes
-                if any(["monitor" in line_lower and "claude" in line_lower,
+                if any(
+                    [
+                        "monitor" in line_lower and "claude" in line_lower,
                         "dashboard" in line_lower and "claude" in line_lower,
                         "socketio" in line_lower,
-                        f":{self.port}" in line_lower and "python" in line_lower]):
+                        f":{self.port}" in line_lower and "python" in line_lower,
+                    ]
+                ):
                     parts = line.split()
                     if len(parts) > 1:
                         try:
@@ -395,7 +410,8 @@ class DaemonManager:
                     process_info = subprocess.run(
                         ["ps", "-p", str(pid), "-o", "comm="],
                         capture_output=True,
-                        text=True, check=False,
+                        text=True,
+                        check=False,
                     )
 
                     if "python" in process_info.stdout.lower():
@@ -441,7 +457,10 @@ class DaemonManager:
         """
         try:
             result = subprocess.run(
-                ["lsof", "-ti", f":{self.port}"], capture_output=True, text=True, check=False
+                ["lsof", "-ti", f":{self.port}"],
+                capture_output=True,
+                text=True,
+                check=False,
             )
 
             if result.returncode == 0 and result.stdout.strip():
@@ -485,8 +504,144 @@ class DaemonManager:
                 self.logger.error(f"Cannot start daemon - port {self.port} is in use")
                 return False
 
-            # Daemonize the process
+            # Use subprocess for clean daemon startup (v4.2.40)
+            # This avoids fork() issues with Python threading
+            if self.use_subprocess_daemon():
+                return self.start_daemon_subprocess()
+            # Fallback to traditional fork (kept for compatibility)
             return self.daemonize()
+
+    def use_subprocess_daemon(self) -> bool:
+        """Check if we should use subprocess instead of fork for daemonization.
+
+        Returns:
+            True to use subprocess (safer), False to use traditional fork
+        """
+        # Check if we're already in a subprocess to prevent infinite recursion
+        if os.environ.get("CLAUDE_MPM_SUBPROCESS_DAEMON") == "1":
+            # We're already in a subprocess, use traditional fork
+            return False
+
+        # Otherwise, use subprocess for monitor daemon to avoid threading issues
+        return True
+
+    def start_daemon_subprocess(self) -> bool:
+        """Start daemon using subprocess.Popen for clean process isolation.
+
+        This avoids all the fork() + threading issues by starting the monitor
+        in a completely fresh process with no inherited threads or locks.
+
+        Returns:
+            True if daemon started successfully
+        """
+        try:
+            # Build command to run monitor in foreground mode in subprocess
+            import sys
+
+            python_exe = sys.executable
+
+            # Run 'claude-mpm monitor start' in subprocess with environment variable
+            # to indicate we're already in a subprocess (prevents infinite recursion)
+            cmd = [
+                python_exe,
+                "-m",
+                "claude_mpm.cli",
+                "monitor",
+                "start",
+                "--background",  # Run as daemon
+                "--port",
+                str(self.port),
+                "--host",
+                self.host,
+            ]
+
+            # Set environment variable to prevent recursive subprocess creation
+            env = os.environ.copy()
+            env["CLAUDE_MPM_SUBPROCESS_DAEMON"] = "1"
+
+            self.logger.info(f"Starting monitor daemon via subprocess: {' '.join(cmd)}")
+
+            # Open log file for output redirection
+            log_file_handle = None
+            if self.log_file:
+                log_file_handle = open(self.log_file, "a")
+                log_file = log_file_handle
+            else:
+                log_file = subprocess.DEVNULL
+
+            try:
+                # Start the subprocess detached from parent
+                # Redirect stdout/stderr to log file to capture output
+                process = subprocess.Popen(
+                    cmd,
+                    stdin=subprocess.DEVNULL,
+                    stdout=log_file,
+                    stderr=subprocess.STDOUT if self.log_file else subprocess.DEVNULL,
+                    start_new_session=True,  # Create new process group
+                    close_fds=(
+                        False if self.log_file else True
+                    ),  # Keep log file open if redirecting
+                    env=env,  # Pass modified environment
+                )
+
+                # Close the log file handle now that subprocess has it
+                if log_file_handle:
+                    log_file_handle.close()
+
+                # Get the process PID
+                pid = process.pid
+                self.logger.info(f"Monitor subprocess started with PID {pid}")
+
+                # Wait for the subprocess to write its PID file
+                # The subprocess will write the PID file after it starts successfully
+                max_wait = 10  # seconds
+                start_time = time.time()
+
+                while time.time() - start_time < max_wait:
+                    # Check if process is still running
+                    if process.poll() is not None:
+                        # Process exited
+                        self.logger.error(
+                            f"Monitor daemon exited with code {process.returncode}"
+                        )
+                        return False
+
+                    # Check if PID file was written
+                    if self.pid_file.exists():
+                        try:
+                            with open(self.pid_file) as f:
+                                written_pid = int(f.read().strip())
+                            if written_pid == pid:
+                                # PID file written correctly, check port
+                                if (
+                                    not self._is_port_available()
+                                ):  # Port NOT available means it's in use (good!)
+                                    self.logger.info(
+                                        f"Monitor daemon successfully started on port {self.port}"
+                                    )
+                                    return True
+                        except:
+                            pass  # PID file not ready yet
+
+                    time.sleep(0.5)
+
+                # Timeout waiting for daemon to start
+                self.logger.error("Timeout waiting for monitor daemon to start")
+                # Try to kill the process if it's still running
+                if process.poll() is None:
+                    process.terminate()
+                    time.sleep(1)
+                    if process.poll() is None:
+                        process.kill()
+                return False
+            finally:
+                # Clean up log file handle if still open
+                if log_file_handle and not log_file_handle.closed:
+                    log_file_handle.close()
+
+        except Exception as e:
+            self.logger.error(f"Failed to start daemon via subprocess: {e}")
+            return False
 
     def daemonize(self) -> bool:
         """Daemonize the current process.
@@ -495,12 +650,14 @@ class DaemonManager:
             True if successful (in parent), doesn't return in child
         """
         # Guard against re-entrant execution after fork
-        if hasattr(self, '_forking_in_progress'):
-            self.logger.error("CRITICAL: Detected re-entrant daemonize call after fork!")
+        if hasattr(self, "_forking_in_progress"):
+            self.logger.error(
+                "CRITICAL: Detected re-entrant daemonize call after fork!"
+            )
             return False
-            
+
         self._forking_in_progress = True
-        
+
         try:
             # Clean up asyncio event loops before forking
             self._cleanup_event_loops()
@@ -787,7 +944,7 @@ class DaemonManager:
                     f.write("success")
                     f.flush()  # Ensure it's written immediately
                     os.fsync(f.fileno())  # Force write to disk
-            except Exception as e:
+            except Exception:
                 # Logging might not work in daemon process after fork
                 pass
 
