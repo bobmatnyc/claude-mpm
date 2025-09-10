@@ -19,6 +19,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.2.40] - 2025-01-10
+
+### Fixed
+- **Monitor daemon subprocess implementation**: Replaced fork() with subprocess.Popen() to eliminate all threading race conditions
+- **Reliable daemon startup**: Monitor now starts reliably without false error messages or race conditions
+- **MCP pre-warming re-enabled**: Safe to use with subprocess approach, eliminating 11.9s startup delay
+
+### Changed
+- **Subprocess-based daemonization**: Monitor daemon uses clean subprocess isolation instead of fork()
+- **Environment variable detection**: Added `CLAUDE_MPM_SUBPROCESS_DAEMON=1` to prevent recursive subprocess creation
+- **Process management clarification**: Documented that monitor manages only claude-mpm processes, never Claude user sessions
+
+### Technical Details
+- Implemented `start_daemon_subprocess()` using `subprocess.Popen()` for clean process isolation
+- Added environment variable check in `use_subprocess_daemon()` to prevent infinite recursion
+- Subprocess daemon writes its own PID file and starts server directly without forking
+- Re-enabled MCP pre-warming since subprocess avoids all fork() + threading issues
+- This completely resolves the Python fork() + threading incompatibility issue
+
 ## [4.2.39] - 2025-01-10
 
 ### Fixed
