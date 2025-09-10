@@ -19,6 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.2.38] - 2025-01-10
+
+### Fixed
+- **Monitor startup race condition**: Improved thread synchronization before forking to prevent multi-threaded fork issues
+- **Fork safety**: Added re-entrancy guard to prevent duplicate daemon execution after fork
+- **Thread management**: Enhanced pre-warm thread completion waiting to avoid inherited threads in forked processes
+- **Daemon logging**: Added detailed thread tracking during fork preparation for better debugging
+
+### Technical Details
+- Modified `_wait_for_prewarm_completion` to properly wait for all background threads including daemon threads
+- Added `_forking_in_progress` guard to detect and prevent re-entrant daemonize calls
+- Improved logging to track active threads before forking to diagnose multi-threading issues
+- These changes address spurious "Port already in use" errors during monitor startup in Docker containers
+
 ## [4.2.37] - 2025-09-10
 
 ### Fixed

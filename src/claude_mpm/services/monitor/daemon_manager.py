@@ -494,6 +494,13 @@ class DaemonManager:
         Returns:
             True if successful (in parent), doesn't return in child
         """
+        # Guard against re-entrant execution after fork
+        if hasattr(self, '_forking_in_progress'):
+            self.logger.error("CRITICAL: Detected re-entrant daemonize call after fork!")
+            return False
+            
+        self._forking_in_progress = True
+        
         try:
             # Clean up asyncio event loops before forking
             self._cleanup_event_loops()
@@ -509,6 +516,7 @@ class DaemonManager:
             pid = os.fork()
             if pid > 0:
                 # Parent process - wait for child to confirm startup
+                del self._forking_in_progress  # Clean up in parent
                 return self._parent_wait_for_startup(pid)
 
         except OSError as e:
