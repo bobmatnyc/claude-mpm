@@ -90,12 +90,18 @@ class UIStateManager {
      * @returns {string} - Tab name
      */
     getTabNameFromButton(button) {
+        // First check for data-tab attribute
+        const dataTab = button.getAttribute('data-tab');
+        if (dataTab) return dataTab;
+        
+        // Fallback to text content matching
         const text = button.textContent.toLowerCase();
         if (text.includes('events')) return 'events';
         if (text.includes('activity')) return 'activity';
         if (text.includes('agents')) return 'agents';
         if (text.includes('tools')) return 'tools';
         if (text.includes('files')) return 'files';
+        if (text.includes('claude tree')) return 'claude-tree';
         if (text.includes('code')) return 'code';
         if (text.includes('sessions')) return 'sessions';
         if (text.includes('system')) return 'system';
@@ -127,6 +133,26 @@ class UIStateManager {
         const activeTab = document.getElementById(`${tabName}-tab`);
         if (activeTab) {
             activeTab.classList.add('active');
+            
+            // Special handling for Claude Tree tab - ensure it never shows events
+            if (tabName === 'claude-tree') {
+                const claudeTreeContainer = document.getElementById('claude-tree-container');
+                if (claudeTreeContainer) {
+                    // Check if events list somehow got into this container
+                    const eventsList = claudeTreeContainer.querySelector('#events-list');
+                    if (eventsList) {
+                        console.warn('[UIStateManager] Found events-list in Claude Tree container, removing it!');
+                        eventsList.remove();
+                    }
+                    
+                    // Check for event items
+                    const eventItems = claudeTreeContainer.querySelectorAll('.event-item');
+                    if (eventItems.length > 0) {
+                        console.warn('[UIStateManager] Found event items in Claude Tree container, clearing!');
+                        eventItems.forEach(item => item.remove());
+                    }
+                }
+            }
         }
 
         // Clear previous selections when switching tabs
@@ -144,6 +170,11 @@ class UIStateManager {
         setTimeout(() => {
             if (this.autoScroll) {
                 this.scrollCurrentTabToBottom();
+            }
+            
+            // Special handling for Claude Tree tab - trigger the tree render
+            if (tabName === 'claude-tree' && window.CodeViewer) {
+                window.CodeViewer.show();
             }
         }, 100);
     }
