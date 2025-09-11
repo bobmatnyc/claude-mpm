@@ -509,22 +509,24 @@
                     loadModule('/static/js/components/code-tree.js'),  // TEMPORARY: Direct source for debugging
                     loadModule('/static/js/components/code-viewer.js'),  // Code viewer now includes file change tracking
                     loadModule('/static/dist/components/file-viewer.js'),  // File viewer for viewing file contents
-                    loadModule('/static/js/components/browser-log-viewer.js?v=2.0-NUCLEAR')  // Browser console log viewer v2.0 NUCLEAR
-                        .then(() => {
-                            // Initialize BrowserLogViewer v2.0 immediately after loading
-                            if (typeof BrowserLogViewer !== 'undefined') {
-                                const container = document.getElementById('browser-logs-container');
-                                if (container && !window.browserLogViewer) {
-                                    console.error('[Main] Initializing BrowserLogViewer v2.0 NUCLEAR...');
-                                    window.browserLogViewer = new BrowserLogViewer(container);
-                                    console.error('[Main] BrowserLogViewer v2.0 NUCLEAR initialized successfully');
-                                } else {
-                                    console.error('[Main] BrowserLogViewer v2.0 already initialized or container not found');
-                                }
-                            } else {
-                                console.error('[Main] BrowserLogViewer class not found - script may not have loaded');
-                            }
-                        })
+                    // TEMPORARILY DISABLED for simplest implementation
+                    // loadModule('/static/js/components/browser-log-viewer.js?v=2.0-NUCLEAR')  // Browser console log viewer v2.0 NUCLEAR
+                    // TEMPORARILY DISABLED - BrowserLogViewer initialization
+                    //     .then(() => {
+                    //         // Initialize BrowserLogViewer v2.0 immediately after loading
+                    //         if (typeof BrowserLogViewer !== 'undefined') {
+                    //             const container = document.getElementById('browser-logs-container');
+                    //             if (container && !window.browserLogViewer) {
+                    //                 console.error('[Main] Initializing BrowserLogViewer v2.0 NUCLEAR...');
+                    //                 window.browserLogViewer = new BrowserLogViewer(container);
+                    //                 console.error('[Main] BrowserLogViewer v2.0 NUCLEAR initialized successfully');
+                    //             } else {
+                    //                 console.error('[Main] BrowserLogViewer v2.0 already initialized or container not found');
+                    //             }
+                    //         } else {
+                    //             console.error('[Main] BrowserLogViewer class not found - script may not have loaded');
+                    //         }
+                    //     })
                 ]);
             })
             .then(() => {
