@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.2.43] - 2025-09-11
+
+### Fixed
+- **Browser Logs Tab Isolation**: Complete isolation of Browser Logs tab from hook events
+- **Tab Content Persistence**: Fixed renderCurrentTab() missing browser-logs case causing content to disappear
+- **UI State Management**: Improved tab switching with proper content isolation
+- **Hook Event Filtering**: Enhanced browser log viewer to show only static content, preventing hook contamination
+
 ## [4.2.42] - 2025-09-11
 
 ### Added

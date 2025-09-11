@@ -6,9 +6,11 @@ Test that simulates the browser monitor injection to verify:
 """
 
 import asyncio
-import aiohttp
 import json
 from datetime import datetime
+
+import aiohttp
+
 
 async def send_browser_log(session):
     """Send a valid browser console log"""
@@ -18,47 +20,47 @@ async def send_browser_log(session):
         "message": "✅ This is a REAL browser console.log that SHOULD appear",
         "timestamp": datetime.now().isoformat(),
         "url": "https://example.com/test",
-        "line_info": "app.js:42"
+        "line_info": "app.js:42",
     }
-    
+
     # This mimics what the browser monitor injection would send
     async with session.post(
-        'http://localhost:8765/api/browser-log',
-        json=browser_log
+        "http://localhost:8765/api/browser-log", json=browser_log
     ) as response:
         print(f"Sent browser log: {response.status}")
         return response.status == 204
+
 
 async def send_fake_hook_as_browser_log(session):
     """Try to send a hook event disguised as browser log"""
     fake_hook = {
         "type": "hook.pre_tool",
-        "source": "hook", 
+        "source": "hook",
         "message": "❌ This is a FAKE hook event that should NOT appear",
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
-    
+
     # Try to send it to browser log endpoint
     async with session.post(
-        'http://localhost:8765/api/browser-log',
-        json=fake_hook
+        "http://localhost:8765/api/browser-log", json=fake_hook
     ) as response:
         print(f"Sent fake hook as browser log: {response.status}")
         return response.status
 
+
 async def main():
     print("🧪 Browser Monitor Injection Test")
     print("=" * 50)
-    
+
     async with aiohttp.ClientSession() as session:
         # Send a real browser log
         print("\n1. Sending REAL browser console log...")
         await send_browser_log(session)
-        
+
         # Try to send a hook event as browser log
         print("\n2. Attempting to send hook event as browser log...")
         await send_fake_hook_as_browser_log(session)
-        
+
         # Send another real browser log with different level
         print("\n3. Sending ERROR level browser log...")
         error_log = {
@@ -67,15 +69,14 @@ async def main():
             "message": "⚠️ This is a browser console.error that SHOULD appear",
             "timestamp": datetime.now().isoformat(),
             "url": "https://example.com/error",
-            "line_info": "error.js:13"
+            "line_info": "error.js:13",
         }
-        
+
         async with session.post(
-            'http://localhost:8765/api/browser-log',
-            json=error_log
+            "http://localhost:8765/api/browser-log", json=error_log
         ) as response:
             print(f"Sent error log: {response.status}")
-    
+
     print("\n" + "=" * 50)
     print("✅ Test complete!")
     print("\nEXPECTED RESULTS in Browser Logs tab:")
@@ -83,6 +84,7 @@ async def main():
     print("  ✅ Should see: 'This is a browser console.error'")
     print("  ❌ Should NOT see: Any hook events")
     print("\nPlease check http://localhost:8765 Browser Logs tab to verify!")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
