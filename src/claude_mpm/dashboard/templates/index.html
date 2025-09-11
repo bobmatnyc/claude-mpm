@@ -18,6 +18,9 @@
     
     <!-- D3.js for Activity Tree Visualization -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Syntax Highlighting - Prism.js -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
@@ -239,18 +242,19 @@
 
                 <!-- Right: Tabbed Content -->
                 <div class="events-container">
-                    <!-- Tab Navigation -->
+                    <!-- Tab Navigation - Using hash-based navigation -->
                     <div class="tab-nav">
-                        <button class="tab-button active" data-tab="events">📊 Events</button>
-                        <button class="tab-button" data-tab="agents">🤖 Agents</button>
-                        <button class="tab-button" data-tab="tools">🔧 Tools</button>
-                        <button class="tab-button" data-tab="files">📁 Files</button>
-                        <button class="tab-button" data-tab="activity">🌳 Activity</button>
-                        <button class="tab-button" data-tab="claude-tree">📝 Claude Tree</button>
+                        <a href="#events" class="tab-button" data-tab="events">📊 Events</a>
+                        <a href="#agents" class="tab-button" data-tab="agents">🤖 Agents</a>
+                        <a href="#tools" class="tab-button" data-tab="tools">🔧 Tools</a>
+                        <a href="#files" class="tab-button" data-tab="files">📁 Files</a>
+                        <a href="#activity" class="tab-button" data-tab="activity">🌳 Activity</a>
+                        <a href="#file_tree" class="tab-button active" data-tab="claude-tree">📝 File Tree</a>
+                        <a href="#browser_logs" class="tab-button" data-tab="browser-logs">🌐 Browser Logs</a>
                     </div>
 
                     <!-- Events Tab -->
-                    <div class="tab-content active" id="events-tab">
+                    <div class="tab-content" id="events-tab">
                         <div class="tab-filters">
                             <input type="text" id="events-search-input" placeholder="Search events...">
                             <select id="events-type-filter">
@@ -385,10 +389,18 @@
                         </div>
                     </div>
 
-                    <!-- Claude Tree Tab -->
-                    <div class="tab-content" id="claude-tree-tab">
+                    <!-- File Tree Tab -->
+                    <div class="tab-content active" id="claude-tree-tab">
                         <div id="claude-tree-container" style="width: 100%; height: 100%;">
-                            <!-- Claude activity tree will be rendered here by code-viewer.js -->
+                            <!-- File activity tree will be rendered here by code-viewer.js -->
+                        </div>
+                    </div>
+
+                    <!-- Browser Logs Tab -->
+                    <div class="tab-content" id="browser-logs-tab">
+                        <div id="browser-logs-container" style="width: 100%; height: 100%;" data-component="browser-logs">
+                            <!-- Browser logs will be rendered here by browser-log-viewer.js -->
+                            <!-- This container is EXCLUSIVELY for browser console logs -->
                         </div>
                     </div>
 
@@ -486,19 +498,54 @@
             .then(() => loadModule('/static/js/components/code-tree/tree-search.js'))
             .then(() => loadModule('/static/js/components/code-tree/tree-breadcrumb.js'))
             .then(() => {
+                // Load UI State Manager v2 from source with nuclear browser log handling
+                return loadModule('/static/js/components/ui-state-manager.js?v=2.0-NUCLEAR');
+            })
+            .then(() => {
                 // Now load main components in parallel
                 return Promise.all([
                     loadModule('/static/dist/dashboard.js'),
                     loadModule('/static/dist/components/activity-tree.js'),
                     loadModule('/static/js/components/code-tree.js'),  // TEMPORARY: Direct source for debugging
                     loadModule('/static/js/components/code-viewer.js'),  // Code viewer now includes file change tracking
-                    loadModule('/static/dist/components/file-viewer.js')  // File viewer for viewing file contents
+                    loadModule('/static/dist/components/file-viewer.js'),  // File viewer for viewing file contents
+                    loadModule('/static/js/components/browser-log-viewer.js?v=2.0-NUCLEAR')  // Browser console log viewer v2.0 NUCLEAR
+                        .then(() => {
+                            // Initialize BrowserLogViewer v2.0 immediately after loading
+                            if (typeof BrowserLogViewer !== 'undefined') {
+                                const container = document.getElementById('browser-logs-container');
+                                if (container && !window.browserLogViewer) {
+                                    console.error('[Main] Initializing BrowserLogViewer v2.0 NUCLEAR...');
+                                    window.browserLogViewer = new BrowserLogViewer(container);
+                                    console.error('[Main] BrowserLogViewer v2.0 NUCLEAR initialized successfully');
+                                } else {
+                                    console.error('[Main] BrowserLogViewer v2.0 already initialized or container not found');
+                                }
+                            } else {
+                                console.error('[Main] BrowserLogViewer class not found - script may not have loaded');
+                            }
+                        })
                 ]);
             })
             .then(() => {
             console.log('All dashboard modules loaded successfully');
             
             // CodeViewer will auto-initialize and handle tab switching internally
+            
+            // Browser Log Viewer initialization is now handled by UIStateManager
+            // This prevents duplicate event handlers and tab selection conflicts
+            
+            // Hash navigation will handle default tab based on URL
+            // If no hash, default will be 'events' as per hashToTab mapping
+            // To start with File Tree, we can set hash if not present
+            setTimeout(() => {
+                if (!window.location.hash) {
+                    console.log('No hash present, setting default to File Tree tab...');
+                    window.location.hash = '#file_tree';
+                } else {
+                    console.log('Hash present:', window.location.hash);
+                }
+            }, 500);
             
             // Give modules time to execute and initialize dashboard
             setTimeout(() => {
