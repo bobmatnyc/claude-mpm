@@ -264,173 +264,22 @@ class UIStateManager {
                 }
             }
             
-            // EXTREME NUCLEAR HANDLING for Browser Logs tab - FORCE COMPLETE ISOLATION
+            // SIMPLEST POSSIBLE Browser Logs tab - just static text
             if (tabName === 'browser-logs') {
-                console.error('[UI-STATE v3 EXTREME] 🚨🚨🚨 SWITCHING TO BROWSER LOGS - EXTREME NUCLEAR MODE');
-                console.error('[UI-STATE v3 EXTREME] Stack trace:', new Error().stack);
+                console.log('[UIStateManager] Switching to Browser Logs tab - simple mode');
                 
-                // EXTREME DIAGNOSTIC: Check what's trying to render
                 const container = document.getElementById('browser-logs-container');
                 if (container) {
-                    console.error('[UI-STATE v3 EXTREME] Container found, current innerHTML length:', container.innerHTML.length);
-                    console.error('[UI-STATE v3 EXTREME] Container classes:', container.className);
-                    console.error('[UI-STATE v3 EXTREME] Container children count:', container.children.length);
+                    // Clear EVERYTHING - no complex logic, just clear it
+                    container.innerHTML = '';
                     
-                    // EXTREME: Stop ALL event propagation
-                    const stopAllEvents = (e) => {
-                        e.stopPropagation();
-                        e.stopImmediatePropagation();
-                        e.preventDefault();
-                    };
+                    // Set the simplest possible content - just text
+                    container.innerHTML = '<h2 style="padding: 20px;">Browser Logs</h2>';
                     
-                    // EXTREME: Block EventViewer from touching this container
-                    if (window.eventViewer) {
-                        console.error('[UI-STATE v3 EXTREME] 🚨 EventViewer exists - DISABLING IT');
-                        // Temporarily override EventViewer's renderEvents method
-                        const originalRender = window.eventViewer.renderEvents;
-                        window.eventViewer.renderEvents = function() {
-                            const targetEl = document.getElementById('events-list');
-                            // Only allow rendering if target is NOT in browser-logs-tab
-                            if (targetEl && !targetEl.closest('#browser-logs-tab')) {
-                                return originalRender.call(this);
-                            }
-                            console.error('[UI-STATE v3 EXTREME] BLOCKED EventViewer.renderEvents in Browser Logs tab!');
-                        };
-                    }
-                    
-                    // EXTREME CLEAR: Multiple passes to ensure complete clearing
-                    for (let i = 0; i < 3; i++) {
-                        container.innerHTML = '';
-                        container.textContent = '';
-                        while (container.firstChild) {
-                            container.removeChild(container.firstChild);
-                        }
-                    }
-                    
-                    // Reset all attributes and classes
-                    container.className = '';
-                    container.removeAttribute('data-events');
-                    container.removeAttribute('data-component');
-                    container.setAttribute('data-component', 'browser-logs-only');
-                    container.setAttribute('data-no-events', 'true');
-                    
-                    // EXTREME: Set a guard flag
-                    container.dataset.browserLogsGuard = 'active';
-                    
-                    // EXTREME: Override container's innerHTML setter temporarily
-                    const originalInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
-                    Object.defineProperty(container, 'innerHTML', {
-                        set: function(value) {
-                            if (value && typeof value === 'string' && 
-                                (value.includes('[hook]') || value.includes('event-item') || 
-                                 value.includes('hook.pre_tool') || value.includes('hook.post_tool'))) {
-                                console.error('[UI-STATE v3 EXTREME] 🚨 BLOCKED CONTAMINATED innerHTML:', value.substring(0, 100));
-                                return;
-                            }
-                            originalInnerHTML.set.call(this, value);
-                        },
-                        get: function() {
-                            return originalInnerHTML.get.call(this);
-                        },
-                        configurable: true
-                    });
-                    
-                    // Check if BrowserLogViewer exists
-                    if (typeof BrowserLogViewer !== 'undefined') {
-                        // ALWAYS recreate to ensure clean state
-                        if (window.browserLogViewer) {
-                            console.error('[UI-STATE v3 EXTREME] Destroying old BrowserLogViewer instance');
-                            if (window.browserLogViewer.destroy) {
-                                window.browserLogViewer.destroy();
-                            }
-                            window.browserLogViewer = null;
-                        }
-                        
-                        // Create fresh instance with extreme verification
-                        console.error('[UI-STATE v3 EXTREME] Creating NEW BrowserLogViewer v3.0 EXTREME instance');
-                        window.browserLogViewer = new BrowserLogViewer(container);
-                        console.error('[UI-STATE v3 EXTREME] ✅ BrowserLogViewer v3.0 EXTREME INITIALIZED');
-                        
-                        // Force immediate render
-                        if (window.browserLogViewer.render) {
-                            window.browserLogViewer.render();
-                        }
-                    } else {
-                        // Fallback: Show hardcoded message if viewer not loaded
-                        console.error('[UI-STATE v3 EXTREME] BrowserLogViewer not found - showing fallback');
-                        // Restore innerHTML setter for fallback message
-                        Object.defineProperty(container, 'innerHTML', originalInnerHTML);
-                        container.innerHTML = `
-                            <div style="padding: 20px; text-align: center; background: #f0f0f0; border: 3px solid red;">
-                                <h1 style="color: red;">🚨 BROWSER LOGS ONLY 🚨</h1>
-                                <h2 style="color: green;">NO HOOK EVENTS ALLOWED</h2>
-                                <p style="color: red; font-weight: bold; font-size: 18px;">⚠️ Hook events ([hook]) are FORCEFULLY BLOCKED ⚠️</p>
-                                <p>This tab shows ONLY browser console logs.</p>
-                                <p style="color: blue;">Browser Log Viewer v3.0 EXTREME is loading...</p>
-                            </div>
-                        `;
-                    }
-                    
-                    // EXTREME: Multiple contamination checks
-                    const checkContamination = () => {
-                        const contamination = container.querySelectorAll('.event-item, .events-list, [class*="event"]');
-                        if (contamination.length > 0) {
-                            console.error(`[UI-STATE v3 EXTREME] 🚨 CONTAMINATION DETECTED (${contamination.length} items) - NUKING!`);
-                            contamination.forEach(item => {
-                                console.error('[UI-STATE v3 EXTREME] Removing contaminated element:', item.className);
-                                item.remove();
-                            });
-                            if (window.browserLogViewer && window.browserLogViewer.render) {
-                                window.browserLogViewer.render();
-                            }
-                        }
-                        
-                        // Check text content for hook events
-                        if (container.textContent.includes('[hook]') || 
-                            container.textContent.includes('hook.pre_tool')) {
-                            console.error('[UI-STATE v3 EXTREME] 🚨 TEXT CONTAMINATION DETECTED!');
-                            if (window.browserLogViewer) {
-                                container.innerHTML = '';
-                                window.browserLogViewer.render();
-                            }
-                        }
-                    };
-                    
-                    // Run contamination checks multiple times
-                    setTimeout(checkContamination, 50);
-                    setTimeout(checkContamination, 100);
-                    setTimeout(checkContamination, 200);
-                    setTimeout(checkContamination, 500);
-                    
-                    // EXTREME: Monitor for mutations
-                    const observer = new MutationObserver((mutations) => {
-                        for (const mutation of mutations) {
-                            if (mutation.type === 'childList') {
-                                for (const node of mutation.addedNodes) {
-                                    if (node.nodeType === Node.ELEMENT_NODE) {
-                                        const element = node;
-                                        if (element.classList?.contains('event-item') ||
-                                            element.textContent?.includes('[hook]')) {
-                                            console.error('[UI-STATE v3 EXTREME] 🚨 MUTATION DETECTED - BLOCKING!');
-                                            element.remove();
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                    
-                    observer.observe(container, {
-                        childList: true,
-                        subtree: true,
-                        characterData: true
-                    });
-                    
-                    // Store observer for cleanup
-                    container.dataset.mutationObserver = 'active';
-                    window.browserLogsMutationObserver = observer;
+                    // That's it. Nothing else. No event listeners, no watchers, nothing.
+                    console.log('[UIStateManager] Browser Logs tab set to simple text');
                 } else {
-                    console.error('[UI-STATE v3 EXTREME] 🚨 BROWSER LOGS CONTAINER NOT FOUND!');
+                    console.warn('[UIStateManager] Browser logs container not found');
                 }
             }
         }, 100);
