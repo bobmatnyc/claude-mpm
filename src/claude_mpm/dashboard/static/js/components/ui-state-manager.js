@@ -14,8 +14,31 @@
  */
 class UIStateManager {
     constructor() {
-        // Current active tab
-        this.currentTab = 'events';
+        // Hash to tab mapping
+        this.hashToTab = {
+            '#events': 'events',
+            '#agents': 'agents',
+            '#tools': 'tools',
+            '#files': 'files',
+            '#activity': 'activity',
+            '#file_tree': 'claude-tree',
+            '#browser_logs': 'browser-logs',
+            '': 'events', // default
+        };
+
+        // Tab to hash mapping (reverse lookup)
+        this.tabToHash = {
+            'events': '#events',
+            'agents': '#agents',
+            'tools': '#tools',
+            'files': '#files',
+            'activity': '#activity',
+            'claude-tree': '#file_tree',
+            'browser-logs': '#browser_logs'
+        };
+
+        // Current active tab - will be set based on URL hash
+        this.currentTab = this.getTabFromHash();
 
         // Auto-scroll behavior
         this.autoScroll = true;
@@ -37,28 +60,62 @@ class UIStateManager {
         };
 
         this.setupEventHandlers();
-        console.log('UI state manager initialized');
+        console.log('UI state manager initialized with hash navigation');
+        
+        // Initialize with current hash
+        this.handleHashChange();
+    }
+
+    /**
+     * Get tab name from current URL hash
+     * @returns {string} - Tab name based on hash
+     */
+    getTabFromHash() {
+        const hash = window.location.hash || '';
+        return this.hashToTab[hash] || 'events';
     }
 
     /**
      * Set up event handlers for UI interactions
      */
     setupEventHandlers() {
-        this.setupTabNavigation();
+        this.setupHashNavigation();
         this.setupUnifiedKeyboardNavigation();
     }
 
     /**
-     * Set up tab navigation event listeners
+     * Set up hash-based navigation
+     */
+    setupHashNavigation() {
+        // Handle hash changes
+        window.addEventListener('hashchange', (e) => {
+            console.log('[Hash Navigation] Hash changed from', new URL(e.oldURL).hash, 'to', window.location.hash);
+            this.handleHashChange();
+        });
+
+        // Handle initial page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('[Hash Navigation] Initial hash:', window.location.hash);
+            this.handleHashChange();
+        });
+    }
+
+    /**
+     * Handle hash change events
+     */
+    handleHashChange() {
+        const hash = window.location.hash || '';
+        const tabName = this.hashToTab[hash] || 'events';
+        console.log('[Hash Navigation] Switching to tab:', tabName, 'from hash:', hash);
+        this.switchTab(tabName, false); // false = don't update hash (we're responding to hash change)
+    }
+
+    /**
+     * DEPRECATED: Tab navigation is now handled by hash navigation
+     * This method is kept for backward compatibility but does nothing
      */
     setupTabNavigation() {
-        // Tab buttons
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', () => {
-                const tabName = this.getTabNameFromButton(button);
-                this.switchTab(tabName);
-            });
-        });
+        console.log('[Hash Navigation] setupTabNavigation is deprecated - using hash navigation instead');
     }
 
     /**
@@ -100,8 +157,9 @@ class UIStateManager {
         if (text.includes('activity')) return 'activity';
         if (text.includes('agents')) return 'agents';
         if (text.includes('tools')) return 'tools';
+        if (text.includes('browser')) return 'browser-logs';  // Added browser logs support
         if (text.includes('files')) return 'files';
-        if (text.includes('claude tree')) return 'claude-tree';
+        if (text.includes('file tree')) return 'claude-tree';
         if (text.includes('code')) return 'code';
         if (text.includes('sessions')) return 'sessions';
         if (text.includes('system')) return 'system';
@@ -111,44 +169,66 @@ class UIStateManager {
     /**
      * Switch to specified tab
      * @param {string} tabName - Name of tab to switch to
+     * @param {boolean} updateHash - Whether to update URL hash (default: true)
      */
-    switchTab(tabName) {
-        console.log(`[DEBUG] switchTab called with tabName: ${tabName}`);
+    switchTab(tabName, updateHash = true) {
+        console.log(`[Hash Navigation] switchTab called with tabName: ${tabName}, updateHash: ${updateHash}`);
+        
+        // Update URL hash if requested (when triggered by user action, not hash change)
+        if (updateHash && this.tabToHash[tabName]) {
+            const newHash = this.tabToHash[tabName];
+            if (window.location.hash !== newHash) {
+                console.log(`[Hash Navigation] Updating hash to: ${newHash}`);
+                window.location.hash = newHash;
+                return; // The hashchange event will trigger switchTab again
+            }
+        }
+
         const previousTab = this.currentTab;
         this.currentTab = tabName;
 
-        // Update tab button active states
-        document.querySelectorAll('.tab-button').forEach(btn => {
+        // Update tab button active states - ensure ALL tabs are deselected first
+        const allTabButtons = document.querySelectorAll('.tab-button');
+        allTabButtons.forEach(btn => {
             btn.classList.remove('active');
-            if (this.getTabNameFromButton(btn) === tabName) {
+        });
+        
+        // Now add active class ONLY to the selected tab
+        allTabButtons.forEach(btn => {
+            const btnTabName = this.getTabNameFromButton(btn);
+            if (btnTabName === tabName) {
                 btn.classList.add('active');
+                console.log(`[DEBUG] Set active on button with data-tab: ${btn.getAttribute('data-tab')}`);
             }
         });
 
-        // Show/hide tab content using CSS classes
-        document.querySelectorAll('.tab-content').forEach(content => {
+        // Show/hide tab content using CSS classes - ensure ALL are hidden first
+        const allTabContents = document.querySelectorAll('.tab-content');
+        allTabContents.forEach(content => {
             content.classList.remove('active');
         });
 
+        // Now show ONLY the selected tab content
         const activeTab = document.getElementById(`${tabName}-tab`);
         if (activeTab) {
             activeTab.classList.add('active');
+            console.log(`[DEBUG] Set active on content: ${tabName}-tab`);
             
-            // Special handling for Claude Tree tab - ensure it never shows events
+            // Special handling for File Tree tab - ensure it never shows events
             if (tabName === 'claude-tree') {
                 const claudeTreeContainer = document.getElementById('claude-tree-container');
                 if (claudeTreeContainer) {
                     // Check if events list somehow got into this container
                     const eventsList = claudeTreeContainer.querySelector('#events-list');
                     if (eventsList) {
-                        console.warn('[UIStateManager] Found events-list in Claude Tree container, removing it!');
+                        console.warn('[UIStateManager] Found events-list in File Tree container, removing it!');
                         eventsList.remove();
                     }
                     
                     // Check for event items
                     const eventItems = claudeTreeContainer.querySelectorAll('.event-item');
                     if (eventItems.length > 0) {
-                        console.warn('[UIStateManager] Found event items in Claude Tree container, clearing!');
+                        console.warn('[UIStateManager] Found event items in File Tree container, clearing!');
                         eventItems.forEach(item => item.remove());
                     }
                 }
@@ -172,9 +252,186 @@ class UIStateManager {
                 this.scrollCurrentTabToBottom();
             }
             
-            // Special handling for Claude Tree tab - trigger the tree render
+            // Special handling for File Tree tab - trigger the tree render
+            // But DON'T let it manipulate tabs itself
             if (tabName === 'claude-tree' && window.CodeViewer) {
-                window.CodeViewer.show();
+                // Call a new method that only renders content, not tab switching
+                if (window.CodeViewer.renderContent) {
+                    window.CodeViewer.renderContent();
+                } else {
+                    // Fallback to show() but it should be fixed to not switch tabs
+                    window.CodeViewer.show();
+                }
+            }
+            
+            // EXTREME NUCLEAR HANDLING for Browser Logs tab - FORCE COMPLETE ISOLATION
+            if (tabName === 'browser-logs') {
+                console.error('[UI-STATE v3 EXTREME] 🚨🚨🚨 SWITCHING TO BROWSER LOGS - EXTREME NUCLEAR MODE');
+                console.error('[UI-STATE v3 EXTREME] Stack trace:', new Error().stack);
+                
+                // EXTREME DIAGNOSTIC: Check what's trying to render
+                const container = document.getElementById('browser-logs-container');
+                if (container) {
+                    console.error('[UI-STATE v3 EXTREME] Container found, current innerHTML length:', container.innerHTML.length);
+                    console.error('[UI-STATE v3 EXTREME] Container classes:', container.className);
+                    console.error('[UI-STATE v3 EXTREME] Container children count:', container.children.length);
+                    
+                    // EXTREME: Stop ALL event propagation
+                    const stopAllEvents = (e) => {
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        e.preventDefault();
+                    };
+                    
+                    // EXTREME: Block EventViewer from touching this container
+                    if (window.eventViewer) {
+                        console.error('[UI-STATE v3 EXTREME] 🚨 EventViewer exists - DISABLING IT');
+                        // Temporarily override EventViewer's renderEvents method
+                        const originalRender = window.eventViewer.renderEvents;
+                        window.eventViewer.renderEvents = function() {
+                            const targetEl = document.getElementById('events-list');
+                            // Only allow rendering if target is NOT in browser-logs-tab
+                            if (targetEl && !targetEl.closest('#browser-logs-tab')) {
+                                return originalRender.call(this);
+                            }
+                            console.error('[UI-STATE v3 EXTREME] BLOCKED EventViewer.renderEvents in Browser Logs tab!');
+                        };
+                    }
+                    
+                    // EXTREME CLEAR: Multiple passes to ensure complete clearing
+                    for (let i = 0; i < 3; i++) {
+                        container.innerHTML = '';
+                        container.textContent = '';
+                        while (container.firstChild) {
+                            container.removeChild(container.firstChild);
+                        }
+                    }
+                    
+                    // Reset all attributes and classes
+                    container.className = '';
+                    container.removeAttribute('data-events');
+                    container.removeAttribute('data-component');
+                    container.setAttribute('data-component', 'browser-logs-only');
+                    container.setAttribute('data-no-events', 'true');
+                    
+                    // EXTREME: Set a guard flag
+                    container.dataset.browserLogsGuard = 'active';
+                    
+                    // EXTREME: Override container's innerHTML setter temporarily
+                    const originalInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+                    Object.defineProperty(container, 'innerHTML', {
+                        set: function(value) {
+                            if (value && typeof value === 'string' && 
+                                (value.includes('[hook]') || value.includes('event-item') || 
+                                 value.includes('hook.pre_tool') || value.includes('hook.post_tool'))) {
+                                console.error('[UI-STATE v3 EXTREME] 🚨 BLOCKED CONTAMINATED innerHTML:', value.substring(0, 100));
+                                return;
+                            }
+                            originalInnerHTML.set.call(this, value);
+                        },
+                        get: function() {
+                            return originalInnerHTML.get.call(this);
+                        },
+                        configurable: true
+                    });
+                    
+                    // Check if BrowserLogViewer exists
+                    if (typeof BrowserLogViewer !== 'undefined') {
+                        // ALWAYS recreate to ensure clean state
+                        if (window.browserLogViewer) {
+                            console.error('[UI-STATE v3 EXTREME] Destroying old BrowserLogViewer instance');
+                            if (window.browserLogViewer.destroy) {
+                                window.browserLogViewer.destroy();
+                            }
+                            window.browserLogViewer = null;
+                        }
+                        
+                        // Create fresh instance with extreme verification
+                        console.error('[UI-STATE v3 EXTREME] Creating NEW BrowserLogViewer v3.0 EXTREME instance');
+                        window.browserLogViewer = new BrowserLogViewer(container);
+                        console.error('[UI-STATE v3 EXTREME] ✅ BrowserLogViewer v3.0 EXTREME INITIALIZED');
+                        
+                        // Force immediate render
+                        if (window.browserLogViewer.render) {
+                            window.browserLogViewer.render();
+                        }
+                    } else {
+                        // Fallback: Show hardcoded message if viewer not loaded
+                        console.error('[UI-STATE v3 EXTREME] BrowserLogViewer not found - showing fallback');
+                        // Restore innerHTML setter for fallback message
+                        Object.defineProperty(container, 'innerHTML', originalInnerHTML);
+                        container.innerHTML = `
+                            <div style="padding: 20px; text-align: center; background: #f0f0f0; border: 3px solid red;">
+                                <h1 style="color: red;">🚨 BROWSER LOGS ONLY 🚨</h1>
+                                <h2 style="color: green;">NO HOOK EVENTS ALLOWED</h2>
+                                <p style="color: red; font-weight: bold; font-size: 18px;">⚠️ Hook events ([hook]) are FORCEFULLY BLOCKED ⚠️</p>
+                                <p>This tab shows ONLY browser console logs.</p>
+                                <p style="color: blue;">Browser Log Viewer v3.0 EXTREME is loading...</p>
+                            </div>
+                        `;
+                    }
+                    
+                    // EXTREME: Multiple contamination checks
+                    const checkContamination = () => {
+                        const contamination = container.querySelectorAll('.event-item, .events-list, [class*="event"]');
+                        if (contamination.length > 0) {
+                            console.error(`[UI-STATE v3 EXTREME] 🚨 CONTAMINATION DETECTED (${contamination.length} items) - NUKING!`);
+                            contamination.forEach(item => {
+                                console.error('[UI-STATE v3 EXTREME] Removing contaminated element:', item.className);
+                                item.remove();
+                            });
+                            if (window.browserLogViewer && window.browserLogViewer.render) {
+                                window.browserLogViewer.render();
+                            }
+                        }
+                        
+                        // Check text content for hook events
+                        if (container.textContent.includes('[hook]') || 
+                            container.textContent.includes('hook.pre_tool')) {
+                            console.error('[UI-STATE v3 EXTREME] 🚨 TEXT CONTAMINATION DETECTED!');
+                            if (window.browserLogViewer) {
+                                container.innerHTML = '';
+                                window.browserLogViewer.render();
+                            }
+                        }
+                    };
+                    
+                    // Run contamination checks multiple times
+                    setTimeout(checkContamination, 50);
+                    setTimeout(checkContamination, 100);
+                    setTimeout(checkContamination, 200);
+                    setTimeout(checkContamination, 500);
+                    
+                    // EXTREME: Monitor for mutations
+                    const observer = new MutationObserver((mutations) => {
+                        for (const mutation of mutations) {
+                            if (mutation.type === 'childList') {
+                                for (const node of mutation.addedNodes) {
+                                    if (node.nodeType === Node.ELEMENT_NODE) {
+                                        const element = node;
+                                        if (element.classList?.contains('event-item') ||
+                                            element.textContent?.includes('[hook]')) {
+                                            console.error('[UI-STATE v3 EXTREME] 🚨 MUTATION DETECTED - BLOCKING!');
+                                            element.remove();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    observer.observe(container, {
+                        childList: true,
+                        subtree: true,
+                        characterData: true
+                    });
+                    
+                    // Store observer for cleanup
+                    container.dataset.mutationObserver = 'active';
+                    window.browserLogsMutationObserver = observer;
+                } else {
+                    console.error('[UI-STATE v3 EXTREME] 🚨 BROWSER LOGS CONTAINER NOT FOUND!');
+                }
             }
         }, 100);
     }

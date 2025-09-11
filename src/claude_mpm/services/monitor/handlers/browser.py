@@ -289,18 +289,19 @@ class BrowserHandler:
             else:
                 self.logger.debug(log_message)
 
-            # Forward event to dashboard clients
-            await self.sio.emit(
-                "dashboard:browser:console",
-                {
-                    "browser_id": browser_id,
-                    "level": level,
-                    "message": message,
-                    "timestamp": timestamp,
-                    "url": data.get('url'),
-                    "line_info": data.get('line_info')
-                }
-            )
+            # Format log entry for dashboard
+            log_entry = {
+                "browser_id": browser_id,
+                "level": level,
+                "message": message,
+                "timestamp": timestamp,
+                "url": data.get('url'),
+                "line_info": data.get('line_info')
+            }
+            
+            # Forward event to dashboard clients using both event names for compatibility
+            await self.sio.emit("dashboard:browser:console", log_entry)
+            await self.sio.emit("browser_log", log_entry)
 
         except Exception as e:
             self.logger.error(f"Error handling console event: {e}")
