@@ -28,6 +28,7 @@ from aiohttp import web
 from ...core.logging_config import get_logger
 from ...dashboard.api.simple_directory import list_directory
 from .event_emitter import get_event_emitter
+from .handlers.browser import BrowserHandler
 from .handlers.code_analysis import CodeAnalysisHandler
 from .handlers.dashboard import DashboardHandler
 from .handlers.file import FileHandler
@@ -68,6 +69,7 @@ class UnifiedMonitorServer:
         self.site = None
 
         # Event handlers
+        self.browser_handler = None
         self.code_analysis_handler = None
         self.dashboard_handler = None
         self.file_handler = None
@@ -270,12 +272,14 @@ class UnifiedMonitorServer:
         """Setup Socket.IO event handlers."""
         try:
             # Create event handlers
+            self.browser_handler = BrowserHandler(self.sio)
             self.code_analysis_handler = CodeAnalysisHandler(self.sio)
             self.dashboard_handler = DashboardHandler(self.sio)
             self.file_handler = FileHandler(self.sio)
             self.hook_handler = HookHandler(self.sio)
 
             # Register handlers
+            self.browser_handler.register()
             self.code_analysis_handler.register()
             self.dashboard_handler.register()
             self.file_handler.register()
@@ -501,12 +505,61 @@ class UnifiedMonitorServer:
 
                 return web.json_response(config)
 
+            # Browser monitor script endpoint
+            async def browser_monitor_script_handler(request):
+                """Serve the browser console monitoring script with dynamic port injection."""
+                try:
+                    # Read the browser monitor script template
+                    script_path = dashboard_dir / "static" / "js" / "browser-console-monitor.js"
+                    
+                    if not script_path.exists():
+                        return web.Response(
+                            text="Browser monitor script not found",
+                            status=404,
+                            content_type="text/javascript"
+                        )
+                    
+                    # Read script content
+                    with open(script_path, 'r', encoding='utf-8') as f:
+                        script_content = f.read()
+                    
+                    # Replace the port placeholder with actual monitor port
+                    script_content = script_content.replace(
+                        '__MONITOR_PORT__', 
+                        str(self.port)
+                    )
+                    
+                    # Set appropriate headers for JavaScript
+                    headers = {
+                        'Content-Type': 'application/javascript; charset=utf-8',
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                        'Access-Control-Allow-Headers': 'Content-Type',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                    
+                    return web.Response(
+                        text=script_content,
+                        headers=headers
+                    )
+                    
+                except Exception as e:
+                    self.logger.error(f"Error serving browser monitor script: {e}")
+                    return web.Response(
+                        text=f"// Error loading browser monitor script: {e}",
+                        status=500,
+                        content_type="application/javascript"
+                    )
+
             # Register routes
             self.app.router.add_get("/", dashboard_index)
             self.app.router.add_get("/health", health_check)
             self.app.router.add_get("/version.json", version_handler)
             self.app.router.add_get("/api/config", config_handler)
             self.app.router.add_get("/api/directory", list_directory)
+            self.app.router.add_get("/api/browser-monitor.js", browser_monitor_script_handler)
             self.app.router.add_post("/api/events", api_events_handler)
             self.app.router.add_post("/api/file", api_file_handler)
 
@@ -728,6 +781,7 @@ class UnifiedMonitorServer:
             "host": self.host,
             "port": self.port,
             "handlers": {
+                "browser": self.browser_handler is not None,
                 "code_analysis": self.code_analysis_handler is not None,
                 "dashboard": self.dashboard_handler is not None,
                 "file": self.file_handler is not None,
