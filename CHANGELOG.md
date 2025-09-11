@@ -19,6 +19,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.2.42] - 2025-09-11
+
+### Added
+- **Browser Console Monitoring**: Complete browser console monitoring system with total isolation from hook events
+- **Hash-based Navigation**: Dashboard navigation with URL hash support (#events, #browser_logs, etc)
+- **Browser Logs Tab**: Dedicated browser logs viewer with isolated state management
+- **Console Injection Commands**: New `mpm browser-monitor` and `mpm monitor` commands for browser console monitoring
+
+### Fixed
+- **Missing API Endpoint**: Added `/api/working-directory` endpoint to monitor server
+- **Hook Event Contamination**: Implemented multiple defense layers against browser logs contamination
+- **UI State Management**: Enhanced tab switching and hash persistence
+- **Project Structure**: Organized test files and scripts according to project structure guidelines
+
+### Changed
+- **Browser Log Isolation**: Nuclear-level separation between browser logs and hook systems
+- **UI Components**: Improved code-viewer.js and ui-state-manager.js with better state isolation
+
 ## [4.2.41] - 2025-01-10
 
 ### Fixed
