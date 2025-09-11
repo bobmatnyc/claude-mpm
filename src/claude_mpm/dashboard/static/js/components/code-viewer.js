@@ -1,10 +1,10 @@
 /**
- * Code Viewer Component - Claude Activity Tree Viewer
+ * Code Viewer Component - File Activity Tree Viewer
  * 
- * Shows a D3.js tree visualization of files Claude has viewed or edited,
+ * Shows a D3.js tree visualization of files that have been viewed or edited,
  * including AST paths (classes, functions, methods) extracted from the files.
  * This is NOT a directory viewer but an activity-focused visualization.
- * Renders in the Claude Tree tab of the dashboard.
+ * Renders in the File Tree tab of the dashboard.
  */
 
 class CodeViewer {
@@ -42,17 +42,17 @@ class CodeViewer {
         this.processExistingEvents();
         
         this.initialized = true;
-        console.log('[CodeViewer] Code Viewer (Claude Activity Tree) initialized successfully');
+        console.log('[CodeViewer] Code Viewer (File Activity Tree) initialized successfully');
     }
 
     /**
-     * Setup the container in the Claude Tree tab
+     * Setup the container in the File Tree tab
      */
     setupContainer() {
-        // Find the Claude Tree tab container
+        // Find the File Tree tab container
         const treeContainer = document.getElementById('claude-tree-container');
         if (!treeContainer) {
-            console.error('Claude Tree container not found');
+            console.error('File Tree container not found');
             return;
         }
 
@@ -64,7 +64,7 @@ class CodeViewer {
     }
 
     /**
-     * Render the activity tree interface in the Claude Tree tab
+     * Render the activity tree interface in the File Tree tab
      */
     renderInterface() {
         if (!this.container) {
@@ -141,32 +141,32 @@ class CodeViewer {
     }
 
     /**
-     * Show the activity tree (switch to Claude Tree tab and render)
+     * Render the content without switching tabs
+     * This is called by UIStateManager when the tab is already active
+     */
+    renderContent() {
+        console.log('[CodeViewer] renderContent() called');
+        this._showInternal();
+    }
+    
+    /**
+     * Show the activity tree (for backward compatibility)
+     * Note: Tab switching is now handled by UIStateManager
      */
     show() {
         console.log('[CodeViewer] show() called');
-        
-        // Switch to the Claude Tree tab if we're being called from tab switch
-        const claudeTreeTab = document.querySelector('[data-tab="claude-tree"]');
-        const claudeTreeContent = document.getElementById('claude-tree-tab');
-        
-        if (claudeTreeTab && claudeTreeContent) {
-            // Only switch tabs if not already active
-            if (!claudeTreeContent.classList.contains('active')) {
-                // Remove active class from all tabs and contents
-                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                
-                // Add active class to Claude Tree tab
-                claudeTreeTab.classList.add('active');
-                claudeTreeContent.classList.add('active');
-            }
-        }
+        this._showInternal();
+    }
+    
+    /**
+     * Internal show implementation (without tab switching)
+     */
+    _showInternal() {
 
-        // Get the claude tree container
+        // Get the file tree container
         const claudeTreeContainer = document.getElementById('claude-tree-container');
         if (!claudeTreeContainer) {
-            console.error('[CodeViewer] Claude Tree container not found!');
+            console.error('[CodeViewer] File Tree container not found!');
             return;
         }
 
@@ -264,7 +264,7 @@ class CodeViewer {
                         );
                         
                         if (isUnwantedContent) {
-                            console.warn('[CodeViewer] BLOCKED unwanted content in Claude Tree container:', element);
+                            console.warn('[CodeViewer] BLOCKED unwanted content in File Tree container:', element);
                             console.warn('[CodeViewer] Element classes:', element.classList?.toString());
                             console.warn('[CodeViewer] Element text preview:', element.textContent?.substring(0, 100));
                             
@@ -390,7 +390,7 @@ class CodeViewer {
                 console.log('[CodeViewer] Received claude_event:', event);
                 if (this.isFileOperationEvent(event)) {
                     this.processClaudeEvent(event);
-                    // Only update if the Claude Tree tab is active
+                    // Only update if the File Tree tab is active
                     if (this.isTabActive()) {
                         this.buildTreeData();
                         this.renderTree();
@@ -406,7 +406,7 @@ class CodeViewer {
                 console.log('[CodeViewer] Received claude_event from eventBus:', event);
                 if (this.isFileOperationEvent(event)) {
                     this.processClaudeEvent(event);
-                    // Only update if the Claude Tree tab is active
+                    // Only update if the File Tree tab is active
                     if (this.isTabActive()) {
                         this.buildTreeData();
                         this.renderTree();
@@ -418,7 +418,7 @@ class CodeViewer {
     }
 
     /**
-     * Check if Claude Tree tab is active
+     * Check if File Tree tab is active
      */
     isTabActive() {
         const claudeTreeContent = document.getElementById('claude-tree-tab');
@@ -637,7 +637,7 @@ class CodeViewer {
      */
     buildTreeData() {
         const root = {
-            name: 'Claude Activity',
+            name: 'File Activity',
             type: 'root',
             children: []
         };
@@ -1029,20 +1029,20 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         window.CodeViewer.initialize();
         
-        // If Claude Tree tab is already active, show it
+        // If File Tree tab is already active, show it
         const claudeTreeTab = document.getElementById('claude-tree-tab');
         if (claudeTreeTab && claudeTreeTab.classList.contains('active')) {
-            console.log('[CodeViewer] Claude Tree tab is active on load, showing tree...');
+            console.log('[CodeViewer] File Tree tab is active on load, showing tree...');
             setTimeout(() => window.CodeViewer.show(), 100);
         }
     });
 } else {
     window.CodeViewer.initialize();
     
-    // If Claude Tree tab is already active, show it
+    // If File Tree tab is already active, show it
     const claudeTreeTab = document.getElementById('claude-tree-tab');
     if (claudeTreeTab && claudeTreeTab.classList.contains('active')) {
-        console.log('[CodeViewer] Claude Tree tab is active, showing tree...');
+        console.log('[CodeViewer] File Tree tab is active, showing tree...');
         setTimeout(() => window.CodeViewer.show(), 100);
     }
 }
@@ -1050,27 +1050,22 @@ if (document.readyState === 'loading') {
 // Also listen for tab changes to ensure we render when needed
 document.addEventListener('tabChanged', (event) => {
     if (event.detail && event.detail.newTab === 'claude-tree') {
-        console.log('[CodeViewer] Tab changed to Claude Tree, forcing show...');
+        console.log('[CodeViewer] Tab changed to File Tree, forcing show...');
         setTimeout(() => window.CodeViewer.show(), 50);
     }
 });
 
-// ADDITIONAL: Listen for clicks on the Claude Tree tab button directly
-document.addEventListener('click', (event) => {
-    if (event.target && event.target.matches('[data-tab="claude-tree"]')) {
-        console.log('[CodeViewer] Direct click on Claude Tree tab detected, forcing show...');
-        setTimeout(() => window.CodeViewer.show(), 100);
-    }
-});
+// Tab click handling is now done by UIStateManager
+// CodeViewer.renderContent() is called when the File Tree tab is activated
 
-// FALLBACK: Periodic check to ensure Claude Tree tab is properly rendered
+// FALLBACK: Periodic check to ensure File Tree tab is properly rendered
 setInterval(() => {
     const claudeTreeTab = document.getElementById('claude-tree-tab');
     const claudeTreeContainer = document.getElementById('claude-tree-container');
     
     if (claudeTreeTab && claudeTreeTab.classList.contains('active') && 
         claudeTreeContainer && !claudeTreeContainer.querySelector('.activity-tree-wrapper')) {
-        console.log('[CodeViewer] Periodic check: Claude Tree tab is active but not properly rendered, fixing...');
+        console.log('[CodeViewer] Periodic check: File Tree tab is active but not properly rendered, fixing...');
         window.CodeViewer.show();
     }
 }, 5000);
