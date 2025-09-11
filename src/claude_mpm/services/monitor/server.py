@@ -200,11 +200,11 @@ class UnifiedMonitorServer:
         try:
             # Create Socket.IO server with proper ping configuration
             self.sio = socketio.AsyncServer(
-                cors_allowed_origins="*", 
-                logger=False, 
+                cors_allowed_origins="*",
+                logger=False,
                 engineio_logger=False,
                 ping_interval=30,  # 30 seconds ping interval (matches client expectation)
-                ping_timeout=60    # 60 seconds ping timeout (generous for stability)
+                ping_timeout=60,  # 60 seconds ping timeout (generous for stability)
             )
 
             # Create aiohttp application
@@ -513,29 +513,32 @@ class UnifiedMonitorServer:
             # Static files with cache busting headers for development
             static_dir = dashboard_dir / "static"
             if static_dir.exists():
+
                 async def static_handler(request):
                     """Serve static files with cache-control headers for development."""
+
                     from aiohttp.web_fileresponse import FileResponse
-                    import os
-                    
+
                     # Get the relative path from the request
-                    rel_path = request.match_info['filepath']
+                    rel_path = request.match_info["filepath"]
                     file_path = static_dir / rel_path
-                    
+
                     if not file_path.exists() or not file_path.is_file():
                         raise web.HTTPNotFound()
-                    
+
                     # Create file response
                     response = FileResponse(file_path)
-                    
+
                     # Add cache-busting headers for development
-                    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-                    response.headers['Pragma'] = 'no-cache'
-                    response.headers['Expires'] = '0'
-                    
+                    response.headers["Cache-Control"] = (
+                        "no-cache, no-store, must-revalidate"
+                    )
+                    response.headers["Pragma"] = "no-cache"
+                    response.headers["Expires"] = "0"
+
                     return response
-                
-                self.app.router.add_get('/static/{filepath:.*}', static_handler)
+
+                self.app.router.add_get("/static/{filepath:.*}", static_handler)
 
             # Templates
             templates_dir = dashboard_dir / "templates"
