@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude MPM Browser Console Monitor Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #f5f7fa;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .test-button {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .test-button:hover {
+            background: #3182ce;
+        }
+        
+        .test-button.danger {
+            background: #e53e3e;
+        }
+        
+        .test-button.danger:hover {
+            background: #c53030;
+        }
+        
+        .test-button.warning {
+            background: #f6ad55;
+            color: #2d3748;
+        }
+        
+        .test-button.warning:hover {
+            background: #ed8936;
+        }
+        
+        .console-output {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .status.connected {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .status.disconnected {
+            background: #f56565;
+            color: white;
+        }
+        
+        .info-panel {
+            background: #e6fffa;
+            border: 1px solid #38b2ac;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🖥️ Claude MPM Browser Console Monitor Test</h1>
+        <p>This page tests the browser console monitoring system by generating various console events.</p>
+        <p><strong>Monitor Status:</strong> 
+            <span id="monitor-status" class="status disconnected">Checking...</span>
+        </p>
+    </div>
+
+    <div class="test-section">
+        <h2>📡 Connection Status</h2>
+        <p>The browser console monitor automatically connects when this page loads. Check the bottom-right corner for the monitor indicator.</p>
+        
+        <div class="info-panel">
+            <strong>Expected Behavior:</strong>
+            <ul>
+                <li>Monitor indicator appears in bottom-right corner</li>
+                <li>Indicator shows "Connected" status with browser ID</li>
+                <li>Console events are logged to <code>.claude-mpm/logs/client/</code></li>
+                <li>Events are also visible in the Claude MPM dashboard</li>
+            </ul>
+        </div>
+        
+        <button class="test-button" onclick="checkMonitorStatus()">Check Monitor Status</button>
+        <button class="test-button" onclick="showMonitorInfo()">Show Monitor Info</button>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 Console Event Tests</h2>
+        <p>Click the buttons below to generate different types of console events:</p>
+        
+        <button class="test-button" onclick="testInfoMessage()">Log Info Message</button>
+        <button class="test-button" onclick="testDebugMessage()">Log Debug Message</button>
+        <button class="test-button warning" onclick="testWarningMessage()">Log Warning</button>
+        <button class="test-button danger" onclick="testErrorMessage()">Log Error</button>
+        <button class="test-button danger" onclick="testException()">Throw Exception</button>
+        <button class="test-button" onclick="testObjectLogging()">Log Objects</button>
+        <button class="test-button" onclick="testAsyncError()">Async Error</button>
+        <button class="test-button" onclick="runAllTests()">Run All Tests</button>
+        
+        <div id="console-mirror" class="console-output">
+            Console output will appear here...
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Performance Test</h2>
+        <p>Test the monitor's handling of high-frequency console events:</p>
+        
+        <button class="test-button" onclick="performanceTest(100)">100 Events</button>
+        <button class="test-button" onclick="performanceTest(500)">500 Events</button>
+        <button class="test-button warning" onclick="performanceTest(1000)">1000 Events</button>
+        
+        <div id="performance-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 Integration Test</h2>
+        <p>Test integration with various JavaScript scenarios:</p>
+        
+        <button class="test-button" onclick="testPromiseRejection()">Promise Rejection</button>
+        <button class="test-button" onclick="testTimerError()">Timer Error</button>
+        <button class="test-button" onclick="testDOMError()">DOM Error</button>
+        <button class="test-button" onclick="testNetworkError()">Network Error</button>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 Verification Instructions</h2>
+        <div class="info-panel">
+            <h3>How to Verify Browser Console Monitoring:</h3>
+            <ol>
+                <li><strong>Check Monitor Server:</strong>
+                    <div class="code-block">curl -s http://localhost:8765/health | jq .</div>
+                </li>
+                <li><strong>View Log Files:</strong>
+                    <div class="code-block">ls -la .claude-mpm/logs/client/
+tail -f .claude-mpm/logs/client/browser-*.log</div>
+                </li>
+                <li><strong>Monitor Dashboard:</strong>
+                    <div class="code-block">open http://localhost:8765</div>
+                </li>
+                <li><strong>Check Browser Console:</strong>
+                    <div class="code-block">F12 -> Console Tab -> Look for "[Browser Monitor]" messages</div>
+                </li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Load the browser console monitor script -->
+    <script src="http://localhost:8765/api/browser-monitor.js"></script>
+    
+    <script>
+        // Mirror console output to page for visibility
+        const consoleOutput = document.getElementById('console-mirror');
+        const originalConsole = {
+            log: console.log,
+            info: console.info,
+            warn: console.warn,
+            error: console.error,
+            debug: console.debug
+        };
+        
+        function mirrorToPage(level, args) {
+            const timestamp = new Date().toLocaleTimeString();
+            const message = args.map(arg => {
+                if (typeof arg === 'object') {
+                    try {
+                        return JSON.stringify(arg, null, 2);
+                    } catch (e) {
+                        return '[Object]';
+                    }
+                }
+                return String(arg);
+            }).join(' ');
+            
+            const levelColors = {
+                log: '#e2e8f0',
+                info: '#63b3ed',
+                warn: '#f6ad55',
+                error: '#fc8181',
+                debug: '#a0aec0'
+            };
+            
+            const entry = document.createElement('div');
+            entry.style.color = levelColors[level] || '#e2e8f0';
+            entry.innerHTML = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+            
+            consoleOutput.appendChild(entry);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            
+            // Keep only last 50 entries
+            while (consoleOutput.children.length > 50) {
+                consoleOutput.removeChild(consoleOutput.firstChild);
+            }
+        }
+        
+        // Override console methods to mirror output
+        ['log', 'info', 'warn', 'error', 'debug'].forEach(level => {
+            console[level] = function(...args) {
+                mirrorToPage(level, args);
+                return originalConsole[level].apply(console, args);
+            };
+        });
+
+        // Test functions
+        function checkMonitorStatus() {
+            if (window.browserConsoleMonitor) {
+                const info = window.browserConsoleMonitor.getInfo();
+                console.info('Browser Monitor Status:', info);
+                document.getElementById('monitor-status').textContent = 
+                    info.isConnected ? `Connected (${info.browserID})` : 'Disconnected';
+                document.getElementById('monitor-status').className = 
+                    `status ${info.isConnected ? 'connected' : 'disconnected'}`;
+            } else {
+                console.warn('Browser Console Monitor not loaded');
+                document.getElementById('monitor-status').textContent = 'Not Loaded';
+                document.getElementById('monitor-status').className = 'status disconnected';
+            }
+        }
+        
+        function showMonitorInfo() {
+            if (window.browserConsoleMonitor) {
+                console.group('🖥️ Browser Monitor Information');
+                const info = window.browserConsoleMonitor.getInfo();
+                console.log('Browser ID:', info.browserID);
+                console.log('Connection Status:', info.isConnected);
+                console.log('Queued Events:', info.queuedEvents);
+                console.log('Current URL:', window.location.href);
+                console.log('User Agent:', navigator.userAgent);
+                console.groupEnd();
+            } else {
+                console.error('Browser Console Monitor not available');
+            }
+        }
+        
+        function testInfoMessage() {
+            console.info('ℹ️ This is an info message from the test page');
+        }
+        
+        function testDebugMessage() {
+            console.debug('🐛 Debug message with technical details', {
+                component: 'BrowserMonitorTest',
+                timestamp: Date.now(),
+                userAgent: navigator.userAgent.substring(0, 50)
+            });
+        }
+        
+        function testWarningMessage() {
+            console.warn('⚠️ Warning: This is a test warning message', {
+                level: 'warning',
+                source: 'test-browser-monitor.html'
+            });
+        }
+        
+        function testErrorMessage() {
+            console.error('❌ Test error message', {
+                error: 'TestError',
+                details: 'This is a controlled test error'
+            });
+        }
+        
+        function testException() {
+            try {
+                // Intentionally cause an error
+                const obj = null;
+                obj.someProperty.nestedProperty = 'test';
+            } catch (error) {
+                console.error('🚨 Caught exception:', error);
+            }
+        }
+        
+        function testObjectLogging() {
+            const testObjects = {
+                simpleObject: { name: 'Test', value: 42 },
+                arrayData: [1, 2, 3, 'test', { nested: true }],
+                nullValue: null,
+                undefinedValue: undefined,
+                functionValue: function() { return 'test'; }
+            };
+            
+            console.log('📦 Object logging test:', testObjects);
+        }
+        
+        function testAsyncError() {
+            setTimeout(() => {
+                console.error('⏰ Async error after timeout', {
+                    type: 'async',
+                    delay: '1000ms'
+                });
+            }, 1000);
+            
+            console.info('⏰ Async error scheduled for 1 second');
+        }
+        
+        function runAllTests() {
+            console.group('🧪 Running All Console Tests');
+            
+            testInfoMessage();
+            setTimeout(testDebugMessage, 100);
+            setTimeout(testWarningMessage, 200);
+            setTimeout(testErrorMessage, 300);
+            setTimeout(testObjectLogging, 400);
+            setTimeout(testException, 500);
+            setTimeout(testAsyncError, 600);
+            
+            setTimeout(() => {
+                console.groupEnd();
+                console.info('✅ All console tests completed');
+            }, 700);
+        }
+        
+        function performanceTest(eventCount) {
+            console.group(`⚡ Performance Test: ${eventCount} events`);
+            
+            const startTime = performance.now();
+            const performanceOutput = document.getElementById('performance-output');
+            
+            performanceOutput.innerHTML = `<p>Generating ${eventCount} console events...</p>`;
+            
+            for (let i = 0; i < eventCount; i++) {
+                if (i % 4 === 0) {
+                    console.log(`Performance test event ${i + 1}/${eventCount}`);
+                } else if (i % 4 === 1) {
+                    console.info(`Info event ${i + 1}/${eventCount}`, { iteration: i });
+                } else if (i % 4 === 2) {
+                    console.warn(`Warning event ${i + 1}/${eventCount}`);
+                } else {
+                    console.debug(`Debug event ${i + 1}/${eventCount}`, { data: Math.random() });
+                }
+            }
+            
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+            
+            console.groupEnd();
+            console.info(`⚡ Performance test completed: ${eventCount} events in ${duration.toFixed(2)}ms`);
+            
+            performanceOutput.innerHTML = `
+                <p><strong>Performance Test Results:</strong></p>
+                <ul>
+                    <li>Events: ${eventCount}</li>
+                    <li>Duration: ${duration.toFixed(2)}ms</li>
+                    <li>Rate: ${(eventCount / duration * 1000).toFixed(0)} events/second</li>
+                </ul>
+            `;
+        }
+        
+        function testPromiseRejection() {
+            Promise.reject(new Error('Test promise rejection'))
+                .catch(error => {
+                    console.error('🚫 Promise rejection caught:', error);
+                });
+        }
+        
+        function testTimerError() {
+            setTimeout(() => {
+                console.error('⏲️ Timer-based error', {
+                    source: 'setTimeout',
+                    delay: '500ms'
+                });
+            }, 500);
+        }
+        
+        function testDOMError() {
+            try {
+                const nonExistentElement = document.getElementById('non-existent-element');
+                nonExistentElement.style.color = 'red'; // This will throw
+            } catch (error) {
+                console.error('🏗️ DOM manipulation error:', error);
+            }
+        }
+        
+        function testNetworkError() {
+            fetch('http://localhost:9999/non-existent-endpoint')
+                .catch(error => {
+                    console.error('🌐 Network error:', error);
+                });
+        }
+        
+        // Initialize page
+        window.addEventListener('load', () => {
+            console.log('🚀 Browser Console Monitor Test Page Loaded');
+            
+            // Check monitor status after a brief delay
+            setTimeout(checkMonitorStatus, 1000);
+            
+            // Show welcome message
+            console.group('📋 Test Page Information');
+            console.log('Page:', document.title);
+            console.log('URL:', window.location.href);
+            console.log('Load time:', new Date().toISOString());
+            console.groupEnd();
+        });
+        
+        // Handle errors
+        window.addEventListener('error', (event) => {
+            console.error('🚨 Global error caught:', {
+                message: event.message,
+                source: event.filename,
+                line: event.lineno,
+                column: event.colno,
+                error: event.error
+            });
+        });
+        
+        // Handle unhandled promise rejections
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('🚫 Unhandled promise rejection:', event.reason);
+        });
+    </script>
+</body>
+</html>
