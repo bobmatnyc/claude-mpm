@@ -493,22 +493,6 @@ class Dashboard {
             case 'files':
                 this.renderFiles();
                 break;
-            case 'browser-logs':
-                // Simple browser logs display - no events
-                const browserLogsContainer = document.getElementById('browser-logs-container');
-                if (browserLogsContainer) {
-                    // Only set content if it's not already set
-                    if (!browserLogsContainer.querySelector('.browser-logs-simple')) {
-                        browserLogsContainer.innerHTML = `
-                            <div class="browser-logs-simple" style="padding: 20px;">
-                                <h2>Browser Logs</h2>
-                                <p style="color: #666;">Browser console monitoring - no events shown here</p>
-                            </div>
-                        `;
-                    }
-                }
-                console.log('[Dashboard] Browser Logs tab rendered (simple mode)');
-                break;
         }
 
         // Update selection UI if we have a selected card

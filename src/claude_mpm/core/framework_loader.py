@@ -30,6 +30,12 @@ AgentRegistryAdapter = safe_import(
     "claude_mpm.core.agent_registry", "core.agent_registry", ["AgentRegistryAdapter"]
 )
 
+# Import API validator
+try:
+    from claude_mpm.core.api_validator import validate_api_keys
+except ImportError:
+    from ..core.api_validator import validate_api_keys
+
 # Import the service container and interfaces
 try:
     from claude_mpm.services.core.cache_manager import CacheManager
@@ -105,6 +111,7 @@ class FrameworkLoader:
         framework_path: Optional[Path] = None,
         agents_dir: Optional[Path] = None,
         service_container: Optional[ServiceContainer] = None,
+        config: Optional[Dict[str, Any]] = None,
     ):
         """
         Initialize framework loader.
@@ -113,11 +120,26 @@ class FrameworkLoader:
             framework_path: Explicit path to framework (auto-detected if None)
             agents_dir: Custom agents directory (overrides framework agents)
             service_container: Optional service container for dependency injection
+            config: Optional configuration dictionary for API validation and other settings
         """
         self.logger = get_logger("framework_loader")
         self.agents_dir = agents_dir
         self.framework_version = None
         self.framework_last_modified = None
+        self.config = config or {}
+
+        # Validate API keys on startup (before any other initialization)
+        if self.config.get('validate_api_keys', True):
+            try:
+                self.logger.info("Validating configured API keys...")
+                validate_api_keys(config=self.config, strict=True)
+                self.logger.info("✅ API key validation completed successfully")
+            except ValueError as e:
+                self.logger.error(f"❌ API key validation failed: {e}")
+                raise
+            except Exception as e:
+                self.logger.error(f"❌ Unexpected error during API validation: {e}")
+                raise
 
         # Use provided container or get global container
         self.container = service_container or get_global_container()

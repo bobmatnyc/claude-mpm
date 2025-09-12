@@ -22,7 +22,6 @@ class UIStateManager {
             '#files': 'files',
             '#activity': 'activity',
             '#file_tree': 'claude-tree',
-            '#browser_logs': 'browser-logs',
             '': 'events', // default
         };
 
@@ -33,8 +32,7 @@ class UIStateManager {
             'tools': '#tools',
             'files': '#files',
             'activity': '#activity',
-            'claude-tree': '#file_tree',
-            'browser-logs': '#browser_logs'
+            'claude-tree': '#file_tree'
         };
 
         // Current active tab - will be set based on URL hash
@@ -157,7 +155,6 @@ class UIStateManager {
         if (text.includes('activity')) return 'activity';
         if (text.includes('agents')) return 'agents';
         if (text.includes('tools')) return 'tools';
-        if (text.includes('browser')) return 'browser-logs';  // Added browser logs support
         if (text.includes('files')) return 'files';
         if (text.includes('file tree')) return 'claude-tree';
         if (text.includes('code')) return 'code';
@@ -261,25 +258,6 @@ class UIStateManager {
                 } else {
                     // Fallback to show() but it should be fixed to not switch tabs
                     window.CodeViewer.show();
-                }
-            }
-            
-            // SIMPLEST POSSIBLE Browser Logs tab - just static text
-            if (tabName === 'browser-logs') {
-                console.log('[UIStateManager] Switching to Browser Logs tab - simple mode');
-                
-                const container = document.getElementById('browser-logs-container');
-                if (container) {
-                    // Clear EVERYTHING - no complex logic, just clear it
-                    container.innerHTML = '';
-                    
-                    // Set the simplest possible content - just text
-                    container.innerHTML = '<h2 style="padding: 20px;">Browser Logs</h2>';
-                    
-                    // That's it. Nothing else. No event listeners, no watchers, nothing.
-                    console.log('[UIStateManager] Browser Logs tab set to simple text');
-                } else {
-                    console.warn('[UIStateManager] Browser logs container not found');
                 }
             }
         }, 100);

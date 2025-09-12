@@ -28,7 +28,6 @@ from aiohttp import web
 from ...core.logging_config import get_logger
 from ...dashboard.api.simple_directory import list_directory
 from .event_emitter import get_event_emitter
-from .handlers.browser import BrowserHandler
 from .handlers.code_analysis import CodeAnalysisHandler
 from .handlers.dashboard import DashboardHandler
 from .handlers.file import FileHandler
@@ -69,7 +68,6 @@ class UnifiedMonitorServer:
         self.site = None
 
         # Event handlers
-        self.browser_handler = None
         self.code_analysis_handler = None
         self.dashboard_handler = None
         self.file_handler = None
@@ -272,14 +270,12 @@ class UnifiedMonitorServer:
         """Setup Socket.IO event handlers."""
         try:
             # Create event handlers
-            self.browser_handler = BrowserHandler(self.sio)
             self.code_analysis_handler = CodeAnalysisHandler(self.sio)
             self.dashboard_handler = DashboardHandler(self.sio)
             self.file_handler = FileHandler(self.sio)
             self.hook_handler = HookHandler(self.sio)
 
             # Register handlers
-            self.browser_handler.register()
             self.code_analysis_handler.register()
             self.dashboard_handler.register()
             self.file_handler.register()
@@ -512,219 +508,6 @@ class UnifiedMonitorServer:
                     {"working_directory": os.getcwd(), "success": True}
                 )
 
-            # Browser monitor script endpoint
-            async def browser_monitor_script_handler(request):
-                """Serve the browser console monitoring script with dynamic port injection."""
-                try:
-                    # Read the browser monitor script template
-                    script_path = (
-                        dashboard_dir / "static" / "js" / "browser-console-monitor.js"
-                    )
-
-                    if not script_path.exists():
-                        return web.Response(
-                            text="Browser monitor script not found",
-                            status=404,
-                            content_type="text/javascript",
-                        )
-
-                    # Read script content
-                    with open(script_path, encoding="utf-8") as f:
-                        script_content = f.read()
-
-                    # Replace the port placeholder with actual monitor port
-                    script_content = script_content.replace(
-                        "__MONITOR_PORT__", str(self.port)
-                    )
-
-                    # Set appropriate headers for JavaScript
-                    headers = {
-                        "Content-Type": "application/javascript; charset=utf-8",
-                        "Access-Control-Allow-Origin": "*",
-                        "Access-Control-Allow-Methods": "GET, OPTIONS",
-                        "Access-Control-Allow-Headers": "Content-Type",
-                        "Cache-Control": "no-cache, no-store, must-revalidate",
-                        "Pragma": "no-cache",
-                        "Expires": "0",
-                    }
-
-                    return web.Response(text=script_content, headers=headers)
-
-                except Exception as e:
-                    self.logger.error(f"Error serving browser monitor script: {e}")
-                    return web.Response(
-                        text=f"// Error loading browser monitor script: {e}",
-                        status=500,
-                        content_type="application/javascript",
-                    )
-
-            # Browser log endpoints
-            async def api_browser_logs_handler(request):
-                """Return list of browser log files."""
-                try:
-                    from pathlib import Path
-
-                    # Get browser log directory
-                    log_dir = Path.home() / ".claude-mpm" / "logs" / "client"
-
-                    if not log_dir.exists():
-                        return web.json_response({"files": [], "total": 0})
-
-                    # Get all log files
-                    log_files = []
-                    for file_path in log_dir.glob("*.log"):
-                        stat = file_path.stat()
-                        log_files.append(
-                            {
-                                "name": file_path.name,
-                                "size": stat.st_size,
-                                "modified": stat.st_mtime,
-                                "modified_iso": datetime.fromtimestamp(
-                                    stat.st_mtime
-                                ).isoformat(),
-                            }
-                        )
-
-                    # Sort by modification time (newest first)
-                    log_files.sort(key=lambda x: x["modified"], reverse=True)
-
-                    return web.json_response(
-                        {
-                            "files": log_files,
-                            "total": len(log_files),
-                            "directory": str(log_dir),
-                        }
-                    )
-
-                except Exception as e:
-                    self.logger.error(f"Error listing browser logs: {e}")
-                    return web.json_response(
-                        {"error": str(e), "files": [], "total": 0}, status=500
-                    )
-
-            async def api_browser_log_file_handler(request):
-                """Return contents of specific browser log file."""
-                try:
-                    import json
-                    from pathlib import Path
-
-                    filename = request.match_info.get("filename", "")
-
-                    # Security: ensure filename is safe (no path traversal)
-                    if (
-                        not filename
-                        or "/" in filename
-                        or "\\" in filename
-                        or ".." in filename
-                    ):
-                        return web.json_response(
-                            {"error": "Invalid filename"}, status=400
-                        )
-
-                    # Get log file path
-                    log_dir = Path.home() / ".claude-mpm" / "logs" / "client"
-                    log_file = log_dir / filename
-
-                    # Check if file exists and is within log directory
-                    if not log_file.exists() or not log_file.is_file():
-                        return web.json_response(
-                            {"error": "Log file not found"}, status=404
-                        )
-
-                    # Ensure file is within the log directory (security check)
-                    try:
-                        log_file.resolve().relative_to(log_dir.resolve())
-                    except ValueError:
-                        return web.json_response(
-                            {"error": "Invalid file path"}, status=403
-                        )
-
-                    # Read log entries
-                    entries = []
-                    with open(log_file, encoding="utf-8") as f:
-                        for line in f:
-                            line = line.strip()
-                            if line:
-                                try:
-                                    entry = json.loads(line)
-                                    entries.append(entry)
-                                except json.JSONDecodeError:
-                                    # If not JSON, treat as plain text log
-                                    entries.append(
-                                        {
-                                            "timestamp": "",
-                                            "level": "INFO",
-                                            "message": line,
-                                        }
-                                    )
-
-                    # Limit entries for performance
-                    max_entries = 1000
-                    if len(entries) > max_entries:
-                        entries = entries[-max_entries:]  # Get last N entries
-
-                    return web.json_response(
-                        {
-                            "filename": filename,
-                            "entries": entries,
-                            "total": len(entries),
-                            "truncated": len(entries) == max_entries,
-                        }
-                    )
-
-                except Exception as e:
-                    self.logger.error(f"Error reading browser log file: {e}")
-                    return web.json_response(
-                        {"error": str(e), "entries": []}, status=500
-                    )
-
-            async def api_browser_log_handler(request):
-                """Handle browser log submissions from injected monitoring script."""
-                try:
-                    import json
-                    from pathlib import Path
-
-                    data = await request.json()
-
-                    # Extract log data
-                    browser_id = data.get("browser_id", "unknown")
-                    timestamp = data.get("timestamp", datetime.utcnow().isoformat())
-                    level = data.get("level", "INFO")
-                    message = data.get("message", "")
-                    url = data.get("url", "")
-                    user_agent = data.get("userAgent", "")
-
-                    # Create log entry
-                    log_entry = {
-                        "browser_id": browser_id,
-                        "timestamp": timestamp,
-                        "level": level,
-                        "message": message,
-                        "url": url,
-                        "user_agent": user_agent,
-                    }
-
-                    # Save to file
-                    log_dir = Path.home() / ".claude-mpm" / "logs" / "client"
-                    log_dir.mkdir(parents=True, exist_ok=True)
-
-                    # Use browser ID in filename for easy filtering
-                    log_file = log_dir / f"{browser_id}.log"
-
-                    # Append to log file
-                    with open(log_file, "a", encoding="utf-8") as f:
-                        f.write(json.dumps(log_entry) + "\n")
-
-                    # Also emit to Socket.IO for real-time viewing
-                    if self.sio:
-                        await self.sio.emit("browser_log", log_entry)
-
-                    return web.Response(status=204)  # No content
-
-                except Exception as e:
-                    self.logger.error(f"Error handling browser log: {e}")
-                    return web.Response(text=str(e), status=500)
-
             # Register routes
             self.app.router.add_get("/", dashboard_index)
             self.app.router.add_get("/health", health_check)
@@ -732,14 +515,6 @@ class UnifiedMonitorServer:
             self.app.router.add_get("/api/config", config_handler)
             self.app.router.add_get("/api/working-directory", working_directory_handler)
             self.app.router.add_get("/api/directory", list_directory)
-            self.app.router.add_get(
-                "/api/browser-monitor.js", browser_monitor_script_handler
-            )
-            self.app.router.add_get("/api/browser-logs", api_browser_logs_handler)
-            self.app.router.add_get(
-                "/api/browser-logs/{filename}", api_browser_log_file_handler
-            )
-            self.app.router.add_post("/api/browser-log", api_browser_log_handler)
             self.app.router.add_post("/api/events", api_events_handler)
             self.app.router.add_post("/api/file", api_file_handler)
 
@@ -961,7 +736,6 @@ class UnifiedMonitorServer:
             "host": self.host,
             "port": self.port,
             "handlers": {
-                "browser": self.browser_handler is not None,
                 "code_analysis": self.code_analysis_handler is not None,
                 "dashboard": self.dashboard_handler is not None,
                 "file": self.file_handler is not None,
