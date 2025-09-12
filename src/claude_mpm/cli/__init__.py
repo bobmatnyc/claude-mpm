@@ -410,7 +410,6 @@ def _execute_command(command: str, args) -> int:
         # Convert CommandResult to exit code
         return result.exit_code if result else 0
 
-
     # Map stable commands to their implementations
     command_map = {
         CLICommands.RUN.value: run_session,
