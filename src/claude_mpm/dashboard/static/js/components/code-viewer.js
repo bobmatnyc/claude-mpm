@@ -388,7 +388,9 @@ class CodeViewer {
         if (window.socket) {
             window.socket.on('claude_event', (event) => {
                 console.log('[CodeViewer] Received claude_event:', event);
-                if (this.isFileOperationEvent(event)) {
+                
+                // Process both hook events and direct file operation events
+                if (this.isFileOperationEvent(event) || this.isDirectFileEvent(event)) {
                     this.processClaudeEvent(event);
                     // Only update if the File Tree tab is active
                     if (this.isTabActive()) {
@@ -398,13 +400,31 @@ class CodeViewer {
                     }
                 }
             });
+            
+            // Also listen for specific file events
+            window.socket.on('file:read', (data) => {
+                console.log('[CodeViewer] Received file:read event:', data);
+                this.handleDirectFileEvent('Read', data);
+            });
+            
+            window.socket.on('file:write', (data) => {
+                console.log('[CodeViewer] Received file:write event:', data);
+                this.handleDirectFileEvent('Write', data);
+            });
+            
+            window.socket.on('file:edit', (data) => {
+                console.log('[CodeViewer] Received file:edit event:', data);
+                this.handleDirectFileEvent('Edit', data);
+            });
         }
 
         // Listen for events from event bus
         if (window.eventBus) {
             window.eventBus.on('claude_event', (event) => {
                 console.log('[CodeViewer] Received claude_event from eventBus:', event);
-                if (this.isFileOperationEvent(event)) {
+                
+                // Process both hook events and direct file operation events
+                if (this.isFileOperationEvent(event) || this.isDirectFileEvent(event)) {
                     this.processClaudeEvent(event);
                     // Only update if the File Tree tab is active
                     if (this.isTabActive()) {
@@ -452,6 +472,46 @@ class CodeViewer {
         }
         return false;
     }
+    
+    /**
+     * Check if an event is a direct file event (not wrapped in hook)
+     */
+    isDirectFileEvent(event) {
+        // Check if this is a direct file operation event
+        if (event.type === 'file_operation' || 
+            (event.tool && ['Read', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(event.tool))) {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Handle direct file events from WebSocket
+     */
+    handleDirectFileEvent(tool_name, data) {
+        const event = {
+            type: 'file_operation',
+            tool: tool_name,
+            data: {
+                tool_name: tool_name,
+                tool_parameters: data.parameters || data,
+                tool_output: data.output || null,
+                session_id: data.session_id || this.currentSession,
+                working_directory: data.working_directory || '/'
+            },
+            timestamp: data.timestamp || new Date().toISOString()
+        };
+        
+        console.log('[CodeViewer] Processing direct file event:', event);
+        this.processClaudeEvent(event);
+        
+        // Only update if the File Tree tab is active
+        if (this.isTabActive()) {
+            this.buildTreeData();
+            this.renderTree();
+            this.updateStats();
+        }
+    }
 
     /**
      * Check if an event is a file operation (legacy format)
@@ -465,18 +525,33 @@ class CodeViewer {
      * Process a claude event with file operation
      */
     processClaudeEvent(event) {
-        if (!this.isFileOperationEvent(event)) return;
+        // Handle both hook events and direct file events
+        if (!this.isFileOperationEvent(event) && !this.isDirectFileEvent(event)) return;
 
-        // Extract data from claude_event structure
-        const data = event.data || {};
-        const tool_name = data.tool_name;
-        const tool_parameters = data.tool_parameters || {};
-        const tool_output = data.tool_output;
-        const timestamp = event.timestamp || new Date().toISOString();
-        const session_id = event.session_id || data.session_id;
-        const working_directory = data.working_directory || '/';
+        let tool_name, tool_parameters, tool_output, timestamp, session_id, working_directory, filePath;
         
-        const filePath = tool_parameters.file_path || tool_parameters.notebook_path;
+        // Extract data based on event format
+        if (this.isFileOperationEvent(event)) {
+            // Hook event format
+            const data = event.data || {};
+            tool_name = data.tool_name;
+            tool_parameters = data.tool_parameters || {};
+            tool_output = data.tool_output;
+            timestamp = event.timestamp || new Date().toISOString();
+            session_id = event.session_id || data.session_id;
+            working_directory = data.working_directory || '/';
+        } else if (this.isDirectFileEvent(event)) {
+            // Direct file event format
+            const data = event.data || event;
+            tool_name = event.tool || data.tool_name;
+            tool_parameters = data.tool_parameters || data.parameters || {};
+            tool_output = data.tool_output || data.output;
+            timestamp = event.timestamp || data.timestamp || new Date().toISOString();
+            session_id = event.session_id || data.session_id;
+            working_directory = data.working_directory || '/';
+        }
+        
+        filePath = tool_parameters.file_path || tool_parameters.notebook_path;
         
         console.log('[CodeViewer] Processing file operation:', tool_name, filePath);
         
