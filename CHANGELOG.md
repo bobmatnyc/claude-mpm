@@ -19,6 +19,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.2.44] - 2025-09-12
+
+### Changed
+- **Browser Logs Infrastructure**: Removed browser logs tab and infrastructure in favor of browser plugin approach
+- **PM Instructions**: Strengthened PM instructions with strict no-fallback policy
+- **File Tree Navigation**: Fixed navigation highlighting and event handling
+- **Dashboard Architecture**: Clean dashboard with only 6 core tabs
+- **Error Handling**: Enhanced error handling to prefer exceptions over silent degradation
+
+### Added
+- **API Key Validation**: Implemented API key validation on startup
+- **Agent Cleanup**: Cleaned up duplicate and test agents
+
+### Removed
+- **Browser Logs Tab**: BREAKING CHANGE - Browser Logs tab removed, will be replaced with browser extension
+- **Browser Log Infrastructure**: Removed browser console monitoring infrastructure
+
 ## [4.2.43] - 2025-09-11
 
 ### Fixed
