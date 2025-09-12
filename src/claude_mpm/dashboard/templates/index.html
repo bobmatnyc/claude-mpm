@@ -249,8 +249,7 @@
                         <a href="#tools" class="tab-button" data-tab="tools">🔧 Tools</a>
                         <a href="#files" class="tab-button" data-tab="files">📁 Files</a>
                         <a href="#activity" class="tab-button" data-tab="activity">🌳 Activity</a>
-                        <a href="#file_tree" class="tab-button active" data-tab="claude-tree">📝 File Tree</a>
-                        <a href="#browser_logs" class="tab-button" data-tab="browser-logs">🌐 Browser Logs</a>
+                        <a href="#file_tree" class="tab-button" data-tab="claude-tree">📝 File Tree</a>
                     </div>
 
                     <!-- Events Tab -->
@@ -390,19 +389,12 @@
                     </div>
 
                     <!-- File Tree Tab -->
-                    <div class="tab-content active" id="claude-tree-tab">
+                    <div class="tab-content" id="claude-tree-tab">
                         <div id="claude-tree-container" style="width: 100%; height: 100%;">
                             <!-- File activity tree will be rendered here by code-viewer.js -->
                         </div>
                     </div>
 
-                    <!-- Browser Logs Tab -->
-                    <div class="tab-content" id="browser-logs-tab">
-                        <div id="browser-logs-container" style="width: 100%; height: 100%;" data-component="browser-logs">
-                            <!-- Browser logs will be rendered here by browser-log-viewer.js -->
-                            <!-- This container is EXCLUSIVELY for browser console logs -->
-                        </div>
-                    </div>
 
                 </div>
             </div>
@@ -508,25 +500,7 @@
                     loadModule('/static/dist/components/activity-tree.js'),
                     loadModule('/static/js/components/code-tree.js'),  // TEMPORARY: Direct source for debugging
                     loadModule('/static/js/components/code-viewer.js'),  // Code viewer now includes file change tracking
-                    loadModule('/static/dist/components/file-viewer.js'),  // File viewer for viewing file contents
-                    // TEMPORARILY DISABLED for simplest implementation
-                    // loadModule('/static/js/components/browser-log-viewer.js?v=2.0-NUCLEAR')  // Browser console log viewer v2.0 NUCLEAR
-                    // TEMPORARILY DISABLED - BrowserLogViewer initialization
-                    //     .then(() => {
-                    //         // Initialize BrowserLogViewer v2.0 immediately after loading
-                    //         if (typeof BrowserLogViewer !== 'undefined') {
-                    //             const container = document.getElementById('browser-logs-container');
-                    //             if (container && !window.browserLogViewer) {
-                    //                 console.error('[Main] Initializing BrowserLogViewer v2.0 NUCLEAR...');
-                    //                 window.browserLogViewer = new BrowserLogViewer(container);
-                    //                 console.error('[Main] BrowserLogViewer v2.0 NUCLEAR initialized successfully');
-                    //             } else {
-                    //                 console.error('[Main] BrowserLogViewer v2.0 already initialized or container not found');
-                    //             }
-                    //         } else {
-                    //             console.error('[Main] BrowserLogViewer class not found - script may not have loaded');
-                    //         }
-                    //     })
+                    loadModule('/static/dist/components/file-viewer.js')  // File viewer for viewing file contents
                 ]);
             })
             .then(() => {

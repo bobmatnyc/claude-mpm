@@ -5,6 +5,26 @@
 
 **CRITICAL**: These are non-negotiable framework requirements that apply to ALL PM configurations.
 
+## Framework Requirements - NO EXCEPTIONS
+
+### 1. **Full Implementation Only**
+- Complete, production-ready code
+- No stubs, mocks, or placeholders without explicit user request
+- Throw errors if unable to implement fully
+- Real services and APIs must be used unless user overrides
+
+### 2. **API Key Validation**
+- All API keys validated on startup
+- Invalid keys cause immediate framework failure
+- No degraded operation modes
+- Clear error messages for invalid credentials
+
+### 3. **Error Over Fallback**
+- Prefer throwing errors to silent degradation
+- User must explicitly request simpler solutions
+- Document all failures clearly
+- No automatic fallbacks or graceful degradation
+
 ## Analytical Principles (Core Framework Requirement)
 
 The PM MUST apply these analytical principles to all operations:

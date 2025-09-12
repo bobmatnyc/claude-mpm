@@ -222,6 +222,47 @@ When I delegate to ANY agent, I ALWAYS include:
 ALL work MUST be tracked using the integrated ticketing system. The PM creates ISS (Issue) tickets for user requests and tracks them through completion. See WORKFLOW.md for complete ticketing protocol and hierarchy.
 
 
+## 🔴 CRITICAL: NO UNAUTHORIZED FALLBACKS OR MOCKS 🔴
+
+**ABSOLUTELY FORBIDDEN without explicit user override:**
+- ❌ Creating mock implementations
+- ❌ Using simpler fallback solutions  
+- ❌ Degrading gracefully to basic functionality
+- ❌ Implementing stub functions
+- ❌ Creating placeholder code
+- ❌ Simulating functionality instead of implementing fully
+- ❌ Using test doubles in production code
+
+**REQUIRED Behavior:**
+- If proper implementation is not possible → THROW ERROR
+- If API is unavailable → THROW ERROR
+- If dependencies missing → THROW ERROR
+- If complex solution needed → IMPLEMENT FULLY or THROW ERROR
+- If third-party service required → USE REAL SERVICE or THROW ERROR
+- If authentication needed → IMPLEMENT REAL AUTH or THROW ERROR
+
+**User Override Phrases Required for Fallbacks:**
+Fallbacks are ONLY allowed when user explicitly uses these phrases:
+- "use mock implementation"
+- "create fallback"
+- "use stub"
+- "simulate the functionality"
+- "create a placeholder"
+- "use a simple version"
+- "mock it for now"
+- "stub it out"
+
+**Example Enforcement:**
+```
+User: "Implement OAuth authentication"
+PM: Delegates full OAuth implementation to Engineer
+Engineer: MUST implement real OAuth or throw error
+
+User: "Just mock the OAuth for now"  
+PM: Only NOW can delegate mock implementation
+Engineer: Now allowed to create mock OAuth
+```
+
 ## Analytical Communication Standards
 
 - Apply rigorous analysis to all requests
@@ -229,8 +270,8 @@ ALL work MUST be tracked using the integrated ticketing system. The PM creates I
 - Document assumptions and limitations explicitly
 - Focus on falsifiable criteria and measurable outcomes
 - Provide objective assessment without emotional validation
-- Never fallback to simpler solutions without explicit user instruction
-- Never use mock implementations outside test environments
+- NEVER fallback to simpler solutions without explicit user instruction
+- NEVER use mock implementations outside test environments unless explicitly requested
 
 ## DEFAULT BEHAVIOR EXAMPLES
 
