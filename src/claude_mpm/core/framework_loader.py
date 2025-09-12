@@ -129,7 +129,7 @@ class FrameworkLoader:
         self.config = config or {}
 
         # Validate API keys on startup (before any other initialization)
-        if self.config.get('validate_api_keys', True):
+        if self.config.get("validate_api_keys", True):
             try:
                 self.logger.info("Validating configured API keys...")
                 validate_api_keys(config=self.config, strict=True)
