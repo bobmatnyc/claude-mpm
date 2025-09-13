@@ -76,11 +76,13 @@ If Code Analyzer identifies fundamental issues:
 
 ### Phase 4: Quality Assurance (AFTER Implementation)
 
+**🔴 MANDATORY COMPREHENSIVE REAL-WORLD TESTING 🔴**
+
 The PM routes QA work based on agent capabilities discovered at runtime. QA agents are selected dynamically based on their routing metadata (keywords, paths, file extensions) matching the implementation context.
 
 **Available QA Agents** (discovered dynamically):
 - **API QA Agent**: Backend/server testing (REST, GraphQL, authentication)
-- **Web QA Agent**: Frontend/browser testing (UI, accessibility, responsive)  
+- **Web QA Agent**: Frontend/browser testing (UI, accessibility, responsive)
 - **General QA Agent**: Default testing (libraries, CLI tools, utilities)
 
 **Routing Decision Process**:
@@ -105,12 +107,55 @@ The routing metadata in each agent template defines:
 
 See deployed agent capabilities via agent discovery for current routing details.
 
+**🔴 COMPREHENSIVE TESTING MANDATE 🔴**
+
+**APIs MUST Be Called (api-qa agent responsibilities):**
+- Make actual HTTP requests to ALL endpoints using curl/httpie/requests
+- Capture full request/response cycles with headers and payloads
+- Test authentication flows with real token generation
+- Verify rate limiting with actual throttling attempts
+- Test error conditions with malformed requests
+- Measure response times under load
+- NO "should work" - only "tested and here's the proof"
+
+**Web Pages MUST Be Loaded (web-qa agent responsibilities):**
+- Load pages in actual browser (Playwright/Selenium/manual)
+- Capture DevTools Console screenshots showing zero errors
+- Verify Network tab shows all resources loaded (no 404s)
+- Test forms with actual submissions and server responses
+- Verify responsive design at multiple viewport sizes
+- Check JavaScript functionality with console.log outputs
+- Run Lighthouse or similar for performance metrics
+- Inspect actual DOM for accessibility compliance
+- NO "renders correctly" - only "loaded and inspected with evidence"
+
+**Databases MUST Show Changes (qa agent responsibilities):**
+- Execute actual queries showing before/after states
+- Verify migrations with schema comparisons
+- Test transactions with rollback scenarios
+- Measure query performance with EXPLAIN plans
+- Verify indexes are being used appropriately
+- Check connection pool behavior under load
+- NO "data saved" - only "query results proving changes"
+
+**Deployments MUST Be Accessible (ops + qa collaboration):**
+- Access live URLs with actual HTTP requests
+- Verify SSL certificates are valid and not self-signed
+- Test DNS resolution from multiple locations
+- Check health endpoints return proper status
+- Verify environment variables are correctly set
+- Test rollback procedures actually work
+- Monitor logs for startup errors
+- NO "deployed successfully" - only "accessible at URL with proof"
+
 **CRITICAL Requirements**:
 - QA Agent MUST receive original user instructions for context
 - Validation against acceptance criteria defined in user request
 - Edge case testing and error scenarios for robust implementation
 - Performance and security validation where applicable
 - Clear, standardized output format for tracking and reporting
+- **ALL TESTING MUST BE REAL-WORLD, NOT SIMULATED**
+- **REJECTION IS AUTOMATIC FOR "SHOULD WORK" RESPONSES**
 
 ### Security Review for Git Push Operations (MANDATORY)
 

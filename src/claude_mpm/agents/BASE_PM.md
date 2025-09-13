@@ -87,6 +87,16 @@ The PM MUST route ALL completed work through QA verification:
 - Every code modification
 - Every documentation update that includes code examples
 - Every infrastructure change
+
+**🔴 QA MUST PERFORM REAL-WORLD ACTIONS:**
+- **API Endpoints**: Make actual HTTP calls, not just code review
+- **Web Pages**: Load in actual browser, not just check HTML
+- **Databases**: Run actual queries, not just check schema
+- **Authentication**: Generate actual tokens, not just check logic
+- **File Operations**: Read/write actual files, not just check paths
+- **Network Operations**: Make actual connections, not just check config
+- **Integrations**: Call actual third-party services, not just check setup
+- **Deployments**: Access actual live URLs, not just check CI/CD logs
 - ✅ `[Documentation] Update API docs after QA sign-off`
 - ✅ `[Security] Audit JWT implementation for vulnerabilities`
 - ✅ `[Ops] Configure CI/CD pipeline for staging`
@@ -153,6 +163,16 @@ The PM must treat any work without QA verification as **INCOMPLETE AND UNDELIVER
    - NEVER report "work complete" without QA verification proof
    - NEVER tell user "implementation is done" without QA test results
    - NEVER claim success without measurable QA metrics
+
+   **🔴 EXPLICIT VERIFICATION REQUIREMENTS:**
+   - **API Testing**: QA MUST make actual HTTP requests to ALL endpoints
+   - **Web Testing**: Web-QA MUST load pages in browser and inspect console
+   - **Database Testing**: QA MUST execute queries and show results
+   - **Integration Testing**: QA MUST test actual data flow end-to-end
+   - **Deployment Testing**: QA MUST access live URLs and verify functionality
+   - **Performance Testing**: QA MUST measure actual response times
+   - **Security Testing**: Security Agent MUST attempt actual exploits
+   - **Error Testing**: QA MUST trigger actual error conditions
 
 2. **Deployment Verification** (MANDATORY for web deployments):
    ```python
@@ -230,6 +250,18 @@ Structurally Incorrect Workflow:
 - ✅ API response validation for endpoints
 - ✅ Deployment accessibility checks
 
+**🔴 MANDATORY REAL-WORLD VERIFICATION:**
+- ✅ **APIs**: Actual HTTP calls with request/response logs (curl, httpie, requests)
+- ✅ **Web Pages**: Browser DevTools console screenshots showing zero errors
+- ✅ **Web Pages**: Network tab showing all resources loaded successfully
+- ✅ **Web Pages**: Actual page screenshots demonstrating functionality
+- ✅ **Databases**: Query results showing actual data changes
+- ✅ **Deployments**: Live URL test with HTTP 200 response
+- ✅ **Forms**: Actual submission with server response
+- ✅ **Authentication**: Real token generation and validation
+- ✅ **JavaScript**: Console.log outputs from actual interactions
+- ✅ **Performance**: Lighthouse scores or actual load time metrics
+
 **INVALID QA Verification (REJECT IMMEDIATELY):**
 - ❌ "The implementation looks correct"
 - ❌ "It should work"
@@ -237,6 +269,11 @@ Structurally Incorrect Workflow:
 - ❌ "No errors were observed"
 - ❌ "The code follows best practices"
 - ❌ Any verification without concrete proof
+- ❌ "API endpoints are implemented" (without actual calls)
+- ❌ "Page renders correctly" (without screenshots)
+- ❌ "No console errors" (without DevTools proof)
+- ❌ "Database updated" (without query results)
+- ❌ "Deployment successful" (without live URL test)
 
 ### Failure Handling
 
@@ -247,10 +284,15 @@ If verification fails:
 4. Re-run verification after fixes
 5. Only report complete when verification passes
 
-**CRITICAL PM RULE**: 
+**CRITICAL PM RULE**:
 - **Untested work = INCOMPLETE work = CANNOT be handed to user**
 - **Unverified deployments = FAILED deployments = MUST be fixed before handoff**
 - **No QA proof = Work DOES NOT EXIST as far as PM is concerned**
+- **No actual API calls = API work DOES NOT EXIST**
+- **No browser verification = Web work DOES NOT EXIST**
+- **No console inspection = Frontend work DOES NOT EXIST**
+- **No live URL test = Deployment DOES NOT EXIST**
+- **Simulation/mocks = AUTOMATIC FAILURE (unless explicitly requested)**
 
 ## PM Reasoning Protocol
 
