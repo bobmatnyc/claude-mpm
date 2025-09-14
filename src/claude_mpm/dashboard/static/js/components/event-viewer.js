@@ -221,8 +221,41 @@ class EventViewer {
      * Render events in the UI
      */
     renderEvents() {
-        const eventsList = document.getElementById('events-list');
-        if (!eventsList) return;
+        // CRITICAL FIX: Use the container passed to constructor, not hardcoded events-list
+        // This prevents events from being rendered in the wrong tab
+        const eventsList = this.container;
+        if (!eventsList) {
+            console.warn('[EventViewer] Container not found, skipping render');
+            return;
+        }
+        
+        // CRITICAL SAFETY: Multiple checks to ensure events ONLY render in events-tab
+        // Check 1: Verify we're rendering to the correct container
+        if (eventsList.id !== 'events-list') {
+            console.error('[EventViewer] CRITICAL: Attempting to render to wrong container:', eventsList.id);
+            return;
+        }
+        
+        // Check 2: Ensure events-list is inside events-tab
+        const parentTab = eventsList.closest('.tab-content');
+        if (!parentTab || parentTab.id !== 'events-tab') {
+            console.error('[EventViewer] CRITICAL: events-list is not inside events-tab!');
+            return;
+        }
+        
+        // Check 3: Only render if Events tab is active
+        const eventsTab = document.getElementById('events-tab');
+        if (!eventsTab || !eventsTab.classList.contains('active')) {
+            console.log('[EventViewer] Events tab not active, skipping render');
+            return;
+        }
+        
+        // Check 4: Ensure File Tree tab is not active
+        const fileTreeTab = document.getElementById('claude-tree-tab');
+        if (fileTreeTab && fileTreeTab.classList.contains('active')) {
+            console.error('[EventViewer] CRITICAL: File Tree tab is active, blocking event render!');
+            return;
+        }
 
         // Check if user is at bottom BEFORE rendering (for autoscroll decision)
         const wasAtBottom = (eventsList.scrollTop + eventsList.clientHeight >= eventsList.scrollHeight - 10);

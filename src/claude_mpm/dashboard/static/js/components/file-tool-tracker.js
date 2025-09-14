@@ -332,14 +332,23 @@ class FileToolTracker {
      * @returns {boolean} - True if file operation
      */
     isFileOperation(event) {
-        // File operations are tool events with tools that operate on files
+        // File operations are hook events with file-related tools
+        // Must be a hook event with tool subtype
+        const isHookEvent = event.type === 'hook';
+        const isToolSubtype = event.subtype === 'pre_tool' || event.subtype === 'post_tool' ||
+                              (event.subtype && typeof event.subtype === 'string' && event.subtype.includes('tool'));
+
+        if (!isHookEvent || !isToolSubtype) {
+            return false;
+        }
+
         // Check both top-level and data for tool_name
         let toolName = event.tool_name || (event.data && event.data.tool_name) || '';
         toolName = toolName.toLowerCase();
-        
+
         // Check case-insensitively since tool names can come in different cases
         const fileTools = ['read', 'write', 'edit', 'grep', 'multiedit', 'glob', 'ls', 'bash', 'notebookedit'];
-        
+
         // Get tool parameters from either location
         const toolParams = event.tool_parameters || (event.data && event.data.tool_parameters);
 
@@ -702,3 +711,6 @@ class FileToolTracker {
 // ES6 Module export
 export { FileToolTracker };
 export default FileToolTracker;
+
+// Make FileToolTracker globally available for dist/dashboard.js
+window.FileToolTracker = FileToolTracker;

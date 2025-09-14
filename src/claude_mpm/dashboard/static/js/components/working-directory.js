@@ -915,3 +915,6 @@ class WorkingDirectoryManager {
 // ES6 Module export
 export { WorkingDirectoryManager };
 export default WorkingDirectoryManager;
+
+// Make WorkingDirectoryManager globally available for dist/dashboard.js
+window.WorkingDirectoryManager = WorkingDirectoryManager;

@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.2.46] - 2025-09-13
+
+### Fixed
+- **Dashboard Data Display**: Fixed isFileOperation method to properly validate hook events with pre_tool/post_tool subtypes
+- **File Tree Tab**: Implemented refreshFromFileToolTracker method for proper data synchronization with Files tab
+- **Tab Isolation**: Resolved issue where multiple tabs appeared active simultaneously
+- **Activity Tab**: Fixed CSS issue causing Activity tab text to display vertically
+- **Event Processing**: Added notification mechanism in dashboard.js to update CodeViewer when file operations change
+
+### Added
+- **Test Event Generator**: Created generate_test_events.py script for dashboard validation and testing
+- **Dashboard Static HTML**: Added dashboard.html to static directory for proper serving
+
 ## [4.2.45] - 2025-09-13
 
 ### Changed

@@ -885,22 +885,45 @@ button:active {
     background: rgba(0, 0, 0, 0.02);
 }
 
+/* BULLETPROOF TAB STYLING - High specificity to prevent conflicts */
 .tab-button.active {
-    color: #3b82f6;
-    border-bottom-color: #3b82f6;
+    color: #3b82f6 !important;
+    border-bottom-color: #3b82f6 !important;
+    border-bottom-width: 2px !important;
+    border-bottom-style: solid !important;
+}
+
+/* Ensure inactive tabs are definitely inactive */
+.tab-button:not(.active) {
+    color: #64748b !important;
+    border-bottom-color: transparent !important;
+}
+
+/* Fix for Activity tab text displaying vertically - ensure horizontal text */
+.tab-button[data-tab="activity"] {
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    transform: none !important;
 }
 
 .tab-content {
     flex: 1;
-    display: none;
+    display: none !important; /* Force hide by default */
     overflow: hidden;
     height: 100%;
     min-height: 0;
 }
 
+/* BULLETPROOF: Only show active tab content */
 .tab-content.active {
-    display: flex;
-    flex-direction: column;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Extra defensive rule: Hide ALL non-active tab content */
+.tab-content:not(.active) {
+    display: none !important;
+    visibility: hidden !important;
 }
 
 /* Split Container Layout */

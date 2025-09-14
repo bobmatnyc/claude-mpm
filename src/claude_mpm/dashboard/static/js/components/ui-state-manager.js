@@ -14,6 +14,9 @@
  */
 class UIStateManager {
     constructor() {
+        // Switching lock to prevent race conditions
+        this._switching = false;
+
         // Hash to tab mapping
         this.hashToTab = {
             '#events': 'events',
@@ -78,6 +81,7 @@ class UIStateManager {
      */
     setupEventHandlers() {
         this.setupHashNavigation();
+        this.setupTabClickHandlers(); // Add explicit tab click handlers
         this.setupUnifiedKeyboardNavigation();
     }
 
@@ -103,8 +107,23 @@ class UIStateManager {
      */
     handleHashChange() {
         const hash = window.location.hash || '';
+        console.log('[Hash Navigation] DETAILED DEBUG:');
+        console.log('[Hash Navigation] - Current hash:', hash);
+        console.log('[Hash Navigation] - hashToTab mapping:', this.hashToTab);
+        console.log('[Hash Navigation] - Direct lookup result:', this.hashToTab[hash]);
+        console.log('[Hash Navigation] - Is hash in mapping?', hash in this.hashToTab);
+        console.log('[Hash Navigation] - Hash length:', hash.length);
+        console.log('[Hash Navigation] - Hash char codes:', hash.split('').map(c => c.charCodeAt(0)));
+        
         const tabName = this.hashToTab[hash] || 'events';
-        console.log('[Hash Navigation] Switching to tab:', tabName, 'from hash:', hash);
+        console.log('[Hash Navigation] Final resolved tab name:', tabName);
+        
+        // Special logging for File Tree tab
+        if (tabName === 'claude-tree' || hash === '#file_tree') {
+            console.log('[UIStateManager] FILE TREE TAB SELECTED via hash:', hash);
+            console.log('[UIStateManager] Tab name resolved to:', tabName);
+        }
+        
         this.switchTab(tabName, false); // false = don't update hash (we're responding to hash change)
     }
 
@@ -114,6 +133,36 @@ class UIStateManager {
      */
     setupTabNavigation() {
         console.log('[Hash Navigation] setupTabNavigation is deprecated - using hash navigation instead');
+    }
+
+    /**
+     * Set up explicit click handlers for tab buttons to ensure proper routing
+     * This ensures tab clicks work even if other modules interfere
+     */
+    setupTabClickHandlers() {
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                console.log('[UIStateManager] Tab button clicked:', e.target);
+                
+                // Prevent default only if we're going to handle it
+                const tabName = this.getTabNameFromButton(e.target);
+                console.log('[UIStateManager] Resolved tab name:', tabName);
+                
+                if (tabName) {
+                    // Let the href attribute update the hash naturally, which will trigger our hashchange handler
+                    // But also explicitly trigger the switch in case href doesn't work
+                    setTimeout(() => {
+                        const expectedHash = this.tabToHash[tabName];
+                        if (window.location.hash !== expectedHash && expectedHash) {
+                            console.log('[UIStateManager] Hash not updated, forcing update:', expectedHash);
+                            window.location.hash = expectedHash;
+                        }
+                    }, 10);
+                }
+            });
+        });
+        
+        console.log('[UIStateManager] Tab click handlers set up for', document.querySelectorAll('.tab-button').length, 'buttons');
     }
 
     /**
@@ -145,122 +194,270 @@ class UIStateManager {
      * @returns {string} - Tab name
      */
     getTabNameFromButton(button) {
+        console.log('[getTabNameFromButton] DEBUG: button object:', button);
+        console.log('[getTabNameFromButton] DEBUG: button.nodeType:', button.nodeType);
+        console.log('[getTabNameFromButton] DEBUG: button.tagName:', button.tagName);
+        
+        // CRITICAL FIX: Make sure we're dealing with the actual button element
+        // Sometimes the click target might be a child element (like the emoji icon)
+        let targetButton = button;
+        if (button && button.closest && button.closest('.tab-button')) {
+            targetButton = button.closest('.tab-button');
+            console.log('[getTabNameFromButton] DEBUG: Used closest() to find actual button');
+        }
+        
         // First check for data-tab attribute
-        const dataTab = button.getAttribute('data-tab');
-        if (dataTab) return dataTab;
+        const dataTab = targetButton ? targetButton.getAttribute('data-tab') : null;
+        console.log('[getTabNameFromButton] DEBUG: data-tab attribute:', dataTab);
+        console.log('[getTabNameFromButton] DEBUG: dataTab truthy:', !!dataTab);
+        
+        // CRITICAL: Specifically handle the File Tree case
+        if (dataTab === 'claude-tree') {
+            console.log('[getTabNameFromButton] DEBUG: Found claude-tree data-tab, returning it');
+            return 'claude-tree';
+        }
+        
+        if (dataTab) {
+            console.log('[getTabNameFromButton] DEBUG: Returning dataTab:', dataTab);
+            return dataTab;
+        }
         
         // Fallback to text content matching
-        const text = button.textContent.toLowerCase();
-        if (text.includes('events')) return 'events';
-        if (text.includes('activity')) return 'activity';
-        if (text.includes('agents')) return 'agents';
-        if (text.includes('tools')) return 'tools';
-        if (text.includes('files')) return 'files';
-        if (text.includes('file tree')) return 'claude-tree';
+        const text = targetButton ? targetButton.textContent.toLowerCase() : '';
+        console.log('[getTabNameFromButton] DEBUG: text content:', text);
+        console.log('[getTabNameFromButton] DEBUG: text includes file tree:', text.includes('file tree'));
+        console.log('[getTabNameFromButton] DEBUG: text includes events:', text.includes('events'));
+        
+        // CRITICAL: Check File Tree FIRST since it's the problematic one
+        if (text.includes('file tree') || text.includes('📝')) {
+            console.log('[getTabNameFromButton] DEBUG: Matched file tree, returning claude-tree');
+            return 'claude-tree';
+        }
+        if (text.includes('activity') || text.includes('🌳')) return 'activity';
+        if (text.includes('agents') || text.includes('🤖')) return 'agents';
+        if (text.includes('tools') || text.includes('🔧')) return 'tools';
+        if (text.includes('files') || text.includes('📁')) return 'files';
         if (text.includes('code')) return 'code';
         if (text.includes('sessions')) return 'sessions';
         if (text.includes('system')) return 'system';
+        if (text.includes('events') || text.includes('📊')) return 'events';
+        
+        console.log('[getTabNameFromButton] DEBUG: No match, falling back to events');
         return 'events';
     }
 
     /**
-     * Switch to specified tab
+     * Switch to specified tab - BULLETPROOF VERSION
      * @param {string} tabName - Name of tab to switch to
      * @param {boolean} updateHash - Whether to update URL hash (default: true)
      */
     switchTab(tabName, updateHash = true) {
-        console.log(`[Hash Navigation] switchTab called with tabName: ${tabName}, updateHash: ${updateHash}`);
-        
-        // Update URL hash if requested (when triggered by user action, not hash change)
-        if (updateHash && this.tabToHash[tabName]) {
-            const newHash = this.tabToHash[tabName];
-            if (window.location.hash !== newHash) {
-                console.log(`[Hash Navigation] Updating hash to: ${newHash}`);
-                window.location.hash = newHash;
-                return; // The hashchange event will trigger switchTab again
-            }
+        // CRITICAL: Prevent race conditions by using a switching lock
+        if (this._switching) {
+            console.log(`[UIStateManager] Tab switch already in progress, queuing: ${tabName}`);
+            setTimeout(() => this.switchTab(tabName, updateHash), 50);
+            return;
         }
+        this._switching = true;
 
-        const previousTab = this.currentTab;
-        this.currentTab = tabName;
+        console.log(`[UIStateManager] BULLETPROOF switchTab: ${tabName}, updateHash: ${updateHash}`);
 
-        // Update tab button active states - ensure ALL tabs are deselected first
-        const allTabButtons = document.querySelectorAll('.tab-button');
-        allTabButtons.forEach(btn => {
-            btn.classList.remove('active');
-        });
-        
-        // Now add active class ONLY to the selected tab
-        allTabButtons.forEach(btn => {
-            const btnTabName = this.getTabNameFromButton(btn);
-            if (btnTabName === tabName) {
-                btn.classList.add('active');
-                console.log(`[DEBUG] Set active on button with data-tab: ${btn.getAttribute('data-tab')}`);
-            }
-        });
-
-        // Show/hide tab content using CSS classes - ensure ALL are hidden first
-        const allTabContents = document.querySelectorAll('.tab-content');
-        allTabContents.forEach(content => {
-            content.classList.remove('active');
-        });
-
-        // Now show ONLY the selected tab content
-        const activeTab = document.getElementById(`${tabName}-tab`);
-        if (activeTab) {
-            activeTab.classList.add('active');
-            console.log(`[DEBUG] Set active on content: ${tabName}-tab`);
-            
-            // Special handling for File Tree tab - ensure it never shows events
+        try {
+            // Extra logging for File Tree debugging
             if (tabName === 'claude-tree') {
-                const claudeTreeContainer = document.getElementById('claude-tree-container');
-                if (claudeTreeContainer) {
-                    // Check if events list somehow got into this container
-                    const eventsList = claudeTreeContainer.querySelector('#events-list');
-                    if (eventsList) {
-                        console.warn('[UIStateManager] Found events-list in File Tree container, removing it!');
-                        eventsList.remove();
-                    }
-                    
-                    // Check for event items
-                    const eventItems = claudeTreeContainer.querySelectorAll('.event-item');
-                    if (eventItems.length > 0) {
-                        console.warn('[UIStateManager] Found event items in File Tree container, clearing!');
-                        eventItems.forEach(item => item.remove());
-                    }
+                console.log('[UIStateManager] SWITCHING TO FILE TREE TAB');
+                console.log('[UIStateManager] Current tab before switch:', this.currentTab);
+            }
+
+            // Update URL hash if requested (when triggered by user action, not hash change)
+            if (updateHash && this.tabToHash[tabName]) {
+                const newHash = this.tabToHash[tabName];
+                if (window.location.hash !== newHash) {
+                    console.log(`[UIStateManager] Updating hash to: ${newHash}`);
+                    this._switching = false; // Release lock before hash change
+                    window.location.hash = newHash;
+                    return; // The hashchange event will trigger switchTab again
                 }
             }
+
+            const previousTab = this.currentTab;
+            this.currentTab = tabName;
+
+            // STEP 1: NUCLEAR RESET - Remove ALL active states unconditionally
+            this._removeAllActiveStates();
+
+            // STEP 2: Set the ONE correct tab as active
+            this._setActiveTab(tabName);
+
+            // STEP 3: Show ONLY the correct content
+            this._showTabContent(tabName);
+
+            // STEP 4: Cleanup and validation
+            this._validateTabState(tabName);
+
+            // Clear previous selections when switching tabs
+            this.clearUnifiedSelection();
+
+            // Trigger tab change event for other modules
+            document.dispatchEvent(new CustomEvent('tabChanged', {
+                detail: {
+                    newTab: tabName,
+                    previousTab: previousTab
+                }
+            }));
+
+            // Auto-scroll to bottom after a brief delay to ensure content is rendered
+            setTimeout(() => {
+                if (this.autoScroll) {
+                    this.scrollCurrentTabToBottom();
+                }
+
+                // Special handling for File Tree tab - trigger the tree render
+                // But DON'T let it manipulate tabs itself
+                if (tabName === 'claude-tree' && window.CodeViewer) {
+                    // Call a new method that only renders content, not tab switching
+                    if (window.CodeViewer.renderContent) {
+                        window.CodeViewer.renderContent();
+                    } else {
+                        // Fallback to show() but it should be fixed to not switch tabs
+                        window.CodeViewer.show();
+                    }
+                }
+            }, 100);
+
+        } finally {
+            // ALWAYS release the lock
+            setTimeout(() => {
+                this._switching = false;
+            }, 200);
+        }
+    }
+
+    /**
+     * NUCLEAR RESET: Remove ALL active states from ALL elements
+     * This ensures no stale states remain
+     */
+    _removeAllActiveStates() {
+        // Remove active class from ALL tab buttons
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.classList.remove('active');
+            // Also remove any inline styling that might interfere
+            btn.style.removeProperty('border-bottom');
+            btn.style.removeProperty('color');
+        });
+
+        // Remove active class from ALL tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+            // Clear any inline display styles
+            content.style.removeProperty('display');
+
+            // CRITICAL: Clean leaked content in non-events tabs
+            if (content.id !== 'events-tab') {
+                this._cleanLeakedEventContent(content);
+            }
+        });
+
+        console.log('[UIStateManager] NUCLEAR: All active states removed');
+    }
+
+    /**
+     * Set ONLY the specified tab as active
+     */
+    _setActiveTab(tabName) {
+        const targetTab = document.querySelector(`[data-tab="${tabName}"]`);
+        if (targetTab) {
+            targetTab.classList.add('active');
+            console.log(`[UIStateManager] Set active: ${tabName}`);
+        } else {
+            console.error(`[UIStateManager] Could not find tab button for: ${tabName}`);
+        }
+    }
+
+    /**
+     * Show ONLY the specified tab content
+     */
+    _showTabContent(tabName) {
+        const targetContent = document.getElementById(`${tabName}-tab`);
+        if (targetContent) {
+            targetContent.classList.add('active');
+            console.log(`[UIStateManager] Showing content: ${tabName}-tab`);
+
+            // Special handling for File Tree tab
+            if (tabName === 'claude-tree') {
+                this._prepareFileTreeContent(targetContent);
+            }
+        } else {
+            console.error(`[UIStateManager] Could not find content for: ${tabName}`);
+        }
+    }
+
+    /**
+     * Clean any leaked event content from non-event tabs
+     */
+    _cleanLeakedEventContent(contentElement) {
+        // Remove any event items that may have leaked
+        const leakedEventItems = contentElement.querySelectorAll('.event-item');
+        if (leakedEventItems.length > 0) {
+            console.warn(`[UIStateManager] Found ${leakedEventItems.length} leaked event items in ${contentElement.id}, removing...`);
+            leakedEventItems.forEach(item => item.remove());
         }
 
-        // Clear previous selections when switching tabs
-        this.clearUnifiedSelection();
+        // Remove any events-list elements
+        const leakedEventsList = contentElement.querySelectorAll('#events-list, .events-list');
+        if (leakedEventsList.length > 0) {
+            console.warn(`[UIStateManager] Found leaked events-list in ${contentElement.id}, removing...`);
+            leakedEventsList.forEach(list => list.remove());
+        }
+    }
 
-        // Trigger tab change event for other modules
-        document.dispatchEvent(new CustomEvent('tabChanged', {
-            detail: {
-                newTab: tabName,
-                previousTab: previousTab
-            }
-        }));
+    /**
+     * Prepare File Tree content area
+     */
+    _prepareFileTreeContent(fileTreeContent) {
+        const claudeTreeContainer = document.getElementById('claude-tree-container');
+        if (claudeTreeContainer) {
+            // Final cleanup check
+            this._cleanLeakedEventContent(claudeTreeContainer);
 
-        // Auto-scroll to bottom after a brief delay to ensure content is rendered
+            // Ensure container is properly marked for CodeViewer
+            claudeTreeContainer.setAttribute('data-owner', 'code-viewer');
+            claudeTreeContainer.setAttribute('data-component', 'CodeViewer');
+
+            console.log('[UIStateManager] File Tree container prepared');
+        }
+    }
+
+    /**
+     * Validate that tab state is correct after switching
+     */
+    _validateTabState(expectedTab) {
         setTimeout(() => {
-            if (this.autoScroll) {
-                this.scrollCurrentTabToBottom();
+            const activeTabs = document.querySelectorAll('.tab-button.active');
+            const activeContents = document.querySelectorAll('.tab-content.active');
+
+            if (activeTabs.length !== 1) {
+                console.error(`[UIStateManager] VALIDATION FAILED: Expected 1 active tab, found ${activeTabs.length}`);
+                activeTabs.forEach((tab, idx) => {
+                    console.error(`  - Active tab ${idx + 1}: ${tab.textContent.trim()} (${tab.getAttribute('data-tab')})`);
+                });
+                // Force fix
+                this._removeAllActiveStates();
+                this._setActiveTab(expectedTab);
             }
-            
-            // Special handling for File Tree tab - trigger the tree render
-            // But DON'T let it manipulate tabs itself
-            if (tabName === 'claude-tree' && window.CodeViewer) {
-                // Call a new method that only renders content, not tab switching
-                if (window.CodeViewer.renderContent) {
-                    window.CodeViewer.renderContent();
-                } else {
-                    // Fallback to show() but it should be fixed to not switch tabs
-                    window.CodeViewer.show();
-                }
+
+            if (activeContents.length !== 1) {
+                console.error(`[UIStateManager] VALIDATION FAILED: Expected 1 active content, found ${activeContents.length}`);
+                activeContents.forEach((content, idx) => {
+                    console.error(`  - Active content ${idx + 1}: ${content.id}`);
+                });
+                // Force fix
+                this._removeAllActiveStates();
+                this._showTabContent(expectedTab);
             }
-        }, 100);
+
+            console.log(`[UIStateManager] Tab state validated for: ${expectedTab}`);
+        }, 50);
     }
 
     /**
@@ -547,3 +744,6 @@ class UIStateManager {
 // ES6 Module export
 export { UIStateManager };
 export default UIStateManager;
+
+// Make UIStateManager globally available for dist/dashboard.js
+window.UIStateManager = UIStateManager;

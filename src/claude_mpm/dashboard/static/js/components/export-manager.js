@@ -363,3 +363,6 @@ class ExportManager {
 // ES6 Module export
 export { ExportManager };
 export default ExportManager;
+
+// Make ExportManager globally available for dist/dashboard.js
+window.ExportManager = ExportManager;

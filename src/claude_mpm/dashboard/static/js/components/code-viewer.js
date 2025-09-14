@@ -30,19 +30,33 @@ class CodeViewer {
      * Initialize the code viewer
      */
     initialize() {
+        console.log('[CodeViewer] initialize() called');
         if (this.initialized) {
             console.log('[CodeViewer] Already initialized, skipping');
             return;
         }
 
-        console.log('[CodeViewer] Initializing...');
-        this.setupContainer();
-        this.setupEventHandlers();
-        this.subscribeToEvents();
-        this.processExistingEvents();
-        
-        this.initialized = true;
-        console.log('[CodeViewer] Code Viewer (File Activity Tree) initialized successfully');
+        console.log('[CodeViewer] Starting initialization...');
+        try {
+            // Initialize components
+            this.setupContainer();
+            console.log('[CodeViewer] Container setup complete');
+            
+            this.setupEventHandlers();
+            console.log('[CodeViewer] Event handlers setup complete');
+            
+            this.subscribeToEvents();
+            console.log('[CodeViewer] Event subscription complete');
+            
+            this.processExistingEvents();
+            console.log('[CodeViewer] Existing events processed');
+            
+            this.initialized = true;
+            console.log('[CodeViewer] Initialization complete!');
+        } catch (error) {
+            console.error('[CodeViewer] Error during initialization:', error);
+            throw error;
+        }
     }
 
     /**
@@ -74,20 +88,96 @@ class CodeViewer {
 
         // Prevent concurrent renders
         if (this.renderInProgress) {
-            console.log('[CodeViewer] Render already in progress, skipping');
             return;
         }
         
         // Check if interface already exists and is intact
         const existingWrapper = this.container.querySelector('.activity-tree-wrapper');
+        const existingEmptyState = this.container.querySelector('.file-tree-empty-state');
         const existingSvg = this.container.querySelector('#claude-activity-tree-svg');
+        
+        // Always show the tree interface, even if empty
+        // We'll show at least a session root node
+        // Remove the empty state check - we always want the tree
+        if (false) { // Disabled empty state - always show tree
+            // Only render empty state if it doesn't exist
+            if (!existingEmptyState) {
+                this.renderInProgress = true;
+                
+                // Temporarily disconnect observer to prevent loops
+                if (this.containerObserver) {
+                    this.containerObserver.disconnect();
+                }
+                
+                // Clear any existing content completely
+                this.container.innerHTML = '';
+                
+                // Show empty state
+                this.container.innerHTML = `
+                    <div class="file-tree-empty-state" style="
+                        text-align: center; 
+                        padding: 50px 20px;
+                        color: #666;
+                        font-family: monospace;
+                        height: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        background: #fafafa;
+                    ">
+                        <h2 style="color: #333; margin-bottom: 20px; font-size: 24px;">
+                            📁 File Activity Tree
+                        </h2>
+                        <p style="margin-bottom: 15px; font-size: 16px;">
+                            No file operations recorded yet.
+                        </p>
+                        <p style="font-size: 14px; color: #888;">
+                            The tree will appear here when files are:
+                        </p>
+                        <ul style="
+                            list-style: none; 
+                            padding: 20px 30px; 
+                            text-align: left; 
+                            display: inline-block;
+                            background: white;
+                            border: 1px solid #e0e0e0;
+                            border-radius: 5px;
+                            margin-top: 10px;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        ">
+                            <li style="margin: 8px 0;">📖 Read (using Read tool)</li>
+                            <li style="margin: 8px 0;">✏️ Edited (using Edit tool)</li>
+                            <li style="margin: 8px 0;">💾 Written (using Write tool)</li>
+                            <li style="margin: 8px 0;">📝 Multi-edited (using MultiEdit tool)</li>
+                            <li style="margin: 8px 0;">📓 Notebook edited (using NotebookEdit tool)</li>
+                        </ul>
+                        <p style="margin-top: 20px; font-size: 12px; color: #999;">
+                            D3.js tree visualization will render automatically when file operations occur
+                        </p>
+                    </div>
+                `;
+                
+                // Mark render as complete and re-enable observer if needed
+                this.renderInProgress = false;
+                
+                // Re-enable container protection after render
+                if (this.containerObserver && this.container) {
+                    this.containerObserver.observe(this.container, {
+                        childList: true,
+                        subtree: false // Only watch direct children, not subtree
+                    });
+                }
+            }
+            return;
+        }
+        
+        // If we have file activity and the interface already exists, skip
         if (existingWrapper && existingSvg) {
-            console.log('[CodeViewer] Interface already exists and is intact, skipping render');
             return;
         }
         
         this.renderInProgress = true;
-        console.log('[CodeViewer] Rendering interface in container:', this.container.id);
         
         // Temporarily disconnect observer to prevent loops
         if (this.containerObserver) {
@@ -145,7 +235,6 @@ class CodeViewer {
      * This is called by UIStateManager when the tab is already active
      */
     renderContent() {
-        console.log('[CodeViewer] renderContent() called');
         this._showInternal();
     }
     
@@ -154,7 +243,6 @@ class CodeViewer {
      * Note: Tab switching is now handled by UIStateManager
      */
     show() {
-        console.log('[CodeViewer] show() called');
         this._showInternal();
     }
     
@@ -162,12 +250,44 @@ class CodeViewer {
      * Internal show implementation (without tab switching)
      */
     _showInternal() {
+        console.log('[CodeViewer] _showInternal() called');
 
         // Get the file tree container
         const claudeTreeContainer = document.getElementById('claude-tree-container');
         if (!claudeTreeContainer) {
             console.error('[CodeViewer] File Tree container not found!');
             return;
+        }
+
+        console.log('[CodeViewer] Found container, current HTML length:', claudeTreeContainer.innerHTML.length);
+        console.log('[CodeViewer] Container children:', claudeTreeContainer.children.length);
+
+        // Refresh from FileToolTracker to get latest data
+        this.refreshFromFileToolTracker();
+        
+        // CRITICAL: Clear any foreign content first - more aggressive cleanup
+        const foreignSelectors = [
+            '#events-list',
+            '.events-list',
+            '.event-item',
+            '.no-events',
+            '[id*="event"]',
+            '[class*="event"]'
+        ];
+        
+        let foundForeign = false;
+        foreignSelectors.forEach(selector => {
+            const elements = claudeTreeContainer.querySelectorAll(selector);
+            if (elements.length > 0) {
+                console.warn(`[CodeViewer] Found ${elements.length} foreign elements matching '${selector}', removing...`);
+                elements.forEach(el => el.remove());
+                foundForeign = true;
+            }
+        });
+        
+        if (foundForeign) {
+            console.warn('[CodeViewer] Foreign content removed, clearing container completely for fresh start');
+            claudeTreeContainer.innerHTML = '';
         }
 
         // CRITICAL: Prevent other components from writing to this container
@@ -185,10 +305,10 @@ class CodeViewer {
         if (!this.initialized) {
             this.initialize();
         } else {
-            // Only render interface if it doesn't exist
+            // Always render interface - it will handle empty state or tree as needed
             const existingWrapper = this.container.querySelector('.activity-tree-wrapper');
-            if (!existingWrapper) {
-                console.log('[CodeViewer] Interface missing, rendering...');
+            const existingEmptyState = this.container.querySelector('.file-tree-empty-state');
+            if (!existingWrapper && !existingEmptyState) {
                 this.renderInterface();
             }
         }
@@ -198,7 +318,8 @@ class CodeViewer {
             this.protectContainer();
         }
 
-        // Setup event handlers for the new controls
+        // Always setup event handlers and render tree
+        // Even with no file activity, we show a session root
         this.setupControlHandlers();
         
         // Get current session from main selector
@@ -207,14 +328,12 @@ class CodeViewer {
             this.currentSession = mainSessionSelect.value || null;
         }
         
-        // Build and render tree
+        // Build and render tree (will create minimal session root if no data)
         this.buildTreeData();
         this.renderTree();
         
         // Update stats
         this.updateStats();
-        
-        console.log('[CodeViewer] show() completed, container should now have tree interface');
     }
 
     /**
@@ -240,33 +359,39 @@ class CodeViewer {
                     if (node.nodeType === Node.ELEMENT_NODE) {
                         const element = node;
                         
-                        // AGGRESSIVE filtering: Block ANY content that's not our tree interface
+                        // AGGRESSIVE filtering: Block ANY content that's not our tree interface or empty state
                         const isUnwantedContent = (
                             element.classList?.contains('event-item') ||
                             element.classList?.contains('events-list') ||
                             element.classList?.contains('no-events') ||
                             element.id === 'events-list' ||
+                            element.id === 'agents-list' ||
+                            element.id === 'tools-list' ||
+                            element.id === 'files-list' ||
                             (element.textContent && (
                                 element.textContent.includes('[hook]') ||
                                 element.textContent.includes('hook.user_prompt') ||
                                 element.textContent.includes('hook.pre_tool') ||
                                 element.textContent.includes('hook.post_tool') ||
                                 element.textContent.includes('Connect to Socket.IO') ||
-                                element.textContent.includes('No events')
+                                element.textContent.includes('No events') ||
+                                element.textContent.includes('No agent events') ||
+                                element.textContent.includes('No tool events') ||
+                                element.textContent.includes('No file operations')
                             )) ||
                             // Block any div without our expected classes
                             (element.tagName === 'DIV' && 
                              !element.classList?.contains('activity-tree-wrapper') &&
+                             !element.classList?.contains('file-tree-empty-state') &&
                              !element.classList?.contains('activity-controls') &&
                              !element.classList?.contains('tree-container') &&
                              !element.classList?.contains('legend') &&
+                             !element.classList?.contains('stats') &&
                              !element.id?.startsWith('claude-'))
                         );
                         
                         if (isUnwantedContent) {
-                            console.warn('[CodeViewer] BLOCKED unwanted content in File Tree container:', element);
-                            console.warn('[CodeViewer] Element classes:', element.classList?.toString());
-                            console.warn('[CodeViewer] Element text preview:', element.textContent?.substring(0, 100));
+                            // Block unwanted content silently
                             
                             // Remove the unwanted content immediately
                             try {
@@ -280,9 +405,11 @@ class CodeViewer {
                                 reRenderScheduled = true;
                                 setTimeout(() => {
                                     reRenderScheduled = false;
-                                    if (!container.querySelector('.activity-tree-wrapper')) {
-                                        console.log('[CodeViewer] Re-rendering interface after blocking unwanted content');
+                                    if (!container.querySelector('.activity-tree-wrapper') && 
+                                        !container.querySelector('.file-tree-empty-state')) {
                                         this.renderInterface();
+                                        
+                                        // Always setup controls and tree (even if no file activity)
                                         this.setupControlHandlers();
                                         this.buildTreeData();
                                         this.renderTree();
@@ -298,13 +425,15 @@ class CodeViewer {
                     for (const node of mutation.removedNodes) {
                         if (node.nodeType === Node.ELEMENT_NODE) {
                             const element = node;
-                            if (element.classList?.contains('activity-tree-wrapper')) {
-                                console.warn('[CodeViewer] Our tree interface was removed! Re-rendering...');
+                            if (element.classList?.contains('activity-tree-wrapper') || 
+                                element.classList?.contains('file-tree-empty-state')) {
                                 if (!reRenderScheduled && !this.renderInProgress) {
                                     reRenderScheduled = true;
                                     setTimeout(() => {
                                         reRenderScheduled = false;
                                         this.renderInterface();
+                                        
+                                        // Always setup controls and tree (even if no file activity)
                                         this.setupControlHandlers();
                                         this.buildTreeData();
                                         this.renderTree();
@@ -322,8 +451,6 @@ class CodeViewer {
             childList: true,
             subtree: false // Only watch direct children, not entire subtree
         });
-        
-        console.log('[CodeViewer] Container protection enabled with aggressive filtering');
     }
 
     /**
@@ -336,7 +463,6 @@ class CodeViewer {
             mainSessionSelect.setAttribute('data-tree-listener', 'true');
             mainSessionSelect.addEventListener('change', (e) => {
                 this.currentSession = e.target.value || null;
-                console.log('[CodeViewer] Session changed to:', this.currentSession);
                 if (this.isTabActive()) {
                     this.buildTreeData();
                     this.renderTree();
@@ -387,33 +513,32 @@ class CodeViewer {
         // Listen for claude events from socket
         if (window.socket) {
             window.socket.on('claude_event', (event) => {
-                console.log('[CodeViewer] Received claude_event:', event);
-                
-                // Process both hook events and direct file operation events
+
+                // When we get file operation events, refresh from FileToolTracker
                 if (this.isFileOperationEvent(event) || this.isDirectFileEvent(event)) {
-                    this.processClaudeEvent(event);
-                    // Only update if the File Tree tab is active
-                    if (this.isTabActive()) {
-                        this.buildTreeData();
-                        this.renderTree();
-                        this.updateStats();
-                    }
+                    // Let FileToolTracker process the event first, then refresh our view
+                    setTimeout(() => {
+                        this.refreshFromFileToolTracker();
+                        // Only update if the File Tree tab is active
+                        if (this.isTabActive()) {
+                            this.buildTreeData();
+                            this.renderTree();
+                            this.updateStats();
+                        }
+                    }, 100);
                 }
             });
             
             // Also listen for specific file events
             window.socket.on('file:read', (data) => {
-                console.log('[CodeViewer] Received file:read event:', data);
                 this.handleDirectFileEvent('Read', data);
             });
             
             window.socket.on('file:write', (data) => {
-                console.log('[CodeViewer] Received file:write event:', data);
                 this.handleDirectFileEvent('Write', data);
             });
             
             window.socket.on('file:edit', (data) => {
-                console.log('[CodeViewer] Received file:edit event:', data);
                 this.handleDirectFileEvent('Edit', data);
             });
         }
@@ -421,7 +546,6 @@ class CodeViewer {
         // Listen for events from event bus
         if (window.eventBus) {
             window.eventBus.on('claude_event', (event) => {
-                console.log('[CodeViewer] Received claude_event from eventBus:', event);
                 
                 // Process both hook events and direct file operation events
                 if (this.isFileOperationEvent(event) || this.isDirectFileEvent(event)) {
@@ -449,13 +573,48 @@ class CodeViewer {
      * Process existing events from dashboard
      */
     processExistingEvents() {
+        console.log('[CodeViewer] processExistingEvents called');
+
+        // First try to use FileToolTracker data if available
+        if (window.dashboard && window.dashboard.fileToolTracker) {
+            this.refreshFromFileToolTracker();
+            return;
+        }
+
+        // Fallback to event store if FileToolTracker not available
         if (window.dashboard && window.dashboard.eventStore) {
             const events = window.dashboard.eventStore.getAllEvents();
+            console.log('[CodeViewer] Fallback to eventStore, total events:', events.length);
+            
+            let fileOpCount = 0;
+            let processedCount = 0;
+            
             events.forEach(event => {
+                // Log detailed info about each event for debugging
+                if (event.type === 'hook') {
+                    console.log('[CodeViewer] Hook event:', {
+                        subtype: event.subtype,
+                        tool_name: event.data?.tool_name,
+                        timestamp: event.timestamp
+                    });
+                }
+                
                 if (this.isFileOperationEvent(event)) {
+                    fileOpCount++;
+                    console.log('[CodeViewer] Found file operation event:', event);
                     this.processClaudeEvent(event);
+                    processedCount++;
                 }
             });
+            
+            console.log('[CodeViewer] processExistingEvents summary:', {
+                totalEvents: events.length,
+                fileOperations: fileOpCount,
+                processed: processedCount,
+                currentFileActivitySize: this.fileActivity.size
+            });
+        } else {
+            console.log('[CodeViewer] No dashboard or eventStore available');
         }
     }
 
@@ -502,7 +661,6 @@ class CodeViewer {
             timestamp: data.timestamp || new Date().toISOString()
         };
         
-        console.log('[CodeViewer] Processing direct file event:', event);
         this.processClaudeEvent(event);
         
         // Only update if the File Tree tab is active
@@ -552,8 +710,6 @@ class CodeViewer {
         }
         
         filePath = tool_parameters.file_path || tool_parameters.notebook_path;
-        
-        console.log('[CodeViewer] Processing file operation:', tool_name, filePath);
         
         this.processFileOperation({
             tool_name,
@@ -654,8 +810,6 @@ class CodeViewer {
                 activity.astPaths = this.extractASTPaths(activity.lastContent, filePath);
             }
         }
-        
-        console.log('[CodeViewer] File activity updated:', filePath, 'Total files:', this.fileActivity.size)
     }
 
     /**
@@ -711,11 +865,29 @@ class CodeViewer {
      * Build tree data from file activity
      */
     buildTreeData() {
+        // Get current session info
+        const sessionId = this.currentSession || 'current-session';
+        const sessionName = sessionId.substring(0, 8) + '...';
+        
+        // Always create a root with at least the session node
         const root = {
-            name: 'File Activity',
+            name: `Session: ${sessionName}`,
             type: 'root',
             children: []
         };
+
+        // If no file activity, still show the session root
+        if (!this.fileActivity || this.fileActivity.size === 0) {
+            // Add a placeholder node to indicate no files yet
+            root.children.push({
+                name: '(No file operations yet)',
+                type: 'placeholder',
+                children: []
+            });
+            this.treeData = root;
+            console.log('[CodeViewer] Built minimal tree with session root');
+            return;
+        }
 
         // Group by working directory
         const dirMap = new Map();
@@ -1094,38 +1266,105 @@ class CodeViewer {
 
         stats.textContent = `Files: ${totalFiles} | Operations: ${totalOps} | Sessions: ${this.sessions.size}`;
     }
+
+    /**
+     * Refresh file activity from FileToolTracker
+     */
+    refreshFromFileToolTracker() {
+        if (!window.dashboard || !window.dashboard.fileToolTracker) {
+            console.log('[CodeViewer] FileToolTracker not available');
+            return;
+        }
+
+        const fileOperations = window.dashboard.fileToolTracker.getFileOperations();
+        console.log('[CodeViewer] Refreshing from FileToolTracker:', fileOperations.size, 'files');
+
+        // Clear existing file activity
+        this.fileActivity.clear();
+        this.sessions.clear();
+
+        // Create a default session if needed
+        const defaultSessionId = 'current-session';
+        this.sessions.set(defaultSessionId, {
+            id: defaultSessionId,
+            startTime: new Date().toISOString(),
+            files: new Set()
+        });
+        this.currentSession = defaultSessionId;
+
+        // Convert fileOperations Map to file activity for tree visualization
+        fileOperations.forEach((fileData, filePath) => {
+            // Add file to session
+            const session = this.sessions.get(defaultSessionId);
+            session.files.add(filePath);
+
+            // Create file activity entry
+            const firstOp = fileData.operations[0];
+            const lastOp = fileData.operations[fileData.operations.length - 1];
+
+            this.fileActivity.set(filePath, {
+                path: filePath,
+                firstAccess: firstOp ? firstOp.timestamp : fileData.lastOperation,
+                lastAccess: fileData.lastOperation,
+                accessCount: fileData.operations.length,
+                operations: fileData.operations.map(op => ({
+                    type: op.operation,
+                    timestamp: op.timestamp,
+                    agent: op.agent
+                })),
+                workingDirectory: firstOp ? firstOp.workingDirectory : null,
+                astNodes: [],
+                content: null
+            });
+        });
+
+        console.log('[CodeViewer] File activity refreshed:', this.fileActivity.size, 'files');
+    }
 }
 
 // Create and export singleton instance
-window.CodeViewer = new CodeViewer();
+try {
+    window.CodeViewer = new CodeViewer();
+    console.log('[CodeViewer] Instance created successfully');
+} catch (error) {
+    console.error('[CodeViewer] FAILED TO CREATE INSTANCE:', error);
+}
 
 // Auto-initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+        console.log('[CodeViewer] DOMContentLoaded - attempting initialization');
+        try {
+            window.CodeViewer.initialize();
+        
+            // If File Tree tab is already active, show it
+            const claudeTreeTab = document.getElementById('claude-tree-tab');
+            if (claudeTreeTab && claudeTreeTab.classList.contains('active')) {
+                setTimeout(() => window.CodeViewer.show(), 100);
+            }
+        } catch (error) {
+            console.error('[CodeViewer] FAILED TO INITIALIZE:', error);
+        }
+    });
+} else {
+    console.log('[CodeViewer] DOM already loaded - initializing immediately');
+    try {
         window.CodeViewer.initialize();
         
         // If File Tree tab is already active, show it
         const claudeTreeTab = document.getElementById('claude-tree-tab');
         if (claudeTreeTab && claudeTreeTab.classList.contains('active')) {
-            console.log('[CodeViewer] File Tree tab is active on load, showing tree...');
+            console.log('[CodeViewer] File Tree tab is active, showing in 100ms');
             setTimeout(() => window.CodeViewer.show(), 100);
         }
-    });
-} else {
-    window.CodeViewer.initialize();
-    
-    // If File Tree tab is already active, show it
-    const claudeTreeTab = document.getElementById('claude-tree-tab');
-    if (claudeTreeTab && claudeTreeTab.classList.contains('active')) {
-        console.log('[CodeViewer] File Tree tab is active, showing tree...');
-        setTimeout(() => window.CodeViewer.show(), 100);
+    } catch (error) {
+        console.error('[CodeViewer] FAILED TO INITIALIZE:', error);
     }
 }
 
 // Also listen for tab changes to ensure we render when needed
 document.addEventListener('tabChanged', (event) => {
     if (event.detail && event.detail.newTab === 'claude-tree') {
-        console.log('[CodeViewer] Tab changed to File Tree, forcing show...');
         setTimeout(() => window.CodeViewer.show(), 50);
     }
 });
@@ -1139,8 +1378,9 @@ setInterval(() => {
     const claudeTreeContainer = document.getElementById('claude-tree-container');
     
     if (claudeTreeTab && claudeTreeTab.classList.contains('active') && 
-        claudeTreeContainer && !claudeTreeContainer.querySelector('.activity-tree-wrapper')) {
-        console.log('[CodeViewer] Periodic check: File Tree tab is active but not properly rendered, fixing...');
+        claudeTreeContainer && 
+        !claudeTreeContainer.querySelector('.activity-tree-wrapper') &&
+        !claudeTreeContainer.querySelector('.file-tree-empty-state')) {
         window.CodeViewer.show();
     }
 }, 5000);
