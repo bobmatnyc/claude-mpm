@@ -1826,23 +1826,9 @@ const setupActivityTreeListeners = () => {
         }, 100);
     };
 
-    // Tab switching logic
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const tabName = e.target.getAttribute('data-tab');
-            
-            if (tabName === 'activity') {
-                console.log('Activity tab button clicked, initializing tree...');
-                initializeActivityTree();
-                if (activityTree) {
-                    setTimeout(() => {
-                        activityTree.renderWhenVisible();
-                        activityTree.forceShow();
-                    }, 150);
-                }
-            }
-        });
-    });
+    // REMOVED: Conflicting tab click handlers that were interfering with UIStateManager
+    // Tab switching is now handled entirely through the 'tabChanged' event listener below
+    // This prevents conflicts with the UIStateManager's hash-based navigation system
 
     // Listen for custom tab change events
     document.addEventListener('tabChanged', (e) => {

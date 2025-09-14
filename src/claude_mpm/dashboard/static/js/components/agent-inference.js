@@ -951,3 +951,6 @@ class AgentInference {
 // ES6 Module export
 export { AgentInference };
 export default AgentInference;
+
+// Make AgentInference globally available for dist/dashboard.js
+window.AgentInference = AgentInference;

@@ -362,3 +362,7 @@ class SocketManager {
 // ES6 Module export
 export { SocketManager };
 export default SocketManager;
+
+// Make SocketManager globally available for the dist/dashboard.js
+// This ensures compatibility with the minified version
+window.SocketManager = SocketManager;
