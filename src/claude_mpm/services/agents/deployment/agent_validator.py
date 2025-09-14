@@ -326,6 +326,7 @@ class AgentValidator:
             "path": str(agent_file),
             "description": "No description",
             "version": "unknown",
+            "type": "agent",  # Default type
         }
 
         # Extract from YAML frontmatter
@@ -340,6 +341,10 @@ class AgentValidator:
                 )
             elif stripped_line.startswith("version:"):
                 agent_info["version"] = (
+                    stripped_line.split(":", 1)[1].strip().strip("\"'")
+                )
+            elif stripped_line.startswith("type:"):
+                agent_info["type"] = (
                     stripped_line.split(":", 1)[1].strip().strip("\"'")
                 )
 
