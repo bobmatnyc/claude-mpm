@@ -13,20 +13,24 @@
  * compatibility for existing code that depends on the dashboard interface.
  */
 
-// ES6 Module imports
-import { SocketManager } from '@components/socket-manager.js';
-import { EventViewer } from '@components/event-viewer.js';
-import { ModuleViewer } from '@components/module-viewer.js';
-import { SessionManager } from '@components/session-manager.js';
-import { AgentInference } from '@components/agent-inference.js';
-import { AgentHierarchy } from '@components/agent-hierarchy.js';
-import { UIStateManager } from '@components/ui-state-manager.js';
-import { EventProcessor } from '@components/event-processor.js';
-import { ExportManager } from '@components/export-manager.js';
-import { WorkingDirectoryManager } from '@components/working-directory.js';
-import { FileToolTracker } from '@components/file-tool-tracker.js';
-import { BuildTracker } from '@components/build-tracker.js';
-import { UnifiedDataViewer } from '@components/unified-data-viewer.js';
+// NOTE: Components are loaded as ES6 modules via index.html
+// They expose their classes globally for backward compatibility
+// Commenting out ES6 imports to avoid module resolution errors
+
+// import { SocketManager } from './components/socket-manager.js';
+// import { EventViewer } from './components/event-viewer.js';
+// import { ModuleViewer } from './components/module-viewer.js';
+// import { SessionManager } from './components/session-manager.js';
+// import { AgentInference } from './components/agent-inference.js';
+// import { AgentHierarchy } from './components/agent-hierarchy.js';
+// import { UIStateManager } from './components/ui-state-manager.js';
+// import { EventProcessor } from './components/event-processor.js';
+// import { ExportManager } from './components/export-manager.js';
+// import { WorkingDirectoryManager } from './components/working-directory.js';
+// import { FileToolTracker } from './components/file-tool-tracker.js';
+// import { BuildTracker } from './components/build-tracker.js';
+// import { UnifiedDataViewer } from './components/unified-data-viewer.js';
+
 class Dashboard {
     constructor() {
         // Core components (existing)
@@ -136,8 +140,6 @@ class Dashboard {
         const missing = criticalComponents.filter(c => !c.component);
         if (missing.length > 0) {
             console.warn('Missing critical components:', missing.map(c => c.name));
-        } else {
-            console.log('All critical components initialized');
         }
     }
 
@@ -155,7 +157,6 @@ class Dashboard {
             // Set global reference for agent hierarchy after dashboard is available
             if (this.agentHierarchy) {
                 window.dashboard.agentHierarchy = this.agentHierarchy;
-                console.log('Agent hierarchy global reference set');
             }
             
             // Initialize any other components that need window.dashboard
@@ -242,7 +243,6 @@ class Dashboard {
         try {
             this.agentHierarchy = new AgentHierarchy(this.agentInference, this.eventViewer);
             // Global reference will be set in postInit() after window.dashboard exists
-            console.log('Agent hierarchy component created');
         } catch (error) {
             console.error('Failed to initialize agent hierarchy:', error);
             // Create a stub to prevent further errors
@@ -298,12 +298,37 @@ class Dashboard {
     setupModuleInteractions() {
         // Socket events to update file operations and tool calls
         this.socketManager.onEventUpdate((events) => {
+            console.log('[Dashboard] Processing event update with', events.length, 'events');
+
+            // Debug: Log some sample events to see their structure
+            if (events.length > 0) {
+                console.log('[Dashboard] Sample event structure:', {
+                    first_event: events[0],
+                    has_tool_events: events.some(e => e.tool_name || (e.data && e.data.tool_name)),
+                    hook_events: events.filter(e => e.type === 'hook').length,
+                    tool_subtypes: events.filter(e => e.subtype === 'pre_tool' || e.subtype === 'post_tool').length
+                });
+            }
+
             this.fileToolTracker.updateFileOperations(events);
             this.fileToolTracker.updateToolCalls(events);
 
+            // Debug: Check what was tracked
+            const fileOps = this.fileToolTracker.getFileOperations();
+            const toolCalls = this.fileToolTracker.getToolCalls();
+            console.log('[Dashboard] After update - File operations:', fileOps.size, 'Tool calls:', toolCalls.size);
+
             // Process agent inference for new events
             this.agentInference.processAgentInference();
-            
+
+            // Notify CodeViewer that file operations have been updated
+            // This ensures File Tree tab shows the same data as Files tab
+            if (window.CodeViewer && typeof window.CodeViewer.refreshFromFileToolTracker === 'function') {
+                setTimeout(() => {
+                    window.CodeViewer.refreshFromFileToolTracker();
+                }, 50);
+            }
+
             // Update agent hierarchy with new events
             this.agentHierarchy.updateWithNewEvents(events);
 
@@ -345,7 +370,6 @@ class Dashboard {
 
         // Session changes
         document.addEventListener('sessionFilterChanged', (e) => {
-            console.log('Session filter changed, re-rendering current tab:', this.uiStateManager.getCurrentTab());
             this.renderCurrentTab();
         });
     }
@@ -421,6 +445,12 @@ class Dashboard {
             case 'events':
                 // Events tab is handled by EventViewer
                 break;
+            case 'claude-tree':
+                // File Tree tab - trigger CodeViewer rendering
+                if (window.CodeViewer && typeof window.CodeViewer.show === 'function') {
+                    window.CodeViewer.show();
+                }
+                break;
             case 'activity':
                 // Trigger Activity tab rendering through the component
                 // Check if ActivityTree class is available (from built module)
@@ -430,25 +460,21 @@ class Dashboard {
                     
                     // Create or get instance
                     if (!window.activityTreeInstance) {
-                        console.log('Creating new ActivityTree instance...');
                         window.activityTreeInstance = new window.ActivityTree();
                     }
                     
                     // Initialize if needed and render
                     if (window.activityTreeInstance) {
                         if (!window.activityTreeInstance.initialized) {
-                            console.log('Initializing ActivityTree...');
                             window.activityTreeInstance.initialize();
                         }
                         
                         if (typeof window.activityTreeInstance.renderWhenVisible === 'function') {
-                            console.log('Dashboard triggering activity tree render...');
                             window.activityTreeInstance.renderWhenVisible();
                         }
                         
                         // Force show to ensure the tree is visible
                         if (typeof window.activityTreeInstance.forceShow === 'function') {
-                            console.log('Dashboard forcing activity tree to show...');
                             window.activityTreeInstance.forceShow();
                         }
                     }
@@ -457,11 +483,9 @@ class Dashboard {
                     const activityTreeInstance = window.activityTree();
                     if (activityTreeInstance) {
                         if (typeof activityTreeInstance.renderWhenVisible === 'function') {
-                            console.log('Dashboard triggering activity tree render (legacy)...');
                             activityTreeInstance.renderWhenVisible();
                         }
                         if (typeof activityTreeInstance.forceShow === 'function') {
-                            console.log('Dashboard forcing activity tree to show (legacy)...');
                             activityTreeInstance.forceShow();
                         }
                     }
@@ -755,10 +779,19 @@ class Dashboard {
 
         const fileOperations = this.fileToolTracker.getFileOperations();
         const filesArray = Array.from(fileOperations.entries());
+
+        console.log('[renderFiles] File operations map size:', fileOperations.size);
+        console.log('[renderFiles] Files array:', filesArray);
+
         const uniqueFileInstances = this.eventProcessor.getUniqueFileInstances(filesArray);
         const fileHTML = this.eventProcessor.generateFileHTML(uniqueFileInstances);
 
-        filesList.innerHTML = fileHTML;
+        if (filesArray.length === 0) {
+            filesList.innerHTML = '<div class="empty-state">No file operations tracked yet. File operations will appear here when tools like Read, Write, Edit, or Grep are used.</div>';
+        } else {
+            filesList.innerHTML = fileHTML;
+        }
+
         this.exportManager.scrollListToBottom('files-list');
 
         // Update filter dropdowns
@@ -781,12 +814,7 @@ class Dashboard {
         const sortedTypes = Array.from(agentTypes).filter(type => type && type.trim() !== '');
         this.populateFilterDropdown('agents-type-filter', sortedTypes, 'All Agent Types');
 
-        // Debug log
-        if (sortedTypes.length > 0) {
-            console.log('Agent types found for filter:', sortedTypes);
-        } else {
-            console.log('No agent types found for filter. Instances:', uniqueInstances.length);
-        }
+        // Agent filter types populated
     }
 
     /**

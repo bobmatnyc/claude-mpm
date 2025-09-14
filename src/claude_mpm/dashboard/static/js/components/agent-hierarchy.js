@@ -772,3 +772,6 @@ class AgentHierarchy {
 // ES6 Module export
 export { AgentHierarchy };
 export default AgentHierarchy;
+
+// Make AgentHierarchy globally available for dist/dashboard.js
+window.AgentHierarchy = AgentHierarchy;

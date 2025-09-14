@@ -537,3 +537,6 @@ class EventProcessor {
 // ES6 Module export
 export { EventProcessor };
 export default EventProcessor;
+
+// Make EventProcessor globally available for dist/dashboard.js
+window.EventProcessor = EventProcessor;

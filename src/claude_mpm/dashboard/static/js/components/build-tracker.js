@@ -323,3 +323,11 @@ export class BuildTracker {
         this.socketClient = null;
     }
 }
+
+// ES6 Module export
+export default BuildTracker;
+
+// Make BuildTracker globally available for backward compatibility
+if (typeof window !== 'undefined') {
+    window.BuildTracker = BuildTracker;
+}
