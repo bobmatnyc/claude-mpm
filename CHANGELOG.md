@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.2.47] - 2025-09-14
+
+### Changed
+- **Dashboard Consolidation**: Consolidated multiple test and documentation files into organized structure
+- **Documentation Guidelines**: Added instructions for temporary files and test outputs to use tmp/ directory
+
+### Fixed
+- **Version Consistency**: Fixed version mismatch across package.json and pyproject.toml files
+
 ## [4.2.46] - 2025-09-13
 
 ### Fixed
