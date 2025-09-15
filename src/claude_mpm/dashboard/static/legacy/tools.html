@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude MPM - Tools Dashboard</title>
+
+    <!-- Load Socket.IO -->
+    <script src="/static/socket.io.min.js"></script>
+
+    <!-- Verify Socket.IO is loaded -->
+    <script>
+        // Check if Socket.IO is loaded and available
+        if (typeof io === 'undefined') {
+            console.error('Socket.IO not loaded, attempting to load from CDN...');
+            var script = document.createElement('script');
+            script.src = 'https://cdn.socket.io/4.8.1/socket.io.min.js';
+            script.onerror = function() {
+                console.error('Failed to load Socket.IO from CDN');
+            };
+            document.head.appendChild(script);
+        } else {
+            console.log('Socket.IO loaded successfully, version:', io.version || 'unknown');
+        }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e0e0e0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #4ade80;
+            box-shadow: 0 0 10px #4ade80;
+        }
+
+        .status-dot.disconnected {
+            background: #f87171;
+            box-shadow: 0 0 10px #f87171;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-icon {
+            font-size: 24px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-label {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        select, input[type="text"] {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        select option {
+            background: #1e293b;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn.btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn.btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .tools-list {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .tool-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 3px solid #10b981;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .tool-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(5px);
+        }
+
+        .tool-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .tool-name {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            color: #10b981;
+            word-break: break-all;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tool-icon {
+            font-size: 16px;
+        }
+
+        .tool-badges {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tool-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .tool-badge.success {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        .tool-badge.error {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+
+        .tool-badge.running {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .tool-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .tool-stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .tool-timeline {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .timeline-event {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 0;
+            font-size: 12px;
+        }
+
+        .timeline-time {
+            color: #64748b;
+            min-width: 60px;
+        }
+
+        .timeline-status {
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 11px;
+        }
+
+        .timeline-agent {
+            flex: 1;
+            color: #94a3b8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .no-tools {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Navigation styles will be injected by nav-bar.js */
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with standardized structure -->
+        <div class="header">
+            <h1>🔧 Tools Dashboard</h1>
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <span class="status-dot disconnected" id="connection-status"></span>
+                    <span id="connection-text">Disconnected</span>
+                </div>
+                <div class="status-indicator">
+                    <span>🔧</span>
+                    <span id="total-calls">0 calls</span>
+                </div>
+                <div class="status-indicator">
+                    <span>✅</span>
+                    <span id="successful-calls">0 successful</span>
+                </div>
+                <div class="status-indicator">
+                    <span>❌</span>
+                    <span id="failed-calls">0 failed</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Bar -->
+        <div id="navigation-container"></div>
+
+        <!-- Statistics Panel -->
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-icon">🔧</div>
+                <div class="stat-info">
+                    <div class="stat-label">Total Tools</div>
+                    <div class="stat-value" id="totalTools">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-info">
+                    <div class="stat-label">Total Calls</div>
+                    <div class="stat-value" id="totalCalls">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-info">
+                    <div class="stat-label">Success Rate</div>
+                    <div class="stat-value" id="successRate">0%</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-info">
+                    <div class="stat-label">Avg Duration</div>
+                    <div class="stat-value" id="avgDuration">0ms</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <div class="control-group">
+                <input type="text" id="searchBox" placeholder="Search tools...">
+            </div>
+            <div class="control-group">
+                <label class="control-label">Type:</label>
+                <select id="typeFilter">
+                    <option value="">All Types</option>
+                    <option value="Read">Read</option>
+                    <option value="Write">Write</option>
+                    <option value="Edit">Edit</option>
+                    <option value="MultiEdit">MultiEdit</option>
+                    <option value="Bash">Bash</option>
+                    <option value="Grep">Grep</option>
+                    <option value="Glob">Glob</option>
+                    <option value="WebSearch">WebSearch</option>
+                    <option value="WebFetch">WebFetch</option>
+                    <option value="TodoWrite">TodoWrite</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label class="control-label">Sort by:</label>
+                <select id="sortBy">
+                    <option value="recent">Most Recent</option>
+                    <option value="calls">Most Calls</option>
+                    <option value="name">Tool Name</option>
+                </select>
+            </div>
+            <button class="btn btn-secondary" id="refreshTools">Refresh</button>
+            <button class="btn" id="clearTools">Clear All</button>
+        </div>
+
+        <!-- Tools List -->
+        <div class="tools-list" id="toolsList">
+            <div class="no-tools">
+                <h3>No Tool Usage Yet</h3>
+                <p>Waiting for tool events from the server...</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Wait for Socket.IO to be available
+        function waitForSocketIO() {
+            return new Promise((resolve) => {
+                if (typeof io !== 'undefined') {
+                    console.log('Socket.IO is ready');
+                    resolve();
+                } else {
+                    console.log('Waiting for Socket.IO...');
+                    setTimeout(() => waitForSocketIO().then(resolve), 100);
+                }
+            });
+        }
+
+        // Initialize after Socket.IO is ready
+        await waitForSocketIO();
+        console.log('Starting dashboard initialization...');
+        // Import navigation component
+        import { NavBar } from '/static/built/components/nav-bar.js';
+
+        // Initialize navigation
+        const navBar = new NavBar();
+        navBar.initialize('navigation-container');
+    </script>
+
+    <script>
+        // Tool storage and state management
+        const appState = {
+            tools: new Map(),
+            isConnected: false,
+            stats: {
+                totalCalls: 0,
+                successfulCalls: 0,
+                failedCalls: 0,
+                totalDuration: 0
+            }
+        };
+
+        // Socket.IO connection
+        const socket = io('http://localhost:8765', {
+            transports: ['polling', 'websocket'],
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: Infinity
+        });
+
+        console.log('Initializing Socket.IO connection for tools monitoring');
+
+        // Socket event handlers
+        socket.on('connect', () => {
+            console.log('Connected to Socket.IO server');
+            appState.isConnected = true;
+            updateConnectionStatus(true);
+
+            // Request tool data
+            socket.emit('get_history', { type: 'tool', limit: 100 });
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from Socket.IO server');
+            appState.isConnected = false;
+            updateConnectionStatus(false);
+        });
+
+        // Handle claude events - be more comprehensive
+        socket.on('claude_event', (data) => {
+            console.log('Received event:', data);
+
+            // Check for tool-related events in multiple ways
+            const isToolEvent =
+                (data.type && (
+                    data.type.includes('tool') ||
+                    data.type === 'ToolCall' ||
+                    data.type === 'tool_call' ||
+                    data.type === 'tool_start' ||
+                    data.type === 'tool_complete' ||
+                    data.type === 'tool_error'
+                )) ||
+                (data.event_type && data.event_type.includes('tool')) ||
+                data.tool_name ||
+                data.tool ||
+                data.data?.tool_name ||
+                data.data?.tool ||
+                (data.data?.type && data.data.type.includes('tool'));
+
+            if (isToolEvent) {
+                console.log('Processing tool event:', data);
+                processToolEvent(data);
+            }
+        });
+
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('connection-status');
+            const statusText = document.getElementById('connection-text');
+
+            if (statusDot && statusText) {
+                statusDot.className = `status-dot ${connected ? 'connected' : 'disconnected'}`;
+                statusText.textContent = connected ? 'Connected' : 'Disconnected';
+            }
+        }
+
+        // Get tool icon based on name/type
+        function getToolIcon(toolName) {
+            const name = toolName.toLowerCase();
+            if (name.includes('read')) return '📖';
+            if (name.includes('write')) return '✍️';
+            if (name.includes('edit')) return '✏️';
+            if (name.includes('bash') || name.includes('shell')) return '💻';
+            if (name.includes('grep') || name.includes('search')) return '🔍';
+            if (name.includes('glob') || name.includes('find')) return '📁';
+            if (name.includes('web')) return '🌐';
+            if (name.includes('todo')) return '📝';
+            if (name.includes('notebook')) return '📓';
+            return '🔧';
+        }
+
+        // Process tool events
+        function processToolEvent(event) {
+            const toolName = event.tool_name || event.tool || event.data?.tool_name ||
+                           event.data?.tool || 'Unknown Tool';
+
+            const agentName = event.agent_name || event.data?.agent_name ||
+                            event.agent || event.data?.agent || 'Unknown Agent';
+
+            const params = event.parameters || event.data?.parameters ||
+                         event.params || event.data?.params || {};
+
+            if (!appState.tools.has(toolName)) {
+                appState.tools.set(toolName, {
+                    name: toolName,
+                    icon: getToolIcon(toolName),
+                    calls: 0,
+                    successful: 0,
+                    failed: 0,
+                    running: 0,
+                    totalDuration: 0,
+                    lastActivity: Date.now(),
+                    lastAgent: agentName,
+                    events: []
+                });
+            }
+
+            const tool = appState.tools.get(toolName);
+            tool.lastActivity = Date.now();
+            tool.lastAgent = agentName;
+            tool.events.push({
+                timestamp: Date.now(),
+                type: event.type || event.event_type || 'call',
+                agent: agentName,
+                params: params,
+                data: event
+            });
+
+            // Update tool stats based on event type
+            const eventType = (event.type || event.event_type || '').toLowerCase();
+
+            if (eventType.includes('start') || eventType.includes('call') || eventType === 'toolcall') {
+                tool.calls++;
+                tool.running++;
+                appState.stats.totalCalls++;
+            } else if (eventType.includes('complete') || eventType.includes('success')) {
+                tool.successful++;
+                if (tool.running > 0) tool.running--;
+                appState.stats.successfulCalls++;
+
+                // Update duration if available
+                if (event.duration) {
+                    tool.totalDuration += event.duration;
+                    appState.stats.totalDuration += event.duration;
+                }
+            } else if (eventType.includes('error') || eventType.includes('fail')) {
+                tool.failed++;
+                if (tool.running > 0) tool.running--;
+                appState.stats.failedCalls++;
+            }
+
+            // Keep only last 10 events per tool
+            if (tool.events.length > 10) {
+                tool.events = tool.events.slice(-10);
+            }
+
+            updateUI();
+        }
+
+        // Format time ago
+        function formatTimeAgo(timestamp) {
+            const diff = Date.now() - timestamp;
+            const seconds = Math.floor(diff / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+
+            if (hours > 0) return `${hours}h ago`;
+            if (minutes > 0) return `${minutes}m ago`;
+            return `${seconds}s ago`;
+        }
+
+        // Format parameter for display
+        function formatParam(key, value) {
+            if (typeof value === 'string' && value.length > 50) {
+                return `${key}: ${value.substring(0, 50)}...`;
+            }
+            if (typeof value === 'object') {
+                return `${key}: [object]`;
+            }
+            return `${key}: ${value}`;
+        }
+
+        // Render tool item
+        function renderToolItem(tool) {
+            const successRate = tool.calls > 0
+                ? Math.round((tool.successful / tool.calls) * 100)
+                : 100;
+
+            const avgDuration = tool.successful > 0
+                ? Math.round(tool.totalDuration / tool.successful)
+                : 0;
+
+            const recentEvents = tool.events.slice(-5).reverse();
+
+            return `
+                <div class="tool-item" data-tool-name="${tool.name}">
+                    <div class="tool-header">
+                        <div class="tool-name">
+                            <span class="tool-icon">${tool.icon}</span>
+                            <span>${tool.name}</span>
+                        </div>
+                        <div class="tool-badges">
+                            <span class="tool-badge success">✓ ${tool.successful}</span>
+                            ${tool.failed > 0 ? `<span class="tool-badge error">✗ ${tool.failed}</span>` : ''}
+                            ${tool.running > 0 ? `<span class="tool-badge running">⟳ ${tool.running}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="tool-stats">
+                        <div class="tool-stat">
+                            📊 ${tool.calls} calls
+                        </div>
+                        <div class="tool-stat">
+                            ✅ ${successRate}% success
+                        </div>
+                        <div class="tool-stat">
+                            ⏱️ ${avgDuration}ms avg
+                        </div>
+                        <div class="tool-stat">
+                            🤖 ${tool.lastAgent}
+                        </div>
+                        <div class="tool-stat">
+                            🕐 ${formatTimeAgo(tool.lastActivity)}
+                        </div>
+                    </div>
+                    ${recentEvents.length > 0 ? `
+                        <div class="tool-timeline">
+                            ${recentEvents.map(evt => `
+                                <div class="timeline-event">
+                                    <span class="timeline-time">${new Date(evt.timestamp).toLocaleTimeString('en-US', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit'
+                                    })}</span>
+                                    <span class="timeline-status tool-badge ${evt.type.includes('error') ? 'error' : evt.type.includes('complete') || evt.type.includes('success') ? 'success' : 'running'}">
+                                        ${evt.type.toUpperCase().replace(/_/g, ' ')}
+                                    </span>
+                                    <span class="timeline-agent">by ${evt.agent}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // Update UI
+        function updateUI() {
+            // Update header stats
+            document.getElementById('total-calls').textContent = `${appState.stats.totalCalls} calls`;
+            document.getElementById('successful-calls').textContent = `${appState.stats.successfulCalls} successful`;
+            document.getElementById('failed-calls').textContent = `${appState.stats.failedCalls} failed`;
+
+            // Update statistics cards
+            document.getElementById('totalTools').textContent = appState.tools.size;
+            document.getElementById('totalCalls').textContent = appState.stats.totalCalls;
+
+            const successRate = appState.stats.totalCalls > 0
+                ? Math.round((appState.stats.successfulCalls / appState.stats.totalCalls) * 100)
+                : 100;
+            document.getElementById('successRate').textContent = `${successRate}%`;
+
+            const avgDuration = appState.stats.successfulCalls > 0
+                ? Math.round(appState.stats.totalDuration / appState.stats.successfulCalls)
+                : 0;
+            document.getElementById('avgDuration').textContent = `${avgDuration}ms`;
+
+            // Get filters
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+
+            // Filter tools
+            let filteredTools = Array.from(appState.tools.values());
+
+            if (searchTerm) {
+                filteredTools = filteredTools.filter(tool =>
+                    tool.name.toLowerCase().includes(searchTerm) ||
+                    tool.lastAgent.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            if (typeFilter) {
+                filteredTools = filteredTools.filter(tool =>
+                    tool.name.includes(typeFilter)
+                );
+            }
+
+            // Sort tools
+            if (sortBy === 'recent') {
+                filteredTools.sort((a, b) => b.lastActivity - a.lastActivity);
+            } else if (sortBy === 'calls') {
+                filteredTools.sort((a, b) => b.calls - a.calls);
+            } else if (sortBy === 'name') {
+                filteredTools.sort((a, b) => a.name.localeCompare(b.name));
+            }
+
+            // Render tools list
+            const toolsList = document.getElementById('toolsList');
+            if (filteredTools.length === 0) {
+                toolsList.innerHTML = `
+                    <div class="no-tools">
+                        <h3>No Tools Found</h3>
+                        <p>${searchTerm || typeFilter ? 'Try different filters' : 'Waiting for tool events from the server...'}</p>
+                    </div>
+                `;
+            } else {
+                toolsList.innerHTML = filteredTools.map(renderToolItem).join('');
+            }
+        }
+
+        // Event handlers
+        document.getElementById('searchBox').addEventListener('input', updateUI);
+        document.getElementById('typeFilter').addEventListener('change', updateUI);
+        document.getElementById('sortBy').addEventListener('change', updateUI);
+
+        document.getElementById('refreshTools').addEventListener('click', () => {
+            socket.emit('get_history', { type: 'tool', limit: 100 });
+        });
+
+        document.getElementById('clearTools').addEventListener('click', () => {
+            if (confirm('Clear all tool data?')) {
+                appState.tools.clear();
+                appState.stats = {
+                    totalCalls: 0,
+                    successfulCalls: 0,
+                    failedCalls: 0,
+                    totalDuration: 0
+                };
+                updateUI();
+            }
+        });
+
+        // Initial UI update
+        updateUI();
+
+        console.log('Tools monitor initialized');
+    </script>
+</body>
+</html>

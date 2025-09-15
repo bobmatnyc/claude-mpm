@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Export Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        h1 {
+            color: #4fc3f7;
+        }
+        .test-section {
+            background: #2d2d2d;
+            border: 1px solid #3e3e3e;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-result {
+            font-family: 'Courier New', monospace;
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #4ade80;
+        }
+        .error {
+            color: #f87171;
+        }
+        .pending {
+            color: #fbbf24;
+        }
+        button {
+            background: #4fc3f7;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #29b6f6;
+        }
+        #react-events-root {
+            min-height: 100px;
+            border: 2px dashed #3e3e3e;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>React Export Test Page</h1>
+
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Actions</h2>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="initializeReact()">Initialize React Component</button>
+        <button onclick="checkConsole()">Check Console Output</button>
+    </div>
+
+    <div class="test-section">
+        <h2>React Component Container</h2>
+        <div id="react-events-root">
+            <p class="pending">React component will be rendered here...</p>
+        </div>
+    </div>
+
+    <!-- Load React and ReactDOM from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Load the React events component -->
+    <script type="module">
+        import('/static/dist/react/events.js').then(module => {
+            console.log('React events module loaded:', module);
+            window.reactEventsModule = module;
+        }).catch(error => {
+            console.error('Failed to load React events module:', error);
+        });
+    </script>
+
+    <script>
+        const results = document.getElementById('test-results');
+
+        function addResult(test, result, success) {
+            const div = document.createElement('div');
+            div.className = `test-result ${success ? 'success' : 'error'}`;
+            div.textContent = `${success ? '✓' : '✗'} ${test}: ${result}`;
+            results.appendChild(div);
+        }
+
+        function clearResults() {
+            results.innerHTML = '';
+        }
+
+        function runAllTests() {
+            clearResults();
+            console.log('Running all tests...');
+
+            // Test 1: Check if window.initializeReactEvents exists
+            const test1 = typeof window.initializeReactEvents;
+            addResult('window.initializeReactEvents type', test1, test1 === 'function');
+
+            // Test 2: Check if window.ClaudeMPMReact exists
+            const test2 = typeof window.ClaudeMPMReact;
+            addResult('window.ClaudeMPMReact type', test2, test2 === 'object');
+
+            // Test 3: Check if function exists in namespace
+            const test3 = window.ClaudeMPMReact ? typeof window.ClaudeMPMReact.initializeReactEvents : 'namespace not found';
+            addResult('ClaudeMPMReact.initializeReactEvents type', test3, test3 === 'function');
+
+            // Test 4: Check if React root element exists
+            const test4 = document.getElementById('react-events-root') !== null;
+            addResult('React root element exists', test4, test4);
+
+            // Test 5: Check if React module was imported
+            const test5 = typeof window.reactEventsModule;
+            addResult('React events module loaded', test5, test5 === 'object');
+
+            // Test 6: Check if React is available globally
+            const test6 = typeof window.React;
+            addResult('React library available', test6, test6 === 'object');
+
+            // Test 7: Check if ReactDOM is available globally
+            const test7 = typeof window.ReactDOM;
+            addResult('ReactDOM library available', test7, test7 === 'object');
+
+            console.log('All tests completed. Check results above.');
+        }
+
+        function initializeReact() {
+            console.log('Attempting to initialize React component...');
+
+            if (typeof window.initializeReactEvents === 'function') {
+                const result = window.initializeReactEvents();
+                addResult('React initialization', `Returned: ${result}`, result === true);
+                console.log('React initialization result:', result);
+            } else {
+                addResult('React initialization', 'Function not found', false);
+                console.error('initializeReactEvents function not found on window');
+            }
+        }
+
+        function checkConsole() {
+            console.log('Console output check:');
+            console.log('- window.initializeReactEvents:', window.initializeReactEvents);
+            console.log('- window.ClaudeMPMReact:', window.ClaudeMPMReact);
+            console.log('- window.reactEventsModule:', window.reactEventsModule);
+            console.log('- React root element:', document.getElementById('react-events-root'));
+
+            addResult('Console check', 'Check browser console for output', true);
+        }
+
+        // Auto-run tests after page loads
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('Page loaded, running initial tests...');
+                runAllTests();
+            }, 1000); // Give time for modules to load
+        });
+    </script>
+</body>
+</html>

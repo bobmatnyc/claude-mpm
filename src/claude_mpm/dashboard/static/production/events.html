@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude MPM - Events Dashboard</title>
+
+    <!-- Load Socket.IO -->
+    <script src="/static/socket.io.min.js"></script>
+
+    <!-- Verify Socket.IO is loaded - strict mode with error throwing -->
+    <script>
+        // Check if Socket.IO is loaded and available - no fallback
+        if (typeof io === 'undefined') {
+            const error = new Error('Required dependency missing: Socket.IO not loaded from /static/socket.io.min.js');
+            console.error(error.message);
+            // Display error to user
+            document.addEventListener('DOMContentLoaded', function() {
+                document.body.innerHTML = `
+                    <div style="padding: 20px; background: rgba(248, 113, 113, 0.1); border: 1px solid #f87171; border-radius: 8px; color: #f87171; font-family: monospace; margin: 20px;">
+                        <h2>Dependency Error</h2>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p>The dashboard requires Socket.IO to function. Please ensure the Socket.IO library is properly loaded.</p>
+                    </div>
+                `;
+            });
+            throw error;
+        } else {
+            console.log('Socket.IO loaded successfully, version:', io.version || 'unknown');
+        }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e0e0e0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navigation Bar */
+        .nav-bar {
+            background: rgba(30, 41, 59, 0.95);
+            border-bottom: 1px solid rgba(66, 153, 225, 0.3);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        .nav-bar a {
+            color: #94a3b8;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-bar a:hover {
+            background: rgba(66, 153, 225, 0.2);
+            color: #4299e1;
+        }
+
+        .nav-bar .nav-title {
+            color: #e0e0e0;
+            font-weight: 600;
+            margin-right: auto;
+        }
+
+        .nav-bar .nav-badge {
+            background: rgba(66, 153, 225, 0.2);
+            color: #4299e1;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #4ade80;
+            box-shadow: 0 0 10px #4ade80;
+        }
+
+        .status-dot.disconnected {
+            background: #f87171;
+            box-shadow: 0 0 10px #f87171;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-label {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .filter-select {
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .filter-select option {
+            background: #0f172a;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .checkbox-label input {
+            cursor: pointer;
+        }
+
+        .events-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .events-header {
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .events-title {
+            font-weight: 600;
+        }
+
+        .events-info {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .events-list {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            min-height: 300px;
+        }
+
+        .event-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.2s;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            position: relative;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .event-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .event-item.expanded {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .event-header-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .event-type {
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .event-type.agent {
+            background: rgba(167, 139, 250, 0.2);
+            color: #a78bfa;
+        }
+
+        .event-type.tool {
+            background: rgba(96, 165, 250, 0.2);
+            color: #60a5fa;
+        }
+
+        .event-type.file {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .event-type.session {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        .event-type.error {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+
+        .event-type.info {
+            background: rgba(134, 239, 172, 0.2);
+            color: #86efac;
+        }
+
+        .event-time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .event-preview {
+            color: rgba(255, 255, 255, 0.7);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .event-details {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .event-item.expanded .event-details {
+            display: block;
+        }
+
+        .json-key {
+            color: #60a5fa;
+        }
+
+        .json-string {
+            color: #86efac;
+        }
+
+        .json-number {
+            color: #fbbf24;
+        }
+
+        .json-boolean {
+            color: #a78bfa;
+        }
+
+        .json-null {
+            color: #f87171;
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-icon {
+            font-size: 24px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .event-rate {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 2px 6px;
+            background: rgba(16, 185, 129, 0.2);
+            border-radius: 10px;
+            font-size: 11px;
+            color: #10b981;
+        }
+
+        .no-events {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Navigation styles will be injected by nav-bar.js */
+
+        /* React component integration styles */
+        .react-events-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .fallback-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Ensure React components inherit the dashboard styling */
+        #react-events-root .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        #react-events-root .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #react-events-root .stat-icon {
+            font-size: 24px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #react-events-root .stat-info {
+            flex: 1;
+        }
+
+        #react-events-root .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #react-events-root .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="nav-bar">
+        <a href="/static/" title="Back to Dashboard Hub">← Hub</a>
+        <span class="nav-title">Events Monitor</span>
+        <span class="nav-badge">Production</span>
+        <a href="/dashboard?autoconnect=true&port=8765">Main Dashboard</a>
+        <a href="/static/production/monitors.html">System Monitors</a>
+    </nav>
+
+    <div class="container">
+        <!-- Header with standardized structure -->
+        <div class="header">
+            <h1>📊 Events Dashboard</h1>
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <span class="status-dot disconnected" id="connection-status"></span>
+                    <span id="connection-text">Disconnected</span>
+                </div>
+                <div class="status-indicator">
+                    <span>📊</span>
+                    <span id="event-count">0 events</span>
+                </div>
+                <div class="status-indicator">
+                    <span>⚡</span>
+                    <span id="event-rate">0/s</span>
+                </div>
+                <div class="status-indicator">
+                    <span>🔌</span>
+                    <span id="active-connections">0 active</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Bar -->
+        <div id="navigation-container"></div>
+
+        <!-- React Events Container (will be populated by React or show error) -->
+        <div id="react-events-root" style="flex: 1; display: flex; flex-direction: column;">
+            <!-- Loading placeholder - removed fallback functionality -->
+            <div id="loading-placeholder" style="text-align: center; padding: 60px 20px; color: rgba(255, 255, 255, 0.5);">
+                <h3>Loading React Dashboard...</h3>
+                <p>Please wait while the React components initialize...</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import navigation component
+        import { NavBar } from '/static/built/components/nav-bar.js';
+
+        // Initialize navigation
+        const navBar = new NavBar();
+        navBar.initialize('navigation-container');
+
+        // Try to load React Events component - strict mode with error throwing
+        async function loadReactEvents() {
+            console.log('Loading React Events component (strict mode)...');
+
+            try {
+                const { initializeReactEvents } = await import('/static/dist/react/events.js');
+
+                // Hide loading placeholder when React loads
+                const loadingElement = document.getElementById('loading-placeholder');
+                if (loadingElement) {
+                    loadingElement.style.display = 'none';
+                }
+
+                // Initialize React component
+                initializeReactEvents();
+                console.log('React Events component loaded successfully');
+
+            } catch (error) {
+                const loadError = new Error(`Failed to load React components: ${error instanceof Error ? error.message : String(error)}`);
+                console.error(loadError.message);
+
+                // Display error to user instead of fallback
+                const container = document.getElementById('react-events-root');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="padding: 20px; background: rgba(248, 113, 113, 0.1); border: 1px solid #f87171; border-radius: 8px; color: #f87171; font-family: monospace;">
+                            <h2>React Component Loading Error</h2>
+                            <p><strong>Error:</strong> ${loadError.message}</p>
+                            <p>The React-based dashboard failed to load. This may be due to:</p>
+                            <ul style="margin: 10px 0; padding-left: 20px;">
+                                <li>Missing React build files at /static/dist/react/events.js</li>
+                                <li>Network connectivity issues</li>
+                                <li>Build process errors</li>
+                            </ul>
+                            <p>Check the console for detailed error information.</p>
+                        </div>
+                    `;
+                }
+
+                throw loadError;
+            }
+        }
+
+        // Load React component when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadReactEvents);
+        } else {
+            loadReactEvents();
+        }
+    </script>
+
+    <!-- Removed vanilla JS fallback implementation -->
+    <!-- Dashboard now uses React-only mode with error throwing -->
+    <script>
+        console.log('Events dashboard now running in React-only mode (no vanilla JS fallback)');
+    </script>
+</body>
+</html>

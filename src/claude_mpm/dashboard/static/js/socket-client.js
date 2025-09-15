@@ -1389,6 +1389,12 @@ class SocketClient {
                 actualType = 'connected';
                 this.isConnected = true;
                 this.isConnecting = false;
+
+                // Expose socket globally when connected
+                if (!window.socket) {
+                    window.socket = this.socket;
+                    console.log('SocketClient: Exposed socket globally as window.socket');
+                }
             } else if (this.socket.connecting || this.isConnecting) {
                 actualStatus = 'Connecting...';
                 actualType = 'connecting';
@@ -1401,17 +1407,15 @@ class SocketClient {
             }
         }
 
-        // Check if UI needs updating
+        // Always update status to ensure consistency
+        this.updateConnectionStatusDOM(actualStatus, actualType);
+
+        // Also ensure state is consistent
         const statusElement = document.getElementById('connection-status');
         if (statusElement) {
             const currentText = statusElement.textContent.replace('●', '').trim();
-            const currentClass = statusElement.className;
-            const expectedClass = `status-badge status-${actualType}`;
-
-            // Update if status text or class doesn't match
-            if (currentText !== actualStatus || currentClass !== expectedClass) {
-                console.log(`SocketClient: Fallback update - was '${currentText}' (${currentClass}), now '${actualStatus}' (${expectedClass})`);
-                this.updateConnectionStatusDOM(actualStatus, actualType);
+            if (currentText !== actualStatus) {
+                console.log(`SocketClient: Status sync - updating from '${currentText}' to '${actualStatus}'`);
             }
         }
     }

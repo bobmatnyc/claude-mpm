@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude MPM - Dashboard Monitors</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            padding: 40px 20px;
+            overflow-y: auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        .header p {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .monitors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .monitor-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .monitor-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .monitor-card:hover::before {
+            opacity: 1;
+        }
+
+        .monitor-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .monitor-card.agents {
+            --gradient-start: #667eea;
+            --gradient-end: #764ba2;
+        }
+
+        .monitor-card.tools {
+            --gradient-start: #60a5fa;
+            --gradient-end: #3b82f6;
+        }
+
+        .monitor-card.files {
+            --gradient-start: #fbbf24;
+            --gradient-end: #f59e0b;
+        }
+
+        .monitor-card.events {
+            --gradient-start: #10b981;
+            --gradient-end: #06b6d4;
+        }
+
+        .monitor-card.dashboard {
+            --gradient-start: #ec4899;
+            --gradient-end: #8b5cf6;
+        }
+
+        .monitor-card.demo {
+            --gradient-start: #f87171;
+            --gradient-end: #ef4444;
+        }
+
+        .monitor-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .monitor-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .monitor-description {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .monitor-features {
+            list-style: none;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .monitor-features li {
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .monitor-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #4ade80;
+        }
+
+        .monitor-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+
+        .monitor-badge.new {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        .monitor-badge.live {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .info-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 40px;
+        }
+
+        .info-section h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #60a5fa;
+        }
+
+        .info-section p {
+            font-size: 14px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 10px;
+        }
+
+        .info-section code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #fbbf24;
+        }
+
+        .connection-status {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.checking {
+            background: #fbbf24;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px 0;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 14px;
+        }
+
+        .footer a {
+            color: #60a5fa;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Claude MPM Dashboard</h1>
+            <p>Real-time monitoring and visualization tools</p>
+        </div>
+
+        <div class="connection-status">
+            <span class="status-dot checking"></span>
+            <span id="connectionInfo">Socket.IO Server: localhost:8765</span>
+        </div>
+
+        <div class="info-section">
+            <h2>Getting Started</h2>
+            <p>Each monitor connects to the Socket.IO server at <code>localhost:8765</code> to receive real-time events.</p>
+            <p>All monitors use a shared Zustand store for state management with clean separation of concerns.</p>
+            <p>To test with demo data, append <code>?demo</code> to any monitor URL.</p>
+        </div>
+
+        <div class="monitors-grid">
+            <a href="agents.html" class="monitor-card agents">
+                <div class="monitor-icon">🤖</div>
+                <div class="monitor-title">Agents Monitor</div>
+                <div class="monitor-description">
+                    Track agent activities, status, and hierarchies in real-time
+                </div>
+                <ul class="monitor-features">
+                    <li>Live agent status tracking</li>
+                    <li>Agent hierarchy visualization</li>
+                    <li>Task progress monitoring</li>
+                    <li>Search and filter capabilities</li>
+                </ul>
+                <span class="monitor-badge live">LIVE</span>
+            </a>
+
+            <a href="tools.html" class="monitor-card tools">
+                <div class="monitor-icon">🛠️</div>
+                <div class="monitor-title">Tools Monitor</div>
+                <div class="monitor-description">
+                    Monitor tool operations, performance, and execution history
+                </div>
+                <ul class="monitor-features">
+                    <li>Active tool tracking</li>
+                    <li>Operation timeline</li>
+                    <li>Success rate statistics</li>
+                    <li>Performance metrics</li>
+                </ul>
+                <span class="monitor-badge live">LIVE</span>
+            </a>
+
+            <a href="files.html" class="monitor-card files">
+                <div class="monitor-icon">📁</div>
+                <div class="monitor-title">Files Monitor</div>
+                <div class="monitor-description">
+                    Track file operations, modifications, and system interactions
+                </div>
+                <ul class="monitor-features">
+                    <li>File operation tracking</li>
+                    <li>Working directory display</li>
+                    <li>Operation statistics</li>
+                    <li>Recent activity feed</li>
+                </ul>
+                <span class="monitor-badge live">LIVE</span>
+            </a>
+
+            <a href="events.html" class="monitor-card events">
+                <div class="monitor-icon">📊</div>
+                <div class="monitor-title">Events Stream</div>
+                <div class="monitor-description">
+                    Raw event stream with filtering, search, and export capabilities
+                </div>
+                <ul class="monitor-features">
+                    <li>Real-time event stream</li>
+                    <li>Advanced filtering</li>
+                    <li>JSON syntax highlighting</li>
+                    <li>Export functionality</li>
+                </ul>
+                <span class="monitor-badge new">NEW</span>
+            </a>
+
+            <a href="dashboard.html" class="monitor-card dashboard">
+                <div class="monitor-icon">📈</div>
+                <div class="monitor-title">Full Dashboard</div>
+                <div class="monitor-description">
+                    Complete dashboard with all monitoring capabilities combined
+                </div>
+                <ul class="monitor-features">
+                    <li>All monitors in one view</li>
+                    <li>Tabbed interface</li>
+                    <li>Session management</li>
+                    <li>Export capabilities</li>
+                </ul>
+            </a>
+
+            <a href="agents.html?demo" class="monitor-card demo">
+                <div class="monitor-icon">🎮</div>
+                <div class="monitor-title">Demo Mode</div>
+                <div class="monitor-description">
+                    Test monitors with simulated data without live connection
+                </div>
+                <ul class="monitor-features">
+                    <li>Simulated events</li>
+                    <li>Test all features</li>
+                    <li>No server required</li>
+                    <li>Perfect for development</li>
+                </ul>
+                <span class="monitor-badge">DEMO</span>
+            </a>
+        </div>
+
+        <div class="info-section">
+            <h2>Architecture</h2>
+            <p>All monitors share a centralized Zustand store (<code>/js/stores/dashboard-store.js</code>) that manages:</p>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li>Socket.IO connection and reconnection logic</li>
+                <li>Event processing and state updates</li>
+                <li>Data transformations and filtering</li>
+                <li>Statistics and performance metrics</li>
+            </ul>
+            <p style="margin-top: 15px;">Each page subscribes to specific state slices for optimal performance and clean separation of concerns.</p>
+        </div>
+
+        <div class="footer">
+            <p>Claude MPM Dashboard v1.0.0</p>
+            <p>Built with Zustand, Socket.IO, and vanilla JavaScript</p>
+            <p><a href="https://github.com/bobmatnyc/claude-mpm">View on GitHub</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Check if Socket.IO server is running
+        const checkConnection = async () => {
+            try {
+                const response = await fetch('http://localhost:8765/socket.io/?EIO=4&transport=polling');
+                const statusDot = document.querySelector('.status-dot');
+                const connectionInfo = document.getElementById('connectionInfo');
+
+                if (response.ok) {
+                    statusDot.style.background = '#4ade80';
+                    connectionInfo.textContent = 'Socket.IO Server: Connected at localhost:8765';
+                } else {
+                    statusDot.style.background = '#f87171';
+                    connectionInfo.textContent = 'Socket.IO Server: Not responding at localhost:8765';
+                }
+            } catch (error) {
+                const statusDot = document.querySelector('.status-dot');
+                const connectionInfo = document.getElementById('connectionInfo');
+                statusDot.style.background = '#f87171';
+                connectionInfo.textContent = 'Socket.IO Server: Not running at localhost:8765';
+            }
+        };
+
+        // Check connection on load
+        checkConnection();
+
+        // Add hover effect for cards
+        document.querySelectorAll('.monitor-card').forEach(card => {
+            card.addEventListener('mouseenter', (e) => {
+                const icon = card.querySelector('.monitor-icon');
+                if (icon) {
+                    icon.style.transform = 'scale(1.2)';
+                    icon.style.transition = 'transform 0.3s';
+                }
+            });
+
+            card.addEventListener('mouseleave', (e) => {
+                const icon = card.querySelector('.monitor-icon');
+                if (icon) {
+                    icon.style.transform = 'scale(1)';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

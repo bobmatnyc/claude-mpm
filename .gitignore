@@ -57,6 +57,7 @@ src/claude_mpm/agents/templates/backup/
 # Temporary directories
 test_dir/
 ai-trackdown-pytools-bug-support/
+tmp/
 
 # Claude MPM runtime files
 # Exclude entire .claude-mpm directory (project-specific runtime data)

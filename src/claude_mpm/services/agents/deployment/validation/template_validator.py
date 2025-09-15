@@ -190,10 +190,16 @@ class TemplateValidator:
 
         if "tags" in metadata:
             tags = metadata["tags"]
-            if not isinstance(tags, list):
-                result.add_error("Tags should be a list", field_name="metadata.tags")
-            elif len(tags) == 0:
-                result.add_warning("No tags specified", field_name="metadata.tags")
+            if isinstance(tags, str):
+                # Convert comma-separated string to list for validation
+                tag_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
+                if len(tag_list) == 0:
+                    result.add_warning("No tags specified", field_name="metadata.tags")
+            elif isinstance(tags, list):
+                if len(tags) == 0:
+                    result.add_warning("No tags specified", field_name="metadata.tags")
+            else:
+                result.add_error("Tags should be a list or comma-separated string", field_name="metadata.tags")
 
     def _validate_capabilities(
         self, capabilities: Dict[str, Any], result: ValidationResult
