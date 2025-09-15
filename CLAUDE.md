@@ -149,6 +149,23 @@ See [docs/developer/LINTING.md](docs/developer/LINTING.md) for linting configura
 
 For detailed quality gate documentation, see [docs/reference/DEPLOY.md#quality-gates](docs/reference/DEPLOY.md#quality-gates).
 
+### Temporary Files and Test Outputs
+
+**IMPORTANT**: All temporary test files, documentation drafts, and ephemeral outputs should be placed in the `/tmp/` directory:
+- Test outputs and logs: `/tmp/test_results/`
+- Documentation drafts: `/tmp/docs/`
+- Debug outputs: `/tmp/debug/`
+- Screenshot captures: `/tmp/screenshots/`
+- Test scripts and experiments: `/tmp/scripts/`
+
+The `/tmp/` directory is gitignored and will not be committed to the repository. This keeps the main codebase clean and prevents accidental commits of test artifacts.
+
+**DO NOT** place test files or temporary documentation in:
+- Project root directory
+- `/scripts/` (reserved for production scripts)
+- `/docs/` (reserved for final documentation)
+- `/tests/` (reserved for permanent test suites)
+
 ### Key System Components
 
 When modifying the codebase, understand these core systems:
