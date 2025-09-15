@@ -383,13 +383,15 @@
             updateStatus('connecting', 'Connecting...');
 
             socket = io(serverUrl, {
-                transports: ['websocket', 'polling'],
-                timeout: 10000,
+                transports: ['polling', 'websocket'], // Start with polling for better compatibility
+                timeout: 20000,
                 forceNew: true,
                 reconnection: true,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 10000,
-                maxReconnectionAttempts: 10
+                reconnectionAttempts: Infinity,
+                withCredentials: false, // Disable credentials for CORS
+                path: '/socket.io/' // Explicit Socket.IO path
             });
 
             socket.on('connect', () => {

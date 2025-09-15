@@ -150,6 +150,23 @@
             <div class="header-row">
                 <div class="header-title">
                     <h1>🚀 Claude MPM Monitor</h1>
+                    <a href="/static/monitors-index.html" style="
+                        display: inline-block;
+                        margin-left: 20px;
+                        padding: 8px 16px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 8px;
+                        font-size: 14px;
+                        font-weight: 500;
+                        transition: transform 0.2s, box-shadow 0.2s;
+                        vertical-align: middle;
+                    "
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(102, 126, 234, 0.4)';"
+                    onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                        Try New Dashboard →
+                    </a>
                     <div id="connection-status" class="status-badge status-disconnected">
                         <span>●</span> Disconnected
                     </div>
@@ -178,6 +195,15 @@
                     <div class="metric-mini">
                         <div class="metric-mini-value" id="error-count">0</div>
                         <div class="metric-mini-label">Errors</div>
+                    </div>
+                    <!-- Debug metrics for troubleshooting -->
+                    <div class="metric-mini" style="background: rgba(255,255,255,0.05);">
+                        <div class="metric-mini-value" id="debug-events-received">0</div>
+                        <div class="metric-mini-label">Received</div>
+                    </div>
+                    <div class="metric-mini" style="background: rgba(255,255,255,0.05);">
+                        <div class="metric-mini-value" id="debug-events-rendered">0</div>
+                        <div class="metric-mini-label">Rendered</div>
                     </div>
                 </div>
             </div>

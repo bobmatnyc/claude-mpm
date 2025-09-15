@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Dashboard - Fixed</title>
+
+    <!-- Load Socket.IO first -->
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #4ade80;
+            box-shadow: 0 0 10px #4ade80;
+        }
+
+        .status-dot.disconnected {
+            background: #f87171;
+            box-shadow: 0 0 10px #f87171;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .content {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .log {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px;
+        }
+
+        .error { color: #f87171; }
+        .success { color: #4ade80; }
+        .info { color: #60a5fa; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Activity Dashboard - Fixed Version</h1>
+        <div class="status-bar">
+            <div class="status-indicator">
+                <span class="status-dot disconnected" id="connection-status"></span>
+                <span id="connection-text">Disconnected</span>
+            </div>
+            <div class="status-indicator">
+                <span>📊</span>
+                <span id="event-count">0 events</span>
+            </div>
+            <div class="status-indicator">
+                <span>🎯</span>
+                <span id="session-count">0 sessions</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <h2>Connection Log</h2>
+        <div class="log" id="log"></div>
+    </div>
+
+    <script type="module">
+        // Import SocketClient
+        import { SocketClient } from 'http://localhost:8765/static/built/socket-client.js';
+        import { ActivityTree } from 'http://localhost:8765/static/built/components/activity-tree.js';
+        import { SessionManager } from 'http://localhost:8765/static/built/components/session-manager.js';
+
+        const logEl = document.getElementById('log');
+
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(`[${type}] ${message}`);
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('connection-status');
+            const statusText = document.getElementById('connection-text');
+
+            if (connected) {
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = 'Connected';
+            } else {
+                statusDot.className = 'status-dot disconnected';
+                statusText.textContent = 'Disconnected';
+            }
+        }
+
+        // Wait for Socket.IO to load
+        function waitForSocketIO() {
+            return new Promise((resolve) => {
+                if (typeof io !== 'undefined') {
+                    log(`Socket.IO loaded: version ${io.version || 'unknown'}`, 'success');
+                    resolve();
+                } else {
+                    log('Waiting for Socket.IO...', 'info');
+                    setTimeout(() => waitForSocketIO().then(resolve), 100);
+                }
+            });
+        }
+
+        // Initialize
+        async function initialize() {
+            log('Starting initialization...', 'info');
+
+            // Wait for Socket.IO
+            await waitForSocketIO();
+
+            try {
+                // Create instances
+                log('Creating SocketClient instance...', 'info');
+                const socketClient = new SocketClient();
+                window.socketClient = socketClient;
+
+                log('Creating SessionManager instance...', 'info');
+                const sessionManager = new SessionManager();
+                window.sessionManager = sessionManager;
+
+                log('Creating ActivityTree instance...', 'info');
+                const activityTree = new ActivityTree();
+                window.activityTree = activityTree;
+
+                // Set up event handlers
+                log('Setting up event handlers...', 'info');
+
+                socketClient.onConnection('connect', () => {
+                    log('✅ CONNECTED to Socket.IO server!', 'success');
+                    updateConnectionStatus(true);
+                });
+
+                socketClient.onConnection('disconnect', (reason) => {
+                    log(`❌ DISCONNECTED: ${reason}`, 'error');
+                    updateConnectionStatus(false);
+                });
+
+                socketClient.onConnection('error', (error) => {
+                    log(`Socket error: ${error}`, 'error');
+                });
+
+                socketClient.onEventUpdate((events, sessions) => {
+                    const eventCount = events.length;
+                    const sessionCount = sessions.size;
+                    log(`Event update: ${eventCount} events, ${sessionCount} sessions`, 'info');
+                    document.getElementById('event-count').textContent = `${eventCount} events`;
+                    document.getElementById('session-count').textContent = `${sessionCount} sessions`;
+                });
+
+                // Connect
+                log('Calling socketClient.connect()...', 'info');
+                socketClient.connect();
+
+                // Check status after a moment
+                setTimeout(() => {
+                    if (socketClient.socket) {
+                        const status = {
+                            connected: socketClient.socket.connected,
+                            connecting: socketClient.socket.connecting,
+                            id: socketClient.socket.id || 'none'
+                        };
+                        log(`Socket status: connected=${status.connected}, id=${status.id}`,
+                            status.connected ? 'success' : 'error');
+
+                        if (!status.connected && !status.connecting) {
+                            log('Connection failed. Check browser console for errors.', 'error');
+                        }
+                    } else {
+                        log('Socket object was not created!', 'error');
+                    }
+                }, 2000);
+
+            } catch (error) {
+                log(`Initialization error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        // Start initialization
+        initialize();
+    </script>
+</body>
+</html>

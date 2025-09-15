@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude MPM - Files Dashboard</title>
+
+    <!-- Load Socket.IO -->
+    <script src="/static/socket.io.min.js"></script>
+
+    <!-- Verify Socket.IO is loaded -->
+    <script>
+        // Check if Socket.IO is loaded and available
+        if (typeof io === 'undefined') {
+            console.error('Socket.IO not loaded, attempting to load from CDN...');
+            var script = document.createElement('script');
+            script.src = 'https://cdn.socket.io/4.8.1/socket.io.min.js';
+            script.onerror = function() {
+                console.error('Failed to load Socket.IO from CDN');
+            };
+            document.head.appendChild(script);
+        } else {
+            console.log('Socket.IO loaded successfully, version:', io.version || 'unknown');
+        }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e0e0e0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #4ade80;
+            box-shadow: 0 0 10px #4ade80;
+        }
+
+        .status-dot.disconnected {
+            background: #f87171;
+            box-shadow: 0 0 10px #f87171;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-icon {
+            font-size: 24px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-label {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        select, input[type="text"] {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        select option {
+            background: #1e293b;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn.btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn.btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .files-list {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 3px solid #06b6d4;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .file-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(5px);
+        }
+
+        .file-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .file-path {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            color: #06b6d4;
+            word-break: break-all;
+        }
+
+        .file-operations {
+            display: flex;
+            gap: 10px;
+        }
+
+        .operation-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .operation-badge.read {
+            background: rgba(96, 165, 250, 0.2);
+            color: #60a5fa;
+        }
+
+        .operation-badge.write {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        .operation-badge.edit {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .file-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .file-stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .file-timeline {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .timeline-event {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 0;
+            font-size: 12px;
+        }
+
+        .timeline-time {
+            color: #64748b;
+            min-width: 60px;
+        }
+
+        .timeline-operation {
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 11px;
+        }
+
+        .no-files {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Navigation styles will be injected by nav-bar.js */
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with standardized structure -->
+        <div class="header">
+            <h1>📁 Files Dashboard</h1>
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <span class="status-dot disconnected" id="connection-status"></span>
+                    <span id="connection-text">Disconnected</span>
+                </div>
+                <div class="status-indicator">
+                    <span>📖</span>
+                    <span id="total-reads">0 reads</span>
+                </div>
+                <div class="status-indicator">
+                    <span>✍️</span>
+                    <span id="total-writes">0 writes</span>
+                </div>
+                <div class="status-indicator">
+                    <span>✏️</span>
+                    <span id="total-edits">0 edits</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Bar -->
+        <div id="navigation-container"></div>
+
+        <!-- Statistics Panel -->
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-icon">📖</div>
+                <div class="stat-info">
+                    <div class="stat-label">Reads</div>
+                    <div class="stat-value" id="readCount">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✍️</div>
+                <div class="stat-info">
+                    <div class="stat-label">Writes</div>
+                    <div class="stat-value" id="writeCount">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✏️</div>
+                <div class="stat-info">
+                    <div class="stat-label">Edits</div>
+                    <div class="stat-value" id="editCount">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-info">
+                    <div class="stat-label">Total Operations</div>
+                    <div class="stat-value" id="totalOperations">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <div class="control-group">
+                <input type="text" id="searchBox" placeholder="Search files...">
+            </div>
+            <div class="control-group">
+                <label class="control-label">Operation:</label>
+                <select id="operationFilter">
+                    <option value="">All Operations</option>
+                    <option value="read">Read</option>
+                    <option value="write">Write</option>
+                    <option value="edit">Edit</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label class="control-label">Sort by:</label>
+                <select id="sortBy">
+                    <option value="recent">Most Recent</option>
+                    <option value="operations">Most Operations</option>
+                    <option value="name">File Name</option>
+                </select>
+            </div>
+            <button class="btn btn-secondary" id="refreshFiles">Refresh</button>
+            <button class="btn" id="clearFiles">Clear All</button>
+        </div>
+
+        <!-- Files List -->
+        <div class="files-list" id="filesList">
+            <div class="no-files">
+                <h3>No File Operations Yet</h3>
+                <p>Waiting for file events from the server...</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Wait for Socket.IO to be available
+        function waitForSocketIO() {
+            return new Promise((resolve) => {
+                if (typeof io !== 'undefined') {
+                    console.log('Socket.IO is ready');
+                    resolve();
+                } else {
+                    console.log('Waiting for Socket.IO...');
+                    setTimeout(() => waitForSocketIO().then(resolve), 100);
+                }
+            });
+        }
+
+        // Initialize after Socket.IO is ready
+        await waitForSocketIO();
+        console.log('Starting dashboard initialization...');
+        // Import navigation component
+        import { NavBar } from '/static/built/components/nav-bar.js';
+
+        // Initialize navigation
+        const navBar = new NavBar();
+        navBar.initialize('navigation-container');
+    </script>
+
+    <script>
+        // File storage and state management
+        const appState = {
+            files: new Map(),
+            isConnected: false,
+            stats: {
+                readCount: 0,
+                writeCount: 0,
+                editCount: 0
+            }
+        };
+
+        // Socket.IO connection
+        const socket = io('http://localhost:8765', {
+            transports: ['polling', 'websocket'],
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: Infinity
+        });
+
+        console.log('Initializing Socket.IO connection for files monitoring');
+
+        // Socket event handlers
+        socket.on('connect', () => {
+            console.log('Connected to Socket.IO server');
+            appState.isConnected = true;
+            updateConnectionStatus(true);
+
+            // Request file data
+            socket.emit('get_history', { type: 'file', limit: 100 });
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from Socket.IO server');
+            appState.isConnected = false;
+            updateConnectionStatus(false);
+        });
+
+        // Handle claude events
+        socket.on('claude_event', (data) => {
+            if (data.type && (data.type.includes('file') ||
+                            data.type === 'read' ||
+                            data.type === 'write' ||
+                            data.type === 'edit')) {
+                console.log('Received file event:', data);
+                processFileEvent(data);
+            } else if (data.file_path || data.data?.file_path) {
+                console.log('Received file-related event:', data);
+                processFileEvent(data);
+            }
+        });
+
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('connection-status');
+            const statusText = document.getElementById('connection-text');
+
+            if (statusDot && statusText) {
+                statusDot.className = `status-dot ${connected ? 'connected' : 'disconnected'}`;
+                statusText.textContent = connected ? 'Connected' : 'Disconnected';
+            }
+        }
+
+        // Process file events
+        function processFileEvent(event) {
+            const filePath = event.file_path || event.data?.file_path || event.data?.path || 'unknown';
+            const operation = detectOperation(event);
+
+            if (!appState.files.has(filePath)) {
+                appState.files.set(filePath, {
+                    path: filePath,
+                    reads: 0,
+                    writes: 0,
+                    edits: 0,
+                    lastActivity: Date.now(),
+                    events: []
+                });
+            }
+
+            const file = appState.files.get(filePath);
+            file.lastActivity = Date.now();
+            file.events.push({
+                operation: operation,
+                timestamp: Date.now(),
+                event: event
+            });
+
+            // Update stats based on operation
+            if (operation === 'read') {
+                file.reads++;
+                appState.stats.readCount++;
+            } else if (operation === 'write') {
+                file.writes++;
+                appState.stats.writeCount++;
+            } else if (operation === 'edit') {
+                file.edits++;
+                appState.stats.editCount++;
+            }
+
+            updateUI();
+        }
+
+        // Detect operation type from event
+        function detectOperation(event) {
+            const type = (event.type || '').toLowerCase();
+            const tool = (event.tool_name || event.data?.tool || '').toLowerCase();
+
+            if (type.includes('read') || tool.includes('read')) return 'read';
+            if (type.includes('write') || tool.includes('write')) return 'write';
+            if (type.includes('edit') || tool.includes('edit')) return 'edit';
+
+            // Default based on common patterns
+            if (type === 'file_read') return 'read';
+            if (type === 'file_write') return 'write';
+            if (type === 'file_edit' || type === 'file_modified') return 'edit';
+
+            return 'read'; // default
+        }
+
+        // Format file path for display
+        function formatPath(path) {
+            // Shorten long paths
+            if (path.length > 60) {
+                const parts = path.split('/');
+                if (parts.length > 4) {
+                    return `.../${parts.slice(-3).join('/')}`;
+                }
+            }
+            return path;
+        }
+
+        // Format time ago
+        function formatTimeAgo(timestamp) {
+            const diff = Date.now() - timestamp;
+            const seconds = Math.floor(diff / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+
+            if (hours > 0) return `${hours}h ago`;
+            if (minutes > 0) return `${minutes}m ago`;
+            return `${seconds}s ago`;
+        }
+
+        // Render file item
+        function renderFileItem(file) {
+            const totalOps = file.reads + file.writes + file.edits;
+            const recentEvents = file.events.slice(-5).reverse();
+
+            return `
+                <div class="file-item" data-file-path="${file.path}">
+                    <div class="file-header">
+                        <div class="file-path">${formatPath(file.path)}</div>
+                        <div class="file-operations">
+                            ${file.reads > 0 ? `<span class="operation-badge read">R: ${file.reads}</span>` : ''}
+                            ${file.writes > 0 ? `<span class="operation-badge write">W: ${file.writes}</span>` : ''}
+                            ${file.edits > 0 ? `<span class="operation-badge edit">E: ${file.edits}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="file-stats">
+                        <div class="file-stat">
+                            📊 ${totalOps} operations
+                        </div>
+                        <div class="file-stat">
+                            ⏱️ ${formatTimeAgo(file.lastActivity)}
+                        </div>
+                    </div>
+                    ${recentEvents.length > 0 ? `
+                        <div class="file-timeline">
+                            ${recentEvents.map(evt => `
+                                <div class="timeline-event">
+                                    <span class="timeline-time">${new Date(evt.timestamp).toLocaleTimeString('en-US', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit'
+                                    })}</span>
+                                    <span class="timeline-operation operation-badge ${evt.operation}">
+                                        ${evt.operation.toUpperCase()}
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // Update UI
+        function updateUI() {
+            // Update header stats
+            document.getElementById('total-reads').textContent = `${appState.stats.readCount} reads`;
+            document.getElementById('total-writes').textContent = `${appState.stats.writeCount} writes`;
+            document.getElementById('total-edits').textContent = `${appState.stats.editCount} edits`;
+
+            // Update statistics cards
+            document.getElementById('readCount').textContent = appState.stats.readCount;
+            document.getElementById('writeCount').textContent = appState.stats.writeCount;
+            document.getElementById('editCount').textContent = appState.stats.editCount;
+            document.getElementById('totalOperations').textContent =
+                appState.stats.readCount + appState.stats.writeCount + appState.stats.editCount;
+
+            // Get filters
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const operationFilter = document.getElementById('operationFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+
+            // Filter files
+            let filteredFiles = Array.from(appState.files.values());
+
+            if (searchTerm) {
+                filteredFiles = filteredFiles.filter(file =>
+                    file.path.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            if (operationFilter) {
+                filteredFiles = filteredFiles.filter(file => {
+                    if (operationFilter === 'read') return file.reads > 0;
+                    if (operationFilter === 'write') return file.writes > 0;
+                    if (operationFilter === 'edit') return file.edits > 0;
+                    return true;
+                });
+            }
+
+            // Sort files
+            if (sortBy === 'recent') {
+                filteredFiles.sort((a, b) => b.lastActivity - a.lastActivity);
+            } else if (sortBy === 'operations') {
+                filteredFiles.sort((a, b) => {
+                    const aOps = a.reads + a.writes + a.edits;
+                    const bOps = b.reads + b.writes + b.edits;
+                    return bOps - aOps;
+                });
+            } else if (sortBy === 'name') {
+                filteredFiles.sort((a, b) => a.path.localeCompare(b.path));
+            }
+
+            // Render files list
+            const filesList = document.getElementById('filesList');
+            if (filteredFiles.length === 0) {
+                filesList.innerHTML = `
+                    <div class="no-files">
+                        <h3>No Files Found</h3>
+                        <p>${searchTerm || operationFilter ? 'Try different filters' : 'Waiting for file events from the server...'}</p>
+                    </div>
+                `;
+            } else {
+                filesList.innerHTML = filteredFiles.map(renderFileItem).join('');
+            }
+        }
+
+        // Event handlers
+        document.getElementById('searchBox').addEventListener('input', updateUI);
+        document.getElementById('operationFilter').addEventListener('change', updateUI);
+        document.getElementById('sortBy').addEventListener('change', updateUI);
+
+        document.getElementById('refreshFiles').addEventListener('click', () => {
+            socket.emit('get_history', { type: 'file', limit: 100 });
+        });
+
+        document.getElementById('clearFiles').addEventListener('click', () => {
+            if (confirm('Clear all file data?')) {
+                appState.files.clear();
+                appState.stats = {
+                    readCount: 0,
+                    writeCount: 0,
+                    editCount: 0
+                };
+                updateUI();
+            }
+        });
+
+        // Initial UI update
+        updateUI();
+
+        console.log('Files monitor initialized');
+    </script>
+</body>
+</html>

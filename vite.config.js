@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   // Build configuration
@@ -25,6 +26,9 @@ export default defineConfig({
 
         // Individual components that can be loaded separately
         'socket-client': resolve(__dirname, 'src/claude_mpm/dashboard/static/js/socket-client.js'),
+
+        // React entry points
+        'react/events': resolve(__dirname, 'src/claude_mpm/dashboard/react/entries/events.tsx'),
 
         // Component modules
         'components/event-viewer': resolve(__dirname, 'src/claude_mpm/dashboard/static/js/components/event-viewer.js'),
@@ -129,7 +133,7 @@ export default defineConfig({
 
   // Plugin configuration
   plugins: [
-    // Add plugins as needed for future enhancements
+    react(), // React plugin for JSX/TSX support
   ],
 
   // Resolve configuration
@@ -142,7 +146,7 @@ export default defineConfig({
     },
 
     // File extensions to resolve
-    extensions: ['.js', '.mjs', '.json', '.css']
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.json', '.css']
   },
 
   // Optimization configuration

@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude MPM Dashboard Hub</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjNDI5OWUxIi8+CiAgPHRleHQgeD0iMTYiIHk9IjIxIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NUE08L3RleHQ+Cjwvc3ZnPgo=">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #4299e1 0%, #667eea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: #4a5568;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #4a5568;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 1.2rem;
+        }
+
+        .main-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .section-icon {
+            font-size: 2rem;
+            color: #4299e1;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .section-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: auto;
+        }
+
+        .badge-production {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+
+        .badge-development {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+            color: white;
+        }
+
+        .badge-legacy {
+            background: #f7fafc;
+            color: #718096;
+            border: 1px solid #cbd5e0;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .dashboard-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #4299e1, #667eea);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard-card:hover::before {
+            transform: translateX(0);
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border-color: #4299e1;
+            background: white;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            color: #4299e1;
+            background: rgba(66, 153, 225, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .card-content {
+            flex: 1;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .card-subtitle {
+            font-size: 0.85rem;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-description {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .card-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .feature-tag {
+            background: #edf2f7;
+            color: #4a5568;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .card-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #4299e1 0%, #667eea 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .card-action:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(66, 153, 225, 0.3);
+        }
+
+        .featured-card {
+            grid-column: span 2;
+            background: linear-gradient(135deg, #f6f9fc 0%, #e9f3ff 100%);
+            border: 2px solid #4299e1;
+        }
+
+        .featured-card .card-icon {
+            background: linear-gradient(135deg, #4299e1 0%, #667eea 100%);
+            color: white;
+        }
+
+        .info-section {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .info-card {
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+            border-left: 4px solid #4299e1;
+        }
+
+        .info-card h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-card ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-card li {
+            padding: 8px 0;
+            color: #4a5568;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .info-card li:before {
+            content: "•";
+            color: #4299e1;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: white;
+            opacity: 0.9;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.3s ease;
+        }
+
+        .footer a:hover {
+            border-bottom-color: white;
+        }
+
+        @media (max-width: 768px) {
+            .featured-card {
+                grid-column: span 1;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <i class="fas fa-rocket"></i>
+                Claude MPM Dashboard Hub
+            </h1>
+            <p>Comprehensive monitoring and visualization for your AI-powered development workflow</p>
+
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <i class="fas fa-server"></i>
+                    <span class="stat-value">3</span>
+                    <span>Production Dashboards</span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-code-branch"></i>
+                    <span class="stat-value">3</span>
+                    <span>Development Tools</span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-archive"></i>
+                    <span class="stat-value">4</span>
+                    <span>Legacy Dashboards</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Production Dashboards -->
+        <div class="main-section">
+            <div class="section-header">
+                <i class="fas fa-chart-line section-icon"></i>
+                <h2 class="section-title">Production Dashboards</h2>
+                <span class="section-badge badge-production">Stable</span>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Featured: Main Dashboard -->
+                <div class="dashboard-card featured-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-desktop"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Integrated Dashboard</h3>
+                            <p class="card-subtitle">Full-Featured Monitor</p>
+                        </div>
+                    </div>
+                    <p class="card-description">
+                        The main production dashboard with all monitoring capabilities in a single tabbed interface.
+                        Features real-time WebSocket connections, activity visualization, comprehensive event tracking,
+                        and file operation monitoring.
+                    </p>
+                    <div class="card-features">
+                        <span class="feature-tag">WebSocket</span>
+                        <span class="feature-tag">Activity Tree</span>
+                        <span class="feature-tag">File Tracking</span>
+                        <span class="feature-tag">Event Stream</span>
+                        <span class="feature-tag">Agent Monitor</span>
+                    </div>
+                    <a href="/dashboard?autoconnect=true&port=8765" class="card-action">
+                        Launch Main Dashboard
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Events Dashboard -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-stream"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Events Monitor</h3>
+                            <p class="card-subtitle">Real-time Event Stream</p>
+                        </div>
+                    </div>
+                    <p class="card-description">
+                        Dedicated event streaming dashboard with React components for enhanced performance and real-time updates.
+                    </p>
+                    <div class="card-features">
+                        <span class="feature-tag">React</span>
+                        <span class="feature-tag">Real-time</span>
+                        <span class="feature-tag">Filtering</span>
+                    </div>
+                    <a href="/static/production/events.html" class="card-action">
+                        Open Events Monitor
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Monitors Dashboard -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">System Monitors</h3>
+                            <p class="card-subtitle">Performance Metrics</p>
+                        </div>
+                    </div>
+                    <p class="card-description">
+                        System performance monitoring with detailed metrics, resource usage tracking, and health indicators.
+                    </p>
+                    <div class="card-features">
+                        <span class="feature-tag">Metrics</span>
+                        <span class="feature-tag">Performance</span>
+                        <span class="feature-tag">Health</span>
+                    </div>
+                    <a href="/static/production/monitors.html" class="card-action">
+                        View Monitors
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Development & Testing -->
+        <div class="main-section">
+            <div class="section-header">
+                <i class="fas fa-flask section-icon"></i>
+                <h2 class="section-title">Development & Testing</h2>
+                <span class="section-badge badge-development">Beta</span>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- React Development -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fab fa-react"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">React Dashboard</h3>
+                            <p class="card-subtitle">Next Generation UI</p>
+                        </div>
+                    </div>
+                    <p class="card-description">
+                        New React-based dashboard under active development. Features modern UI components and enhanced performance.
+                    </p>
+                    <div class="card-features">
+                        <span class="feature-tag">React 18</span>
+                        <span class="feature-tag">TypeScript</span>
+                        <span class="feature-tag">Vite</span>
+                    </div>
+                    <a href="/static/react/" class="card-action">
+                        Preview React UI
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Monitor Index -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-th"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Monitor Index</h3>
+                            <p class="card-subtitle">Overview Dashboard</p>
+                        </div>
+                    </div>
+                    <p class="card-description">
+                        Grid view of all monitoring capabilities, useful for testing and development of new monitor features.
+                    </p>
+                    <div class="card-features">
+                        <span class="feature-tag">Grid Layout</span>
+                        <span class="feature-tag">Testing</span>
+                    </div>
+                    <a href="/static/monitors-index.html" class="card-action">
+                        Open Index
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Test Archive -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-vial"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Test Archive</h3>
+                            <p class="card-subtitle">Historical Test Files</p>
+                        </div>
+                    </div>
+                    <p class="card-description">
+                        Archive of test dashboards and experimental features used during development.
+                    </p>
+                    <div class="card-features">
+                        <span class="feature-tag">15+ Files</span>
+                        <span class="feature-tag">Historical</span>
+                    </div>
+                    <a href="/static/test-archive/" class="card-action">
+                        Browse Archive
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legacy Dashboards -->
+        <div class="main-section">
+            <div class="section-header">
+                <i class="fas fa-history section-icon"></i>
+                <h2 class="section-title">Legacy Dashboards</h2>
+                <span class="section-badge badge-legacy">Vanilla JS</span>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Activity Dashboard -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-tree"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Activity Tree</h3>
+                            <p class="card-subtitle">Hierarchical View</p>
+                        </div>
+                    </div>
+                    <p class="card-description">
+                        Original activity visualization with tree structure. Lightweight vanilla JavaScript implementation.
+                    </p>
+                    <div class="card-features">
+                        <span class="feature-tag">D3.js</span>
+                        <span class="feature-tag">Lightweight</span>
+                    </div>
+                    <a href="/static/legacy/activity.html" class="card-action">
+                        Open Activity Tree
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Agents Dashboard -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Agents Monitor</h3>
+                            <p class="card-subtitle">Agent Tracking</p>
+                        </div>
+                    </div>
+                    <p class="card-description">
+                        Monitor agent activities, interactions, and status. Original implementation without React.
+                    </p>
+                    <div class="card-features">
+                        <span class="feature-tag">Agent Status</span>
+                        <span class="feature-tag">Vanilla JS</span>
+                    </div>
+                    <a href="/static/legacy/agents.html" class="card-action">
+                        View Agents
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Files Dashboard -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-folder-open"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Files Tracker</h3>
+                            <p class="card-subtitle">File Operations</p>
+                        </div>
+                    </div>
+                    <p class="card-description">
+                        Track file operations, changes, and history. Simple and efficient file monitoring interface.
+                    </p>
+                    <div class="card-features">
+                        <span class="feature-tag">File Ops</span>
+                        <span class="feature-tag">History</span>
+                    </div>
+                    <a href="/static/legacy/files.html" class="card-action">
+                        Track Files
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Tools Dashboard -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">Tools Monitor</h3>
+                            <p class="card-subtitle">Tool Usage</p>
+                        </div>
+                    </div>
+                    <p class="card-description">
+                        Monitor tool usage, performance metrics, and execution history.
+                    </p>
+                    <div class="card-features">
+                        <span class="feature-tag">Usage Stats</span>
+                        <span class="feature-tag">Performance</span>
+                    </div>
+                    <a href="/static/legacy/tools.html" class="card-action">
+                        Monitor Tools
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Section -->
+        <div class="info-section">
+            <h2 style="color: #2d3748; margin-bottom: 20px; text-align: center;">
+                <i class="fas fa-info-circle" style="color: #4299e1;"></i>
+                Quick Start Guide
+            </h2>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3><i class="fas fa-rocket"></i> Getting Started</h3>
+                    <ul>
+                        <li>Start with the <strong>Integrated Dashboard</strong> for full monitoring</li>
+                        <li>Ensure monitor server is running on port 8765</li>
+                        <li>Dashboards auto-connect to WebSocket server</li>
+                        <li>Use keyboard shortcuts for navigation (? for help)</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <h3><i class="fas fa-plug"></i> Connection Setup</h3>
+                    <ul>
+                        <li>Default WebSocket port: <strong>8765</strong></li>
+                        <li>Auto-reconnect enabled on all dashboards</li>
+                        <li>Check connection status in top bar</li>
+                        <li>Manual reconnect available if needed</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <h3><i class="fas fa-layer-group"></i> Dashboard Types</h3>
+                    <ul>
+                        <li><strong>Production:</strong> Stable, fully-featured dashboards</li>
+                        <li><strong>Development:</strong> Beta features and new UI</li>
+                        <li><strong>Legacy:</strong> Original vanilla JS implementations</li>
+                        <li><strong>Archive:</strong> Test files and experiments</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>
+                <i class="fas fa-code"></i>
+                Claude MPM Dashboard Hub v4.2.44 |
+                <a href="https://github.com/bobmatnyc/claude-mpm" target="_blank">GitHub Repository</a> |
+                <a href="/docs" target="_blank">Documentation</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

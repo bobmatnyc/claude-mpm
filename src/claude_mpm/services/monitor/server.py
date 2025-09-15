@@ -508,6 +508,20 @@ class UnifiedMonitorServer:
                     {"working_directory": os.getcwd(), "success": True}
                 )
 
+            # Monitor page routes
+            async def monitor_page_handler(request):
+                """Serve monitor HTML pages."""
+                page_name = request.match_info.get('page', 'agents')
+                static_dir = dashboard_dir / "static"
+                file_path = static_dir / f"{page_name}.html"
+
+                if file_path.exists() and file_path.is_file():
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    return web.Response(text=content, content_type="text/html")
+                else:
+                    return web.Response(text="Page not found", status=404)
+
             # Register routes
             self.app.router.add_get("/", dashboard_index)
             self.app.router.add_get("/health", health_check)
@@ -517,6 +531,13 @@ class UnifiedMonitorServer:
             self.app.router.add_get("/api/directory", list_directory)
             self.app.router.add_post("/api/events", api_events_handler)
             self.app.router.add_post("/api/file", api_file_handler)
+
+            # Monitor page routes
+            self.app.router.add_get("/monitor", lambda r: monitor_page_handler(r))
+            self.app.router.add_get("/monitor/agents", lambda r: monitor_page_handler(r))
+            self.app.router.add_get("/monitor/tools", lambda r: monitor_page_handler(r))
+            self.app.router.add_get("/monitor/files", lambda r: monitor_page_handler(r))
+            self.app.router.add_get("/monitor/events", lambda r: monitor_page_handler(r))
 
             # Static files with cache busting headers for development
             static_dir = dashboard_dir / "static"
