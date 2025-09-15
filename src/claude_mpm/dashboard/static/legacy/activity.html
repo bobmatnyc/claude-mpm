@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude MPM - Activity Dashboard</title>
+
+    <!-- Load Socket.IO -->
+    <script src="/static/socket.io.min.js"></script>
+
+    <!-- Verify Socket.IO is loaded -->
+    <script>
+        // Check if Socket.IO is loaded and available
+        if (typeof io === 'undefined') {
+            console.error('Socket.IO not loaded, attempting to load from CDN...');
+            var script = document.createElement('script');
+            script.src = 'https://cdn.socket.io/4.8.1/socket.io.min.js';
+            script.onerror = function() {
+                console.error('Failed to load Socket.IO from CDN');
+            };
+            document.head.appendChild(script);
+        } else {
+            console.log('Socket.IO loaded successfully, version:', io.version || 'unknown');
+        }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e0e0e0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #4ade80;
+            box-shadow: 0 0 10px #4ade80;
+        }
+
+        .status-dot.disconnected {
+            background: #f87171;
+            box-shadow: 0 0 10px #f87171;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Navigation styles will be injected by nav-bar.js */
+
+        .main-panel {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-icon {
+            font-size: 24px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-label {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        select, input[type="text"] {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        select option {
+            background: #1e293b;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn.btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn.btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .activity-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .activity-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .activity-header h2 {
+            font-size: 18px;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #activity-tree-container {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 200px;
+        }
+
+        /* Linear Tree Styles */
+        .linear-tree {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .tree-node {
+            margin-bottom: 2px;
+        }
+
+        .tree-node-content {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .tree-node-content:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .tree-node.selected .tree-node-content {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: rgba(16, 185, 129, 0.5);
+        }
+
+        .tree-expand-icon {
+            width: 20px;
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+            user-select: none;
+        }
+
+        .tree-icon {
+            margin: 0 8px;
+            font-size: 16px;
+        }
+
+        .tree-label {
+            flex: 1;
+            color: #e0e0e0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tree-label.clickable {
+            cursor: pointer;
+        }
+
+        .tree-label.clickable:hover {
+            color: #10b981;
+        }
+
+        .tree-meta {
+            margin-left: 10px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .tree-params {
+            margin-left: 10px;
+            font-size: 12px;
+            color: #94a3b8;
+            font-family: 'Monaco', 'Menlo', monospace;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tree-status {
+            margin-left: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .tree-status.status-active {
+            background: rgba(16, 185, 129, 0.2);
+            color: #4ade80;
+        }
+
+        .tree-status.status-completed {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .tree-status.status-in_progress {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .tree-status.status-pending {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        .tree-children {
+            margin-left: 20px;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            padding-left: 10px;
+            margin-top: 5px;
+        }
+
+        .tree-node[data-level="1"] .tree-node-content {
+            padding-left: 30px;
+        }
+
+        .tree-node[data-level="2"] .tree-node-content {
+            padding-left: 50px;
+        }
+
+        .tree-node[data-level="3"] .tree-node-content {
+            padding-left: 70px;
+        }
+
+        .tree-node.session > .tree-node-content {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            font-weight: 600;
+        }
+
+        .tree-node.agent > .tree-node-content {
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 3px solid #3b82f6;
+        }
+
+        .tree-node.tool > .tree-node-content {
+            background: rgba(251, 191, 36, 0.05);
+            border-left: 3px solid #fbbf24;
+        }
+
+        .tree-node.user-instruction > .tree-node-content {
+            background: rgba(168, 85, 247, 0.1);
+            border-left: 3px solid #a855f7;
+            font-style: italic;
+        }
+
+        .tree-node.todowrite > .tree-node-content {
+            background: rgba(236, 72, 153, 0.1);
+            border-left: 3px solid #ec4899;
+        }
+
+        .tree-node.todo-item {
+            font-size: 13px;
+        }
+
+        .tree-node.todo-item.status-completed .tree-label {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+
+        .tree-node.todo-item.current-active > .tree-node-content {
+            background: rgba(251, 191, 36, 0.2);
+            animation: highlight 1.5s ease-in-out infinite;
+        }
+
+        @keyframes highlight {
+            0%, 100% { background: rgba(251, 191, 36, 0.2); }
+            50% { background: rgba(251, 191, 36, 0.3); }
+        }
+
+        .tree-status-icon {
+            margin-left: 5px;
+            font-size: 14px;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #94a3b8;
+        }
+
+        .empty-state-text {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        /* Loading indicator */
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(16, 185, 129, 0.2);
+            border-top-color: #10b981;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎯 Activity Dashboard</h1>
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <span class="status-dot disconnected" id="connection-status"></span>
+                    <span id="connection-text">Disconnected</span>
+                </div>
+                <div class="status-indicator">
+                    <span>📊</span>
+                    <span id="event-count">0 events</span>
+                </div>
+                <div class="status-indicator">
+                    <span>🎯</span>
+                    <span id="session-count">0 sessions</span>
+                </div>
+                <div class="status-indicator">
+                    <span>⏱️</span>
+                    <span id="uptime">00:00:00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div id="navigation-container"></div>
+
+        <!-- Statistics Panel -->
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-icon">🌳</div>
+                <div class="stat-info">
+                    <div class="stat-label">Total Nodes</div>
+                    <div class="stat-value" id="node-count">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🔄</div>
+                <div class="stat-info">
+                    <div class="stat-label">Active</div>
+                    <div class="stat-value" id="active-count">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-info">
+                    <div class="stat-label">Tree Depth</div>
+                    <div class="stat-value" id="tree-depth">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🤖</div>
+                <div class="stat-info">
+                    <div class="stat-label">Agents</div>
+                    <div class="stat-value" id="agent-count">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <div class="control-group">
+                <label class="control-label">Session:</label>
+                <select id="session-filter">
+                    <option value="all">All Sessions</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label class="control-label">Time Range:</label>
+                <select id="time-range">
+                    <option value="5min">Last 5 minutes</option>
+                    <option value="30min" selected>Last 30 minutes</option>
+                    <option value="1hour">Last hour</option>
+                    <option value="all">All time</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <input type="text" id="activity-search" placeholder="Search activities...">
+            </div>
+            <button class="btn btn-secondary" id="expand-all">Expand All</button>
+            <button class="btn btn-secondary" id="collapse-all">Collapse All</button>
+            <button class="btn btn-secondary" id="reset-zoom">Reset View</button>
+            <button class="btn" id="clear-activities">Clear All</button>
+        </div>
+
+        <!-- Main Activity Panel -->
+        <div class="activity-panel">
+            <div class="activity-header">
+                <h2>
+                    <span>🌳</span>
+                    <span>Activity Tree</span>
+                    <span style="font-size: 14px; color: #64748b; margin-left: auto;">
+                        Hierarchical view of PM → Agent → Tool activities
+                    </span>
+                </h2>
+            </div>
+            <div id="activity-tree-container">
+                <div class="empty-state">
+                    <div class="empty-state-icon">🎯</div>
+                    <div class="empty-state-title">No Activities Yet</div>
+                    <div class="empty-state-text">
+                        Waiting for PM activity events...<br>
+                        Activities will appear here as they occur.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load components -->
+    <script type="module">
+        // Import modules at the top level (ES6 requirement)
+        import { SocketClient } from '/static/built/socket-client.js';
+        import { ActivityTree } from '/static/built/components/activity-tree.js';
+        import { SessionManager } from '/static/built/components/session-manager.js';
+        import { NavBar } from '/static/built/components/nav-bar.js';
+
+        // Wait for Socket.IO to be available
+        function waitForSocketIO() {
+            return new Promise((resolve) => {
+                if (typeof io !== 'undefined') {
+                    console.log('Socket.IO is ready, version:', io.version || 'unknown');
+                    resolve();
+                } else {
+                    console.log('Waiting for Socket.IO...');
+                    setTimeout(() => waitForSocketIO().then(resolve), 100);
+                }
+            });
+        }
+
+        // Initialize after Socket.IO is ready
+        await waitForSocketIO();
+        console.log('Starting dashboard initialization...');
+
+        // Initialize navigation
+        const navBar = new NavBar();
+        navBar.initialize('navigation-container');
+
+        // Initialize socket client
+        const socketClient = new SocketClient();
+        window.socketClient = socketClient;
+        console.log('Socket client created');
+
+        // Initialize session manager
+        const sessionManager = new SessionManager();
+        window.sessionManager = sessionManager;
+
+        // Initialize activity tree
+        const activityTree = new ActivityTree();
+        window.activityTreeInstance = activityTree;
+
+        // Connection status management
+        let startTime = Date.now();
+        let connectionAttempts = 0;
+
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('connection-status');
+            const statusText = document.getElementById('connection-text');
+
+            if (connected) {
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = 'Connected';
+                connectionAttempts = 0;
+            } else {
+                statusDot.className = 'status-dot disconnected';
+                statusText.textContent = connectionAttempts > 0 ?
+                    `Reconnecting... (${connectionAttempts})` : 'Disconnected';
+            }
+        }
+
+        // Update uptime
+        setInterval(() => {
+            const uptime = Date.now() - startTime;
+            const hours = Math.floor(uptime / 3600000);
+            const minutes = Math.floor((uptime % 3600000) / 60000);
+            const seconds = Math.floor((uptime % 60000) / 1000);
+            document.getElementById('uptime').textContent =
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }, 1000);
+
+        // Socket event handlers
+        console.log('Setting up socket event handlers...');
+        socketClient.onConnection('connect', () => {
+            console.log('✅ Socket connected!');
+            updateConnectionStatus(true);
+        });
+
+        socketClient.onConnection('disconnect', (reason) => {
+            console.log('❌ Socket disconnected:', reason);
+            updateConnectionStatus(false);
+        });
+
+        socketClient.onConnection('error', (error) => {
+            console.error('Socket error:', error);
+            connectionAttempts++;
+            updateConnectionStatus(false);
+        });
+
+        // Note: reconnecting is handled internally by SocketClient
+        // We'll get disconnect/connect events instead
+
+        // Update statistics from socket data
+        socketClient.onEventUpdate((events, sessions) => {
+            console.log(`📊 Event update: ${events.length} events, ${sessions.size} sessions`);
+            document.getElementById('event-count').textContent = `${events.length} events`;
+            document.getElementById('session-count').textContent = `${sessions.size} sessions`;
+
+            // Update agent count
+            let agentCount = 0;
+            for (const session of sessions.values()) {
+                if (session.agents) {
+                    agentCount += session.agents.size || 0;
+                }
+            }
+            document.getElementById('agent-count').textContent = agentCount.toString();
+        });
+
+        // Clear activities button
+        document.getElementById('clear-activities').addEventListener('click', () => {
+            if (confirm('Clear all activity data? This cannot be undone.')) {
+                socketClient.clearEvents();
+                activityTree.events = [];
+                activityTree.sessions.clear();
+                activityTree.processedEventIds.clear();
+                activityTree.renderTree();
+            }
+        });
+
+        // Connect to server
+        console.log('🚀 Initiating connection to Socket.IO server...');
+        socketClient.connect();
+
+        // Check connection status after a moment
+        setTimeout(() => {
+            if (socketClient.socket) {
+                console.log('Socket object exists:', {
+                    connected: socketClient.socket.connected,
+                    connecting: socketClient.socket.connecting,
+                    id: socketClient.socket.id
+                });
+            } else {
+                console.error('❌ Socket object not created!');
+            }
+        }, 1000);
+
+        // Initialize activity tree after a short delay
+        setTimeout(() => {
+            activityTree.initialize();
+
+            // Remove empty state once tree is initialized
+            const container = document.getElementById('activity-tree-container');
+            if (container && activityTree.initialized) {
+                // The activity tree will handle its own rendering
+                console.log('Activity tree initialized and ready');
+            }
+        }, 100);
+    </script>
+</body>
+</html>

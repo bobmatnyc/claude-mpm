@@ -316,14 +316,24 @@ class FileToolTracker {
      * @returns {boolean} - True if tool operation
      */
     isToolOperation(event) {
-        // Tool operations have tool_name and are hook events with pre_tool or post_tool subtype
+        // Tool operations have tool_name - be more inclusive about event types
         // Check both top-level and data.tool_name for compatibility
         const hasToolName = event.tool_name || (event.data && event.data.tool_name);
-        const isHookEvent = event.type === 'hook';
-        const isToolSubtype = event.subtype === 'pre_tool' || event.subtype === 'post_tool' ||
-                              (event.subtype && typeof event.subtype === 'string' && event.subtype.includes('tool'));
-        
-        return hasToolName && isHookEvent && isToolSubtype;
+
+        // Accept multiple event types that might contain tool operations
+        const validEventTypes = ['hook', 'tool_use', 'tool', 'agent', 'response'];
+        const isValidEventType = validEventTypes.includes(event.type) ||
+                                 (event.type && event.type.includes('tool'));
+
+        // Check for tool-related subtypes or any indication this is a tool operation
+        const isToolSubtype = event.subtype === 'pre_tool' ||
+                              event.subtype === 'post_tool' ||
+                              (event.subtype && typeof event.subtype === 'string' && event.subtype.includes('tool')) ||
+                              event.type === 'tool_use' ||
+                              event.type === 'tool';
+
+        // If it has a tool_name and either a valid event type or tool subtype, it's a tool operation
+        return hasToolName && (isValidEventType || isToolSubtype);
     }
 
     /**
@@ -332,18 +342,15 @@ class FileToolTracker {
      * @returns {boolean} - True if file operation
      */
     isFileOperation(event) {
-        // File operations are hook events with file-related tools
-        // Must be a hook event with tool subtype
-        const isHookEvent = event.type === 'hook';
-        const isToolSubtype = event.subtype === 'pre_tool' || event.subtype === 'post_tool' ||
-                              (event.subtype && typeof event.subtype === 'string' && event.subtype.includes('tool'));
+        // File operations are events with file-related tools - be more inclusive
+        // Check both top-level and data for tool_name
+        let toolName = event.tool_name || (event.data && event.data.tool_name) || '';
 
-        if (!isHookEvent || !isToolSubtype) {
+        // If no tool name, not a file operation
+        if (!toolName) {
             return false;
         }
 
-        // Check both top-level and data for tool_name
-        let toolName = event.tool_name || (event.data && event.data.tool_name) || '';
         toolName = toolName.toLowerCase();
 
         // Check case-insensitively since tool names can come in different cases
@@ -361,7 +368,8 @@ class FileToolTracker {
             }
         }
 
-        return toolName && fileTools.includes(toolName);
+        // If it's a file tool, it's a file operation regardless of event type
+        return fileTools.includes(toolName);
     }
 
     /**

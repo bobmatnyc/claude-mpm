@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude MPM - Agents Dashboard</title>
+
+    <!-- Load Socket.IO -->
+    <script src="/static/socket.io.min.js"></script>
+
+    <!-- Verify Socket.IO is loaded -->
+    <script>
+        // Check if Socket.IO is loaded and available
+        if (typeof io === 'undefined') {
+            console.error('Socket.IO not loaded, attempting to load from CDN...');
+            var script = document.createElement('script');
+            script.src = 'https://cdn.socket.io/4.8.1/socket.io.min.js';
+            script.onerror = function() {
+                console.error('Failed to load Socket.IO from CDN');
+            };
+            document.head.appendChild(script);
+        } else {
+            console.log('Socket.IO loaded successfully, version:', io.version || 'unknown');
+        }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e0e0e0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #4ade80;
+            box-shadow: 0 0 10px #4ade80;
+        }
+
+        .status-dot.disconnected {
+            background: #f87171;
+            box-shadow: 0 0 10px #f87171;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-icon {
+            font-size: 24px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-label {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        select, input[type="text"] {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        select option {
+            background: #1e293b;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn.btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn.btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .agents-list {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .agent-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 3px solid #a78bfa;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .agent-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(5px);
+        }
+
+        .agent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .agent-name {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            color: #a78bfa;
+            word-break: break-all;
+        }
+
+        .agent-status-badges {
+            display: flex;
+            gap: 10px;
+        }
+
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-badge.active {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        .status-badge.completed {
+            background: rgba(96, 165, 250, 0.2);
+            color: #60a5fa;
+        }
+
+        .status-badge.error {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+
+        .status-badge.idle {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        .agent-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .agent-stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .agent-timeline {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .timeline-event {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 0;
+            font-size: 12px;
+        }
+
+        .timeline-time {
+            color: #64748b;
+            min-width: 60px;
+        }
+
+        .timeline-action {
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 11px;
+        }
+
+        .timeline-task {
+            flex: 1;
+            color: #94a3b8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .no-agents {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Navigation styles will be injected by nav-bar.js */
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with standardized structure -->
+        <div class="header">
+            <h1>🤖 Agents Dashboard</h1>
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <span class="status-dot disconnected" id="connection-status"></span>
+                    <span id="connection-text">Disconnected</span>
+                </div>
+                <div class="status-indicator">
+                    <span>🤖</span>
+                    <span id="total-agents">0 agents</span>
+                </div>
+                <div class="status-indicator">
+                    <span>🔄</span>
+                    <span id="active-agents">0 active</span>
+                </div>
+                <div class="status-indicator">
+                    <span>✅</span>
+                    <span id="completed-tasks">0 completed</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Bar -->
+        <div id="navigation-container"></div>
+
+        <!-- Statistics Panel -->
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-icon">🤖</div>
+                <div class="stat-info">
+                    <div class="stat-label">Total Agents</div>
+                    <div class="stat-value" id="totalAgents">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🔄</div>
+                <div class="stat-info">
+                    <div class="stat-label">Active Agents</div>
+                    <div class="stat-value" id="activeAgentsCount">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-info">
+                    <div class="stat-label">Completed Tasks</div>
+                    <div class="stat-value" id="completedTasksCount">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-info">
+                    <div class="stat-label">Total Duration</div>
+                    <div class="stat-value" id="totalDuration">0s</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <div class="control-group">
+                <input type="text" id="searchBox" placeholder="Search agents...">
+            </div>
+            <div class="control-group">
+                <label class="control-label">Status:</label>
+                <select id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="error">Error</option>
+                    <option value="idle">Idle</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label class="control-label">Sort by:</label>
+                <select id="sortBy">
+                    <option value="recent">Most Recent</option>
+                    <option value="duration">Longest Duration</option>
+                    <option value="name">Agent Name</option>
+                </select>
+            </div>
+            <button class="btn btn-secondary" id="refreshAgents">Refresh</button>
+            <button class="btn" id="clearAgents">Clear All</button>
+        </div>
+
+        <!-- Agents List -->
+        <div class="agents-list" id="agentsList">
+            <div class="no-agents">
+                <h3>No Agent Activity Yet</h3>
+                <p>Waiting for agent events from the server...</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Wait for Socket.IO to be available
+        function waitForSocketIO() {
+            return new Promise((resolve) => {
+                if (typeof io !== 'undefined') {
+                    console.log('Socket.IO is ready');
+                    resolve();
+                } else {
+                    console.log('Waiting for Socket.IO...');
+                    setTimeout(() => waitForSocketIO().then(resolve), 100);
+                }
+            });
+        }
+
+        // Initialize after Socket.IO is ready
+        await waitForSocketIO();
+        console.log('Starting dashboard initialization...');
+        // Import navigation component
+        import { NavBar } from '/static/built/components/nav-bar.js';
+
+        // Initialize navigation
+        const navBar = new NavBar();
+        navBar.initialize('navigation-container');
+    </script>
+
+    <script>
+        // Agent storage and state management
+        const appState = {
+            agents: new Map(),
+            isConnected: false,
+            stats: {
+                totalAgents: 0,
+                activeAgents: 0,
+                completedTasks: 0,
+                totalDuration: 0
+            }
+        };
+
+        // Socket.IO connection
+        const socket = io('http://localhost:8765', {
+            transports: ['polling', 'websocket'],
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: Infinity
+        });
+
+        console.log('Initializing Socket.IO connection for agents monitoring');
+
+        // Socket event handlers
+        socket.on('connect', () => {
+            console.log('Connected to Socket.IO server');
+            appState.isConnected = true;
+            updateConnectionStatus(true);
+
+            // Request agent data - be more comprehensive
+            socket.emit('get_history', { type: 'agent', limit: 100 });
+            socket.emit('get_history', { type: 'subagent', limit: 100 });
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from Socket.IO server');
+            appState.isConnected = false;
+            updateConnectionStatus(false);
+        });
+
+        // Handle claude events - be more comprehensive in event capture
+        socket.on('claude_event', (data) => {
+            console.log('Received event:', data);
+
+            // Check for agent-related events in multiple ways
+            const isAgentEvent =
+                (data.type && (
+                    data.type.includes('agent') ||
+                    data.type.includes('subagent') ||
+                    data.type === 'SubagentStart' ||
+                    data.type === 'SubagentStop' ||
+                    data.type === 'agent_start' ||
+                    data.type === 'agent_complete'
+                )) ||
+                (data.event_type && (
+                    data.event_type.includes('agent') ||
+                    data.event_type.includes('subagent')
+                )) ||
+                data.agent_name ||
+                data.agent_id ||
+                data.data?.agent_name ||
+                data.data?.agent_id ||
+                (data.data?.type && data.data.type.includes('agent'));
+
+            if (isAgentEvent) {
+                console.log('Processing agent event:', data);
+                processAgentEvent(data);
+            }
+        });
+
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('connection-status');
+            const statusText = document.getElementById('connection-text');
+
+            if (statusDot && statusText) {
+                statusDot.className = `status-dot ${connected ? 'connected' : 'disconnected'}`;
+                statusText.textContent = connected ? 'Connected' : 'Disconnected';
+            }
+        }
+
+        // Process agent events
+        function processAgentEvent(event) {
+            const agentId = event.agent_id || event.data?.agent_id ||
+                          event.agent_name || event.data?.agent_name ||
+                          `agent_${Date.now()}`;
+
+            const agentName = event.agent_name || event.data?.agent_name ||
+                            event.name || event.data?.name || 'Unknown Agent';
+
+            const taskInfo = event.task || event.data?.task ||
+                           event.instruction || event.data?.instruction ||
+                           event.message || event.data?.message ||
+                           'Processing task...';
+
+            if (!appState.agents.has(agentId)) {
+                appState.agents.set(agentId, {
+                    id: agentId,
+                    name: agentName,
+                    status: 'idle',
+                    startTime: null,
+                    endTime: null,
+                    duration: 0,
+                    task: taskInfo,
+                    events: []
+                });
+                appState.stats.totalAgents++;
+            }
+
+            const agent = appState.agents.get(agentId);
+            agent.lastActivity = Date.now();
+            agent.task = taskInfo;
+            agent.events.push({
+                timestamp: Date.now(),
+                type: event.type || event.event_type || 'update',
+                data: event
+            });
+
+            // Update agent status based on event type
+            const eventType = (event.type || event.event_type || '').toLowerCase();
+
+            if (eventType.includes('start') || eventType === 'subagentstart') {
+                agent.status = 'active';
+                agent.startTime = Date.now();
+                appState.stats.activeAgents++;
+            } else if (eventType.includes('stop') || eventType.includes('complete') ||
+                      eventType === 'subagentstop') {
+                if (agent.status === 'active') {
+                    appState.stats.activeAgents = Math.max(0, appState.stats.activeAgents - 1);
+                }
+                agent.status = 'completed';
+                agent.endTime = Date.now();
+                if (agent.startTime) {
+                    agent.duration = (agent.endTime - agent.startTime) / 1000;
+                    appState.stats.totalDuration += agent.duration;
+                }
+                appState.stats.completedTasks++;
+            } else if (eventType.includes('error') || eventType.includes('fail')) {
+                if (agent.status === 'active') {
+                    appState.stats.activeAgents = Math.max(0, appState.stats.activeAgents - 1);
+                }
+                agent.status = 'error';
+                agent.endTime = Date.now();
+                if (agent.startTime) {
+                    agent.duration = (agent.endTime - agent.startTime) / 1000;
+                }
+            }
+
+            // Keep only last 10 events per agent
+            if (agent.events.length > 10) {
+                agent.events = agent.events.slice(-10);
+            }
+
+            updateUI();
+        }
+
+        // Format duration
+        function formatDuration(seconds) {
+            if (seconds < 60) return `${Math.round(seconds)}s`;
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.round(seconds % 60);
+            return `${minutes}m ${secs}s`;
+        }
+
+        // Format time ago
+        function formatTimeAgo(timestamp) {
+            const diff = Date.now() - timestamp;
+            const seconds = Math.floor(diff / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+
+            if (hours > 0) return `${hours}h ago`;
+            if (minutes > 0) return `${minutes}m ago`;
+            return `${seconds}s ago`;
+        }
+
+        // Render agent item
+        function renderAgentItem(agent) {
+            const recentEvents = agent.events.slice(-5).reverse();
+
+            return `
+                <div class="agent-item" data-agent-id="${agent.id}">
+                    <div class="agent-header">
+                        <div class="agent-name">${agent.name}</div>
+                        <div class="agent-status-badges">
+                            <span class="status-badge ${agent.status}">${agent.status.toUpperCase()}</span>
+                            ${agent.duration > 0 ? `<span class="status-badge">${formatDuration(agent.duration)}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="agent-stats">
+                        <div class="agent-stat">
+                            📝 ${agent.task}
+                        </div>
+                        <div class="agent-stat">
+                            ⏱️ ${formatTimeAgo(agent.lastActivity)}
+                        </div>
+                    </div>
+                    ${recentEvents.length > 0 ? `
+                        <div class="agent-timeline">
+                            ${recentEvents.map(evt => `
+                                <div class="timeline-event">
+                                    <span class="timeline-time">${new Date(evt.timestamp).toLocaleTimeString('en-US', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit'
+                                    })}</span>
+                                    <span class="timeline-action status-badge ${evt.type.includes('start') ? 'active' : evt.type.includes('stop') || evt.type.includes('complete') ? 'completed' : 'idle'}">
+                                        ${evt.type.toUpperCase().replace(/_/g, ' ')}
+                                    </span>
+                                    <span class="timeline-task">${evt.data.task || evt.data.message || ''}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // Update UI
+        function updateUI() {
+            // Update header stats
+            document.getElementById('total-agents').textContent = `${appState.stats.totalAgents} agents`;
+            document.getElementById('active-agents').textContent = `${appState.stats.activeAgents} active`;
+            document.getElementById('completed-tasks').textContent = `${appState.stats.completedTasks} completed`;
+
+            // Update statistics cards
+            document.getElementById('totalAgents').textContent = appState.stats.totalAgents;
+            document.getElementById('activeAgentsCount').textContent = appState.stats.activeAgents;
+            document.getElementById('completedTasksCount').textContent = appState.stats.completedTasks;
+            document.getElementById('totalDuration').textContent = formatDuration(appState.stats.totalDuration);
+
+            // Get filters
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+
+            // Filter agents
+            let filteredAgents = Array.from(appState.agents.values());
+
+            if (searchTerm) {
+                filteredAgents = filteredAgents.filter(agent =>
+                    agent.name.toLowerCase().includes(searchTerm) ||
+                    agent.task.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            if (statusFilter) {
+                filteredAgents = filteredAgents.filter(agent => agent.status === statusFilter);
+            }
+
+            // Sort agents
+            if (sortBy === 'recent') {
+                filteredAgents.sort((a, b) => b.lastActivity - a.lastActivity);
+            } else if (sortBy === 'duration') {
+                filteredAgents.sort((a, b) => b.duration - a.duration);
+            } else if (sortBy === 'name') {
+                filteredAgents.sort((a, b) => a.name.localeCompare(b.name));
+            }
+
+            // Render agents list
+            const agentsList = document.getElementById('agentsList');
+            if (filteredAgents.length === 0) {
+                agentsList.innerHTML = `
+                    <div class="no-agents">
+                        <h3>No Agents Found</h3>
+                        <p>${searchTerm || statusFilter ? 'Try different filters' : 'Waiting for agent events from the server...'}</p>
+                    </div>
+                `;
+            } else {
+                agentsList.innerHTML = filteredAgents.map(renderAgentItem).join('');
+            }
+        }
+
+        // Event handlers
+        document.getElementById('searchBox').addEventListener('input', updateUI);
+        document.getElementById('statusFilter').addEventListener('change', updateUI);
+        document.getElementById('sortBy').addEventListener('change', updateUI);
+
+        document.getElementById('refreshAgents').addEventListener('click', () => {
+            socket.emit('get_history', { type: 'agent', limit: 100 });
+            socket.emit('get_history', { type: 'subagent', limit: 100 });
+        });
+
+        document.getElementById('clearAgents').addEventListener('click', () => {
+            if (confirm('Clear all agent data?')) {
+                appState.agents.clear();
+                appState.stats = {
+                    totalAgents: 0,
+                    activeAgents: 0,
+                    completedTasks: 0,
+                    totalDuration: 0
+                };
+                updateUI();
+            }
+        });
+
+        // Initial UI update
+        updateUI();
+
+        console.log('Agents monitor initialized');
+    </script>
+</body>
+</html>

@@ -41,6 +41,14 @@ class EventViewer {
         this.socketClient.onEventUpdate((events, sessions) => {
             // Ensure we always have a valid events array
             this.events = Array.isArray(events) ? events : [];
+            console.log('[EventViewer] Events updated - received:', this.events.length);
+
+            // Update debug metrics
+            const debugReceivedEl = document.getElementById('debug-events-received');
+            if (debugReceivedEl) {
+                debugReceivedEl.textContent = this.events.length;
+            }
+
             this.updateDisplay();
         });
     }
@@ -229,33 +237,21 @@ class EventViewer {
             return;
         }
         
-        // CRITICAL SAFETY: Multiple checks to ensure events ONLY render in events-tab
-        // Check 1: Verify we're rendering to the correct container
+        // SAFETY: Basic check to ensure we're rendering to the correct container
         if (eventsList.id !== 'events-list') {
             console.error('[EventViewer] CRITICAL: Attempting to render to wrong container:', eventsList.id);
             return;
         }
-        
-        // Check 2: Ensure events-list is inside events-tab
-        const parentTab = eventsList.closest('.tab-content');
-        if (!parentTab || parentTab.id !== 'events-tab') {
-            console.error('[EventViewer] CRITICAL: events-list is not inside events-tab!');
-            return;
-        }
-        
-        // Check 3: Only render if Events tab is active
+
+        // Check if events tab exists and render regardless of active state
+        // This allows events to be pre-rendered when tab becomes active
         const eventsTab = document.getElementById('events-tab');
-        if (!eventsTab || !eventsTab.classList.contains('active')) {
-            console.log('[EventViewer] Events tab not active, skipping render');
+        if (!eventsTab) {
+            console.warn('[EventViewer] Events tab not found in DOM');
             return;
         }
-        
-        // Check 4: Ensure File Tree tab is not active
-        const fileTreeTab = document.getElementById('claude-tree-tab');
-        if (fileTreeTab && fileTreeTab.classList.contains('active')) {
-            console.error('[EventViewer] CRITICAL: File Tree tab is active, blocking event render!');
-            return;
-        }
+
+        console.log('[EventViewer] Rendering events - count:', this.filteredEvents.length);
 
         // Check if user is at bottom BEFORE rendering (for autoscroll decision)
         const wasAtBottom = (eventsList.scrollTop + eventsList.clientHeight >= eventsList.scrollHeight - 10);
@@ -300,6 +296,14 @@ class EventViewer {
 
         // Update filtered elements reference
         this.filteredEventElements = Array.from(eventsList.querySelectorAll('.event-item'));
+
+        console.log('[EventViewer] Events rendered - filtered:', this.filteredEvents.length, 'elements:', this.filteredEventElements.length);
+
+        // Update debug metrics
+        const debugRenderedEl = document.getElementById('debug-events-rendered');
+        if (debugRenderedEl) {
+            debugRenderedEl.textContent = this.filteredEvents.length;
+        }
 
         // Update Dashboard navigation items if we're in the events tab
         if (window.dashboard && window.dashboard.currentTab === 'events' &&

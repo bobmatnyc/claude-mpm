@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Debug Monitor</title>
+    <script src="/static/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 20px;
+        }
+        .event {
+            border: 1px solid #00ff00;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(0, 255, 0, 0.1);
+        }
+        .event-type {
+            color: #ffff00;
+            font-weight: bold;
+        }
+        .event-data {
+            margin-top: 5px;
+            white-space: pre-wrap;
+        }
+        h1 {
+            color: #00ff00;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #00ff00;
+        }
+        .connected {
+            background: rgba(0, 255, 0, 0.2);
+        }
+        .disconnected {
+            background: rgba(255, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Event Debug Monitor</h1>
+    <div id="status" class="status disconnected">Disconnected</div>
+    <button onclick="sendTestEvents()">Send Test Events</button>
+    <button onclick="clearEvents()">Clear</button>
+    <div id="events"></div>
+
+    <script>
+        const socket = io('http://localhost:8765', {
+            transports: ['polling', 'websocket'],
+            reconnection: true
+        });
+
+        let eventCount = 0;
+
+        socket.on('connect', () => {
+            console.log('Connected!');
+            document.getElementById('status').className = 'status connected';
+            document.getElementById('status').textContent = 'Connected to Socket.IO';
+            addEvent('SYSTEM', { message: 'Connected to server' });
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected!');
+            document.getElementById('status').className = 'status disconnected';
+            document.getElementById('status').textContent = 'Disconnected';
+            addEvent('SYSTEM', { message: 'Disconnected from server' });
+        });
+
+        // Listen to ALL events
+        socket.onAny((eventName, data) => {
+            console.log(`Event: ${eventName}`, data);
+            addEvent(eventName, data);
+        });
+
+        function addEvent(type, data) {
+            eventCount++;
+            const eventsDiv = document.getElementById('events');
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'event';
+            eventDiv.innerHTML = `
+                <div class="event-type">#${eventCount} Event: ${type}</div>
+                <div class="event-data">${JSON.stringify(data, null, 2)}</div>
+            `;
+            eventsDiv.insertBefore(eventDiv, eventsDiv.firstChild);
+
+            // Keep only last 50 events
+            while (eventsDiv.children.length > 50) {
+                eventsDiv.removeChild(eventsDiv.lastChild);
+            }
+        }
+
+        function sendTestEvents() {
+            // Send various test events
+            const testEvents = [
+                // Agent events
+                {
+                    type: 'SubagentStart',
+                    agent_id: 'test_agent_' + Date.now(),
+                    agent_name: 'Test Agent',
+                    task: 'Testing event system',
+                    timestamp: new Date().toISOString()
+                },
+                // Tool events
+                {
+                    type: 'ToolCall',
+                    tool_name: 'TestTool',
+                    agent_name: 'Test Agent',
+                    parameters: { test: true },
+                    timestamp: new Date().toISOString()
+                },
+                // File events
+                {
+                    type: 'file_read',
+                    file_path: '/test/file.txt',
+                    operation: 'read',
+                    timestamp: new Date().toISOString()
+                }
+            ];
+
+            testEvents.forEach((event, index) => {
+                setTimeout(() => {
+                    console.log('Sending test event:', event);
+                    socket.emit('claude_event', event);
+                    addEvent('SENT: claude_event', event);
+                }, index * 500);
+            });
+        }
+
+        function clearEvents() {
+            document.getElementById('events').innerHTML = '';
+            eventCount = 0;
+        }
+
+        // Request history on connect
+        socket.on('connect', () => {
+            setTimeout(() => {
+                socket.emit('get_history', { type: 'all', limit: 10 });
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

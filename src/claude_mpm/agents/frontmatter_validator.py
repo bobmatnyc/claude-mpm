@@ -354,21 +354,27 @@ class FrontmatterValidator:
                     f"Author field too long ({len(author)} chars, maximum 100)"
                 )
 
-        # Validate tags field
+        # Validate tags field (supports both list and comma-separated string)
         if "tags" in corrected:
             tags = corrected["tags"]
-            if not isinstance(tags, list):
-                errors.append(f"Field 'tags' must be a list, got {type(tags).__name__}")
+            if isinstance(tags, str):
+                # Convert comma-separated string to list for validation
+                tag_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
+            elif isinstance(tags, list):
+                tag_list = tags
             else:
-                for tag in tags:
-                    if not isinstance(tag, str):
-                        errors.append(
-                            f"All tags must be strings, found {type(tag).__name__}"
-                        )
-                    elif not re.match(r"^[a-z][a-z0-9-]*$", tag):
-                        warnings.append(
-                            f"Tag '{tag}' doesn't match recommended pattern (lowercase, alphanumeric with hyphens)"
-                        )
+                errors.append(f"Field 'tags' must be a list or comma-separated string, got {type(tags).__name__}")
+                tag_list = []
+
+            for tag in tag_list:
+                if not isinstance(tag, str):
+                    errors.append(
+                        f"All tags must be strings, found {type(tag).__name__}"
+                    )
+                elif not re.match(r"^[a-z][a-z0-9-]*$", tag):
+                    warnings.append(
+                        f"Tag '{tag}' doesn't match recommended pattern (lowercase, alphanumeric with hyphens)"
+                    )
 
         # Validate numeric fields
         for field_name, (min_val, max_val) in [

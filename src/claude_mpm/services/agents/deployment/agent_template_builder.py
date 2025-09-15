@@ -267,17 +267,21 @@ class AgentTemplateBuilder:
         # Include tools field only if agent is clearly restricted (missing core tools or very few tools)
         not has_core_tools or len(agent_tools) < 6
 
-        # Build YAML frontmatter using Claude Code's compatible format
-        # ONLY include fields that Claude Code recognizes
+        # Build YAML frontmatter with all relevant metadata from JSON template
+        # Include all fields that are useful for agent management and functionality
         #
-        # CLAUDE CODE COMPATIBLE FORMAT:
+        # COMPREHENSIVE AGENT FRONTMATTER FORMAT:
         # - name: kebab-case agent name (required)
         # - description: when/why to use this agent with examples (required, multiline)
         # - model: mapped model name (required)
+        # - type: agent type for categorization and functionality (optional but important)
+        # - category: organizational category (optional)
         # - color: visual identifier (optional)
         # - version: agent version for update tracking (optional)
         # - author: creator information (optional)
-        # NOTE: tags field REMOVED - not supported by Claude Code
+        # - created_at: creation timestamp (optional)
+        # - updated_at: last update timestamp (optional)
+        # - tags: list of tags for search and categorization (optional)
         frontmatter_lines = [
             "---",
             f"name: {claude_code_name}",
@@ -291,15 +295,28 @@ class AgentTemplateBuilder:
         # Add model field (required for Claude Code)
         frontmatter_lines.append(f"model: {model}")
 
-        # Add optional metadata (excluding tags field completely)
+        # Add type field (important for agent categorization)
+        if agent_type and agent_type != "general":
+            frontmatter_lines.append(f"type: {agent_type}")
+
+        # Add optional metadata fields
         if metadata.get("color"):
             frontmatter_lines.append(f"color: {metadata['color']}")
-        if (
-            agent_version and agent_version != "1.0.0"
-        ):  # Only include non-default versions
+        if metadata.get("category"):
+            frontmatter_lines.append(f"category: {metadata['category']}")
+        # Always include version field to prevent deployment comparison issues
+        if agent_version:
             frontmatter_lines.append(f'version: "{agent_version}"')
         if metadata.get("author"):
             frontmatter_lines.append(f'author: "{metadata["author"]}"')
+        if metadata.get("created_at"):
+            frontmatter_lines.append(f"created_at: {metadata['created_at']}")
+        if metadata.get("updated_at"):
+            frontmatter_lines.append(f"updated_at: {metadata['updated_at']}")
+        # Add tags as comma-separated string if they exist (consistent with tools format)
+        if metadata.get("tags") and isinstance(metadata["tags"], list):
+            tags_str = ",".join(metadata["tags"])
+            frontmatter_lines.append(f"tags: {tags_str}")
 
         frontmatter_lines.extend(
             [

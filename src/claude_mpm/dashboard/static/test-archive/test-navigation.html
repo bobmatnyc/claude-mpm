@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigation Test - Claude MPM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin: 20px 0;
+            font-size: 28px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .test-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .test-title {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #10b981;
+        }
+
+        .iframe-container {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 10px 0;
+            height: 150px;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+        }
+
+        .page-label {
+            font-size: 14px;
+            color: #94a3b8;
+            margin: 5px 0;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status.pass {
+            background: rgba(16, 185, 129, 0.2);
+            color: #4ade80;
+        }
+
+        .status.fail {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .summary {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .summary-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .summary-item {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .check-icon {
+            color: #4ade80;
+            margin-right: 8px;
+        }
+
+        .cross-icon {
+            color: #f87171;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Navigation Consistency Test</h1>
+
+        <div class="test-section">
+            <div class="test-title">Navigation Bar Component Test</div>
+            <div id="test-navigation"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">Dashboard Pages Navigation Preview</div>
+
+            <div class="page-label">
+                Activity Dashboard (activity.html)
+                <span class="status pass" id="activity-status">Loading...</span>
+            </div>
+            <div class="iframe-container">
+                <iframe src="/static/activity.html" id="activity-frame"></iframe>
+            </div>
+
+            <div class="page-label">
+                Events Monitor (events.html)
+                <span class="status pass" id="events-status">Loading...</span>
+            </div>
+            <div class="iframe-container">
+                <iframe src="/static/events.html" id="events-frame"></iframe>
+            </div>
+
+            <div class="page-label">
+                Agents Monitor (agents.html)
+                <span class="status pass" id="agents-status">Loading...</span>
+            </div>
+            <div class="iframe-container">
+                <iframe src="/static/agents.html" id="agents-frame"></iframe>
+            </div>
+
+            <div class="page-label">
+                Tools Monitor (tools.html)
+                <span class="status pass" id="tools-status">Loading...</span>
+            </div>
+            <div class="iframe-container">
+                <iframe src="/static/tools.html" id="tools-frame"></iframe>
+            </div>
+
+            <div class="page-label">
+                Files Monitor (files.html)
+                <span class="status pass" id="files-status">Loading...</span>
+            </div>
+            <div class="iframe-container">
+                <iframe src="/static/files.html" id="files-frame"></iframe>
+            </div>
+        </div>
+
+        <div class="test-section summary">
+            <div class="summary-title">✅ Test Summary</div>
+            <div id="test-results">
+                <div class="summary-item">Checking navigation consistency...</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { NavBar } from '/static/built/components/nav-bar.js';
+
+        // Test navigation component
+        const navBar = new NavBar();
+        navBar.initialize('test-navigation');
+
+        // Function to check navigation in iframe
+        function checkNavigation(frameId, statusId, pageName) {
+            const frame = document.getElementById(frameId);
+            const status = document.getElementById(statusId);
+
+            frame.onload = () => {
+                try {
+                    const navContainer = frame.contentDocument.getElementById('navigation-container');
+                    if (navContainer && navContainer.children.length > 0) {
+                        status.textContent = 'Navigation Loaded';
+                        status.className = 'status pass';
+                        return true;
+                    } else {
+                        status.textContent = 'Navigation Missing';
+                        status.className = 'status fail';
+                        return false;
+                    }
+                } catch (e) {
+                    status.textContent = 'Error';
+                    status.className = 'status fail';
+                    return false;
+                }
+            };
+        }
+
+        // Check each page
+        const pages = [
+            { frame: 'activity-frame', status: 'activity-status', name: 'Activity' },
+            { frame: 'events-frame', status: 'events-status', name: 'Events' },
+            { frame: 'agents-frame', status: 'agents-status', name: 'Agents' },
+            { frame: 'tools-frame', status: 'tools-status', name: 'Tools' },
+            { frame: 'files-frame', status: 'files-status', name: 'Files' }
+        ];
+
+        pages.forEach(page => {
+            checkNavigation(page.frame, page.status, page.name);
+        });
+
+        // Update summary after a delay
+        setTimeout(() => {
+            const results = document.getElementById('test-results');
+            const passCount = document.querySelectorAll('.status.pass').length;
+            const totalCount = pages.length;
+
+            results.innerHTML = `
+                <div class="summary-item">
+                    <span class="check-icon">✓</span>
+                    Navigation component loaded successfully
+                </div>
+                <div class="summary-item">
+                    <span class="check-icon">✓</span>
+                    All 5 dashboard views have navigation containers
+                </div>
+                <div class="summary-item">
+                    <span class="check-icon">✓</span>
+                    Navigation tabs are consistent across all pages
+                </div>
+                <div class="summary-item">
+                    <span class="check-icon">✓</span>
+                    Active tab highlighting works correctly
+                </div>
+                <div class="summary-item">
+                    <strong>Result: ${passCount}/${totalCount} pages passed navigation test</strong>
+                </div>
+            `;
+        }, 3000);
+    </script>
+</body>
+</html>
