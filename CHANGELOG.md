@@ -1,3 +1,15 @@
+## [4.2.48] - 2024-09-15
+
+### Added
+- NextJS Engineer agent specialized in Next.js 14+ and TypeScript
+- Mandatory web search capabilities for Python, React, and NextJS engineers
+- Focus on 2025 best practices with App Router and Server Components
+
+### Changed
+- Updated Python Engineer to v1.1.0 with web search mandate
+- Updated React Engineer to v1.1.0 with web search mandate
+- Enhanced all engineers to proactively search for current best practices
+
 # Changelog
 
 All notable changes to claude-mpm will be documented in this file.
