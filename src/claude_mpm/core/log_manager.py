@@ -101,7 +101,7 @@ class LogManager:
         }
 
         # Base directories
-        self.base_log_dir = Path(logging_config.get("base_directory", "logs"))
+        self.base_log_dir = Path(logging_config.get("base_directory", ".claude-mpm/logs"))
         if not self.base_log_dir.is_absolute():
             self.base_log_dir = Path.cwd() / self.base_log_dir
 
@@ -350,13 +350,14 @@ class LogManager:
         """
         One-time migration to move existing MPM logs to new subdirectory.
 
-        Moves mpm_*.log files from .claude-mpm/logs/ to logs/mpm/
+        Moves mpm_*.log files from old locations to .claude-mpm/logs/mpm/
         """
         try:
-            # Check both old possible locations
+            # Check old possible locations (including incorrectly created ones)
             old_locations = [
-                Path.cwd() / ".claude-mpm" / "logs",  # Old default location
-                self.base_log_dir,  # Current base location (logs/)
+                Path.cwd() / "logs",  # Incorrectly created in project root
+                Path.cwd() / ".claude-mpm" / "logs",  # Correct base location
+                self.base_log_dir,  # Current base location (.claude-mpm/logs/)
             ]
             new_location = self.base_log_dir / "mpm"
 
