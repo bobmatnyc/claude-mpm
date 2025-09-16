@@ -186,9 +186,10 @@ def test_mpm_logging_end_to_end_demo():
             print("✅ New log creation works correctly")
             print("✅ Cleanup functionality works correctly")
             print("✅ Directory structure is correct")
-            return True
-        print("❌ MPM Logging Demo: SOME TESTS FAILED")
-        return False
+            # Don't return True for pytest - it expects None or assertions
+        else:
+            print("❌ MPM Logging Demo: SOME TESTS FAILED")
+            assert False, "Some tests failed"
 
 
 if __name__ == "__main__":

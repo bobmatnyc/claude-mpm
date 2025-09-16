@@ -232,7 +232,7 @@ def setup_logging(
             if log_dir is None:
                 # Use deployment root for logs to keep everything centralized
                 deployment_root = get_project_root()
-                log_dir = deployment_root / "logs" / "mpm"
+                log_dir = deployment_root / ".claude-mpm" / "logs" / "mpm"
 
             log_dir.mkdir(parents=True, exist_ok=True)
 
