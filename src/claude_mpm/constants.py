@@ -229,7 +229,7 @@ class Paths(str, Enum):
 
     CLAUDE_AGENTS_DIR = ".claude/agents"
     CLAUDE_CONFIG_DIR = ".claude"
-    MPM_LOG_DIR = "logs/mpm"
+    MPM_LOG_DIR = ".claude-mpm/logs/mpm"
     MPM_SESSION_DIR = ".claude-mpm/session"
     MPM_PROMPTS_DIR = ".claude-mpm/prompts"
 

@@ -1,3 +1,12 @@
+## [4.2.50] - 2025-09-16
+
+### Fixed
+- Corrected log directory path to use .claude-mpm/logs instead of project root
+- Fixed LogManager default path configuration
+- Updated MPM_LOG_DIR constant to correct path
+- Fixed hardcoded log path in logger.py
+- Prevents creation of logs directory in project root
+
 ## [4.2.49] - 2024-09-15
 
 ### Added
@@ -97,4 +106,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Browser Log Infrastructure**: Removed browser console monitoring infrastructure
 
 ## [4.2.43] - 2025-09-11
+
+[Unreleased]: https://github.com/bobmatnyc/claude-mpm/compare/v4.2.50...HEAD
+[4.2.50]: https://github.com/bobmatnyc/claude-mpm/compare/v4.2.49...v4.2.50
+[4.2.49]: https://github.com/bobmatnyc/claude-mpm/compare/v4.2.48...v4.2.49
+[4.2.48]: https://github.com/bobmatnyc/claude-mpm/compare/v4.2.47...v4.2.48
+[4.2.47]: https://github.com/bobmatnyc/claude-mpm/compare/v4.2.46...v4.2.47
 
