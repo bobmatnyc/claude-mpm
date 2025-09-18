@@ -44,7 +44,7 @@ class LoggingConfig:
     # File settings
     MAX_BYTES = 5 * 1024 * 1024  # 5MB - lowered for better rotation testing
     BACKUP_COUNT = 5
-    ROTATION_INTERVAL = 'midnight'  # Daily rotation at midnight
+    ROTATION_INTERVAL = "midnight"  # Daily rotation at midnight
     ROTATION_BACKUP_COUNT = 7  # Keep 7 days of daily logs
 
     # Component-specific log names

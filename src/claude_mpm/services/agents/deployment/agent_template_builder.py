@@ -196,12 +196,22 @@ class AgentTemplateBuilder:
 
         # Log if we see non-standard tool names (info level, not warning)
         standard_tools = {
-            "Read", "Write", "Edit", "MultiEdit",  # File operations
-            "Grep", "Glob", "LS",  # Search and navigation
-            "Bash", "BashOutput", "KillShell",  # Command execution
-            "TodoWrite", "ExitPlanMode",  # Task management
-            "WebSearch", "WebFetch",  # Web operations
-            "NotebookRead", "NotebookEdit"  # Jupyter notebook support
+            "Read",
+            "Write",
+            "Edit",
+            "MultiEdit",  # File operations
+            "Grep",
+            "Glob",
+            "LS",  # Search and navigation
+            "Bash",
+            "BashOutput",
+            "KillShell",  # Command execution
+            "TodoWrite",
+            "ExitPlanMode",  # Task management
+            "WebSearch",
+            "WebFetch",  # Web operations
+            "NotebookRead",
+            "NotebookEdit",  # Jupyter notebook support
         }
         non_standard = [t for t in tools if t not in standard_tools]
         if non_standard:
@@ -390,7 +400,9 @@ class AgentTemplateBuilder:
 
         # Handle dictionary instructions format
         if isinstance(raw_instructions, dict):
-            agent_specific_instructions = self._convert_instructions_dict_to_markdown(raw_instructions)
+            agent_specific_instructions = self._convert_instructions_dict_to_markdown(
+                raw_instructions
+            )
         else:
             agent_specific_instructions = (
                 raw_instructions
@@ -969,28 +981,17 @@ tools:
 
         # Add primary role
         if "primary_role" in instructions_dict:
-            markdown_parts.extend([
-                "# Role",
-                "",
-                instructions_dict["primary_role"],
-                ""
-            ])
+            markdown_parts.extend(["# Role", "", instructions_dict["primary_role"], ""])
 
         # Add core identity
         if "core_identity" in instructions_dict:
-            markdown_parts.extend([
-                "## Core Identity",
-                "",
-                instructions_dict["core_identity"],
-                ""
-            ])
+            markdown_parts.extend(
+                ["## Core Identity", "", instructions_dict["core_identity"], ""]
+            )
 
         # Add responsibilities
         if "responsibilities" in instructions_dict:
-            markdown_parts.extend([
-                "## Responsibilities",
-                ""
-            ])
+            markdown_parts.extend(["## Responsibilities", ""])
 
             responsibilities = instructions_dict["responsibilities"]
             if isinstance(responsibilities, list):
@@ -999,10 +1000,7 @@ tools:
                         area = resp.get("area", "Unknown Area")
                         tasks = resp.get("tasks", [])
 
-                        markdown_parts.extend([
-                            f"### {area}",
-                            ""
-                        ])
+                        markdown_parts.extend([f"### {area}", ""])
 
                         if isinstance(tasks, list):
                             for task in tasks:
@@ -1018,23 +1016,18 @@ tools:
         if "analytical_framework" in instructions_dict:
             framework = instructions_dict["analytical_framework"]
             if isinstance(framework, dict):
-                markdown_parts.extend([
-                    "## Analytical Framework",
-                    ""
-                ])
+                markdown_parts.extend(["## Analytical Framework", ""])
 
                 for framework_area, framework_data in framework.items():
-                    markdown_parts.extend([
-                        f"### {framework_area.replace('_', ' ').title()}",
-                        ""
-                    ])
+                    markdown_parts.extend(
+                        [f"### {framework_area.replace('_', ' ').title()}", ""]
+                    )
 
                     if isinstance(framework_data, dict):
                         for category, items in framework_data.items():
-                            markdown_parts.extend([
-                                f"#### {category.replace('_', ' ').title()}",
-                                ""
-                            ])
+                            markdown_parts.extend(
+                                [f"#### {category.replace('_', ' ').title()}", ""]
+                            )
 
                             if isinstance(items, list):
                                 for item in items:
@@ -1052,47 +1045,40 @@ tools:
         if "methodologies" in instructions_dict:
             methodologies = instructions_dict["methodologies"]
             if isinstance(methodologies, dict):
-                markdown_parts.extend([
-                    "## Methodologies",
-                    ""
-                ])
+                markdown_parts.extend(["## Methodologies", ""])
 
                 for method_name, method_data in methodologies.items():
-                    markdown_parts.extend([
-                        f"### {method_name.replace('_', ' ').title()}",
-                        ""
-                    ])
+                    markdown_parts.extend(
+                        [f"### {method_name.replace('_', ' ').title()}", ""]
+                    )
 
                     if isinstance(method_data, dict):
                         for key, value in method_data.items():
                             if isinstance(value, list):
-                                markdown_parts.extend([
-                                    f"#### {key.replace('_', ' ').title()}",
-                                    ""
-                                ])
+                                markdown_parts.extend(
+                                    [f"#### {key.replace('_', ' ').title()}", ""]
+                                )
                                 for item in value:
                                     markdown_parts.append(f"- {item}")
                                 markdown_parts.append("")
                             elif isinstance(value, str):
-                                markdown_parts.extend([
-                                    f"**{key.replace('_', ' ').title()}**: {value}",
-                                    ""
-                                ])
+                                markdown_parts.extend(
+                                    [
+                                        f"**{key.replace('_', ' ').title()}**: {value}",
+                                        "",
+                                    ]
+                                )
 
         # Add quality standards
         if "quality_standards" in instructions_dict:
             standards = instructions_dict["quality_standards"]
             if isinstance(standards, dict):
-                markdown_parts.extend([
-                    "## Quality Standards",
-                    ""
-                ])
+                markdown_parts.extend(["## Quality Standards", ""])
 
                 for standard_area, standard_items in standards.items():
-                    markdown_parts.extend([
-                        f"### {standard_area.replace('_', ' ').title()}",
-                        ""
-                    ])
+                    markdown_parts.extend(
+                        [f"### {standard_area.replace('_', ' ').title()}", ""]
+                    )
 
                     if isinstance(standard_items, list):
                         for item in standard_items:
@@ -1106,16 +1092,12 @@ tools:
         if "communication_style" in instructions_dict:
             comm_style = instructions_dict["communication_style"]
             if isinstance(comm_style, dict):
-                markdown_parts.extend([
-                    "## Communication Style",
-                    ""
-                ])
+                markdown_parts.extend(["## Communication Style", ""])
 
                 for style_area, style_items in comm_style.items():
-                    markdown_parts.extend([
-                        f"### {style_area.replace('_', ' ').title()}",
-                        ""
-                    ])
+                    markdown_parts.extend(
+                        [f"### {style_area.replace('_', ' ').title()}", ""]
+                    )
 
                     if isinstance(style_items, list):
                         for item in style_items:
@@ -1129,33 +1111,24 @@ tools:
         if not markdown_parts:
             markdown_parts = ["# Agent Instructions", ""]
             for key, value in instructions_dict.items():
-                key_title = key.replace('_', ' ').title()
+                key_title = key.replace("_", " ").title()
                 if isinstance(value, str):
-                    markdown_parts.extend([
-                        f"## {key_title}",
-                        "",
-                        value,
-                        ""
-                    ])
+                    markdown_parts.extend([f"## {key_title}", "", value, ""])
                 elif isinstance(value, list):
-                    markdown_parts.extend([
-                        f"## {key_title}",
-                        ""
-                    ])
+                    markdown_parts.extend([f"## {key_title}", ""])
                     for item in value:
                         markdown_parts.append(f"- {item}")
                     markdown_parts.append("")
                 elif isinstance(value, dict):
-                    markdown_parts.extend([
-                        f"## {key_title}",
-                        ""
-                    ])
+                    markdown_parts.extend([f"## {key_title}", ""])
                     # Simple dict formatting
                     for subkey, subvalue in value.items():
                         if isinstance(subvalue, str):
-                            markdown_parts.extend([
-                                f"**{subkey.replace('_', ' ').title()}**: {subvalue}",
-                                ""
-                            ])
+                            markdown_parts.extend(
+                                [
+                                    f"**{subkey.replace('_', ' ').title()}**: {subvalue}",
+                                    "",
+                                ]
+                            )
 
         return "\n".join(markdown_parts).strip()

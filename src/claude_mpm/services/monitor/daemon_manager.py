@@ -575,9 +575,7 @@ class DaemonManager:
                     stdout=log_file,
                     stderr=subprocess.STDOUT if self.log_file else subprocess.DEVNULL,
                     start_new_session=True,  # Create new process group
-                    close_fds=(
-                        not self.log_file
-                    ),  # Keep log file open if redirecting
+                    close_fds=(not self.log_file),  # Keep log file open if redirecting
                     env=env,  # Pass modified environment
                 )
 

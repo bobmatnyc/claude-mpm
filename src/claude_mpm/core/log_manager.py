@@ -132,10 +132,13 @@ class LogManager:
 
             # Convert hours to days for cleanup utility
             cleanup_params = {
-                'auto_cleanup_enabled': True,
-                'session_retention_days': self.retention_hours.get('sessions', 168) // 24,
-                'archive_retention_days': cleanup_config.get('archive_retention_days', 30),
-                'log_retention_days': cleanup_config.get('log_retention_days', 14),
+                "auto_cleanup_enabled": True,
+                "session_retention_days": self.retention_hours.get("sessions", 168)
+                // 24,
+                "archive_retention_days": cleanup_config.get(
+                    "archive_retention_days", 30
+                ),
+                "log_retention_days": cleanup_config.get("log_retention_days", 14),
             }
 
             # Run cleanup in background thread to avoid blocking startup

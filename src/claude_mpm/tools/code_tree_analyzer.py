@@ -1756,9 +1756,7 @@ class CodeTreeAnalyzer:
             return node.name not in important_magic
 
         # Filter very generic getters/setters only if they're trivial
-        if (name_lower.startswith(("get_", "set_"))) and len(
-            node.name
-        ) <= 8:
+        if (name_lower.startswith(("get_", "set_"))) and len(node.name) <= 8:
             return True
 
         # Don't filter single underscore functions - they're often important

@@ -186,7 +186,11 @@ class AsyncEventEmitter:
         return False
 
     async def _emit_http(
-        self, namespace: str, event: str, data: Dict[str, Any], endpoint: Optional[str] = None
+        self,
+        namespace: str,
+        event: str,
+        data: Dict[str, Any],
+        endpoint: Optional[str] = None,
     ) -> bool:
         """Emit event via HTTP with connection pooling."""
         if not self._http_session:
