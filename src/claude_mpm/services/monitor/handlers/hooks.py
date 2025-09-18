@@ -428,7 +428,6 @@ class HookHandler:
             "original_event": data,  # Keep original for debugging
         }
 
-
     def _process_hook_event(self, data: Dict) -> Dict:
         """Process and normalize hook event data.
 
@@ -446,7 +445,6 @@ class HookHandler:
             "metadata": data.get("metadata", {}),
             "processed_at": asyncio.get_event_loop().time(),
         }
-
 
     def _update_session_tracking(self, session_id: str, event: Dict):
         """Update session tracking with new event.

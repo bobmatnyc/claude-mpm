@@ -670,7 +670,9 @@ class FrameworkLoader:
                 )
                 if loaded_content:
                     content["framework_instructions"] = loaded_content
-                    self.logger.warning("Using legacy INSTRUCTIONS.md - consider migrating to PM_INSTRUCTIONS.md")
+                    self.logger.warning(
+                        "Using legacy INSTRUCTIONS.md - consider migrating to PM_INSTRUCTIONS.md"
+                    )
                     content["loaded"] = True
                     # Add framework version to content
                     if self.framework_version:
