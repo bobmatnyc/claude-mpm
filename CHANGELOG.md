@@ -1,3 +1,14 @@
+## [4.3.0] - 2025-09-18
+
+### Added
+- **Standard Tools Recognition**: Added MultiEdit, BashOutput, KillShell, ExitPlanMode, NotebookRead, NotebookEdit to standard tools list
+- Eliminates "INFO: Using non-standard tools" warnings for legitimate Claude Code tools
+- Enhanced tool validation and recognition system
+
+### Changed
+- Minor version bump due to new feature addition
+- Improved agent output formatting standards
+
 ## [4.2.53] - 2025-09-18
 
 ### Changed
