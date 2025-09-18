@@ -11,7 +11,7 @@ import os
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -31,13 +31,13 @@ class LogCleanupConfig:
 
     # File patterns
     LOG_PATTERNS = {
-        'mpm': 'mpm_*.log',
-        'startup': 'startup-*.log',
-        'system': 'system_*.log',
-        'agent': 'agent_*.log',
+        "mpm": "mpm_*.log",
+        "startup": "startup-*.log",
+        "system": "system_*.log",
+        "agent": "agent_*.log",
     }
 
-    ARCHIVE_EXTENSIONS = ['.gz', '.zip', '.tar', '.bz2']
+    ARCHIVE_EXTENSIONS = [".gz", ".zip", ".tar", ".bz2"]
 
 
 class LogCleanupUtility:
@@ -61,21 +61,21 @@ class LogCleanupUtility:
             base_log_dir: Base directory for logs (default: .claude-mpm/logs)
         """
         if base_log_dir is None:
-            base_log_dir = Path.cwd() / '.claude-mpm' / 'logs'
+            base_log_dir = Path.cwd() / ".claude-mpm" / "logs"
 
         self.base_log_dir = Path(base_log_dir)
         self.stats = {
-            'sessions_removed': 0,
-            'archives_removed': 0,
-            'logs_removed': 0,
-            'space_freed_mb': 0.0,
-            'errors': []
+            "sessions_removed": 0,
+            "archives_removed": 0,
+            "logs_removed": 0,
+            "space_freed_mb": 0.0,
+            "errors": [],
         }
 
     def cleanup_old_sessions(
         self,
         max_age_days: int = LogCleanupConfig.DEFAULT_SESSION_MAX_AGE_DAYS,
-        dry_run: bool = False
+        dry_run: bool = False,
     ) -> Tuple[int, float]:
         """
         Remove session directories older than specified days.
@@ -87,7 +87,7 @@ class LogCleanupUtility:
         Returns:
             Tuple of (directories removed, space freed in MB)
         """
-        sessions_dir = self.base_log_dir / 'sessions'
+        sessions_dir = self.base_log_dir / "sessions"
         if not sessions_dir.exists():
             logger.info(f"Sessions directory not found: {sessions_dir}")
             return 0, 0.0
@@ -96,7 +96,9 @@ class LogCleanupUtility:
         removed_count = 0
         total_size = 0.0
 
-        logger.info(f"Scanning for session directories older than {max_age_days} days...")
+        logger.info(
+            f"Scanning for session directories older than {max_age_days} days..."
+        )
 
         try:
             for session_dir in sessions_dir.iterdir():
@@ -131,21 +133,21 @@ class LogCleanupUtility:
                 except (PermissionError, OSError) as e:
                     error_msg = f"Could not remove {session_dir.name}: {e}"
                     logger.warning(error_msg)
-                    self.stats['errors'].append(error_msg)
+                    self.stats["errors"].append(error_msg)
 
         except Exception as e:
             logger.error(f"Error scanning sessions directory: {e}")
-            self.stats['errors'].append(str(e))
+            self.stats["errors"].append(str(e))
 
-        self.stats['sessions_removed'] += removed_count
-        self.stats['space_freed_mb'] += total_size
+        self.stats["sessions_removed"] += removed_count
+        self.stats["space_freed_mb"] += total_size
 
         return removed_count, total_size
 
     def cleanup_archived_logs(
         self,
         max_age_days: int = LogCleanupConfig.DEFAULT_ARCHIVED_MAX_AGE_DAYS,
-        dry_run: bool = False
+        dry_run: bool = False,
     ) -> Tuple[int, float]:
         """
         Remove archived log files older than specified days.
@@ -165,7 +167,7 @@ class LogCleanupUtility:
 
         # Search for archived files in all subdirectories
         for ext in LogCleanupConfig.ARCHIVE_EXTENSIONS:
-            for archive_file in self.base_log_dir.rglob(f'*{ext}'):
+            for archive_file in self.base_log_dir.rglob(f"*{ext}"):
                 try:
                     mtime = datetime.fromtimestamp(archive_file.stat().st_mtime)
 
@@ -192,10 +194,10 @@ class LogCleanupUtility:
                 except (PermissionError, OSError) as e:
                     error_msg = f"Could not remove {archive_file.name}: {e}"
                     logger.warning(error_msg)
-                    self.stats['errors'].append(error_msg)
+                    self.stats["errors"].append(error_msg)
 
-        self.stats['archives_removed'] += removed_count
-        self.stats['space_freed_mb'] += total_size
+        self.stats["archives_removed"] += removed_count
+        self.stats["space_freed_mb"] += total_size
 
         return removed_count, total_size
 
@@ -203,7 +205,7 @@ class LogCleanupUtility:
         self,
         max_age_days: int = LogCleanupConfig.DEFAULT_LOG_MAX_AGE_DAYS,
         dry_run: bool = False,
-        log_type: Optional[str] = None
+        log_type: Optional[str] = None,
     ) -> Tuple[int, float]:
         """
         Remove old log files based on age.
@@ -220,13 +222,16 @@ class LogCleanupUtility:
         removed_count = 0
         total_size = 0.0
 
-        patterns = ([LogCleanupConfig.LOG_PATTERNS.get(log_type)]
-                   if log_type else LogCleanupConfig.LOG_PATTERNS.values())
+        patterns = (
+            [LogCleanupConfig.LOG_PATTERNS.get(log_type)]
+            if log_type
+            else LogCleanupConfig.LOG_PATTERNS.values()
+        )
 
         logger.info(f"Scanning for log files older than {max_age_days} days...")
 
         for pattern in patterns:
-            for subdir in ['mpm', 'startup', 'system', 'agents']:
+            for subdir in ["mpm", "startup", "system", "agents"]:
                 log_dir = self.base_log_dir / subdir
                 if not log_dir.exists():
                     continue
@@ -258,10 +263,10 @@ class LogCleanupUtility:
                     except (PermissionError, OSError) as e:
                         error_msg = f"Could not remove {log_file.name}: {e}"
                         logger.warning(error_msg)
-                        self.stats['errors'].append(error_msg)
+                        self.stats["errors"].append(error_msg)
 
-        self.stats['logs_removed'] += removed_count
-        self.stats['space_freed_mb'] += total_size
+        self.stats["logs_removed"] += removed_count
+        self.stats["space_freed_mb"] += total_size
 
         return removed_count, total_size
 
@@ -289,7 +294,9 @@ class LogCleanupUtility:
                 # Check if directory is empty
                 if not any(root_path.iterdir()):
                     if dry_run:
-                        logger.info(f"[DRY RUN] Would remove empty directory: {root_path}")
+                        logger.info(
+                            f"[DRY RUN] Would remove empty directory: {root_path}"
+                        )
                     else:
                         root_path.rmdir()
                         logger.info(f"Removed empty directory: {root_path}")
@@ -302,9 +309,7 @@ class LogCleanupUtility:
         return removed_count
 
     def compress_old_logs(
-        self,
-        age_days: int = 7,
-        dry_run: bool = False
+        self, age_days: int = 7, dry_run: bool = False
     ) -> Tuple[int, float]:
         """
         Compress log files older than specified days.
@@ -320,7 +325,7 @@ class LogCleanupUtility:
         compressed_count = 0
         space_saved = 0.0
 
-        for log_file in self.base_log_dir.rglob('*.log'):
+        for log_file in self.base_log_dir.rglob("*.log"):
             # Skip already compressed files
             if log_file.suffix in LogCleanupConfig.ARCHIVE_EXTENSIONS:
                 continue
@@ -330,7 +335,7 @@ class LogCleanupUtility:
 
                 if mtime < cutoff_time:
                     original_size = log_file.stat().st_size / (1024 * 1024)  # MB
-                    compressed_path = log_file.with_suffix('.log.gz')
+                    compressed_path = log_file.with_suffix(".log.gz")
 
                     if dry_run:
                         # Estimate compression ratio (typically 80-90% for logs)
@@ -343,8 +348,10 @@ class LogCleanupUtility:
                         space_saved += estimated_saved
                     else:
                         # Actually compress the file
-                        with open(log_file, 'rb') as f_in:
-                            with gzip.open(compressed_path, 'wb', compresslevel=9) as f_out:
+                        with open(log_file, "rb") as f_in:
+                            with gzip.open(
+                                compressed_path, "wb", compresslevel=9
+                            ) as f_out:
                                 shutil.copyfileobj(f_in, f_out)
 
                         compressed_size = compressed_path.stat().st_size / (1024 * 1024)
@@ -365,7 +372,7 @@ class LogCleanupUtility:
             except Exception as e:
                 error_msg = f"Could not compress {log_file.name}: {e}"
                 logger.warning(error_msg)
-                self.stats['errors'].append(error_msg)
+                self.stats["errors"].append(error_msg)
 
         return compressed_count, space_saved
 
@@ -377,56 +384,60 @@ class LogCleanupUtility:
             Dictionary with statistics
         """
         stats = {
-            'total_size_mb': 0.0,
-            'session_count': 0,
-            'archive_count': 0,
-            'log_count': 0,
-            'oldest_session': None,
-            'oldest_log': None,
-            'directory_sizes': {}
+            "total_size_mb": 0.0,
+            "session_count": 0,
+            "archive_count": 0,
+            "log_count": 0,
+            "oldest_session": None,
+            "oldest_log": None,
+            "directory_sizes": {},
         }
 
         # Calculate total size
-        stats['total_size_mb'] = self._get_directory_size(self.base_log_dir)
+        stats["total_size_mb"] = self._get_directory_size(self.base_log_dir)
 
         # Count sessions
-        sessions_dir = self.base_log_dir / 'sessions'
+        sessions_dir = self.base_log_dir / "sessions"
         if sessions_dir.exists():
             sessions = list(sessions_dir.iterdir())
-            stats['session_count'] = len([s for s in sessions if s.is_dir()])
+            stats["session_count"] = len([s for s in sessions if s.is_dir()])
 
             # Find oldest session
             if sessions:
                 oldest = min(sessions, key=lambda p: p.stat().st_mtime)
-                stats['oldest_session'] = {
-                    'name': oldest.name,
-                    'age_days': (datetime.now() -
-                               datetime.fromtimestamp(oldest.stat().st_mtime)).days
+                stats["oldest_session"] = {
+                    "name": oldest.name,
+                    "age_days": (
+                        datetime.now() - datetime.fromtimestamp(oldest.stat().st_mtime)
+                    ).days,
                 }
 
         # Count archives
         for ext in LogCleanupConfig.ARCHIVE_EXTENSIONS:
-            stats['archive_count'] += len(list(self.base_log_dir.rglob(f'*{ext}')))
+            stats["archive_count"] += len(list(self.base_log_dir.rglob(f"*{ext}")))
 
         # Count logs (excluding symlinks)
-        stats['log_count'] = len([p for p in self.base_log_dir.rglob('*.log') if not p.is_symlink()])
+        stats["log_count"] = len(
+            [p for p in self.base_log_dir.rglob("*.log") if not p.is_symlink()]
+        )
 
         # Find oldest log (excluding symlinks)
-        all_logs = [p for p in self.base_log_dir.rglob('*.log') if not p.is_symlink()]
+        all_logs = [p for p in self.base_log_dir.rglob("*.log") if not p.is_symlink()]
         if all_logs:
             oldest_log = min(all_logs, key=lambda p: p.stat().st_mtime)
-            stats['oldest_log'] = {
-                'name': oldest_log.name,
-                'path': str(oldest_log.relative_to(self.base_log_dir)),
-                'age_days': (datetime.now() -
-                           datetime.fromtimestamp(oldest_log.stat().st_mtime)).days
+            stats["oldest_log"] = {
+                "name": oldest_log.name,
+                "path": str(oldest_log.relative_to(self.base_log_dir)),
+                "age_days": (
+                    datetime.now() - datetime.fromtimestamp(oldest_log.stat().st_mtime)
+                ).days,
             }
 
         # Calculate directory sizes
-        for subdir in ['sessions', 'mpm', 'startup', 'system', 'agents', 'prompts']:
+        for subdir in ["sessions", "mpm", "startup", "system", "agents", "prompts"]:
             dir_path = self.base_log_dir / subdir
             if dir_path.exists():
-                stats['directory_sizes'][subdir] = self._get_directory_size(dir_path)
+                stats["directory_sizes"][subdir] = self._get_directory_size(dir_path)
 
         return stats
 
@@ -436,7 +447,7 @@ class LogCleanupUtility:
         archive_max_age_days: int = LogCleanupConfig.DEFAULT_ARCHIVED_MAX_AGE_DAYS,
         log_max_age_days: int = LogCleanupConfig.DEFAULT_LOG_MAX_AGE_DAYS,
         compress_age_days: Optional[int] = None,
-        dry_run: bool = False
+        dry_run: bool = False,
     ) -> Dict:
         """
         Perform a complete cleanup operation.
@@ -459,14 +470,14 @@ class LogCleanupUtility:
 
         # Reset stats
         self.stats = {
-            'sessions_removed': 0,
-            'archives_removed': 0,
-            'logs_removed': 0,
-            'files_compressed': 0,
-            'empty_dirs_removed': 0,
-            'space_freed_mb': 0.0,
-            'space_saved_mb': 0.0,
-            'errors': []
+            "sessions_removed": 0,
+            "archives_removed": 0,
+            "logs_removed": 0,
+            "files_compressed": 0,
+            "empty_dirs_removed": 0,
+            "space_freed_mb": 0.0,
+            "space_saved_mb": 0.0,
+            "errors": [],
         }
 
         # Cleanup operations
@@ -478,40 +489,35 @@ class LogCleanupUtility:
             archive_max_age_days, dry_run
         )
 
-        logs_removed, logs_space = self.cleanup_old_logs(
-            log_max_age_days, dry_run
-        )
+        logs_removed, logs_space = self.cleanup_old_logs(log_max_age_days, dry_run)
 
         # Optional compression
         if compress_age_days is not None:
-            compressed, space_saved = self.compress_old_logs(
-                compress_age_days, dry_run
-            )
-            self.stats['files_compressed'] = compressed
-            self.stats['space_saved_mb'] = space_saved
+            compressed, space_saved = self.compress_old_logs(compress_age_days, dry_run)
+            self.stats["files_compressed"] = compressed
+            self.stats["space_saved_mb"] = space_saved
 
         # Cleanup empty directories
         empty_removed = self.cleanup_empty_directories(dry_run)
-        self.stats['empty_dirs_removed'] = empty_removed
+        self.stats["empty_dirs_removed"] = empty_removed
 
         # Get final statistics
         final_stats = self.get_statistics() if not dry_run else initial_stats
 
         # Prepare summary
         summary = {
-            'mode': 'DRY RUN' if dry_run else 'EXECUTED',
-            'initial_stats': initial_stats,
-            'final_stats': final_stats,
-            'operations': self.stats,
-            'total_removed': (
-                self.stats['sessions_removed'] +
-                self.stats['archives_removed'] +
-                self.stats['logs_removed']
+            "mode": "DRY RUN" if dry_run else "EXECUTED",
+            "initial_stats": initial_stats,
+            "final_stats": final_stats,
+            "operations": self.stats,
+            "total_removed": (
+                self.stats["sessions_removed"]
+                + self.stats["archives_removed"]
+                + self.stats["logs_removed"]
             ),
-            'total_space_impact_mb': (
-                self.stats['space_freed_mb'] +
-                self.stats.get('space_saved_mb', 0)
-            )
+            "total_space_impact_mb": (
+                self.stats["space_freed_mb"] + self.stats.get("space_saved_mb", 0)
+            ),
         }
 
         # Log summary
@@ -521,14 +527,16 @@ class LogCleanupUtility:
             f"freed {self.stats['space_freed_mb']:.2f} MB"
         )
 
-        if self.stats.get('files_compressed'):
+        if self.stats.get("files_compressed"):
             logger.info(
                 f"Compressed {self.stats['files_compressed']} files, "
                 f"saved {self.stats['space_saved_mb']:.2f} MB"
             )
 
-        if self.stats['errors']:
-            logger.warning(f"Encountered {len(self.stats['errors'])} errors during cleanup")
+        if self.stats["errors"]:
+            logger.warning(
+                f"Encountered {len(self.stats['errors'])} errors during cleanup"
+            )
 
         return summary
 
@@ -544,7 +552,7 @@ class LogCleanupUtility:
         """
         total_size = 0
         try:
-            for item in path.rglob('*'):
+            for item in path.rglob("*"):
                 if item.is_file():
                     total_size += item.stat().st_size
         except Exception as e:
@@ -554,8 +562,7 @@ class LogCleanupUtility:
 
 
 def run_cleanup_on_startup(
-    base_log_dir: Optional[Path] = None,
-    config: Optional[Dict] = None
+    base_log_dir: Optional[Path] = None, config: Optional[Dict] = None
 ) -> Optional[Dict]:
     """
     Run automatic cleanup on application startup.
@@ -571,7 +578,7 @@ def run_cleanup_on_startup(
         Cleanup summary or None if disabled
     """
     # Check if cleanup is enabled
-    if config and not config.get('auto_cleanup_enabled', True):
+    if config and not config.get("auto_cleanup_enabled", True):
         logger.debug("Automatic log cleanup is disabled")
         return None
 
@@ -579,9 +586,9 @@ def run_cleanup_on_startup(
         cleaner = LogCleanupUtility(base_log_dir)
 
         # Use configuration or defaults
-        session_days = config.get('session_retention_days', 7) if config else 7
-        archive_days = config.get('archive_retention_days', 30) if config else 30
-        log_days = config.get('log_retention_days', 14) if config else 14
+        session_days = config.get("session_retention_days", 7) if config else 7
+        archive_days = config.get("archive_retention_days", 30) if config else 30
+        log_days = config.get("log_retention_days", 14) if config else 14
 
         # Run cleanup (not dry-run)
         summary = cleaner.perform_full_cleanup(
@@ -589,7 +596,7 @@ def run_cleanup_on_startup(
             archive_max_age_days=archive_days,
             log_max_age_days=log_days,
             compress_age_days=None,  # Don't compress on startup
-            dry_run=False
+            dry_run=False,
         )
 
         logger.info(

@@ -280,7 +280,6 @@ class LocalAgentTemplateManager:
             parent_agent=parent_agent,
         )
 
-
     def save_local_template(
         self, template: LocalAgentTemplate, tier: Optional[str] = None
     ) -> Path:

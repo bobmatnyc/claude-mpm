@@ -156,9 +156,16 @@ class EventFilterVerifier:
                         all_passed = False
 
                     # Check if the view is the right one
-                    if (category == "agents" and "Agent Activity Monitor" in content) or (
-                        category == "tools" and "Tools & Operations Monitor" in content
-                    ) or (category == "files" and "File Operations Monitor" in content):
+                    if (
+                        (category == "agents" and "Agent Activity Monitor" in content)
+                        or (
+                            category == "tools"
+                            and "Tools & Operations Monitor" in content
+                        )
+                        or (
+                            category == "files" and "File Operations Monitor" in content
+                        )
+                    ):
                         print(f"  ✓ Correct view loaded for {category}")
                     else:
                         print(f"  ✗ Wrong view loaded for {category}")

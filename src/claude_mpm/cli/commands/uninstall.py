@@ -134,7 +134,6 @@ class UninstallCommand(BaseCommand):
         # For example: removing agent configurations, cache, etc.
 
 
-
 def add_uninstall_parser(subparsers):
     """Add the uninstall subparser.
 
