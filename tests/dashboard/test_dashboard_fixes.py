@@ -8,14 +8,16 @@ Test script to verify dashboard fixes:
 Run this test after starting the dashboard server.
 """
 
-import time
 import json
 import random
+import time
 from pathlib import Path
+
 import socketio
 
 # Connect to the Claude MPM dashboard
 sio = socketio.Client()
+
 
 def emit_test_event(event_type, subtype, tool_name=None, file_path=None):
     """Emit a test event to the dashboard"""
@@ -24,9 +26,7 @@ def emit_test_event(event_type, subtype, tool_name=None, file_path=None):
         "subtype": subtype,
         "timestamp": time.time() * 1000,  # milliseconds
         "session_id": "test-session-001",
-        "data": {
-            "session_id": "test-session-001"
-        }
+        "data": {"session_id": "test-session-001"},
     }
 
     if tool_name:
@@ -38,8 +38,9 @@ def emit_test_event(event_type, subtype, tool_name=None, file_path=None):
         event["data"]["tool_parameters"] = {"file_path": file_path}
 
     print(f"Emitting event: {event_type}.{subtype} - {tool_name} - {file_path}")
-    sio.emit('claude_event', event)
+    sio.emit("claude_event", event)
     return event
+
 
 def test_file_operations():
     """Test file operation tracking"""
@@ -48,7 +49,7 @@ def test_file_operations():
     test_files = [
         "/Users/masa/Projects/claude-mpm/README.md",
         "/Users/masa/Projects/claude-mpm/src/main.py",
-        "/Users/masa/Projects/claude-mpm/tests/test_dashboard.py"
+        "/Users/masa/Projects/claude-mpm/tests/test_dashboard.py",
     ]
 
     file_tools = ["Read", "Write", "Edit", "Grep", "MultiEdit"]
@@ -64,10 +65,11 @@ def test_file_operations():
         post_event = emit_test_event("hook", "post_tool", tool, file_path)
         post_event["duration_ms"] = random.randint(50, 500)
         post_event["success"] = True
-        sio.emit('claude_event', post_event)
+        sio.emit("claude_event", post_event)
         time.sleep(0.2)
 
     print(f"Emitted {len(test_files) * 2} file operation events")
+
 
 def test_tool_operations():
     """Test general tool operations"""
@@ -89,7 +91,7 @@ def test_tool_operations():
         # Emit pre_tool event
         event = emit_test_event("hook", "pre_tool", tool, None)
         event["tool_parameters"] = params
-        sio.emit('claude_event', event)
+        sio.emit("claude_event", event)
         time.sleep(0.1)
 
         # Emit post_tool event
@@ -97,10 +99,11 @@ def test_tool_operations():
         post_event["tool_parameters"] = params
         post_event["duration_ms"] = random.randint(100, 1000)
         post_event["success"] = True
-        sio.emit('claude_event', post_event)
+        sio.emit("claude_event", post_event)
         time.sleep(0.2)
 
     print(f"Emitted {len(tools) * 2} tool operation events")
+
 
 def test_agent_events():
     """Test agent tracking events"""
@@ -118,15 +121,16 @@ def test_agent_events():
             "data": {
                 "agent_type": agent,
                 "session_id": "test-session-001",
-                "task": f"Test task for {agent}"
-            }
+                "task": f"Test task for {agent}",
+            },
         }
 
         print(f"Emitting agent event: {agent}")
-        sio.emit('claude_event', event)
+        sio.emit("claude_event", event)
         time.sleep(0.1)
 
     print(f"Emitted {len(agents)} agent events")
+
 
 @sio.event
 def connect():
@@ -149,15 +153,18 @@ def connect():
     time.sleep(2)
     sio.disconnect()
 
+
 @sio.event
 def connect_error(data):
     print(f"Connection error: {data}")
     print("\nMake sure the Claude MPM dashboard is running!")
     print("Start it with: claude-mpm monitor")
 
+
 @sio.event
 def disconnect():
     print("Disconnected from dashboard")
+
 
 if __name__ == "__main__":
     print("Claude MPM Dashboard Test Script")
@@ -165,7 +172,7 @@ if __name__ == "__main__":
     print("Connecting to dashboard on localhost:5173...")
 
     try:
-        sio.connect('http://localhost:5173')
+        sio.connect("http://localhost:5173")
         sio.wait()
     except Exception as e:
         print(f"Error: {e}")

@@ -248,14 +248,14 @@ class CodeAnalysisHandler:
                 self.logger.info("All analysis cache cleared")
             elif cache_type == "file":
                 keys_to_remove = [
-                    k for k in self.analysis_cache.keys() if k.startswith("file:")
+                    k for k in self.analysis_cache if k.startswith("file:")
                 ]
                 for key in keys_to_remove:
                     del self.analysis_cache[key]
                 self.logger.info("File analysis cache cleared")
             elif cache_type == "directory":
                 keys_to_remove = [
-                    k for k in self.analysis_cache.keys() if k.startswith("dir:")
+                    k for k in self.analysis_cache if k.startswith("dir:")
                 ]
                 for key in keys_to_remove:
                     del self.analysis_cache[key]
@@ -281,10 +281,9 @@ class CodeAnalysisHandler:
         try:
             # Run analysis in thread pool to avoid blocking
             loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
+            return await loop.run_in_executor(
                 None, self.analyzer.analyze_file, file_path
             )
-            return result
 
         except Exception as e:
             self.logger.error(f"Error in async file analysis: {e}")
@@ -305,10 +304,9 @@ class CodeAnalysisHandler:
         try:
             # Run tree building in thread pool
             loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
+            return await loop.run_in_executor(
                 None, self.builder.build_tree, dir_path, max_depth
             )
-            return result
 
         except Exception as e:
             self.logger.error(f"Error in async directory tree building: {e}")

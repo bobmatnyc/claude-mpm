@@ -3,14 +3,15 @@
 
 import asyncio
 import subprocess
-import time
 import sys
+import time
 from pathlib import Path
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.services.monitor.server import UnifiedMonitorServer
+
 
 async def test_react_exports():
     """Test that React exports are accessible in the browser."""
@@ -24,9 +25,9 @@ async def test_react_exports():
     # Give server time to start
     await asyncio.sleep(2)
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing React Component Exports")
-    print("="*60)
+    print("=" * 60)
 
     print("\n1. Server running at http://localhost:8765")
     print("2. Open http://localhost:8765/static/events.html in browser")
@@ -43,9 +44,9 @@ async def test_react_exports():
     print("   - 'React events initialization function exposed on window'")
     print("   - 'React EventViewer initialized'")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Press Ctrl+C to stop the server")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     try:
         # Keep server running
@@ -53,6 +54,7 @@ async def test_react_exports():
     except KeyboardInterrupt:
         print("\nShutting down server...")
         await server.shutdown()
+
 
 if __name__ == "__main__":
     try:

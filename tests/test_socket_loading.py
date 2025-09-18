@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Test Socket.IO loading in activity.html"""
 
-import requests
 import re
+
+import requests
 
 # Test if Socket.IO is being loaded correctly
 url = "http://localhost:8765/static/activity.html"
@@ -12,7 +13,9 @@ if response.status_code == 200:
     content = response.text
 
     # Check for Socket.IO script tag
-    socket_io_tag = re.search(r'<script[^>]*src=["\']([^"\']*socket\.io[^"\']*)["\']', content)
+    socket_io_tag = re.search(
+        r'<script[^>]*src=["\']([^"\']*socket\.io[^"\']*)["\']', content
+    )
     if socket_io_tag:
         print(f"✓ Socket.IO script tag found: {socket_io_tag.group(1)}")
 

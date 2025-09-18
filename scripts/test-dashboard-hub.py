@@ -4,11 +4,13 @@
 import os
 import sys
 import time
-import requests
 from pathlib import Path
+
+import requests
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
 
 def test_dashboard_hub():
     """Test dashboard hub and navigation"""
@@ -17,7 +19,9 @@ def test_dashboard_hub():
     print("=" * 60)
 
     # Test 1: Check if hub exists
-    hub_path = Path(__file__).parent.parent / "src/claude_mpm/dashboard/static/index.html"
+    hub_path = (
+        Path(__file__).parent.parent / "src/claude_mpm/dashboard/static/index.html"
+    )
     if hub_path.exists():
         print("✅ Dashboard hub exists at /static/index.html")
     else:
@@ -25,7 +29,9 @@ def test_dashboard_hub():
         return False
 
     # Test 2: Check production dashboards
-    production_dir = Path(__file__).parent.parent / "src/claude_mpm/dashboard/static/production"
+    production_dir = (
+        Path(__file__).parent.parent / "src/claude_mpm/dashboard/static/production"
+    )
     expected_dashboards = ["events.html", "monitors.html", "main.html"]
 
     for dashboard in expected_dashboards:
@@ -36,12 +42,16 @@ def test_dashboard_hub():
             print(f"❌ Missing production dashboard: {dashboard}")
 
     # Test 3: Check archived test files
-    archive_dir = Path(__file__).parent.parent / "src/claude_mpm/dashboard/static/archive"
+    archive_dir = (
+        Path(__file__).parent.parent / "src/claude_mpm/dashboard/static/archive"
+    )
     if archive_dir.exists():
         archived_files = list(archive_dir.glob("*.html"))
         print(f"✅ {len(archived_files)} test files archived")
         if len(archived_files) > 0:
-            print(f"   Sample archived files: {', '.join([f.name for f in archived_files[:3]])}")
+            print(
+                f"   Sample archived files: {', '.join([f.name for f in archived_files[:3]])}"
+            )
     else:
         print("❌ Archive directory not found")
 
@@ -102,7 +112,10 @@ def test_dashboard_hub():
         production_urls = [
             ("http://localhost:8765/dashboard", "Main Dashboard"),
             ("http://localhost:8765/static/production/events.html", "Events Monitor"),
-            ("http://localhost:8765/static/production/monitors.html", "System Monitors"),
+            (
+                "http://localhost:8765/static/production/monitors.html",
+                "System Monitors",
+            ),
         ]
 
         print("\nTesting production dashboard accessibility...")
@@ -142,6 +155,7 @@ def test_dashboard_hub():
     print("\n🚀 Access the dashboard hub at: http://localhost:8765/static/")
 
     return True
+
 
 if __name__ == "__main__":
     test_dashboard_hub()

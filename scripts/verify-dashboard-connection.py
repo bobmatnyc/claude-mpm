@@ -3,10 +3,12 @@
 Verify Activity Dashboard connection and send test events.
 """
 
-import socketio
-import time
 import json
+import time
 from datetime import datetime
+
+import socketio
+
 
 def main():
     """Send test events to verify dashboard connection."""
@@ -24,7 +26,7 @@ def main():
     try:
         # Connect to server
         print("🔄 Connecting to server...")
-        sio.connect('http://localhost:8765', transports=['polling', 'websocket'])
+        sio.connect("http://localhost:8765", transports=["polling", "websocket"])
 
         # Wait for connection
         time.sleep(1)
@@ -32,70 +34,70 @@ def main():
         # Send various test events
         test_events = [
             {
-                'type': 'session.start',
-                'timestamp': datetime.now().isoformat(),
-                'data': {
-                    'session_id': 'test-session-001',
-                    'user': 'test-user',
-                    'project': 'Activity Dashboard Test'
-                }
+                "type": "session.start",
+                "timestamp": datetime.now().isoformat(),
+                "data": {
+                    "session_id": "test-session-001",
+                    "user": "test-user",
+                    "project": "Activity Dashboard Test",
+                },
             },
             {
-                'type': 'agent.start',
-                'timestamp': datetime.now().isoformat(),
-                'data': {
-                    'agent': 'TestAgent',
-                    'task': 'Testing dashboard connection',
-                    'session_id': 'test-session-001'
-                }
+                "type": "agent.start",
+                "timestamp": datetime.now().isoformat(),
+                "data": {
+                    "agent": "TestAgent",
+                    "task": "Testing dashboard connection",
+                    "session_id": "test-session-001",
+                },
             },
             {
-                'type': 'tool.execute',
-                'timestamp': datetime.now().isoformat(),
-                'data': {
-                    'tool': 'Read',
-                    'parameters': {'file': 'test.txt'},
-                    'agent': 'TestAgent',
-                    'session_id': 'test-session-001'
-                }
+                "type": "tool.execute",
+                "timestamp": datetime.now().isoformat(),
+                "data": {
+                    "tool": "Read",
+                    "parameters": {"file": "test.txt"},
+                    "agent": "TestAgent",
+                    "session_id": "test-session-001",
+                },
             },
             {
-                'type': 'todowrite',
-                'timestamp': datetime.now().isoformat(),
-                'data': {
-                    'todos': [
-                        {'content': 'Test task 1', 'status': 'completed'},
-                        {'content': 'Test task 2', 'status': 'in_progress'},
-                        {'content': 'Test task 3', 'status': 'pending'}
+                "type": "todowrite",
+                "timestamp": datetime.now().isoformat(),
+                "data": {
+                    "todos": [
+                        {"content": "Test task 1", "status": "completed"},
+                        {"content": "Test task 2", "status": "in_progress"},
+                        {"content": "Test task 3", "status": "pending"},
                     ],
-                    'agent': 'TestAgent',
-                    'session_id': 'test-session-001'
-                }
+                    "agent": "TestAgent",
+                    "session_id": "test-session-001",
+                },
             },
             {
-                'type': 'agent.complete',
-                'timestamp': datetime.now().isoformat(),
-                'data': {
-                    'agent': 'TestAgent',
-                    'result': 'Dashboard connection verified',
-                    'session_id': 'test-session-001'
-                }
+                "type": "agent.complete",
+                "timestamp": datetime.now().isoformat(),
+                "data": {
+                    "agent": "TestAgent",
+                    "result": "Dashboard connection verified",
+                    "session_id": "test-session-001",
+                },
             },
             {
-                'type': 'session.end',
-                'timestamp': datetime.now().isoformat(),
-                'data': {
-                    'session_id': 'test-session-001',
-                    'duration': 5000,
-                    'status': 'success'
-                }
-            }
+                "type": "session.end",
+                "timestamp": datetime.now().isoformat(),
+                "data": {
+                    "session_id": "test-session-001",
+                    "duration": 5000,
+                    "status": "success",
+                },
+            },
         ]
 
         print("\n📊 Sending test events to verify dashboard...")
         for i, event in enumerate(test_events, 1):
             print(f"   {i}. Sending {event['type']}...")
-            sio.emit('claude_event', event)
+            sio.emit("claude_event", event)
             time.sleep(0.5)
 
         print("\n✅ Test events sent successfully!")
@@ -118,5 +120,6 @@ def main():
         sio.disconnect()
         print("\n🔌 Test complete, disconnected from server")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

@@ -344,9 +344,7 @@ class AgentValidator:
                     stripped_line.split(":", 1)[1].strip().strip("\"'")
                 )
             elif stripped_line.startswith("type:"):
-                agent_info["type"] = (
-                    stripped_line.split(":", 1)[1].strip().strip("\"'")
-                )
+                agent_info["type"] = stripped_line.split(":", 1)[1].strip().strip("\"'")
 
         return agent_info
 

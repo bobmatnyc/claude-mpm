@@ -29,6 +29,12 @@ from ..core.constants import SystemLimits
 
 logger = logging.getLogger(__name__)
 
+# Import cleanup utility for automatic cleanup
+try:
+    from ..utils.log_cleanup import run_cleanup_on_startup
+except ImportError:
+    run_cleanup_on_startup = None
+
 
 class LogManager:
     """
@@ -76,6 +82,9 @@ class LogManager:
         # Start background threads
         self._start_background_threads()
 
+        # Run automatic cleanup on startup if enabled
+        self._run_startup_cleanup()
+
     def _setup_logging_config(self):
         """Load and setup logging configuration from config."""
         logging_config = self.config.get("logging", {})
@@ -101,9 +110,51 @@ class LogManager:
         }
 
         # Base directories
-        self.base_log_dir = Path(logging_config.get("base_directory", ".claude-mpm/logs"))
+        self.base_log_dir = Path(
+            logging_config.get("base_directory", ".claude-mpm/logs")
+        )
         if not self.base_log_dir.is_absolute():
             self.base_log_dir = Path.cwd() / self.base_log_dir
+
+    def _run_startup_cleanup(self):
+        """Run automatic log cleanup on startup if enabled."""
+        if run_cleanup_on_startup is None:
+            return  # Cleanup utility not available
+
+        try:
+            # Get cleanup configuration
+            cleanup_config = self.config.get("log_cleanup", {})
+
+            # Check if automatic cleanup is enabled (default: True)
+            if not cleanup_config.get("auto_cleanup_enabled", True):
+                logger.debug("Automatic log cleanup is disabled")
+                return
+
+            # Convert hours to days for cleanup utility
+            cleanup_params = {
+                'auto_cleanup_enabled': True,
+                'session_retention_days': self.retention_hours.get('sessions', 168) // 24,
+                'archive_retention_days': cleanup_config.get('archive_retention_days', 30),
+                'log_retention_days': cleanup_config.get('log_retention_days', 14),
+            }
+
+            # Run cleanup in background thread to avoid blocking startup
+            def cleanup_task():
+                try:
+                    result = run_cleanup_on_startup(self.base_log_dir, cleanup_params)
+                    if result:
+                        logger.debug(
+                            f"Startup cleanup completed: "
+                            f"Removed {result.get('total_removed', 0)} items"
+                        )
+                except Exception as e:
+                    logger.debug(f"Startup cleanup failed: {e}")
+
+            cleanup_thread = Thread(target=cleanup_task, daemon=True)
+            cleanup_thread.start()
+
+        except Exception as e:
+            logger.debug(f"Could not run startup cleanup: {e}")
 
     def _start_background_threads(self):
         """Start background threads for async operations."""

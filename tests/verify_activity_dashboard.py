@@ -1,30 +1,34 @@
 #!/usr/bin/env python3
 """Verify Activity Dashboard is working correctly"""
 
-import time
 import subprocess
-import requests
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
-import socketio
+import time
 from datetime import datetime
+
+import requests
+import socketio
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
 
 def check_server():
     """Check if monitor server is running"""
     try:
-        response = requests.get("http://localhost:8765/socket.io/?EIO=4&transport=polling")
+        response = requests.get(
+            "http://localhost:8765/socket.io/?EIO=4&transport=polling"
+        )
         if response.status_code == 200:
             print("✅ Monitor server is running")
             return True
-        else:
-            print(f"❌ Monitor server returned status {response.status_code}")
-            return False
+        print(f"❌ Monitor server returned status {response.status_code}")
+        return False
     except Exception as e:
         print(f"❌ Monitor server not accessible: {e}")
         return False
+
 
 def send_test_events():
     """Send test events to populate the dashboard"""
@@ -43,8 +47,8 @@ def send_test_events():
                 "event_id": f"evt-{int(time.time()*1000)}",
                 "context": {
                     "user_instruction": "Analyze the codebase and create a summary",
-                    "working_directory": "/Users/demo/project"
-                }
+                    "working_directory": "/Users/demo/project",
+                },
             },
             {
                 "type": "SubagentStart",
@@ -53,7 +57,7 @@ def send_test_events():
                 "session_id": "session-demo-001",
                 "agent_name": "Engineer",
                 "event_id": f"evt-{int(time.time()*1000)+1}",
-                "context": {}
+                "context": {},
             },
             {
                 "type": "ToolStart",
@@ -63,10 +67,7 @@ def send_test_events():
                 "agent_name": "Engineer",
                 "tool_name": "Grep",
                 "event_id": f"evt-{int(time.time()*1000)+2}",
-                "context": {
-                    "pattern": "class.*:",
-                    "path": "/Users/demo/project"
-                }
+                "context": {"pattern": "class.*:", "path": "/Users/demo/project"},
             },
             {
                 "type": "ToolStop",
@@ -76,10 +77,7 @@ def send_test_events():
                 "agent_name": "Engineer",
                 "tool_name": "Grep",
                 "event_id": f"evt-{int(time.time()*1000)+3}",
-                "context": {
-                    "status": "success",
-                    "matches": 42
-                }
+                "context": {"status": "success", "matches": 42},
             },
             {
                 "type": "TodoWrite",
@@ -92,33 +90,34 @@ def send_test_events():
                     "todos": [
                         {"content": "Analyze code structure", "status": "completed"},
                         {"content": "Generate documentation", "status": "in_progress"},
-                        {"content": "Create summary report", "status": "pending"}
+                        {"content": "Create summary report", "status": "pending"},
                     ]
-                }
-            }
+                },
+            },
         ]
 
         for event in events:
-            sio.emit('event', event)
+            sio.emit("event", event)
             time.sleep(0.1)
 
         print("✅ Test events sent")
 
     try:
-        sio.connect('http://localhost:8765')
+        sio.connect("http://localhost:8765")
         time.sleep(2)
         sio.disconnect()
     except Exception as e:
         print(f"❌ Could not send events: {e}")
+
 
 def check_dashboard_selenium():
     """Check Activity Dashboard using Selenium"""
     print("\n🌐 Checking Activity Dashboard with Selenium...")
 
     options = Options()
-    options.add_argument('--headless')  # Run in headless mode
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument("--headless")  # Run in headless mode
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
 
     try:
         driver = webdriver.Chrome(options=options)
@@ -128,28 +127,28 @@ def check_dashboard_selenium():
         time.sleep(3)
 
         # Get console logs
-        logs = driver.get_log('browser')
+        logs = driver.get_log("browser")
 
         # Check for connection success
         connected = False
         for log in logs:
-            if 'Socket connected' in str(log.get('message', '')):
+            if "Socket connected" in str(log.get("message", "")):
                 connected = True
                 break
 
         # Get connection status element
-        status_element = driver.find_element(By.ID, 'connection-text')
+        status_element = driver.find_element(By.ID, "connection-text")
         status_text = status_element.text
 
-        if 'Connected' in status_text:
+        if "Connected" in status_text:
             print(f"✅ Dashboard shows: {status_text}")
             connected = True
         else:
             print(f"❌ Dashboard shows: {status_text}")
 
         # Check event count
-        event_count = driver.find_element(By.ID, 'event-count').text
-        session_count = driver.find_element(By.ID, 'session-count').text
+        event_count = driver.find_element(By.ID, "event-count").text
+        session_count = driver.find_element(By.ID, "session-count").text
 
         print(f"📊 Stats: {event_count}, {session_count}")
 
@@ -160,13 +159,16 @@ def check_dashboard_selenium():
         print(f"❌ Selenium test failed: {e}")
         return False
 
+
 def check_dashboard_simple():
     """Simple check by looking at the page content"""
     print("\n📋 Simple dashboard check...")
 
     try:
         # Open the dashboard in default browser
-        subprocess.run(["open", "http://localhost:8765/static/activity.html"], check=False)
+        subprocess.run(
+            ["open", "http://localhost:8765/static/activity.html"], check=False
+        )
 
         print("✅ Activity Dashboard opened in browser")
         print("🔍 Please check the browser for:")
@@ -179,6 +181,7 @@ def check_dashboard_simple():
     except Exception as e:
         print(f"❌ Could not open dashboard: {e}")
         return False
+
 
 def main():
     print("=== Activity Dashboard Connection Verification ===\n")
@@ -211,6 +214,7 @@ def main():
     print("   - Event count: 5 events (or more)")
     print("   - Session count: 1 session")
     print("   - Activity tree with test events")
+
 
 if __name__ == "__main__":
     main()

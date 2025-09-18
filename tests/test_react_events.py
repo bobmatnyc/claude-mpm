@@ -6,11 +6,12 @@ Sends test events to verify the React EventViewer integration works correctly.
 
 import asyncio
 import json
-import time
 import random
-from typing import Dict, Any
+import time
+from typing import Any, Dict
 
 import socketio
+
 
 class EventTester:
     def __init__(self, server_url: str = "http://localhost:8765"):
@@ -32,13 +33,15 @@ class EventTester:
         await self.sio.disconnect()
         print("🔌 Disconnected from server")
 
-    def create_test_event(self, event_type: str, subtype: str = None, **kwargs) -> Dict[str, Any]:
+    def create_test_event(
+        self, event_type: str, subtype: str = None, **kwargs
+    ) -> Dict[str, Any]:
         """Create a test event with consistent structure"""
         event = {
             "type": event_type,
             "timestamp": int(time.time() * 1000),  # milliseconds
             "source": "test_script",
-            "data": kwargs
+            "data": kwargs,
         }
 
         if subtype:
@@ -49,8 +52,11 @@ class EventTester:
     async def send_event(self, event: Dict[str, Any]):
         """Send an event to the server"""
         try:
-            await self.sio.emit('claude_event', event)
-            print(f"📤 Sent {event['type']}" + (f".{event.get('subtype', '')}" if event.get('subtype') else ""))
+            await self.sio.emit("claude_event", event)
+            print(
+                f"📤 Sent {event['type']}"
+                + (f".{event.get('subtype', '')}" if event.get("subtype") else "")
+            )
         except Exception as e:
             print(f"❌ Failed to send event: {e}")
 
@@ -60,30 +66,51 @@ class EventTester:
 
         test_events = [
             # Agent events
-            self.create_test_event("agent", "loaded", agent_type="Engineer", name="Test Engineer"),
-            self.create_test_event("agent", "executed", agent_type="QA", task="Running tests"),
-
+            self.create_test_event(
+                "agent", "loaded", agent_type="Engineer", name="Test Engineer"
+            ),
+            self.create_test_event(
+                "agent", "executed", agent_type="QA", task="Running tests"
+            ),
             # Tool events
-            self.create_test_event("tool", "start", tool_name="Read", file_path="/test/file.py"),
-            self.create_test_event("tool", "complete", tool_name="Read", success=True, duration_ms=120),
-            self.create_test_event("tool", "start", tool_name="Write", file_path="/test/output.txt"),
-            self.create_test_event("tool", "complete", tool_name="Write", success=True, lines_written=25),
-
+            self.create_test_event(
+                "tool", "start", tool_name="Read", file_path="/test/file.py"
+            ),
+            self.create_test_event(
+                "tool", "complete", tool_name="Read", success=True, duration_ms=120
+            ),
+            self.create_test_event(
+                "tool", "start", tool_name="Write", file_path="/test/output.txt"
+            ),
+            self.create_test_event(
+                "tool", "complete", tool_name="Write", success=True, lines_written=25
+            ),
             # File events
             self.create_test_event("file", "read", path="/src/main.py", size=1024),
-            self.create_test_event("file", "write", path="/src/output.log", operation="create"),
+            self.create_test_event(
+                "file", "write", path="/src/output.log", operation="create"
+            ),
             self.create_test_event("file", "edit", path="/src/config.json", changes=3),
-
             # Session events
             self.create_test_event("session", "started", session_id="test-session-001"),
-            self.create_test_event("session", "ended", session_id="test-session-001", duration=45.2),
-
+            self.create_test_event(
+                "session", "ended", session_id="test-session-001", duration=45.2
+            ),
             # Error events
-            self.create_test_event("error", "tool_failure", tool_name="Bash", error="Command not found", command="invalid_cmd"),
-
+            self.create_test_event(
+                "error",
+                "tool_failure",
+                tool_name="Bash",
+                error="Command not found",
+                command="invalid_cmd",
+            ),
             # Info events
-            self.create_test_event("info", "status", message="System running normally", cpu_usage=15.2),
-            self.create_test_event("info", "metric", events_processed=1000, uptime="2h 15m"),
+            self.create_test_event(
+                "info", "status", message="System running normally", cpu_usage=15.2
+            ),
+            self.create_test_event(
+                "info", "metric", events_processed=1000, uptime="2h 15m"
+            ),
         ]
 
         for event in test_events:
@@ -97,7 +124,11 @@ class EventTester:
         event_types = [
             ("agent", "activity", {"agent_type": "PM", "action": "delegating"}),
             ("tool", "execution", {"tool_name": "Grep", "pattern": "TODO"}),
-            ("file", "access", {"path": "/src/components/test.js", "operation": "read"}),
+            (
+                "file",
+                "access",
+                {"path": "/src/components/test.js", "operation": "read"},
+            ),
             ("session", "update", {"active_connections": random.randint(1, 5)}),
             ("info", "heartbeat", {"timestamp": time.time(), "status": "healthy"}),
         ]
@@ -130,29 +161,37 @@ class EventTester:
         print("\n🔬 Running complex data test...")
 
         complex_events = [
-            self.create_test_event("claude", "request",
+            self.create_test_event(
+                "claude",
+                "request",
                 prompt="Create a new React component for displaying user profiles",
                 context={
                     "files": ["/src/components/UserProfile.tsx", "/src/types/User.ts"],
-                    "requirements": ["responsive design", "accessibility", "TypeScript"],
+                    "requirements": [
+                        "responsive design",
+                        "accessibility",
+                        "TypeScript",
+                    ],
                     "previous_messages": [
                         {"role": "user", "content": "I need help with React"},
-                        {"role": "assistant", "content": "I'd be happy to help!"}
-                    ]
-                }
+                        {"role": "assistant", "content": "I'd be happy to help!"},
+                    ],
+                },
             ),
-
-            self.create_test_event("claude", "response",
+            self.create_test_event(
+                "claude",
+                "response",
                 response="I'll help you create a React component for user profiles...",
                 metadata={
                     "tokens_used": 245,
                     "model": "claude-3-sonnet",
                     "completion_time": 1.8,
-                    "tools_used": ["Write", "Edit"]
-                }
+                    "tools_used": ["Write", "Edit"],
+                },
             ),
-
-            self.create_test_event("memory", "operation",
+            self.create_test_event(
+                "memory",
+                "operation",
                 operation="store",
                 key="project_context",
                 value={
@@ -162,25 +201,43 @@ class EventTester:
                         "src/": {
                             "components/": ["Header.tsx", "Footer.tsx"],
                             "types/": ["User.ts", "Profile.ts"],
-                            "utils/": ["api.ts", "validation.ts"]
+                            "utils/": ["api.ts", "validation.ts"],
                         }
-                    }
-                }
+                    },
+                },
             ),
-
-            self.create_test_event("todo", "updated",
+            self.create_test_event(
+                "todo",
+                "updated",
                 todos=[
-                    {"content": "Create UserProfile component", "status": "in_progress", "activeForm": "Creating UserProfile component"},
-                    {"content": "Add TypeScript types", "status": "completed", "activeForm": "Adding TypeScript types"},
-                    {"content": "Implement responsive design", "status": "pending", "activeForm": "Implementing responsive design"},
-                    {"content": "Add accessibility features", "status": "pending", "activeForm": "Adding accessibility features"},
-                ]
-            )
+                    {
+                        "content": "Create UserProfile component",
+                        "status": "in_progress",
+                        "activeForm": "Creating UserProfile component",
+                    },
+                    {
+                        "content": "Add TypeScript types",
+                        "status": "completed",
+                        "activeForm": "Adding TypeScript types",
+                    },
+                    {
+                        "content": "Implement responsive design",
+                        "status": "pending",
+                        "activeForm": "Implementing responsive design",
+                    },
+                    {
+                        "content": "Add accessibility features",
+                        "status": "pending",
+                        "activeForm": "Adding accessibility features",
+                    },
+                ],
+            ),
         ]
 
         for event in complex_events:
             await self.send_event(event)
             await asyncio.sleep(1.0)
+
 
 async def main():
     """Main test function"""
@@ -205,7 +262,7 @@ async def main():
         # Ask user if they want streaming test
         print("\n" + "=" * 50)
         response = input("🎯 Run streaming test? (y/N): ").lower().strip()
-        if response in ['y', 'yes']:
+        if response in ["y", "yes"]:
             duration = input("Duration in seconds (default 30): ").strip()
             try:
                 duration = int(duration) if duration else 30
@@ -215,7 +272,9 @@ async def main():
             await tester.run_stream_test(duration)
 
         print("\n✅ Test completed successfully!")
-        print("🌐 Check the React EventViewer at: http://localhost:8765/static/events.html")
+        print(
+            "🌐 Check the React EventViewer at: http://localhost:8765/static/events.html"
+        )
 
     except KeyboardInterrupt:
         print("\n⚠️  Test interrupted by user")
@@ -223,6 +282,7 @@ async def main():
         print(f"\n❌ Test failed: {e}")
     finally:
         await tester.disconnect()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

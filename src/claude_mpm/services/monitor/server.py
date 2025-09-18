@@ -15,6 +15,7 @@ DESIGN DECISIONS:
 """
 
 import asyncio
+import contextlib
 import os
 import threading
 import time
@@ -348,7 +349,7 @@ class UnifiedMonitorServer:
                     data = await request.json()
 
                     # Extract event data
-                    namespace = data.get("namespace", "hook")
+                    data.get("namespace", "hook")
                     event = data.get("event", "claude_event")
                     event_data = data.get("data", {})
 
@@ -511,16 +512,15 @@ class UnifiedMonitorServer:
             # Monitor page routes
             async def monitor_page_handler(request):
                 """Serve monitor HTML pages."""
-                page_name = request.match_info.get('page', 'agents')
+                page_name = request.match_info.get("page", "agents")
                 static_dir = dashboard_dir / "static"
                 file_path = static_dir / f"{page_name}.html"
 
                 if file_path.exists() and file_path.is_file():
-                    with open(file_path, 'r', encoding='utf-8') as f:
+                    with open(file_path, encoding="utf-8") as f:
                         content = f.read()
                     return web.Response(text=content, content_type="text/html")
-                else:
-                    return web.Response(text="Page not found", status=404)
+                return web.Response(text="Page not found", status=404)
 
             # Register routes
             self.app.router.add_get("/", dashboard_index)
@@ -534,10 +534,14 @@ class UnifiedMonitorServer:
 
             # Monitor page routes
             self.app.router.add_get("/monitor", lambda r: monitor_page_handler(r))
-            self.app.router.add_get("/monitor/agents", lambda r: monitor_page_handler(r))
+            self.app.router.add_get(
+                "/monitor/agents", lambda r: monitor_page_handler(r)
+            )
             self.app.router.add_get("/monitor/tools", lambda r: monitor_page_handler(r))
             self.app.router.add_get("/monitor/files", lambda r: monitor_page_handler(r))
-            self.app.router.add_get("/monitor/events", lambda r: monitor_page_handler(r))
+            self.app.router.add_get(
+                "/monitor/events", lambda r: monitor_page_handler(r)
+            )
 
             # Static files with cache busting headers for development
             static_dir = dashboard_dir / "static"
@@ -687,10 +691,8 @@ class UnifiedMonitorServer:
             # Cancel heartbeat task if running
             if self.heartbeat_task and not self.heartbeat_task.done():
                 self.heartbeat_task.cancel()
-                try:
+                with contextlib.suppress(asyncio.CancelledError):
                     await self.heartbeat_task
-                except asyncio.CancelledError:
-                    pass
                 self.logger.debug("Heartbeat task cancelled")
 
             # Close the Socket.IO server first to stop accepting new connections

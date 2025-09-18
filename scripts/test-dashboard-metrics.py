@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Test script to verify dashboard metrics and connection status."""
 
-import time
 import json
+import time
+
 import requests
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.webdriver.support.ui import WebDriverWait
+
 
 def test_dashboard_metrics():
     """Test the dashboard metrics display."""
@@ -26,7 +28,7 @@ def test_dashboard_metrics():
             connection_status = driver.find_element(By.ID, "connection-status")
             status_text = connection_status.text
             status_class = connection_status.get_attribute("class")
-            print(f"\n✓ Connection Status Element Found:")
+            print("\n✓ Connection Status Element Found:")
             print(f"  Text: {status_text}")
             print(f"  Class: {status_class}")
         except NoSuchElementException:
@@ -39,7 +41,7 @@ def test_dashboard_metrics():
             "unique-types": "Unique Types",
             "error-count": "Error Count",
             "debug-events-received": "Debug Events Received",
-            "debug-events-rendered": "Debug Events Rendered"
+            "debug-events-rendered": "Debug Events Rendered",
         }
 
         print("\n📊 Header Metrics:")
@@ -65,7 +67,8 @@ def test_dashboard_metrics():
         print("\n🔧 JavaScript State Check:")
 
         # Check socket connection
-        socket_state = driver.execute_script("""
+        socket_state = driver.execute_script(
+            """
             if (window.socketClient) {
                 return {
                     isConnected: window.socketClient.isConnected,
@@ -78,21 +81,23 @@ def test_dashboard_metrics():
                 };
             }
             return null;
-        """)
+        """
+        )
 
         if socket_state:
-            print(f"  Socket Client State:")
+            print("  Socket Client State:")
             print(f"    isConnected: {socket_state['isConnected']}")
             print(f"    isConnecting: {socket_state['isConnecting']}")
             print(f"    Events Count: {socket_state['eventsCount']}")
-            if socket_state['socket']:
+            if socket_state["socket"]:
                 print(f"    Socket Connected: {socket_state['socket']['connected']}")
                 print(f"    Socket ID: {socket_state['socket']['id']}")
         else:
             print("  Socket Client NOT FOUND")
 
         # Check EventViewer state
-        event_viewer_state = driver.execute_script("""
+        event_viewer_state = driver.execute_script(
+            """
             if (window.eventViewer) {
                 return {
                     eventsCount: window.eventViewer.events ? window.eventViewer.events.length : 0,
@@ -102,10 +107,11 @@ def test_dashboard_metrics():
                 };
             }
             return null;
-        """)
+        """
+        )
 
         if event_viewer_state:
-            print(f"\n  Event Viewer State:")
+            print("\n  Event Viewer State:")
             print(f"    Total Events: {event_viewer_state['eventsCount']}")
             print(f"    Filtered Events: {event_viewer_state['filteredEventsCount']}")
             print(f"    Error Count: {event_viewer_state['errorCount']}")
@@ -115,7 +121,8 @@ def test_dashboard_metrics():
 
         # Try to manually trigger metrics update
         print("\n🔄 Manually triggering metrics update...")
-        update_result = driver.execute_script("""
+        update_result = driver.execute_script(
+            """
             if (window.eventViewer && window.eventViewer.updateMetricsUI) {
                 window.eventViewer.updateMetrics();
                 window.eventViewer.updateMetricsUI();
@@ -126,10 +133,11 @@ def test_dashboard_metrics():
                 };
             }
             return { success: false, reason: 'EventViewer not found' };
-        """)
+        """
+        )
 
-        if update_result['success']:
-            print(f"  ✓ Metrics update triggered successfully")
+        if update_result["success"]:
+            print("  ✓ Metrics update triggered successfully")
             print(f"    Events Count: {update_result['eventsCount']}")
 
             # Check metrics again after update
@@ -142,11 +150,13 @@ def test_dashboard_metrics():
                 except NoSuchElementException:
                     print(f"  {label}: NOT FOUND")
         else:
-            print(f"  ✗ Failed to trigger update: {update_result.get('reason', 'Unknown')}")
+            print(
+                f"  ✗ Failed to trigger update: {update_result.get('reason', 'Unknown')}"
+            )
 
         # Check for console errors
-        console_logs = driver.get_log('browser')
-        errors = [log for log in console_logs if log['level'] == 'SEVERE']
+        console_logs = driver.get_log("browser")
+        errors = [log for log in console_logs if log["level"] == "SEVERE"]
         if errors:
             print("\n⚠️ Console Errors Found:")
             for error in errors[:5]:  # Limit to first 5 errors
@@ -158,6 +168,7 @@ def test_dashboard_metrics():
 
     finally:
         driver.quit()
+
 
 if __name__ == "__main__":
     test_dashboard_metrics()

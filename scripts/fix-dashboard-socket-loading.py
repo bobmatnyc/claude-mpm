@@ -10,17 +10,17 @@ from pathlib import Path
 
 # Dashboard HTML files to update
 DASHBOARD_FILES = [
-    'activity.html',
-    'events.html',
-    'agents.html',
-    'tools.html',
-    'files.html'
+    "activity.html",
+    "events.html",
+    "agents.html",
+    "tools.html",
+    "files.html",
 ]
 
-STATIC_DIR = Path('/Users/masa/Projects/claude-mpm/src/claude_mpm/dashboard/static')
+STATIC_DIR = Path("/Users/masa/Projects/claude-mpm/src/claude_mpm/dashboard/static")
 
 # Socket.IO verification script to inject
-SOCKET_IO_VERIFICATION = '''    <!-- Load Socket.IO -->
+SOCKET_IO_VERIFICATION = """    <!-- Load Socket.IO -->
     <script src="/static/socket.io.min.js"></script>
 
     <!-- Verify Socket.IO is loaded -->
@@ -37,10 +37,10 @@ SOCKET_IO_VERIFICATION = '''    <!-- Load Socket.IO -->
         } else {
             console.log('Socket.IO loaded successfully, version:', io.version || 'unknown');
         }
-    </script>'''
+    </script>"""
 
 # Module initialization wrapper
-MODULE_INIT_WRAPPER = '''    <!-- Load components -->
+MODULE_INIT_WRAPPER = """    <!-- Load components -->
     <script type="module">
         // Wait for Socket.IO to be available
         function waitForSocketIO() {
@@ -57,15 +57,16 @@ MODULE_INIT_WRAPPER = '''    <!-- Load components -->
 
         // Initialize after Socket.IO is ready
         await waitForSocketIO();
-        console.log('Starting dashboard initialization...');'''
+        console.log('Starting dashboard initialization...');"""
+
 
 def fix_socket_loading(file_path):
     """Fix Socket.IO loading in a dashboard HTML file."""
-    with open(file_path, 'r') as f:
+    with open(file_path) as f:
         content = f.read()
 
     # Check if already fixed
-    if 'waitForSocketIO' in content:
+    if "waitForSocketIO" in content:
         print(f"  ✓ {file_path.name} already fixed")
         return False
 
@@ -79,15 +80,16 @@ def fix_socket_loading(file_path):
 
     # Replace module initialization if not already done
     module_pattern = r'    <!-- Load components -->\s*<script type="module">'
-    if re.search(module_pattern, content) and 'waitForSocketIO' not in content:
+    if re.search(module_pattern, content) and "waitForSocketIO" not in content:
         content = re.sub(module_pattern, MODULE_INIT_WRAPPER, content)
         print(f"  ✓ Updated module initialization in {file_path.name}")
 
     # Write back
-    with open(file_path, 'w') as f:
+    with open(file_path, "w") as f:
         f.write(content)
 
     return True
+
 
 def main():
     """Main function to fix all dashboard files."""
@@ -115,5 +117,6 @@ def main():
     print("2. Check browser console for connection status")
     print("3. Open any dashboard (e.g., http://localhost:8765/static/activity.html)")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

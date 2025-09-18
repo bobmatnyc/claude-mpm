@@ -122,7 +122,7 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
     )
 
     # Manage local agents (interactive menu)
-    manage_agents_parser = agents_subparsers.add_parser(
+    agents_subparsers.add_parser(
         "manage", help="Interactive menu for managing local agents"
     )
 

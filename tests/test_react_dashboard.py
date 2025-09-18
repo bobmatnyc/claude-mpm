@@ -6,15 +6,16 @@ Tests functionality, performance, and ensures backward compatibility.
 
 import asyncio
 import json
-import time
-import random
-from typing import Dict, Any, List
-from playwright.async_api import async_playwright, Page, Browser, BrowserContext
-import socketio
-import subprocess
-import signal
 import os
+import random
+import signal
+import subprocess
+import time
+from typing import Any, Dict, List
+
 import psutil
+import socketio
+from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
 
 class ReactDashboardTester:
@@ -33,7 +34,7 @@ class ReactDashboardTester:
             "data_inspector": False,
             "performance": {},
             "errors": [],
-            "screenshots": []
+            "screenshots": [],
         }
 
     async def setup_browser(self):
@@ -45,13 +46,13 @@ class ReactDashboardTester:
         # Use Safari browser for macOS testing
         self.browser = await playwright.webkit.launch(
             headless=False,  # Keep visible for manual verification
-            slow_mo=100      # Slow down for better observation
+            slow_mo=100,  # Slow down for better observation
         )
 
         self.context = await self.browser.new_context(
             # Enable console logging
             ignore_https_errors=True,
-            viewport={'width': 1400, 'height': 900}
+            viewport={"width": 1400, "height": 900},
         )
 
         self.page = await self.context.new_page()
@@ -65,22 +66,22 @@ class ReactDashboardTester:
     def _handle_console_message(self, msg):
         """Handle browser console messages"""
         print(f"🖥️  Console [{msg.type}]: {msg.text}")
-        if msg.type in ['error', 'warning']:
-            self.test_results['errors'].append({
-                'type': 'console',
-                'level': msg.type,
-                'message': msg.text,
-                'timestamp': time.time()
-            })
+        if msg.type in ["error", "warning"]:
+            self.test_results["errors"].append(
+                {
+                    "type": "console",
+                    "level": msg.type,
+                    "message": msg.text,
+                    "timestamp": time.time(),
+                }
+            )
 
     def _handle_page_error(self, error):
         """Handle page errors"""
         print(f"❌ Page Error: {error}")
-        self.test_results['errors'].append({
-            'type': 'page_error',
-            'message': str(error),
-            'timestamp': time.time()
-        })
+        self.test_results["errors"].append(
+            {"type": "page_error", "message": str(error), "timestamp": time.time()}
+        )
 
     async def connect_socketio(self):
         """Connect to SocketIO server"""
@@ -98,28 +99,30 @@ class ReactDashboardTester:
 
         try:
             # Navigate to events page
-            await self.page.goto(self.events_url, wait_until='networkidle')
+            await self.page.goto(self.events_url, wait_until="networkidle")
 
             # Take initial screenshot
-            await self.page.screenshot(path='dashboard_initial.png')
-            self.test_results['screenshots'].append('dashboard_initial.png')
+            await self.page.screenshot(path="dashboard_initial.png")
+            self.test_results["screenshots"].append("dashboard_initial.png")
 
             # Wait for React component to load
-            await self.page.wait_for_selector('#react-events-root', timeout=10000)
+            await self.page.wait_for_selector("#react-events-root", timeout=10000)
 
             # Check if React component actually loaded (not just fallback)
-            react_loaded = await self.page.evaluate("""
+            react_loaded = await self.page.evaluate(
+                """
                 () => {
                     const fallback = document.getElementById('fallback-events');
                     const reactContainer = document.getElementById('react-events-root');
                     return fallback && fallback.style.display === 'none' &&
                            reactContainer && reactContainer.children.length > 1;
                 }
-            """)
+            """
+            )
 
             if react_loaded:
                 print("✅ React EventViewer component loaded successfully")
-                self.test_results['component_loading'] = True
+                self.test_results["component_loading"] = True
             else:
                 print("⚠️  React component may not have loaded (fallback still visible)")
 
@@ -127,18 +130,16 @@ class ReactDashboardTester:
             await asyncio.sleep(2)
 
             # Take screenshot after React loads
-            await self.page.screenshot(path='dashboard_react_loaded.png')
-            self.test_results['screenshots'].append('dashboard_react_loaded.png')
+            await self.page.screenshot(path="dashboard_react_loaded.png")
+            self.test_results["screenshots"].append("dashboard_react_loaded.png")
 
             return react_loaded
 
         except Exception as e:
             print(f"❌ Failed to load dashboard: {e}")
-            self.test_results['errors'].append({
-                'type': 'load_error',
-                'message': str(e),
-                'timestamp': time.time()
-            })
+            self.test_results["errors"].append(
+                {"type": "load_error", "message": str(e), "timestamp": time.time()}
+            )
             return False
 
     async def test_websocket_connection(self):
@@ -147,7 +148,8 @@ class ReactDashboardTester:
 
         try:
             # Check connection status indicator
-            connection_status = await self.page.evaluate("""
+            connection_status = await self.page.evaluate(
+                """
                 () => {
                     // Look for connection status indicators
                     const statusElements = document.querySelectorAll('[class*="connection"], [class*="status"]');
@@ -161,15 +163,15 @@ class ReactDashboardTester:
                     // Check if SocketIO client is available
                     return typeof window.socket !== 'undefined' && window.socket.connected ? 'connected' : 'disconnected';
                 }
-            """)
+            """
+            )
 
-            if connection_status == 'connected':
+            if connection_status == "connected":
                 print("✅ WebSocket connection established")
-                self.test_results['websocket_connection'] = True
+                self.test_results["websocket_connection"] = True
                 return True
-            else:
-                print(f"⚠️  WebSocket connection status: {connection_status}")
-                return False
+            print(f"⚠️  WebSocket connection status: {connection_status}")
+            return False
 
         except Exception as e:
             print(f"❌ Failed to check WebSocket connection: {e}")
@@ -196,11 +198,11 @@ class ReactDashboardTester:
                 "timestamp": int(time.time() * 1000),
                 "source": "automated_test",
                 "sequence": i,
-                "data": data
+                "data": data,
             }
 
             try:
-                await self.sio.emit('claude_event', event)
+                await self.sio.emit("claude_event", event)
                 await asyncio.sleep(0.1)  # Small delay between events
             except Exception as e:
                 print(f"❌ Failed to send event {i}: {e}")
@@ -219,35 +221,38 @@ class ReactDashboardTester:
             await asyncio.sleep(3)
 
             # Check if events are visible in the UI
-            event_count = await self.page.evaluate("""
+            event_count = await self.page.evaluate(
+                """
                 () => {
                     const events = document.querySelectorAll('[class*="event"], [class*="item"]');
                     return events.length;
                 }
-            """)
+            """
+            )
 
-            stats_display = await self.page.evaluate("""
+            stats_display = await self.page.evaluate(
+                """
                 () => {
                     const statValues = document.querySelectorAll('[class*="stat-value"]');
                     return Array.from(statValues).map(el => el.textContent.trim());
                 }
-            """)
+            """
+            )
 
             print(f"📊 Found {event_count} event elements in UI")
             print(f"📈 Stats displayed: {stats_display}")
 
             if event_count > 0:
-                self.test_results['event_rendering'] = True
+                self.test_results["event_rendering"] = True
                 print("✅ Events are being rendered")
 
                 # Take screenshot of events
-                await self.page.screenshot(path='dashboard_with_events.png')
-                self.test_results['screenshots'].append('dashboard_with_events.png')
+                await self.page.screenshot(path="dashboard_with_events.png")
+                self.test_results["screenshots"].append("dashboard_with_events.png")
 
                 return True
-            else:
-                print("⚠️  No events found in UI")
-                return False
+            print("⚠️  No events found in UI")
+            return False
 
         except Exception as e:
             print(f"❌ Failed to test event rendering: {e}")
@@ -259,7 +264,9 @@ class ReactDashboardTester:
 
         try:
             # Look for filter controls
-            filter_elements = await self.page.query_selector_all('input[type="text"], select, [class*="filter"]')
+            filter_elements = await self.page.query_selector_all(
+                'input[type="text"], select, [class*="filter"]'
+            )
 
             if not filter_elements:
                 print("⚠️  No filter controls found")
@@ -268,15 +275,19 @@ class ReactDashboardTester:
             print(f"🎛️  Found {len(filter_elements)} filter elements")
 
             # Try to use a filter (if available)
-            filter_input = await self.page.query_selector('input[placeholder*="filter"], input[placeholder*="search"]')
+            filter_input = await self.page.query_selector(
+                'input[placeholder*="filter"], input[placeholder*="search"]'
+            )
             if filter_input:
                 await filter_input.fill("agent")
                 await asyncio.sleep(1)
 
                 # Check if filtering worked
-                visible_events = await self.page.evaluate("""
+                visible_events = await self.page.evaluate(
+                    """
                     () => document.querySelectorAll('[class*="event"]:not([style*="display: none"])').length
-                """)
+                """
+                )
 
                 print(f"📋 Events visible after filtering: {visible_events}")
 
@@ -284,7 +295,7 @@ class ReactDashboardTester:
                 await filter_input.fill("")
                 await asyncio.sleep(1)
 
-                self.test_results['filtering'] = True
+                self.test_results["filtering"] = True
                 print("✅ Filtering functionality working")
                 return True
 
@@ -311,25 +322,26 @@ class ReactDashboardTester:
             await asyncio.sleep(1)
 
             # Look for expanded data view
-            inspector_visible = await self.page.evaluate("""
+            inspector_visible = await self.page.evaluate(
+                """
                 () => {
                     const inspectors = document.querySelectorAll('[class*="inspector"], [class*="details"], [class*="expanded"]');
                     return inspectors.length > 0;
                 }
-            """)
+            """
+            )
 
             if inspector_visible:
                 print("✅ Data inspector opens on event click")
-                self.test_results['data_inspector'] = True
+                self.test_results["data_inspector"] = True
 
                 # Take screenshot of inspector
-                await self.page.screenshot(path='dashboard_data_inspector.png')
-                self.test_results['screenshots'].append('dashboard_data_inspector.png')
+                await self.page.screenshot(path="dashboard_data_inspector.png")
+                self.test_results["screenshots"].append("dashboard_data_inspector.png")
 
                 return True
-            else:
-                print("⚠️  Data inspector not found")
-                return False
+            print("⚠️  Data inspector not found")
+            return False
 
         except Exception as e:
             print(f"❌ Failed to test data inspector: {e}")
@@ -341,7 +353,9 @@ class ReactDashboardTester:
 
         try:
             # Measure initial memory usage
-            initial_memory = await self.page.evaluate("() => performance.memory ? performance.memory.usedJSHeapSize : 0")
+            initial_memory = await self.page.evaluate(
+                "() => performance.memory ? performance.memory.usedJSHeapSize : 0"
+            )
 
             # Send a large number of events
             print("📊 Sending 1000 events for performance testing...")
@@ -355,29 +369,33 @@ class ReactDashboardTester:
             send_duration = time.time() - start_time
 
             # Measure final memory usage
-            final_memory = await self.page.evaluate("() => performance.memory ? performance.memory.usedJSHeapSize : 0")
+            final_memory = await self.page.evaluate(
+                "() => performance.memory ? performance.memory.usedJSHeapSize : 0"
+            )
 
             # Check if page is still responsive
             responsive_time = time.time()
             await self.page.evaluate("() => document.title")
             response_time = (time.time() - responsive_time) * 1000
 
-            self.test_results['performance'] = {
-                'send_duration': send_duration,
-                'initial_memory': initial_memory,
-                'final_memory': final_memory,
-                'memory_increase': final_memory - initial_memory,
-                'response_time_ms': response_time
+            self.test_results["performance"] = {
+                "send_duration": send_duration,
+                "initial_memory": initial_memory,
+                "final_memory": final_memory,
+                "memory_increase": final_memory - initial_memory,
+                "response_time_ms": response_time,
             }
 
-            print(f"📈 Performance Results:")
+            print("📈 Performance Results:")
             print(f"   Send Duration: {send_duration:.2f}s")
-            print(f"   Memory Increase: {(final_memory - initial_memory) / 1024 / 1024:.2f} MB")
+            print(
+                f"   Memory Increase: {(final_memory - initial_memory) / 1024 / 1024:.2f} MB"
+            )
             print(f"   Page Response Time: {response_time:.2f}ms")
 
             # Take performance screenshot
-            await self.page.screenshot(path='dashboard_performance_test.png')
-            self.test_results['screenshots'].append('dashboard_performance_test.png')
+            await self.page.screenshot(path="dashboard_performance_test.png")
+            self.test_results["screenshots"].append("dashboard_performance_test.png")
 
             return response_time < 1000  # Should respond within 1 second
 
@@ -391,7 +409,8 @@ class ReactDashboardTester:
 
         try:
             # Check if vanilla JS components are still available
-            vanilla_functions = await self.page.evaluate("""
+            vanilla_functions = await self.page.evaluate(
+                """
                 () => {
                     const available = [];
 
@@ -402,7 +421,8 @@ class ReactDashboardTester:
 
                     return available;
                 }
-            """)
+            """
+            )
 
             print(f"🔧 Vanilla JS components available: {vanilla_functions}")
 
@@ -469,11 +489,11 @@ class ReactDashboardTester:
 
         # Calculate overall score
         tests = [
-            ('Component Loading', self.test_results['component_loading']),
-            ('WebSocket Connection', self.test_results['websocket_connection']),
-            ('Event Rendering', self.test_results['event_rendering']),
-            ('Filtering', self.test_results['filtering']),
-            ('Data Inspector', self.test_results['data_inspector']),
+            ("Component Loading", self.test_results["component_loading"]),
+            ("WebSocket Connection", self.test_results["websocket_connection"]),
+            ("Event Rendering", self.test_results["event_rendering"]),
+            ("Filtering", self.test_results["filtering"]),
+            ("Data Inspector", self.test_results["data_inspector"]),
         ]
 
         passed = sum(1 for _, result in tests if result)
@@ -488,36 +508,40 @@ class ReactDashboardTester:
             print(f"   {test_name:20} {status}")
 
         # Performance metrics
-        if self.test_results['performance']:
-            perf = self.test_results['performance']
-            print(f"\n⚡ Performance Metrics:")
-            print(f"   Memory Usage: {perf['memory_increase'] / 1024 / 1024:.2f} MB increase")
+        if self.test_results["performance"]:
+            perf = self.test_results["performance"]
+            print("\n⚡ Performance Metrics:")
+            print(
+                f"   Memory Usage: {perf['memory_increase'] / 1024 / 1024:.2f} MB increase"
+            )
             print(f"   Response Time: {perf['response_time_ms']:.2f}ms")
             print(f"   Send Duration: {perf['send_duration']:.2f}s for 1000 events")
 
         # Error summary
-        if self.test_results['errors']:
+        if self.test_results["errors"]:
             print(f"\n⚠️  Errors Found ({len(self.test_results['errors'])}):")
-            for error in self.test_results['errors'][:5]:  # Show first 5 errors
+            for error in self.test_results["errors"][:5]:  # Show first 5 errors
                 print(f"   [{error['type']}] {error['message'][:80]}...")
         else:
-            print(f"\n✅ No errors detected")
+            print("\n✅ No errors detected")
 
         # Screenshots
-        if self.test_results['screenshots']:
-            print(f"\n📸 Screenshots saved:")
-            for screenshot in self.test_results['screenshots']:
+        if self.test_results["screenshots"]:
+            print("\n📸 Screenshots saved:")
+            for screenshot in self.test_results["screenshots"]:
                 print(f"   {screenshot}")
 
         # Success criteria
-        print(f"\n✅ SUCCESS CRITERIA:")
+        print("\n✅ SUCCESS CRITERIA:")
         criteria = [
-            ("Zero console errors", len(self.test_results['errors']) == 0),
-            ("Events render within 100ms",
-             self.test_results['performance'].get('response_time_ms', 0) < 100),
-            ("All filters work", self.test_results['filtering']),
-            ("Data inspector works", self.test_results['data_inspector']),
-            ("React component loads", self.test_results['component_loading'])
+            ("Zero console errors", len(self.test_results["errors"]) == 0),
+            (
+                "Events render within 100ms",
+                self.test_results["performance"].get("response_time_ms", 0) < 100,
+            ),
+            ("All filters work", self.test_results["filtering"]),
+            ("Data inspector works", self.test_results["data_inspector"]),
+            ("React component loads", self.test_results["component_loading"]),
         ]
 
         for criterion, met in criteria:
@@ -537,15 +561,16 @@ async def main():
     # Check if server is running
     try:
         import requests
+
         response = requests.get("http://localhost:8765/static/events.html", timeout=5)
         if response.status_code != 200:
             print("❌ Monitor server not accessible at localhost:8765")
             print("💡 Please start the monitor with: ./scripts/claude-mpm monitor")
-            return
+            return None
     except Exception as e:
         print("❌ Monitor server not running")
         print("💡 Please start the monitor with: ./scripts/claude-mpm monitor")
-        return
+        return None
 
     # Run tests
     tester = ReactDashboardTester()

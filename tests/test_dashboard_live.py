@@ -5,19 +5,16 @@ Tests the dashboard with real Claude MPM events by executing actual commands
 """
 
 import subprocess
-import time
 import sys
+import time
+
 
 def run_claude_mpm_command(command):
     """Run a claude-mpm command and capture output"""
     print(f"🚀 Running: {command}")
     try:
         result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            timeout=10
+            command, shell=True, capture_output=True, text=True, timeout=10, check=False
         )
         if result.returncode == 0:
             print(f"✅ Success: {command}")
@@ -31,6 +28,7 @@ def run_claude_mpm_command(command):
 
     # Give monitor time to process events
     time.sleep(0.5)
+
 
 def main():
     print("=" * 60)
@@ -66,6 +64,7 @@ def main():
     print("\n💡 Note: File operations (Read, Write, Edit) will only appear")
     print("   when running actual Claude MPM agent delegations that perform")
     print("   file operations, not from these CLI commands.")
+
 
 if __name__ == "__main__":
     main()
