@@ -30,6 +30,52 @@ class AgentTemplateBuilder:
         """Initialize the template builder."""
         self.logger = get_logger(__name__)
 
+    def normalize_tools_input(self, tools):
+        """Normalize various tool input formats to a consistent list.
+
+        Handles multiple input formats:
+        - None/empty: Returns default tools
+        - String: Splits by comma and strips whitespace
+        - List: Ensures all items are strings and strips whitespace
+        - Dict: Takes enabled tools (where value is True)
+
+        Args:
+            tools: Tools input in various formats (str, list, dict, or None)
+
+        Returns:
+            List of tool names, normalized and cleaned
+        """
+        default_tools = ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
+
+        # Handle None or empty
+        if not tools:
+            self.logger.debug("No tools provided, using defaults")
+            return default_tools
+
+        # Convert to list format
+        if isinstance(tools, str):
+            # Split by comma, strip whitespace
+            tool_list = [t.strip() for t in tools.split(",") if t.strip()]
+            self.logger.debug(f"Converted string tools '{tools}' to list: {tool_list}")
+        elif isinstance(tools, list):
+            # Ensure all items are strings and strip whitespace
+            tool_list = [str(t).strip() for t in tools if t and str(t).strip()]
+            self.logger.debug(f"Normalized list tools: {tool_list}")
+        elif isinstance(tools, dict):
+            # Handle dict format - take enabled tools
+            tool_list = [k for k, v in tools.items() if v]
+            self.logger.info(f"Converting dict tools format: {tools} -> {tool_list}")
+        else:
+            self.logger.warning(f"Unknown tools format: {type(tools)}, using defaults")
+            return default_tools
+
+        # Return processed list or defaults if empty
+        if not tool_list:
+            self.logger.debug("Tools list empty after processing, using defaults")
+            return default_tools
+
+        return tool_list
+
     def _load_base_agent_instructions(self, agent_type: str) -> str:
         """Load BASE instructions for a specific agent type.
 
@@ -138,12 +184,21 @@ class AgentTemplateBuilder:
             capabilities.get("tools") if isinstance(capabilities, dict) else None
         )
 
-        tools = (
+        # Get raw tools from various possible locations
+        raw_tools = (
             template_data.get("tools")
             or capabilities_tools
             or template_data.get("configuration_fields", {}).get("tools")
-            or ["Read", "Write", "Edit", "Grep", "Glob", "LS"]  # Default fallback
         )
+
+        # Normalize tools to a consistent list format
+        tools = self.normalize_tools_input(raw_tools)
+
+        # Log if we see non-standard tool names (info level, not warning)
+        standard_tools = {"Read", "Write", "Edit", "Grep", "Glob", "Bash", "LS", "TodoWrite", "WebSearch", "WebFetch"}
+        non_standard = [t for t in tools if t not in standard_tools]
+        if non_standard:
+            self.logger.info(f"Using non-standard tools: {non_standard}")
 
         # Extract model from template with fallback
         capabilities_model = (
@@ -157,15 +212,8 @@ class AgentTemplateBuilder:
             or "sonnet"  # Default fallback
         )
 
-        # Convert tools list to comma-separated string (no spaces!)
-        tools_str = ",".join(tools) if isinstance(tools, list) else str(tools)
-
-        # Validate tools format - CRITICAL: No spaces allowed!
-        if ", " in tools_str:
-            self.logger.error(f"Tools contain spaces: '{tools_str}'")
-            raise ValueError(
-                f"Tools must be comma-separated WITHOUT spaces: {tools_str}"
-            )
+        # Convert tools list to comma-separated string (without spaces for compatibility)
+        tools_str = ",".join(tools)
 
         # Map model names to Claude Code format (as required)
         model_map = {
@@ -423,7 +471,8 @@ Only include memories that are:
         )
 
         # Get tools and model with fallbacks
-        tools = merged_config.get("tools", ["Read", "Write", "Edit"])
+        raw_tools = merged_config.get("tools")
+        tools = self.normalize_tools_input(raw_tools)
         model = merged_config.get("model", "sonnet")
 
         # Format tools as YAML list
