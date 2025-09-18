@@ -195,7 +195,14 @@ class AgentTemplateBuilder:
         tools = self.normalize_tools_input(raw_tools)
 
         # Log if we see non-standard tool names (info level, not warning)
-        standard_tools = {"Read", "Write", "Edit", "Grep", "Glob", "Bash", "LS", "TodoWrite", "WebSearch", "WebFetch"}
+        standard_tools = {
+            "Read", "Write", "Edit", "MultiEdit",  # File operations
+            "Grep", "Glob", "LS",  # Search and navigation
+            "Bash", "BashOutput", "KillShell",  # Command execution
+            "TodoWrite", "ExitPlanMode",  # Task management
+            "WebSearch", "WebFetch",  # Web operations
+            "NotebookRead", "NotebookEdit"  # Jupyter notebook support
+        }
         non_standard = [t for t in tools if t not in standard_tools]
         if non_standard:
             self.logger.info(f"Using non-standard tools: {non_standard}")
