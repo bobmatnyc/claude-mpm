@@ -1,3 +1,9 @@
+## [4.2.52] - 2025-09-18
+
+### Changed
+- Pre-optimization checkpoint before PM instruction refactoring
+- Preparing for significant reduction in instruction verbosity
+
 ## [4.2.51] - 2025-09-17
 
 ### Changed

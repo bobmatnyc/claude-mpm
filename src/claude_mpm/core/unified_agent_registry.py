@@ -371,7 +371,11 @@ class UnifiedAgentRegistry:
                     if "metadata" in data:
                         tags_raw = data["metadata"].get("tags", [])
                         if isinstance(tags_raw, str):
-                            tags = [tag.strip() for tag in tags_raw.split(",") if tag.strip()]
+                            tags = [
+                                tag.strip()
+                                for tag in tags_raw.split(",")
+                                if tag.strip()
+                            ]
                         else:
                             tags = tags_raw if isinstance(tags_raw, list) else []
 
@@ -469,7 +473,9 @@ class UnifiedAgentRegistry:
                     # Extract tags as specializations if present (handle both formats)
                     tags_raw = metadata.get("tags", [])
                     if isinstance(tags_raw, str):
-                        tags = [tag.strip() for tag in tags_raw.split(",") if tag.strip()]
+                        tags = [
+                            tag.strip() for tag in tags_raw.split(",") if tag.strip()
+                        ]
                     else:
                         tags = tags_raw if isinstance(tags_raw, list) else []
                     if tags and not specializations:

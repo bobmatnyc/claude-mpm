@@ -639,7 +639,14 @@ class FrameworkLoader:
             self._load_packaged_framework_content(content)
         else:
             # Load from filesystem for development mode
-            # Load framework's INSTRUCTIONS.md
+            # Try new consolidated PM_INSTRUCTIONS.md first, fall back to INSTRUCTIONS.md
+            pm_instructions_path = (
+                self.framework_path
+                / "src"
+                / "claude_mpm"
+                / "agents"
+                / "PM_INSTRUCTIONS.md"
+            )
             framework_instructions_path = (
                 self.framework_path
                 / "src"
@@ -647,12 +654,23 @@ class FrameworkLoader:
                 / "agents"
                 / "INSTRUCTIONS.md"
             )
-            if framework_instructions_path.exists():
+
+            # Try loading new consolidated file first
+            if pm_instructions_path.exists():
                 loaded_content = self._try_load_file(
-                    framework_instructions_path, "framework INSTRUCTIONS.md"
+                    pm_instructions_path, "consolidated PM_INSTRUCTIONS.md"
                 )
                 if loaded_content:
                     content["framework_instructions"] = loaded_content
+                    self.logger.info("Loaded consolidated PM_INSTRUCTIONS.md")
+            # Fall back to legacy file for backward compatibility
+            elif framework_instructions_path.exists():
+                loaded_content = self._try_load_file(
+                    framework_instructions_path, "framework INSTRUCTIONS.md (legacy)"
+                )
+                if loaded_content:
+                    content["framework_instructions"] = loaded_content
+                    self.logger.warning("Using legacy INSTRUCTIONS.md - consider migrating to PM_INSTRUCTIONS.md")
                     content["loaded"] = True
                     # Add framework version to content
                     if self.framework_version:
@@ -717,20 +735,33 @@ class FrameworkLoader:
                 return
 
         try:
-            # Load INSTRUCTIONS.md
-            instructions_content = self._load_packaged_file("INSTRUCTIONS.md")
-            if instructions_content:
-                content["framework_instructions"] = instructions_content
+            # Try new consolidated PM_INSTRUCTIONS.md first
+            pm_instructions_content = self._load_packaged_file("PM_INSTRUCTIONS.md")
+            if pm_instructions_content:
+                content["framework_instructions"] = pm_instructions_content
                 content["loaded"] = True
+                self.logger.info("Loaded consolidated PM_INSTRUCTIONS.md from package")
                 # Extract and store version/timestamp metadata
                 self._extract_metadata_from_content(
-                    instructions_content, "INSTRUCTIONS.md"
+                    pm_instructions_content, "PM_INSTRUCTIONS.md"
                 )
-                if self.framework_version:
-                    content["instructions_version"] = self.framework_version
-                    content["version"] = self.framework_version
-                if self.framework_last_modified:
-                    content["instructions_last_modified"] = self.framework_last_modified
+            else:
+                # Fall back to legacy INSTRUCTIONS.md
+                instructions_content = self._load_packaged_file("INSTRUCTIONS.md")
+                if instructions_content:
+                    content["framework_instructions"] = instructions_content
+                    content["loaded"] = True
+                    self.logger.warning("Using legacy INSTRUCTIONS.md from package")
+                    # Extract and store version/timestamp metadata
+                    self._extract_metadata_from_content(
+                        instructions_content, "INSTRUCTIONS.md"
+                    )
+
+            if self.framework_version:
+                content["instructions_version"] = self.framework_version
+                content["version"] = self.framework_version
+            if self.framework_last_modified:
+                content["instructions_last_modified"] = self.framework_last_modified
 
             # Load BASE_PM.md
             base_pm_content = self._load_packaged_file("BASE_PM.md")
@@ -757,22 +788,37 @@ class FrameworkLoader:
     ) -> None:
         """Load framework content using importlib.resources fallback."""
         try:
-            # Load INSTRUCTIONS.md
-            instructions_content = self._load_packaged_file_fallback(
-                "INSTRUCTIONS.md", resources
+            # Try new consolidated PM_INSTRUCTIONS.md first
+            pm_instructions_content = self._load_packaged_file_fallback(
+                "PM_INSTRUCTIONS.md", resources
             )
-            if instructions_content:
-                content["framework_instructions"] = instructions_content
+            if pm_instructions_content:
+                content["framework_instructions"] = pm_instructions_content
                 content["loaded"] = True
+                self.logger.info("Loaded consolidated PM_INSTRUCTIONS.md via fallback")
                 # Extract and store version/timestamp metadata
                 self._extract_metadata_from_content(
-                    instructions_content, "INSTRUCTIONS.md"
+                    pm_instructions_content, "PM_INSTRUCTIONS.md"
                 )
-                if self.framework_version:
-                    content["instructions_version"] = self.framework_version
-                    content["version"] = self.framework_version
-                if self.framework_last_modified:
-                    content["instructions_last_modified"] = self.framework_last_modified
+            else:
+                # Fall back to legacy INSTRUCTIONS.md
+                instructions_content = self._load_packaged_file_fallback(
+                    "INSTRUCTIONS.md", resources
+                )
+                if instructions_content:
+                    content["framework_instructions"] = instructions_content
+                    content["loaded"] = True
+                    self.logger.warning("Using legacy INSTRUCTIONS.md via fallback")
+                    # Extract and store version/timestamp metadata
+                    self._extract_metadata_from_content(
+                        instructions_content, "INSTRUCTIONS.md"
+                    )
+
+            if self.framework_version:
+                content["instructions_version"] = self.framework_version
+                content["version"] = self.framework_version
+            if self.framework_last_modified:
+                content["instructions_last_modified"] = self.framework_last_modified
 
             # Load BASE_PM.md
             base_pm_content = self._load_packaged_file_fallback("BASE_PM.md", resources)

@@ -1739,7 +1739,7 @@ class CodeTreeAnalyzer:
 
         # Filter only very specific internal patterns
         # Be more conservative - only filter obvious internal handlers
-        if name_lower.startswith("handle_") or name_lower.startswith("on_"):
+        if name_lower.startswith(("handle_", "on_")):
             return True
 
         # Filter Python magic methods except important ones
@@ -1756,7 +1756,7 @@ class CodeTreeAnalyzer:
             return node.name not in important_magic
 
         # Filter very generic getters/setters only if they're trivial
-        if (name_lower.startswith("get_") or name_lower.startswith("set_")) and len(
+        if (name_lower.startswith(("get_", "set_"))) and len(
             node.name
         ) <= 8:
             return True

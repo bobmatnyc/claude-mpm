@@ -48,7 +48,7 @@ def get_deployed_agents(agents_dir: Path) -> List[str]:
     agents = []
     for agent_file in agents_dir.glob("*.md"):
         # Skip backup files
-        if not agent_file.name.endswith('.backup'):
+        if not agent_file.name.endswith(".backup"):
             agent_name = agent_file.stem
             agents.append(agent_name)
 
@@ -65,7 +65,7 @@ def backup_agents(agents_dir: Path, backup_dir: Path) -> None:
     backup_dir.mkdir(parents=True, exist_ok=True)
 
     for agent_file in agents_dir.glob("*.md"):
-        if not agent_file.name.endswith('.backup'):
+        if not agent_file.name.endswith(".backup"):
             backup_file = backup_dir / agent_file.name
             print(f"Backing up {agent_file} -> {backup_file}")
             shutil.copy2(agent_file, backup_file)
@@ -77,9 +77,9 @@ def extract_frontmatter_fields(agent_file: Path) -> Dict[str, str]:
         return {}
 
     content = agent_file.read_text()
-    lines = content.split('\n')
+    lines = content.split("\n")
 
-    if not lines or lines[0].strip() != '---':
+    if not lines or lines[0].strip() != "---":
         return {}
 
     fields = {}
@@ -88,18 +88,20 @@ def extract_frontmatter_fields(agent_file: Path) -> Dict[str, str]:
 
     while i < len(lines) and in_frontmatter:
         line = lines[i].strip()
-        if line == '---':
+        if line == "---":
             break
-        elif ':' in line and not line.startswith(' '):
+        if ":" in line and not line.startswith(" "):
             # Handle simple key: value pairs
-            key, value = line.split(':', 1)
+            key, value = line.split(":", 1)
             fields[key.strip()] = value.strip().strip('"')
         i += 1
 
     return fields
 
 
-def verify_metadata_transfer(agents_dir: Path, expected_agents: List[str]) -> Dict[str, Dict[str, str]]:
+def verify_metadata_transfer(
+    agents_dir: Path, expected_agents: List[str]
+) -> Dict[str, Dict[str, str]]:
     """Verify that all agents have proper metadata after deployment."""
     print(f"\nVerifying metadata transfer for {len(expected_agents)} agents...")
 
@@ -112,13 +114,15 @@ def verify_metadata_transfer(agents_dir: Path, expected_agents: List[str]) -> Di
         results[agent_name] = fields
 
         # Check for critical fields
-        has_type = 'type' in fields and fields['type']
-        has_name = 'name' in fields and fields['name']
-        has_model = 'model' in fields and fields['model']
-        has_description = 'description' in fields and fields['description']
+        has_type = "type" in fields and fields["type"]
+        has_name = "name" in fields and fields["name"]
+        has_model = "model" in fields and fields["model"]
+        has_description = "description" in fields and fields["description"]
 
-        status = "✅" if has_type and has_name and has_model and has_description else "❌"
-        type_field = fields.get('type', 'MISSING')
+        status = (
+            "✅" if has_type and has_name and has_model and has_description else "❌"
+        )
+        type_field = fields.get("type", "MISSING")
 
         print(f"{status} {agent_name}: type={type_field}, fields={len(fields)}")
 
@@ -156,8 +160,12 @@ def main():
     print("\n🔍 Step 3: Checking metadata BEFORE fix...")
     before_results = verify_metadata_transfer(agents_dir, deployed_agents)
 
-    missing_type_count = sum(1 for agent, fields in before_results.items() if not fields.get('type'))
-    print(f"\nSUMMARY BEFORE FIX: {missing_type_count}/{len(deployed_agents)} agents missing 'type' field")
+    missing_type_count = sum(
+        1 for agent, fields in before_results.items() if not fields.get("type")
+    )
+    print(
+        f"\nSUMMARY BEFORE FIX: {missing_type_count}/{len(deployed_agents)} agents missing 'type' field"
+    )
 
     # Step 4: Remove agents to force redeployment
     print("\n🗑️  Step 4: Removing agents to force redeployment...")
@@ -187,36 +195,50 @@ def main():
     print("\n✅ Step 6: Verifying metadata transfer...")
     after_results = verify_metadata_transfer(agents_dir, deployed_agents)
 
-    missing_type_after = sum(1 for agent, fields in after_results.items() if not fields.get('type'))
+    missing_type_after = sum(
+        1 for agent, fields in after_results.items() if not fields.get("type")
+    )
     fixed_count = missing_type_count - missing_type_after
 
-    print(f"\nSUMMARY AFTER FIX:")
-    print(f"  • Before: {missing_type_count}/{len(deployed_agents)} agents missing 'type' field")
-    print(f"  • After:  {missing_type_after}/{len(deployed_agents)} agents missing 'type' field")
+    print("\nSUMMARY AFTER FIX:")
+    print(
+        f"  • Before: {missing_type_count}/{len(deployed_agents)} agents missing 'type' field"
+    )
+    print(
+        f"  • After:  {missing_type_after}/{len(deployed_agents)} agents missing 'type' field"
+    )
     print(f"  • Fixed:  {fixed_count} agents now have proper metadata")
 
     # Step 7: Show detailed comparison
-    print(f"\n📊 Step 7: Detailed comparison...")
+    print("\n📊 Step 7: Detailed comparison...")
     print(f"{'Agent':<20} {'Before':<15} {'After':<15} {'Status'}")
     print("-" * 65)
 
     for agent_name in deployed_agents:
-        before_type = before_results.get(agent_name, {}).get('type', 'MISSING')
-        after_type = after_results.get(agent_name, {}).get('type', 'MISSING')
+        before_type = before_results.get(agent_name, {}).get("type", "MISSING")
+        after_type = after_results.get(agent_name, {}).get("type", "MISSING")
 
-        status = "FIXED ✅" if before_type == 'MISSING' and after_type != 'MISSING' else \
-                 "OK ✅" if before_type != 'MISSING' and after_type != 'MISSING' else \
-                 "STILL MISSING ❌"
+        status = (
+            "FIXED ✅"
+            if before_type == "MISSING" and after_type != "MISSING"
+            else (
+                "OK ✅"
+                if before_type != "MISSING" and after_type != "MISSING"
+                else "STILL MISSING ❌"
+            )
+        )
 
         print(f"{agent_name:<20} {before_type:<15} {after_type:<15} {status}")
 
-    print(f"\n🎉 Batch metadata fix completed!")
+    print("\n🎉 Batch metadata fix completed!")
     print(f"Backup created at: {backup_dir}")
 
     if missing_type_after == 0:
         print("🎯 All agents now have proper metadata including the 'type' field!")
     else:
-        print(f"⚠️  {missing_type_after} agents still missing metadata - manual review needed")
+        print(
+            f"⚠️  {missing_type_after} agents still missing metadata - manual review needed"
+        )
 
 
 if __name__ == "__main__":

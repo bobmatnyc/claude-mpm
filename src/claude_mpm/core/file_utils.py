@@ -11,7 +11,7 @@ import json
 import os
 import shutil
 import tempfile
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from typing import Any, List, Optional, Union
 
@@ -374,10 +374,8 @@ def atomic_write(
     except OSError as e:
         logger.error(f"Error in atomic write to {filepath}: {e}")
         # Clean up temporary file
-        try:
+        with suppress(Exception):
             os.unlink(temp_path)
-        except:
-            pass
         return False
 
 
@@ -703,10 +701,7 @@ def validate_file(
         return False
 
     # Check extension
-    if extensions and filepath.suffix not in extensions:
-        return False
-
-    return True
+    return not (extensions and filepath.suffix not in extensions)
 
 
 def get_file_hash(
@@ -760,10 +755,7 @@ def find_files(
     if not directory.exists():
         return []
 
-    if recursive:
-        paths = directory.rglob(pattern)
-    else:
-        paths = directory.glob(pattern)
+    paths = directory.rglob(pattern) if recursive else directory.glob(pattern)
 
     if file_only:
         return [p for p in paths if p.is_file()]

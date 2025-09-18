@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 """Test script for the Activity Dashboard."""
 
+import json
 import os
 import sys
-import time
-import json
 import threading
-import requests
+import time
 from pathlib import Path
+
+import requests
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from claude_mpm.services.monitor.server import UnifiedMonitorServer
 
+
 def start_server():
     """Start the monitor server in a thread."""
     server = UnifiedMonitorServer(port=5001)
     server.start()
+
 
 def send_test_events():
     """Send test events to the server."""
@@ -39,23 +42,20 @@ def send_test_events():
             "type": "start",
             "session_id": "test-session-1",
             "timestamp": time.time(),
-            "data": {
-                "working_directory": "/test/project",
-                "git_branch": "main"
-            }
+            "data": {"working_directory": "/test/project", "git_branch": "main"},
         },
         {
             "type": "user_prompt",
             "session_id": "test-session-1",
             "timestamp": time.time(),
-            "prompt_text": "Build a simple web application with user authentication"
+            "prompt_text": "Build a simple web application with user authentication",
         },
         {
             "type": "subagent",
             "subtype": "started",
             "session_id": "test-session-1",
             "agent_name": "PM",
-            "timestamp": time.time()
+            "timestamp": time.time(),
         },
         {
             "type": "hook",
@@ -65,11 +65,23 @@ def send_test_events():
             "timestamp": time.time(),
             "tool_parameters": {
                 "todos": [
-                    {"content": "Design database schema", "status": "pending", "activeForm": "Designing database schema"},
-                    {"content": "Implement user model", "status": "pending", "activeForm": "Implementing user model"},
-                    {"content": "Create authentication endpoints", "status": "pending", "activeForm": "Creating authentication endpoints"}
+                    {
+                        "content": "Design database schema",
+                        "status": "pending",
+                        "activeForm": "Designing database schema",
+                    },
+                    {
+                        "content": "Implement user model",
+                        "status": "pending",
+                        "activeForm": "Implementing user model",
+                    },
+                    {
+                        "content": "Create authentication endpoints",
+                        "status": "pending",
+                        "activeForm": "Creating authentication endpoints",
+                    },
                 ]
-            }
+            },
         },
         {
             "type": "subagent",
@@ -77,7 +89,7 @@ def send_test_events():
             "session_id": "test-session-1",
             "agent_name": "Engineer",
             "parent_agent": "PM",
-            "timestamp": time.time()
+            "timestamp": time.time(),
         },
         {
             "type": "hook",
@@ -85,9 +97,7 @@ def send_test_events():
             "session_id": "test-session-1",
             "tool_name": "Read",
             "timestamp": time.time(),
-            "tool_parameters": {
-                "file_path": "/test/project/requirements.txt"
-            }
+            "tool_parameters": {"file_path": "/test/project/requirements.txt"},
         },
         {
             "type": "hook",
@@ -95,9 +105,7 @@ def send_test_events():
             "session_id": "test-session-1",
             "tool_name": "Write",
             "timestamp": time.time(),
-            "tool_parameters": {
-                "file_path": "/test/project/models/user.py"
-            }
+            "tool_parameters": {"file_path": "/test/project/models/user.py"},
         },
         {
             "type": "hook",
@@ -105,10 +113,8 @@ def send_test_events():
             "session_id": "test-session-1",
             "tool_name": "Bash",
             "timestamp": time.time(),
-            "tool_parameters": {
-                "command": "python manage.py migrate"
-            }
-        }
+            "tool_parameters": {"command": "python manage.py migrate"},
+        },
     ]
 
     # Send events via API
@@ -117,7 +123,7 @@ def send_test_events():
             response = requests.post(
                 f"{base_url}/api/event",
                 json=event,
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json"},
             )
             if response.status_code == 200:
                 print(f"✓ Sent event: {event['type']} - {event.get('subtype', '')}")
@@ -126,6 +132,7 @@ def send_test_events():
         except Exception as e:
             print(f"✗ Error sending event: {e}")
         time.sleep(0.5)  # Small delay between events
+
 
 def main():
     """Main function to run the test."""
@@ -158,6 +165,7 @@ def main():
             time.sleep(1)
     except KeyboardInterrupt:
         print("\nShutting down...")
+
 
 if __name__ == "__main__":
     main()

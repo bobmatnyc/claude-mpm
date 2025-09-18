@@ -145,6 +145,7 @@ class ErrorHandler:
         if strategy == ErrorStrategy.TERMINATE:
             self.logger.critical(f"Terminating due to critical error: {error}")
             sys.exit(1)
+        return None
 
     def _log_error(
         self,
@@ -307,10 +308,7 @@ def handle_error(
     Returns:
         Result based on strategy
     """
-    if logger:
-        handler = ErrorHandler(logger=logger)
-    else:
-        handler = _global_handler
+    handler = ErrorHandler(logger=logger) if logger else _global_handler
 
     return handler.handle(
         error=error,

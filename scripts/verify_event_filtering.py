@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Verify that event filtering is working correctly in dashboard views"""
 
-import socketio
-import time
-import requests
-from bs4 import BeautifulSoup
 import json
+import sys
+import time
+
+import requests
+import socketio
+from bs4 import BeautifulSoup
+
 
 class EventFilterVerifier:
     def __init__(self):
@@ -14,13 +17,13 @@ class EventFilterVerifier:
         self.results = {
             "agents": {"sent": 0, "expected": []},
             "tools": {"sent": 0, "expected": []},
-            "files": {"sent": 0, "expected": []}
+            "files": {"sent": 0, "expected": []},
         }
 
     def connect(self):
         """Connect to the Socket.IO server"""
         try:
-            self.sio.connect(self.base_url, transports=['polling', 'websocket'])
+            self.sio.connect(self.base_url, transports=["polling", "websocket"])
             time.sleep(1)
             return self.sio.connected
         except Exception as e:
@@ -34,7 +37,7 @@ class EventFilterVerifier:
         self.results = {
             "agents": {"sent": 0, "expected": []},
             "tools": {"sent": 0, "expected": []},
-            "files": {"sent": 0, "expected": []}
+            "files": {"sent": 0, "expected": []},
         }
 
         # Test events with clear categorization
@@ -43,52 +46,59 @@ class EventFilterVerifier:
             {
                 "event": {"type": "agent_start", "data": {"agent_name": "TestAgent1"}},
                 "category": "agents",
-                "name": "TestAgent1"
+                "name": "TestAgent1",
             },
             {
-                "event": {"hook_event_name": "SubagentStart", "data": {"agent": "TestAgent2"}},
+                "event": {
+                    "hook_event_name": "SubagentStart",
+                    "data": {"agent": "TestAgent2"},
+                },
                 "category": "agents",
-                "name": "TestAgent2"
+                "name": "TestAgent2",
             },
             {
                 "event": {"type": "pm_initialization", "data": {"agent_id": "pm-test"}},
                 "category": "agents",
-                "name": "pm-test"
+                "name": "pm-test",
             },
-
             # Tool events
             {
                 "event": {"type": "tool_start", "data": {"tool": "TestBash"}},
                 "category": "tools",
-                "name": "TestBash"
+                "name": "TestBash",
             },
             {
                 "event": {"type": "bash_command", "data": {"command": "test command"}},
                 "category": "tools",
-                "name": "bash_command"
+                "name": "bash_command",
             },
             {
-                "event": {"hook_event_name": "ToolStart", "data": {"tool_name": "TestGrep"}},
+                "event": {
+                    "hook_event_name": "ToolStart",
+                    "data": {"tool_name": "TestGrep"},
+                },
                 "category": "tools",
-                "name": "TestGrep"
+                "name": "TestGrep",
             },
-
             # File events
             {
                 "event": {"type": "file_read", "data": {"file_path": "/test/file1.js"}},
                 "category": "files",
-                "name": "/test/file1.js"
+                "name": "/test/file1.js",
             },
             {
-                "event": {"hook_event_name": "FileWrite", "data": {"path": "/test/file2.py"}},
+                "event": {
+                    "hook_event_name": "FileWrite",
+                    "data": {"path": "/test/file2.py"},
+                },
                 "category": "files",
-                "name": "/test/file2.py"
+                "name": "/test/file2.py",
             },
             {
                 "event": {"type": "file_edit", "data": {"file": "/test/file3.md"}},
                 "category": "files",
-                "name": "/test/file3.md"
-            }
+                "name": "/test/file3.md",
+            },
         ]
 
         print("\n=== Sending Test Events ===")
@@ -98,7 +108,7 @@ class EventFilterVerifier:
             name = item["name"]
 
             print(f"Sending {category} event: {name}")
-            self.sio.emit('claude_event', event)
+            self.sio.emit("claude_event", event)
 
             self.results[category]["sent"] += 1
             self.results[category]["expected"].append(name)
@@ -122,7 +132,7 @@ class EventFilterVerifier:
         views = [
             ("agents", "/static/agents.html"),
             ("tools", "/static/tools.html"),
-            ("files", "/static/files.html")
+            ("files", "/static/files.html"),
         ]
 
         all_passed = True
@@ -146,11 +156,9 @@ class EventFilterVerifier:
                         all_passed = False
 
                     # Check if the view is the right one
-                    if category == "agents" and "Agent Activity Monitor" in content:
-                        print(f"  ✓ Correct view loaded for {category}")
-                    elif category == "tools" and "Tools & Operations Monitor" in content:
-                        print(f"  ✓ Correct view loaded for {category}")
-                    elif category == "files" and "File Operations Monitor" in content:
+                    if (category == "agents" and "Agent Activity Monitor" in content) or (
+                        category == "tools" and "Tools & Operations Monitor" in content
+                    ) or (category == "files" and "File Operations Monitor" in content):
                         print(f"  ✓ Correct view loaded for {category}")
                     else:
                         print(f"  ✗ Wrong view loaded for {category}")
@@ -173,23 +181,53 @@ class EventFilterVerifier:
         # Test event samples
         test_cases = [
             # Agent events
-            {"event": {"type": "agent_start"}, "should_match": {"agents": True, "tools": False, "files": False}},
-            {"event": {"hook_event_name": "SubagentStart"}, "should_match": {"agents": True, "tools": False, "files": False}},
-            {"event": {"data": {"agent_name": "TestAgent"}}, "should_match": {"agents": True, "tools": False, "files": False}},
-
+            {
+                "event": {"type": "agent_start"},
+                "should_match": {"agents": True, "tools": False, "files": False},
+            },
+            {
+                "event": {"hook_event_name": "SubagentStart"},
+                "should_match": {"agents": True, "tools": False, "files": False},
+            },
+            {
+                "event": {"data": {"agent_name": "TestAgent"}},
+                "should_match": {"agents": True, "tools": False, "files": False},
+            },
             # Tool events
-            {"event": {"type": "tool_execution"}, "should_match": {"agents": False, "tools": True, "files": False}},
-            {"event": {"type": "bash_command"}, "should_match": {"agents": False, "tools": True, "files": False}},
-            {"event": {"data": {"tool": "Grep"}}, "should_match": {"agents": False, "tools": True, "files": False}},
-
+            {
+                "event": {"type": "tool_execution"},
+                "should_match": {"agents": False, "tools": True, "files": False},
+            },
+            {
+                "event": {"type": "bash_command"},
+                "should_match": {"agents": False, "tools": True, "files": False},
+            },
+            {
+                "event": {"data": {"tool": "Grep"}},
+                "should_match": {"agents": False, "tools": True, "files": False},
+            },
             # File events
-            {"event": {"type": "file_read"}, "should_match": {"agents": False, "tools": False, "files": True}},
-            {"event": {"hook_event_name": "FileWrite"}, "should_match": {"agents": False, "tools": False, "files": True}},
-            {"event": {"data": {"file_path": "/test.js"}}, "should_match": {"agents": False, "tools": False, "files": True}},
-
+            {
+                "event": {"type": "file_read"},
+                "should_match": {"agents": False, "tools": False, "files": True},
+            },
+            {
+                "event": {"hook_event_name": "FileWrite"},
+                "should_match": {"agents": False, "tools": False, "files": True},
+            },
+            {
+                "event": {"data": {"file_path": "/test.js"}},
+                "should_match": {"agents": False, "tools": False, "files": True},
+            },
             # Edge cases
-            {"event": {"type": "unknown_event"}, "should_match": {"agents": False, "tools": False, "files": False}},
-            {"event": {"type": "Read", "data": {"file_path": "/test.txt"}}, "should_match": {"agents": False, "tools": True, "files": True}},  # Read is both tool and file
+            {
+                "event": {"type": "unknown_event"},
+                "should_match": {"agents": False, "tools": False, "files": False},
+            },
+            {
+                "event": {"type": "Read", "data": {"file_path": "/test.txt"}},
+                "should_match": {"agents": False, "tools": True, "files": True},
+            },  # Read is both tool and file
         ]
 
         print("Testing event categorization:")
@@ -199,7 +237,9 @@ class EventFilterVerifier:
             event_type = event.get("type") or event.get("hook_event_name") or "unknown"
             print(f"\n  Test {i}: {event_type}")
             print(f"    Event: {json.dumps(event, indent=6)}")
-            print(f"    Expected matches: agents={expected['agents']}, tools={expected['tools']}, files={expected['files']}")
+            print(
+                f"    Expected matches: agents={expected['agents']}, tools={expected['tools']}, files={expected['files']}"
+            )
 
         return True
 
@@ -214,7 +254,9 @@ class EventFilterVerifier:
         if not self.connect():
             print("✗ Failed to connect to server")
             print("Make sure the monitor server is running:")
-            print("  python -c \"from claude_mpm.services.monitor import UnifiedMonitorDaemon; daemon = UnifiedMonitorDaemon(); daemon.start()\"")
+            print(
+                '  python -c "from claude_mpm.services.monitor import UnifiedMonitorDaemon; daemon = UnifiedMonitorDaemon(); daemon.start()"'
+            )
             return False
         print("✓ Connected to server")
 
@@ -250,12 +292,12 @@ class EventFilterVerifier:
             print("5. Run: python scripts/test_event_filtering.py")
             print("6. Watch as events are properly filtered to each view!")
             return True
-        else:
-            print("✗ SOME TESTS FAILED")
-            print("Check the output above for details.")
-            return False
+        print("✗ SOME TESTS FAILED")
+        print("Check the output above for details.")
+        return False
+
 
 if __name__ == "__main__":
     verifier = EventFilterVerifier()
     success = verifier.run()
-    exit(0 if success else 1)
+    sys.exit(0 if success else 1)

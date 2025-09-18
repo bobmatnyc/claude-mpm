@@ -250,13 +250,10 @@ class LocalAgentTemplateManager:
             Created LocalAgentTemplate object
         """
         # Determine author based on tier
-        if tier == "project":
-            author = self.get_project_name()
-        else:
-            author = Path.home().name
+        author = self.get_project_name() if tier == "project" else Path.home().name
 
         # Create template
-        template = LocalAgentTemplate(
+        return LocalAgentTemplate(
             agent_id=agent_id,
             agent_version="1.0.0",
             author=author,
@@ -283,7 +280,6 @@ class LocalAgentTemplateManager:
             parent_agent=parent_agent,
         )
 
-        return template
 
     def save_local_template(
         self, template: LocalAgentTemplate, tier: Optional[str] = None

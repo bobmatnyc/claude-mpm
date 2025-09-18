@@ -1290,7 +1290,7 @@ class AgentsCommand(AgentCommand):
 
                 listing_service = AgentListingService()
                 agents, _ = listing_service.list_all_agents()
-                agent_ids = sorted(set(agent.name for agent in agents))
+                agent_ids = sorted({agent.name for agent in agents})
 
                 if agent_ids:
                     disabled = prompt_multiselect(
@@ -1307,7 +1307,7 @@ class AgentsCommand(AgentCommand):
 
                 listing_service = AgentListingService()
                 agents, _ = listing_service.list_all_agents()
-                agent_ids = sorted(set(agent.name for agent in agents))
+                agent_ids = sorted({agent.name for agent in agents})
 
                 if agent_ids:
                     enabled = prompt_multiselect(

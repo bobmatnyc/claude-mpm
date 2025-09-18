@@ -163,8 +163,7 @@ class UnifiedMonitorDaemon:
         # environment variable to prevent infinite recursion
         if self.daemon_manager.use_subprocess_daemon():
             # Start using subprocess - this returns immediately in parent
-            success = self.daemon_manager.start_daemon_subprocess()
-            return success
+            return self.daemon_manager.start_daemon_subprocess()
 
         # Check if we're in subprocess mode (environment variable set)
         if os.environ.get("CLAUDE_MPM_SUBPROCESS_DAEMON") == "1":

@@ -3,18 +3,22 @@
 
 import asyncio
 import sys
+import time
 from pathlib import Path
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import time
+from selenium.webdriver.support.ui import WebDriverWait
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+import contextlib
+
 from claude_mpm.services.monitor.server import UnifiedMonitorServer
+
 
 async def test_react_loading():
     """Test React component loading in the browser."""
@@ -36,7 +40,7 @@ async def test_react_loading():
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
     try:
         # Initialize WebDriver
@@ -50,9 +54,9 @@ async def test_react_loading():
         # Wait for page to load
         time.sleep(2)
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("Testing React Component Exports")
-        print("="*60)
+        print("=" * 60)
 
         # Test 1: Check if initializeReactEvents is exposed
         result = driver.execute_script("return typeof window.initializeReactEvents")
@@ -65,35 +69,43 @@ async def test_react_loading():
         assert result == "object", f"Expected 'object', got '{result}'"
 
         # Test 3: Check if function exists in namespace
-        result = driver.execute_script("return typeof window.ClaudeMPMReact.initializeReactEvents")
+        result = driver.execute_script(
+            "return typeof window.ClaudeMPMReact.initializeReactEvents"
+        )
         print(f"✓ typeof window.ClaudeMPMReact.initializeReactEvents: {result}")
         assert result == "function", f"Expected 'function', got '{result}'"
 
         # Test 4: Check if React root element exists
-        result = driver.execute_script("return document.getElementById('react-events-root') !== null")
+        result = driver.execute_script(
+            "return document.getElementById('react-events-root') !== null"
+        )
         print(f"✓ React root element exists: {result}")
-        assert result == True, "React root element not found"
+        assert result, "React root element not found"
 
         # Test 5: Try to initialize React
         result = driver.execute_script("return window.initializeReactEvents()")
         print(f"✓ initializeReactEvents() returned: {result}")
-        assert result == True, f"Expected true, got {result}"
+        assert result, f"Expected true, got {result}"
 
         # Test 6: Check console for React initialization message
-        logs = driver.get_log('browser')
-        react_initialized = any('React EventViewer initialized' in log.get('message', '') for log in logs)
+        logs = driver.get_log("browser")
+        react_initialized = any(
+            "React EventViewer initialized" in log.get("message", "") for log in logs
+        )
         print(f"✓ React initialization message in console: {react_initialized}")
 
         # Test 7: Check if fallback content is hidden
-        result = driver.execute_script("""
+        result = driver.execute_script(
+            """
             const fallback = document.getElementById('fallback-events');
             return fallback ? window.getComputedStyle(fallback).display : 'not found';
-        """)
+        """
+        )
         print(f"✓ Fallback content display: {result}")
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("All tests passed! React components are loading correctly.")
-        print("="*60)
+        print("=" * 60)
 
     except AssertionError as e:
         print(f"\n❌ Test failed: {e}")
@@ -101,29 +113,29 @@ async def test_react_loading():
     except Exception as e:
         print(f"\n❌ Error during testing: {e}")
         import traceback
+
         traceback.print_exc()
         return False
     finally:
         # Clean up
-        if 'driver' in locals():
+        if "driver" in locals():
             driver.quit()
 
         # Stop server
         print("\nShutting down server...")
         server_task.cancel()
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await server_task
-        except asyncio.CancelledError:
-            pass
         await server.shutdown()
 
     return True
 
+
 def main():
     """Run the test without Selenium (manual verification)."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Manual Testing Instructions")
-    print("="*60)
+    print("=" * 60)
 
     print("\nSince Selenium is not installed, please test manually:")
     print("\n1. Start the server:")
@@ -146,12 +158,14 @@ def main():
     print("   - 'React events initialization function exposed on window'")
     print("   - 'React EventViewer initialized'")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
+
 
 if __name__ == "__main__":
     try:
         # Try automated test first
         import selenium
+
         success = asyncio.run(test_react_loading())
         sys.exit(0 if success else 1)
     except ImportError:

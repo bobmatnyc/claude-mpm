@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Quick test to verify activity dashboard works."""
 
+import subprocess
 import sys
 import time
-import subprocess
 import webbrowser
 from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
+
 
 def main():
     print("🚀 Starting Claude MPM Monitor Server...")
@@ -19,7 +20,7 @@ def main():
         ["python", "-m", "claude_mpm.cli.main", "monitor", "--port", "5001"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True
+        text=True,
     )
 
     print("⏳ Waiting for server to start...")
@@ -28,6 +29,7 @@ def main():
     # Check if server is running
     try:
         import requests
+
         response = requests.get("http://localhost:5001/api/status", timeout=2)
         if response.status_code == 200:
             print("✅ Server is running!")
@@ -62,6 +64,7 @@ def main():
         print("\n🛑 Shutting down server...")
         server_process.terminate()
         print("👋 Goodbye!")
+
 
 if __name__ == "__main__":
     main()

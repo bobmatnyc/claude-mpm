@@ -42,7 +42,7 @@ def check_monitor_dependencies():
 def install_with_pipx(packages):
     """Install packages using pipx inject."""
     try:
-        cmd = ["pipx", "inject", "claude-mpm"] + packages
+        cmd = ["pipx", "inject", "claude-mpm", *packages]
         print(f"Running: {' '.join(cmd)}")
         subprocess.run(cmd, check=True)
         return True
@@ -57,7 +57,7 @@ def install_with_pipx(packages):
 def install_with_pip(packages):
     """Install packages using pip."""
     try:
-        cmd = [sys.executable, "-m", "pip", "install"] + packages
+        cmd = [sys.executable, "-m", "pip", "install", *packages]
         print(f"Running: {' '.join(cmd)}")
         subprocess.run(cmd, check=True)
         return True
