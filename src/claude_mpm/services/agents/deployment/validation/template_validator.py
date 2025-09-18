@@ -199,7 +199,10 @@ class TemplateValidator:
                 if len(tags) == 0:
                     result.add_warning("No tags specified", field_name="metadata.tags")
             else:
-                result.add_error("Tags should be a list or comma-separated string", field_name="metadata.tags")
+                result.add_error(
+                    "Tags should be a list or comma-separated string",
+                    field_name="metadata.tags",
+                )
 
     def _validate_capabilities(
         self, capabilities: Dict[str, Any], result: ValidationResult

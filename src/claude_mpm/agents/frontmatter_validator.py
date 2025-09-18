@@ -363,7 +363,9 @@ class FrontmatterValidator:
             elif isinstance(tags, list):
                 tag_list = tags
             else:
-                errors.append(f"Field 'tags' must be a list or comma-separated string, got {type(tags).__name__}")
+                errors.append(
+                    f"Field 'tags' must be a list or comma-separated string, got {type(tags).__name__}"
+                )
                 tag_list = []
 
             for tag in tag_list:

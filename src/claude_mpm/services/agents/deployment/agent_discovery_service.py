@@ -219,7 +219,9 @@ class AgentDiscoveryService:
             agent_info = {
                 "name": metadata.get("name", template_file.stem),
                 "description": metadata.get("description", "No description available"),
-                "type": template_data.get("agent_type", metadata.get("category", "agent")),  # Extract agent type
+                "type": template_data.get(
+                    "agent_type", metadata.get("category", "agent")
+                ),  # Extract agent type
                 "version": template_data.get(
                     "agent_version",
                     template_data.get("version", metadata.get("version", "1.0.0")),

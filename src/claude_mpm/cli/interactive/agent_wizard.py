@@ -289,7 +289,7 @@ class AgentWizard:
             ("custom", "Custom/Other", "Specialized or unique functionality"),
         ]
 
-        for i, (type_id, name, desc) in enumerate(agent_types, 1):
+        for i, (_type_id, name, desc) in enumerate(agent_types, 1):
             print(f"   [{i}] {name}")
             print(f"       {desc}")
 
@@ -322,7 +322,7 @@ class AgentWizard:
             ("haiku", "claude-3-haiku (fast)", "Fastest and most economical"),
         ]
 
-        for i, (model_id, name, desc) in enumerate(models, 1):
+        for i, (_model_id, name, desc) in enumerate(models, 1):
             print(f"   [{i}] {name}")
             print(f"       {desc}")
 
@@ -408,7 +408,7 @@ class AgentWizard:
         ]
 
         print("   Select capabilities (enter multiple numbers separated by spaces):")
-        for i, (cap_id, desc) in enumerate(capabilities_options, 1):
+        for i, (_cap_id, desc) in enumerate(capabilities_options, 1):
             print(f"   [{i}] {desc}")
 
         selected_capabilities = []

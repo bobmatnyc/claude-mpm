@@ -183,10 +183,7 @@ class DaemonManager:
                 return True
 
             # Try to identify claude-mpm processes
-            if self._kill_claude_mpm_processes():
-                return True
-
-            return False
+            return bool(self._kill_claude_mpm_processes())
 
         except Exception as e:
             self.logger.error(f"Error killing processes on port: {e}")
@@ -579,7 +576,7 @@ class DaemonManager:
                     stderr=subprocess.STDOUT if self.log_file else subprocess.DEVNULL,
                     start_new_session=True,  # Create new process group
                     close_fds=(
-                        False if self.log_file else True
+                        not self.log_file
                     ),  # Keep log file open if redirecting
                     env=env,  # Pass modified environment
                 )

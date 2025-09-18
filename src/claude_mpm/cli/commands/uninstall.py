@@ -128,12 +128,11 @@ class UninstallCommand(BaseCommand):
         """
         # For now, we only have hooks to uninstall
         # This method can be extended in the future for other components
-        result = self._uninstall_hooks(args)
+        return self._uninstall_hooks(args)
 
         # Additional cleanup can be added here
         # For example: removing agent configurations, cache, etc.
 
-        return result
 
 
 def add_uninstall_parser(subparsers):

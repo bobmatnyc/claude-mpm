@@ -151,7 +151,7 @@ class ConnectionManagerService:
 
             if loop:
                 # We're in an async context, create a task
-                task = loop.create_task(self._async_emit(namespace, event, data))
+                loop.create_task(self._async_emit(namespace, event, data))
                 # Don't wait for completion to maintain low latency
                 if DEBUG:
                     print(f"✅ Async emit scheduled: {event}", file=sys.stderr)

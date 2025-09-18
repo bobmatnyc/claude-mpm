@@ -42,8 +42,10 @@ class LoggingConfig:
     ISO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
     # File settings
-    MAX_BYTES = 10 * 1024 * 1024  # 10MB
+    MAX_BYTES = 5 * 1024 * 1024  # 5MB - lowered for better rotation testing
     BACKUP_COUNT = 5
+    ROTATION_INTERVAL = 'midnight'  # Daily rotation at midnight
+    ROTATION_BACKUP_COUNT = 7  # Keep 7 days of daily logs
 
     # Component-specific log names
     COMPONENT_NAMES = {
@@ -76,11 +78,11 @@ class LoggerFactory:
     @classmethod
     def initialize(
         cls,
-        log_level: str = None,
+        log_level: Optional[str] = None,
         log_dir: Optional[Path] = None,
         log_to_file: bool = False,
-        log_format: str = None,
-        date_format: str = None,
+        log_format: Optional[str] = None,
+        date_format: Optional[str] = None,
     ) -> None:
         """Initialize the logging system globally.
 
@@ -129,30 +131,46 @@ class LoggerFactory:
         log_format: Optional[str] = None,
         date_format: Optional[str] = None,
     ) -> None:
-        """Set up file logging handler."""
+        """Set up file logging handlers with both size and time-based rotation."""
         if not cls._log_dir:
             return
 
         # Ensure log directory exists
         cls._log_dir.mkdir(parents=True, exist_ok=True)
 
-        # Create rotating file handler
+        formatter = logging.Formatter(
+            log_format or LoggingConfig.DETAILED_FORMAT,
+            date_format or LoggingConfig.DATE_FORMAT,
+        )
+
+        # 1. Size-based rotating file handler (for current active log)
         log_file = cls._log_dir / "claude_mpm.log"
-        file_handler = logging.handlers.RotatingFileHandler(
+        size_handler = logging.handlers.RotatingFileHandler(
             log_file,
             maxBytes=LoggingConfig.MAX_BYTES,
             backupCount=LoggingConfig.BACKUP_COUNT,
         )
-        file_handler.setLevel(LoggingConfig.LEVELS.get(cls._log_level, logging.INFO))
+        size_handler.setLevel(LoggingConfig.LEVELS.get(cls._log_level, logging.INFO))
+        size_handler.setFormatter(formatter)
+        logging.getLogger().addHandler(size_handler)
+        cls._handlers["file"] = size_handler
 
-        file_formatter = logging.Formatter(
-            log_format or LoggingConfig.DETAILED_FORMAT,
-            date_format or LoggingConfig.DATE_FORMAT,
+        # 2. Time-based rotating file handler (daily rotation)
+        daily_log_file = cls._log_dir / "claude_mpm_daily.log"
+        time_handler = logging.handlers.TimedRotatingFileHandler(
+            daily_log_file,
+            when=LoggingConfig.ROTATION_INTERVAL,
+            interval=1,
+            backupCount=LoggingConfig.ROTATION_BACKUP_COUNT,
         )
-        file_handler.setFormatter(file_formatter)
+        time_handler.setLevel(LoggingConfig.LEVELS.get(cls._log_level, logging.INFO))
+        time_handler.setFormatter(formatter)
 
-        logging.getLogger().addHandler(file_handler)
-        cls._handlers["file"] = file_handler
+        # Add suffix to rotated files (e.g., claude_mpm_daily.log.2024-09-18)
+        time_handler.suffix = "%Y-%m-%d"
+
+        logging.getLogger().addHandler(time_handler)
+        cls._handlers["file_daily"] = time_handler
 
     @classmethod
     def get_logger(
@@ -268,10 +286,10 @@ def get_logger(
 
 
 def initialize_logging(
-    log_level: str = None,
+    log_level: Optional[str] = None,
     log_dir: Optional[Path] = None,
     log_to_file: bool = False,
-    log_format: str = None,
+    log_format: Optional[str] = None,
 ) -> None:
     """Initialize the logging system with standard configuration.
 
@@ -300,7 +318,7 @@ def set_log_level(level: str) -> None:
     LoggerFactory.set_level(level)
 
 
-def get_component_logger(component: str, name: str = None) -> logging.Logger:
+def get_component_logger(component: str, name: Optional[str] = None) -> logging.Logger:
     """Get a logger for a specific component.
 
     Args:

@@ -6,11 +6,12 @@ Generates various test events to verify dashboard functionality
 
 import asyncio
 import json
-import time
 import random
+import time
 from datetime import datetime
 
 import socketio
+
 
 class DashboardEventTester:
     def __init__(self, url="http://localhost:8765"):
@@ -46,12 +47,14 @@ class DashboardEventTester:
             data = {
                 "timestamp": datetime.now().isoformat(),
                 "test_id": random.randint(1000, 9999),
-                "message": f"Test event generated at {time.time()}"
+                "message": f"Test event generated at {time.time()}",
             }
 
         try:
             await self.sio.emit(event_type, data)
-            print(f"📤 Sent event: {event_type} with data: {json.dumps(data, indent=2)}")
+            print(
+                f"📤 Sent event: {event_type} with data: {json.dumps(data, indent=2)}"
+            )
             return True
         except Exception as e:
             print(f"❌ Failed to send event: {e}")
@@ -63,8 +66,14 @@ class DashboardEventTester:
             ("agent_started", {"agent_name": "QA_Agent", "pid": 12345}),
             ("agent_stopped", {"agent_name": "PM_Agent", "pid": 12346}),
             ("agent_error", {"agent_name": "DEV_Agent", "error": "Connection timeout"}),
-            ("agent_message", {"agent_name": "QA_Agent", "message": "Running tests..."}),
-            ("agent_complete", {"agent_name": "QA_Agent", "result": "All tests passed"})
+            (
+                "agent_message",
+                {"agent_name": "QA_Agent", "message": "Running tests..."},
+            ),
+            (
+                "agent_complete",
+                {"agent_name": "QA_Agent", "result": "All tests passed"},
+            ),
         ]
 
         for i in range(count):
@@ -78,7 +87,7 @@ class DashboardEventTester:
         events = [
             ("file_created", {"path": "/test/file1.py", "size": 1024}),
             ("file_modified", {"path": "/test/file2.js", "changes": 15}),
-            ("file_deleted", {"path": "/test/old_file.txt"})
+            ("file_deleted", {"path": "/test/old_file.txt"}),
         ]
 
         for i in range(count):
@@ -93,7 +102,7 @@ class DashboardEventTester:
             ("tool_start", {"tool": "grep", "args": ["test_pattern", "*.py"]}),
             ("tool_output", {"tool": "grep", "output": "Found 5 matches"}),
             ("tool_error", {"tool": "bash", "error": "Permission denied"}),
-            ("tool_complete", {"tool": "grep", "duration": 0.25})
+            ("tool_complete", {"tool": "grep", "duration": 0.25}),
         ]
 
         for i in range(count):
@@ -104,7 +113,9 @@ class DashboardEventTester:
 
     async def load_test(self, events_per_second=10, duration=5):
         """Generate high-volume events for load testing"""
-        print(f"🔥 Starting load test: {events_per_second} events/sec for {duration} seconds")
+        print(
+            f"🔥 Starting load test: {events_per_second} events/sec for {duration} seconds"
+        )
 
         total_events = events_per_second * duration
         interval = 1.0 / events_per_second
@@ -118,8 +129,8 @@ class DashboardEventTester:
                 "performance_data": {
                     "cpu_usage": random.uniform(10, 90),
                     "memory_mb": random.randint(100, 1000),
-                    "response_time": random.uniform(0.1, 2.0)
-                }
+                    "response_time": random.uniform(0.1, 2.0),
+                },
             }
 
             await self.send_test_event("performance_metric", event_data)
@@ -130,6 +141,7 @@ class DashboardEventTester:
             await asyncio.sleep(interval)
 
         print(f"✅ Load test complete: {total_events} events sent")
+
 
 async def main():
     """Main test function"""
@@ -163,6 +175,7 @@ async def main():
         print(f"❌ Error during testing: {e}")
     finally:
         await tester.disconnect()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

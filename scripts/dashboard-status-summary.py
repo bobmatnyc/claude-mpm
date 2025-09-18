@@ -4,48 +4,49 @@ Dashboard Connection Status Summary
 Shows the current status of all Claude MPM dashboards.
 """
 
-import socketio
-import requests
 import time
 from datetime import datetime
+
+import requests
+import socketio
+
 
 def check_server():
     """Check if the server is running."""
     try:
-        response = requests.get('http://localhost:8765/health', timeout=2)
+        response = requests.get("http://localhost:8765/health", timeout=2)
         return response.status_code == 200
     except:
         # Try socket.io endpoint
         try:
-            response = requests.get('http://localhost:8765/socket.io/', timeout=2)
+            response = requests.get("http://localhost:8765/socket.io/", timeout=2)
             return True
         except:
             return False
 
+
 def check_dashboard(dashboard_name):
     """Check if a dashboard is accessible and has proper Socket.IO setup."""
-    url = f'http://localhost:8765/static/{dashboard_name}'
+    url = f"http://localhost:8765/static/{dashboard_name}"
     try:
         response = requests.get(url, timeout=2)
         if response.status_code == 200:
             content = response.text
-            has_socketio = 'socket.io.min.js' in content
-            has_verification = 'typeof io === \'undefined\'' in content
-            has_wait = 'waitForSocketIO' in content
+            has_socketio = "socket.io.min.js" in content
+            has_verification = "typeof io === 'undefined'" in content
+            has_wait = "waitForSocketIO" in content
 
             return {
-                'accessible': True,
-                'has_socketio': has_socketio,
-                'has_verification': has_verification,
-                'has_wait': has_wait,
-                'fully_fixed': has_socketio and has_verification
+                "accessible": True,
+                "has_socketio": has_socketio,
+                "has_verification": has_verification,
+                "has_wait": has_wait,
+                "fully_fixed": has_socketio and has_verification,
             }
     except Exception as e:
-        return {
-            'accessible': False,
-            'error': str(e)
-        }
-    return {'accessible': False}
+        return {"accessible": False, "error": str(e)}
+    return {"accessible": False}
+
 
 def test_websocket():
     """Test WebSocket connection."""
@@ -58,13 +59,14 @@ def test_websocket():
         connected = True
 
     try:
-        sio.connect('http://localhost:8765', transports=['polling', 'websocket'])
+        sio.connect("http://localhost:8765", transports=["polling", "websocket"])
         time.sleep(1)
         result = connected
         sio.disconnect()
         return result
     except:
         return False
+
 
 def main():
     print("=" * 70)
@@ -78,7 +80,7 @@ def main():
     print("-" * 40)
     server_running = check_server()
     print(f"   Monitor Server: {'✅ Running' if server_running else '❌ Not Running'}")
-    print(f"   URL: http://localhost:8765")
+    print("   URL: http://localhost:8765")
 
     # Test WebSocket
     ws_connected = test_websocket() if server_running else False
@@ -87,11 +89,11 @@ def main():
 
     # Check dashboards
     dashboards = [
-        ('activity.html', '🎯 Activity Dashboard'),
-        ('events.html', '📊 Events Dashboard'),
-        ('agents.html', '🤖 Agents Dashboard'),
-        ('tools.html', '🔧 Tools Dashboard'),
-        ('files.html', '📁 Files Dashboard'),
+        ("activity.html", "🎯 Activity Dashboard"),
+        ("events.html", "📊 Events Dashboard"),
+        ("agents.html", "🤖 Agents Dashboard"),
+        ("tools.html", "🔧 Tools Dashboard"),
+        ("files.html", "📁 Files Dashboard"),
     ]
 
     print("📱 DASHBOARD STATUS")
@@ -101,21 +103,21 @@ def main():
     for filename, name in dashboards:
         status = check_dashboard(filename)
 
-        if status.get('accessible'):
-            if status.get('fully_fixed'):
-                icon = '✅'
-                status_text = 'Connected & Working'
-            elif status.get('has_socketio'):
-                icon = '⚠️'
-                status_text = 'Partial (needs fix)'
+        if status.get("accessible"):
+            if status.get("fully_fixed"):
+                icon = "✅"
+                status_text = "Connected & Working"
+            elif status.get("has_socketio"):
+                icon = "⚠️"
+                status_text = "Partial (needs fix)"
                 all_working = False
             else:
-                icon = '❌'
-                status_text = 'Not configured'
+                icon = "❌"
+                status_text = "Not configured"
                 all_working = False
         else:
-            icon = '❌'
-            status_text = 'Not accessible'
+            icon = "❌"
+            status_text = "Not accessible"
             all_working = False
 
         print(f"   {icon} {name:25} - {status_text}")
@@ -126,12 +128,24 @@ def main():
 
     for filename, name in dashboards:
         status = check_dashboard(filename)
-        if status.get('accessible'):
+        if status.get("accessible"):
             checks = []
-            checks.append('✅ Socket.IO loaded' if status.get('has_socketio') else '❌ Socket.IO missing')
-            checks.append('✅ Fallback to CDN' if status.get('has_verification') else '❌ No CDN fallback')
-            if filename != 'events.html':  # Events.html doesn't need waitForSocketIO
-                checks.append('✅ Wait for IO ready' if status.get('has_wait') else '❌ No IO wait')
+            checks.append(
+                "✅ Socket.IO loaded"
+                if status.get("has_socketio")
+                else "❌ Socket.IO missing"
+            )
+            checks.append(
+                "✅ Fallback to CDN"
+                if status.get("has_verification")
+                else "❌ No CDN fallback"
+            )
+            if filename != "events.html":  # Events.html doesn't need waitForSocketIO
+                checks.append(
+                    "✅ Wait for IO ready"
+                    if status.get("has_wait")
+                    else "❌ No IO wait"
+                )
 
             print(f"   {name}:")
             for check in checks:
@@ -165,5 +179,6 @@ def main():
     print("   - Fix dashboards: python3 scripts/fix-dashboard-socket-loading.py")
     print("=" * 70)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

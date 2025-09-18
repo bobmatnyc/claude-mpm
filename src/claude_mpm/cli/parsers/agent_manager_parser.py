@@ -245,12 +245,12 @@ Local Agent Commands:
     # === Interactive Commands ===
 
     # Create interactive command
-    create_interactive_parser = agent_subparsers.add_parser(
+    agent_subparsers.add_parser(
         "create-interactive", help="🧙‍♂️ Launch step-by-step agent creation wizard"
     )
 
     # Manage local interactive command
-    manage_local_parser = agent_subparsers.add_parser(
+    agent_subparsers.add_parser(
         "manage-local", help="🔧 Interactive menu for managing local agents"
     )
 
@@ -326,7 +326,7 @@ Local Agent Commands:
     )
 
     # Sync local command
-    sync_local_parser = agent_subparsers.add_parser(
+    agent_subparsers.add_parser(
         "sync-local", help="Synchronize local templates with deployed agents"
     )
 

@@ -416,7 +416,7 @@ class HookHandler:
         Returns:
             Processed event data
         """
-        processed = {
+        return {
             "type": data.get("type", "hook"),
             "subtype": data.get("subtype", "unknown"),
             "timestamp": data.get("timestamp", asyncio.get_event_loop().time()),
@@ -428,7 +428,6 @@ class HookHandler:
             "original_event": data,  # Keep original for debugging
         }
 
-        return processed
 
     def _process_hook_event(self, data: Dict) -> Dict:
         """Process and normalize hook event data.
@@ -439,7 +438,7 @@ class HookHandler:
         Returns:
             Processed event data
         """
-        processed = {
+        return {
             "type": data.get("type"),
             "timestamp": data.get("timestamp"),
             "session_id": data.get("session_id"),
@@ -448,7 +447,6 @@ class HookHandler:
             "processed_at": asyncio.get_event_loop().time(),
         }
 
-        return processed
 
     def _update_session_tracking(self, session_id: str, event: Dict):
         """Update session tracking with new event.
