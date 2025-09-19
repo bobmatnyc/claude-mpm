@@ -37,7 +37,7 @@
 ## Workflow Pipeline
 
 ```
-START → Research → Code Analyzer → Implementation → QA → Documentation → END
+START → Research → Code Analyzer → Implementation → Site Deployment → QA → Documentation → END
 ```
 
 ### Phase Details
@@ -45,8 +45,15 @@ START → Research → Code Analyzer → Implementation → QA → Documentation
 1. **Research**: Requirements analysis, success criteria, risks
 2. **Code Analyzer**: Solution review (APPROVED/NEEDS_IMPROVEMENT/BLOCKED)
 3. **Implementation**: Selected agent builds complete solution
-4. **QA**: Real-world testing with evidence (MANDATORY)
-5. **Documentation**: Update docs if code changed
+4. **Site Deployment** (for web projects):
+   - **MANDATORY**: Deploy stable instance using PM2 when working on sites
+   - Delegate to Ops agent: "Deploy site with PM2 for testing"
+   - Ensure site is accessible before proceeding to QA
+5. **QA**: Real-world testing with evidence (MANDATORY)
+   - **Web UI Work**: MUST use Playwright for browser testing
+   - **API Work**: Use web-qa for fetch testing
+   - **Combined**: Run both API and UI tests
+6. **Documentation**: Update docs if code changed
 
 ### Error Handling
 - Attempt 1: Re-delegate with context
@@ -57,13 +64,19 @@ START → Research → Code Analyzer → Implementation → QA → Documentation
 
 **Rule**: No QA = Work incomplete
 
+**MANDATORY Final Verification Step**:
+- **ALL projects**: Must verify work with web-qa agent for fetch tests
+- **Web UI projects**: MUST also use Playwright for browser automation
+- **Site projects**: Verify PM2 deployment is stable and accessible
+
 **Testing Matrix**:
-| Type | Verification | Evidence |
-|------|-------------|----------|
-| API | HTTP calls | curl output |
-| Web | Browser load | Console screenshot |
-| Database | Query execution | SELECT results |
-| Deploy | Live URL | HTTP 200 |
+| Type | Verification | Evidence | Required Agent |
+|------|-------------|----------|----------------|
+| API | HTTP calls | curl/fetch output | web-qa (MANDATORY) |
+| Web UI | Browser automation | Playwright results | web-qa with Playwright |
+| Site Deploy | PM2 status | Process running | Ops → web-qa verify |
+| Database | Query execution | SELECT results | QA |
+| Deploy | Live URL | HTTP 200 | web-qa |
 
 **Reject if**: "should work", "looks correct", "theoretically"
 **Accept if**: "tested with output:", "verification shows:", "actual results:"
@@ -108,14 +121,24 @@ User Request
   ↓
 Override? → YES → PM executes
   ↓ NO
-Research → Code Analyzer → Implementation → QA (MANDATORY) → Documentation → Report
+Research → Code Analyzer → Implementation →
+  ↓
+Is Site? → YES → PM2 Deploy (Ops)
+  ↓ NO
+QA Verification (MANDATORY):
+  - web-qa for ALL projects (fetch tests)
+  - Playwright for Web UI
+  ↓
+Documentation → Report
 ```
 
 ### Common Patterns
-- Full Stack: Research → Analyzer → react-engineer + Engineer → api-qa + web-qa → Docs
-- API: Research → Analyzer → Engineer → api-qa → Docs
-- Deploy: Research → Ops → web-qa → Docs
-- Bug Fix: Research → Analyzer → Engineer → QA → version-control
+- Full Stack: Research → Analyzer → react-engineer + Engineer → Ops (PM2) → api-qa + web-qa (Playwright) → Docs
+- API: Research → Analyzer → Engineer → web-qa (fetch tests) → Docs
+- Web UI: Research → Analyzer → web-ui/react-engineer → Ops (PM2) → web-qa (Playwright) → Docs
+- Site Project: Research → Analyzer → Engineer → Ops (PM2 deploy) → web-qa (verify deployment) → Docs
+- Deploy: Research → Ops (PM2 for sites) → web-qa (verify accessible) → Docs
+- Bug Fix: Research → Analyzer → Engineer → web-qa (regression test) → version-control
 
 ### Success Criteria
 ✅ Measurable: "API returns 200", "Tests pass 80%+"

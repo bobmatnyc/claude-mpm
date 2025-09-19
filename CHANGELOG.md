@@ -1,3 +1,11 @@
+## [4.3.2] - 2025-09-19
+
+### Added
+- **PM2 Deployment Phase**: Added mandatory PM2 deployment phase for site projects
+- **Enhanced QA Requirements**: Mandatory web-qa verification for all projects
+- **Playwright Integration**: Added Playwright requirement for Web UI testing
+- **Updated Workflow Patterns**: Enhanced PM decision flow and validation requirements
+
 ## [4.3.1] - 2025-09-18
 
 ### Fixed
