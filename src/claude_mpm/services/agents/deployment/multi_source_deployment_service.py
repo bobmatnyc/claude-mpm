@@ -176,24 +176,43 @@ class MultiSourceAgentDeploymentService:
                 # Log if a higher priority source was overridden by version
                 for other_agent in agent_versions:
                     if other_agent != highest_version_agent:
-                        self.version_manager.parse_version(
+                        # Parse both versions for comparison
+                        other_version = self.version_manager.parse_version(
                             other_agent.get("version", "0.0.0")
                         )
-                        if (
-                            other_agent["source"] == "project"
-                            and highest_version_agent["source"] == "system"
-                        ):
-                            self.logger.warning(
-                                f"Project agent '{agent_name}' v{other_agent['version']} "
-                                f"overridden by higher system version v{highest_version_agent['version']}"
-                            )
-                        elif other_agent["source"] == "user" and highest_version_agent[
-                            "source"
-                        ] in ["system", "project"]:
-                            self.logger.warning(
-                                f"User agent '{agent_name}' v{other_agent['version']} "
-                                f"overridden by higher {highest_version_agent['source']} version v{highest_version_agent['version']}"
-                            )
+                        highest_version = self.version_manager.parse_version(
+                            highest_version_agent.get("version", "0.0.0")
+                        )
+
+                        # Compare the versions
+                        version_comparison = self.version_manager.compare_versions(
+                            other_version, highest_version
+                        )
+
+                        # Only warn if the other version is actually lower
+                        if version_comparison < 0:
+                            if (
+                                other_agent["source"] == "project"
+                                and highest_version_agent["source"] == "system"
+                            ):
+                                self.logger.warning(
+                                    f"Project agent '{agent_name}' v{other_agent['version']} "
+                                    f"overridden by higher system version v{highest_version_agent['version']}"
+                                )
+                            elif other_agent["source"] == "user" and highest_version_agent[
+                                "source"
+                            ] in ["system", "project"]:
+                                self.logger.warning(
+                                    f"User agent '{agent_name}' v{other_agent['version']} "
+                                    f"overridden by higher {highest_version_agent['source']} version v{highest_version_agent['version']}"
+                                )
+                        elif version_comparison == 0:
+                            # Log info when versions are equal but different sources
+                            if other_agent["source"] != highest_version_agent["source"]:
+                                self.logger.info(
+                                    f"Using {highest_version_agent['source']} source for '{agent_name}' "
+                                    f"(same version v{highest_version_agent['version']} as {other_agent['source']} source)"
+                                )
 
         return selected_agents
 
