@@ -199,9 +199,12 @@ class MultiSourceAgentDeploymentService:
                                     f"Project agent '{agent_name}' v{other_agent['version']} "
                                     f"overridden by higher system version v{highest_version_agent['version']}"
                                 )
-                            elif other_agent["source"] == "user" and highest_version_agent[
+                            elif other_agent[
                                 "source"
-                            ] in ["system", "project"]:
+                            ] == "user" and highest_version_agent["source"] in [
+                                "system",
+                                "project",
+                            ]:
                                 self.logger.warning(
                                     f"User agent '{agent_name}' v{other_agent['version']} "
                                     f"overridden by higher {highest_version_agent['source']} version v{highest_version_agent['version']}"
