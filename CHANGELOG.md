@@ -1,3 +1,12 @@
+## [4.3.1] - 2025-09-18
+
+### Fixed
+- **Agent Version Comparison**: Fixed misleading version override warnings
+  - Corrected logic to only warn when version is actually lower
+  - Added proper version comparison before issuing override warnings
+  - Shows info message for equal versions instead of misleading warning
+  - Fixes issue where v1.0.0 was incorrectly reported as "overridden by higher v1.0.0"
+
 ## [4.3.0] - 2025-09-18
 
 ### Added
