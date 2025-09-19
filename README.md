@@ -67,9 +67,9 @@ claude-mpm cleanup-memory
 See [QUICKSTART.md](QUICKSTART.md) for complete usage examples.
 
 
-## Architecture (v4.1.0+)
+## Architecture (v4.3.3)
 
-Following continuous improvements through v4.1.0, Claude MPM features:
+Following continuous improvements through v4.3.3, Claude MPM features:
 
 - **Service-Oriented Architecture**: Five specialized service domains with Socket.IO stability improvements
 - **Interface-Based Contracts**: All services implement explicit interfaces
@@ -143,40 +143,53 @@ The `--monitor` flag opens a web dashboard showing live agent activity, file ope
 See [docs/MEMORY.md](docs/MEMORY.md) and [docs/developer/11-dashboard/README.md](docs/developer/11-dashboard/README.md) for details.
 
 
-## Documentation
+## 📚 Documentation
 
-### User Documentation
-- **[Quick Start Guide](QUICKSTART.md)** - Get running in 5 minutes
-- **[Installation Guide](docs/user/installation.md)** - Complete installation options
-- **[User Guide](docs/user/)** - Detailed usage documentation
-- **[Memory System](docs/MEMORY.md)** - Agent memory documentation
-- **[Troubleshooting](docs/user/troubleshooting.md)** - Common issues and solutions
+**👉 [Complete Documentation Hub](docs/README.md)** - Start here for all documentation!
 
-### Developer Documentation
-- **[Architecture Overview](docs/ARCHITECTURE.md)** - Service-oriented architecture and design
-- **[API Reference](docs/api/)** - Complete API documentation with Sphinx
-- **[Service Layer Guide](docs/developer/SERVICES.md)** - Service interfaces and implementations
-- **[MCP Gateway Guide](docs/developer/13-mcp-gateway/README.md)** - Model Context Protocol integration
-- **[Performance Guide](docs/PERFORMANCE.md)** - Optimization and caching strategies
-- **[Security Guide](docs/SECURITY.md)** - Security framework and best practices
-- **[Testing Guide](docs/TESTING.md)** - Testing patterns and strategies
-- **[Migration Guide](docs/MIGRATION.md)** - Upgrading from previous versions
-- **[Developer Guide](docs/developer/)** - Comprehensive development documentation
+### Quick Links by User Type
 
-### API Documentation
-Comprehensive API documentation is available at [docs/api/](docs/api/) - build with `make html` in that directory.
+#### 👥 For Users
+- **[🚀 5-Minute Quick Start](docs/user/quickstart.md)** - Get running immediately
+- **[📦 Installation Guide](docs/user/installation.md)** - All installation methods
+- **[📖 User Guide](docs/user/README.md)** - Complete user documentation
+- **[❓ FAQ](docs/user/faq.md)** - Common questions answered
 
-## Recent Updates (v4.1.0)
+#### 💻 For Developers
+- **[🏗️ Architecture Overview](docs/developer/ARCHITECTURE.md)** - Service-oriented system design
+- **[💻 Developer Guide](docs/developer/README.md)** - Complete development documentation
+- **[🧪 Contributing](docs/developer/03-development/README.md)** - How to contribute
+- **[📊 API Reference](docs/API.md)** - Complete API documentation
 
-**Socket.IO Stability Improvements**: Major reliability enhancements for real-time communication with improved error handling and connection management.
+#### 🤖 For Agent Creators
+- **[🤖 Agent System](docs/AGENTS.md)** - Complete agent development guide
+- **[📝 Creation Guide](docs/developer/07-agent-system/creation-guide.md)** - Step-by-step tutorials
+- **[📋 Schema Reference](docs/developer/10-schemas/agent_schema_documentation.md)** - Agent format specifications
 
-**Project Organization**: Comprehensive cleanup and reorganization with structured script directories for better maintainability.
+#### 🚀 For Operations
+- **[🚀 Deployment](docs/DEPLOYMENT.md)** - Release management & versioning
+- **[📊 Monitoring](docs/MONITOR.md)** - Real-time dashboard & metrics
+- **[🐛 Troubleshooting](docs/TROUBLESHOOTING.md)** - Diagnostic & problem resolution
 
-**Documentation Consolidation**: Streamlined documentation structure with consolidated guides and improved navigation.
+### 🎯 Documentation Features
+- **Single Entry Point**: [docs/README.md](docs/README.md) is your navigation hub
+- **Clear User Paths**: Organized by user type and experience level
+- **Cross-Referenced**: Links between related topics and sections
+- **Up-to-Date**: Version 4.3.3 with current information
 
-**Agent Hierarchy Display**: Enhanced dashboard with hierarchical agent display showing PM at top level with visual distinction for implied vs explicit nodes.
+## Recent Updates (v4.3.3)
 
-See [CHANGELOG.md](CHANGELOG.md) for full history and [docs/MIGRATION.md](docs/MIGRATION.md) for upgrade instructions.
+**Enhanced PM Instructions**: PM2 deployment support and mandatory web-qa verification for quality assurance.
+
+**Improved Version Management**: Better version comparison logic and agent override warnings for smoother operations.
+
+**Code Quality Improvements**: Auto-fix code formatting and import management with enhanced standard tools recognition.
+
+**Documentation Overhaul**: Unified documentation architecture with single entry point and clear navigation paths.
+
+**Performance Enhancements**: Continued 50-80% performance improvements through intelligent caching and lazy loading.
+
+See [CHANGELOG.md](CHANGELOG.md) for full history and [docs/user/MIGRATION.md](docs/user/MIGRATION.md) for upgrade instructions.
 
 ## Development
 
