@@ -1,321 +1,356 @@
-# Developer Documentation
+# 💻 Claude MPM Developer Guide
 
-## Overview
+**Complete developer documentation for contributing to and extending Claude MPM**
+**Version 4.3.3** | Last Updated: September 19, 2025
 
-Comprehensive developer documentation for Claude MPM, organized for easy navigation and reference.
+Welcome to the Claude MPM developer documentation! This comprehensive guide covers everything you need to know for developing, contributing to, and extending Claude MPM.
 
-## Quick Start
+## 🚀 Quick Development Setup
 
+### Prerequisites
+- **Python 3.8+** (3.11+ recommended)
+- **Git** for version control
+- **Node.js 16+** (for dashboard development)
+- **Claude Code** for testing integration
+
+### 1-Minute Setup
 ```bash
-# Clone repository
-git clone https://github.com/your-org/claude-mpm.git
+# Clone and setup
+git clone https://github.com/bobmatnyc/claude-mpm.git
 cd claude-mpm
 
-# Setup development environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -e ".[dev]"
+# Complete development setup (recommended)
+make dev-complete
 
-# Quality checks and tests (RECOMMENDED)
-make quality              # Run all quality checks
-make lint-fix            # Auto-fix code issues
-pytest tests/            # Run tests
+# Or step-by-step:
+make setup-dev          # Install in development mode
+make setup-pre-commit   # Set up automated code formatting
 ```
 
-## Documentation Structure
+### Quality-First Workflow
+```bash
+# Daily development commands (use these frequently!)
+make lint-fix           # Auto-fix formatting, imports, and simple issues
+make quality            # Run all quality checks before commits
+make safe-release-build # Complete quality gate + build process
+```
 
-### Core Systems
+**💡 Pro Tip**: Run `make lint-fix` frequently during development - it's safe and keeps code clean!
 
-#### 🤖 [Agent System](./07-agent-system/)
-- **[Agent Development Guide](./07-agent-system/AGENT_DEVELOPMENT.md)** - Complete guide for creating and deploying agents
-  - Agent architecture and types
-  - Creating agents in multiple formats
-  - Frontmatter configuration
-  - Three-tier deployment system
-  - Testing and validation
-- **[Agent Formats](./07-agent-system/formats.md)** - Supported file formats and conversion
-- **[Frontmatter Guide](./07-agent-system/frontmatter.md)** - YAML frontmatter configuration
-- **[Compatibility](./07-agent-system/compatibility.md)** - Version compatibility and migration
-- **[Schema Documentation](./07-agent-system/schema.md)** - Agent schema reference
+## 📖 Developer Documentation Structure
 
-#### 🧠 [Memory System](./08-memory-system/)
-- **[Memory System Guide](./08-memory-system/MEMORY_SYSTEM.md)** - Comprehensive memory system documentation
-  - 10 specialized agent types with dedicated memory
-  - Memory routing and building
-  - Optimization and management
-  - CLI operations and configuration
-- **[Response Handling](./08-memory-system/response-handling.md)** - Processing agent responses for memory
-- **[Response Logging](./08-memory-system/response-logging.md)** - Logging system for responses
-- **[Memory Router](./08-memory-system/router.md)** - Content routing to appropriate agents
-- **[Memory Builder](./08-memory-system/builder.md)** - Building memories from documentation
-- **[Memory Optimizer](./08-memory-system/optimizer.md)** - Optimization and deduplication
+### 🎯 By Development Focus
 
-#### 🔒 [Security](./09-security/)
-- **[Security Guide](./09-security/SECURITY.md)** - Complete security documentation
-  - Multi-layered filesystem security
-  - Agent security and RBAC
-  - PID validation
-  - Path restrictions
-  - Security best practices
-- **[Schema Security](./09-security/agent_schema_security_notes.md)** - Schema validation security
+| Focus Area | Start Here | Key Resources |
+|------------|------------|---------------|
+| **New Contributors** | [Contributing Guide](03-development/README.md) | [Architecture](ARCHITECTURE.md), [Testing](TESTING.md) |
+| **Service Development** | [Service Guide](SERVICES.md) | [API Reference](../API.md), [Performance](PERFORMANCE.md) |
+| **Agent Creation** | [Agent System](07-agent-system/README.md) | [Creation Guide](07-agent-system/creation-guide.md), [Schema](10-schemas/SCHEMA_REFERENCE.md) |
+| **Dashboard/UI** | [Dashboard Guide](11-dashboard/README.md) | [Frontend](03-development/frontend.md), [Config](11-dashboard/CONFIG_WINDOW_V2.md) |
+| **MCP Integration** | [MCP Gateway](13-mcp-gateway/README.md) | [Tool Development](13-mcp-gateway/tool-development.md), [API](04-api-reference/mcp-gateway-api.md) |
 
-#### 📋 [Schemas](./10-schemas/)
-- **[Schema Reference](./10-schemas/SCHEMA_REFERENCE.md)** - JSON schema documentation
-  - Agent schema v1.2.0
-  - Frontmatter schema
-  - Validation rules and tools
-  - Schema evolution and migration
-- **[Agent Schema Documentation](./10-schemas/agent_schema_documentation.md)** - Detailed schema docs
+### 🔧 System Architecture & Core Concepts
 
-#### 📊 [Dashboard](./11-dashboard/)
-- **[Dashboard Overview](./11-dashboard/README.md)** - Real-time monitoring dashboard
-- **[Config Window V2](./11-dashboard/CONFIG_WINDOW_V2.md)** - Configuration interface
+#### 🏗️ System Design
+- **[Architecture Overview](ARCHITECTURE.md)** - Service-oriented design with 5 domains
+- **[Service Layer Guide](SERVICES.md)** - Service development patterns and interfaces
+- **[Performance Guide](PERFORMANCE.md)** - Caching, optimization, and 50-80% improvements
+- **[Security Framework](../reference/SECURITY.md)** - Multi-layered security and validation
 
-#### 📝 [Response System](./12-responses/)
-- **[Response System Overview](./12-responses/README.md)** - Response handling architecture
-- **[Development Guide](./12-responses/DEVELOPMENT.md)** - Developing with responses
-- **[Technical Reference](./12-responses/TECHNICAL_REFERENCE.md)** - API and internals
-- **[User Guide](./12-responses/USER_GUIDE.md)** - Using the response system
+#### 📊 Agent & Memory Systems
+- **[Agent Development](07-agent-system/AGENT_DEVELOPMENT.md)** - Complete agent creation guide
+- **[Memory System](08-memory-system/MEMORY_SYSTEM.md)** - Agent learning and persistence
+- **[Response System](12-responses/README.md)** - Response handling and processing
+- **[Schema Reference](10-schemas/SCHEMA_REFERENCE.md)** - Agent and memory schemas
 
-#### 🔌 [MCP Gateway](./13-mcp-gateway/)
-- **[MCP Gateway Overview](./13-mcp-gateway/README.md)** - Model Context Protocol gateway implementation
-  - Production-ready MCP protocol handler
-  - Claude Code integration
-  - Extensible tool framework
-  - Singleton coordination
-  - Comprehensive testing and documentation
-- **[Tool Development Guide](./13-mcp-gateway/tool-development.md)** - Creating custom MCP tools
-- **[Configuration Reference](./13-mcp-gateway/configuration.md)** - Gateway configuration options
-- **[MCP Gateway API](./04-api-reference/mcp-gateway-api.md)** - Complete API reference
+### 🛠️ Development Workflow
 
-### Development Guides
+#### 🚀 Getting Started
+- **[Development Setup](03-development/setup.md)** - Environment configuration
+- **[Contributing Guide](03-development/README.md)** - How to contribute effectively
+- **[Testing Strategy](TESTING.md)** - Unit, integration, and E2E testing
+- **[Code Quality](LINTING.md)** - Automated formatting and quality checks
 
-#### 📚 [Architecture](./01-architecture/)
-- System design patterns
-- Component diagrams
-- Data flow architecture
-- Integration patterns
+#### 🔌 Extending Claude MPM
+- **[MCP Gateway](13-mcp-gateway/README.md)** - Model Context Protocol integration
+- **[Custom Hooks](05-extending/hooks.md)** - Extensibility through hooks
+- **[Plugin Architecture](05-extending/plugins.md)** - Plugin development patterns
+- **[Agent Extensions](05-extending/agents.md)** - Extending agent capabilities
 
-#### 🔧 [Core Components](./02-core-components/)
-- Agent system internals
-- Hook system architecture
-- Memory system components
-- Schema architecture
+### 📱 User Interface & Monitoring
 
-#### 💻 [Development](./03-development/)
-- Setup and configuration
-- Coding standards
-- Testing strategies
-- Debugging techniques
+#### 📊 Dashboard Development
+- **[Dashboard Overview](11-dashboard/README.md)** - Real-time monitoring interface
+- **[Frontend Development](03-development/frontend.md)** - React/Next.js development
+- **[Config Interface](11-dashboard/CONFIG_WINDOW_V2.md)** - Configuration management UI
+- **[WebSocket API](../user/websocket-api.md)** - Real-time communication protocol
 
-#### 📖 [API Reference](./04-api-reference/)
-- Core API documentation
-- Service APIs
-- Agent lifecycle API
-- Orchestration API
+#### 🔍 Monitoring & Observability
+- **[Logging System](02-core-components/logging.md)** - Structured logging and tracing
+- **[Metrics Collection](02-core-components/metrics.md)** - Performance and usage metrics
+- **[Error Handling](02-core-components/error-handling.md)** - Error management patterns
+- **[Debugging Tools](03-development/debugging.md)** - Development and production debugging
 
-#### 🔌 [Extending](./05-extending/)
-- Custom hooks development
-- Agent extension points
-- Plugin architecture
-- Security extensions
+### 🔐 Security & Operations
 
-#### ⚙️ [Internals](./06-internals/)
-- Analysis reports
-- Migration guides
-- Performance optimization
-- Advanced topics
+#### 🛡️ Security Framework
+- **[Security Guide](09-security/SECURITY.md)** - Multi-layered security architecture
+- **[Agent Security](09-security/agent_schema_security_notes.md)** - Agent-specific security measures
+- **[Input Validation](09-security/validation.md)** - Comprehensive input sanitization
+- **[Path Security](09-security/path-security.md)** - Filesystem protection patterns
 
-## Key Features
+#### 🚀 Operations & Deployment
+- **[Deployment Guide](../DEPLOYMENT.md)** - Release and deployment procedures
+- **[Version Management](../reference/VERSIONING.md)** - Semantic versioning strategy
+- **[CI/CD Pipeline](03-development/cicd.md)** - Automated quality and deployment
+- **[Performance Monitoring](02-core-components/performance.md)** - Production monitoring
 
-### Agent Management
-- **Three-tier precedence system**: PROJECT > USER > SYSTEM
-- **Multiple format support**: Markdown, JSON, YAML
-- **Dynamic capability discovery**: Real-time agent capability detection
-- **Version management**: Semantic versioning for agents and schemas
+## 🏗️ Architecture Highlights (v4.3.3)
 
-📖 **See**: [Agent Development Guide](./07-agent-system/AGENT_DEVELOPMENT.md) | [Schema Reference](./10-schemas/SCHEMA_REFERENCE.md)
+### Service-Oriented Design
+- **5 Specialized Domains**: Agent, Communication, Core, Infrastructure, Project services
+- **Interface-Based Contracts**: All services implement explicit interfaces
+- **Dependency Injection**: Service container with automatic resolution
+- **Performance Optimized**: 50-80% improvement through caching and lazy loading
 
-### Memory System
-- **10 specialized agents**: Each with dedicated memory sections
-- **Intelligent routing**: Content automatically routed to appropriate agents
-- **Project-specific learning**: Memories tailored to your codebase
-- **Optimization tools**: Deduplication and consolidation
+### Agent System Features
+- **Three-Tier Hierarchy**: PROJECT > USER > SYSTEM precedence
+- **15+ Specialized Agents**: Engineer, QA, Documentation, Security, Research, etc.
+- **Dynamic Discovery**: Real-time capability detection and routing
+- **Memory Integration**: Persistent learning across sessions
+- **Multiple Formats**: Markdown, JSON, YAML support
 
-📖 **See**: [Memory System Guide](./08-memory-system/MEMORY_SYSTEM.md) | [Response System](./12-responses/README.md)
+### Security Framework
+- **Multi-Layered Protection**: Input validation, path restrictions, RBAC
+- **Agent Security**: Role-based access control and capability limits
+- **Audit Trails**: Complete activity logging and monitoring
+- **Secure Operations**: Filesystem protection and PID validation
 
-### Security
-- **Multi-layered protection**: Working directory, agent-level, and PM coordination
-- **Path restrictions**: Comprehensive path validation and traversal prevention
-- **Role-based access**: Fine-grained permissions per agent type
-- **Audit logging**: Complete activity tracking
+## 🛠️ Common Development Tasks
 
-📖 **See**: [Security Guide](./09-security/SECURITY.md) | [Schema Security](./09-security/agent_schema_security_notes.md)
-
-## Common Tasks
-
-### Creating a Custom Agent
+### 🤖 Creating a Custom Agent
 
 ```bash
-# Create project agent directory
+# 1. Create project agent directory
 mkdir -p .claude-mpm/agents
 
-# Create agent with frontmatter
+# 2. Create agent with frontmatter
 cat > .claude-mpm/agents/custom_qa.md << 'EOF'
 ---
-description: Custom QA agent for project
+description: Custom QA agent for this project
 version: 2.0.0
-tools: ["Read", "Grep", "Bash"]
+tools: ["Read", "Grep", "Bash", "Edit"]
 model: claude-sonnet-4-20250514
+priority: high
 ---
 
 # Custom QA Agent
 
-Project-specific testing instructions...
+Specialized testing and quality assurance for this project.
+
+## Expertise
+- Project-specific test patterns
+- Custom assertion libraries
+- Performance testing workflows
+
+## Testing Strategy
+...
 EOF
 
-# Verify deployment
-./claude-mpm agents list --by-tier
+# 3. Verify deployment
+claude-mpm agents list --by-tier
 ```
 
-### Building Memory from Documentation
+### 🧠 Setting Up Memory System
 
 ```bash
-# Initialize memory system
-./claude-mpm memory init
+# Initialize agent memory
+claude-mpm memory init
 
-# Build from docs
-./claude-mpm memory build --docs ./docs
+# Build from project documentation
+claude-mpm memory build --docs ./docs
 
-# Check status
-./claude-mpm memory status
+# Check memory status
+claude-mpm memory status
 
-# Optimize if needed
-./claude-mpm memory optimize --all
+# Optimize memories (remove duplicates)
+claude-mpm memory optimize --all
 ```
 
-### Validating Agent Configuration
+### 🔧 Service Development Pattern
+
+```python
+# 1. Define interface
+from abc import ABC, abstractmethod
+
+class IMyService(ABC):
+    @abstractmethod
+    async def process_data(self, data: dict) -> dict:
+        pass
+
+# 2. Implement service
+from claude_mpm.services.core.base import BaseService
+
+class MyService(BaseService, IMyService):
+    def __init__(self, dependency: IDependency):
+        super().__init__("MyService")
+        self.dependency = dependency
+
+    async def initialize(self) -> bool:
+        # Service initialization
+        return True
+
+    async def process_data(self, data: dict) -> dict:
+        # Implementation
+        return {"processed": True}
+
+# 3. Register in container
+from claude_mpm.services.core.container import ServiceContainer
+container = ServiceContainer()
+container.register(IMyService, MyService, singleton=True)
+```
+
+### 🧪 Testing Best Practices
 
 ```bash
-# Validate single agent
-python scripts/validate_agent_frontmatter.py .claude-mpm/agents/my_agent.md
+# Run quality checks before commits
+make quality
 
-# Validate all agents
-python scripts/validate_agent_frontmatter.py .claude-mpm/agents/*.md
+# Auto-fix formatting issues
+make lint-fix
 
-# Check schema compliance
-python scripts/validate_agent_configuration.py --all
+# Run comprehensive test suite
+make test
+
+# Performance and integration tests
+make test-integration
+
+# Check test coverage
+make coverage
 ```
 
-## Best Practices
-
-### Agent Development
-1. Use semantic versioning for agents
-2. Include comprehensive instructions
-3. Follow the principle of least privilege for tools
-4. Test agents thoroughly before deployment
-5. Document project-specific knowledge
-
-### Memory Management
-1. Regular optimization to prevent bloat
-2. Review memories before committing
-3. Use memory directives in agent responses
-4. Share memories with team via version control
-
-### Security
-1. Always validate paths before file operations
-2. Use agent-specific file access restrictions
-3. Enable audit logging in production
-4. Regular security audits of agent permissions
-
-## Complete Development Workflows
-
-### 🤖 Agent Development Workflow
-1. **Plan**: [Agent Development Guide](./07-agent-system/AGENT_DEVELOPMENT.md) → [Schema Reference](./10-schemas/SCHEMA_REFERENCE.md)
-2. **Implement**: [Agent Formats](./07-agent-system/formats.md) → [Frontmatter Guide](./07-agent-system/frontmatter.md)
-3. **Secure**: [Security Guide](./09-security/SECURITY.md) → [Schema Security](./09-security/agent_schema_security_notes.md)
-4. **Test**: [Development Testing](./03-development/testing.md) → [Agent Validation](./02-core-components/agent-system.md)
-
-### 🧠 Memory Integration Workflow
-1. **Understanding**: [Memory System Guide](./08-memory-system/MEMORY_SYSTEM.md) → [Response System](./12-responses/README.md)
-2. **Implementation**: [Response Handling](./08-memory-system/response-handling.md) → [Memory Builder](./08-memory-system/builder.md)
-3. **Optimization**: [Memory Optimizer](./08-memory-system/optimizer.md) → [Memory Router](./08-memory-system/router.md)
-
-### 🔒 Security Implementation Workflow
-1. **Architecture**: [Security Guide](./09-security/SECURITY.md) → [Core Components](./02-core-components/README.md)
-2. **Extensions**: [Custom Security](./05-extending/file-security-hook.md) → [Security API](./04-api-reference/README.md)
-3. **User Features**: [User Security Guide](../user/03-features/file-security.md)
-
-### 📊 Dashboard Development Workflow
-1. **Setup**: [Dashboard Overview](./11-dashboard/README.md) → [Config Window](./11-dashboard/CONFIG_WINDOW_V2.md)
-2. **Integration**: [User Dashboard](../user/03-features/dashboard-enhancements.md)
-
-## Troubleshooting
-
-### Common Issues
-
-**Agent not found**
-```bash
-./claude-mpm agents list --by-tier | grep agent_name
-```
-
-**Memory not loading**
-```bash
-./claude-mpm memory status
-./claude-mpm memory validate --agent engineer
-```
-
-**Validation errors**
-```bash
-python scripts/validate_agent_frontmatter.py agent.md --verbose
-```
-
-## Archive
-
-Older and deprecated documentation has been moved to [./archive/](./archive/) for reference.
-
-## Development Workflow
-
-The recommended development workflow uses Make quality commands for consistent code quality:
+### 📊 Dashboard Development
 
 ```bash
-# 1. Make your changes
-vim src/claude_mpm/some_file.py
+# Start development dashboard
+cd src/claude_mpm/dashboard
+npm install
+npm run dev
 
-# 2. Auto-fix issues
-make lint-fix            # Fix formatting, imports, etc.
+# Test with monitoring
+claude-mpm run --monitor --port 8766
 
-# 3. Check quality
-make quality             # Run all quality checks
-
-# 4. Run tests
-pytest tests/
-
-# 5. Pre-commit quality gate
-make pre-publish         # Complete quality + tests
+# Build for production
+npm run build
 ```
 
-**Key Quality Commands:**
-- `make quality` - Run all linting and quality checks
-- `make lint-fix` - Auto-fix formatting, imports, and style issues  
-- `make pre-publish` - Complete quality gate (lint + tests + checks)
+## 🎯 Development Workflows
 
-See [docs/reference/DEPLOY.md](../reference/DEPLOY.md) for detailed quality documentation.
+### 📝 Feature Development Workflow
 
-## Contributing
+1. **Setup**: `make dev-complete` for complete development environment
+2. **Code**: Implement feature following service-oriented patterns
+3. **Quality**: `make lint-fix` → `make quality` to maintain standards
+4. **Test**: Write comprehensive tests (unit, integration, E2E)
+5. **Document**: Update relevant documentation
+6. **Review**: Submit PR following [Contributing Guidelines](03-development/README.md)
 
-1. Follow [coding standards](./03-development/coding-standards.md)
-2. Use quality commands: `make lint-fix` → `make quality` → `make pre-publish`
-3. Add tests for new features
-4. Update documentation
-5. Submit PR with clear description
+### 🔍 Debugging Workflow
 
-## Support
+1. **Enable Verbose Logging**:
+   ```bash
+   claude-mpm run --verbose --monitor
+   ```
+2. **Check Service Health**:
+   ```bash
+   claude-mpm doctor --verbose
+   ```
+3. **Monitor Real-Time**: Use dashboard at http://localhost:8765
+4. **Review Logs**: Check `~/.claude-mpm/logs/` for detailed traces
+5. **Test Isolation**: Use `--non-interactive` for focused testing
 
-- Check [User Documentation](../user/)
-- Search [GitHub Issues](https://github.com/your-org/claude-mpm/issues)
-- Create detailed issue reports
+### 🚀 Release Workflow
 
-## License
+1. **Quality Gate**: `make quality` must pass
+2. **Version Management**: Use [semantic versioning](../reference/VERSIONING.md)
+3. **Build & Test**: `make safe-release-build`
+4. **Documentation**: Update version references to current
+5. **Deploy**: Follow [Deployment Guide](../DEPLOYMENT.md)
 
-MIT License - See [LICENSE](../../LICENSE)
+## 🧑‍💻 Contributing Guidelines
+
+### Code Quality Standards
+
+| Aspect | Requirement | Tool/Command |
+|--------|-------------|--------------|
+| **Formatting** | Black + isort | `make lint-fix` |
+| **Linting** | Ruff + Flake8 | `make quality` |
+| **Type Checking** | mypy compliance | `make quality` |
+| **Testing** | 85%+ coverage | `make test` |
+| **Documentation** | Comprehensive docstrings | Manual review |
+
+### Development Principles
+
+1. **Service-Oriented**: Use interface-based design patterns
+2. **Performance-First**: Implement caching and lazy loading
+3. **Security-Aware**: Follow security framework guidelines
+4. **Test-Driven**: Write tests before implementation
+5. **Documentation-Complete**: Document all public APIs
+
+### Pull Request Process
+
+1. **Follow Quality Workflow**: `make lint-fix` → `make quality` → `make test`
+2. **Update Documentation**: Keep docs current with changes
+3. **Add Tests**: Ensure comprehensive test coverage
+4. **Version Compatibility**: Check for breaking changes
+5. **Review Security**: Follow security guidelines
+
+## 📚 Learning Path for New Contributors
+
+### Week 1: Foundation
+- [ ] Read [Architecture Overview](ARCHITECTURE.md)
+- [ ] Complete [Development Setup](03-development/setup.md)
+- [ ] Run through [Contributing Guide](03-development/README.md)
+- [ ] Create first agent following [Agent Development](07-agent-system/AGENT_DEVELOPMENT.md)
+
+### Week 2: Development
+- [ ] Study [Service Development](SERVICES.md) patterns
+- [ ] Understand [Testing Strategy](TESTING.md)
+- [ ] Explore [Memory System](08-memory-system/MEMORY_SYSTEM.md)
+- [ ] Practice with [Quality Workflow](#quality-first-workflow)
+
+### Week 3: Advanced Topics
+- [ ] Learn [Security Framework](09-security/SECURITY.md)
+- [ ] Study [Performance Optimization](PERFORMANCE.md)
+- [ ] Explore [MCP Gateway](13-mcp-gateway/README.md)
+- [ ] Contribute first feature or bug fix
+
+## 🆘 Developer Support
+
+### Quick Troubleshooting
+
+| Issue | Solution | Documentation |
+|-------|----------|---------------|
+| **Import errors** | Check PYTHONPATH and venv | [Setup Guide](03-development/setup.md) |
+| **Quality checks fail** | Run `make lint-fix` first | [Code Quality](LINTING.md) |
+| **Tests not passing** | Check test environment setup | [Testing Guide](TESTING.md) |
+| **Service resolution errors** | Verify container registration | [Service Guide](SERVICES.md) |
+
+### Getting Help
+
+1. **📖 [Troubleshooting](../TROUBLESHOOTING.md)** - Comprehensive problem-solving
+2. **🤝 [Contributing Guide](03-development/README.md)** - How to contribute effectively
+3. **🐛 [GitHub Issues](https://github.com/bobmatnyc/claude-mpm/issues)** - Technical support
+4. **📚 [Documentation Hub](../README.md)** - Complete documentation navigation
+
+## 🔗 Related Documentation
+
+- **📚 [Documentation Hub](../README.md)** - Master navigation center
+- **👥 [User Guide](../user/README.md)** - User-facing documentation
+- **🤖 [Agent System](../AGENTS.md)** - Agent development guide
+- **🚀 [Deployment](../DEPLOYMENT.md)** - Operations and deployment
+- **📊 [API Reference](../API.md)** - Complete API documentation
+
+---
+
+**💡 Developer Tip**: Start with the [Contributing Guide](03-development/README.md) and [Architecture Overview](ARCHITECTURE.md) to understand the system design, then dive into specific areas based on your interests and contributions!

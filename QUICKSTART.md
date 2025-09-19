@@ -112,9 +112,9 @@ That's it! You now have:
 - [Basic Usage Guide](docs/user/02-guides/basic-usage.md) - Essential commands and workflows
 
 **Full Documentation**:
-- [Complete Documentation](docs/README.md) - All features and capabilities  
-- [Installation Guide](docs/user/installation.md) - Advanced installation options
-- [Troubleshooting](docs/user/troubleshooting.md) - Common issues and solutions
+- [📚 Complete Documentation Hub](docs/README.md) - Master navigation center
+- [📦 Installation Guide](docs/user/installation.md) - Advanced installation options
+- [🐛 Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
 
 ## Need Help?
 
@@ -125,6 +125,6 @@ That's it! You now have:
 - **Setup issues**: Run `/mpm-init` to initialize project
 
 **Get Support**:
-- [Troubleshooting Guide](docs/user/troubleshooting.md)
-- [GitHub Issues](https://github.com/bobmatnyc/claude-mpm/issues)
-- [Full Documentation](docs/)
+- [🐛 Troubleshooting Guide](docs/TROUBLESHOOTING.md)
+- [🐛 GitHub Issues](https://github.com/bobmatnyc/claude-mpm/issues)
+- [📚 Full Documentation](docs/README.md)
