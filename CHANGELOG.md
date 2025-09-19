@@ -1,3 +1,13 @@
+## [4.3.6] - 2025-09-19
+
+### Changed
+- **PM Workflow Enhancement**: Strengthened deployment verification requirements
+  - Made deployment verification MANDATORY for all deployments
+  - Added comprehensive deployment verification matrix for all platforms
+  - Specified required verifications: logs, fetch tests, Playwright for UI
+  - Updated testing matrix with platform-specific verification agents
+  - Enhanced common patterns with explicit VERIFY steps
+
 ## [4.3.5] - 2025-09-19
 
 ### Documentation
