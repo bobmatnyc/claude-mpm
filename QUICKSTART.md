@@ -8,12 +8,21 @@ Get Claude MPM running in 5 minutes or less!
 ```bash
 # Install with full monitor dashboard functionality
 pipx install "claude-mpm[monitor]"
+
+# Or install specific version
+pipx install "claude-mpm[monitor]==4.3.4"
 ```
 
-**Alternative: pip (requires virtual environment)**
+**Alternative: pip installation**
 ```bash
-# Basic installation
+# New installation
 pip install claude-mpm
+
+# Install specific version
+pip install claude-mpm==4.3.4
+
+# Upgrade existing installation
+pip install --upgrade claude-mpm
 ```
 
 **Requirements**: Python 3.8+, Claude Code
