@@ -1,3 +1,17 @@
+## [4.3.3] - 2025-09-19
+
+### Added
+- **Vercel Ops Agent v2.0.0**: Enterprise-grade environment management capabilities
+  - Security-first variable classification and encryption practices
+  - Bulk operations via REST API and CLI automation
+  - Team collaboration workflows and CI/CD integration patterns
+  - Daily/weekly operational monitoring scripts
+  - Migration support from legacy systems (Heroku, env files)
+  - 40+ environment-specific CLI commands
+  - Runtime security validation with Zod schema
+  - Comprehensive troubleshooting and debugging guides
+- **Vercel Environment Management Handbook**: Added comprehensive operational guide
+
 ## [4.3.2] - 2025-09-19
 
 ### Added
