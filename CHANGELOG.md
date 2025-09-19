@@ -1,3 +1,12 @@
+## [4.3.5] - 2025-09-19
+
+### Documentation
+- **Installation Instructions**: Added version-specific install and upgrade commands to quickstart guides
+  - Added `pip install --upgrade claude-mpm` for upgrades
+  - Added version-specific install examples (e.g., `pip install claude-mpm==4.3.5`)
+  - Updated both QUICKSTART.md and docs/user/quickstart.md
+  - Clear instructions for new users and existing users upgrading
+
 ## [4.3.4] - 2025-09-19
 
 ### Added
