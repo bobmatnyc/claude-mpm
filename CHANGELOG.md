@@ -1,3 +1,26 @@
+## [4.3.4] - 2025-09-19
+
+### Added
+- **Critical .env.local Preservation**: Vercel Ops agent now properly handles .env.local files
+  - Never sanitizes .env.local (preserves developer overrides)
+  - Ensures .env.local stays in .gitignore
+  - Clear instructions for local development practices
+
+### Changed
+- **Documentation Overhaul**: Complete restructuring with single entry point
+  - Established docs/README.md as master documentation hub
+  - Created user quickstart (5-minute setup) and comprehensive FAQ
+  - Separated user and developer documentation clearly
+  - Archived redundant files and organized by user type
+
+### Cleaned
+- **Comprehensive Codebase Cleanup**: Major organization and cleanup
+  - Removed 107 obsolete files (-4,281 lines)
+  - Deleted all .DS_Store, screenshots/, agent_metadata_backup/
+  - Organized 50+ misplaced scripts into tools/dev/ subdirectories
+  - Kept only 19 essential production scripts in /scripts/
+  - Updated .gitignore with proper exclusions
+
 ## [4.3.3] - 2025-09-19
 
 ### Added
