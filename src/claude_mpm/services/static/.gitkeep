@@ -1,0 +1,2 @@
+# Static files directory for SocketIO service
+# This directory is created to prevent FileNotFoundError when the SocketIO service starts

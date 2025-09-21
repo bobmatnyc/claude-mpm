@@ -69,3 +69,65 @@ class DeploymentServiceWrapper:
             "errors": [],
             "target_dir": str(project_dir),
         }
+
+    def get_agent_details(self, agent_name: str) -> Dict[str, Any]:
+        """Get detailed information for a specific agent.
+
+        Args:
+            agent_name: Name of the agent
+
+        Returns:
+            Agent details dictionary or empty dict if not found
+        """
+        try:
+            # Try to get from list of available agents
+            available_agents = self.service.list_available_agents()
+            for agent in available_agents:
+                if agent.get("name") == agent_name:
+                    # Get template path for the agent
+                    templates_dir = self.service.templates_dir
+                    agent_path = templates_dir / f"{agent_name}.md"
+
+                    # Read agent content if file exists
+                    if agent_path.exists():
+                        with open(agent_path, "r") as f:
+                            content = f.read()
+
+                        # Parse metadata from content
+                        import yaml
+                        metadata = {}
+                        if content.startswith("---"):
+                            # Extract frontmatter
+                            parts = content.split("---", 2)
+                            if len(parts) >= 2:
+                                try:
+                                    metadata = yaml.safe_load(parts[1])
+                                except yaml.YAMLError:
+                                    pass
+
+                        return {
+                            "name": agent_name,
+                            "path": str(agent_path),
+                            "type": agent.get("type", "agent"),
+                            "version": metadata.get("version", "1.0.0"),
+                            "description": metadata.get("description", ""),
+                            "specializations": metadata.get("specializations", []),
+                            "metadata": metadata,
+                            "content": content,
+                            "exists": True
+                        }
+
+            # Agent not found in available agents
+            return {
+                "name": agent_name,
+                "exists": False,
+                "error": f"Agent '{agent_name}' not found"
+            }
+
+        except Exception as e:
+            # Return error information
+            return {
+                "name": agent_name,
+                "exists": False,
+                "error": str(e)
+            }
