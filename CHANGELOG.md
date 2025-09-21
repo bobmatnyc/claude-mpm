@@ -1,3 +1,13 @@
+## [4.3.8] - 2025-09-21
+
+### Added
+- **Clerk Operations Agent**: Created specialized clerk-ops agent template for Clerk authentication
+  - Added comprehensive documentation for Clerk development patterns
+  - Handles dynamic localhost ports and multi-environment configurations
+  - Includes troubleshooting expertise for common authentication issues
+  - Supports webhook configuration with ngrok integration
+  - Enhanced data engineer template with additional capabilities
+
 ## [4.3.6] - 2025-09-19
 
 ### Changed
