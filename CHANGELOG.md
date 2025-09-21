@@ -1,3 +1,19 @@
+## [4.3.9] - 2025-09-21
+
+### Fixed
+- **SocketIO Service Stability**: Fixed missing static directory structure for SocketIO service
+  - Created proper static directory hierarchy for service initialization
+  - Prevents startup errors and ensures service stability
+- **Deployment Service Completeness**: Implemented missing get_agent_details method in DeploymentServiceWrapper
+  - Provides complete agent metadata and configuration information
+  - Ensures proper agent management and deployment workflows
+- **Python 3.13 Compatibility**: Resolved asyncio cleanup warnings on macOS
+  - Fixed kqueue-related asyncio warnings during CLI shutdown
+  - Improved process cleanup and resource management
+- **Authentication Agent Template**: Created clerk-ops agent for Clerk authentication setup
+  - Specialized agent for Clerk development patterns and configurations
+  - Handles dynamic ports, webhooks, and multi-environment setups
+
 ## [4.3.8] - 2025-09-21
 
 ### Added

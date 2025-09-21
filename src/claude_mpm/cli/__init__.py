@@ -253,6 +253,7 @@ def _verify_mcp_gateway_startup():
         # Pre-warm MCP servers regardless of gateway config
         # This eliminates the 11.9s delay on first agent invocation
         def run_pre_warming():
+            loop = None
             try:
                 start_time = time.time()
                 loop = asyncio.new_event_loop()
@@ -270,10 +271,26 @@ def _verify_mcp_gateway_startup():
                 if not gateway_configured:
                     loop.run_until_complete(verify_mcp_gateway_on_startup())
 
-                loop.close()
             except Exception as e:
                 # Non-blocking - log but don't fail
                 logger.debug(f"MCP pre-warming error (non-critical): {e}")
+            finally:
+                # Properly clean up event loop to prevent kqueue warnings
+                if loop is not None:
+                    try:
+                        # Cancel all running tasks
+                        pending = asyncio.all_tasks(loop)
+                        for task in pending:
+                            task.cancel()
+                        # Wait for tasks to complete cancellation
+                        if pending:
+                            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                    except Exception:
+                        pass  # Ignore cleanup errors
+                    finally:
+                        loop.close()
+                        # Clear the event loop reference to help with cleanup
+                        asyncio.set_event_loop(None)
 
         # Run pre-warming in background thread
         import threading
@@ -287,11 +304,11 @@ def _verify_mcp_gateway_startup():
         if not gateway_configured:
             # Note: We don't await this to avoid blocking startup
             def run_verification():
+                loop = None
                 try:
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     results = loop.run_until_complete(verify_mcp_gateway_on_startup())
-                    loop.close()
 
                     # Log results but don't block
                     from ..core.logger import get_logger
@@ -308,6 +325,23 @@ def _verify_mcp_gateway_startup():
 
                     logger = get_logger("cli")
                     logger.debug(f"MCP Gateway verification failed: {e}")
+                finally:
+                    # Properly clean up event loop to prevent kqueue warnings
+                    if loop is not None:
+                        try:
+                            # Cancel all running tasks
+                            pending = asyncio.all_tasks(loop)
+                            for task in pending:
+                                task.cancel()
+                            # Wait for tasks to complete cancellation
+                            if pending:
+                                loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                        except Exception:
+                            pass  # Ignore cleanup errors
+                        finally:
+                            loop.close()
+                            # Clear the event loop reference to help with cleanup
+                            asyncio.set_event_loop(None)
 
             # Run in background thread to avoid blocking startup
             import threading
