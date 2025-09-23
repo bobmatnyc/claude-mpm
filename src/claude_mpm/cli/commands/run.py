@@ -15,7 +15,7 @@ DESIGN DECISIONS:
 
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from ...constants import LogLevel
@@ -522,7 +522,7 @@ class RunCommand(BaseCommand):
             # Update session usage
             session = session_manager.load_session(resume_session_id)
             if session:
-                session.last_used = datetime.now().isoformat()
+                session.last_used = datetime.now(timezone.utc).isoformat()
                 session.use_count += 1
                 session_manager.save_session(session)
         else:
@@ -936,7 +936,7 @@ def run_session_legacy(args):
         # Update session usage
         session = session_manager.load_session(resume_session_id)
         if session:
-            session.last_used = datetime.now().isoformat()
+            session.last_used = datetime.now(timezone.utc).isoformat()
             session.use_count += 1
             session_manager.save_session(session)
     else:

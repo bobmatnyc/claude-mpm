@@ -18,7 +18,7 @@ import logging
 import shutil
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -339,14 +339,27 @@ class StartupStatusLogger:
 
     def _check_socketio_dependencies(self) -> Dict[str, Any]:
         """Check if Socket.IO dependencies are available."""
+        import importlib.util
+
         result = {"available": False, "error": None}
 
         try:
-            import aiohttp
-            import engineio
-            import socketio
+            # Check for socketio dependencies without importing them
+            aiohttp_spec = importlib.util.find_spec("aiohttp")
+            engineio_spec = importlib.util.find_spec("engineio")
+            socketio_spec = importlib.util.find_spec("socketio")
 
-            result["available"] = True
+            if aiohttp_spec and engineio_spec and socketio_spec:
+                result["available"] = True
+            else:
+                missing = []
+                if not aiohttp_spec:
+                    missing.append("aiohttp")
+                if not engineio_spec:
+                    missing.append("engineio")
+                if not socketio_spec:
+                    missing.append("socketio")
+                result["error"] = f"Missing dependencies: {', '.join(missing)}"
         except ImportError as e:
             result["error"] = f"Missing dependencies: {e}"
         except Exception as e:
@@ -493,7 +506,7 @@ def setup_startup_logging(project_root: Optional[Path] = None) -> Path:
     log_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate timestamp for log file
-    timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S")
     log_file = log_dir / f"startup-{timestamp}.log"
 
     # Create file handler with detailed formatting
@@ -516,7 +529,7 @@ def setup_startup_logging(project_root: Optional[Path] = None) -> Path:
     # Log startup header
     logger = get_logger("startup")
     logger.info("=" * 60)
-    logger.info(f"Claude MPM Startup - {datetime.now().isoformat()}")
+    logger.info(f"Claude MPM Startup - {datetime.now(timezone.utc).isoformat()}")
     logger.info(f"Log file: {log_file}")
     logger.info("=" * 60)
 
