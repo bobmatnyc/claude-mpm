@@ -51,8 +51,8 @@ class AgentsCommand(AgentCommand):
 
                 base_service = AgentDeploymentService()
                 self._deployment_service = DeploymentServiceWrapper(base_service)
-            except ImportError:
-                raise ImportError("Agent deployment service not available")
+            except ImportError as e:
+                raise ImportError("Agent deployment service not available") from e
         return self._deployment_service
 
     @property

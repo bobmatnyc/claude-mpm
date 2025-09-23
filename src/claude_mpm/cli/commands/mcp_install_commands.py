@@ -31,11 +31,12 @@ class MCPInstallCommands:
 
         # Step 1: Install MCP package if needed
         print("\n1️⃣  Checking MCP package installation...")
-        try:
-            import mcp
+        import importlib.util
 
+        mcp_spec = importlib.util.find_spec("mcp")
+        if mcp_spec:
             print("✅ MCP package already installed")
-        except ImportError:
+        else:
             print("📦 Installing MCP package...")
             try:
                 subprocess.check_call([sys.executable, "-m", "pip", "install", "mcp"])
@@ -172,13 +173,12 @@ class MCPInstallCommands:
             return str(executable_path)
 
         # Fallback: Use Python module invocation if no executable found
-        try:
-            import claude_mpm
+        import importlib.util
 
+        claude_mpm_spec = importlib.util.find_spec("claude_mpm")
+        if claude_mpm_spec:
             print(f"   Using Python module: {sys.executable} -m claude_mpm")
             return sys.executable
-        except ImportError:
-            pass
 
         return None
 
@@ -193,7 +193,7 @@ class MCPInstallCommands:
             dict or None: Configuration dictionary
         """
         import json
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         config = {}
 
@@ -226,7 +226,7 @@ class MCPInstallCommands:
 
                     # Create backup
                     backup_path = config_path.with_suffix(
-                        f'.backup.{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+                        f'.backup.{datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")}.json'
                     )
                     try:
                         config_path.rename(backup_path)

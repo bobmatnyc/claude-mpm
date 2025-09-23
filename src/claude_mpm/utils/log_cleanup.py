@@ -9,7 +9,7 @@ import gzip
 import logging
 import os
 import shutil
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
@@ -92,7 +92,7 @@ class LogCleanupUtility:
             logger.info(f"Sessions directory not found: {sessions_dir}")
             return 0, 0.0
 
-        cutoff_time = datetime.now() - timedelta(days=max_age_days)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(days=max_age_days)
         removed_count = 0
         total_size = 0.0
 
@@ -107,7 +107,7 @@ class LogCleanupUtility:
 
                 try:
                     # Check directory modification time
-                    mtime = datetime.fromtimestamp(session_dir.stat().st_mtime)
+                    mtime = datetime.fromtimestamp(session_dir.stat().st_mtime, tz=timezone.utc)
 
                     if mtime < cutoff_time:
                         # Calculate directory size
@@ -117,14 +117,14 @@ class LogCleanupUtility:
                         if dry_run:
                             logger.info(
                                 f"[DRY RUN] Would remove session: {session_dir.name} "
-                                f"(age: {(datetime.now() - mtime).days} days, "
+                                f"(age: {(datetime.now(timezone.utc) - mtime).days} days, "
                                 f"size: {dir_size:.2f} MB)"
                             )
                         else:
                             shutil.rmtree(session_dir)
                             logger.info(
                                 f"Removed session: {session_dir.name} "
-                                f"(age: {(datetime.now() - mtime).days} days, "
+                                f"(age: {(datetime.now(timezone.utc) - mtime).days} days, "
                                 f"size: {dir_size:.2f} MB)"
                             )
 
@@ -159,7 +159,7 @@ class LogCleanupUtility:
         Returns:
             Tuple of (files removed, space freed in MB)
         """
-        cutoff_time = datetime.now() - timedelta(days=max_age_days)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(days=max_age_days)
         removed_count = 0
         total_size = 0.0
 
@@ -169,7 +169,7 @@ class LogCleanupUtility:
         for ext in LogCleanupConfig.ARCHIVE_EXTENSIONS:
             for archive_file in self.base_log_dir.rglob(f"*{ext}"):
                 try:
-                    mtime = datetime.fromtimestamp(archive_file.stat().st_mtime)
+                    mtime = datetime.fromtimestamp(archive_file.stat().st_mtime, tz=timezone.utc)
 
                     if mtime < cutoff_time:
                         file_size = archive_file.stat().st_size / (1024 * 1024)  # MB
@@ -178,14 +178,14 @@ class LogCleanupUtility:
                         if dry_run:
                             logger.info(
                                 f"[DRY RUN] Would remove archive: {archive_file.name} "
-                                f"(age: {(datetime.now() - mtime).days} days, "
+                                f"(age: {(datetime.now(timezone.utc) - mtime).days} days, "
                                 f"size: {file_size:.2f} MB)"
                             )
                         else:
                             archive_file.unlink()
                             logger.info(
                                 f"Removed archive: {archive_file.name} "
-                                f"(age: {(datetime.now() - mtime).days} days, "
+                                f"(age: {(datetime.now(timezone.utc) - mtime).days} days, "
                                 f"size: {file_size:.2f} MB)"
                             )
 
@@ -218,7 +218,7 @@ class LogCleanupUtility:
         Returns:
             Tuple of (files removed, space freed in MB)
         """
-        cutoff_time = datetime.now() - timedelta(days=max_age_days)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(days=max_age_days)
         removed_count = 0
         total_size = 0.0
 
@@ -238,7 +238,7 @@ class LogCleanupUtility:
 
                 for log_file in log_dir.glob(pattern):
                     try:
-                        mtime = datetime.fromtimestamp(log_file.stat().st_mtime)
+                        mtime = datetime.fromtimestamp(log_file.stat().st_mtime, tz=timezone.utc)
 
                         if mtime < cutoff_time:
                             file_size = log_file.stat().st_size / (1024 * 1024)  # MB
@@ -247,14 +247,14 @@ class LogCleanupUtility:
                             if dry_run:
                                 logger.info(
                                     f"[DRY RUN] Would remove log: {log_file.name} "
-                                    f"(age: {(datetime.now() - mtime).days} days, "
+                                    f"(age: {(datetime.now(timezone.utc) - mtime).days} days, "
                                     f"size: {file_size:.2f} MB)"
                                 )
                             else:
                                 log_file.unlink()
                                 logger.info(
                                     f"Removed log: {log_file.name} "
-                                    f"(age: {(datetime.now() - mtime).days} days, "
+                                    f"(age: {(datetime.now(timezone.utc) - mtime).days} days, "
                                     f"size: {file_size:.2f} MB)"
                                 )
 
@@ -321,7 +321,7 @@ class LogCleanupUtility:
         Returns:
             Tuple of (files compressed, space saved in MB)
         """
-        cutoff_time = datetime.now() - timedelta(days=age_days)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(days=age_days)
         compressed_count = 0
         space_saved = 0.0
 
@@ -331,7 +331,7 @@ class LogCleanupUtility:
                 continue
 
             try:
-                mtime = datetime.fromtimestamp(log_file.stat().st_mtime)
+                mtime = datetime.fromtimestamp(log_file.stat().st_mtime, tz=timezone.utc)
 
                 if mtime < cutoff_time:
                     original_size = log_file.stat().st_size / (1024 * 1024)  # MB
@@ -408,7 +408,7 @@ class LogCleanupUtility:
                 stats["oldest_session"] = {
                     "name": oldest.name,
                     "age_days": (
-                        datetime.now() - datetime.fromtimestamp(oldest.stat().st_mtime)
+                        datetime.now(timezone.utc) - datetime.fromtimestamp(oldest.stat().st_mtime, tz=timezone.utc)
                     ).days,
                 }
 
@@ -429,7 +429,7 @@ class LogCleanupUtility:
                 "name": oldest_log.name,
                 "path": str(oldest_log.relative_to(self.base_log_dir)),
                 "age_days": (
-                    datetime.now() - datetime.fromtimestamp(oldest_log.stat().st_mtime)
+                    datetime.now(timezone.utc) - datetime.fromtimestamp(oldest_log.stat().st_mtime, tz=timezone.utc)
                 ).days,
             }
 

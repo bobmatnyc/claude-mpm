@@ -19,7 +19,7 @@ import os
 import re
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -372,7 +372,7 @@ class AnalyzeCommand(BaseCommand):
         diagram_dir = args.diagram_output or Path("./diagrams")
         diagram_dir.mkdir(parents=True, exist_ok=True)
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
         for diagram in diagrams:
             filename = f"{timestamp}_{diagram['title']}.mermaid"
@@ -429,7 +429,7 @@ class AnalyzeCommand(BaseCommand):
         if format_type == "markdown":
             output = "# Code Analysis Report\n\n"
             output += f"**Target:** `{result_data['target']}`\n"
-            output += f"**Timestamp:** {datetime.now().isoformat()}\n"
+            output += f"**Timestamp:** {datetime.now(timezone.utc).isoformat()}\n"
 
             if result_data.get("session_id"):
                 output += f"**Session ID:** {result_data['session_id']}\n"
@@ -492,7 +492,7 @@ class AnalyzeCommand(BaseCommand):
         """
         session_data = {
             "context": "code_analysis",
-            "created_at": datetime.now().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "type": "analysis",
         }
         session_id = self.session_manager.create_session(session_data)
