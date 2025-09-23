@@ -11,6 +11,7 @@ DESIGN DECISIONS:
 - Provide comprehensive system information for troubleshooting
 """
 
+import importlib.util
 import shutil
 from pathlib import Path
 from typing import Any, Dict
@@ -119,14 +120,12 @@ class InfoCommand(BaseCommand):
         }
 
         # Check ai-trackdown-pytools
-        try:
-            import ai_trackdown_pytools
-
+        if importlib.util.find_spec("ai_trackdown_pytools") is not None:
             dependencies["ai_trackdown_pytools"] = {
                 "installed": True,
                 "status": "✓ Installed",
             }
-        except ImportError:
+        else:
             dependencies["ai_trackdown_pytools"] = {
                 "installed": False,
                 "status": "✗ Not installed",

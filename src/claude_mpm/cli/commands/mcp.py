@@ -34,9 +34,10 @@ def manage_mcp(args):
     logger = get_logger("cli.mcp")
 
     # First check if MCP package is installed for any command
-    try:
-        import mcp
-    except ImportError:
+    import importlib.util
+
+    mcp_spec = importlib.util.find_spec("mcp")
+    if not mcp_spec:
         if args.mcp_command != MCPCommands.INSTALL.value:
             print("\nMCP package is not installed.", file=sys.stderr)
             print("Please install it first:", file=sys.stderr)
@@ -129,11 +130,12 @@ def _show_status(
     print("=" * 50)
 
     # Check if MCP package is installed
-    try:
-        import mcp
+    import importlib.util
 
+    mcp_spec = importlib.util.find_spec("mcp")
+    if mcp_spec:
         print("✅ MCP package installed")
-    except ImportError:
+    else:
         print("❌ MCP package not installed")
         print("   Run: claude-mpm mcp install")
         return 1

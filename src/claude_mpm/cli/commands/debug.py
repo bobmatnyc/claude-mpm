@@ -14,7 +14,7 @@ import contextlib
 import json
 import time
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -408,7 +408,7 @@ def debug_agents(args, logger):
                             agent_name = agent_file.stem
                             size = agent_file.stat().st_size
                             modified = datetime.fromtimestamp(
-                                agent_file.stat().st_mtime
+                                agent_file.stat().st_mtime, timezone.utc
                             )
                             print(f"   • {agent_name}")
                             print(f"     Size: {size:,} bytes")

@@ -23,7 +23,7 @@ EVENT HANDLING FIX:
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -348,7 +348,7 @@ class AgentDiscovery:
 
             # Get file modification time
             stat = template_file.stat()
-            agent.last_modified = datetime.fromtimestamp(stat.st_mtime)
+            agent.last_modified = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
 
             return agent
 

@@ -17,7 +17,7 @@ DESIGN DECISIONS:
 import json
 import shutil
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -101,8 +101,8 @@ def parse_size(size_str: str) -> int:
     # Try to parse as raw number (assume bytes)
     try:
         return int(size_str)
-    except ValueError:
-        raise ValueError(f"Invalid size format: {size_str}")
+    except ValueError as e:
+        raise ValueError(f"Invalid size format: {size_str}") from e
 
 
 def format_size(size_bytes: int) -> str:
@@ -208,7 +208,7 @@ def create_archive(source_path: Path, archive_dir: Path) -> Path:
     archive_dir.mkdir(parents=True, exist_ok=True)
 
     # Create timestamped archive name
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     archive_name = f"claude_archive_{timestamp}.json"
     archive_path = archive_dir / archive_name
 
@@ -381,7 +381,7 @@ class CleanupCommand(BaseCommand):
                 result["archive_created"] = True
                 result["archive_path"] = str(archive_path)
             except Exception as e:
-                raise Exception(f"Failed to create archive: {e}")
+                raise Exception(f"Failed to create archive: {e}") from e
 
         # Perform cleanup
         original_size, new_size = clean_claude_json(
@@ -574,12 +574,12 @@ def clean_old_archives(archive_dir: Path, keep_days: int = 90) -> List[Path]:
         return []
 
     removed = []
-    cutoff_date = datetime.now() - timedelta(days=keep_days)
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=keep_days)
 
     for archive_file in archive_dir.glob("claude_archive_*.json*"):
         # Check file age
         file_stat = archive_file.stat()
-        file_time = datetime.fromtimestamp(file_stat.st_mtime)
+        file_time = datetime.fromtimestamp(file_stat.st_mtime, tz=timezone.utc)
 
         if file_time < cutoff_date:
             archive_file.unlink()

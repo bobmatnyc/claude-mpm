@@ -83,7 +83,7 @@ def run_command(command_string: str, timeout: float = 60) -> str:
             returncode=getattr(e, "returncode", None),
             stdout=getattr(e, "stdout", ""),
             stderr=stderr,
-        )
+        ) from e
 
 
 def run_subprocess(
@@ -137,16 +137,16 @@ def run_subprocess(
             returncode=None,
             stdout=e.stdout.decode() if e.stdout else "",
             stderr=e.stderr.decode() if e.stderr else "",
-        )
+        ) from e
     except subprocess.CalledProcessError as e:
         raise SubprocessError(
             f"Command failed with return code {e.returncode}: {' '.join(cmd)}",
             returncode=e.returncode,
             stdout=e.stdout if e.stdout else "",
             stderr=e.stderr if e.stderr else "",
-        )
+        ) from e
     except Exception as e:
-        raise SubprocessError(f"Subprocess execution failed: {e}")
+        raise SubprocessError(f"Subprocess execution failed: {e}") from e
 
 
 async def run_subprocess_async(
@@ -195,7 +195,7 @@ async def run_subprocess_async(
             await process.wait()
             raise SubprocessError(
                 f"Command timed out after {timeout}s: {' '.join(cmd)}", returncode=None
-            )
+            ) from None
 
         return SubprocessResult(
             returncode=process.returncode,
@@ -205,7 +205,7 @@ async def run_subprocess_async(
 
     except Exception as e:
         if not isinstance(e, SubprocessError):
-            raise SubprocessError(f"Async subprocess execution failed: {e}")
+            raise SubprocessError(f"Async subprocess execution failed: {e}") from e
         raise
 
 
