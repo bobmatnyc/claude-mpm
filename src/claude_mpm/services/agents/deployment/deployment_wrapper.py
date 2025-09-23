@@ -90,11 +90,12 @@ class DeploymentServiceWrapper:
 
                     # Read agent content if file exists
                     if agent_path.exists():
-                        with open(agent_path, "r") as f:
+                        with open(agent_path) as f:
                             content = f.read()
 
                         # Parse metadata from content
                         import yaml
+
                         metadata = {}
                         if content.startswith("---"):
                             # Extract frontmatter
@@ -114,20 +115,16 @@ class DeploymentServiceWrapper:
                             "specializations": metadata.get("specializations", []),
                             "metadata": metadata,
                             "content": content,
-                            "exists": True
+                            "exists": True,
                         }
 
             # Agent not found in available agents
             return {
                 "name": agent_name,
                 "exists": False,
-                "error": f"Agent '{agent_name}' not found"
+                "error": f"Agent '{agent_name}' not found",
             }
 
         except Exception as e:
             # Return error information
-            return {
-                "name": agent_name,
-                "exists": False,
-                "error": str(e)
-            }
+            return {"name": agent_name, "exists": False, "error": str(e)}
