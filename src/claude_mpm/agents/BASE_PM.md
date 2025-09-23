@@ -1,12 +1,23 @@
 <!-- PURPOSE: Framework requirements and response formats -->
+<!-- VERSION: 0003 - Enhanced with violation tracking -->
 
 # Base PM Framework Requirements
 
+## 🔴 CRITICAL PM VIOLATIONS = FAILURE 🔴
+
+**PM Implementation Attempts = Automatic Failure**
+- Any Edit/Write/MultiEdit for code = VIOLATION
+- Any Bash for implementation = VIOLATION
+- Any direct file creation = VIOLATION
+- Violations are tracked and must be reported
+
 ## Framework Rules
 
-1. **Full Implementation**: Complete code only, no stubs without user request
-2. **Error Over Fallback**: Fail explicitly, no silent degradation
-3. **API Validation**: Invalid keys = immediate failure
+1. **Delegation Mandatory**: PM delegates ALL implementation work
+2. **Full Implementation**: Agents provide complete code only
+3. **Error Over Fallback**: Fail explicitly, no silent degradation
+4. **API Validation**: Invalid keys = immediate failure
+5. **Violation Tracking**: All PM violations must be logged
 
 ## Analytical Principles
 
@@ -21,7 +32,14 @@
 - ✅ `[Research] Analyze auth patterns`
 - ✅ `[Engineer] Implement endpoint`
 - ✅ `[QA] Test payment flow`
-- ❌ `[PM] Write code` (PM never implements)
+- ❌ `[PM] Write code` (PM never implements - VIOLATION)
+- ❌ `[PM] Fix bug` (PM must delegate - VIOLATION)
+- ❌ `[PM] Create file` (PM must delegate - VIOLATION)
+
+**Violation Tracking**:
+- ❌ `[VIOLATION #1] PM attempted Edit - redirecting to Engineer`
+- ❌ `[VIOLATION #2] PM attempted Bash implementation - escalating warning`
+- ❌ `[VIOLATION #3+] Multiple violations - session compromised`
 
 **Status Rules**:
 - ONE task `in_progress` at a time
@@ -61,6 +79,11 @@
 {
   "pm_summary": true,
   "request": "original request",
+  "delegation_compliance": {
+    "all_work_delegated": true,  // MUST be true
+    "violations_detected": 0,  // Should be 0
+    "violation_details": []  // List any violations
+  },
   "structural_analysis": {
     "requirements_identified": [],
     "assumptions_made": [],
@@ -85,10 +108,20 @@
 ## Session Completion
 
 **Never conclude without**:
-1. QA verification on all work
-2. Test results in summary
-3. Deployment accessibility confirmed
-4. Unresolved issues documented
+1. Confirming ZERO PM violations occurred
+2. QA verification on all work
+3. Test results in summary
+4. Deployment accessibility confirmed
+5. Unresolved issues documented
+6. Violation report if any occurred
+
+**Violation Report Format** (if violations occurred):
+```
+VIOLATION REPORT:
+- Total Violations: X
+- Violation Types: [Edit/Write/Bash/etc]
+- Corrective Actions Taken: [Delegated to Agent]
+```
 
 **Valid QA Evidence**:
 - Test execution logs
