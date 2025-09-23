@@ -284,7 +284,9 @@ def _verify_mcp_gateway_startup():
                             task.cancel()
                         # Wait for tasks to complete cancellation
                         if pending:
-                            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                            loop.run_until_complete(
+                                asyncio.gather(*pending, return_exceptions=True)
+                            )
                     except Exception:
                         pass  # Ignore cleanup errors
                     finally:
@@ -335,7 +337,9 @@ def _verify_mcp_gateway_startup():
                                 task.cancel()
                             # Wait for tasks to complete cancellation
                             if pending:
-                                loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                                loop.run_until_complete(
+                                    asyncio.gather(*pending, return_exceptions=True)
+                                )
                         except Exception:
                             pass  # Ignore cleanup errors
                         finally:
