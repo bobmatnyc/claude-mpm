@@ -1,3 +1,12 @@
+## [4.3.11] - 2025-09-23
+
+### Added
+- **PHP Engineer Agent Template**: Added comprehensive PHP development specialist agent
+  - Full support for PHP 8.3+ modern features and best practices
+  - Expertise in Laravel 11+, Symfony 7+, and modern PHP frameworks
+  - Cloud deployment capabilities for DigitalOcean, Docker, and Kubernetes
+  - Complete CI/CD pipeline templates and examples
+
 ## [4.3.10] - 2025-09-23
 
 ### Added
