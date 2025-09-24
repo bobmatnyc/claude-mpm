@@ -184,7 +184,7 @@ def add_mcp_subparser(subparsers) -> argparse.ArgumentParser:
     external_mcp_parser.add_argument(
         "external_action",
         nargs="?",
-        choices=["setup", "list", "check", "fix-browser"],
+        choices=["setup", "list", "check", "fix-browser", "detect"],
         default="list",
         help="External service action (default: list)",
     )
