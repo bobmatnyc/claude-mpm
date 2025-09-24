@@ -2,8 +2,12 @@
 External MCP Services Integration
 ==================================
 
-Automatically registers and manages external MCP services like mcp-vector-search
-and mcp-browser as part of the Claude MPM MCP Gateway.
+Manages installation and basic setup of external MCP services like mcp-vector-search
+and mcp-browser. These services run as separate MCP servers in Claude Desktop,
+not as part of the Claude MPM MCP Gateway.
+
+Note: As of the latest architecture, external services are registered as separate
+MCP servers in Claude Desktop configuration, not as tools within the gateway.
 """
 
 import asyncio
@@ -310,7 +314,16 @@ class MCPBrowserService(ExternalMCPService):
 
 
 class ExternalMCPServiceManager:
-    """Manager for external MCP services."""
+    """Manager for external MCP services.
+
+    This manager is responsible for checking and installing Python packages
+    for external MCP services. The actual registration of these services
+    happens in Claude Desktop configuration as separate MCP servers.
+
+    Note: This class is maintained for backward compatibility and package
+    management. The actual tool registration is handled by separate MCP
+    server instances in Claude Desktop.
+    """
 
     def __init__(self):
         """Initialize the service manager."""
@@ -318,7 +331,12 @@ class ExternalMCPServiceManager:
         self.logger = None
 
     async def initialize_services(self) -> List[ExternalMCPService]:
-        """Initialize all external MCP services."""
+        """Initialize all external MCP services.
+
+        This method checks if external service packages are installed
+        and attempts to install them if missing. It does NOT register
+        them as tools in the gateway - they run as separate MCP servers.
+        """
         # Create service instances
         services = [
             MCPVectorSearchService(),

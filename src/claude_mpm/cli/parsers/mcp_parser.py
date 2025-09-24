@@ -177,4 +177,21 @@ def add_mcp_subparser(subparsers) -> argparse.ArgumentParser:
         help="Show setup instructions for Claude Code",
     )
 
+    # External MCP services management
+    external_mcp_parser = mcp_subparsers.add_parser(
+        MCPCommands.EXTERNAL.value, help="Manage external MCP services"
+    )
+    external_mcp_parser.add_argument(
+        "external_action",
+        nargs="?",
+        choices=["setup", "list", "check"],
+        default="list",
+        help="External service action (default: list)",
+    )
+    external_mcp_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force overwrite existing configuration"
+    )
+
     return mcp_parser

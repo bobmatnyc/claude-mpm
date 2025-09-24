@@ -45,6 +45,9 @@ class MCPCommandRouter:
         if args.mcp_command == MCPCommands.SERVER.value:
             return self._run_server(args)
 
+        if args.mcp_command == MCPCommands.EXTERNAL.value:
+            return self._manage_external(args)
+
         if args.mcp_command == "cleanup":
             return self._cleanup_locks(args)
 
@@ -124,6 +127,13 @@ class MCPCommandRouter:
         handler = MCPServerCommands(self.logger)
         return asyncio.run(handler.start_server(args))
 
+    def _manage_external(self, args) -> int:
+        """Manage external MCP services command handler."""
+        from .mcp_external_commands import MCPExternalCommands
+
+        handler = MCPExternalCommands(self.logger)
+        return handler.manage_external(args)
+
     def _show_help(self):
         """Show available MCP commands."""
         print("\nAvailable MCP commands:")
@@ -136,6 +146,7 @@ class MCPCommandRouter:
         print("  register - Register a new tool")
         print("  test     - Test tool invocation")
         print("  config   - View and manage configuration")
+        print("  external - Manage external MCP services")
         print("  cleanup  - Clean up legacy files")
         print("\nFor help with a specific command:")
         print("  claude-mpm mcp <command> --help")

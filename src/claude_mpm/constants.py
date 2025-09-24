@@ -140,6 +140,7 @@ class MCPCommands(str, Enum):
     TEST = "test"
     CONFIG = "config"
     SERVER = "server"
+    EXTERNAL = "external"
 
 
 class TicketCommands(str, Enum):
