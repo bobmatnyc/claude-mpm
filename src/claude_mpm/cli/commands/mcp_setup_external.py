@@ -118,8 +118,21 @@ class MCPExternalServicesSetup:
 
             for venv_python in venv_paths:
                 if venv_python.exists():
-                    # Special handling for mcp-browser with mcp-server.py
+                    # Special handling for mcp-browser
                     if service_name == "mcp-browser":
+                        # First check for mcp-browser binary in the same directory as python
+                        mcp_browser_binary = venv_python.parent / "mcp-browser"
+                        if mcp_browser_binary.exists():
+                            return {
+                                "type": "stdio",
+                                "command": str(mcp_browser_binary),
+                                "args": ["mcp"],
+                                "env": {
+                                    "MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")
+                                }
+                            }
+
+                        # Then check for mcp-server.py
                         mcp_server = dev_path / "mcp-server.py"
                         if mcp_server.exists():
                             return {
