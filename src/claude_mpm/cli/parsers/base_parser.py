@@ -390,6 +390,14 @@ def create_parser(
     except ImportError:
         pass
 
+    # Add search command parser
+    try:
+        from .search_parser import add_search_subparser
+
+        add_search_subparser(subparsers)
+    except ImportError:
+        pass
+
     # Import and add additional command parsers from commands module
     try:
         from ..commands.aggregate import add_aggregate_parser
