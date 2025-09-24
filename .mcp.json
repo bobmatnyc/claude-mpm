@@ -12,10 +12,8 @@
     },
     "mcp-browser": {
       "type": "stdio",
-      "command": "/Users/masa/.local/pipx/venvs/mcp-browser/bin/python",
+      "command": "/Users/masa/.local/pipx/venvs/mcp-browser/bin/mcp-browser",
       "args": [
-        "-m",
-        "mcp_browser.cli.main",
         "mcp"
       ],
       "env": {
