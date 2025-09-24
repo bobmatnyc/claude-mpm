@@ -2,7 +2,7 @@
   "mcpServers": {
     "mcp-vector-search": {
       "type": "stdio",
-      "command": "/Users/masa/Projects/managed/mcp-vector-search/.venv/bin/python3",
+      "command": "/Users/masa/Projects/managed/mcp-vector-search/.venv/bin/python",
       "args": [
         "-m",
         "mcp_vector_search.mcp.server",
@@ -12,12 +12,13 @@
     },
     "mcp-browser": {
       "type": "stdio",
-      "command": "/Users/masa/.local/pipx/venvs/mcp-browser/bin/mcp-browser",
+      "command": "/Users/masa/Projects/managed/mcp-browser/.venv/bin/python",
       "args": [
-        "mcp"
+        "/Users/masa/Projects/managed/mcp-browser/mcp-server.py"
       ],
       "env": {
-        "MCP_BROWSER_HOME": "/Users/masa/.mcp-browser"
+        "MCP_BROWSER_HOME": "/Users/masa/.mcp-browser",
+        "PYTHONPATH": "/Users/masa/Projects/managed/mcp-browser"
       }
     }
   }

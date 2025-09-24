@@ -40,6 +40,8 @@ class MCPExternalCommands:
             return self._check_external(args)
         elif external_action == "fix-browser":
             return self._fix_browser(args)
+        elif external_action == "detect":
+            return self._detect_and_update(args)
         else:
             print(f"Unknown external subcommand: {external_action}")
             self._show_help()
@@ -190,6 +192,32 @@ class MCPExternalCommands:
         else:
             return 1
 
+    def _detect_and_update(self, args):
+        """Auto-detect MCP service installations and update configuration.
+
+        Prioritizes local development installations over pipx/system.
+
+        Args:
+            args: Command line arguments
+
+        Returns:
+            int: Exit code
+        """
+        from .mcp_setup_external import MCPExternalServicesSetup
+
+        setup = MCPExternalServicesSetup(self.logger)
+        force = getattr(args, 'force', False)
+
+        if setup.update_mcp_json_with_detected(force=force):
+            print("\n✅ Configuration updated successfully!")
+            print("\nNext steps:")
+            print("1. Review the .mcp.json file to verify the configuration")
+            print("2. Restart Claude Desktop to load the updated services")
+            return 0
+        else:
+            print("\n❌ Failed to update configuration")
+            return 1
+
     def _show_help(self):
         """Show help for external commands."""
         print("\nMCP External Services Management")
@@ -198,10 +226,13 @@ class MCPExternalCommands:
         print("  setup       - Setup external MCP services (mcp-vector-search, mcp-browser)")
         print("  list        - List available external services and their status")
         print("  check       - Check configuration and installation status")
+        print("  detect      - Auto-detect installations and update .mcp.json (prioritizes local dev)")
         print("  fix-browser - Fix mcp-browser configuration to use pipx installation")
         print("\nUsage:")
         print("  claude-mpm mcp external setup         # Interactive setup")
         print("  claude-mpm mcp external setup --force # Force reconfiguration")
+        print("  claude-mpm mcp external detect        # Auto-detect and update config")
+        print("  claude-mpm mcp external detect --force # Force update even if configured")
         print("  claude-mpm mcp external list          # Show service status")
         print("  claude-mpm mcp external check         # Detailed configuration check")
         print("  claude-mpm mcp external fix-browser   # Fix mcp-browser to use pipx")
