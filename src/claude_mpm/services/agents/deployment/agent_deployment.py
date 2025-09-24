@@ -776,16 +776,6 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                 agent_sources=agent_sources,
             )
 
-            # Log version upgrades and source changes
-            if comparison_results.get("version_upgrades"):
-                self.logger.info(
-                    f"Version upgrades available for {len(comparison_results['version_upgrades'])} agents"
-                )
-            if comparison_results.get("source_changes"):
-                self.logger.info(
-                    f"Source changes for {len(comparison_results['source_changes'])} agents"
-                )
-
             # Filter agents based on comparison results (unless force_rebuild is set)
             if not force_rebuild:
                 # Only deploy agents that need updates or are new
@@ -804,11 +794,36 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                     for name, path in agents_to_deploy.items()
                     if name in agents_needing_update
                 }
+
+                # Only log upgrade messages if we're actually going to deploy them
+                if filtered_agents and comparison_results.get("version_upgrades"):
+                    # Filter upgrades to only those actually being deployed
+                    deployed_upgrades = [
+                        upgrade for upgrade in comparison_results["version_upgrades"]
+                        if upgrade["name"] in filtered_agents
+                    ]
+
+                    if deployed_upgrades:
+                        self.logger.info(
+                            f"Deploying {len(deployed_upgrades)} agent upgrade(s):"
+                        )
+                        for upgrade in deployed_upgrades:
+                            self.logger.info(
+                                f"  Upgrading: {upgrade['name']} "
+                                f"{upgrade['deployed_version']} -> {upgrade['new_version']} "
+                                f"(from {upgrade['source']})"
+                            )
+
                 agents_to_deploy = filtered_agents
 
-                self.logger.info(
-                    f"Filtered to {len(agents_to_deploy)} agents needing deployment"
-                )
+                if agents_to_deploy:
+                    self.logger.info(
+                        f"Deploying {len(agents_to_deploy)} agents that need updates"
+                    )
+                else:
+                    self.logger.debug(
+                        f"All {len(comparison_results.get('up_to_date', []))} agents are up to date"
+                    )
 
         # Convert to list of Path objects
         template_files = list(agents_to_deploy.values())
