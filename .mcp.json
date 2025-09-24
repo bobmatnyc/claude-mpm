@@ -12,13 +12,12 @@
     },
     "mcp-browser": {
       "type": "stdio",
-      "command": "/Users/masa/Projects/managed/mcp-browser/.venv/bin/python",
+      "command": "/Users/masa/.local/pipx/venvs/mcp-browser/bin/mcp-browser",
       "args": [
-        "/Users/masa/Projects/managed/mcp-browser/mcp-server.py"
+        "mcp"
       ],
       "env": {
-        "MCP_BROWSER_HOME": "/Users/masa/.mcp-browser",
-        "PYTHONPATH": "/Users/masa/Projects/managed/mcp-browser"
+        "MCP_BROWSER_HOME": "/Users/masa/.mcp-browser"
       }
     }
   }
