@@ -460,6 +460,13 @@ class UnifiedAgentRegistry:
             if agent_format == AgentFormat.JSON:
                 data = json.loads(content)
 
+                # Ensure data is a dictionary, not a list
+                if not isinstance(data, dict):
+                    logger.warning(
+                        f"Invalid JSON structure in {file_path}: expected object, got {type(data).__name__}"
+                    )
+                    return "", []
+
                 # Handle local agent JSON templates with metadata structure
                 if "metadata" in data:
                     metadata = data["metadata"]
