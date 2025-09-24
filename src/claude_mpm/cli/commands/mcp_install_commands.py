@@ -46,31 +46,54 @@ class MCPInstallCommands:
                 print("\nPlease install manually with: pip install mcp")
                 return 1
 
-        # Step 2: Configure Claude Code with the new CLI command
-        print("\n2️⃣  Configuring Claude Code (~/.claude.json)...")
+        # Step 2: Configure Claude Desktop with the new CLI command
+        print("\n2️⃣  Configuring Claude Desktop...")
         try:
             success = self._configure_claude_desktop(args.force)
-            if success:
-                print("✅ Configuration completed successfully")
-                print("\n🎉 MCP Gateway is ready to use!")
-                print("\nNext steps:")
-                print("1. Restart Claude Code (if running)")
-                print("2. Test the server: claude-mpm mcp server --test")
-                print("3. Check status: claude-mpm mcp status")
-                return 0
-            print("❌ Configuration failed")
-            return 1
+            if not success:
+                print("❌ Main gateway configuration failed")
+                return 1
+
+            # Step 3: Setup external MCP services
+            print("\n3️⃣  Setting up External MCP Services...")
+            from .mcp_setup_external import MCPExternalServicesSetup
+
+            external_setup = MCPExternalServicesSetup(self.logger)
+
+            # Check if user wants to set up external services
+            response = input("\nDo you want to set up external MCP services (mcp-vector-search, mcp-browser)? (Y/n): ").strip().lower()
+            if response in ["", "y", "yes"]:
+                # Install Python packages for external services
+                external_setup.check_and_install_pip_packages()
+
+                # Setup external services in Claude Desktop config
+                if external_setup.setup_external_services(force=args.force):
+                    print("✅ External services configured successfully")
+                else:
+                    print("⚠️ Some external services may not have been configured")
+            else:
+                print("⏭️ Skipping external services setup")
+                print("   You can set them up later with: claude-mpm mcp external setup")
+
+            print("\n✅ Configuration completed successfully")
+            print("\n🎉 MCP Gateway is ready to use!")
+            print("\nNext steps:")
+            print("1. Restart Claude Desktop (if running)")
+            print("2. Test the server: claude-mpm mcp server --test")
+            print("3. Check status: claude-mpm mcp status")
+            print("4. List external services: claude-mpm mcp external list")
+            return 0
 
         except Exception as e:
             print(f"❌ Error during configuration: {e}")
             return 1
 
     def _configure_claude_desktop(self, force=False):
-        """Configure Claude Code to use the MCP gateway via CLI command.
+        """Configure Claude Desktop to use the MCP gateway via CLI command.
 
-        WHY: Claude Code reads MCP server configurations from ~/.claude.json
-        (not ~/.claude/settings.local.json). This method updates that file
-        to include the claude-mpm-gateway server configuration.
+        WHY: Claude Desktop reads MCP server configurations from a platform-specific
+        configuration file. This method updates that file to include the claude-mpm-gateway
+        server configuration.
 
         Args:
             force: Whether to overwrite existing configuration
@@ -135,16 +158,34 @@ class MCPInstallCommands:
         return self._save_config(config, config_path)
 
     def _get_claude_config_path(self):
-        """Get the Claude Code configuration file path.
+        """Get the Claude Desktop configuration file path.
 
         Returns:
-            Path or None: Path to Claude Code config file
+            Path or None: Path to Claude Desktop config file
         """
+        import platform
 
-        # Claude Code reads MCP server configurations from ~/.claude.json
-        # This is the actual file that Claude Code uses for MCP servers
-        # NOT ~/.claude/settings.local.json
-        return Path.home() / ".claude.json"
+        # Try multiple possible locations for Claude Desktop config
+        possible_paths = [
+            Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json",  # macOS
+            Path.home() / ".config" / "Claude" / "claude_desktop_config.json",  # Linux
+            Path.home() / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json",  # Windows
+            Path.home() / ".claude" / "claude_desktop_config.json",  # Alternative
+            Path.home() / ".claude.json",  # Legacy
+        ]
+
+        for path in possible_paths:
+            if path.exists():
+                return path
+
+        # If none exist, return the platform-appropriate default
+        system = platform.system()
+        if system == "Darwin":  # macOS
+            return Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+        elif system == "Windows":
+            return Path.home() / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json"
+        else:  # Linux and others
+            return Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
 
     def _find_claude_mpm_executable(self):
         """Find the claude-mpm executable path.
