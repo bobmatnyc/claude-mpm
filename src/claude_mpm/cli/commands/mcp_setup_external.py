@@ -644,23 +644,13 @@ class MCPExternalServicesSetup:
             return None
 
         if package_name == "mcp-browser":
-            # mcp-browser uses 'mcp' subcommand for MCP mode
-            binary_path = pipx_venv / "bin" / "mcp-browser"
-            # Double-check the binary actually exists
-            if binary_path.exists() and binary_path.is_file():
-                return {
-                    "type": "stdio",
-                    "command": str(binary_path),
-                    "args": ["mcp"],
-                    "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
-                }
-            # Fallback to Python module if binary doesn't exist
+            # mcp-browser uses Python module invocation for MCP mode
             python_path = pipx_venv / "bin" / "python"
             if python_path.exists():
                 # Check if module is importable
                 try:
                     result = subprocess.run(
-                        [str(python_path), "-c", "import mcp_browser"],
+                        [str(python_path), "-c", "import mcp_browser.cli.main"],
                         capture_output=True,
                         timeout=5
                     )
@@ -668,7 +658,7 @@ class MCPExternalServicesSetup:
                         return {
                             "type": "stdio",
                             "command": str(python_path),
-                            "args": ["-m", "mcp_browser", "mcp"],
+                            "args": ["-m", "mcp_browser.cli.main", "mcp"],
                             "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
                         }
                 except:
