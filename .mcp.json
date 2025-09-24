@@ -12,7 +12,7 @@
     },
     "mcp-browser": {
       "type": "stdio",
-      "command": "/Users/masa/.local/pipx/venvs/mcp-browser/bin/mcp-browser",
+      "command": "/Users/masa/Projects/managed/mcp-browser/.venv/bin/mcp-browser",
       "args": [
         "mcp"
       ],
