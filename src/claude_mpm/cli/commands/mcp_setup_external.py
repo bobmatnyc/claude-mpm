@@ -47,8 +47,8 @@ class MCPExternalServicesSetup:
         """Get the best configuration for a service.
 
         Priority order:
-        1. Local development installation (e.g., ~/Projects/managed/)
-        2. Pipx installation (for isolation)
+        1. Pipx installation (preferred for isolation and reliability)
+        2. Local development installation (e.g., ~/Projects/managed/)
         3. Local project venv
         4. System Python
 
@@ -59,20 +59,28 @@ class MCPExternalServicesSetup:
         Returns:
             Dict: Service configuration
         """
-        # First try local development installations
-        local_dev_config = self._get_local_dev_config(service_name, project_path)
-        if local_dev_config:
-            return local_dev_config
-
-        # Then try pipx (preferred for non-development)
+        # First try pipx (preferred for isolation and reliability)
         pipx_config = self._get_pipx_config(service_name, project_path)
         if pipx_config:
-            return pipx_config
+            # Verify the executable actually exists before using it
+            command = pipx_config.get("command", "")
+            if Path(command).exists():
+                return pipx_config
+
+        # Then try local development installations
+        local_dev_config = self._get_local_dev_config(service_name, project_path)
+        if local_dev_config:
+            # Verify the command exists
+            command = local_dev_config.get("command", "")
+            if Path(command).exists():
+                return local_dev_config
 
         # Then try local venv if exists
         venv_config = self._get_venv_config(service_name, project_path)
         if venv_config:
-            return venv_config
+            command = venv_config.get("command", "")
+            if Path(command).exists():
+                return venv_config
 
         # Fall back to system Python
         return self._get_system_config(service_name, project_path)
@@ -278,12 +286,15 @@ class MCPExternalServicesSetup:
 
             pipx_config = self._get_pipx_config(service_name, project_path)
             if pipx_config:
-                installations[service_name] = {
-                    "type": "pipx",
-                    "path": pipx_config["command"],
-                    "config": pipx_config
-                }
-                continue
+                # Verify the command actually exists before reporting it as available
+                command_path = Path(pipx_config["command"])
+                if command_path.exists():
+                    installations[service_name] = {
+                        "type": "pipx",
+                        "path": pipx_config["command"],
+                        "config": pipx_config
+                    }
+                    continue
 
             venv_config = self._get_venv_config(service_name, project_path)
             if venv_config:
@@ -635,23 +646,53 @@ class MCPExternalServicesSetup:
         if package_name == "mcp-browser":
             # mcp-browser uses 'mcp' subcommand for MCP mode
             binary_path = pipx_venv / "bin" / "mcp-browser"
-            if binary_path.exists():
+            # Double-check the binary actually exists
+            if binary_path.exists() and binary_path.is_file():
                 return {
                     "type": "stdio",
                     "command": str(binary_path),
                     "args": ["mcp"],
                     "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
                 }
+            # Fallback to Python module if binary doesn't exist
+            python_path = pipx_venv / "bin" / "python"
+            if python_path.exists():
+                # Check if module is importable
+                try:
+                    result = subprocess.run(
+                        [str(python_path), "-c", "import mcp_browser"],
+                        capture_output=True,
+                        timeout=5
+                    )
+                    if result.returncode == 0:
+                        return {
+                            "type": "stdio",
+                            "command": str(python_path),
+                            "args": ["-m", "mcp_browser", "mcp"],
+                            "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
+                        }
+                except:
+                    pass
         elif package_name == "mcp-vector-search":
             # mcp-vector-search uses Python module invocation
             python_path = pipx_venv / "bin" / "python"
             if python_path.exists():
-                return {
-                    "type": "stdio",
-                    "command": str(python_path),
-                    "args": ["-m", "mcp_vector_search.mcp.server", str(project_path)],
-                    "env": {}
-                }
+                # Check if module is importable
+                try:
+                    result = subprocess.run(
+                        [str(python_path), "-c", "import mcp_vector_search"],
+                        capture_output=True,
+                        timeout=5
+                    )
+                    if result.returncode == 0:
+                        return {
+                            "type": "stdio",
+                            "command": str(python_path),
+                            "args": ["-m", "mcp_vector_search.mcp.server", str(project_path)],
+                            "env": {}
+                        }
+                except:
+                    pass
 
         return None
 
