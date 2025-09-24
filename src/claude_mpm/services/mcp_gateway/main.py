@@ -115,6 +115,14 @@ except ImportError:
     # Unified ticket tool is optional
     UnifiedTicketTool = None
 
+try:
+    from claude_mpm.services.mcp_gateway.tools.external_mcp_services import (
+        ExternalMCPServiceManager,
+    )
+except ImportError:
+    # External MCP services are optional
+    ExternalMCPServiceManager = None
+
 # Manager module removed - using simplified architecture
 
 
@@ -148,6 +156,7 @@ class MCPGatewayOrchestrator:
         self.registry: Optional[ToolRegistry] = None
         self.communication: Optional[StdioHandler] = None
         self.configuration: Optional[MCPConfiguration] = None
+        self.external_services: Optional[ExternalMCPServiceManager] = None
 
         # Shutdown handling
         self._shutdown_event = asyncio.Event()
@@ -198,6 +207,28 @@ class MCPGatewayOrchestrator:
                 except Exception as e:
                     self.logger.warning(f"Failed to register some tools: {e}")
                     # Continue - server can run with partial tools
+
+            # Initialize external MCP services if available
+            if ExternalMCPServiceManager is not None:
+                try:
+                    self.logger.info("Initializing external MCP services...")
+                    self.external_services = ExternalMCPServiceManager()
+                    external_services = await self.external_services.initialize_services()
+
+                    if external_services and self.registry:
+                        for service in external_services:
+                            try:
+                                if self.registry.register_tool(service, category="external"):
+                                    self.logger.info(f"Registered external service: {service.service_name}")
+                                else:
+                                    self.logger.warning(f"Failed to register external service: {service.service_name}")
+                            except Exception as e:
+                                self.logger.warning(f"Error registering {service.service_name}: {e}")
+
+                    self.logger.info(f"Initialized {len(external_services)} external MCP services")
+                except Exception as e:
+                    self.logger.warning(f"Failed to initialize external MCP services: {e}")
+                    self.external_services = None
 
             # Initialize communication handler with fallback
             try:
@@ -370,6 +401,13 @@ class MCPGatewayOrchestrator:
                     await self.communication.shutdown()
                 except Exception as e:
                     self.logger.warning(f"Error during communication shutdown: {e}")
+
+            # Shutdown external services
+            if self.external_services:
+                try:
+                    await self.external_services.shutdown()
+                except Exception as e:
+                    self.logger.warning(f"Error during external services shutdown: {e}")
 
             self.logger.info("MCP Gateway shutdown complete")
 
