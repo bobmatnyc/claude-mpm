@@ -9,6 +9,16 @@
         "/Users/masa/Projects/claude-mpm"
       ],
       "env": {}
+    },
+    "mcp-browser": {
+      "type": "stdio",
+      "command": "/Users/masa/.local/pipx/venvs/mcp-browser/bin/mcp-browser",
+      "args": [
+        "mcp"
+      ],
+      "env": {
+        "MCP_BROWSER_HOME": "/Users/masa/.mcp-browser"
+      }
     }
   }
 }

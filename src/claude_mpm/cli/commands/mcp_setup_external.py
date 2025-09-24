@@ -15,26 +15,18 @@ from typing import Dict, Optional, List, Tuple
 class MCPExternalServicesSetup:
     """Handles setup of external MCP services in Claude Desktop configuration."""
 
-    # Define external services and their configurations
-    @property
-    def EXTERNAL_SERVICES(self):
-        """Get external services configuration with current Python executable."""
-        # Check for pipx installations first
-        mcp_browser_config = self._get_pipx_config("mcp-browser")
-        if not mcp_browser_config:
-            mcp_browser_config = {
-                "command": sys.executable,
-                "args": ["-m", "mcp_browser"],
-                "env": {}
-            }
+    def get_project_services(self, project_path: Path) -> Dict:
+        """Get external services configuration for the current project.
 
-        mcp_vector_search_config = self._get_pipx_config("mcp-vector-search")
-        if not mcp_vector_search_config:
-            mcp_vector_search_config = {
-                "command": sys.executable,
-                "args": ["-m", "mcp_vector_search"],
-                "env": {}
-            }
+        Args:
+            project_path: Path to the project directory
+
+        Returns:
+            Dict: Configuration for external services
+        """
+        # Detect best command paths for services
+        mcp_browser_config = self._get_best_service_config("mcp-browser", project_path)
+        mcp_vector_search_config = self._get_best_service_config("mcp-vector-search", project_path)
 
         return {
             "mcp-vector-search": {
@@ -51,13 +43,128 @@ class MCPExternalServicesSetup:
             }
         }
 
+    def _get_best_service_config(self, service_name: str, project_path: Path) -> Dict:
+        """Get the best configuration for a service (prefer pipx, then local venv, then system).
+
+        Args:
+            service_name: Name of the service
+            project_path: Path to the project directory
+
+        Returns:
+            Dict: Service configuration
+        """
+        # First try pipx (preferred for isolation)
+        pipx_config = self._get_pipx_config(service_name, project_path)
+        if pipx_config:
+            return pipx_config
+
+        # Then try local venv if exists
+        venv_config = self._get_venv_config(service_name, project_path)
+        if venv_config:
+            return venv_config
+
+        # Fall back to system Python
+        return self._get_system_config(service_name, project_path)
+
+    def _get_venv_config(self, service_name: str, project_path: Path) -> Optional[Dict]:
+        """Get configuration for a service in the local virtual environment.
+
+        Args:
+            service_name: Name of the service
+            project_path: Path to the project directory
+
+        Returns:
+            Configuration dict or None if not available
+        """
+        # Check common venv locations
+        venv_paths = [
+            project_path / "venv" / "bin" / "python",
+            project_path / ".venv" / "bin" / "python",
+            project_path / "env" / "bin" / "python",
+        ]
+
+        for venv_python in venv_paths:
+            if venv_python.exists():
+                # Check if the package is installed in this venv
+                module_name = service_name.replace("-", "_")
+                try:
+                    result = subprocess.run(
+                        [str(venv_python), "-c", f"import {module_name}"],
+                        capture_output=True,
+                        timeout=5
+                    )
+                    if result.returncode == 0:
+                        return self._create_service_config(service_name, str(venv_python), project_path)
+                except:
+                    continue
+
+        return None
+
+    def _get_system_config(self, service_name: str, project_path: Path) -> Dict:
+        """Get configuration using system Python.
+
+        Args:
+            service_name: Name of the service
+            project_path: Path to the project directory
+
+        Returns:
+            Configuration dict
+        """
+        return self._create_service_config(service_name, sys.executable, project_path)
+
+    def _create_service_config(self, service_name: str, python_path: str, project_path: Path) -> Dict:
+        """Create service configuration for the given Python executable.
+
+        Args:
+            service_name: Name of the service
+            python_path: Path to Python executable
+            project_path: Path to the project directory
+
+        Returns:
+            Configuration dict
+        """
+        if service_name == "mcp-browser":
+            # Check if mcp-browser binary exists (for pipx installations)
+            binary_path = Path(python_path).parent / "mcp-browser"
+            if binary_path.exists():
+                return {
+                    "type": "stdio",
+                    "command": str(binary_path),
+                    "args": ["mcp"],
+                    "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
+                }
+            else:
+                # Use Python module invocation
+                return {
+                    "type": "stdio",
+                    "command": python_path,
+                    "args": ["-m", "mcp_browser", "mcp"],
+                    "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
+                }
+        elif service_name == "mcp-vector-search":
+            return {
+                "type": "stdio",
+                "command": python_path,
+                "args": ["-m", "mcp_vector_search.mcp.server", str(project_path)],
+                "env": {}
+            }
+        else:
+            # Generic configuration for other services
+            module_name = service_name.replace("-", "_")
+            return {
+                "type": "stdio",
+                "command": python_path,
+                "args": ["-m", module_name],
+                "env": {}
+            }
+
     def __init__(self, logger):
         """Initialize the external services setup handler."""
         self.logger = logger
         self._pipx_path = Path.home() / ".local" / "pipx" / "venvs"
 
     def setup_external_services(self, force: bool = False) -> bool:
-        """Setup external MCP services as separate servers.
+        """Setup external MCP services in project .mcp.json file.
 
         Args:
             force: Whether to overwrite existing configurations
@@ -68,34 +175,11 @@ class MCPExternalServicesSetup:
         print("\n📦 Setting up External MCP Services")
         print("=" * 50)
 
-        # Get Claude Desktop config path - try multiple possible locations
-        possible_paths = [
-            Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json",  # macOS
-            Path.home() / ".config" / "Claude" / "claude_desktop_config.json",  # Linux
-            Path.home() / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json",  # Windows
-            Path.home() / ".claude" / "claude_desktop_config.json",  # Alternative
-            Path.home() / ".claude.json",  # Legacy location
-        ]
+        # Use project-level .mcp.json file
+        project_path = Path.cwd()
+        config_path = project_path / ".mcp.json"
 
-        config_path = None
-        for path in possible_paths:
-            if path.exists():
-                config_path = path
-                break
-
-        if not config_path:
-            # Try to create in the most appropriate location
-            import platform
-            system = platform.system()
-            if system == "Darwin":  # macOS
-                config_path = Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
-            elif system == "Windows":
-                config_path = Path.home() / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json"
-            else:  # Linux and others
-                config_path = Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
-
-            print(f"📁 Creating new configuration at: {config_path}")
-
+        print(f"📁 Project directory: {project_path}")
         print(f"📄 Using config: {config_path}")
 
         # Load existing configuration
@@ -110,14 +194,16 @@ class MCPExternalServicesSetup:
 
         # Setup each external service
         success_count = 0
-        for service_name, service_info in self.EXTERNAL_SERVICES.items():
+        for service_name, service_info in self.get_project_services(project_path).items():
             if self._setup_service(config, service_name, service_info, force):
                 success_count += 1
 
         # Save the updated configuration
         if success_count > 0:
             if self._save_config(config, config_path):
-                print(f"\n✅ Successfully configured {success_count} external services")
+                print(f"\n✅ Successfully configured {success_count} external services in .mcp.json")
+                print(f"\n📌 Note: Claude Desktop will automatically load these services")
+                print(f"   when you open this project directory in Claude Desktop.")
                 return True
             else:
                 print("❌ Failed to save configuration")
@@ -251,7 +337,7 @@ class MCPExternalServicesSetup:
             return False
 
     def _load_config(self, config_path: Path) -> Optional[Dict]:
-        """Load Claude Desktop configuration.
+        """Load MCP configuration.
 
         Args:
             config_path: Path to the configuration file
@@ -262,16 +348,22 @@ class MCPExternalServicesSetup:
         try:
             if config_path.exists():
                 with open(config_path) as f:
-                    return json.load(f)
+                    config = json.load(f)
+                    # Ensure mcpServers key exists
+                    if "mcpServers" not in config:
+                        config["mcpServers"] = {}
+                    return config
             else:
                 # Create new configuration
+                print(f"   📝 Creating new .mcp.json file")
                 return {"mcpServers": {}}
         except (OSError, json.JSONDecodeError) as e:
             print(f"❌ Error loading config: {e}")
-            return None
+            # Try to return empty config instead of None
+            return {"mcpServers": {}}
 
     def _save_config(self, config: Dict, config_path: Path) -> bool:
-        """Save Claude Desktop configuration.
+        """Save MCP configuration.
 
         Args:
             config: Configuration dictionary
@@ -287,15 +379,15 @@ class MCPExternalServicesSetup:
             # Create backup if file exists
             if config_path.exists():
                 from datetime import datetime
-                backup_path = config_path.with_suffix(
-                    f".backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                )
-                config_path.rename(backup_path)
+                backup_path = config_path.parent / f".mcp.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                import shutil
+                shutil.copy2(config_path, backup_path)
                 print(f"   📁 Created backup: {backup_path}")
 
-            # Write configuration
+            # Write configuration with proper formatting
             with open(config_path, "w") as f:
                 json.dump(config, f, indent=2)
+                f.write("\n")  # Add newline at end of file
 
             print(f"   💾 Saved configuration to {config_path}")
             return True
@@ -304,11 +396,12 @@ class MCPExternalServicesSetup:
             print(f"❌ Error saving config: {e}")
             return False
 
-    def _get_pipx_config(self, package_name: str) -> Optional[Dict]:
+    def _get_pipx_config(self, package_name: str, project_path: Path) -> Optional[Dict]:
         """Get configuration for a pipx-installed package.
 
         Args:
             package_name: Name of the package (e.g., "mcp-browser")
+            project_path: Path to the project directory
 
         Returns:
             Configuration dict for the service or None if not found
@@ -322,6 +415,7 @@ class MCPExternalServicesSetup:
             binary_path = pipx_venv / "bin" / "mcp-browser"
             if binary_path.exists():
                 return {
+                    "type": "stdio",
                     "command": str(binary_path),
                     "args": ["mcp"],
                     "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
@@ -330,13 +424,11 @@ class MCPExternalServicesSetup:
             # mcp-vector-search uses Python module invocation
             python_path = pipx_venv / "bin" / "python"
             if python_path.exists():
-                # Get current working directory or use home
-                cwd = os.getcwd()
                 return {
+                    "type": "stdio",
                     "command": str(python_path),
-                    "args": ["-m", "mcp_vector_search.mcp.server", cwd],
-                    "cwd": cwd,
-                    "env": {"MCP_DEBUG": "1"}
+                    "args": ["-m", "mcp_vector_search.mcp.server", str(project_path)],
+                    "env": {}
                 }
 
         return None
@@ -362,10 +454,10 @@ class MCPExternalServicesSetup:
         return False, "none"
 
     def fix_browser_configuration(self) -> bool:
-        """Quick fix for mcp-browser configuration.
+        """Quick fix for mcp-browser configuration in project .mcp.json.
 
-        Updates only the mcp-browser configuration in Claude Desktop
-        to use the pipx installation.
+        Updates only the mcp-browser configuration in the project's .mcp.json
+        to use the best available installation (pipx preferred).
 
         Returns:
             bool: True if configuration was updated successfully
@@ -373,7 +465,13 @@ class MCPExternalServicesSetup:
         print("\n🔧 Fixing mcp-browser Configuration")
         print("=" * 50)
 
-        # Check if mcp-browser is installed via pipx
+        project_path = Path.cwd()
+        config_path = project_path / ".mcp.json"
+
+        print(f"📁 Project directory: {project_path}")
+        print(f"📄 Using config: {config_path}")
+
+        # Check if mcp-browser is installed
         is_installed, install_type = self._check_pipx_installation("mcp-browser")
         if not is_installed:
             print("❌ mcp-browser is not installed")
@@ -384,114 +482,82 @@ class MCPExternalServicesSetup:
             print("⚠️ mcp-browser is not installed via pipx")
             print("   For best results, install with: pipx install mcp-browser")
 
-        # Get configuration
-        config = self._get_pipx_config("mcp-browser")
-        if not config:
+        # Get best configuration for mcp-browser
+        browser_config = self._get_best_service_config("mcp-browser", project_path)
+        if not browser_config:
             print("❌ Could not determine mcp-browser configuration")
             return False
 
-        # Update Claude Desktop configuration
-        config_path = self._get_claude_desktop_config_path()
-        if not config_path:
-            print("❌ Could not find Claude Desktop configuration")
-            return False
-
-        desktop_config = self._load_config(config_path)
-        if not desktop_config:
-            print("❌ Failed to load Claude Desktop configuration")
+        # Load project configuration
+        config = self._load_config(config_path)
+        if not config:
+            print("❌ Failed to load configuration")
             return False
 
         # Update mcp-browser configuration
-        if "mcpServers" not in desktop_config:
-            desktop_config["mcpServers"] = {}
+        if "mcpServers" not in config:
+            config["mcpServers"] = {}
 
-        desktop_config["mcpServers"]["mcp-browser"] = config
+        config["mcpServers"]["mcp-browser"] = browser_config
 
         # Save configuration
-        if self._save_config(desktop_config, config_path):
-            print("✅ Successfully updated mcp-browser configuration")
-            print(f"   Command: {config['command']}")
-            print(f"   Args: {config['args']}")
-            print("\n⚠️ Please restart Claude Desktop for changes to take effect")
+        if self._save_config(config, config_path):
+            print("✅ Successfully updated mcp-browser configuration in .mcp.json")
+            print(f"   Command: {browser_config['command']}")
+            print(f"   Args: {browser_config['args']}")
+            print("\n📌 Note: Claude Desktop will automatically use this configuration")
+            print("   when you open this project directory.")
             return True
         else:
             print("❌ Failed to save configuration")
             return False
 
-    def _get_claude_desktop_config_path(self) -> Optional[Path]:
-        """Get the Claude Desktop configuration file path.
-
-        Returns:
-            Path to configuration file or None if not found
-        """
-        possible_paths = [
-            Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json",  # macOS
-            Path.home() / ".config" / "Claude" / "claude_desktop_config.json",  # Linux
-            Path.home() / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json",  # Windows
-            Path.home() / ".claude" / "claude_desktop_config.json",  # Alternative
-            Path.home() / ".claude.json",  # Legacy location
-        ]
-
-        for path in possible_paths:
-            if path.exists():
-                return path
-
-        # Try to create in the most appropriate location
-        import platform
-        system = platform.system()
-        if system == "Darwin":  # macOS
-            return Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
-        elif system == "Windows":
-            return Path.home() / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json"
-        else:  # Linux and others
-            return Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
 
     def list_external_services(self) -> None:
         """List all available external MCP services and their status."""
         print("\n📋 Available External MCP Services")
         print("=" * 50)
 
-        # Check Claude Desktop configuration - try multiple possible locations
-        possible_paths = [
-            Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json",  # macOS
-            Path.home() / ".config" / "Claude" / "claude_desktop_config.json",  # Linux
-            Path.home() / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json",  # Windows
-            Path.home() / ".claude" / "claude_desktop_config.json",  # Alternative
-            Path.home() / ".claude.json",  # Legacy location
-        ]
+        # Check project-level .mcp.json
+        project_path = Path.cwd()
+        mcp_config_path = project_path / ".mcp.json"
+        mcp_config = {}
 
-        config_path = None
-        config = {}
-        for path in possible_paths:
-            if path.exists():
-                config_path = path
-                try:
-                    with open(config_path) as f:
-                        config = json.load(f)
-                    break
-                except:
-                    continue
+        if mcp_config_path.exists():
+            try:
+                with open(mcp_config_path) as f:
+                    mcp_config = json.load(f)
+                print(f"\n📁 Project MCP config: {mcp_config_path}")
+            except:
+                print(f"\n⚠️ Could not read project .mcp.json")
+        else:
+            print(f"\n📝 No .mcp.json found in project directory")
 
-        for service_name, service_info in self.EXTERNAL_SERVICES.items():
+        # Get service configurations for this project
+        services = self.get_project_services(project_path)
+
+        for service_name, service_info in services.items():
             print(f"\n{service_name}:")
             print(f"  Description: {service_info['description']}")
             print(f"  Python Package: {service_info['package_name']}")
 
-            # Check if configured
-            if config_path:
-                if config.get("mcpServers", {}).get(service_name):
-                    print(f"  Status: ✅ Configured")
-                else:
-                    print(f"  Status: ❌ Not configured")
+            # Check if configured in .mcp.json
+            if mcp_config.get("mcpServers", {}).get(service_name):
+                print(f"  Project Status: ✅ Configured in .mcp.json")
+                service_config = mcp_config["mcpServers"][service_name]
+                print(f"    Command: {service_config.get('command')}")
+                if service_config.get('args'):
+                    print(f"    Args: {service_config.get('args')}")
             else:
-                print(f"  Status: ❌ Claude Desktop not configured")
+                print(f"  Project Status: ❌ Not configured in .mcp.json")
 
             # Check installation type
             is_installed, install_type = self._check_pipx_installation(service_name)
             if is_installed:
                 if install_type == "pipx":
-                    print(f"  Installation: ✅ Installed via pipx")
+                    print(f"  Installation: ✅ Installed via pipx (recommended)")
                 else:
                     print(f"  Installation: ✅ Installed via pip")
             else:
                 print(f"  Installation: ❌ Not installed")
+                print(f"    Install with: pipx install {service_info['package_name']}")
