@@ -742,18 +742,20 @@ class MultiSourceAgentDeploymentService:
 
         self.logger.info(f"Version comparison complete: {', '.join(summary_parts)}")
 
+        # Don't log upgrades here - let the caller decide when to log
+        # This prevents repeated upgrade messages on every startup
         if comparison_results["version_upgrades"]:
             for upgrade in comparison_results["version_upgrades"]:
-                self.logger.info(
-                    f"  Upgrade: {upgrade['name']} "
+                self.logger.debug(
+                    f"  Upgrade available: {upgrade['name']} "
                     f"{upgrade['deployed_version']} -> {upgrade['new_version']} "
                     f"(from {upgrade['source']})"
                 )
 
         if comparison_results["source_changes"]:
             for change in comparison_results["source_changes"]:
-                self.logger.info(
-                    f"  Source change: {change['name']} "
+                self.logger.debug(
+                    f"  Source change available: {change['name']} "
                     f"from {change['from_source']} to {change['to_source']}"
                 )
 
