@@ -60,6 +60,23 @@ class MCPConfiguration(BaseMCPService, IMCPConfiguration):
                 "timeout_default": 30,  # seconds
                 "max_concurrent": 10,
             },
+            "external_services": {
+                "enabled": True,
+                "auto_install": True,
+                "services": [
+                    {
+                        "name": "mcp-vector-search",
+                        "package": "mcp-vector-search",
+                        "enabled": True,
+                        "auto_index": True,
+                    },
+                    {
+                        "name": "mcp-browser",
+                        "package": "mcp-browser",
+                        "enabled": True,
+                    },
+                ],
+            },
             "logging": {
                 "level": "INFO",
                 "file": "~/.claude/logs/mcp_gateway.log",
