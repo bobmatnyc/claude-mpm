@@ -428,17 +428,9 @@ class MemoryManager(IMemoryManager):
                     memory_items = [line.strip() for line in loaded_content.split("\n")
                                    if line.strip().startswith("-")]
                     if memory_items:
-                        # Show first few memory items for context
-                        preview_items = memory_items[:3]
-                        preview_text = "\n  ".join(preview_items)
-                        if len(memory_items) > 3:
-                            self.logger.info(
-                                f"Loaded {source} PM memory: {len(memory_items)} items\n  {preview_text}\n  ... and {len(memory_items) - 3} more"
-                            )
-                        else:
-                            self.logger.info(
-                                f"Loaded {source} PM memory: {len(memory_items)} items\n  {preview_text}"
-                            )
+                        self.logger.info(
+                            f"Loaded {source} PM memory: {len(memory_items)} items"
+                        )
                     else:
                         # Skip logging if no actual memory items
                         self.logger.debug(
@@ -505,17 +497,9 @@ class MemoryManager(IMemoryManager):
                         memory_items = [line.strip() for line in loaded_content.split("\n")
                                        if line.strip().startswith("-")]
                         if memory_items:
-                            # Show first few memory items for context
-                            preview_items = memory_items[:2]
-                            preview_text = "\n  ".join(preview_items)
-                            if len(memory_items) > 2:
-                                self.logger.info(
-                                    f"Loaded {source} memory for {agent_name}: {len(memory_items)} items\n  {preview_text}\n  ... and {len(memory_items) - 2} more"
-                                )
-                            else:
-                                self.logger.info(
-                                    f"Loaded {source} memory for {agent_name}: {len(memory_items)} items\n  {preview_text}"
-                                )
+                            self.logger.info(
+                                f"Loaded {source} memory for {agent_name}: {len(memory_items)} items"
+                            )
                         else:
                             # Skip logging if no actual memory items
                             self.logger.debug(
