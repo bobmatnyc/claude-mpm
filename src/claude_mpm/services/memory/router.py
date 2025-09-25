@@ -21,7 +21,7 @@ users understand why content was assigned to specific agents.
 """
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.config import Config
@@ -622,7 +622,7 @@ class MemoryRouter(LoggerMixin):
                 "confidence": confidence,
                 "reasoning": reasoning,
                 "agent_scores": agent_scores,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "content_length": len(content),
             }
 
@@ -639,7 +639,7 @@ class MemoryRouter(LoggerMixin):
                 "confidence": 0.1,
                 "reasoning": f"Error during analysis, defaulting to {self.DEFAULT_AGENT}",
                 "error": str(e),
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "content_length": len(content) if content else 0,
             }
 

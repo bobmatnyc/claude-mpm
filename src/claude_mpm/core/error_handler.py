@@ -384,7 +384,7 @@ def with_error_handling(
                     if callable(fallback_value):
                         try:
                             fb_value = fallback_value(*args, **kwargs)
-                        except:
+                        except Exception:
                             fb_value = None
 
                     return handle_error(
@@ -428,7 +428,7 @@ def safe_operation(
                 if callable(fallback_value):
                     try:
                         return fallback_value(*args, **kwargs)
-                    except:
+                    except Exception:
                         return None
                 return fallback_value
 

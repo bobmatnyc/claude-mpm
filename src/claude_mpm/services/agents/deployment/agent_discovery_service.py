@@ -219,7 +219,9 @@ class AgentDiscoveryService:
             # Handle capabilities as either dict or list
             if isinstance(capabilities, list):
                 # If capabilities is a list (like in php-engineer.json), treat it as capabilities list
-                tools_list = template_data.get("tools", [])  # Look for tools at root level
+                tools_list = template_data.get(
+                    "tools", []
+                )  # Look for tools at root level
                 model_value = template_data.get("model", "sonnet")
             else:
                 # If capabilities is a dict, extract tools and model from it
@@ -228,9 +230,13 @@ class AgentDiscoveryService:
 
             agent_info = {
                 "name": metadata.get("name", template_file.stem),
-                "description": metadata.get("description", template_data.get("description", "No description available")),
+                "description": metadata.get(
+                    "description",
+                    template_data.get("description", "No description available"),
+                ),
                 "type": template_data.get(
-                    "agent_type", metadata.get("category", template_data.get("category", "agent"))
+                    "agent_type",
+                    metadata.get("category", template_data.get("category", "agent")),
                 ),  # Extract agent type
                 "version": template_data.get(
                     "agent_version",

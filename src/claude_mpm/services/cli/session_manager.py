@@ -18,7 +18,7 @@ import json
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -151,8 +151,12 @@ class SessionInfo:
 
     id: str
     context: str = "default"
-    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    last_used: str = field(default_factory=lambda: datetime.now().isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    last_used: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     use_count: int = 0
     agents_run: List[Dict[str, Any]] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -175,8 +179,8 @@ class SessionInfo:
         return cls(
             id=data["id"],
             context=data.get("context", "default"),
-            created_at=data.get("created_at", datetime.now().isoformat()),
-            last_used=data.get("last_used", datetime.now().isoformat()),
+            created_at=data.get("created_at", datetime.now(timezone.utc).isoformat()),
+            last_used=data.get("last_used", datetime.now(timezone.utc).isoformat()),
             use_count=data.get("use_count", 0),
             agents_run=data.get("agents_run", []),
             metadata=data.get("metadata", {}),
@@ -284,7 +288,7 @@ class SessionManager(ISessionManager):
         # Check session age
         try:
             created = datetime.fromisoformat(session.created_at)
-            age = datetime.now() - created
+            age = datetime.now(timezone.utc) - created
 
             if age > timedelta(days=7):
                 validation.warnings.append(f"Session is {age.days} days old")
@@ -355,10 +359,10 @@ class SessionManager(ISessionManager):
             {
                 "agent": agent,
                 "task": task[:100],  # Truncate long tasks
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         )
-        session.last_used = datetime.now().isoformat()
+        session.last_used = datetime.now(timezone.utc).isoformat()
         session.use_count += 1
 
         self.save_session(session)
@@ -370,7 +374,7 @@ class SessionManager(ISessionManager):
 
         WHY: Prevents unbounded growth of session data and improves performance.
         """
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         max_age = timedelta(hours=max_age_hours)
 
         expired_ids = []
@@ -418,7 +422,7 @@ class SessionManager(ISessionManager):
             return True
 
         # Create timestamped archive file
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         archive_name = f"sessions_archive_{timestamp}.json.gz"
         archive_path = archive_dir / archive_name
 
@@ -509,5 +513,5 @@ class ManagedSession:
         """Exit session context with cleanup."""
         if self.session:
             # Update last used time
-            self.session.last_used = datetime.now().isoformat()
+            self.session.last_used = datetime.now(timezone.utc).isoformat()
             self.manager.save_session(self.session)

@@ -13,7 +13,7 @@ Configuration via .claude-mpm/configuration.yaml.
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 # Import configuration manager
@@ -133,7 +133,7 @@ class ClaudeSessionLogger:
         # Generate a default based on timestamp if nothing found
         if not session_id:
             # Use a timestamp-based session ID as fallback
-            session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+            session_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             logger.info(f"No Claude session ID found, using generated: {session_id}")
         else:
             logger.info(f"Using Claude session ID: {session_id}")
@@ -156,7 +156,7 @@ class ClaudeSessionLogger:
         agent_name = agent_name.replace(" ", "_").lower()
 
         # Generate timestamp with microseconds for uniqueness
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
 
         # Create filename: session_id-agent-timestamp.json
         return f"{self.session_id}-{agent_name}-{timestamp}.json"
@@ -216,7 +216,7 @@ class ClaudeSessionLogger:
 
         # Prepare response data with standardized field names
         response_data = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "session_id": self.session_id,
             "request": request_summary,  # Standardized field name
             "response": response_content,  # Already correct

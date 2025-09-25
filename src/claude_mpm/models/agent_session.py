@@ -13,7 +13,7 @@ chronological order for session replay and analysis.
 
 import json
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set
 
@@ -204,7 +204,7 @@ class AgentSession:
         and metric updates.
         """
         if timestamp is None:
-            timestamp = datetime.utcnow().isoformat() + "Z"
+            timestamp = datetime.now(timezone.utc).isoformat() + "Z"
 
         # Categorize the event
         category = self._categorize_event(event_type, data)
@@ -232,7 +232,7 @@ class AgentSession:
 
         return event
 
-    def _categorize_event(self, event_type: str, data: Dict[str, Any]) -> EventCategory:
+    def _categorize_event(self, event_type: str, data: Dict[str, Any]) -> EventCategory:  # noqa: PLR0911
         """Categorize an event based on its type and data.
 
         WHY: Categories help with filtering and analysis of related events.
@@ -338,7 +338,7 @@ class AgentSession:
                             event.timestamp.replace("Z", "+00:00")
                         )
                         tool_op.duration_ms = int((end - start).total_seconds() * 1000)
-                    except:
+                    except Exception:
                         pass
 
                     event.correlation_id = corr_id
@@ -393,7 +393,7 @@ class AgentSession:
                 self.metrics.session_duration_ms = int(
                     (end - start).total_seconds() * 1000
                 )
-            except:
+            except Exception:
                 pass
 
         # Finalize any pending delegations

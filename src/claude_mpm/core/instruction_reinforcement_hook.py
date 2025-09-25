@@ -18,7 +18,7 @@ The hook works by:
 """
 
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from ..core.logger import get_logger
@@ -197,7 +197,7 @@ class InstructionReinforcementHook:
                 "enabled": self.enabled,
                 "test_mode": self.test_mode,
                 "injection_interval": self.injection_interval,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
     def reset_counters(self):

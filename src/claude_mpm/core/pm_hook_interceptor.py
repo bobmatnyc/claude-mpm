@@ -14,7 +14,7 @@ WHY this is needed:
 import functools
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from ..core.hook_manager import get_hook_manager
@@ -195,7 +195,7 @@ class PMHookInterceptor:
                 {
                     "todos": todos,
                     "source": "PM_Manual",
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             )
 
@@ -210,7 +210,7 @@ class PMHookInterceptor:
                     "todos_count": len(todos),
                     "source": "PM_Manual",
                     "success": True,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             )
 

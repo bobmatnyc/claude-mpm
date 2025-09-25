@@ -13,7 +13,7 @@ import signal
 import sys
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -232,7 +232,7 @@ class SocketIODebugger:
 
     def _display_event(self, data: Dict[str, Any]):
         """Display an event based on current mode."""
-        timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[:-3]
         event_type = data.get("type", "unknown")
         event_data = data.get("data", {})
 
@@ -449,7 +449,7 @@ class SocketIODebugger:
         if self.quiet and level not in ["error", "critical"]:
             return
 
-        timestamp = datetime.now().strftime("%H:%M:%S")
+        timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
 
         if RICH_AVAILABLE:
             styles = {

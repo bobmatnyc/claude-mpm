@@ -139,7 +139,7 @@ class StdioHandler(BaseMCPService, IMCPCommunication):
             self._metrics["errors"] += 1
             raise
 
-    async def receive_message(self) -> Optional[Dict[str, Any]]:
+    async def receive_message(self) -> Optional[Dict[str, Any]]:  # noqa: PLR0911
         """
         Receive a message from the MCP client via stdin.
 

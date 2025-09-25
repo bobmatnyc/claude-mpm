@@ -16,7 +16,7 @@ import gzip
 import json
 import shutil
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import ijson  # For streaming JSON parsing
@@ -203,7 +203,9 @@ class ContextPreservationService(BaseService):
             await self._create_backup()
 
             # Load and filter conversations
-            cutoff_time = datetime.now().timestamp() - (keep_recent_days * 86400)
+            cutoff_time = datetime.now(timezone.utc).timestamp() - (
+                keep_recent_days * 86400
+            )
 
             with open(self.claude_json_path) as f:
                 data = json.load(f)
@@ -292,7 +294,7 @@ class ContextPreservationService(BaseService):
                 try:
                     if Path(file_path).exists():
                         valid_files.append(file_path)
-                except:
+                except Exception:
                     pass  # Invalid path
 
             return valid_files
@@ -516,7 +518,7 @@ class ContextPreservationService(BaseService):
     async def _create_backup(self) -> Path:
         """Create backup of Claude configuration."""
         try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             backup_name = f"claude_backup_{timestamp}.json"
 
             # Compress if large

@@ -230,7 +230,7 @@ class AgentTemplateBuilder:
         )
 
         # Convert tools list to comma-separated string (without spaces for compatibility)
-        tools_str = ",".join(tools)
+        ",".join(tools)
 
         # Map model names to Claude Code format (as required)
         model_map = {

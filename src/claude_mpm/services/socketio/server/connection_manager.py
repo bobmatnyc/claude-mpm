@@ -14,7 +14,7 @@ import contextlib
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Deque, Dict, List, Optional
 from uuid import uuid4
@@ -464,7 +464,7 @@ class ConnectionManager:
         async with self._lock:
             now = time.time()
             report = {
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "total_connections": len(self.connections),
                 "healthy": 0,
                 "stale": 0,

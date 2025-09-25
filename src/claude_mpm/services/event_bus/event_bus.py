@@ -11,7 +11,7 @@ WHY pyee over alternatives:
 import asyncio
 import logging
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Set
 
 from pyee.asyncio import AsyncIOEventEmitter
@@ -210,7 +210,7 @@ class EventBus:
 
             # Update stats
             self._stats["events_published"] += 1
-            self._stats["last_event_time"] = datetime.now().isoformat()
+            self._stats["last_event_time"] = datetime.now(timezone.utc).isoformat()
 
             if self._debug:
                 logger.debug(f"Published event: {event_type}")
@@ -302,7 +302,7 @@ class EventBus:
             data: The event data
         """
         event_record = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "type": event_type,
             "data": data,
         }

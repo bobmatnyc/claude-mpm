@@ -712,7 +712,7 @@ class AgentManagerCommand(AgentCommand):
         """Load agent configuration."""
         try:
             return self.builder_service._load_template(agent_id)
-        except:
+        except Exception:
             return None
 
     def _check_conflicts(self, agent_id: str) -> Optional[str]:
@@ -1074,7 +1074,7 @@ class AgentManagerCommand(AgentCommand):
         except Exception as e:
             return CommandResult.error_result(f"Interactive edit failed: {e}")
 
-    def _test_local_agent(self, args) -> CommandResult:
+    def _test_local_agent(self, args) -> CommandResult:  # noqa: PLR0911
         """Test a local agent with sample task."""
         try:
             from ...services.agents.local_template_manager import (
@@ -1144,7 +1144,7 @@ class AgentManagerCommand(AgentCommand):
         except Exception as e:
             return CommandResult.error_result(f"Local agent test failed: {e}")
 
-    def _delete_local_agents(self, args) -> CommandResult:
+    def _delete_local_agents(self, args) -> CommandResult:  # noqa: PLR0911
         """Delete local agent templates with comprehensive options."""
         try:
             from ...services.agents.local_template_manager import (

@@ -143,7 +143,7 @@ class MCPConfigLoader:
                 import json
 
                 current[key] = json.loads(env_value)
-            except:
+            except Exception:
                 # Fall back to string value
                 current[key] = env_value
 

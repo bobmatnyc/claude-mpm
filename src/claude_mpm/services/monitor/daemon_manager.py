@@ -163,7 +163,7 @@ class DaemonManager:
                 test_sock.bind(("::1", self.port))
                 test_sock.close()
                 return True
-            except:
+            except Exception:
                 # Both IPv4 and IPv6 failed - port is in use
                 return False
 
@@ -434,10 +434,10 @@ class DaemonManager:
                             # It's likely our service, try to find PID
                             pid = self._find_service_pid()
                             return True, pid
-                    except:
+                    except Exception:
                         pass
 
-            except:
+            except Exception:
                 pass
 
             return False, None
@@ -465,7 +465,7 @@ class DaemonManager:
                 if pids:
                     return int(pids[0].strip())
 
-        except:
+        except Exception:
             pass
 
         return None
@@ -615,7 +615,7 @@ class DaemonManager:
                                         f"Monitor daemon successfully started on port {self.port}"
                                     )
                                     return True
-                        except:
+                        except Exception:
                             pass  # PID file not ready yet
 
                     time.sleep(0.5)
@@ -958,5 +958,5 @@ class DaemonManager:
                     with open("/tmp/daemon_debug_error.txt", "a") as debug:
                         debug.write(f"Error reporting error: {e}\n")
                         debug.write(f"Status file: {self.startup_status_file}\n")
-                except:
+                except Exception:
                     pass

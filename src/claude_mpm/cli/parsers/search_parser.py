@@ -8,7 +8,9 @@ import argparse
 from typing import Optional
 
 
-def add_search_subparser(subparsers: argparse._SubParsersAction) -> argparse.ArgumentParser:
+def add_search_subparser(
+    subparsers: argparse._SubParsersAction,
+) -> argparse.ArgumentParser:
     """
     Add the search command parser.
 
@@ -188,7 +190,7 @@ Examples:
     return search_parser
 
 
-def validate_search_args(args: argparse.Namespace) -> Optional[str]:
+def validate_search_args(args: argparse.Namespace) -> Optional[str]:  # noqa: PLR0911
     """
     Validate search command arguments.
 
@@ -211,7 +213,11 @@ def validate_search_args(args: argparse.Namespace) -> Optional[str]:
             return "Limit cannot exceed 50"
 
     # Check that function is only used with --similar
-    if hasattr(args, "function") and args.function and not getattr(args, "similar", None):
+    if (
+        hasattr(args, "function")
+        and args.function
+        and not getattr(args, "similar", None)
+    ):
         return "--function can only be used with --similar"
 
     # Check that focus is only used with --context

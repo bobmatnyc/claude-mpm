@@ -26,7 +26,7 @@ __version__ = "0.1.0"
 
 
 # Lazy imports to prevent circular dependencies and improve startup performance
-def __getattr__(name):
+def __getattr__(name):  # noqa: PLR0911
     """Lazy import mechanism for MCP Gateway components."""
 
     # Core interfaces and base classes

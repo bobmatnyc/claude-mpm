@@ -14,7 +14,7 @@ import sys
 import threading
 import time
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -84,7 +84,7 @@ class StreamingHandler(logging.StreamHandler):
 
         except (KeyboardInterrupt, SystemExit):
             raise
-        except:
+        except Exception:
             self.handleError(record)
 
     def finalize_info_line(self):
@@ -237,7 +237,7 @@ def setup_logging(
             log_dir.mkdir(parents=True, exist_ok=True)
 
             # Create timestamped log file
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             log_file = log_dir / f"mpm_{timestamp}.log"
 
             file_handler = logging.FileHandler(log_file)
@@ -485,8 +485,8 @@ class ProjectLogger:
                 path.mkdir(parents=True, exist_ok=True)
 
         # Create session directory
-        self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.session_start_time = datetime.now()
+        self.session_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        self.session_start_time = datetime.now(timezone.utc)
         self.session_dir = self.dirs["logs_sessions"] / self.session_id
         self.session_dir.mkdir(parents=True, exist_ok=True)
 
@@ -513,7 +513,7 @@ class ProjectLogger:
         if self.log_level == LogLevel.OFF:
             return
 
-        timestamp = datetime.now().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         log_entry = {
             "timestamp": timestamp,
             "level": level,
@@ -523,7 +523,8 @@ class ProjectLogger:
 
         # Write to daily log file
         log_file = (
-            self.dirs["logs_system"] / f"{datetime.now().strftime('%Y%m%d')}.jsonl"
+            self.dirs["logs_system"]
+            / f"{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
         )
         with open(log_file, "a") as f:
             f.write(json.dumps(log_entry) + "\n")
@@ -543,10 +544,10 @@ class ProjectLogger:
         if self.log_level == LogLevel.OFF:
             return
 
-        timestamp = datetime.now().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         # Update statistics
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         self.stats[today]["total_calls"] += 1
         self.stats[today]["total_tokens"] += tokens
         self.stats[today]["total_time_seconds"] += execution_time
@@ -576,7 +577,9 @@ class ProjectLogger:
         agent_log_dir = self.dirs["logs_agents"] / agent.lower()
         agent_log_dir.mkdir(exist_ok=True)
 
-        daily_log = agent_log_dir / f"{datetime.now().strftime('%Y%m%d')}.jsonl"
+        daily_log = (
+            agent_log_dir / f"{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
+        )
         with open(daily_log, "a") as f:
             f.write(json.dumps(log_entry) + "\n")
 
@@ -586,7 +589,9 @@ class ProjectLogger:
             "session_id": self.session_id,
             "session_dir": str(self.session_dir),
             "start_time": self.session_id,
-            "stats": self.stats.get(datetime.now().strftime("%Y-%m-%d"), {}),
+            "stats": self.stats.get(
+                datetime.now(timezone.utc).strftime("%Y-%m-%d"), {}
+            ),
         }
 
 

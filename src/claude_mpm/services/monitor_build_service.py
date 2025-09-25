@@ -156,9 +156,9 @@ class MonitorBuildService(BaseService):
             info: Build information dictionary
         """
         # Add timestamp
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        info["last_updated"] = datetime.utcnow().isoformat()
+        info["last_updated"] = datetime.now(timezone.utc).isoformat()
 
         # Write atomically using temp file and rename
         temp_fd, temp_path = tempfile.mkstemp(

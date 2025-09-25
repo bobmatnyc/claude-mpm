@@ -23,7 +23,7 @@ import re
 import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from ...core.cache import get_file_cache
@@ -388,7 +388,7 @@ class IndexedMemoryService:
             agent_id=agent_id,
             content=content,
             category=category,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             tags=tags or [],
             metadata=metadata or {},
         )
@@ -510,7 +510,7 @@ class IndexedMemoryService:
         start_time = time.time()
 
         # Calculate time range
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         if hours:
             min_time = now - timedelta(hours=hours)
         elif days:
@@ -563,7 +563,7 @@ class IndexedMemoryService:
 
     def _generate_id(self, agent_id: str, content: str) -> str:
         """Generate unique ID for memory entry."""
-        timestamp = datetime.now().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         hash_input = f"{agent_id}:{content[:100]}:{timestamp}"
         return hashlib.md5(hash_input.encode()).hexdigest()[:12]
 

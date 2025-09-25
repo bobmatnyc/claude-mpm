@@ -61,7 +61,13 @@ class MCPInstallCommands:
             external_setup = MCPExternalServicesSetup(self.logger)
 
             # Check if user wants to set up external services
-            response = input("\nDo you want to set up external MCP services (mcp-vector-search, mcp-browser)? (Y/n): ").strip().lower()
+            response = (
+                input(
+                    "\nDo you want to set up external MCP services (mcp-vector-search, mcp-browser)? (Y/n): "
+                )
+                .strip()
+                .lower()
+            )
             if response in ["", "y", "yes"]:
                 # Install Python packages for external services
                 external_setup.check_and_install_pip_packages()
@@ -73,7 +79,9 @@ class MCPInstallCommands:
                     print("⚠️ Some external services may not have been configured")
             else:
                 print("⏭️ Skipping external services setup")
-                print("   You can set them up later with: claude-mpm mcp external setup")
+                print(
+                    "   You can set them up later with: claude-mpm mcp external setup"
+                )
 
             print("\n✅ Configuration completed successfully")
             print("\n🎉 MCP Gateway is ready to use!")
@@ -167,9 +175,17 @@ class MCPInstallCommands:
 
         # Try multiple possible locations for Claude Desktop config
         possible_paths = [
-            Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json",  # macOS
+            Path.home()
+            / "Library"
+            / "Application Support"
+            / "Claude"
+            / "claude_desktop_config.json",  # macOS
             Path.home() / ".config" / "Claude" / "claude_desktop_config.json",  # Linux
-            Path.home() / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json",  # Windows
+            Path.home()
+            / "AppData"
+            / "Roaming"
+            / "Claude"
+            / "claude_desktop_config.json",  # Windows
             Path.home() / ".claude" / "claude_desktop_config.json",  # Alternative
             Path.home() / ".claude.json",  # Legacy
         ]
@@ -181,11 +197,23 @@ class MCPInstallCommands:
         # If none exist, return the platform-appropriate default
         system = platform.system()
         if system == "Darwin":  # macOS
-            return Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
-        elif system == "Windows":
-            return Path.home() / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json"
-        else:  # Linux and others
-            return Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
+            return (
+                Path.home()
+                / "Library"
+                / "Application Support"
+                / "Claude"
+                / "claude_desktop_config.json"
+            )
+        if system == "Windows":
+            return (
+                Path.home()
+                / "AppData"
+                / "Roaming"
+                / "Claude"
+                / "claude_desktop_config.json"
+            )
+        # Linux and others
+        return Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
 
     def _find_claude_mpm_executable(self):
         """Find the claude-mpm executable path.
@@ -281,7 +309,7 @@ class MCPInstallCommands:
                         existing_config = json.load(f)
                     config = existing_config
                     print("   Force mode: Overwriting existing configuration")
-                except:
+                except Exception:
                     pass  # File doesn't exist or is invalid, start fresh
 
         # Ensure mcpServers section exists

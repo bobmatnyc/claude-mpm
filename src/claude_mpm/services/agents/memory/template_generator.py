@@ -13,7 +13,7 @@ This module provides:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -58,7 +58,7 @@ class MemoryTemplateGenerator:
         """
         # Convert agent_id to proper name, handling cases like "test_agent" -> "Test"
         agent_id.replace("_agent", "").replace("_", " ").title()
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
         # Create a simple template that agents will populate through learning
         return self._create_basic_memory_template(agent_id, limits)
@@ -75,7 +75,7 @@ class MemoryTemplateGenerator:
         Returns:
             str: Basic memory template
         """
-        timestamp = datetime.now().isoformat() + "Z"
+        timestamp = datetime.now(timezone.utc).isoformat() + "Z"
 
         return f"""# Agent Memory: {agent_id}
 <!-- Last Updated: {timestamp} -->

@@ -19,7 +19,7 @@ DESIGN DECISIONS:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from claude_mpm.core.config import Config
@@ -144,7 +144,7 @@ class ResponseTracker:
             {
                 "agent": agent_name,
                 "tracked_by": "ResponseTracker",
-                "tracking_timestamp": datetime.now().isoformat(),
+                "tracking_timestamp": datetime.now(timezone.utc).isoformat(),
             }
         )
 

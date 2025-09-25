@@ -13,7 +13,7 @@ import asyncio
 import threading
 import time
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 
 try:
@@ -107,7 +107,7 @@ class SocketIOServer(SocketIOServiceInterface):
         # Debug logging for EventBus initialization
         self.logger.info("Starting Socket.IO server with EventBus integration...")
         print(
-            f"[{datetime.now().isoformat()}] SocketIOServer.start_sync() called",
+            f"[{datetime.now(timezone.utc).isoformat()}] SocketIOServer.start_sync() called",
             flush=True,
         )
 
@@ -172,7 +172,7 @@ class SocketIOServer(SocketIOServiceInterface):
         # WHY: This connects the EventBus to the Socket.IO server, allowing
         # events from other parts of the system to be broadcast to dashboard
         print(
-            f"[{datetime.now().isoformat()}] Setting up EventBus integration...",
+            f"[{datetime.now(timezone.utc).isoformat()}] Setting up EventBus integration...",
             flush=True,
         )
 
@@ -183,26 +183,26 @@ class SocketIOServer(SocketIOServiceInterface):
                 "Broadcaster not initialized - cannot setup EventBus integration"
             )
             print(
-                f"[{datetime.now().isoformat()}] ERROR: Broadcaster not initialized",
+                f"[{datetime.now(timezone.utc).isoformat()}] ERROR: Broadcaster not initialized",
                 flush=True,
             )
         else:
             print(
-                f"[{datetime.now().isoformat()}] Broadcaster ready, proceeding with EventBus setup",
+                f"[{datetime.now(timezone.utc).isoformat()}] Broadcaster ready, proceeding with EventBus setup",
                 flush=True,
             )
 
             try:
                 self.eventbus_integration = EventBusIntegration(self)
                 print(
-                    f"[{datetime.now().isoformat()}] EventBusIntegration instance created",
+                    f"[{datetime.now(timezone.utc).isoformat()}] EventBusIntegration instance created",
                     flush=True,
                 )
 
                 if self.eventbus_integration.setup(self.port):
                     self.logger.info("EventBus integration setup successful")
                     print(
-                        f"[{datetime.now().isoformat()}] EventBus integration setup successful",
+                        f"[{datetime.now(timezone.utc).isoformat()}] EventBus integration setup successful",
                         flush=True,
                     )
 
@@ -214,19 +214,19 @@ class SocketIOServer(SocketIOServiceInterface):
                         relay_stats = self.eventbus_integration.relay.get_stats()
                         self.logger.info(f"EventBus relay stats: {relay_stats}")
                         print(
-                            f"[{datetime.now().isoformat()}] EventBus relay stats: {relay_stats}",
+                            f"[{datetime.now(timezone.utc).isoformat()}] EventBus relay stats: {relay_stats}",
                             flush=True,
                         )
                 else:
                     self.logger.warning("EventBus integration setup failed or disabled")
                     print(
-                        f"[{datetime.now().isoformat()}] EventBus integration setup failed or disabled",
+                        f"[{datetime.now(timezone.utc).isoformat()}] EventBus integration setup failed or disabled",
                         flush=True,
                     )
             except Exception as e:
                 self.logger.error(f"Failed to setup EventBus integration: {e}")
                 print(
-                    f"[{datetime.now().isoformat()}] Failed to setup EventBus integration: {e}",
+                    f"[{datetime.now(timezone.utc).isoformat()}] Failed to setup EventBus integration: {e}",
                     flush=True,
                 )
                 import traceback
@@ -382,7 +382,7 @@ class SocketIOServer(SocketIOServiceInterface):
         # Track active session for heartbeat
         self.active_sessions[session_id] = {
             "session_id": session_id,
-            "start_time": datetime.now().isoformat(),
+            "start_time": datetime.now(timezone.utc).isoformat(),
             "agent": "pm",  # Default to PM, will be updated if delegated
             "status": "active",
             "launch_method": launch_method,
@@ -472,7 +472,7 @@ class SocketIOServer(SocketIOServiceInterface):
         WHY: Provides session information for system heartbeat events.
         """
         # Clean up old sessions (older than 1 hour)
-        cutoff_time = datetime.now().timestamp() - 3600
+        cutoff_time = datetime.now(timezone.utc).timestamp() - 3600
         sessions_to_remove = []
 
         for session_id, session_data in self.active_sessions.items():
@@ -480,7 +480,7 @@ class SocketIOServer(SocketIOServiceInterface):
                 start_time = datetime.fromisoformat(session_data["start_time"])
                 if start_time.timestamp() < cutoff_time:
                     sessions_to_remove.append(session_id)
-            except:
+            except Exception:
                 pass
 
         for session_id in sessions_to_remove:

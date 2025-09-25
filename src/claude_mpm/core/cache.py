@@ -19,7 +19,7 @@ import pickle
 import threading
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional, TypeVar, Union
 
 from ..core.logger import get_logger
@@ -43,12 +43,12 @@ class CacheEntry:
         """Check if entry has expired based on TTL."""
         if self.ttl is None:
             return False
-        age = (datetime.now() - self.created_at).total_seconds()
+        age = (datetime.now(timezone.utc) - self.created_at).total_seconds()
         return age > self.ttl
 
     def touch(self):
         """Update last access time and increment counter."""
-        self.last_accessed = datetime.now()
+        self.last_accessed = datetime.now(timezone.utc)
         self.access_count += 1
 
 
@@ -129,13 +129,13 @@ class FileSystemCache:
             # Rough estimate using JSON serialization
             try:
                 return len(json.dumps(value))
-            except:
+            except Exception:
                 return 1000  # Default estimate
         else:
             # Use pickle for size estimation
             try:
                 return len(pickle.dumps(value))
-            except:
+            except Exception:
                 return 100  # Default small size
 
     def _evict_lru(self):

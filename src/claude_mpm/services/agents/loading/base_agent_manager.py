@@ -9,7 +9,7 @@ Enforces template structure and provides section-specific update methods.
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -358,7 +358,7 @@ class BaseAgentManager(ConfigServiceBase):
 
     def _create_backup(self) -> Path:
         """Create a timestamped backup of base_agent.md."""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         backup_path = self.base_agent_path.parent / f"base_agent_{timestamp}.backup"
 
         if self.base_agent_path.exists():

@@ -10,7 +10,7 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 
 from claude_mpm.config.paths import paths
@@ -126,7 +126,7 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
 
             # Replace current date
             if "{{CURRENT_DATE}}" in base_pm_content:
-                current_date = datetime.now().strftime("%Y-%m-%d")
+                current_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
                 base_pm_content = base_pm_content.replace(
                     "{{CURRENT_DATE}}", current_date
                 )

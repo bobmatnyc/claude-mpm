@@ -485,11 +485,11 @@ class AgentManagementScreen(Container):
             try:
                 rel_path = agent.template_path.relative_to(Path.home())
                 path_str = f"~/{rel_path}"
-            except:
+            except Exception:
                 try:
                     rel_path = agent.template_path.relative_to(self.project_dir)
                     path_str = f"./{rel_path}"
-                except:
+                except Exception:
                     path_str = str(agent.template_path)
 
             self.log(f"Adding row: {agent.name}, {status}, {agent.version}, {path_str}")
@@ -794,11 +794,11 @@ model: {metadata.get('model', 'claude-3-5-sonnet-20241022')}
             try:
                 rel_path = agent.template_path.relative_to(Path.home())
                 path_str = f"~/{rel_path}"
-            except:
+            except Exception:
                 try:
                     rel_path = agent.template_path.relative_to(self.project_dir)
                     path_str = f"./{rel_path}"
-                except:
+                except Exception:
                     path_str = str(agent.template_path)
 
             table.add_row(agent.name, status, agent.version, path_str, key=agent.name)
@@ -1208,7 +1208,7 @@ class SettingsScreen(Container):
             )
             if result.returncode == 0:
                 claude_version = result.stdout.strip()
-        except:
+        except Exception:
             pass
 
         version_container = self.query_one("#version-info", Container)
@@ -1258,7 +1258,7 @@ Python: {sys.version.split()[0]}"""
                         current_screen.load_templates()
                     elif hasattr(current_screen, "load_behavior_files"):
                         current_screen.load_behavior_files()
-            except:
+            except Exception:
                 pass
 
         self.notify(f"Switched to {self.current_scope} scope")
@@ -1907,7 +1907,7 @@ def can_use_tui() -> bool:
         cols, rows = shutil.get_terminal_size()
         if cols < 80 or rows < 24:
             return False
-    except:
+    except Exception:
         return False
 
     return True

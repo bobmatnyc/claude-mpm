@@ -229,7 +229,7 @@ class AgentProcessingStep(BaseDeploymentStep):
                 cwd = Path.cwd()
                 if str(cwd) in template_str:
                     return "project"
-            except:
+            except Exception:
                 pass
 
         # Check if it's a user agent

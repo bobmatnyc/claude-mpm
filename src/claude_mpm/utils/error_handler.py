@@ -6,7 +6,7 @@ Inspired by awesome-claude-code's comprehensive error handling approach.
 
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Type
 
@@ -26,7 +26,7 @@ class MPMError(Exception):
         super().__init__(message)
         self.details = details or {}
         self.suggestions = suggestions or []
-        self.timestamp = datetime.now()
+        self.timestamp = datetime.now(timezone.utc)
 
     def get_user_friendly_message(self) -> str:
         """Get a user-friendly error message."""

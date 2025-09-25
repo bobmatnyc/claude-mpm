@@ -6,7 +6,7 @@ Publishes system-level events to the event bus.
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.logging_config import get_logger
@@ -100,7 +100,7 @@ class SystemEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="system.lifecycle.startup",
             type="ServiceStartup",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             source=self.source_name,
             data={
                 "service": service_name,
@@ -133,7 +133,7 @@ class SystemEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="system.lifecycle.shutdown",
             type="ServiceShutdown",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             source=self.source_name,
             data={
                 "service": service_name,
@@ -168,7 +168,7 @@ class SystemEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="system.health",
             type="HealthStatus",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             source=self.source_name,
             data={
                 "service": service_name,
@@ -206,7 +206,7 @@ class SystemEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="system.config",
             type="ConfigChange",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             source=self.source_name,
             data={
                 "service": service_name,
@@ -238,7 +238,7 @@ class SystemEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="system.performance",
             type="PerformanceMetrics",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             source=self.source_name,
             data={
                 "service": service_name,
@@ -274,7 +274,7 @@ class SystemEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="system.error",
             type="SystemError",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             source=self.source_name,
             data={
                 "service": service_name,
@@ -311,7 +311,7 @@ class SystemEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="system.warning",
             type="SystemWarning",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             source=self.source_name,
             data={
                 "service": service_name,

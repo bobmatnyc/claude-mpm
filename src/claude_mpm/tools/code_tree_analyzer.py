@@ -19,6 +19,7 @@ import hashlib
 import json
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -272,7 +273,7 @@ class GitignoreManager:
 
         return patterns
 
-    def _basic_should_ignore(self, path: Path, working_dir: Path) -> bool:
+    def _basic_should_ignore(self, path: Path, working_dir: Path) -> bool:  # noqa: PLR0911
         """Basic pattern matching fallback when pathspec is not available.
 
         Args:
@@ -608,7 +609,7 @@ class PythonAnalyzer:
 
         return nodes
 
-    def _get_assignment_signature(self, node: ast.Assign, var_name: str) -> str:
+    def _get_assignment_signature(self, node: ast.Assign, var_name: str) -> str:  # noqa: PLR0911
         """Get assignment signature string."""
         try:
             # Try to get a simple representation of the value
@@ -623,7 +624,7 @@ class PythonAnalyzer:
             if isinstance(node.value, ast.Dict):
                 return f"{var_name} = {{...}}"
             return f"{var_name} = ..."
-        except:
+        except Exception:
             return f"{var_name} = ..."
 
 
@@ -1292,7 +1293,7 @@ class CodeTreeAnalyzer:
 
         # Emit discovery start event
         if self.emitter:
-            from datetime import datetime
+            from datetime import datetime, timezone
 
             self.emitter.emit(
                 "info",
@@ -1301,7 +1302,7 @@ class CodeTreeAnalyzer:
                     "action": "scanning_directory",
                     "path": str(directory),
                     "message": f"Starting discovery of {directory.name}",
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             )
 
@@ -1336,7 +1337,7 @@ class CodeTreeAnalyzer:
                                 "path": str(item),
                                 "reason": "gitignore pattern",
                                 "message": f"Ignored by gitignore: {item.name}",
-                                "timestamp": datetime.now().isoformat(),
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
                             },
                         )
                     ignored_count += 1
@@ -1354,7 +1355,7 @@ class CodeTreeAnalyzer:
                                 "path": str(item),
                                 "reason": "custom pattern",
                                 "message": f"Ignored by pattern: {item.name}",
-                                "timestamp": datetime.now().isoformat(),
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
                             },
                         )
                     ignored_count += 1
@@ -1375,7 +1376,7 @@ class CodeTreeAnalyzer:
                                     "path": str(item.name),
                                     "reason": "no code files",
                                     "message": f"Skipped directory without code: {item.name}",
-                                    "timestamp": datetime.now().isoformat(),
+                                    "timestamp": datetime.now(timezone.utc).isoformat(),
                                 },
                             )
                         ignored_count += 1
@@ -1395,7 +1396,7 @@ class CodeTreeAnalyzer:
                                 "type": "discovery.directory",
                                 "path": str(item),
                                 "message": f"Found directory: {item.name}",
-                                "timestamp": datetime.now().isoformat(),
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
                             },
                         )
                     dirs_count += 1
@@ -1441,7 +1442,7 @@ class CodeTreeAnalyzer:
                                     "language": language,
                                     "size": item.stat().st_size,
                                     "message": f"Found file: {item.name} ({language})",
-                                    "timestamp": datetime.now().isoformat(),
+                                    "timestamp": datetime.now(timezone.utc).isoformat(),
                                 },
                             )
                         files_count += 1
@@ -1481,7 +1482,7 @@ class CodeTreeAnalyzer:
                         "ignored": ignored_count,
                     },
                     "message": f"Discovery complete: {files_count} files, {dirs_count} directories, {ignored_count} ignored",
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             )
 
@@ -1538,7 +1539,7 @@ class CodeTreeAnalyzer:
                     "file": str(path),
                     "language": language,
                     "message": f"Analyzing: {path.name}",
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             )
 
@@ -1557,7 +1558,7 @@ class CodeTreeAnalyzer:
                         "type": "cache.hit",
                         "file": str(path),
                         "message": f"Using cached analysis for {path.name}",
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                     },
                 )
         else:
@@ -1571,7 +1572,7 @@ class CodeTreeAnalyzer:
                         "type": "cache.miss",
                         "file": str(path),
                         "message": f"Cache miss, analyzing fresh: {path.name}",
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                     },
                 )
 
@@ -1594,7 +1595,7 @@ class CodeTreeAnalyzer:
                         "type": "analysis.parse",
                         "file": str(path),
                         "message": f"Parsing file content: {path.name}",
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                     },
                 )
 
@@ -1626,7 +1627,7 @@ class CodeTreeAnalyzer:
                                 "line_start": node.line_start,
                                 "complexity": node.complexity,
                                 "message": f"Found {node.node_type}: {node.name}",
-                                "timestamp": datetime.now().isoformat(),
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
                             },
                         )
 
@@ -1667,7 +1668,7 @@ class CodeTreeAnalyzer:
                         },
                         "duration": duration,
                         "message": f"Analysis complete: {classes_count} classes, {functions_count} functions, {methods_count} methods",
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                     },
                 )
 
@@ -1725,7 +1726,7 @@ class CodeTreeAnalyzer:
             },
         }
 
-    def _is_internal_node(self, node: CodeNode) -> bool:
+    def _is_internal_node(self, node: CodeNode) -> bool:  # noqa: PLR0911
         """Check if node is an internal function that should be filtered."""
         # Don't filter classes - always show them
         if node.node_type == "class":

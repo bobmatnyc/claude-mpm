@@ -13,7 +13,7 @@ import mimetypes
 import os
 import re
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -605,7 +605,7 @@ class DocumentSummarizerTool(BaseToolAdapter):
         Returns:
             Tool execution result with summary
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             # Get parameters
@@ -628,7 +628,9 @@ class DocumentSummarizerTool(BaseToolAdapter):
                 cached_result = self._cache.get(cache_key)
                 if cached_result:
                     cache_hit = True
-                    execution_time = (datetime.now() - start_time).total_seconds()
+                    execution_time = (
+                        datetime.now(timezone.utc) - start_time
+                    ).total_seconds()
                     self._update_metrics(True, execution_time)
 
                     return MCPToolResult(
@@ -709,7 +711,7 @@ class DocumentSummarizerTool(BaseToolAdapter):
                 self._cache.put(cache_key, result.copy(), summary_size)
 
             # Calculate execution time
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             # Update metrics
             self._update_metrics(True, execution_time)
@@ -730,7 +732,7 @@ class DocumentSummarizerTool(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
             self._metrics["last_error"] = str(e)
 

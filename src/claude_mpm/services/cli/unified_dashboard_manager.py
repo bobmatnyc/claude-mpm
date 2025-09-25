@@ -81,7 +81,7 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
         background: bool = False,
         open_browser: bool = True,
         force_restart: bool = False,
-    ) -> Tuple[bool, bool]:
+    ) -> Tuple[bool, bool]:  # noqa: PLR0911
         """
         Start the dashboard using unified daemon.
 

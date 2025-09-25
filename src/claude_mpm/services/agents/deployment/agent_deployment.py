@@ -799,7 +799,8 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                 if filtered_agents and comparison_results.get("version_upgrades"):
                     # Filter upgrades to only those actually being deployed
                     deployed_upgrades = [
-                        upgrade for upgrade in comparison_results["version_upgrades"]
+                        upgrade
+                        for upgrade in comparison_results["version_upgrades"]
                         if upgrade["name"] in filtered_agents
                     ]
 

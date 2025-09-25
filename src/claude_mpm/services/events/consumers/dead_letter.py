@@ -6,7 +6,7 @@ Handles events that failed processing in other consumers.
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -284,7 +284,7 @@ class DeadLetterConsumer(IEventConsumer):
 
     def _rotate_file(self) -> None:
         """Rotate to a new output file."""
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         self._current_file = self.output_dir / f"dead-letter-{timestamp}.jsonl"
         self._current_file_size = 0
         self._metrics["files_created"] += 1
@@ -293,7 +293,9 @@ class DeadLetterConsumer(IEventConsumer):
 
     async def _cleanup_old_files(self) -> None:
         """Remove files older than retention period."""
-        cutoff_time = datetime.now().timestamp() - (self.retention_days * 86400)
+        cutoff_time = datetime.now(timezone.utc).timestamp() - (
+            self.retention_days * 86400
+        )
 
         for file_path in self.output_dir.glob("dead-letter-*.jsonl"):
             try:

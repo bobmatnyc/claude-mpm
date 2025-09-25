@@ -11,7 +11,7 @@ from rich.console import Console
 console = Console()
 
 
-def manage_mpm_init(args):
+def manage_mpm_init(args):  # noqa: PLR0911
     """
     Handle mpm-init command execution.
 

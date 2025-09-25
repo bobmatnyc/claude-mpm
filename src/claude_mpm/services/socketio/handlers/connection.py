@@ -8,7 +8,7 @@ from other handlers makes connection management more maintainable.
 import asyncio
 import functools
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
 from .base import BaseEventHandler
@@ -48,7 +48,7 @@ def timeout_handler(timeout_seconds: float = 5.0):
                             f"⚠️ Handler {handler_name} took {elapsed:.2f}s "
                             f"(close to {timeout_seconds}s timeout)"
                         )
-                    except:
+                    except Exception:
                         print(
                             f"⚠️ Handler {handler_name} took {elapsed:.2f}s (close to {timeout_seconds}s timeout)"
                         )
@@ -65,7 +65,7 @@ def timeout_handler(timeout_seconds: float = 5.0):
                     logger.error(
                         f"❌ Handler {handler_name} timed out after {elapsed:.2f}s"
                     )
-                except:
+                except Exception:
                     print(f"❌ Handler {handler_name} timed out after {elapsed:.2f}s")
 
                 return None
@@ -80,7 +80,7 @@ def timeout_handler(timeout_seconds: float = 5.0):
                     logger.error(
                         f"❌ Handler {handler_name} failed after {elapsed:.2f}s: {e}"
                     )
-                except:
+                except Exception:
                     print(f"❌ Handler {handler_name} failed after {elapsed:.2f}s: {e}")
                 raise
 
@@ -274,7 +274,7 @@ class ConnectionEventHandler(BaseEventHandler):
             # Force disconnect if still connected
             try:
                 await self.sio.disconnect(sid)
-            except:
+            except Exception:
                 pass  # Already disconnected
 
             self.logger.info(f"🔌 Cleaned up stale connection: {sid}")
@@ -326,7 +326,7 @@ class ConnectionEventHandler(BaseEventHandler):
             status_data = {
                 "type": "connection",
                 "subtype": "status",
-                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
                 "source": "server",
                 "session_id": self.server.session_id,
                 "data": {
@@ -348,13 +348,13 @@ class ConnectionEventHandler(BaseEventHandler):
                     {
                         "type": "connection",
                         "subtype": "welcome",
-                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
                         "source": "server",
                         "session_id": self.server.session_id,
                         "data": {
                             "message": "Connected to Claude MPM Socket.IO server",
                             "client_id": sid,
-                            "server_time": datetime.utcnow().isoformat() + "Z",
+                            "server_time": datetime.now(timezone.utc).isoformat() + "Z",
                             "build_info": monitor_build_info,
                         },
                     },
@@ -401,7 +401,7 @@ class ConnectionEventHandler(BaseEventHandler):
             status_data = {
                 "type": "connection",
                 "subtype": "status",
-                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
                 "source": "server",
                 "session_id": self.server.session_id,
                 "data": {
@@ -456,7 +456,7 @@ class ConnectionEventHandler(BaseEventHandler):
                 {
                     "type": "connection",
                     "subtype": "subscribed",
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                    "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
                     "source": "server",
                     "data": {"channels": channels},
                 },

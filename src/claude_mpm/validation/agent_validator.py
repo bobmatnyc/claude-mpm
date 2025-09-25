@@ -22,7 +22,7 @@ Security Considerations:
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -182,7 +182,7 @@ class AgentValidator:
 
         # Add metadata
         result.metadata = {
-            "validated_at": datetime.utcnow().isoformat(),
+            "validated_at": datetime.now(timezone.utc).isoformat(),
             "schema_version": self.schema.get("version", "1.1.0"),
             "agent_id": agent_data.get("id", "unknown"),
         }

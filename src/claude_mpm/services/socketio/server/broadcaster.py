@@ -13,7 +13,7 @@ import asyncio
 import time
 from collections import deque
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Deque, Dict, List, Optional, Set
 
 from ..event_normalizer import EventNormalizer
@@ -284,7 +284,7 @@ class SocketIOEventBroadcaster:
             # Reconstruct the raw event
             raw_event = {
                 "type": event.event_type,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {**event.data, "retry_attempt": event.attempt_count + 1},
             }
 
@@ -323,7 +323,7 @@ class SocketIOEventBroadcaster:
         # Create raw event for normalization
         raw_event = {
             "type": event_type,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": data,
         }
 
@@ -388,11 +388,11 @@ class SocketIOEventBroadcaster:
                             asyncio.run_coroutine_threadsafe(
                                 update_activities(), self.loop
                             )
-                        except:
+                        except Exception:
                             pass  # Non-critical
 
                     self.logger.debug(f"Broadcasted event: {event_type}")
-                except:
+                except Exception:
                     # Will be added to retry queue below
                     pass
             else:
@@ -426,13 +426,15 @@ class SocketIOEventBroadcaster:
                 "session_id": session_id,
                 "launch_method": launch_method,
                 "working_dir": working_dir,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         )
 
     def session_ended(self):
         """Notify that a session has ended."""
-        self.broadcast_event("session_ended", {"timestamp": datetime.now().isoformat()})
+        self.broadcast_event(
+            "session_ended", {"timestamp": datetime.now(timezone.utc).isoformat()}
+        )
 
     def claude_status_changed(
         self, status: str, pid: Optional[int] = None, message: str = ""

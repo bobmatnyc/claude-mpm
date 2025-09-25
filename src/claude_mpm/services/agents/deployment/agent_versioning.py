@@ -30,5 +30,5 @@ class AgentVersionManager:
             for part in parts:
                 int(part)
             return True
-        except:
+        except Exception:
             return False

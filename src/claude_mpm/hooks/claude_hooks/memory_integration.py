@@ -7,7 +7,7 @@ including pre and post delegation hooks.
 
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 # Debug mode
@@ -122,7 +122,7 @@ class MemoryHookManager:
                     "session_id": session_id,
                 },
                 metadata={"source": "claude_hook_handler", "tool_name": "Task"},
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
                 session_id=session_id,
             )
 
@@ -200,7 +200,7 @@ class MemoryHookManager:
                     "tool_name": "Task",
                     "duration_ms": event.get("duration_ms", 0),
                 },
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
                 session_id=session_id,
             )
 

@@ -18,7 +18,7 @@ import sys
 import threading
 import time
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 try:
@@ -267,7 +267,9 @@ class EventAggregator:
         try:
             # Extract event metadata
             event_type = event_data.get("type", "unknown")
-            timestamp = event_data.get("timestamp", datetime.utcnow().isoformat() + "Z")
+            timestamp = event_data.get(
+                "timestamp", datetime.now(timezone.utc).isoformat() + "Z"
+            )
             data = event_data.get("data", {})
 
             # Update statistics

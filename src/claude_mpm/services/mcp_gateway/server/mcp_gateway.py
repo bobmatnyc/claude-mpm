@@ -16,7 +16,7 @@ import asyncio
 import contextlib
 import json
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Union
 
 # Import from the official MCP package
@@ -148,7 +148,7 @@ class MCPGateway(BaseMCPService, IMCPGateway):
             invocation = MCPToolInvocation(
                 tool_name=name,
                 parameters=arguments,
-                request_id=f"req_{datetime.now().timestamp()}",
+                request_id=f"req_{datetime.now(timezone.utc).timestamp()}",
             )
 
             try:
@@ -212,7 +212,7 @@ class MCPGateway(BaseMCPService, IMCPGateway):
                 self.log_warning("No tool registry set - server will have no tools")
 
             # Initialize metrics
-            self._metrics["start_time"] = datetime.now().isoformat()
+            self._metrics["start_time"] = datetime.now(timezone.utc).isoformat()
 
             # Update capabilities based on registry
             if self._tool_registry:
@@ -287,7 +287,7 @@ class MCPGateway(BaseMCPService, IMCPGateway):
         try:
             # Update metrics
             self._metrics["requests_handled"] += 1
-            self._metrics["last_request_time"] = datetime.now().isoformat()
+            self._metrics["last_request_time"] = datetime.now(timezone.utc).isoformat()
 
             # Extract request details
             method = request.get("method", "")

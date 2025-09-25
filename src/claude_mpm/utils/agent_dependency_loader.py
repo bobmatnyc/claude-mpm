@@ -107,7 +107,7 @@ class AgentDependencyLoader:
         logger.info(f"Loaded dependencies for {len(agent_dependencies)} agents")
         return agent_dependencies
 
-    def check_python_dependency(self, package_spec: str) -> Tuple[bool, Optional[str]]:
+    def check_python_dependency(self, package_spec: str) -> Tuple[bool, Optional[str]]:  # noqa: PLR0911
         """
         Check if a Python package dependency is satisfied.
 
@@ -442,7 +442,7 @@ class AgentDependencyLoader:
 
         return compatible, incompatible
 
-    def install_missing_dependencies(self, dependencies: List[str]) -> Tuple[bool, str]:
+    def install_missing_dependencies(self, dependencies: List[str]) -> Tuple[bool, str]:  # noqa: PLR0911
         """
         Install missing Python dependencies using robust retry logic.
 

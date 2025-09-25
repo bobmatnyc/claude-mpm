@@ -26,7 +26,7 @@ import traceback
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -144,7 +144,7 @@ class BaseService(LoggerMixin, ABC):
         self._health = ServiceHealth(
             status="unknown",
             message="Service not started",
-            timestamp=datetime.now().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
         )
         self._metrics = ServiceMetrics()
         self._last_health_check: Optional[float] = None
@@ -199,7 +199,7 @@ class BaseService(LoggerMixin, ABC):
     def uptime(self) -> Optional[float]:
         """Get service uptime in seconds."""
         if self._start_time and self._running:
-            return (datetime.now() - self._start_time).total_seconds()
+            return (datetime.now(timezone.utc) - self._start_time).total_seconds()
         return None
 
     @property
@@ -237,7 +237,7 @@ class BaseService(LoggerMixin, ABC):
             self._health = ServiceHealth(
                 status="unhealthy",
                 message=f"Startup failed: {e!s}",
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
                 checks={"startup": False},
             )
 
@@ -268,13 +268,13 @@ class BaseService(LoggerMixin, ABC):
 
         # Mark as running
         self._running = True
-        self._start_time = datetime.now()
+        self._start_time = datetime.now(timezone.utc)
 
         # Update health status
         self._health = ServiceHealth(
             status="healthy",
             message="Service started successfully",
-            timestamp=datetime.now().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             checks={"startup": True},
             metrics=self._get_health_metrics() if self._enable_enhanced else {},
         )
@@ -338,7 +338,7 @@ class BaseService(LoggerMixin, ABC):
         self._health = ServiceHealth(
             status="unknown",
             message="Service stopped",
-            timestamp=datetime.now().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             checks={"running": False},
         )
 
@@ -388,7 +388,7 @@ class BaseService(LoggerMixin, ABC):
             self._health = ServiceHealth(
                 status=status,
                 message=message,
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
                 checks=checks,
                 metrics={
                     "uptime": self.uptime,
@@ -404,7 +404,7 @@ class BaseService(LoggerMixin, ABC):
             self._health = ServiceHealth(
                 status="unhealthy",
                 message=f"Health check error: {e!s}",
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
                 checks={"health_check_error": True},
             )
             return self._health
@@ -586,7 +586,7 @@ class BaseService(LoggerMixin, ABC):
                     return ServiceHealth(
                         status="degraded",
                         message="Service circuit breaker is open",
-                        timestamp=datetime.now().isoformat(),
+                        timestamp=datetime.now(timezone.utc).isoformat(),
                         checks={"circuit_breaker": False},
                         metrics=self._get_health_metrics(),
                     )

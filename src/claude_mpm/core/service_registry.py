@@ -160,7 +160,7 @@ class ServiceRegistry:
             try:
                 # Use the enhanced container's named resolution
                 return self.container.get(BaseService, name=service_type)
-            except:
+            except Exception:
                 # Fall back to looking up class and resolving
                 if service_type not in self._services:
                     raise KeyError(f"Service '{service_type}' not registered")

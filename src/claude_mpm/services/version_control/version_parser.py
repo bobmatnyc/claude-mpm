@@ -20,7 +20,7 @@ import json
 import logging
 import re
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from typing import Dict, List, Optional, Tuple
 
@@ -61,7 +61,7 @@ class VersionMetadata:
     ):
         self.version = version
         self.source = source
-        self.release_date = release_date or datetime.now()
+        self.release_date = release_date or datetime.now(timezone.utc)
         self.commit_hash = commit_hash
         self.author = author
         self.message = message
@@ -119,14 +119,16 @@ class EnhancedVersionParser:
         """Get cached value if still valid."""
         if key in self._cache:
             timestamp, value = self._cache[key]
-            if datetime.now() - timestamp < timedelta(seconds=self.cache_ttl):
+            if datetime.now(timezone.utc) - timestamp < timedelta(
+                seconds=self.cache_ttl
+            ):
                 return value
             del self._cache[key]
         return None
 
     def _set_cached(self, key: str, value: any) -> any:
         """Set cached value with timestamp."""
-        self._cache[key] = (datetime.now(), value)
+        self._cache[key] = (datetime.now(timezone.utc), value)
         return value
 
     def get_current_version(
@@ -332,7 +334,7 @@ class EnhancedVersionParser:
             )
             if result.returncode == 0:
                 commit_hash = result.stdout.strip()[:7]
-        except:
+        except Exception:
             pass
 
         return VersionMetadata(

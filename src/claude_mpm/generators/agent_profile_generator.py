@@ -7,7 +7,7 @@ Inspired by awesome-claude-code's template generation approach.
 """
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 import yaml
@@ -36,7 +36,9 @@ class AgentProfileGenerator:
         """Generate an agent profile from configuration."""
         # Set default values
         config.setdefault("VERSION", "1.0.0")
-        config.setdefault("CREATED_DATE", datetime.now().strftime("%Y-%m-%d"))
+        config.setdefault(
+            "CREATED_DATE", datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        )
         config.setdefault("AUTHOR", "claude-mpm")
 
         # Convert template to string

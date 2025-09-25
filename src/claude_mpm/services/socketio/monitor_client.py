@@ -16,7 +16,7 @@ DESIGN DECISIONS:
 import asyncio
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict
 
 try:
@@ -119,7 +119,7 @@ class MonitorClient:
                 # Use the event loop from the client thread
                 if hasattr(self.client, "disconnect"):
                     asyncio.run(self.client.disconnect())
-            except:
+            except Exception:
                 pass
 
         self.connected = False
@@ -152,7 +152,7 @@ class MonitorClient:
             "monitor_url": self.monitor_url,
             "uptime": (
                 (
-                    datetime.now()
+                    datetime.now(timezone.utc)
                     - datetime.fromisoformat(self.stats["last_connected"])
                 ).total_seconds()
                 if self.stats["last_connected"] and self.connected
@@ -224,7 +224,7 @@ class MonitorClient:
             self.connected = True
             self.connecting = False
             self.stats["successful_connections"] += 1
-            self.stats["last_connected"] = datetime.now().isoformat()
+            self.stats["last_connected"] = datetime.now(timezone.utc).isoformat()
             self.reconnect_delay = 1.0  # Reset reconnect delay on successful connection
 
             self.logger.info(f"Connected to monitor server at {self.monitor_url}")
@@ -255,7 +255,7 @@ class MonitorClient:
             """Handle disconnection."""
             self.logger.info("Disconnected from monitor server")
             self.connected = False
-            self.stats["last_disconnected"] = datetime.now().isoformat()
+            self.stats["last_disconnected"] = datetime.now(timezone.utc).isoformat()
 
         @self.client.event
         async def connect_error(data):

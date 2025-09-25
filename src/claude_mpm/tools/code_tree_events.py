@@ -19,7 +19,7 @@ import threading
 import time
 from collections import deque
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 try:
@@ -54,7 +54,7 @@ class CodeNodeEvent:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         data = asdict(self)
-        data["timestamp"] = datetime.utcnow().isoformat()
+        data["timestamp"] = datetime.now(timezone.utc).isoformat()
         return data
 
 
@@ -157,7 +157,7 @@ class CodeTreeEventEmitter:
 
     def start(self):
         """Start the event emitter and background tasks."""
-        self.stats["start_time"] = datetime.utcnow()
+        self.stats["start_time"] = datetime.now(timezone.utc)
         self._stop_event.clear()
 
         # Start background emit task
@@ -168,7 +168,7 @@ class CodeTreeEventEmitter:
         self.emit(
             self.EVENT_ANALYSIS_START,
             {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "batch_size": self.batch_size,
                 "batch_timeout": self.batch_timeout,
             },
@@ -183,9 +183,11 @@ class CodeTreeEventEmitter:
         self.emit(
             self.EVENT_ANALYSIS_COMPLETE,
             {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "duration": (
-                    (datetime.utcnow() - self.stats["start_time"]).total_seconds()
+                    (
+                        datetime.now(timezone.utc) - self.stats["start_time"]
+                    ).total_seconds()
                     if self.stats["start_time"]
                     else 0
                 ),
@@ -213,7 +215,7 @@ class CodeTreeEventEmitter:
         event = {
             "type": event_type,
             "data": data,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         if batch:
@@ -393,7 +395,7 @@ class CodeTreeEventEmitter:
                     "events": list(self.event_buffer),
                     "count": len(self.event_buffer),
                 },
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             self._emit_event(batch_event)

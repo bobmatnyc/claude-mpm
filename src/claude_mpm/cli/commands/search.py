@@ -34,6 +34,7 @@ class MCPSearchInterface:
         """Initialize the MCP gateway connection."""
         try:
             from claude_mpm.services.mcp_gateway import MCPGatewayService
+
             self.mcp_gateway = self.container.resolve(MCPGatewayService)
             if not self.mcp_gateway:
                 self.mcp_gateway = MCPGatewayService()
@@ -48,13 +49,13 @@ class MCPSearchInterface:
         limit: int = 10,
         similarity_threshold: float = 0.3,
         file_extensions: Optional[list] = None,
-        language: Optional[str] = None
+        language: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Search code using semantic similarity."""
         params = {
             "query": query,
             "limit": limit,
-            "similarity_threshold": similarity_threshold
+            "similarity_threshold": similarity_threshold,
         }
 
         if file_extensions:
@@ -69,45 +70,43 @@ class MCPSearchInterface:
         file_path: str,
         function_name: Optional[str] = None,
         limit: int = 10,
-        similarity_threshold: float = 0.3
+        similarity_threshold: float = 0.3,
     ) -> Dict[str, Any]:
         """Find code similar to a specific file or function."""
         params = {
             "file_path": file_path,
             "limit": limit,
-            "similarity_threshold": similarity_threshold
+            "similarity_threshold": similarity_threshold,
         }
 
         if function_name:
             params["function_name"] = function_name
 
-        return await self._call_mcp_tool("mcp__mcp-vector-search__search_similar", params)
+        return await self._call_mcp_tool(
+            "mcp__mcp-vector-search__search_similar", params
+        )
 
     async def search_context(
-        self,
-        description: str,
-        focus_areas: Optional[list] = None,
-        limit: int = 10
+        self, description: str, focus_areas: Optional[list] = None, limit: int = 10
     ) -> Dict[str, Any]:
         """Search for code based on contextual description."""
-        params = {
-            "description": description,
-            "limit": limit
-        }
+        params = {"description": description, "limit": limit}
 
         if focus_areas:
             params["focus_areas"] = focus_areas
 
-        return await self._call_mcp_tool("mcp__mcp-vector-search__search_context", params)
+        return await self._call_mcp_tool(
+            "mcp__mcp-vector-search__search_context", params
+        )
 
     async def get_status(self) -> Dict[str, Any]:
         """Get project indexing status and statistics."""
-        return await self._call_mcp_tool("mcp__mcp-vector-search__get_project_status", {})
+        return await self._call_mcp_tool(
+            "mcp__mcp-vector-search__get_project_status", {}
+        )
 
     async def index_project(
-        self,
-        force: bool = False,
-        file_extensions: Optional[list] = None
+        self, force: bool = False, file_extensions: Optional[list] = None
     ) -> Dict[str, Any]:
         """Index or reindex the project codebase."""
         params = {"force": force}
@@ -115,16 +114,19 @@ class MCPSearchInterface:
         if file_extensions:
             params["file_extensions"] = file_extensions
 
-        return await self._call_mcp_tool("mcp__mcp-vector-search__index_project", params)
+        return await self._call_mcp_tool(
+            "mcp__mcp-vector-search__index_project", params
+        )
 
-    async def _call_mcp_tool(self, tool_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _call_mcp_tool(
+        self, tool_name: str, params: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Call an MCP tool through the gateway."""
         if not self.mcp_gateway:
             await self.initialize()
 
         try:
-            result = await self.mcp_gateway.call_tool(tool_name, params)
-            return result
+            return await self.mcp_gateway.call_tool(tool_name, params)
         except Exception as e:
             return {"error": str(e)}
 
@@ -161,9 +163,11 @@ def display_search_results(results: Dict[str, Any], output_format: str = "rich")
         # Show snippet if available
         if result.get("snippet"):
             snippet_panel = Panel(
-                Syntax(result["snippet"], result.get("language", "python"), theme="monokai"),
+                Syntax(
+                    result["snippet"], result.get("language", "python"), theme="monokai"
+                ),
                 title=f"[cyan]{file_path}[/cyan]",
-                border_style="dim"
+                border_style="dim",
             )
             console.print(snippet_panel)
 
@@ -172,7 +176,7 @@ def display_search_results(results: Dict[str, Any], output_format: str = "rich")
     # Show statistics if available
     if "stats" in results:
         stats = results["stats"]
-        console.print(f"\n[bold]Statistics:[/bold]")
+        console.print("\n[bold]Statistics:[/bold]")
         console.print(f"  Total indexed files: {stats.get('total_files', 0)}")
         console.print(f"  Total indexed functions: {stats.get('total_functions', 0)}")
         console.print(f"  Index last updated: {stats.get('last_updated', 'Unknown')}")
@@ -206,7 +210,7 @@ async def search_command(
     function: Optional[str],
     focus: tuple,
     force: bool,
-    output_json: bool
+    output_json: bool,
 ):
     """
     Search the codebase using semantic search powered by mcp-vector-search.
@@ -228,8 +232,7 @@ async def search_command(
         if index:
             console.print("[cyan]Indexing project...[/cyan]")
             result = await search.index_project(
-                force=force,
-                file_extensions=list(extensions) if extensions else None
+                force=force, file_extensions=list(extensions) if extensions else None
             )
             if "error" not in result:
                 console.print("[green]✓ Project indexed successfully[/green]")
@@ -244,7 +247,7 @@ async def search_command(
                 file_path=similar,
                 function_name=function,
                 limit=limit,
-                similarity_threshold=threshold
+                similarity_threshold=threshold,
             )
             display_search_results(result, output_format)
 
@@ -252,7 +255,7 @@ async def search_command(
             result = await search.search_context(
                 description=context,
                 focus_areas=list(focus) if focus else None,
-                limit=limit
+                limit=limit,
             )
             display_search_results(result, output_format)
 
@@ -262,17 +265,21 @@ async def search_command(
                 limit=limit,
                 similarity_threshold=threshold,
                 file_extensions=list(extensions) if extensions else None,
-                language=language
+                language=language,
             )
             display_search_results(result, output_format)
 
         else:
-            console.print("[yellow]No search operation specified. Use --help for options.[/yellow]")
+            console.print(
+                "[yellow]No search operation specified. Use --help for options.[/yellow]"
+            )
 
     except Exception as e:
         console.print(f"[red]Search failed: {e}[/red]")
         if not output_json:
-            console.print("[dim]Tip: Make sure the project is indexed with --index first[/dim]")
+            console.print(
+                "[dim]Tip: Make sure the project is indexed with --index first[/dim]"
+            )
         sys.exit(1)
 
 

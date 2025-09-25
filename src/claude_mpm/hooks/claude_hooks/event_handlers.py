@@ -9,7 +9,7 @@ import os
 import re
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 # Import tool analysis with fallback for direct execution
@@ -77,7 +77,7 @@ class EventHandlers:
             "session_id": event.get("session_id", ""),
             "working_directory": working_dir,
             "git_branch": git_branch,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "is_command": prompt.startswith("/"),
             "contains_code": "```" in prompt
             or "python" in prompt.lower()
@@ -101,7 +101,7 @@ class EventHandlers:
             if session_id:
                 self.hook_handler.pending_prompts[session_id] = {
                     "prompt": prompt,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "working_directory": working_dir,
                 }
                 if DEBUG:
@@ -150,7 +150,7 @@ class EventHandlers:
             "session_id": event.get("session_id", ""),
             "working_directory": working_dir,
             "git_branch": git_branch,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "parameter_count": len(tool_input) if isinstance(tool_input, dict) else 0,
             "is_file_operation": tool_name
             in ["Write", "Edit", "MultiEdit", "Read", "LS", "Glob"],
@@ -249,7 +249,7 @@ class EventHandlers:
             "session_id": session_id,
             "prompt": tool_input.get("prompt", ""),
             "description": tool_input.get("description", ""),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "hook_event_name": "SubagentStart",  # For dashboard compatibility
         }
         self.hook_handler._emit_socketio_event(
@@ -277,7 +277,7 @@ class EventHandlers:
                     "session_id": session_id,
                     "delegation_context": {
                         "description": tool_input.get("description", ""),
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                     },
                 }
 
@@ -312,7 +312,7 @@ class EventHandlers:
             working_dir = os.getcwd()
 
         # Check cache first (cache for 30 seconds)
-        current_time = datetime.now().timestamp()
+        current_time = datetime.now(timezone.utc).timestamp()
         cache_key = working_dir
 
         if (
@@ -397,7 +397,7 @@ class EventHandlers:
             "session_id": event.get("session_id", ""),
             "working_directory": working_dir,
             "git_branch": git_branch,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "has_output": bool(result_data.get("output")),
             "has_error": bool(result_data.get("error")),
             "output_size": (
@@ -448,7 +448,7 @@ class EventHandlers:
             "session_id": event.get("session_id", ""),
             "working_directory": working_dir,
             "git_branch": git_branch,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "is_user_input_request": "input" in message.lower()
             or "waiting" in message.lower(),
             "is_error_notification": "error" in message.lower()
@@ -492,7 +492,7 @@ class EventHandlers:
         """Extract metadata from stop event."""
         working_dir = event.get("cwd", "")
         return {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "working_directory": working_dir,
             "git_branch": (
                 self._get_git_branch(working_dir) if working_dir else "Unknown"
@@ -639,7 +639,7 @@ class EventHandlers:
                     "has_error": reason in ["error", "timeout", "failed", "blocked"],
                     "working_directory": working_dir,
                     "git_branch": git_branch,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "event_type": "subagent_stop",
                     "reason": reason,
                     "original_request_timestamp": request_info.get("timestamp"),
@@ -715,7 +715,7 @@ class EventHandlers:
             "session_id": session_id,
             "working_directory": working_dir,
             "git_branch": git_branch,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "contains_code": "```" in response_text,
             "contains_json": "```json" in response_text,
             "hook_event_name": "AssistantResponse",  # Explicitly set for dashboard

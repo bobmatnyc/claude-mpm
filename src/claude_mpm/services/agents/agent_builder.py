@@ -10,7 +10,7 @@ This service provides comprehensive agent lifecycle management including:
 
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -108,7 +108,7 @@ class AgentBuilderService:
         agent_metadata = {
             "description": description,
             "version": "1.0.0",
-            "created": datetime.now().isoformat(),
+            "created": datetime.now(timezone.utc).isoformat(),
             "author": "Agent Manager",
             "category": "custom",
         }
@@ -179,7 +179,7 @@ class AgentBuilderService:
             {
                 "base_agent": base_agent_id,
                 "variant": True,
-                "variant_created": datetime.now().isoformat(),
+                "variant_created": datetime.now(timezone.utc).isoformat(),
             }
         )
 

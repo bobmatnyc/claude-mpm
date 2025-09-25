@@ -136,7 +136,7 @@ class InstallationCheck(BaseDiagnosticCheck):
                 details={"error": str(e)},
             )
 
-    def _check_installation_method(self) -> DiagnosticResult:
+    def _check_installation_method(self) -> DiagnosticResult:  # noqa: PLR0911
         """Detect how claude-mpm was installed."""
         methods_found = []
         details = {}
