@@ -335,19 +335,33 @@ class MemoryManager(IMemoryManager):
         if pm_memories:
             aggregated_pm = self._aggregate_memories(pm_memories)
             result["actual_memories"] = aggregated_pm
-            memory_size = len(aggregated_pm.encode("utf-8"))
-            self.logger.info(
-                f"Aggregated PM memory ({memory_size:,} bytes) from {len(pm_memories)} source(s)"
-            )
+            # Count actual memory items in aggregated content
+            memory_items = [line.strip() for line in aggregated_pm.split("\n")
+                           if line.strip().startswith("-")]
+            if memory_items:
+                self.logger.info(
+                    f"Aggregated PM memory: {len(memory_items)} total items from {len(pm_memories)} source(s)"
+                )
+            else:
+                self.logger.debug(
+                    f"Aggregated PM memory from {len(pm_memories)} source(s) (no items)"
+                )
 
         # Store agent memories (already aggregated per agent)
         if agent_memories_dict:
             result["agent_memories"] = agent_memories_dict
             for agent_name, memory_content in agent_memories_dict.items():
-                memory_size = len(memory_content.encode("utf-8"))
-                self.logger.debug(
-                    f"Aggregated {agent_name} memory: {memory_size:,} bytes"
-                )
+                # Count actual memory items
+                memory_items = [line.strip() for line in memory_content.split("\n")
+                               if line.strip().startswith("-")]
+                if memory_items:
+                    self.logger.debug(
+                        f"Aggregated {agent_name} memory: {len(memory_items)} items"
+                    )
+                else:
+                    self.logger.debug(
+                        f"Aggregated {agent_name} memory: no items"
+                    )
 
         # Log summary
         if self._stats["loaded_count"] > 0 or self._stats["skipped_count"] > 0:
@@ -410,10 +424,26 @@ class MemoryManager(IMemoryManager):
                             "path": pm_memory_path,
                         }
                     )
-                    memory_size = len(loaded_content.encode("utf-8"))
-                    self.logger.info(
-                        f"Loaded {source} PM memory: {pm_memory_path} ({memory_size:,} bytes)"
-                    )
+                    # Count actual memory items (lines starting with "-")
+                    memory_items = [line.strip() for line in loaded_content.split("\n")
+                                   if line.strip().startswith("-")]
+                    if memory_items:
+                        # Show first few memory items for context
+                        preview_items = memory_items[:3]
+                        preview_text = "\n  ".join(preview_items)
+                        if len(memory_items) > 3:
+                            self.logger.info(
+                                f"Loaded {source} PM memory: {len(memory_items)} items\n  {preview_text}\n  ... and {len(memory_items) - 3} more"
+                            )
+                        else:
+                            self.logger.info(
+                                f"Loaded {source} PM memory: {len(memory_items)} items\n  {preview_text}"
+                            )
+                    else:
+                        # Skip logging if no actual memory items
+                        self.logger.debug(
+                            f"Skipped {source} PM memory: {pm_memory_path} (no memory items)"
+                        )
                     self._stats["loaded_count"] += 1
             except Exception as e:
                 self.logger.error(
@@ -471,20 +501,49 @@ class MemoryManager(IMemoryManager):
                                 }
                             )
 
-                        memory_size = len(loaded_content.encode("utf-8"))
-                        self.logger.info(
-                            f"Loaded {source} memory for {agent_name}: {memory_file.name} ({memory_size:,} bytes)"
-                        )
+                        # Count actual memory items (lines starting with "-")
+                        memory_items = [line.strip() for line in loaded_content.split("\n")
+                                       if line.strip().startswith("-")]
+                        if memory_items:
+                            # Show first few memory items for context
+                            preview_items = memory_items[:2]
+                            preview_text = "\n  ".join(preview_items)
+                            if len(memory_items) > 2:
+                                self.logger.info(
+                                    f"Loaded {source} memory for {agent_name}: {len(memory_items)} items\n  {preview_text}\n  ... and {len(memory_items) - 2} more"
+                                )
+                            else:
+                                self.logger.info(
+                                    f"Loaded {source} memory for {agent_name}: {len(memory_items)} items\n  {preview_text}"
+                                )
+                        else:
+                            # Skip logging if no actual memory items
+                            self.logger.debug(
+                                f"Skipped {source} memory for {agent_name}: {memory_file.name} (no memory items)"
+                            )
                         self._stats["loaded_count"] += 1
                 except Exception as e:
                     self.logger.error(
                         f"Failed to load agent memory from {memory_file}: {e}"
                     )
             else:
-                # Log skipped memories
-                self.logger.info(
-                    f"Skipped {source} memory: {memory_file.name} (agent '{agent_name}' not deployed)"
-                )
+                # Log skipped memories only if they contain actual items
+                try:
+                    loaded_content = memory_file.read_text(encoding="utf-8")
+                    memory_items = [line.strip() for line in loaded_content.split("\n")
+                                   if line.strip().startswith("-")]
+                    if memory_items:
+                        self.logger.info(
+                            f"Skipped {source} memory: {memory_file.name} (agent '{agent_name}' not deployed, {len(memory_items)} items)"
+                        )
+                    else:
+                        # Don't log if file has no actual memory items
+                        self.logger.debug(
+                            f"Skipped {source} memory: {memory_file.name} (agent '{agent_name}' not deployed, no items)"
+                        )
+                except Exception:
+                    # If we can't read the file, just skip silently
+                    pass
 
                 # Detect naming mismatches
                 alt_name = (
