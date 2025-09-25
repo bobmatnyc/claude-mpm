@@ -173,7 +173,7 @@ class SimpleMCPServer:
 
     async def _summarize_content(
         self, content: str, style: str, max_length: int
-    ) -> str:  # noqa: PLR0911
+    ) -> str:
         """
         Summarize text content based on style and length constraints.
 
@@ -215,7 +215,7 @@ class SimpleMCPServer:
         # Default to brief
         return self._create_brief_summary(sentences, max_length)
 
-    def _create_brief_summary(self, sentences: list[str], max_length: int) -> str:  # noqa: PLR0911
+    def _create_brief_summary(self, sentences: list[str], max_length: int) -> str:
         """Create a brief summary by selecting most important sentences."""
         if not sentences:
             return ""

@@ -154,7 +154,7 @@ class InteractiveSession:
             self.logger.error(error_msg)
             return False, {}
 
-    def handle_interactive_input(self, environment: Dict[str, Any]) -> bool:  # noqa: PLR0911
+    def handle_interactive_input(self, environment: Dict[str, Any]) -> bool:
         """Handle the interactive input/output loop.
 
         Launches Claude and manages the interactive session using either

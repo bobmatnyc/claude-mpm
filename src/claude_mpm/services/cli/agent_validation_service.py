@@ -1,4 +1,5 @@
 import re
+
 """
 Agent Validation Service
 ========================

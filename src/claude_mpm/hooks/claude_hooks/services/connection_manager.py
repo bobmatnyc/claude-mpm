@@ -190,7 +190,10 @@ class ConnectionManagerService:
 
         # Warn if no emission method is available
         if not self.connection_pool and DEBUG:
-            print(f"⚠️ No event emission method available for: {claude_event_data.get('event', 'unknown')}", file=sys.stderr)
+            print(
+                f"⚠️ No event emission method available for: {claude_event_data.get('event', 'unknown')}",
+                file=sys.stderr,
+            )
 
     def cleanup(self):
         """Cleanup connections on service destruction."""

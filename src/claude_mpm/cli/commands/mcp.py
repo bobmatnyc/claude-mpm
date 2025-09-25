@@ -61,10 +61,10 @@ def manage_mcp(args):
 
             # Allow install command to proceed
             if args.mcp_command == MCPCommands.INSTALL.value:
-                MCPConfiguration = None
-                MCPServiceRegistry = None
-                ToolRegistry = None
-                MCPGateway = None
+                MCPConfiguration = None  # noqa: N806
+                MCPServiceRegistry = None  # noqa: N806
+                ToolRegistry = None  # noqa: N806
+                MCPGateway = None  # noqa: N806
             else:
                 print(
                     "\nError: MCP Gateway services not fully available",
@@ -115,7 +115,12 @@ def manage_mcp(args):
 
 
 def _show_status(
-    args, logger, MCPConfiguration, MCPServiceRegistry, ToolRegistry, MCPGateway
+    args,
+    logger,
+    MCPConfiguration,
+    MCPServiceRegistry,
+    ToolRegistry,
+    MCPGateway,  # noqa: N803
 ):
     """
     Show MCP Gateway status when no subcommand is provided.

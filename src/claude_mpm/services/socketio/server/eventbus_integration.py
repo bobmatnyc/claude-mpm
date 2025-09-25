@@ -49,7 +49,6 @@ class EventBusIntegration:
         Returns:
             bool: True if setup successful
         """
-        from datetime import datetime
 
         print(
             f"[{datetime.now(timezone.utc).isoformat()}] EventBusIntegration.setup() called",
