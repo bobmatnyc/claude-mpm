@@ -13,10 +13,18 @@ import json
 import os
 import subprocess
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 from ..core.logger import get_logger
+
+
+class ConfigLocation(Enum):
+    """Enumeration of Claude configuration file locations."""
+    CLAUDE_JSON = Path.home() / ".claude.json"  # Primary Claude config
+    CLAUDE_DESKTOP = Path.home() / ".claude" / "claude_desktop_config.json"  # Not used by Claude Code
+    PROJECT_MCP = ".mcp.json"  # Project-level MCP config (deprecated)
 
 
 class MCPConfigManager:
@@ -34,6 +42,10 @@ class MCPConfigManager:
         self.logger = get_logger(__name__)
         self.pipx_base = Path.home() / ".local" / "pipx" / "venvs"
         self.project_root = Path.cwd()
+
+        # Use the proper Claude config file location
+        self.claude_config_path = ConfigLocation.CLAUDE_JSON.value
+
 
     def detect_service_path(self, service_name: str) -> Optional[str]:
         """
@@ -175,41 +187,62 @@ class MCPConfigManager:
 
     def ensure_mcp_services_configured(self) -> Tuple[bool, str]:
         """
-        Ensure MCP services are configured in .mcp.json on startup.
+        Ensure MCP services are configured in ~/.claude.json on startup.
 
-        This method checks if the core MCP services are configured and
-        automatically adds them if they're missing.
+        This method checks if the core MCP services are configured in the
+        current project's mcpServers section and automatically adds them if missing.
 
         Returns:
             Tuple of (success, message)
         """
-        mcp_config_path = self.project_root / ".mcp.json"
         updated = False
         added_services = []
+        project_key = str(self.project_root)
 
-        # Load existing config or create new one
-        existing_config = {"mcpServers": {}}
-        if mcp_config_path.exists():
+        # Load existing Claude config or create minimal structure
+        claude_config = {}
+        if self.claude_config_path.exists():
             try:
-                with open(mcp_config_path, "r") as f:
-                    existing_config = json.load(f)
+                with open(self.claude_config_path, "r") as f:
+                    claude_config = json.load(f)
             except Exception as e:
-                self.logger.error(f"Error reading .mcp.json: {e}")
-                return False, f"Failed to read .mcp.json: {e}"
+                self.logger.error(f"Error reading {self.claude_config_path}: {e}")
+                return False, f"Failed to read Claude config: {e}"
 
-        # Ensure mcpServers key exists
-        if "mcpServers" not in existing_config:
-            existing_config["mcpServers"] = {}
+        # Ensure projects structure exists
+        if "projects" not in claude_config:
+            claude_config["projects"] = {}
+
+        if project_key not in claude_config["projects"]:
+            claude_config["projects"][project_key] = {
+                "allowedTools": [],
+                "history": [],
+                "mcpContextUris": [],
+                "mcpServers": {},
+                "enabledMcpjsonServers": [],
+                "disabledMcpjsonServers": [],
+                "hasTrustDialogAccepted": False,
+                "projectOnboardingSeenCount": 0,
+                "hasClaudeMdExternalIncludesApproved": False,
+                "hasClaudeMdExternalIncludesWarningShown": False
+            }
+            updated = True
+
+        # Get the project's mcpServers section
+        project_config = claude_config["projects"][project_key]
+        if "mcpServers" not in project_config:
+            project_config["mcpServers"] = {}
+            updated = True
 
         # Check each service and add if missing
         for service_name in self.PIPX_SERVICES:
-            if service_name not in existing_config["mcpServers"]:
+            if service_name not in project_config["mcpServers"]:
                 # Try to detect and configure the service
                 service_path = self.detect_service_path(service_name)
                 if service_path:
                     config = self.generate_service_config(service_name)
                     if config:
-                        existing_config["mcpServers"][service_name] = config
+                        project_config["mcpServers"][service_name] = config
                         added_services.append(service_name)
                         updated = True
                         self.logger.debug(f"Added MCP service to config: {service_name}")
@@ -219,30 +252,36 @@ class MCPConfigManager:
         # Write updated config if changes were made
         if updated:
             try:
-                # Create backup if file exists
-                if mcp_config_path.exists():
-                    backup_path = mcp_config_path.with_suffix(
-                        f".backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                    )
-                    mcp_config_path.rename(backup_path)
-                    self.logger.debug(f"Created backup: {backup_path}")
+                # Create backup if file exists and is large (> 100KB)
+                if self.claude_config_path.exists():
+                    file_size = self.claude_config_path.stat().st_size
+                    if file_size > 100000:  # 100KB
+                        backup_path = self.claude_config_path.with_suffix(
+                            f".backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                        )
+                        import shutil
+                        shutil.copy2(self.claude_config_path, backup_path)
+                        self.logger.debug(f"Created backup: {backup_path}")
 
                 # Write updated config
-                with open(mcp_config_path, "w") as f:
-                    json.dump(existing_config, f, indent=2)
+                with open(self.claude_config_path, "w") as f:
+                    json.dump(claude_config, f, indent=2)
 
-                message = f"Auto-configured MCP services: {', '.join(added_services)}"
-                self.logger.info(message)
-                return True, message
+                if added_services:
+                    message = f"Auto-configured MCP services: {', '.join(added_services)}"
+                    # Don't log here - let the caller handle logging to avoid duplicates
+                    return True, message
+                else:
+                    return True, "All MCP services already configured"
             except Exception as e:
-                self.logger.error(f"Failed to write .mcp.json: {e}")
+                self.logger.error(f"Failed to write Claude config: {e}")
                 return False, f"Failed to write configuration: {e}"
 
         return True, "All MCP services already configured"
 
     def update_mcp_config(self, force_pipx: bool = True) -> Tuple[bool, str]:
         """
-        Update the .mcp.json configuration file.
+        Update the MCP configuration in ~/.claude.json.
 
         Args:
             force_pipx: If True, only use pipx installations
@@ -250,7 +289,21 @@ class MCPConfigManager:
         Returns:
             Tuple of (success, message)
         """
-        mcp_config_path = self.project_root / ".mcp.json"
+        # This method now delegates to ensure_mcp_services_configured
+        # since we're updating the Claude config directly
+        return self.ensure_mcp_services_configured()
+
+    def update_project_mcp_config(self, force_pipx: bool = True) -> Tuple[bool, str]:
+        """
+        Update the .mcp.json configuration file (legacy method).
+
+        Args:
+            force_pipx: If True, only use pipx installations
+
+        Returns:
+            Tuple of (success, message)
+        """
+        mcp_config_path = self.project_root / ConfigLocation.PROJECT_MCP.value
 
         # Load existing config if it exists
         existing_config = {}
@@ -274,9 +327,7 @@ class MCPConfigManager:
             else:
                 # Keep existing config if not forcing pipx
                 if service_name in existing_config.get("mcpServers", {}):
-                    new_config["mcpServers"][service_name] = existing_config[
-                        "mcpServers"
-                    ][service_name]
+                    new_config["mcpServers"][service_name] = existing_config["mcpServers"][service_name]
 
         # Add any additional services from existing config
         for service_name, config in existing_config.get("mcpServers", {}).items():
@@ -303,23 +354,41 @@ class MCPConfigManager:
         Returns:
             Dict mapping service names to availability status
         """
-        mcp_config_path = self.project_root / ".mcp.json"
-        if not mcp_config_path.exists():
+        project_key = str(self.project_root)
+
+        # Check Claude config
+        if not self.claude_config_path.exists():
+            # Also check legacy .mcp.json
+            mcp_config_path = self.project_root / ConfigLocation.PROJECT_MCP.value
+            if mcp_config_path.exists():
+                try:
+                    with open(mcp_config_path, "r") as f:
+                        config = json.load(f)
+                        results = {}
+                        for service_name, service_config in config.get("mcpServers", {}).items():
+                            command_path = service_config.get("command", "")
+                            results[service_name] = Path(command_path).exists()
+                        return results
+                except Exception:
+                    pass
             return {}
 
         try:
-            with open(mcp_config_path, "r") as f:
-                config = json.load(f)
+            with open(self.claude_config_path, "r") as f:
+                claude_config = json.load(f)
+
+            # Get project's MCP servers
+            if "projects" in claude_config and project_key in claude_config["projects"]:
+                mcp_servers = claude_config["projects"][project_key].get("mcpServers", {})
+                results = {}
+                for service_name, service_config in mcp_servers.items():
+                    command_path = service_config.get("command", "")
+                    results[service_name] = Path(command_path).exists()
+                return results
         except Exception as e:
             self.logger.error(f"Error reading config: {e}")
-            return {}
 
-        results = {}
-        for service_name, service_config in config.get("mcpServers", {}).items():
-            command_path = service_config.get("command", "")
-            results[service_name] = Path(command_path).exists()
-
-        return results
+        return {}
 
     def install_missing_services(self) -> Tuple[bool, str]:
         """

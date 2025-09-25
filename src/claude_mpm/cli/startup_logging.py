@@ -114,12 +114,10 @@ class StartupStatusLogger:
             if mcp_executable:
                 self.logger.info(f"MCP Server: Installed at {mcp_executable}")
 
-                # Try to get version
+                # Try to get version (only log if version is found)
                 version = self._get_mcp_version(mcp_executable)
                 if version:
                     self.logger.info(f"MCP Server: Version {version}")
-                else:
-                    self.logger.info("MCP Server: Version unknown")
             else:
                 self.logger.info("MCP Server: Not found in PATH")
 
