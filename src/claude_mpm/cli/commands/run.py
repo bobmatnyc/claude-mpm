@@ -68,6 +68,7 @@ def filter_claude_mpm_args(claude_args):
         "--no-native-agents",
         "--launch-method",
         "--mpm-resume",
+        "--reload-agents",  # New flag to force rebuild system agents
         # Dependency checking flags (MPM-specific)
         "--no-check-dependencies",
         "--force-check-dependencies",
@@ -568,6 +569,71 @@ class RunCommand(BaseCommand):
             return False
 
 
+def _handle_reload_agents(logger):
+    """
+    Handle the --reload-agents flag by deleting all local claude-mpm system agents.
+
+    This forces a fresh rebuild of system agents on the next deployment,
+    while preserving user-created agents.
+
+    Args:
+        logger: Logger instance for output
+    """
+    try:
+        logger.info("Reloading system agents - cleaning existing deployments...")
+
+        # Import the cleanup service
+        from ...services.cli.agent_cleanup_service import AgentCleanupService
+        from ...services.agents.deployment.agent_deployment import AgentDeploymentService
+
+        # Create services
+        deployment_service = AgentDeploymentService()
+        cleanup_service = AgentCleanupService(deployment_service)
+
+        # Determine the agents directory
+        agents_dir = None  # Will auto-detect project or user directory
+
+        # Clean deployed agents (preserves user agents)
+        result = cleanup_service.clean_deployed_agents(agents_dir)
+
+        # Check if cleanup was successful based on the result structure
+        # The service returns a dict with 'removed', 'preserved', and possibly 'errors' keys
+        # If it has 'success' key, use it; otherwise infer from the result
+        success = result.get("success", True) if "success" in result else not result.get("errors")
+
+        if success:
+            removed_count = result.get("cleaned_count", len(result.get("removed", [])))
+            removed_agents = result.get("removed", [])
+            preserved_agents = result.get("preserved", [])
+
+            if removed_count > 0:
+                logger.info(f"✅ Successfully removed {removed_count} system agents")
+                if removed_agents:
+                    logger.debug(f"Removed agents: {', '.join(removed_agents)}")
+                print(f"🔄 Cleaned {removed_count} claude-mpm system agents")
+            else:
+                logger.info("No system agents found to clean")
+                print("ℹ️  No system agents found - already clean")
+
+            if preserved_agents:
+                logger.info(f"Preserved {len(preserved_agents)} user-created agents")
+                print(f"✅ Preserved {len(preserved_agents)} user-created agents")
+
+            print("🚀 System agents will be rebuilt on next use")
+        else:
+            error = result.get("error", "Cleanup failed")
+            if result.get("errors"):
+                error = f"Cleanup errors: {', '.join(result['errors'])}"
+            logger.error(f"Failed to clean system agents: {error}")
+            print(f"❌ Error cleaning agents: {error}")
+
+    except Exception as e:
+        logger.error(f"Error handling --reload-agents: {e}", exc_info=True)
+        print(f"❌ Failed to reload agents: {e}")
+        # Don't fail the entire session, just log the error
+        print("⚠️  Continuing with existing agents...")
+
+
 def run_session(args):
     """
     Main entry point for run command.
@@ -623,6 +689,10 @@ def run_session_legacy(args):
 
     # Check for memory usage issues with .claude.json
     _check_claude_json_memory(args, logger)
+
+    # Handle --reload-agents flag if specified
+    if getattr(args, "reload_agents", False):
+        _handle_reload_agents(logger)
 
     try:
         from ...core.claude_runner import ClaudeRunner, create_simple_context
