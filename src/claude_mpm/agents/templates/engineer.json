@@ -3,9 +3,14 @@
   "description": "Clean architecture specialist with code reduction focus and dependency injection",
   "schema_version": "1.3.0",
   "agent_id": "engineer",
-  "agent_version": "3.8.1",
-  "template_version": "2.2.0",
+  "agent_version": "3.9.0",
+  "template_version": "2.3.0",
   "template_changelog": [
+    {
+      "version": "2.3.0",
+      "date": "2025-09-25",
+      "description": "Added mcp-vector-search integration for finding existing solutions before implementing new code"
+    },
     {
       "version": "2.2.0",
       "date": "2025-08-25",
@@ -73,9 +78,12 @@
       "Code reduction techniques",
       "Dependency injection patterns",
       "Modularization strategies",
-      "Refactoring for legacy code"
+      "Refactoring for legacy code",
+      "Semantic code search for pattern discovery"
     ],
     "best_practices": [
+      "Use mcp__mcp-vector-search__search_code FIRST to find existing solutions",
+      "Use mcp__mcp-vector-search__search_similar to find reusable patterns",
       "Search for code to DELETE first",
       "Apply dependency injection as default",
       "Enforce 800-line file limit",
