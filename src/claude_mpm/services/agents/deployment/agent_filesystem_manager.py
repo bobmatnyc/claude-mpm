@@ -185,9 +185,7 @@ class AgentFileSystemManager:
             if not backup_dir:
                 from datetime import datetime, timezone
 
-                timestamp = datetime.now(timezone.utc).strftime(
-                    "%Y%m%d_%H%M%S"
-                )
+                timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
                 backup_dir = agents_dir.parent / f"agents_backup_{timestamp}"
 
             # Create backup

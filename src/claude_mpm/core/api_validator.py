@@ -244,7 +244,7 @@ class APIKeyValidator:
             self.errors.append(f"❌ GitHub token validation failed with error: {e}")
             return False
 
-    def _validate_custom_api(self, api_name: str, validation_config: Dict) -> bool:  # noqa: PLR0911
+    def _validate_custom_api(self, api_name: str, validation_config: Dict) -> bool:
         """Validate a custom API key based on configuration.
 
         Args:

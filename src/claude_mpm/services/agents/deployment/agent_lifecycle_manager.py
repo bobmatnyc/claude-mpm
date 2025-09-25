@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService
+from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.models.agent_definition import AgentDefinition
 from claude_mpm.services.agents.management import AgentManager
 from claude_mpm.services.agents.memory import (
@@ -53,7 +54,6 @@ from claude_mpm.services.agents.registry.modification_tracker import (
     ModificationType,
 )
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
-from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.utils.path_operations import path_ops
 
 # Import extracted services

@@ -801,7 +801,7 @@ class MermaidGeneratorService(SyncBaseService):
 
         return False
 
-    def validate_mermaid_syntax(self, diagram: str) -> Tuple[bool, Optional[str]]:  # noqa: PLR0911
+    def validate_mermaid_syntax(self, diagram: str) -> Tuple[bool, Optional[str]]:
         """
         Validate that the generated Mermaid syntax is correct.
 

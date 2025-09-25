@@ -166,7 +166,7 @@ class OneshotSession:
 
     def _run_subprocess(
         self, cmd: list, env: dict, prompt: str
-    ) -> Tuple[bool, Optional[str]]:  # noqa: PLR0911
+    ) -> Tuple[bool, Optional[str]]:
         """Run the subprocess and handle all exception types."""
         try:
             # Debug: log the command being run

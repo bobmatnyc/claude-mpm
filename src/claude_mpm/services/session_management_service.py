@@ -13,7 +13,7 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import timezone
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService

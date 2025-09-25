@@ -666,17 +666,15 @@ async def trigger_vector_search_indexing(project_root: Optional[Path] = None) ->
                 "-m",
                 "mcp_vector_search.cli",
                 "index",
-                str(project_root)
+                str(project_root),
             ]
         else:
             # Using installed binary
-            cmd = [
-                vector_search_path,
-                "index",
-                str(project_root)
-            ]
+            cmd = [vector_search_path, "index", str(project_root)]
 
-        logger.info("MCP Vector Search: Starting background indexing for improved code search")
+        logger.info(
+            "MCP Vector Search: Starting background indexing for improved code search"
+        )
 
         # Start the indexing process in the background
         # We use subprocess.Popen instead of run to avoid blocking
@@ -684,14 +682,18 @@ async def trigger_vector_search_indexing(project_root: Optional[Path] = None) ->
             *cmd,
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,
-            cwd=str(project_root)
+            cwd=str(project_root),
         )
 
         # Don't wait for completion - let it run in the background
-        logger.debug(f"MCP Vector Search: Indexing process started (PID: {process.pid})")
+        logger.debug(
+            f"MCP Vector Search: Indexing process started (PID: {process.pid})"
+        )
 
     except ImportError:
-        logger.debug("MCP config manager not available, skipping vector search indexing")
+        logger.debug(
+            "MCP config manager not available, skipping vector search indexing"
+        )
     except Exception as e:
         # Don't let indexing failures prevent startup
         logger.debug(f"Failed to start vector search indexing: {e}")
@@ -754,26 +756,26 @@ def _start_vector_search_subprocess(project_root: Optional[Path] = None) -> None
                 "-m",
                 "mcp_vector_search.cli",
                 "index",
-                str(project_root)
+                str(project_root),
             ]
         else:
-            cmd = [
-                vector_search_path,
-                "index",
-                str(project_root)
-            ]
+            cmd = [vector_search_path, "index", str(project_root)]
 
-        logger.info("MCP Vector Search: Starting background indexing for improved code search")
+        logger.info(
+            "MCP Vector Search: Starting background indexing for improved code search"
+        )
 
         # Start the indexing process in the background
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            cwd=str(project_root)
+            cwd=str(project_root),
         )
 
-        logger.debug(f"MCP Vector Search: Indexing process started (PID: {process.pid})")
+        logger.debug(
+            f"MCP Vector Search: Indexing process started (PID: {process.pid})"
+        )
 
     except Exception as e:
         logger.debug(f"Failed to start vector search indexing: {e}")

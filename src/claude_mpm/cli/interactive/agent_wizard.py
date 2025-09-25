@@ -600,7 +600,7 @@ class AgentWizard:
             tier="project",
         )
 
-    def _manage_single_agent(self, template: LocalAgentTemplate) -> Tuple[bool, str]:  # noqa: PLR0911
+    def _manage_single_agent(self, template: LocalAgentTemplate) -> Tuple[bool, str]:
         """Manage a single agent."""
         print(f"\n🔧 Managing Agent: {template.agent_id}")
         print(f"   Name: {template.metadata.get('name', template.agent_id)}")
@@ -815,7 +815,7 @@ class AgentWizard:
             return self.manager.project_agents_dir / f"{template.agent_id}.json"
         return self.manager.user_agents_dir / f"{template.agent_id}.json"
 
-    def _interactive_delete_menu(self, templates: list) -> Tuple[bool, str]:  # noqa: PLR0911
+    def _interactive_delete_menu(self, templates: list) -> Tuple[bool, str]:
         """Interactive deletion menu for multiple agents."""
         print("\n🗑️  Delete Agents")
         print("=" * 50)

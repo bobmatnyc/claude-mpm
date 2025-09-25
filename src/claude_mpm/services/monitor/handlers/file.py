@@ -109,7 +109,7 @@ class FileHandler:
         file_path: str,
         working_dir: Optional[str] = None,
         max_size: int = 1024 * 1024,
-    ) -> Dict[str, Any]:  # noqa: PLR0911
+    ) -> Dict[str, Any]:
         """Safely read file content with security checks.
 
         WHY: File reading must be secure to prevent directory traversal attacks

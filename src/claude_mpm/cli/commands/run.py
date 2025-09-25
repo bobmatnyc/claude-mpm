@@ -741,6 +741,7 @@ def run_session_legacy(args):
     # Trigger vector search indexing after MCP is configured
     try:
         from ...cli.startup_logging import start_vector_search_indexing
+
         start_vector_search_indexing()
     except Exception as e:
         logger.debug(f"Failed to start vector search indexing: {e}")

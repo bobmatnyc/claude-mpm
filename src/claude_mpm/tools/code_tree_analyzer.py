@@ -19,7 +19,7 @@ import hashlib
 import json
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -273,7 +273,7 @@ class GitignoreManager:
 
         return patterns
 
-    def _basic_should_ignore(self, path: Path, working_dir: Path) -> bool:  # noqa: PLR0911
+    def _basic_should_ignore(self, path: Path, working_dir: Path) -> bool:
         """Basic pattern matching fallback when pathspec is not available.
 
         Args:
@@ -609,7 +609,7 @@ class PythonAnalyzer:
 
         return nodes
 
-    def _get_assignment_signature(self, node: ast.Assign, var_name: str) -> str:  # noqa: PLR0911
+    def _get_assignment_signature(self, node: ast.Assign, var_name: str) -> str:
         """Get assignment signature string."""
         try:
             # Try to get a simple representation of the value
