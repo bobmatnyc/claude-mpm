@@ -1,3 +1,31 @@
+## [4.3.13] - 2025-09-25
+
+### Added
+- **Ultra-Strict PM Delegation Enforcement**: Comprehensive PM instruction overhaul for maximum delegation
+  - Added strict investigation violations (no multi-file reads, no Grep/Glob usage)
+  - Implemented "NO ASSERTION WITHOUT VERIFICATION" rule with evidence requirements
+  - Created multiple circuit breakers for PM overreach detection
+  - Added delegation-first response patterns and mindset transformation
+
+### Improved
+- **PM Verification Requirements**: All PM assertions now require agent-provided evidence
+  - Added verification matrix for common assertions
+  - Introduced PM red flag phrases that indicate violations
+  - Created PM delegation scorecard with automatic evaluation metrics
+  - Added concrete examples of wrong vs right PM behavior
+
+### Changed
+- **PM Tool Restrictions**: Further restricted PM's allowed tools
+  - PM now forbidden from using Grep/Glob (must delegate to Research)
+  - PM limited to reading 1 file maximum (more triggers violation)
+  - WebSearch/WebFetch now forbidden for PM (must delegate to Research)
+
+## [4.3.12] - 2025-09-24
+
+### Fixed
+- **Reduced duplicate logging** in MCP auto-configuration
+- **Added auto-configuration** of MCP services on startup
+
 ## [4.3.11] - 2025-09-23
 
 ### Added
