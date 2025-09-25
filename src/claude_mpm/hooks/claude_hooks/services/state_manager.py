@@ -11,7 +11,7 @@ import os
 import subprocess
 import time
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 # Import constants for configuration
@@ -77,7 +77,7 @@ class StateManagerService:
 
         if session_id and agent_type and agent_type != "unknown":
             self.active_delegations[session_id] = agent_type
-            key = f"{session_id}:{datetime.now().timestamp()}"
+            key = f"{session_id}:{datetime.now(timezone.utc).timestamp()}"
             self.delegation_history.append((key, agent_type))
 
             # Store request data for response tracking correlation
@@ -85,7 +85,7 @@ class StateManagerService:
                 self.delegation_requests[session_id] = {
                     "agent_type": agent_type,
                     "request": request_data,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
                 if DEBUG:
                     import sys
@@ -100,7 +100,7 @@ class StateManagerService:
                     )
 
             # Clean up old delegations (older than 5 minutes)
-            cutoff_time = datetime.now().timestamp() - 300
+            cutoff_time = datetime.now(timezone.utc).timestamp() - 300
             keys_to_remove = []
             for sid in list(self.active_delegations.keys()):
                 # Check if this is an old entry by looking in history
@@ -136,7 +136,7 @@ class StateManagerService:
 
     def cleanup_old_entries(self):
         """Clean up old entries to prevent memory growth."""
-        datetime.now().timestamp() - self.MAX_CACHE_AGE_SECONDS
+        datetime.now(timezone.utc).timestamp() - self.MAX_CACHE_AGE_SECONDS
 
         # Clean up delegation tracking dictionaries
         for storage in [self.active_delegations, self.delegation_requests]:
@@ -158,7 +158,8 @@ class StateManagerService:
         expired_keys = [
             key
             for key, cache_time in self._git_branch_cache_time.items()
-            if datetime.now().timestamp() - cache_time > self.MAX_CACHE_AGE_SECONDS
+            if datetime.now(timezone.utc).timestamp() - cache_time
+            > self.MAX_CACHE_AGE_SECONDS
         ]
         for key in expired_keys:
             self._git_branch_cache.pop(key, None)
@@ -178,7 +179,7 @@ class StateManagerService:
             working_dir = os.getcwd()
 
         # Check cache first (cache for 30 seconds)
-        current_time = datetime.now().timestamp()
+        current_time = datetime.now(timezone.utc).timestamp()
         cache_key = working_dir
 
         if (

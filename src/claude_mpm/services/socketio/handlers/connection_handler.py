@@ -8,7 +8,7 @@ DESIGN DECISION: Centralized connection event handling ensures consistent
 state management and provides resilient event delivery across reconnections.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .base import BaseEventHandler
 
@@ -50,7 +50,7 @@ class EnhancedConnectionEventHandler(BaseEventHandler):
                     # Store client info
                     self.server.client_info[sid] = {
                         "client_id": conn.client_id,
-                        "connected_at": datetime.now().isoformat(),
+                        "connected_at": datetime.now(timezone.utc).isoformat(),
                         "user_agent": environ.get("HTTP_USER_AGENT", "unknown"),
                         "remote_addr": environ.get("REMOTE_ADDR", "unknown"),
                     }
@@ -61,7 +61,7 @@ class EnhancedConnectionEventHandler(BaseEventHandler):
                         {
                             "client_id": conn.client_id,
                             "sid": sid,
-                            "timestamp": datetime.now().isoformat(),
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
                             "server_version": self.get_server_version(),
                         },
                         room=sid,
@@ -120,7 +120,7 @@ class EnhancedConnectionEventHandler(BaseEventHandler):
                     self.server.stats["connections_total"] += 1
 
                     self.server.client_info[sid] = {
-                        "connected_at": datetime.now().isoformat(),
+                        "connected_at": datetime.now(timezone.utc).isoformat(),
                         "user_agent": environ.get("HTTP_USER_AGENT", "unknown"),
                         "remote_addr": environ.get("REMOTE_ADDR", "unknown"),
                     }
@@ -185,8 +185,8 @@ class EnhancedConnectionEventHandler(BaseEventHandler):
                 await sio.emit(
                     "pong",
                     {
-                        "timestamp": datetime.now().isoformat(),
-                        "server_time": datetime.now().timestamp(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "server_time": datetime.now(timezone.utc).timestamp(),
                     },
                     room=sid,
                 )
@@ -210,7 +210,10 @@ class EnhancedConnectionEventHandler(BaseEventHandler):
                     # Optional: Send confirmation
                     await sio.emit(
                         "ack_confirmed",
-                        {"sequence": sequence, "timestamp": datetime.now().isoformat()},
+                        {
+                            "sequence": sequence,
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        },
                         room=sid,
                     )
 
@@ -263,7 +266,7 @@ class EnhancedConnectionEventHandler(BaseEventHandler):
             """Get connection statistics for debugging."""
             try:
                 stats = {
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "total_connections": len(self.server.connected_clients),
                     "server_stats": self.server.stats,
                 }
@@ -312,7 +315,7 @@ class EnhancedConnectionEventHandler(BaseEventHandler):
                     if self.server.stats.get("start_time")
                     else None
                 ),
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             await self.server.core.sio.emit("server_status", status_data, room=sid)
@@ -326,5 +329,5 @@ class EnhancedConnectionEventHandler(BaseEventHandler):
             from claude_mpm.services.version_service import VersionService
 
             return VersionService().get_version()
-        except:
+        except Exception:
             return "unknown"

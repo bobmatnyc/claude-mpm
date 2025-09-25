@@ -85,7 +85,7 @@ try:
     else:
         # Installed package - just return the package location
         print(os.path.dirname(pkg_dir))
-except:
+except Exception:
     pass
 " 2>/dev/null)
 
@@ -714,7 +714,7 @@ main "$@"
                     if "hooks" in settings:
                         status["configured_events"] = list(settings["hooks"].keys())
                         configured_in_local = True
-            except:
+            except Exception:
                 pass
 
         # Also check old settings file
@@ -728,7 +728,7 @@ main "$@"
                             status["warning"] = (
                                 "Hooks found in settings.local.json but Claude Code reads from settings.json"
                             )
-            except:
+            except Exception:
                 pass
 
         status["settings_location"] = (

@@ -15,7 +15,7 @@ Key Features:
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -57,9 +57,9 @@ class LocalAgentTemplate:
         if self.configuration is None:
             self.configuration = {}
         if self.created_at is None:
-            self.created_at = datetime.now().isoformat()
+            self.created_at = datetime.now(timezone.utc).isoformat()
         if self.updated_at is None:
-            self.updated_at = datetime.now().isoformat()
+            self.updated_at = datetime.now(timezone.utc).isoformat()
 
         # Ensure metadata has required fields
         if "name" not in self.metadata:
@@ -303,7 +303,7 @@ class LocalAgentTemplateManager:
         target_dir.mkdir(parents=True, exist_ok=True)
 
         # Update timestamp
-        template.updated_at = datetime.now().isoformat()
+        template.updated_at = datetime.now(timezone.utc).isoformat()
 
         # Save to JSON file
         template_file = target_dir / f"{template.agent_id}.json"
@@ -455,7 +455,7 @@ class LocalAgentTemplateManager:
 
         try:
             # Create backup directory
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             backup_dir = (
                 self.working_directory
                 / ".claude-mpm"
@@ -633,7 +633,7 @@ class LocalAgentTemplateManager:
 
         # Update template version
         template.agent_version = new_version
-        template.updated_at = datetime.now().isoformat()
+        template.updated_at = datetime.now(timezone.utc).isoformat()
 
         # Save updated template
         self.save_local_template(template)

@@ -12,7 +12,7 @@ This eliminates disconnection issues and matches the process lifecycle.
 import asyncio
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Debug mode is enabled by default for better visibility into hook processing
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
@@ -52,7 +52,7 @@ except ImportError:
                         "type": event_data.get("type", "unknown"),
                         "subtype": event_data.get("subtype", "generic"),
                         "timestamp": event_data.get(
-                            "timestamp", datetime.now().isoformat()
+                            "timestamp", datetime.now(timezone.utc).isoformat()
                         ),
                         "data": event_data.get("data", event_data),
                     }
@@ -101,7 +101,7 @@ class ConnectionManagerService:
         raw_event = {
             "type": "hook",
             "subtype": event,  # e.g., "user_prompt", "pre_tool", "subagent_stop"
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": data,
             "source": "claude_hooks",  # Identify the source
             "session_id": data.get("sessionId"),  # Include session if available

@@ -5,11 +5,11 @@ This module handles the registration of external MCP services
 """
 
 import json
-import os
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, Optional, Tuple
 
 
 class MCPExternalServicesSetup:
@@ -26,21 +26,23 @@ class MCPExternalServicesSetup:
         """
         # Detect best command paths for services
         mcp_browser_config = self._get_best_service_config("mcp-browser", project_path)
-        mcp_vector_search_config = self._get_best_service_config("mcp-vector-search", project_path)
+        mcp_vector_search_config = self._get_best_service_config(
+            "mcp-vector-search", project_path
+        )
 
         return {
             "mcp-vector-search": {
                 "package_name": "mcp-vector-search",
                 "module_name": "mcp_vector_search",
                 "description": "Semantic code search with vector embeddings",
-                "config": mcp_vector_search_config
+                "config": mcp_vector_search_config,
             },
             "mcp-browser": {
                 "package_name": "mcp-browser",
                 "module_name": "mcp_browser",
                 "description": "Web browsing and content extraction",
-                "config": mcp_browser_config
-            }
+                "config": mcp_browser_config,
+            },
         }
 
     def _get_best_service_config(self, service_name: str, project_path: Path) -> Dict:
@@ -85,7 +87,9 @@ class MCPExternalServicesSetup:
         # Fall back to system Python
         return self._get_system_config(service_name, project_path)
 
-    def _get_local_dev_config(self, service_name: str, project_path: Path) -> Optional[Dict]:
+    def _get_local_dev_config(
+        self, service_name: str, project_path: Path
+    ) -> Optional[Dict]:
         """Get configuration for a locally developed service.
 
         Checks common development locations like ~/Projects/managed/
@@ -128,8 +132,10 @@ class MCPExternalServicesSetup:
                                 "command": str(mcp_browser_binary),
                                 "args": ["mcp"],
                                 "env": {
-                                    "MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")
-                                }
+                                    "MCP_BROWSER_HOME": str(
+                                        Path.home() / ".mcp-browser"
+                                    )
+                                },
                             }
 
                         # Then check for mcp-server.py
@@ -140,9 +146,11 @@ class MCPExternalServicesSetup:
                                 "command": str(venv_python),
                                 "args": [str(mcp_server)],
                                 "env": {
-                                    "MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser"),
-                                    "PYTHONPATH": str(dev_path)
-                                }
+                                    "MCP_BROWSER_HOME": str(
+                                        Path.home() / ".mcp-browser"
+                                    ),
+                                    "PYTHONPATH": str(dev_path),
+                                },
                             }
 
                     # Check if the package is installed in this venv
@@ -151,7 +159,8 @@ class MCPExternalServicesSetup:
                         result = subprocess.run(
                             [str(venv_python), "-c", f"import {module_name}"],
                             capture_output=True,
-                            timeout=5
+                            timeout=5,
+                            check=False,
                         )
                         if result.returncode == 0:
                             # Use special configuration for local dev
@@ -159,21 +168,27 @@ class MCPExternalServicesSetup:
                                 return {
                                     "type": "stdio",
                                     "command": str(venv_python),
-                                    "args": ["-m", "mcp_vector_search.mcp.server", str(project_path)],
-                                    "env": {}
+                                    "args": [
+                                        "-m",
+                                        "mcp_vector_search.mcp.server",
+                                        str(project_path),
+                                    ],
+                                    "env": {},
                                 }
-                            elif service_name == "mcp-browser":
+                            if service_name == "mcp-browser":
                                 # Fallback for mcp-browser without mcp-server.py
                                 return {
                                     "type": "stdio",
                                     "command": str(venv_python),
                                     "args": ["-m", "mcp_browser", "mcp"],
                                     "env": {
-                                        "MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser"),
-                                        "PYTHONPATH": str(dev_path)
-                                    }
+                                        "MCP_BROWSER_HOME": str(
+                                            Path.home() / ".mcp-browser"
+                                        ),
+                                        "PYTHONPATH": str(dev_path),
+                                    },
                                 }
-                    except:
+                    except Exception:
                         continue
 
         return None
@@ -203,11 +218,14 @@ class MCPExternalServicesSetup:
                     result = subprocess.run(
                         [str(venv_python), "-c", f"import {module_name}"],
                         capture_output=True,
-                        timeout=5
+                        timeout=5,
+                        check=False,
                     )
                     if result.returncode == 0:
-                        return self._create_service_config(service_name, str(venv_python), project_path)
-                except:
+                        return self._create_service_config(
+                            service_name, str(venv_python), project_path
+                        )
+                except Exception:
                     continue
 
         return None
@@ -224,7 +242,9 @@ class MCPExternalServicesSetup:
         """
         return self._create_service_config(service_name, sys.executable, project_path)
 
-    def _create_service_config(self, service_name: str, python_path: str, project_path: Path) -> Dict:
+    def _create_service_config(
+        self, service_name: str, python_path: str, project_path: Path
+    ) -> Dict:
         """Create service configuration for the given Python executable.
 
         Args:
@@ -243,32 +263,30 @@ class MCPExternalServicesSetup:
                     "type": "stdio",
                     "command": str(binary_path),
                     "args": ["mcp"],
-                    "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
+                    "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")},
                 }
-            else:
-                # Use Python module invocation
-                return {
-                    "type": "stdio",
-                    "command": python_path,
-                    "args": ["-m", "mcp_browser", "mcp"],
-                    "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
-                }
-        elif service_name == "mcp-vector-search":
+            # Use Python module invocation
+            return {
+                "type": "stdio",
+                "command": python_path,
+                "args": ["-m", "mcp_browser", "mcp"],
+                "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")},
+            }
+        if service_name == "mcp-vector-search":
             return {
                 "type": "stdio",
                 "command": python_path,
                 "args": ["-m", "mcp_vector_search.mcp.server", str(project_path)],
-                "env": {}
+                "env": {},
             }
-        else:
-            # Generic configuration for other services
-            module_name = service_name.replace("-", "_")
-            return {
-                "type": "stdio",
-                "command": python_path,
-                "args": ["-m", module_name],
-                "env": {}
-            }
+        # Generic configuration for other services
+        module_name = service_name.replace("-", "_")
+        return {
+            "type": "stdio",
+            "command": python_path,
+            "args": ["-m", module_name],
+            "env": {},
+        }
 
     def detect_mcp_installations(self) -> Dict[str, Dict]:
         """Detect all MCP service installations and their locations.
@@ -293,7 +311,7 @@ class MCPExternalServicesSetup:
                 installations[service_name] = {
                     "type": "local_dev",
                     "path": local_dev_config["command"],
-                    "config": local_dev_config
+                    "config": local_dev_config,
                 }
                 continue
 
@@ -305,7 +323,7 @@ class MCPExternalServicesSetup:
                     installations[service_name] = {
                         "type": "pipx",
                         "path": pipx_config["command"],
-                        "config": pipx_config
+                        "config": pipx_config,
                     }
                     continue
 
@@ -314,7 +332,7 @@ class MCPExternalServicesSetup:
                 installations[service_name] = {
                     "type": "venv",
                     "path": venv_config["command"],
-                    "config": venv_config
+                    "config": venv_config,
                 }
                 continue
 
@@ -325,13 +343,13 @@ class MCPExternalServicesSetup:
                 installations[service_name] = {
                     "type": "system",
                     "path": system_config["command"],
-                    "config": system_config
+                    "config": system_config,
                 }
             else:
                 installations[service_name] = {
                     "type": "not_installed",
                     "path": None,
-                    "config": None
+                    "config": None,
                 }
 
         return installations
@@ -354,13 +372,13 @@ class MCPExternalServicesSetup:
         for service_name, info in installations.items():
             print(f"\n{service_name}:")
             if info["type"] == "not_installed":
-                print(f"  ❌ Not installed")
+                print("  ❌ Not installed")
             else:
                 type_emoji = {
                     "local_dev": "🔧",
                     "pipx": "📦",
                     "venv": "🐍",
-                    "system": "💻"
+                    "system": "💻",
                 }.get(info["type"], "❓")
                 print(f"  {type_emoji} Type: {info['type']}")
                 print(f"  📍 Path: {info['path']}")
@@ -380,7 +398,9 @@ class MCPExternalServicesSetup:
 
             # Check if already configured
             if service_name in config.get("mcpServers", {}) and not force:
-                print(f"\n⚠️ {service_name} already configured, skipping (use --force to override)")
+                print(
+                    f"\n⚠️ {service_name} already configured, skipping (use --force to override)"
+                )
                 continue
 
             # Update configuration
@@ -394,14 +414,14 @@ class MCPExternalServicesSetup:
         # Save configuration if updated
         if updated:
             if self._save_config(config, config_path):
-                print("\n✅ Successfully updated .mcp.json with detected configurations")
+                print(
+                    "\n✅ Successfully updated .mcp.json with detected configurations"
+                )
                 return True
-            else:
-                print("\n❌ Failed to save configuration")
-                return False
-        else:
-            print("\n📌 No updates needed")
-            return True
+            print("\n❌ Failed to save configuration")
+            return False
+        print("\n📌 No updates needed")
+        return True
 
     def __init__(self, logger):
         """Initialize the external services setup handler."""
@@ -439,30 +459,30 @@ class MCPExternalServicesSetup:
 
         # Setup each external service
         success_count = 0
-        for service_name, service_info in self.get_project_services(project_path).items():
+        for service_name, service_info in self.get_project_services(
+            project_path
+        ).items():
             if self._setup_service(config, service_name, service_info, force):
                 success_count += 1
 
         # Save the updated configuration
         if success_count > 0:
             if self._save_config(config, config_path):
-                print(f"\n✅ Successfully configured {success_count} external services in .mcp.json")
-                print(f"\n📌 Note: Claude Desktop will automatically load these services")
-                print(f"   when you open this project directory in Claude Desktop.")
+                print(
+                    f"\n✅ Successfully configured {success_count} external services in .mcp.json"
+                )
+                print(
+                    "\n📌 Note: Claude Desktop will automatically load these services"
+                )
+                print("   when you open this project directory in Claude Desktop.")
                 return True
-            else:
-                print("❌ Failed to save configuration")
-                return False
-        else:
-            print("\n⚠️ No external services were configured")
+            print("❌ Failed to save configuration")
             return False
+        print("\n⚠️ No external services were configured")
+        return False
 
     def _setup_service(
-        self,
-        config: Dict,
-        service_name: str,
-        service_info: Dict,
-        force: bool
+        self, config: Dict, service_name: str, service_info: Dict, force: bool
     ) -> bool:
         """Setup a single external MCP service.
 
@@ -485,12 +505,19 @@ class MCPExternalServicesSetup:
             print(f"      Current args: {existing_config.get('args')}")
 
             # Check if it's using a local development path
-            command = str(existing_config.get('command', ''))
-            if any(path in command for path in ["/Projects/managed/", "/Projects/", "/Development/"]):
+            command = str(existing_config.get("command", ""))
+            if any(
+                path in command
+                for path in ["/Projects/managed/", "/Projects/", "/Development/"]
+            ):
                 print("   📍 Using local development version")
-                response = input("   Keep local development version? (Y/n): ").strip().lower()
+                response = (
+                    input("   Keep local development version? (Y/n): ").strip().lower()
+                )
                 if response not in ["n", "no"]:
-                    print(f"   ✅ Keeping existing local configuration for {service_name}")
+                    print(
+                        f"   ✅ Keeping existing local configuration for {service_name}"
+                    )
                     return True  # Consider it successfully configured
             else:
                 response = input("   Overwrite? (y/N): ").strip().lower()
@@ -503,9 +530,11 @@ class MCPExternalServicesSetup:
         if not self._check_python_package(module_name):
             print(f"   ⚠️ Python package {service_info['package_name']} not installed")
             print(f"   ℹ️ Installing {service_info['package_name']}...")
-            if not self._install_python_package(service_info['package_name']):
+            if not self._install_python_package(service_info["package_name"]):
                 print(f"   ❌ Failed to install {service_info['package_name']}")
-                print(f"   ℹ️ Install manually with: pip install {service_info['package_name']}")
+                print(
+                    f"   ℹ️ Install manually with: pip install {service_info['package_name']}"
+                )
                 return False
 
         # Add service configuration
@@ -518,7 +547,6 @@ class MCPExternalServicesSetup:
 
         return True
 
-
     def check_and_install_pip_packages(self) -> bool:
         """Check and install Python packages for external services.
 
@@ -529,7 +557,7 @@ class MCPExternalServicesSetup:
 
         packages_to_check = [
             ("mcp-vector-search", "mcp_vector_search"),
-            ("mcp-browser", "mcp_browser")
+            ("mcp-browser", "mcp_browser"),
         ]
 
         all_installed = True
@@ -557,6 +585,7 @@ class MCPExternalServicesSetup:
         """
         try:
             import importlib.util
+
             spec = importlib.util.find_spec(module_name)
             return spec is not None
         except (ImportError, ModuleNotFoundError):
@@ -576,7 +605,8 @@ class MCPExternalServicesSetup:
                 [sys.executable, "-m", "pip", "install", package_name],
                 capture_output=True,
                 text=True,
-                timeout=60
+                timeout=60,
+                check=False,
             )
             return result.returncode == 0
         except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
@@ -601,7 +631,7 @@ class MCPExternalServicesSetup:
                     return config
             else:
                 # Create new configuration
-                print(f"   📝 Creating new .mcp.json file")
+                print("   📝 Creating new .mcp.json file")
                 return {"mcpServers": {}}
         except (OSError, json.JSONDecodeError) as e:
             print(f"❌ Error loading config: {e}")
@@ -625,8 +655,13 @@ class MCPExternalServicesSetup:
             # Create backup if file exists
             if config_path.exists():
                 from datetime import datetime
-                backup_path = config_path.parent / f".mcp.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+
+                backup_path = (
+                    config_path.parent
+                    / f".mcp.backup.{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+                )
                 import shutil
+
                 shutil.copy2(config_path, backup_path)
                 print(f"   📁 Created backup: {backup_path}")
 
@@ -665,16 +700,19 @@ class MCPExternalServicesSetup:
                     result = subprocess.run(
                         [str(python_path), "-c", "import mcp_browser.cli.main"],
                         capture_output=True,
-                        timeout=5
+                        timeout=5,
+                        check=False,
                     )
                     if result.returncode == 0:
                         return {
                             "type": "stdio",
                             "command": str(python_path),
                             "args": ["-m", "mcp_browser.cli.main", "mcp"],
-                            "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
+                            "env": {
+                                "MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")
+                            },
                         }
-                except:
+                except Exception:
                     pass
         elif package_name == "mcp-vector-search":
             # mcp-vector-search uses Python module invocation
@@ -685,16 +723,21 @@ class MCPExternalServicesSetup:
                     result = subprocess.run(
                         [str(python_path), "-c", "import mcp_vector_search"],
                         capture_output=True,
-                        timeout=5
+                        timeout=5,
+                        check=False,
                     )
                     if result.returncode == 0:
                         return {
                             "type": "stdio",
                             "command": str(python_path),
-                            "args": ["-m", "mcp_vector_search.mcp.server", str(project_path)],
-                            "env": {}
+                            "args": [
+                                "-m",
+                                "mcp_vector_search.mcp.server",
+                                str(project_path),
+                            ],
+                            "env": {},
                         }
-                except:
+                except Exception:
                     pass
 
         return None
@@ -774,10 +817,8 @@ class MCPExternalServicesSetup:
             print("\n📌 Note: Claude Desktop will automatically use this configuration")
             print("   when you open this project directory.")
             return True
-        else:
-            print("❌ Failed to save configuration")
-            return False
-
+        print("❌ Failed to save configuration")
+        return False
 
     def list_external_services(self) -> None:
         """List all available external MCP services and their status."""
@@ -794,10 +835,10 @@ class MCPExternalServicesSetup:
                 with open(mcp_config_path) as f:
                     mcp_config = json.load(f)
                 print(f"\n📁 Project MCP config: {mcp_config_path}")
-            except:
-                print(f"\n⚠️ Could not read project .mcp.json")
+            except Exception:
+                print("\n⚠️ Could not read project .mcp.json")
         else:
-            print(f"\n📝 No .mcp.json found in project directory")
+            print("\n📝 No .mcp.json found in project directory")
 
         # Get service configurations for this project
         services = self.get_project_services(project_path)
@@ -809,21 +850,21 @@ class MCPExternalServicesSetup:
 
             # Check if configured in .mcp.json
             if mcp_config.get("mcpServers", {}).get(service_name):
-                print(f"  Project Status: ✅ Configured in .mcp.json")
+                print("  Project Status: ✅ Configured in .mcp.json")
                 service_config = mcp_config["mcpServers"][service_name]
                 print(f"    Command: {service_config.get('command')}")
-                if service_config.get('args'):
+                if service_config.get("args"):
                     print(f"    Args: {service_config.get('args')}")
             else:
-                print(f"  Project Status: ❌ Not configured in .mcp.json")
+                print("  Project Status: ❌ Not configured in .mcp.json")
 
             # Check installation type
             is_installed, install_type = self._check_pipx_installation(service_name)
             if is_installed:
                 if install_type == "pipx":
-                    print(f"  Installation: ✅ Installed via pipx (recommended)")
+                    print("  Installation: ✅ Installed via pipx (recommended)")
                 else:
-                    print(f"  Installation: ✅ Installed via pip")
+                    print("  Installation: ✅ Installed via pip")
             else:
-                print(f"  Installation: ❌ Not installed")
+                print("  Installation: ❌ Not installed")
                 print(f"    Install with: pipx install {service_info['package_name']}")

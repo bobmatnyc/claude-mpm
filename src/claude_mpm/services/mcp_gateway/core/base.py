@@ -279,10 +279,10 @@ class BaseMCPService(BaseService):
             healthy: Whether service is healthy
             details: Additional health details
         """
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         self._health_status["healthy"] = healthy
-        self._health_status["last_check"] = datetime.now().isoformat()
+        self._health_status["last_check"] = datetime.now(timezone.utc).isoformat()
 
         if details:
             self._health_status["details"].update(details)

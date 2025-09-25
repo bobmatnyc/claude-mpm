@@ -234,7 +234,7 @@ class MemoryPostDelegationHook(PostDelegationHook):
             "context": "context",  # Current Technical Context
         }
 
-    def execute(self, context: HookContext) -> HookResult:
+    def execute(self, context: HookContext) -> HookResult:  # noqa: PLR0911
         """Extract and store learnings from delegation result.
 
         WHY: Capturing learnings immediately after task completion ensures we

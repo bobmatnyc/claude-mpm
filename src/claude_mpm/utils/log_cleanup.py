@@ -107,7 +107,9 @@ class LogCleanupUtility:
 
                 try:
                     # Check directory modification time
-                    mtime = datetime.fromtimestamp(session_dir.stat().st_mtime, tz=timezone.utc)
+                    mtime = datetime.fromtimestamp(
+                        session_dir.stat().st_mtime, tz=timezone.utc
+                    )
 
                     if mtime < cutoff_time:
                         # Calculate directory size
@@ -169,7 +171,9 @@ class LogCleanupUtility:
         for ext in LogCleanupConfig.ARCHIVE_EXTENSIONS:
             for archive_file in self.base_log_dir.rglob(f"*{ext}"):
                 try:
-                    mtime = datetime.fromtimestamp(archive_file.stat().st_mtime, tz=timezone.utc)
+                    mtime = datetime.fromtimestamp(
+                        archive_file.stat().st_mtime, tz=timezone.utc
+                    )
 
                     if mtime < cutoff_time:
                         file_size = archive_file.stat().st_size / (1024 * 1024)  # MB
@@ -238,7 +242,9 @@ class LogCleanupUtility:
 
                 for log_file in log_dir.glob(pattern):
                     try:
-                        mtime = datetime.fromtimestamp(log_file.stat().st_mtime, tz=timezone.utc)
+                        mtime = datetime.fromtimestamp(
+                            log_file.stat().st_mtime, tz=timezone.utc
+                        )
 
                         if mtime < cutoff_time:
                             file_size = log_file.stat().st_size / (1024 * 1024)  # MB
@@ -283,7 +289,7 @@ class LogCleanupUtility:
         removed_count = 0
 
         # Walk bottom-up to remove empty parent directories
-        for root, dirs, files in os.walk(self.base_log_dir, topdown=False):
+        for root, _dirs, _files in os.walk(self.base_log_dir, topdown=False):
             root_path = Path(root)
 
             # Skip the base log directory itself
@@ -331,7 +337,9 @@ class LogCleanupUtility:
                 continue
 
             try:
-                mtime = datetime.fromtimestamp(log_file.stat().st_mtime, tz=timezone.utc)
+                mtime = datetime.fromtimestamp(
+                    log_file.stat().st_mtime, tz=timezone.utc
+                )
 
                 if mtime < cutoff_time:
                     original_size = log_file.stat().st_size / (1024 * 1024)  # MB
@@ -408,7 +416,10 @@ class LogCleanupUtility:
                 stats["oldest_session"] = {
                     "name": oldest.name,
                     "age_days": (
-                        datetime.now(timezone.utc) - datetime.fromtimestamp(oldest.stat().st_mtime, tz=timezone.utc)
+                        datetime.now(timezone.utc)
+                        - datetime.fromtimestamp(
+                            oldest.stat().st_mtime, tz=timezone.utc
+                        )
                     ).days,
                 }
 
@@ -429,7 +440,10 @@ class LogCleanupUtility:
                 "name": oldest_log.name,
                 "path": str(oldest_log.relative_to(self.base_log_dir)),
                 "age_days": (
-                    datetime.now(timezone.utc) - datetime.fromtimestamp(oldest_log.stat().st_mtime, tz=timezone.utc)
+                    datetime.now(timezone.utc)
+                    - datetime.fromtimestamp(
+                        oldest_log.stat().st_mtime, tz=timezone.utc
+                    )
                 ).days,
             }
 

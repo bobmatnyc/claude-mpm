@@ -17,7 +17,7 @@ import threading
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Deque, Dict, List, Optional
 
@@ -97,11 +97,9 @@ class CircuitBreaker:
             return True
         if self.state == CircuitState.OPEN:
             # Check if recovery timeout has passed
-            if (
-                self.last_failure_time
-                and datetime.now() - self.last_failure_time
-                > timedelta(seconds=self.recovery_timeout)
-            ):
+            if self.last_failure_time and datetime.now(
+                timezone.utc
+            ) - self.last_failure_time > timedelta(seconds=self.recovery_timeout):
                 self.state = CircuitState.HALF_OPEN
                 self.logger.info(
                     "Circuit breaker transitioning to HALF_OPEN for testing"
@@ -127,7 +125,7 @@ class CircuitBreaker:
     def record_failure(self):
         """Record failed execution."""
         self.failure_count += 1
-        self.last_failure_time = datetime.now()
+        self.last_failure_time = datetime.now(timezone.utc)
 
         if self.state == CircuitState.HALF_OPEN:
             # Test failed, go back to OPEN
@@ -184,7 +182,7 @@ class SocketIOConnectionPool:
         # Health monitoring
         self.health_thread = None
         self.health_running = False
-        self.last_health_check = datetime.now()
+        self.last_health_check = datetime.now(timezone.utc)
 
         # Server configuration
         self.server_url = None
@@ -311,7 +309,7 @@ class SocketIOConnectionPool:
                         self.server_url = f"http://localhost:{port}"
                         self.logger.debug(f"Detected Socket.IO server on port {port}")
                         return
-            except:
+            except Exception:
                 continue
 
         # Fall back to default
@@ -375,7 +373,7 @@ class SocketIOConnectionPool:
                 # Check if connection is still valid
                 for conn_id, stats in self.connection_stats.items():
                     if stats.is_connected:
-                        stats.last_used = datetime.now()
+                        stats.last_used = datetime.now(timezone.utc)
                         return client
 
             # Create new connection if under limit
@@ -581,7 +579,7 @@ class SocketIOConnectionPool:
                     loop.stop()
                     loop.run_until_complete(loop.shutdown_asyncgens())
                     loop.close()
-                except:
+                except Exception:
                     pass
 
     async def _connect_client(self, client: socketio.AsyncClient):
@@ -623,7 +621,7 @@ class SocketIOConnectionPool:
                 self._check_connections_health()
 
                 # Update last health check time
-                self.last_health_check = datetime.now()
+                self.last_health_check = datetime.now(timezone.utc)
 
             except Exception as e:
                 self.logger.error(f"Health monitor error: {e}")
@@ -655,7 +653,9 @@ class SocketIOConnectionPool:
                     continue
 
                 # 3. Connection idle for too long (>5 minutes)
-                idle_time = (datetime.now() - stats.last_used).total_seconds()
+                idle_time = (
+                    datetime.now(timezone.utc) - stats.last_used
+                ).total_seconds()
                 if idle_time > 300 and conn_id not in [
                     id for id, _ in enumerate(self.available_connections)
                 ]:

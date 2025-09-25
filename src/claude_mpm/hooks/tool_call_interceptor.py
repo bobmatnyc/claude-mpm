@@ -2,7 +2,7 @@
 
 import asyncio
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.logger import get_logger
@@ -105,7 +105,7 @@ class ToolCallInterceptor:
                 "parameters": parameters.copy(),  # Copy to avoid modifying original
             },
             metadata=metadata or {},
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         # Run hooks

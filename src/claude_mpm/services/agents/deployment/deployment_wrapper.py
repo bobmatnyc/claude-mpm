@@ -1,5 +1,6 @@
 """Temporary wrapper to provide backward compatibility for CLI commands."""
 
+import contextlib
 from pathlib import Path
 from typing import Any, Dict
 
@@ -101,10 +102,8 @@ class DeploymentServiceWrapper:
                             # Extract frontmatter
                             parts = content.split("---", 2)
                             if len(parts) >= 2:
-                                try:
+                                with contextlib.suppress(yaml.YAMLError):
                                     metadata = yaml.safe_load(parts[1])
-                                except yaml.YAMLError:
-                                    pass
 
                         return {
                             "name": agent_name,

@@ -18,7 +18,7 @@ import asyncio
 import json
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from queue import Full, Queue
 from threading import Lock, Thread
@@ -191,7 +191,7 @@ class LogManager:
                 finally:
                     self.write_queue.task_done()
 
-            except:
+            except Exception:
                 continue  # Timeout or other error, continue loop
 
     def _process_cleanup_queue(self):
@@ -211,7 +211,7 @@ class LogManager:
                 finally:
                     self.cleanup_queue.task_done()
 
-            except:
+            except Exception:
                 continue  # Timeout or other error, continue loop
 
     async def setup_logging(self, log_type: str) -> Path:
@@ -296,7 +296,7 @@ class LogManager:
             return 0
 
         # Calculate cutoff time
-        cutoff_time = datetime.now() - timedelta(hours=retention_hours)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=retention_hours)
 
         # Schedule async cleanup
         deleted_count = await self._async_cleanup(directory, pattern, cutoff_time)
@@ -337,7 +337,9 @@ class LogManager:
 
                     try:
                         # Check file modification time
-                        mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+                        mtime = datetime.fromtimestamp(
+                            file_path.stat().st_mtime, tz=timezone.utc
+                        )
                         if mtime < cutoff_time:
                             file_path.unlink()
                             deleted_count += 1
@@ -370,7 +372,7 @@ class LogManager:
             return 0
 
         # Calculate cutoff time
-        cutoff_time = datetime.now() - timedelta(hours=retention_hours)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=retention_hours)
         deleted_count = 0
 
         try:
@@ -386,7 +388,9 @@ class LogManager:
 
                 try:
                     # Check file modification time
-                    mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+                    mtime = datetime.fromtimestamp(
+                        file_path.stat().st_mtime, tz=timezone.utc
+                    )
                     if mtime < cutoff_time:
                         file_path.unlink()
                         deleted_count += 1
@@ -468,7 +472,7 @@ class LogManager:
             prompts_dir = await self.setup_logging("prompts")
 
             # Generate filename with timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")[
                 :-3
             ]  # Microseconds to milliseconds
 
@@ -494,7 +498,7 @@ class LogManager:
 
             # Prepare prompt data
             prompt_data = {
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "type": prompt_type,
                 "content": content,
                 "metadata": metadata or {},
@@ -567,12 +571,12 @@ class LogManager:
             message: Log message to write
             level: Log level (INFO, WARNING, ERROR, DEBUG)
         """
-        timestamp = datetime.now().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         log_entry = f"[{timestamp}] [{level}] {message}\n"
 
         # Get appropriate log file based on context
         log_dir = self._get_log_directory("mpm")
-        log_file = log_dir / f"mpm_{datetime.now().strftime('%Y%m%d')}.log"
+        log_file = log_dir / f"mpm_{datetime.now(timezone.utc).strftime('%Y%m%d')}.log"
 
         def write_task():
             try:
@@ -652,7 +656,7 @@ class LogManager:
         try:
             self.write_queue.put_nowait(None)
             self.cleanup_queue.put_nowait(None)
-        except:
+        except Exception:
             pass
 
         # Wait for threads to finish

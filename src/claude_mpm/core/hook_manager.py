@@ -19,7 +19,7 @@ import queue
 import subprocess
 import threading
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from ..core.logger import get_logger
@@ -106,7 +106,9 @@ class HookManager:
             hook_event = {
                 "hook_event_name": hook_type,
                 "session_id": self.session_id,
-                "timestamp": hook_data.get("timestamp", datetime.utcnow().isoformat()),
+                "timestamp": hook_data.get(
+                    "timestamp", datetime.now(timezone.utc).isoformat()
+                ),
                 **event_data,
             }
 
@@ -182,7 +184,7 @@ class HookManager:
             {
                 "tool_name": tool_name,
                 "tool_args": tool_args or {},
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         )
 
@@ -205,7 +207,7 @@ class HookManager:
                 "tool_name": tool_name,
                 "exit_code": exit_code,
                 "result": str(result) if result is not None else None,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         )
 
@@ -220,7 +222,7 @@ class HookManager:
         """
         return self._trigger_hook_event(
             "UserPromptSubmit",
-            {"prompt": prompt, "timestamp": datetime.utcnow().isoformat()},
+            {"prompt": prompt, "timestamp": datetime.now(timezone.utc).isoformat()},
         )
 
     def _trigger_hook_event(self, hook_type: str, event_data: Dict[str, Any]) -> bool:
@@ -250,7 +252,7 @@ class HookManager:
             hook_data = {
                 "hook_type": hook_type,
                 "event_data": event_data,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             # Try to queue without blocking

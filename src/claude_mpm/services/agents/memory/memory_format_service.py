@@ -3,7 +3,7 @@
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List
 
 
@@ -26,7 +26,7 @@ class MemoryFormatService:
         """
         # Build header
         header = f"# {agent_id.title()} Agent Memory\n\n"
-        header += f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        header += f"Last Updated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}\n\n"
         header += "## Learnings\n\n"
 
         # Build item list

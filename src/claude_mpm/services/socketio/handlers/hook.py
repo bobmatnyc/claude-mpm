@@ -4,7 +4,7 @@ WHY: This module handles hook events from Claude to track session information,
 agent delegations, and other hook-based activity for the system heartbeat.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 from .base import BaseEventHandler
@@ -66,7 +66,8 @@ class HookEventHandler(BaseEventHandler):
             "type": "hook",
             "event": hook_event,
             "data": hook_data,
-            "timestamp": data.get("timestamp") or datetime.now().isoformat(),
+            "timestamp": data.get("timestamp")
+            or datetime.now(timezone.utc).isoformat(),
         }
 
         # Add the event to history for replay
@@ -105,11 +106,11 @@ class HookEventHandler(BaseEventHandler):
         if hasattr(self.server, "active_sessions"):
             self.server.active_sessions[session_id] = {
                 "session_id": session_id,
-                "start_time": datetime.now().isoformat(),
+                "start_time": datetime.now(timezone.utc).isoformat(),
                 "agent": agent_type,
                 "status": "active",
                 "prompt": data.get("prompt", "")[:100],  # First 100 chars
-                "last_activity": datetime.now().isoformat(),
+                "last_activity": datetime.now(timezone.utc).isoformat(),
             }
 
             self.logger.debug(
@@ -132,9 +133,9 @@ class HookEventHandler(BaseEventHandler):
             if session_id in self.server.active_sessions:
                 # Mark as completed rather than removing immediately
                 self.server.active_sessions[session_id]["status"] = "completed"
-                self.server.active_sessions[session_id][
-                    "last_activity"
-                ] = datetime.now().isoformat()
+                self.server.active_sessions[session_id]["last_activity"] = datetime.now(
+                    timezone.utc
+                ).isoformat()
 
                 self.logger.debug(
                     f"Marked session completed: session={session_id[:8]}..."
@@ -156,18 +157,18 @@ class HookEventHandler(BaseEventHandler):
             if session_id not in self.server.active_sessions:
                 self.server.active_sessions[session_id] = {
                     "session_id": session_id,
-                    "start_time": datetime.now().isoformat(),
+                    "start_time": datetime.now(timezone.utc).isoformat(),
                     "agent": "pm",  # Default to PM
                     "status": "active",
                     "prompt": data.get("prompt_text", "")[:100],
                     "working_directory": data.get("working_directory", ""),
-                    "last_activity": datetime.now().isoformat(),
+                    "last_activity": datetime.now(timezone.utc).isoformat(),
                 }
             else:
                 # Update last activity
-                self.server.active_sessions[session_id][
-                    "last_activity"
-                ] = datetime.now().isoformat()
+                self.server.active_sessions[session_id]["last_activity"] = datetime.now(
+                    timezone.utc
+                ).isoformat()
 
     async def _handle_pre_tool(self, data: Dict[str, Any]):
         """Handle pre-tool events.
@@ -190,9 +191,9 @@ class HookEventHandler(BaseEventHandler):
             if session_id in self.server.active_sessions:
                 self.server.active_sessions[session_id]["agent"] = agent_type
                 self.server.active_sessions[session_id]["status"] = "delegated"
-                self.server.active_sessions[session_id][
-                    "last_activity"
-                ] = datetime.now().isoformat()
+                self.server.active_sessions[session_id]["last_activity"] = datetime.now(
+                    timezone.utc
+                ).isoformat()
 
                 self.logger.debug(
                     f"Updated session delegation: session={session_id[:8]}..., agent={agent_type}"

@@ -652,7 +652,7 @@ def file_lock(filepath: Union[str, Path], timeout: float = 5.0):
                 fcntl.flock(lock_handle, fcntl.LOCK_UN)
                 lock_handle.close()
                 lock_file.unlink(missing_ok=True)
-            except:
+            except Exception:
                 pass
 
 

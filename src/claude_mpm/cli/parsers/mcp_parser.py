@@ -189,9 +189,7 @@ def add_mcp_subparser(subparsers) -> argparse.ArgumentParser:
         help="External service action (default: list)",
     )
     external_mcp_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Force overwrite existing configuration"
+        "--force", action="store_true", help="Force overwrite existing configuration"
     )
 
     return mcp_parser

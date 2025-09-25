@@ -42,7 +42,7 @@ Change Analysis:
 import logging
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
@@ -100,7 +100,7 @@ class SemanticVersion:
             version += f"+{self.build}"
         return version
 
-    def __lt__(self, other: "SemanticVersion") -> bool:
+    def __lt__(self, other: "SemanticVersion") -> bool:  # noqa: PLR0911
         """Compare versions for sorting according to semver precedence.
 
         Comparison Rules:
@@ -748,7 +748,7 @@ class SemanticVersionManager:
         Returns:
             Formatted changelog entry
         """
-        date_str = datetime.now().strftime("%Y-%m-%d")
+        date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         if metadata and metadata.release_date:
             date_str = metadata.release_date.strftime("%Y-%m-%d")
 

@@ -17,6 +17,7 @@ import logging
 import os
 import sys
 import time
+from datetime import timezone
 from typing import Any, Dict
 
 # Import MCP SDK components
@@ -172,7 +173,7 @@ class SimpleMCPServer:
 
     async def _summarize_content(
         self, content: str, style: str, max_length: int
-    ) -> str:
+    ) -> str:  # noqa: PLR0911
         """
         Summarize text content based on style and length constraints.
 
@@ -214,7 +215,7 @@ class SimpleMCPServer:
         # Default to brief
         return self._create_brief_summary(sentences, max_length)
 
-    def _create_brief_summary(self, sentences: list[str], max_length: int) -> str:
+    def _create_brief_summary(self, sentences: list[str], max_length: int) -> str:  # noqa: PLR0911
         """Create a brief summary by selecting most important sentences."""
         if not sentences:
             return ""
@@ -562,7 +563,7 @@ class SimpleMCPServer:
                             f"Python: {sys.version.split()[0]}\n"
                             f"Working Directory: {os.getcwd()}\n"
                             f"Server: {self.name} v{self.version}\n"
-                            f"Timestamp: {datetime.datetime.now().isoformat()}\n"
+                            f"Timestamp: {datetime.datetime.now(timezone.utc).isoformat()}\n"
                             f"Tools Available: status, document_summarizer{', ticket' if self.unified_ticket_tool else ''}"
                         )
                     else:

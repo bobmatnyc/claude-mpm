@@ -20,7 +20,7 @@ import asyncio
 import os
 import platform
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 import psutil
@@ -86,7 +86,7 @@ class HealthCheckTool(BaseToolAdapter):
         Returns:
             Tool execution result with health check results
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             # Get parameters
@@ -98,7 +98,7 @@ class HealthCheckTool(BaseToolAdapter):
             results = await self._perform_health_checks(check_type, detailed, timeout)
 
             # Calculate execution time
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             # Update metrics
             self._update_metrics(True, execution_time)
@@ -115,7 +115,7 @@ class HealthCheckTool(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
 
             return MCPToolResult(
@@ -130,7 +130,7 @@ class HealthCheckTool(BaseToolAdapter):
     ) -> Dict[str, Any]:
         """Perform the requested health checks."""
         results = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "check_type": check_type,
             "detailed": detailed,
             "overall_status": "unknown",

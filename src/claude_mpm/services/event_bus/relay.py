@@ -11,7 +11,7 @@ WHY separate relay component:
 import logging
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 # Socket.IO imports
@@ -151,7 +151,7 @@ class SocketIORelay:
                 # Verify connection is still alive
                 if self.client.connected:
                     return True
-            except:
+            except Exception:
                 pass
 
         # Need to create or reconnect
@@ -187,7 +187,9 @@ class SocketIORelay:
                     "subtype": (
                         event_type.split(".", 1)[1] if "." in event_type else "generic"
                     ),
-                    "timestamp": data.get("timestamp", datetime.now().isoformat()),
+                    "timestamp": data.get(
+                        "timestamp", datetime.now(timezone.utc).isoformat()
+                    ),
                     "data": data,
                     "source": "event_bus",
                 },
@@ -195,7 +197,7 @@ class SocketIORelay:
 
             # Update statistics
             self.stats["events_relayed"] += 1
-            self.stats["last_relay_time"] = datetime.now().isoformat()
+            self.stats["last_relay_time"] = datetime.now(timezone.utc).isoformat()
 
             if self.debug:
                 logger.debug(f"Relayed event to Socket.IO: {event_type}")

@@ -18,7 +18,7 @@ import importlib.metadata
 import socket
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.constants import NetworkConfig, PerformanceConfig, TimeoutConfig
@@ -59,7 +59,7 @@ class ServerInfo:
             "supported_client_versions", []
         )
         self.compatibility_matrix = response_data.get("compatibility_matrix", {})
-        self.detected_at = datetime.utcnow()
+        self.detected_at = datetime.now(timezone.utc)
 
     @property
     def url(self) -> str:
@@ -161,7 +161,7 @@ class SocketIOClientManager:
                     self.logger.debug(f"Error checking {host}:{port}: {e}")
                     continue
 
-        self.last_discovery = datetime.utcnow()
+        self.last_discovery = datetime.now(timezone.utc)
         return discovered
 
     def find_best_server(
@@ -323,7 +323,7 @@ class SocketIOClientManager:
         try:
             event_data = {
                 "type": event_type,
-                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
                 "data": data,
                 "client_version": self.client_version,
             }

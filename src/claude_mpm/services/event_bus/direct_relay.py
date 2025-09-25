@@ -15,7 +15,7 @@ DO NOT use "event" or "type" fields - use "hook_event_name" instead!
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from .event_bus import EventBus
@@ -223,7 +223,9 @@ class DirectSocketIORelay:
                             event_type, broadcast_data
                         )
                         self.stats["events_relayed"] += 1
-                        self.stats["last_relay_time"] = datetime.now().isoformat()
+                        self.stats["last_relay_time"] = datetime.now(
+                            timezone.utc
+                        ).isoformat()
 
                         # Reset retry counter on successful broadcast
                         if self.connection_retries > 0:
@@ -258,7 +260,7 @@ class DirectSocketIORelay:
                                     logger.info(
                                         f"[DirectRelay] Retry successful for {event_type}"
                                     )
-                                except:
+                                except Exception:
                                     pass  # Already counted as failed
                 else:
                     # Enhanced logging when broadcaster is not available

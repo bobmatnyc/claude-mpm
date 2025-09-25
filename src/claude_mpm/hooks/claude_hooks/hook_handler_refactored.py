@@ -20,7 +20,7 @@ import select
 import signal
 import sys
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Import extracted modules with fallback for direct execution
 try:
@@ -127,7 +127,7 @@ class ClaudeHookHandler:
             if self.duplicate_detector.is_duplicate(event):
                 if DEBUG:
                     print(
-                        f"[{datetime.now().isoformat()}] Skipping duplicate event: {event.get('hook_event_name', 'unknown')} (PID: {os.getpid()})",
+                        f"[{datetime.now(timezone.utc).isoformat()}] Skipping duplicate event: {event.get('hook_event_name', 'unknown')} (PID: {os.getpid()})",
                         file=sys.stderr,
                     )
                 # Still need to output continue for this invocation
@@ -140,7 +140,7 @@ class ClaudeHookHandler:
             if DEBUG:
                 hook_type = event.get("hook_event_name", "unknown")
                 print(
-                    f"\n[{datetime.now().isoformat()}] Processing hook event: {hook_type} (PID: {os.getpid()})",
+                    f"\n[{datetime.now(timezone.utc).isoformat()}] Processing hook event: {hook_type} (PID: {os.getpid()})",
                     file=sys.stderr,
                 )
 
@@ -278,7 +278,7 @@ class ClaudeHookHandler:
         if hasattr(self, "connection_manager") and self.connection_manager:
             try:
                 self.connection_manager.cleanup()
-            except:
+            except Exception:
                 pass  # Ignore cleanup errors during destruction
 
 

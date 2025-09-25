@@ -14,7 +14,7 @@ This module provides:
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -203,7 +203,7 @@ class MemoryContentManager:
         Returns:
             str: Content with updated timestamp
         """
-        timestamp = datetime.now().isoformat() + "Z"
+        timestamp = datetime.now(timezone.utc).isoformat() + "Z"
         # Handle both old and new timestamp formats
         content = re.sub(
             r"<!-- Last Updated: .+? -->",
@@ -260,7 +260,7 @@ class MemoryContentManager:
 
             if not has_timestamp:
                 new_lines.append(
-                    f"<!-- Last Updated: {datetime.now().isoformat()}Z -->"
+                    f"<!-- Last Updated: {datetime.now(timezone.utc).isoformat()}Z -->"
                 )
                 new_lines.append("")
             else:

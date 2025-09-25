@@ -200,7 +200,7 @@ class MemoryOutputFormatter(IMemoryOutputFormatter):
                 try:
                     dt = datetime.fromisoformat(last_modified.replace("Z", "+00:00"))
                     last_modified_str = dt.strftime("%Y-%m-%d %H:%M:%S")
-                except:
+                except Exception:
                     last_modified_str = last_modified
 
                 # Status indicator based on usage

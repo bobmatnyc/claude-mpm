@@ -10,7 +10,7 @@ based on the execution context and user preferences.
 import json
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, Optional, Tuple
 
@@ -160,7 +160,9 @@ class DependencyStrategy:
                 last_check = datetime.fromisoformat(cache.get("timestamp", ""))
 
                 # Check if cache is still valid
-                if datetime.now() - last_check < timedelta(seconds=cache_ttl):
+                if datetime.now(timezone.utc) - last_check < timedelta(
+                    seconds=cache_ttl
+                ):
                     logger.debug(f"Using cached dependency check from {last_check}")
                     return False
 
@@ -179,7 +181,10 @@ class DependencyStrategy:
         try:
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)
 
-            cache_data = {"timestamp": datetime.now().isoformat(), "results": results}
+            cache_data = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "results": results,
+            }
 
             with open(self.cache_path, "w") as f:
                 json.dump(cache_data, f, indent=2)

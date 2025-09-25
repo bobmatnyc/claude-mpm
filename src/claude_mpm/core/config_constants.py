@@ -99,7 +99,7 @@ class ConfigConstants:
         cls._config_service = config_service
 
     @classmethod
-    def get_timeout(cls, timeout_type: str) -> int:
+    def get_timeout(cls, timeout_type: str) -> int:  # noqa: PLR0911
         """
         Get timeout value by type.
 

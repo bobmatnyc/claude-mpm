@@ -106,7 +106,7 @@ def get_agent_versions_display() -> Optional[str]:
                     base_version_tuple
                 )
                 output_lines.append(f"\n  Base Agent Version:  {base_version_str}")
-        except:
+        except Exception:
             pass
 
         # Check for agents needing migration

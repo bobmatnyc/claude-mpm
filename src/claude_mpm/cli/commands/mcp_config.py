@@ -6,7 +6,6 @@ Command for managing MCP service configurations with pipx preference.
 """
 
 import json
-import sys
 from pathlib import Path
 
 from ...services.mcp_config_manager import MCPConfigManager
@@ -29,16 +28,14 @@ class MCPConfigCommand(BaseCommand):
 
             if command == "detect":
                 return self._detect_services(manager)
-            elif command == "update":
+            if command == "update":
                 return self._update_config(manager, args)
-            elif command == "validate":
+            if command == "validate":
                 return self._validate_config(manager)
-            elif command == "install":
+            if command == "install":
                 return self._install_services(manager)
-            else:
-                return self._show_status(manager)
-        else:
             return self._show_status(manager)
+        return self._show_status(manager)
 
     def _detect_services(self, manager: MCPConfigManager) -> CommandResult:
         """Detect available MCP services."""
@@ -65,7 +62,7 @@ class MCPConfigCommand(BaseCommand):
             # Show the updated configuration
             config_path = Path.cwd() / ".mcp.json"
             if config_path.exists():
-                with open(config_path, "r") as f:
+                with open(config_path) as f:
                     config = json.load(f)
                 return CommandResult(
                     success=True,
@@ -123,7 +120,7 @@ class MCPConfigCommand(BaseCommand):
         current_config = {}
         if config_path.exists():
             try:
-                with open(config_path, "r") as f:
+                with open(config_path) as f:
                     current_config = json.load(f)
             except Exception:
                 pass

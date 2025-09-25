@@ -18,7 +18,7 @@ DESIGN DECISIONS:
 
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     MCPToolDefinition,
@@ -89,7 +89,7 @@ class TicketCreateTool(BaseToolAdapter):
         Returns:
             Tool execution result with created ticket ID
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             params = invocation.parameters
@@ -120,7 +120,7 @@ class TicketCreateTool(BaseToolAdapter):
 
             stdout, stderr = await process.communicate()
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             if process.returncode == 0:
                 # Parse ticket ID from output
@@ -160,7 +160,7 @@ class TicketCreateTool(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
 
             return MCPToolResult(
@@ -232,7 +232,7 @@ class TicketListTool(BaseToolAdapter):
         Returns:
             Tool execution result with list of tickets
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             params = invocation.parameters
@@ -252,7 +252,7 @@ class TicketListTool(BaseToolAdapter):
 
             stdout, stderr = await process.communicate()
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             if process.returncode == 0:
                 try:
@@ -285,7 +285,7 @@ class TicketListTool(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
 
             return MCPToolResult(
@@ -352,7 +352,7 @@ class TicketUpdateTool(BaseToolAdapter):
         Returns:
             Tool execution result
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             params = invocation.parameters
@@ -387,7 +387,7 @@ class TicketUpdateTool(BaseToolAdapter):
 
             stdout, stderr = await process.communicate()
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             if process.returncode == 0:
                 self._update_metrics(True, execution_time)
@@ -414,7 +414,7 @@ class TicketUpdateTool(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
 
             return MCPToolResult(
@@ -466,7 +466,7 @@ class TicketViewTool(BaseToolAdapter):
         Returns:
             Tool execution result with ticket details
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             params = invocation.parameters
@@ -483,7 +483,7 @@ class TicketViewTool(BaseToolAdapter):
 
             stdout, stderr = await process.communicate()
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             if process.returncode == 0:
                 output = stdout.decode().strip()
@@ -518,7 +518,7 @@ class TicketViewTool(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
 
             return MCPToolResult(
@@ -572,7 +572,7 @@ class TicketSearchTool(BaseToolAdapter):
         Returns:
             Tool execution result with matching tickets
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             params = invocation.parameters
@@ -592,7 +592,7 @@ class TicketSearchTool(BaseToolAdapter):
 
             stdout, stderr = await process.communicate()
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             if process.returncode == 0:
                 try:
@@ -625,7 +625,7 @@ class TicketSearchTool(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
 
             return MCPToolResult(

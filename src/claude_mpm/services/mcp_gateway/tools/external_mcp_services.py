@@ -10,14 +10,12 @@ Note: As of the latest architecture, external services are registered as separat
 MCP servers in Claude Desktop configuration, not as tools within the gateway.
 """
 
-import asyncio
 import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from claude_mpm.services.mcp_gateway.core.base import BaseMCPService
 from claude_mpm.services.mcp_gateway.tools.base_adapter import BaseMCPToolAdapter
 
 
@@ -45,7 +43,9 @@ class ExternalMCPService(BaseMCPToolAdapter):
             self._is_installed = await self._check_installation()
 
             if not self._is_installed:
-                self.logger.warning(f"{self.package_name} not installed, attempting installation...")
+                self.logger.warning(
+                    f"{self.package_name} not installed, attempting installation..."
+                )
                 await self._install_package()
                 self._is_installed = await self._check_installation()
 
@@ -67,10 +67,15 @@ class ExternalMCPService(BaseMCPToolAdapter):
                 [sys.executable, "-m", self.package_name.replace("-", "_"), "--help"],
                 capture_output=True,
                 text=True,
-                timeout=5
+                timeout=5,
+                check=False,
             )
             return result.returncode == 0
-        except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.CalledProcessError):
+        except (
+            subprocess.TimeoutExpired,
+            FileNotFoundError,
+            subprocess.CalledProcessError,
+        ):
             return False
 
     async def _install_package(self) -> bool:
@@ -81,15 +86,15 @@ class ExternalMCPService(BaseMCPToolAdapter):
                 [sys.executable, "-m", "pip", "install", self.package_name],
                 capture_output=True,
                 text=True,
-                timeout=30
+                timeout=30,
+                check=False,
             )
 
             if result.returncode == 0:
                 self.logger.info(f"Successfully installed {self.package_name}")
                 return True
-            else:
-                self.logger.error(f"Failed to install {self.package_name}: {result.stderr}")
-                return False
+            self.logger.error(f"Failed to install {self.package_name}: {result.stderr}")
+            return False
 
         except Exception as e:
             self.logger.error(f"Error installing {self.package_name}: {e}")
@@ -102,7 +107,7 @@ class ExternalMCPService(BaseMCPToolAdapter):
             "description": f"External MCP service: {self.package_name}",
             "type": "external_service",
             "package": self.package_name,
-            "installed": self._is_installed
+            "installed": self._is_installed,
         }
 
 
@@ -116,77 +121,103 @@ class MCPVectorSearchService(ExternalMCPService):
     def get_definition(self) -> Dict[str, Any]:
         """Get tool definition for MCP registration."""
         base_def = super().get_definition()
-        base_def.update({
-            "description": "Semantic code search powered by vector embeddings",
-            "tools": [
-                {
-                    "name": "mcp__mcp-vector-search__search_code",
-                    "description": "Search for code using semantic similarity",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "query": {"type": "string", "description": "The search query"},
-                            "limit": {"type": "integer", "default": 10},
-                            "similarity_threshold": {"type": "number", "default": 0.3},
-                            "language": {"type": "string"},
-                            "file_extensions": {"type": "array", "items": {"type": "string"}},
-                            "files": {"type": "string"},
-                            "class_name": {"type": "string"},
-                            "function_name": {"type": "string"}
+        base_def.update(
+            {
+                "description": "Semantic code search powered by vector embeddings",
+                "tools": [
+                    {
+                        "name": "mcp__mcp-vector-search__search_code",
+                        "description": "Search for code using semantic similarity",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "string",
+                                    "description": "The search query",
+                                },
+                                "limit": {"type": "integer", "default": 10},
+                                "similarity_threshold": {
+                                    "type": "number",
+                                    "default": 0.3,
+                                },
+                                "language": {"type": "string"},
+                                "file_extensions": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                },
+                                "files": {"type": "string"},
+                                "class_name": {"type": "string"},
+                                "function_name": {"type": "string"},
+                            },
+                            "required": ["query"],
                         },
-                        "required": ["query"]
-                    }
-                },
-                {
-                    "name": "mcp__mcp-vector-search__search_similar",
-                    "description": "Find code similar to a specific file or function",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "file_path": {"type": "string", "description": "Path to the file"},
-                            "function_name": {"type": "string"},
-                            "limit": {"type": "integer", "default": 10},
-                            "similarity_threshold": {"type": "number", "default": 0.3}
+                    },
+                    {
+                        "name": "mcp__mcp-vector-search__search_similar",
+                        "description": "Find code similar to a specific file or function",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "file_path": {
+                                    "type": "string",
+                                    "description": "Path to the file",
+                                },
+                                "function_name": {"type": "string"},
+                                "limit": {"type": "integer", "default": 10},
+                                "similarity_threshold": {
+                                    "type": "number",
+                                    "default": 0.3,
+                                },
+                            },
+                            "required": ["file_path"],
                         },
-                        "required": ["file_path"]
-                    }
-                },
-                {
-                    "name": "mcp__mcp-vector-search__search_context",
-                    "description": "Search for code based on contextual description",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "description": {"type": "string", "description": "Contextual description"},
-                            "focus_areas": {"type": "array", "items": {"type": "string"}},
-                            "limit": {"type": "integer", "default": 10}
+                    },
+                    {
+                        "name": "mcp__mcp-vector-search__search_context",
+                        "description": "Search for code based on contextual description",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "description": {
+                                    "type": "string",
+                                    "description": "Contextual description",
+                                },
+                                "focus_areas": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                },
+                                "limit": {"type": "integer", "default": 10},
+                            },
+                            "required": ["description"],
                         },
-                        "required": ["description"]
-                    }
-                },
-                {
-                    "name": "mcp__mcp-vector-search__get_project_status",
-                    "description": "Get project indexing status and statistics",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {},
-                        "required": []
-                    }
-                },
-                {
-                    "name": "mcp__mcp-vector-search__index_project",
-                    "description": "Index or reindex the project codebase",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "force": {"type": "boolean", "default": False},
-                            "file_extensions": {"type": "array", "items": {"type": "string"}}
+                    },
+                    {
+                        "name": "mcp__mcp-vector-search__get_project_status",
+                        "description": "Get project indexing status and statistics",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {},
+                            "required": [],
                         },
-                        "required": []
-                    }
-                }
-            ]
-        })
+                    },
+                    {
+                        "name": "mcp__mcp-vector-search__index_project",
+                        "description": "Index or reindex the project codebase",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "force": {"type": "boolean", "default": False},
+                                "file_extensions": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                },
+                            },
+                            "required": [],
+                        },
+                    },
+                ],
+            }
+        )
         return base_def
 
     async def invoke(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
@@ -197,9 +228,13 @@ class MCPVectorSearchService(ExternalMCPService):
 
             # Prepare the command
             cmd = [
-                sys.executable, "-m", "mcp_vector_search",
-                "--tool", actual_tool,
-                "--args", json.dumps(arguments)
+                sys.executable,
+                "-m",
+                "mcp_vector_search",
+                "--tool",
+                actual_tool,
+                "--args",
+                json.dumps(arguments),
             ]
 
             # Run the command
@@ -208,7 +243,8 @@ class MCPVectorSearchService(ExternalMCPService):
                 capture_output=True,
                 text=True,
                 timeout=30,
-                cwd=Path.cwd()  # Use current working directory for project context
+                cwd=Path.cwd(),
+                check=False,  # Use current working directory for project context
             )
 
             if result.returncode == 0:
@@ -235,47 +271,61 @@ class MCPBrowserService(ExternalMCPService):
     def get_definition(self) -> Dict[str, Any]:
         """Get tool definition for MCP registration."""
         base_def = super().get_definition()
-        base_def.update({
-            "description": "Web browsing and content extraction capabilities",
-            "tools": [
-                {
-                    "name": "mcp__mcp-browser__browse",
-                    "description": "Browse a webpage and extract content",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "url": {"type": "string", "description": "URL to browse"},
-                            "extract": {"type": "string", "description": "What to extract"}
+        base_def.update(
+            {
+                "description": "Web browsing and content extraction capabilities",
+                "tools": [
+                    {
+                        "name": "mcp__mcp-browser__browse",
+                        "description": "Browse a webpage and extract content",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "description": "URL to browse",
+                                },
+                                "extract": {
+                                    "type": "string",
+                                    "description": "What to extract",
+                                },
+                            },
+                            "required": ["url"],
                         },
-                        "required": ["url"]
-                    }
-                },
-                {
-                    "name": "mcp__mcp-browser__search",
-                    "description": "Search the web",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "query": {"type": "string", "description": "Search query"},
-                            "num_results": {"type": "integer", "default": 10}
+                    },
+                    {
+                        "name": "mcp__mcp-browser__search",
+                        "description": "Search the web",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "string",
+                                    "description": "Search query",
+                                },
+                                "num_results": {"type": "integer", "default": 10},
+                            },
+                            "required": ["query"],
                         },
-                        "required": ["query"]
-                    }
-                },
-                {
-                    "name": "mcp__mcp-browser__screenshot",
-                    "description": "Take a screenshot of a webpage",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "url": {"type": "string", "description": "URL to screenshot"},
-                            "full_page": {"type": "boolean", "default": False}
+                    },
+                    {
+                        "name": "mcp__mcp-browser__screenshot",
+                        "description": "Take a screenshot of a webpage",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "description": "URL to screenshot",
+                                },
+                                "full_page": {"type": "boolean", "default": False},
+                            },
+                            "required": ["url"],
                         },
-                        "required": ["url"]
-                    }
-                }
-            ]
-        })
+                    },
+                ],
+            }
+        )
         return base_def
 
     async def invoke(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
@@ -286,17 +336,18 @@ class MCPBrowserService(ExternalMCPService):
 
             # Prepare the command
             cmd = [
-                sys.executable, "-m", "mcp_browser",
-                "--tool", actual_tool,
-                "--args", json.dumps(arguments)
+                sys.executable,
+                "-m",
+                "mcp_browser",
+                "--tool",
+                actual_tool,
+                "--args",
+                json.dumps(arguments),
             ]
 
             # Run the command
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
+                cmd, capture_output=True, text=True, timeout=30, check=False
             )
 
             if result.returncode == 0:
@@ -338,10 +389,7 @@ class ExternalMCPServiceManager:
         them as tools in the gateway - they run as separate MCP servers.
         """
         # Create service instances
-        services = [
-            MCPVectorSearchService(),
-            MCPBrowserService()
-        ]
+        services = [MCPVectorSearchService(), MCPBrowserService()]
 
         # Initialize each service
         initialized_services = []
@@ -350,10 +398,11 @@ class ExternalMCPServiceManager:
                 if await service.initialize():
                     initialized_services.append(service)
                     if self.logger:
-                        self.logger.info(f"Initialized external service: {service.service_name}")
-                else:
-                    if self.logger:
-                        self.logger.warning(f"Failed to initialize: {service.service_name}")
+                        self.logger.info(
+                            f"Initialized external service: {service.service_name}"
+                        )
+                elif self.logger:
+                    self.logger.warning(f"Failed to initialize: {service.service_name}")
             except Exception as e:
                 if self.logger:
                     self.logger.error(f"Error initializing {service.service_name}: {e}")
@@ -370,7 +419,9 @@ class ExternalMCPServiceManager:
                 all_tools.extend(service_def["tools"])
         return all_tools
 
-    async def invoke_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    async def invoke_tool(
+        self, tool_name: str, arguments: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Invoke a tool from any registered external service."""
         # Find the service that handles this tool
         for service in self.services:
@@ -387,4 +438,6 @@ class ExternalMCPServiceManager:
                 await service.shutdown()
             except Exception as e:
                 if self.logger:
-                    self.logger.warning(f"Error shutting down {service.service_name}: {e}")
+                    self.logger.warning(
+                        f"Error shutting down {service.service_name}: {e}"
+                    )

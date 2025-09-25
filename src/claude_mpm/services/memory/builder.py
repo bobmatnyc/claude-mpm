@@ -24,7 +24,7 @@ while preserving essential information.
 
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -234,7 +234,7 @@ class MemoryBuilder(LoggerMixin):
         try:
             results = {
                 "success": True,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "files_processed": 0,
                 "memories_created": 0,
                 "memories_updated": 0,
@@ -293,7 +293,7 @@ class MemoryBuilder(LoggerMixin):
             return {
                 "success": False,
                 "error": str(e),
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
     def extract_from_text(self, text: str, source: str) -> List[Dict[str, Any]]:
@@ -777,7 +777,9 @@ class MemoryBuilder(LoggerMixin):
                 return True
 
             last_processed_time = datetime.fromisoformat(last_processed[file_key])
-            file_modified_time = datetime.fromtimestamp(file_path.stat().st_mtime)
+            file_modified_time = datetime.fromtimestamp(
+                file_path.stat().st_mtime, tz=timezone.utc
+            )
 
             return file_modified_time > last_processed_time
 
@@ -805,7 +807,7 @@ class MemoryBuilder(LoggerMixin):
 
             # Update timestamp
             file_key = str(file_path.relative_to(self.project_root))
-            last_processed[file_key] = datetime.now().isoformat()
+            last_processed[file_key] = datetime.now(timezone.utc).isoformat()
 
             # Save back
             import json

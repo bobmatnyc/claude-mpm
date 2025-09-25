@@ -21,7 +21,7 @@ import sys
 import threading
 import time
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 # Import extracted modules with fallback for direct execution
@@ -71,7 +71,7 @@ except ImportError:
                         "type": event_data.get("type", "unknown"),
                         "subtype": event_data.get("subtype", "generic"),
                         "timestamp": event_data.get(
-                            "timestamp", datetime.now().isoformat()
+                            "timestamp", datetime.now(timezone.utc).isoformat()
                         ),
                         "data": event_data.get("data", event_data),
                     }
@@ -216,7 +216,7 @@ class ClaudeHookHandler:
 
         if session_id and agent_type and agent_type != "unknown":
             self.active_delegations[session_id] = agent_type
-            key = f"{session_id}:{datetime.now().timestamp()}"
+            key = f"{session_id}:{datetime.now(timezone.utc).timestamp()}"
             self.delegation_history.append((key, agent_type))
 
             # Store request data for response tracking correlation
@@ -224,7 +224,7 @@ class ClaudeHookHandler:
                 self.delegation_requests[session_id] = {
                     "agent_type": agent_type,
                     "request": request_data,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
                 if DEBUG:
                     print(
@@ -237,7 +237,7 @@ class ClaudeHookHandler:
                     )
 
             # Clean up old delegations (older than 5 minutes)
-            cutoff_time = datetime.now().timestamp() - 300
+            cutoff_time = datetime.now(timezone.utc).timestamp() - 300
             keys_to_remove = []
             for sid in list(self.active_delegations.keys()):
                 # Check if this is an old entry by looking in history
@@ -259,7 +259,7 @@ class ClaudeHookHandler:
 
     def _cleanup_old_entries(self):
         """Clean up old entries to prevent memory growth."""
-        datetime.now().timestamp() - self.MAX_CACHE_AGE_SECONDS
+        datetime.now(timezone.utc).timestamp() - self.MAX_CACHE_AGE_SECONDS
 
         # Clean up delegation tracking dictionaries
         for storage in [self.active_delegations, self.delegation_requests]:
@@ -281,7 +281,8 @@ class ClaudeHookHandler:
         expired_keys = [
             key
             for key, cache_time in self._git_branch_cache_time.items()
-            if datetime.now().timestamp() - cache_time > self.MAX_CACHE_AGE_SECONDS
+            if datetime.now(timezone.utc).timestamp() - cache_time
+            > self.MAX_CACHE_AGE_SECONDS
         ]
         for key in expired_keys:
             self._git_branch_cache.pop(key, None)
@@ -315,7 +316,7 @@ class ClaudeHookHandler:
             working_dir = os.getcwd()
 
         # Check cache first (cache for 30 seconds)
-        current_time = datetime.now().timestamp()
+        current_time = datetime.now(timezone.utc).timestamp()
         cache_key = working_dir
 
         if (
@@ -413,7 +414,7 @@ class ClaudeHookHandler:
                     if recent_key == event_key and (current_time - recent_time) < 0.1:
                         if DEBUG:
                             print(
-                                f"[{datetime.now().isoformat()}] Skipping duplicate event: {event.get('hook_event_name', 'unknown')} (PID: {os.getpid()})",
+                                f"[{datetime.now(timezone.utc).isoformat()}] Skipping duplicate event: {event.get('hook_event_name', 'unknown')} (PID: {os.getpid()})",
                                 file=sys.stderr,
                             )
                         # Still need to output continue for this invocation
@@ -429,7 +430,7 @@ class ClaudeHookHandler:
             if DEBUG:
                 hook_type = event.get("hook_event_name", "unknown")
                 print(
-                    f"\n[{datetime.now().isoformat()}] Processing hook event: {hook_type} (PID: {os.getpid()})",
+                    f"\n[{datetime.now(timezone.utc).isoformat()}] Processing hook event: {hook_type} (PID: {os.getpid()})",
                     file=sys.stderr,
                 )
 
@@ -582,7 +583,7 @@ class ClaudeHookHandler:
         raw_event = {
             "type": "hook",
             "subtype": event,  # e.g., "user_prompt", "pre_tool", "subagent_stop"
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": data,
             "source": "claude_hooks",  # Identify the source
             "session_id": data.get("sessionId"),  # Include session if available
@@ -857,7 +858,7 @@ class ClaudeHookHandler:
                         "duration_ms": event.get("duration_ms"),
                         "working_directory": working_dir,
                         "git_branch": git_branch,
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                         "event_type": "subagent_stop",
                         "reason": reason,
                         "original_request_timestamp": request_info.get("timestamp"),
@@ -922,7 +923,7 @@ class ClaudeHookHandler:
             "session_id": session_id,
             "working_directory": working_dir,
             "git_branch": git_branch,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "is_successful_completion": reason in ["completed", "finished", "done"],
             "is_error_termination": reason in ["error", "timeout", "failed", "blocked"],
             "is_delegation_related": agent_type
@@ -971,7 +972,7 @@ class ClaudeHookHandler:
         if hasattr(self, "connection_pool") and self.connection_pool:
             try:
                 self.connection_pool.cleanup()
-            except:
+            except Exception:
                 pass  # Ignore cleanup errors during destruction
 
 

@@ -11,7 +11,7 @@ Part of ISS-0035: MCP Server Implementation - Core Server and Tool Registry
 import asyncio
 import re
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from threading import RLock
 from typing import Any, Dict, List, Optional, Set
 
@@ -159,9 +159,9 @@ class ToolRegistry(BaseMCPService, IMCPToolRegistry):
 
                 # Update metrics
                 self._metrics["total_tools"] = len(self._adapters)
-                self._metrics["registration_time"][
-                    tool_name
-                ] = datetime.now().isoformat()
+                self._metrics["registration_time"][tool_name] = datetime.now(
+                    timezone.utc
+                ).isoformat()
                 self._metrics["invocations"][tool_name] = 0
                 self._metrics["errors"][tool_name] = 0
 
@@ -272,7 +272,7 @@ class ToolRegistry(BaseMCPService, IMCPToolRegistry):
         error handling, metrics tracking, and validation.
         """
         tool_name = invocation.tool_name
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             self.log_info(f"Invoking tool: {tool_name}")
@@ -300,7 +300,7 @@ class ToolRegistry(BaseMCPService, IMCPToolRegistry):
             result = await adapter.invoke(invocation)
 
             # Calculate execution time
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             result.execution_time = execution_time
 
             # Update metrics
@@ -308,7 +308,9 @@ class ToolRegistry(BaseMCPService, IMCPToolRegistry):
                 self._metrics["invocations"][tool_name] = (
                     self._metrics["invocations"].get(tool_name, 0) + 1
                 )
-                self._metrics["last_invocation"][tool_name] = datetime.now().isoformat()
+                self._metrics["last_invocation"][tool_name] = datetime.now(
+                    timezone.utc
+                ).isoformat()
 
                 if not result.success:
                     self._metrics["errors"][tool_name] = (
@@ -331,7 +333,7 @@ class ToolRegistry(BaseMCPService, IMCPToolRegistry):
                     self._metrics["errors"].get(tool_name, 0) + 1
                 )
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return MCPToolResult(
                 success=False, error=error_msg, execution_time=execution_time

@@ -13,7 +13,7 @@ Uses python-frontmatter and mistune for markdown parsing as recommended.
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import frontmatter
@@ -156,7 +156,7 @@ class AgentManager:
         # Increment version if requested
         if increment_version:
             agent_def.metadata.increment_serial_version()
-            agent_def.metadata.last_updated = datetime.now()
+            agent_def.metadata.last_updated = datetime.now(timezone.utc)
 
         # Write back
         agent_path = self._find_agent_file(name)
@@ -234,7 +234,7 @@ class AgentManager:
         # Increment version
         if increment_version:
             agent_def.metadata.increment_serial_version()
-            agent_def.metadata.last_updated = datetime.now()
+            agent_def.metadata.last_updated = datetime.now(timezone.utc)
 
         # Write back
         return self.update_agent(name, {}, increment_version=False)

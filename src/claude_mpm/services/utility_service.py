@@ -14,7 +14,7 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 import json
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple
 
 from claude_mpm.core.base_service import BaseService
@@ -105,7 +105,10 @@ class UtilityService(BaseService, UtilityServiceInterface):
             return
 
         try:
-            log_entry = {"timestamp": datetime.now().isoformat(), **event_data}
+            log_entry = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                **event_data,
+            }
 
             with open(log_file, "a") as f:
                 f.write(json.dumps(log_entry) + "\n")

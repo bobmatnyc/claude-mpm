@@ -107,7 +107,7 @@ class SocketIODaemonManager:
             )
             if response.status_code == 200:
                 return response.json()
-        except:
+        except Exception:
             pass
         return None
 
@@ -265,7 +265,7 @@ class SocketIODaemonManager:
                 result = sock.connect_ex((self.host, self.port))
                 sock.close()
                 status_info["port_accessible"] = result == 0
-            except:
+            except Exception:
                 status_info["port_accessible"] = False
 
             # Check for conflicts

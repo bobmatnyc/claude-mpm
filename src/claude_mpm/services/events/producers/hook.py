@@ -7,7 +7,7 @@ This replaces direct Socket.IO emission in the hook handler.
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.logging_config import get_logger
@@ -96,7 +96,7 @@ class HookEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="hook.response",
             type="AssistantResponse",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             source=self.source_name,
             data=response_data,
             correlation_id=correlation_id,
@@ -128,7 +128,7 @@ class HookEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="hook.tool",
             type="ToolUse",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             source=self.source_name,
             data={
                 "tool": tool_name,
@@ -164,7 +164,7 @@ class HookEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="hook.error",
             type="Error",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             source=self.source_name,
             data={
                 "error_type": error_type,
@@ -200,7 +200,7 @@ class HookEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic=f"hook.subagent.{event_type.lower()}",
             type=f"Subagent{event_type}",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             source=self.source_name,
             data={
                 "subagent": subagent_name,
@@ -255,7 +255,7 @@ class HookEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic=topic,
             type=hook_type,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             source=self.source_name,
             data=hook_data,
             correlation_id=correlation_id,

@@ -27,7 +27,7 @@ import json
 import platform
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.services.mcp_gateway.core.interfaces import (
@@ -204,7 +204,7 @@ class HelloWorldTool(BaseToolAdapter):
         self.greeting_history: List[Dict[str, Any]] = []
         self.max_history_size = 100
 
-    def validate_parameters(self, parameters: Dict[str, Any]) -> bool:
+    def validate_parameters(self, parameters: Dict[str, Any]) -> bool:  # noqa: PLR0911
         """
         Enhanced parameter validation with detailed error messages.
 
@@ -305,7 +305,7 @@ class HelloWorldTool(BaseToolAdapter):
         Returns:
             Tool execution result with greeting
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             # Validate parameters
@@ -353,13 +353,13 @@ class HelloWorldTool(BaseToolAdapter):
                 greeting = " ".join([greeting] * repeat)
 
             # Calculate execution time
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             # Build response data
             response_data = {
                 "greeting": greeting,
                 "mode": mode,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             # Add metadata if requested
@@ -389,7 +389,7 @@ class HelloWorldTool(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
             self._metrics["last_error"] = str(e)
 
@@ -409,11 +409,11 @@ class HelloWorldTool(BaseToolAdapter):
 
     async def _time_based_greeting(self) -> str:
         """Generate a greeting based on current time."""
-        current_hour = datetime.now().hour
+        current_hour = datetime.now(timezone.utc).hour
 
         for (start, end), greeting in self.TIME_GREETINGS.items():
             if start <= current_hour < end:
-                return f"{greeting}! It's {datetime.now().strftime('%I:%M %p')}."
+                return f"{greeting}! It's {datetime.now(timezone.utc).strftime('%I:%M %p')}."
 
         return "Hello! Time is a curious thing."
 
@@ -482,7 +482,7 @@ class HelloWorldTool(BaseToolAdapter):
             execution_time: Time taken to generate greeting
         """
         entry = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "mode": mode,
             "greeting": greeting[:100],  # Truncate long greetings
             "execution_time": execution_time,

@@ -15,7 +15,7 @@ def safe_import(
     fallback_name: Optional[str] = None,
     from_list: Optional[List[str]] = None,
     logger: Optional[logging.Logger] = None,
-) -> Optional[Any]:
+) -> Optional[Any]:  # noqa: PLR0911
     """
     Safely import a module with fallback support.
 

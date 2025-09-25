@@ -183,9 +183,11 @@ class AgentFileSystemManager:
         try:
             # Generate backup directory name if not provided
             if not backup_dir:
-                import datetime
+                from datetime import datetime, timezone
 
-                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                timestamp = datetime.now(timezone.utc).strftime(
+                    "%Y%m%d_%H%M%S"
+                )
                 backup_dir = agents_dir.parent / f"agents_backup_{timestamp}"
 
             # Create backup
@@ -324,7 +326,7 @@ class AgentFileSystemManager:
 
     def _convert_yaml_to_markdown(self, yaml_content: str, agent_name: str) -> str:
         """Convert YAML agent content to Markdown format with frontmatter."""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         # Extract YAML fields (simplified parsing)
         name = self._extract_yaml_field(yaml_content, "name") or agent_name
@@ -356,8 +358,8 @@ name: {name}
 description: "{description}"
 version: "{version}"
 author: "claude-mpm@anthropic.com"
-created: "{datetime.now().isoformat()}Z"
-updated: "{datetime.now().isoformat()}Z"
+created: "{datetime.now(timezone.utc).isoformat()}Z"
+updated: "{datetime.now(timezone.utc).isoformat()}Z"
 tags: ["{agent_name}", "mpm-framework"]
 tools: {tools_list}
 model: "sonnet"

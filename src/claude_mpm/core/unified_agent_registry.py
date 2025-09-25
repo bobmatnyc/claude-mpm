@@ -30,7 +30,7 @@ import json
 import logging
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
@@ -718,7 +718,7 @@ class UnifiedAgentRegistry:
 
         export_data = {
             "metadata": {
-                "export_time": datetime.now().isoformat(),
+                "export_time": datetime.now(timezone.utc).isoformat(),
                 "total_agents": len(self.registry),
                 "discovery_paths": [str(p) for p in self.discovery_paths],
             },

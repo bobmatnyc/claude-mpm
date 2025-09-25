@@ -19,7 +19,7 @@ import contextlib
 import os
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -365,7 +365,7 @@ class UnifiedMonitorServer:
                     return web.Response(text=f"Error: {e!s}", status=500)
 
             # File content endpoint for file viewer
-            async def api_file_handler(request):
+            async def api_file_handler(request):  # noqa: PLR0911
                 """Handle file content requests."""
                 import json
                 import os
@@ -481,7 +481,7 @@ class UnifiedMonitorServer:
                 config = {
                     "workingDirectory": os.getcwd(),
                     "gitBranch": "Unknown",
-                    "serverTime": datetime.utcnow().isoformat() + "Z",
+                    "serverTime": datetime.now(timezone.utc).isoformat() + "Z",
                     "service": "unified-monitor",
                 }
 
@@ -661,7 +661,7 @@ class UnifiedMonitorServer:
 
                 # Create heartbeat data
                 heartbeat_data = {
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                    "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
                     "type": "heartbeat",
                     "server_uptime": uptime_seconds,
                     "server_uptime_formatted": uptime_str,

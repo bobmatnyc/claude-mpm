@@ -13,7 +13,7 @@ New structure:
 
 
 # Use lazy imports to prevent circular dependency issues
-def __getattr__(name):
+def __getattr__(name):  # noqa: PLR0911
     """Lazy import to prevent circular dependencies."""
     if name == "TicketManager":
         from .ticket_manager import TicketManager

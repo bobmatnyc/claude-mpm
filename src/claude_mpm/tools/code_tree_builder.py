@@ -17,7 +17,7 @@ import fnmatch
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
@@ -505,7 +505,7 @@ class CodeTreeBuilder:
             "files_ignored": self.stats["files_ignored"],
             "total_size": self.stats["total_size"],
             "languages": list(self.stats["languages"]),
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
         }
 
         with open(output_path, "w") as f:

@@ -8,7 +8,7 @@ Part of ISS-0035: MCP Server Implementation - Core Server and Tool Registry
 """
 
 from abc import ABC
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 from claude_mpm.services.mcp_gateway.core.base import BaseMCPService
@@ -195,7 +195,7 @@ class BaseToolAdapter(BaseMCPService, IMCPToolAdapter, ABC):
         self._metrics["average_execution_time"] = (
             self._metrics["total_execution_time"] / self._metrics["invocations"]
         )
-        self._metrics["last_invocation"] = datetime.now().isoformat()
+        self._metrics["last_invocation"] = datetime.now(timezone.utc).isoformat()
 
 
 class EchoToolAdapter(BaseToolAdapter):
@@ -235,7 +235,7 @@ class EchoToolAdapter(BaseToolAdapter):
         Returns:
             Tool execution result with echoed message
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             # Get parameters
@@ -246,7 +246,7 @@ class EchoToolAdapter(BaseToolAdapter):
             result = message.upper() if uppercase else message
 
             # Calculate execution time
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             # Update metrics
             self._update_metrics(True, execution_time)
@@ -259,7 +259,7 @@ class EchoToolAdapter(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
             self._metrics["last_error"] = str(e)
 
@@ -321,7 +321,7 @@ class CalculatorToolAdapter(BaseToolAdapter):
         Returns:
             Tool execution result with calculation
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             # Get parameters
@@ -348,7 +348,7 @@ class CalculatorToolAdapter(BaseToolAdapter):
                 raise ValueError(f"Unknown operation: {operation}")
 
             # Calculate execution time
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             # Update metrics
             self._update_metrics(True, execution_time)
@@ -361,7 +361,7 @@ class CalculatorToolAdapter(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
             self._metrics["last_error"] = str(e)
 
@@ -408,7 +408,7 @@ class SystemInfoToolAdapter(BaseToolAdapter):
         Returns:
             Tool execution result with system information
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             import platform
@@ -443,15 +443,15 @@ class SystemInfoToolAdapter(BaseToolAdapter):
                 }
             elif info_type == "time":
                 result = {
-                    "current": datetime.now().isoformat(),
-                    "timestamp": datetime.now().timestamp(),
-                    "timezone": str(datetime.now().astimezone().tzinfo),
+                    "current": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(timezone.utc).timestamp(),
+                    "timezone": str(datetime.now(timezone.utc).astimezone().tzinfo),
                 }
             else:
                 raise ValueError(f"Unknown info type: {info_type}")
 
             # Calculate execution time
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             # Update metrics
             self._update_metrics(True, execution_time)
@@ -465,7 +465,7 @@ class SystemInfoToolAdapter(BaseToolAdapter):
 
         except ImportError as e:
             # Handle missing psutil dependency gracefully
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
 
             return MCPToolResult(
@@ -474,7 +474,7 @@ class SystemInfoToolAdapter(BaseToolAdapter):
                 execution_time=execution_time,
             )
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
             self._metrics["last_error"] = str(e)
 

@@ -6,7 +6,7 @@ import logging
 import os
 import platform
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -1432,7 +1432,7 @@ Extract tickets from these patterns:
 
         try:
             # Get current datetime with timezone awareness
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
 
             # Try to get timezone info - fallback to UTC offset if timezone name not available
             try:
@@ -1470,7 +1470,7 @@ Extract tickets from these patterns:
             # Fallback to basic date if enhanced datetime fails
             self.logger.debug(f"Error generating enhanced datetime context: {e}")
             context_lines.append(
-                f"**Today's Date**: {datetime.now().strftime('%Y-%m-%d')}\n"
+                f"**Today's Date**: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}\n"
             )
 
         try:

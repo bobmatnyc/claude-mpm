@@ -24,7 +24,7 @@ information than lose important insights.
 
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -164,7 +164,7 @@ class MemoryOptimizer(LoggerMixin):
                     else 0
                 ),
                 "backup_created": str(backup_path),
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 **optimization_stats,
             }
 
@@ -230,7 +230,7 @@ class MemoryOptimizer(LoggerMixin):
 
             return {
                 "success": True,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "agents": results,
                 "summary": {
                     **total_stats,
@@ -545,7 +545,7 @@ class MemoryOptimizer(LoggerMixin):
 
         # Update timestamp
         content = "\n".join(content_lines)
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         return re.sub(
             r"<!-- Last Updated: .+ \| Auto-updated by: .+ -->",
             f"<!-- Last Updated: {timestamp} | Auto-updated by: optimizer -->",
@@ -561,7 +561,7 @@ class MemoryOptimizer(LoggerMixin):
         Returns:
             Path to backup file
         """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         backup_name = f"{memory_file.stem}_backup_{timestamp}{memory_file.suffix}"
         backup_path = memory_file.parent / backup_name
 
@@ -647,7 +647,7 @@ class MemoryOptimizer(LoggerMixin):
 
         return {
             "success": True,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "agents_analyzed": len(agents_analysis),
             "agents": agents_analysis,
         }

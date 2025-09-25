@@ -11,7 +11,7 @@ Part of TSK-0046: Service Layer Architecture Reorganization
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.logger import get_logger
@@ -92,7 +92,7 @@ class LoggingService(SyncBaseService, IStructuredLogger):
 
         if self.structured_logging:
             log_entry = {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "level": level,
                 "message": message,
                 "context": context,

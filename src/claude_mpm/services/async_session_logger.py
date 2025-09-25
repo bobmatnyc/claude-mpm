@@ -22,7 +22,7 @@ import os
 import sys
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from queue import Full, Queue
 from threading import Lock, Thread
@@ -184,7 +184,7 @@ class AsyncSessionLogger:
                 return session_id
 
         # Generate timestamp-based session ID
-        session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        session_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         logger.info(f"Generated session ID: {session_id}")
         return session_id
 
@@ -406,7 +406,7 @@ class AsyncSessionLogger:
             agent_name = metadata["agent"].replace(" ", "_").lower()
 
         # Create timestamp with microsecond precision
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         timestamp = now.isoformat()
         microseconds = now.microsecond
 

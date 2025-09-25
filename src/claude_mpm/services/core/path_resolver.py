@@ -163,7 +163,7 @@ class PathResolver(IPathResolver):
         self.logger.debug(f"No project root found from {start_path}")
         return None
 
-    def detect_framework_path(self) -> Optional[Path]:
+    def detect_framework_path(self) -> Optional[Path]:  # noqa: PLR0911
         """
         Auto-detect claude-mpm framework using unified path management.
 
@@ -322,8 +322,8 @@ class PathResolver(IPathResolver):
         """Detect framework path using unified path management."""
         try:
             # Import here to avoid circular dependencies
+            from ...core.unified_paths import DeploymentContext as UnifiedContext
             from ...core.unified_paths import (
-                DeploymentContext as UnifiedContext,
                 get_path_manager,
             )
 

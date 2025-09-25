@@ -24,7 +24,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -227,7 +227,9 @@ class AgentProfileLoader(BaseService):
         # Check cache first
         if use_cache and agent_name in self.profile_cache:
             profile = self.profile_cache[agent_name]
-            if (datetime.now() - profile.loaded_at).seconds < self.cache_ttl:
+            if (
+                datetime.now(timezone.utc) - profile.loaded_at
+            ).seconds < self.cache_ttl:
                 self.load_metrics[f"{agent_name}_cache_hit"] = (
                     asyncio.get_event_loop().time() - start_time
                 )
@@ -322,7 +324,7 @@ class AgentProfileLoader(BaseService):
                 try:
                     data = yaml.safe_load(content)
                     instructions = data.get("instructions", "")
-                except:
+                except Exception:
                     data = json.loads(content)
                     instructions = data.get("instructions", "")
 

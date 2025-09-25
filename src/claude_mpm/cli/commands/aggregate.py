@@ -116,7 +116,7 @@ def aggregate_command(args):
     return result.exit_code
 
 
-def aggregate_command_legacy(args):
+def aggregate_command_legacy(args):  # noqa: PLR0911
     """Legacy aggregate command dispatcher.
 
     WHY: This contains the original aggregate_command logic, preserved during migration

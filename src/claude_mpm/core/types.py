@@ -16,7 +16,7 @@ Module-specific types should remain in their respective modules.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -206,7 +206,7 @@ class TaskInfo:
         if self.metadata is None:
             self.metadata = {}
         if self.created_at is None:
-            self.created_at = datetime.now()
+            self.created_at = datetime.now(timezone.utc)
         if self.updated_at is None:
             self.updated_at = self.created_at
 
