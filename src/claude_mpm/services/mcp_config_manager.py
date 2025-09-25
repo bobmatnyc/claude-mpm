@@ -12,6 +12,7 @@ MCP service installations.
 import json
 import os
 import subprocess
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
@@ -171,6 +172,73 @@ class MCPConfigManager:
             config["args"] = []
 
         return config
+
+    def ensure_mcp_services_configured(self) -> Tuple[bool, str]:
+        """
+        Ensure MCP services are configured in .mcp.json on startup.
+
+        This method checks if the core MCP services are configured and
+        automatically adds them if they're missing.
+
+        Returns:
+            Tuple of (success, message)
+        """
+        mcp_config_path = self.project_root / ".mcp.json"
+        updated = False
+        added_services = []
+
+        # Load existing config or create new one
+        existing_config = {"mcpServers": {}}
+        if mcp_config_path.exists():
+            try:
+                with open(mcp_config_path, "r") as f:
+                    existing_config = json.load(f)
+            except Exception as e:
+                self.logger.error(f"Error reading .mcp.json: {e}")
+                return False, f"Failed to read .mcp.json: {e}"
+
+        # Ensure mcpServers key exists
+        if "mcpServers" not in existing_config:
+            existing_config["mcpServers"] = {}
+
+        # Check each service and add if missing
+        for service_name in self.PIPX_SERVICES:
+            if service_name not in existing_config["mcpServers"]:
+                # Try to detect and configure the service
+                service_path = self.detect_service_path(service_name)
+                if service_path:
+                    config = self.generate_service_config(service_name)
+                    if config:
+                        existing_config["mcpServers"][service_name] = config
+                        added_services.append(service_name)
+                        updated = True
+                        self.logger.info(f"Auto-configured MCP service: {service_name}")
+                else:
+                    self.logger.debug(f"MCP service {service_name} not found for auto-configuration")
+
+        # Write updated config if changes were made
+        if updated:
+            try:
+                # Create backup if file exists
+                if mcp_config_path.exists():
+                    backup_path = mcp_config_path.with_suffix(
+                        f".backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                    )
+                    mcp_config_path.rename(backup_path)
+                    self.logger.debug(f"Created backup: {backup_path}")
+
+                # Write updated config
+                with open(mcp_config_path, "w") as f:
+                    json.dump(existing_config, f, indent=2)
+
+                message = f"Auto-configured MCP services: {', '.join(added_services)}"
+                self.logger.info(message)
+                return True, message
+            except Exception as e:
+                self.logger.error(f"Failed to write .mcp.json: {e}")
+                return False, f"Failed to write configuration: {e}"
+
+        return True, "All MCP services already configured"
 
     def update_mcp_config(self, force_pipx: bool = True) -> Tuple[bool, str]:
         """

@@ -569,6 +569,41 @@ class RunCommand(BaseCommand):
             return False
 
 
+def _ensure_mcp_services_configured(logger):
+    """
+    Ensure MCP services are configured in .mcp.json on startup.
+
+    This function automatically configures the core MCP services
+    (mcp-vector-search, mcp-browser, mcp-ticketer) if they're not
+    already configured in the project's .mcp.json file.
+
+    Args:
+        logger: Logger instance for output
+    """
+    try:
+        from ...services.mcp_config_manager import MCPConfigManager
+
+        logger.debug("Checking MCP service configuration...")
+        manager = MCPConfigManager()
+
+        # Check and auto-configure missing MCP services
+        success, message = manager.ensure_mcp_services_configured()
+
+        if success:
+            if "already configured" not in message.lower():
+                logger.info(message)
+                print(f"✅ {message}")
+            else:
+                logger.debug(message)
+        else:
+            logger.warning(f"MCP auto-configuration issue: {message}")
+            # Don't fail the session, just warn
+
+    except Exception as e:
+        logger.debug(f"MCP auto-configuration skipped: {e}")
+        # Don't fail the session if auto-configuration fails
+
+
 def _handle_reload_agents(logger):
     """
     Handle the --reload-agents flag by deleting all local claude-mpm system agents.
@@ -693,6 +728,9 @@ def run_session_legacy(args):
     # Handle --reload-agents flag if specified
     if getattr(args, "reload_agents", False):
         _handle_reload_agents(logger)
+
+    # Auto-configure MCP services on startup
+    _ensure_mcp_services_configured(logger)
 
     try:
         from ...core.claude_runner import ClaudeRunner, create_simple_context
