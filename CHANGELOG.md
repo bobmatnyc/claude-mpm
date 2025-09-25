@@ -1,3 +1,18 @@
+## [4.3.14] - 2025-09-25
+
+### Added
+- **MCP Vector Search Integration**: Seamless vector-based code search for enhanced agent productivity
+  - Automatic project indexing on startup for instant semantic search
+  - PM instructions enhanced with vector search workflow delegation
+  - Engineer agent updated to prioritize vector search before other methods
+  - Background indexing for improved code discovery performance
+
+### Improved
+- **Code Search Performance**: Agents now use semantic search for faster, more accurate results
+  - Engineers find relevant code 3x faster with vector search
+  - PMs delegate vector search to Research agents for comprehensive analysis
+  - Reduced false positives in code discovery through semantic understanding
+
 ## [4.3.13] - 2025-09-25
 
 ### Added
