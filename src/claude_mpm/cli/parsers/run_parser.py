@@ -69,6 +69,11 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="Force operations even with warnings (e.g., large .claude.json file)",
     )
     run_group.add_argument(
+        "--reload-agents",
+        action="store_true",
+        help="Force rebuild of all system agents by deleting local claude-mpm agents",
+    )
+    run_group.add_argument(
         "--mpm-resume",
         type=str,
         nargs="?",
