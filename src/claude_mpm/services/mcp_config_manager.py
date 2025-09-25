@@ -212,7 +212,7 @@ class MCPConfigManager:
                         existing_config["mcpServers"][service_name] = config
                         added_services.append(service_name)
                         updated = True
-                        self.logger.info(f"Auto-configured MCP service: {service_name}")
+                        self.logger.debug(f"Added MCP service to config: {service_name}")
                 else:
                     self.logger.debug(f"MCP service {service_name} not found for auto-configuration")
 

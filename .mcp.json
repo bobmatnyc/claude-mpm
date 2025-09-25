@@ -1,15 +1,5 @@
 {
   "mcpServers": {
-    "mcp-browser": {
-      "type": "stdio",
-      "command": "/Users/masa/.local/pipx/venvs/mcp-browser/bin/mcp-browser",
-      "args": [
-        "mcp"
-      ],
-      "env": {
-        "MCP_BROWSER_HOME": "/Users/masa/.mcp-browser"
-      }
-    },
     "mcp-vector-search": {
       "type": "stdio",
       "command": "/Users/masa/.local/pipx/venvs/mcp-vector-search/bin/python",
@@ -26,6 +16,16 @@
       "args": [
         "mcp"
       ]
+    },
+    "mcp-browser": {
+      "type": "stdio",
+      "command": "/Users/masa/.local/pipx/venvs/mcp-browser/bin/mcp-browser",
+      "args": [
+        "mcp"
+      ],
+      "env": {
+        "MCP_BROWSER_HOME": "/Users/masa/.mcp-browser"
+      }
     }
   }
 }
