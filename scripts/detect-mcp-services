@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+# MCP Service Detection Script
+# Detects and configures MCP services from pipx installations
+
+set -e
+
+# Colors for output
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Function to find the best path for a service
+find_service_path() {
+    local service_name="$1"
+    local pipx_venv_path="$HOME/.local/pipx/venvs/$service_name"
+
+    # First, check if pipx installation exists
+    if [ -d "$pipx_venv_path" ]; then
+        case "$service_name" in
+            mcp-vector-search)
+                # mcp-vector-search needs Python with module execution
+                local python_bin="$pipx_venv_path/bin/python"
+                if [ -x "$python_bin" ]; then
+                    echo "$python_bin"
+                    return 0
+                fi
+                ;;
+            *)
+                # Other services use their direct binary
+                local service_bin="$pipx_venv_path/bin/$service_name"
+                if [ -x "$service_bin" ]; then
+                    echo "$service_bin"
+                    return 0
+                fi
+                ;;
+        esac
+    fi
+
+    # Fallback: check if available in PATH (from pipx)
+    if command -v "$service_name" &> /dev/null; then
+        echo "$(command -v "$service_name")"
+        return 0
+    fi
+
+    # Not found
+    return 1
+}
+
+# Main detection logic
+echo -e "${GREEN}MCP Service Detection${NC}"
+echo "========================"
+
+# Services to check
+services=("mcp-vector-search" "mcp-browser" "mcp-ticketer")
+
+# Create a JSON config snippet
+config_json='{'
+config_json+='\n  "mcpServers": {'
+
+first=true
+for service in "${services[@]}"; do
+    echo -n "Checking $service... "
+
+    if service_path=$(find_service_path "$service"); then
+        echo -e "${GREEN}Found at: $service_path${NC}"
+
+        # Add comma if not first
+        if [ "$first" = false ]; then
+            config_json+=','
+        fi
+        first=false
+
+        # Build the config based on service type
+        case "$service" in
+            mcp-vector-search)
+                config_json+="\n    \"$service\": {"
+                config_json+='\n      "type": "stdio",'
+                config_json+="\n      \"command\": \"$service_path\","
+                config_json+='\n      "args": ['
+                config_json+='\n        "-m",'
+                config_json+='\n        "mcp_vector_search.mcp.server",'
+                config_json+="\n        \"$(pwd)\""
+                config_json+='\n      ],'
+                config_json+='\n      "env": {}'
+                config_json+='\n    }'
+                ;;
+            mcp-browser)
+                config_json+="\n    \"$service\": {"
+                config_json+='\n      "type": "stdio",'
+                config_json+="\n      \"command\": \"$service_path\","
+                config_json+='\n      "args": ['
+                config_json+='\n        "mcp"'
+                config_json+='\n      ],'
+                config_json+='\n      "env": {'
+                config_json+="\n        \"MCP_BROWSER_HOME\": \"$HOME/.mcp-browser\""
+                config_json+='\n      }'
+                config_json+='\n    }'
+                ;;
+            mcp-ticketer)
+                config_json+="\n    \"$service\": {"
+                config_json+='\n      "type": "stdio",'
+                config_json+="\n      \"command\": \"$service_path\","
+                config_json+='\n      "args": ["mcp"]'
+                config_json+='\n    }'
+                ;;
+        esac
+    else
+        echo -e "${YELLOW}Not found - install with: pipx install $service${NC}"
+    fi
+done
+
+config_json+='\n  }'
+config_json+='\n}'
+
+# Output the configuration
+echo ""
+echo -e "${GREEN}Generated MCP Configuration:${NC}"
+echo "================================"
+echo -e "$config_json"
+
+# Ask if user wants to update .mcp.json
+echo ""
+read -p "Update .mcp.json with pipx paths? (y/n) " -n 1 -r
+echo ""
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo -e "$config_json" > .mcp.json
+    echo -e "${GREEN}✓ Updated .mcp.json${NC}"
+else
+    echo -e "${YELLOW}Skipped updating .mcp.json${NC}"
+fi
+
+# Check for missing services and offer to install
+echo ""
+missing_services=()
+for service in "${services[@]}"; do
+    if ! find_service_path "$service" &> /dev/null; then
+        missing_services+=("$service")
+    fi
+done
+
+if [ ${#missing_services[@]} -gt 0 ]; then
+    echo -e "${YELLOW}Missing services: ${missing_services[*]}${NC}"
+    echo ""
+    echo "Install missing services with:"
+    for service in "${missing_services[@]}"; do
+        echo "  pipx install $service"
+    done
+else
+    echo -e "${GREEN}✓ All MCP services are installed via pipx${NC}"
+fi

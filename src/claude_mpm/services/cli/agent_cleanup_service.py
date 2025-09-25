@@ -138,6 +138,11 @@ class AgentCleanupService(IAgentCleanupService):
                 if not isinstance(result, dict):
                     result = {"success": bool(result)}
 
+                # Add success flag based on whether there were errors
+                if "success" not in result:
+                    # Consider it successful if no errors occurred
+                    result["success"] = not bool(result.get("errors"))
+
                 # Add cleaned_count for backward compatibility
                 if "cleaned_count" not in result:
                     removed_count = len(result.get("removed", []))

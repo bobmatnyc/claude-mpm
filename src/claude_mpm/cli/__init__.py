@@ -397,6 +397,7 @@ def _ensure_run_attributes(args):
     # Also include monitor and force attributes
     args.monitor = getattr(args, "monitor", False)
     args.force = getattr(args, "force", False)
+    args.reload_agents = getattr(args, "reload_agents", False)
     # Include dependency checking attributes
     args.check_dependencies = getattr(args, "check_dependencies", True)
     args.force_check_dependencies = getattr(args, "force_check_dependencies", False)

@@ -199,6 +199,11 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Force operations even with warnings (e.g., large .claude.json file)",
     )
+    run_group.add_argument(
+        "--reload-agents",
+        action="store_true",
+        help="Force rebuild of all system agents by deleting local claude-mpm agents",
+    )
 
     # Dependency checking options (for backward compatibility at top level)
     dep_group_top = parser.add_argument_group(
