@@ -618,8 +618,10 @@ def _handle_reload_agents(logger):
         logger.info("Reloading system agents - cleaning existing deployments...")
 
         # Import the cleanup service
+        from ...services.agents.deployment.agent_deployment import (
+            AgentDeploymentService,
+        )
         from ...services.cli.agent_cleanup_service import AgentCleanupService
-        from ...services.agents.deployment.agent_deployment import AgentDeploymentService
 
         # Create services
         deployment_service = AgentDeploymentService()
@@ -634,7 +636,11 @@ def _handle_reload_agents(logger):
         # Check if cleanup was successful based on the result structure
         # The service returns a dict with 'removed', 'preserved', and possibly 'errors' keys
         # If it has 'success' key, use it; otherwise infer from the result
-        success = result.get("success", True) if "success" in result else not result.get("errors")
+        success = (
+            result.get("success", True)
+            if "success" in result
+            else not result.get("errors")
+        )
 
         if success:
             removed_count = result.get("cleaned_count", len(result.get("removed", [])))
@@ -731,6 +737,13 @@ def run_session_legacy(args):
 
     # Auto-configure MCP services on startup
     _ensure_mcp_services_configured(logger)
+
+    # Trigger vector search indexing after MCP is configured
+    try:
+        from ...cli.startup_logging import start_vector_search_indexing
+        start_vector_search_indexing()
+    except Exception as e:
+        logger.debug(f"Failed to start vector search indexing: {e}")
 
     try:
         from ...core.claude_runner import ClaudeRunner, create_simple_context

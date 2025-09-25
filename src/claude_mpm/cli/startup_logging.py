@@ -14,6 +14,7 @@ DESIGN DECISIONS:
 - Capture all startup logs to timestamped files for analysis
 """
 
+import asyncio
 import logging
 import shutil
 import subprocess
@@ -69,7 +70,7 @@ def log_memory_stats(logger=None, prefix="Memory Usage"):
                     f"{prefix}: RSS={rss_mb:.1f}MB, System={memory_percent:.1f}%"
                 )
                 return {"rss_mb": rss_mb, "vms_mb": None, "percent": memory_percent}
-            except:
+            except Exception:
                 logger.info(f"{prefix}: RSS={rss_mb:.1f}MB")
                 return {"rss_mb": rss_mb, "vms_mb": None, "percent": None}
         else:
@@ -82,7 +83,7 @@ def log_memory_stats(logger=None, prefix="Memory Usage"):
                     f"System={memory_percent:.1f}%"
                 )
                 return {"rss_mb": rss_mb, "vms_mb": vms_mb, "percent": memory_percent}
-            except:
+            except Exception:
                 logger.info(f"{prefix}: RSS={rss_mb:.1f}MB, VMS={vms_mb:.1f}MB")
                 return {"rss_mb": rss_mb, "vms_mb": vms_mb, "percent": None}
 
@@ -630,6 +631,154 @@ def cleanup_old_startup_logs(
         return deleted_count
 
 
+async def trigger_vector_search_indexing(project_root: Optional[Path] = None) -> None:
+    """
+    Trigger mcp-vector-search indexing in the background.
+
+    This function attempts to start the mcp-vector-search indexing process
+    asynchronously so it doesn't block startup. If the service is not available,
+    it fails silently.
+
+    Args:
+        project_root: Root directory for the project (defaults to cwd)
+    """
+    logger = get_logger("cli")
+
+    if project_root is None:
+        project_root = Path.cwd()
+
+    try:
+        # Check if mcp-vector-search is available
+        from ..services.mcp_config_manager import MCPConfigManager
+
+        manager = MCPConfigManager()
+        vector_search_path = manager.detect_service_path("mcp-vector-search")
+
+        if not vector_search_path:
+            logger.debug("mcp-vector-search not found, skipping indexing")
+            return
+
+        # Build the command based on the service configuration
+        if "python" in vector_search_path:
+            # Using Python interpreter directly
+            cmd = [
+                vector_search_path,
+                "-m",
+                "mcp_vector_search.cli",
+                "index",
+                str(project_root)
+            ]
+        else:
+            # Using installed binary
+            cmd = [
+                vector_search_path,
+                "index",
+                str(project_root)
+            ]
+
+        logger.info("MCP Vector Search: Starting background indexing for improved code search")
+
+        # Start the indexing process in the background
+        # We use subprocess.Popen instead of run to avoid blocking
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+            cwd=str(project_root)
+        )
+
+        # Don't wait for completion - let it run in the background
+        logger.debug(f"MCP Vector Search: Indexing process started (PID: {process.pid})")
+
+    except ImportError:
+        logger.debug("MCP config manager not available, skipping vector search indexing")
+    except Exception as e:
+        # Don't let indexing failures prevent startup
+        logger.debug(f"Failed to start vector search indexing: {e}")
+
+
+def start_vector_search_indexing(project_root: Optional[Path] = None) -> None:
+    """
+    Synchronous wrapper to trigger vector search indexing.
+
+    This creates a new event loop if needed to run the async indexing function.
+    Falls back to subprocess.Popen if async fails.
+
+    Args:
+        project_root: Root directory for the project (defaults to cwd)
+    """
+    logger = get_logger("cli")
+
+    try:
+        # Try to get the current event loop
+        loop = asyncio.get_running_loop()
+        # If we're in an event loop, create a task
+        # Store reference to avoid RUF006 warning
+        _ = loop.create_task(trigger_vector_search_indexing(project_root))
+    except RuntimeError:
+        # No event loop running, try async approach first
+        try:
+            asyncio.run(trigger_vector_search_indexing(project_root))
+        except Exception as e:
+            # Fallback to simple subprocess approach
+            logger.debug(f"Async indexing failed, trying subprocess: {e}")
+            _start_vector_search_subprocess(project_root)
+
+
+def _start_vector_search_subprocess(project_root: Optional[Path] = None) -> None:
+    """
+    Fallback method to start vector search indexing using subprocess.Popen.
+
+    Args:
+        project_root: Root directory for the project (defaults to cwd)
+    """
+    logger = get_logger("cli")
+
+    if project_root is None:
+        project_root = Path.cwd()
+
+    try:
+        from ..services.mcp_config_manager import MCPConfigManager
+
+        manager = MCPConfigManager()
+        vector_search_path = manager.detect_service_path("mcp-vector-search")
+
+        if not vector_search_path:
+            logger.debug("mcp-vector-search not found, skipping indexing")
+            return
+
+        # Build the command
+        if "python" in vector_search_path:
+            cmd = [
+                vector_search_path,
+                "-m",
+                "mcp_vector_search.cli",
+                "index",
+                str(project_root)
+            ]
+        else:
+            cmd = [
+                vector_search_path,
+                "index",
+                str(project_root)
+            ]
+
+        logger.info("MCP Vector Search: Starting background indexing for improved code search")
+
+        # Start the indexing process in the background
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            cwd=str(project_root)
+        )
+
+        logger.debug(f"MCP Vector Search: Indexing process started (PID: {process.pid})")
+
+    except Exception as e:
+        logger.debug(f"Failed to start vector search indexing: {e}")
+
+
 def get_latest_startup_log(project_root: Optional[Path] = None) -> Optional[Path]:
     """
     Get the path to the most recent startup log file.
@@ -677,6 +826,10 @@ def log_startup_status(monitor_mode: bool = False, websocket_port: int = 8765) -
 
         # Log monitor setup status
         status_logger.log_monitor_setup_status(monitor_mode, websocket_port)
+
+        # Trigger vector search indexing in the background after MCP is configured
+        # This will run asynchronously and not block startup
+        start_vector_search_indexing()
 
     except Exception as e:
         # Don't let logging failures prevent startup

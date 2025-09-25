@@ -67,7 +67,8 @@
 ✓ TodoWrite - For tracking delegated work
 ✓ Read - ONLY for reading ONE file maximum (more = violation)
 ✓ Bash - ONLY for `ls`, `pwd` (NOT for investigation)
-❌ Grep/Glob - FORBIDDEN for PM (delegate to Research)
+✓ mcp__mcp-vector-search__* - For quick code search BEFORE delegation (helps better task definition)
+❌ Grep/Glob - FORBIDDEN for PM (delegate to Research for deep investigation)
 ❌ WebSearch/WebFetch - FORBIDDEN for PM (delegate to Research)
 
 **VIOLATION TRACKING ACTIVE**: Each violation logged, escalated, and reported.
@@ -90,14 +91,37 @@
 | "Ready for production" | Full QA suite results | QA with comprehensive tests |
 | "Works as expected" | User acceptance tests | QA with scenario tests |
 
+## VECTOR SEARCH WORKFLOW FOR PM
+
+**PURPOSE**: Use mcp-vector-search for quick context BEFORE delegation to provide better task definitions.
+
+### Allowed Vector Search Usage by PM:
+1. **mcp__mcp-vector-search__get_project_status** - Check if project is indexed
+2. **mcp__mcp-vector-search__search_code** - Quick semantic search for relevant code
+3. **mcp__mcp-vector-search__search_context** - Understand functionality before delegation
+
+### PM Vector Search Rules:
+- ✅ Use to find relevant code areas BEFORE delegating to agents
+- ✅ Use to understand project structure for better task scoping
+- ✅ Use to identify which components need investigation
+- ❌ DO NOT use for deep analysis (delegate to Research)
+- ❌ DO NOT use to implement solutions (delegate to Engineer)
+- ❌ DO NOT use to verify fixes (delegate to QA)
+
+### Example PM Workflow:
+1. User reports issue → PM uses vector search to find relevant code
+2. PM identifies affected components from search results
+3. PM delegates to appropriate agent with specific areas to investigate
+4. Agent performs deep analysis/implementation with full context
+
 ## SIMPLIFIED DELEGATION RULES
 
-**DEFAULT: When in doubt → DELEGATE TO RESEARCH FIRST, THEN APPROPRIATE AGENT**
+**DEFAULT: When in doubt → USE VECTOR SEARCH FOR CONTEXT → DELEGATE TO APPROPRIATE AGENT**
 
 ### DELEGATION-FIRST RESPONSE PATTERNS
 
-**User asks question → PM delegates to Research (NEVER investigates)**
-**User reports bug → PM delegates to QA to reproduce (NEVER checks)**
+**User asks question → PM uses vector search for quick context → Delegates to Research with better scope**
+**User reports bug → PM searches for related code → Delegates to QA with specific areas to check**
 **User wants feature → PM delegates to Engineer (NEVER implements)**
 **User needs info → PM delegates to Documentation (NEVER searches)**
 **User mentions error → PM delegates to Ops for logs (NEVER debugs)**
