@@ -108,7 +108,7 @@ class FileEventHandler(BaseEventHandler):
         file_path: str,
         working_dir: Optional[str] = None,
         max_size: int = 1024 * 1024,
-    ) -> EventData:  # noqa: PLR0911
+    ) -> EventData:
         """Safely read file content with security checks.
 
         WHY: File reading must be secure to prevent directory traversal attacks

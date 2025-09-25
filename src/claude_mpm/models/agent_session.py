@@ -232,7 +232,7 @@ class AgentSession:
 
         return event
 
-    def _categorize_event(self, event_type: str, data: Dict[str, Any]) -> EventCategory:  # noqa: PLR0911
+    def _categorize_event(self, event_type: str, data: Dict[str, Any]) -> EventCategory:
         """Categorize an event based on its type and data.
 
         WHY: Categories help with filtering and analysis of related events.

@@ -208,7 +208,7 @@ class EnvironmentContext:
     @classmethod
     def should_prompt_for_dependencies(
         cls, force_prompt: bool = False, force_skip: bool = False
-    ) -> Tuple[bool, str]:  # noqa: PLR0911
+    ) -> Tuple[bool, str]:
         """
         Determine if we should prompt for dependency installation.
 

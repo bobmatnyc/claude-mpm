@@ -566,7 +566,7 @@ class EventNormalizer:
 
     def _determine_source(
         self, event_data: Any, event_type: str, source_override: Optional[str] = None
-    ) -> str:  # noqa: PLR0911
+    ) -> str:
         """Determine the source of an event.
 
         WHY: Knowing where events originate helps with debugging,

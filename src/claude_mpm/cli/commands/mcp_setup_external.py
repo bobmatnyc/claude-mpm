@@ -7,7 +7,7 @@ This module handles the registration of external MCP services
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import timezone
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 

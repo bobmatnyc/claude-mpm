@@ -192,7 +192,7 @@ class UnifiedTicketTool(BaseToolAdapter):
 
     def _validate_parameters(
         self, operation: str, params: Dict[str, Any]
-    ) -> Optional[str]:  # noqa: PLR0911
+    ) -> Optional[str]:
         """
         Validate parameters based on the operation type.
 

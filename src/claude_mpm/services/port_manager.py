@@ -243,7 +243,7 @@ class PortManager:
 
         return any(pattern in cmdline_lower for pattern in daemon_patterns)
 
-    def kill_process_on_port(self, port: int, force: bool = False) -> bool:  # noqa: PLR0911
+    def kill_process_on_port(self, port: int, force: bool = False) -> bool:
         """Kill a process using a specific port if it's safe to do so.
 
         WHY: Automatically reclaim ports from our debug scripts while preserving
@@ -354,7 +354,7 @@ class PortManager:
 
     def find_available_port(
         self, preferred_port: Optional[int] = None, reclaim: bool = True
-    ) -> Optional[int]:  # noqa: PLR0911
+    ) -> Optional[int]:
         """Find an available port, preferring the specified port if given.
 
         WHY: Enhanced to intelligently reclaim ports from our debug processes
