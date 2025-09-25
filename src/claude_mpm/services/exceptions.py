@@ -15,7 +15,7 @@ Design Principles:
 
 import platform
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 
@@ -43,7 +43,7 @@ class SocketIOServerError(Exception):
         self.message = message
         self.error_code = error_code or self.__class__.__name__.lower()
         self.context = context or {}
-        self.timestamp = datetime.utcnow().isoformat() + "Z"
+        self.timestamp = datetime.now(timezone.utc).isoformat() + "Z"
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert error to dictionary format for structured logging/handling."""
@@ -125,9 +125,9 @@ class DaemonConflictError(SocketIOServerError):
             )
 
             if create_time:
-                start_time = datetime.fromtimestamp(create_time).strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                )
+                start_time = datetime.fromtimestamp(
+                    create_time, tz=timezone.utc
+                ).strftime("%Y-%m-%d %H:%M:%S")
                 uptime = time.time() - create_time
                 lines.append(f"  • Started: {start_time} (uptime: {uptime:.0f}s)")
 

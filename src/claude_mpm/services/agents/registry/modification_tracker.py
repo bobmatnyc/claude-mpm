@@ -30,7 +30,7 @@ import shutil
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
@@ -90,7 +90,7 @@ class AgentModification:
     @property
     def modification_datetime(self) -> datetime:
         """Get modification timestamp as datetime."""
-        return datetime.fromtimestamp(self.timestamp)
+        return datetime.fromtimestamp(self.timestamp, tz=timezone.utc)
 
     @property
     def age_seconds(self) -> float:

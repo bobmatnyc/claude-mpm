@@ -18,7 +18,7 @@ This service manages:
 
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Debug mode is enabled by default for better visibility into hook processing
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
@@ -62,7 +62,7 @@ except ImportError:
                         "type": event_data.get("type", "unknown"),
                         "subtype": event_data.get("subtype", "generic"),
                         "timestamp": event_data.get(
-                            "timestamp", datetime.now().isoformat()
+                            "timestamp", datetime.now(timezone.utc).isoformat()
                         ),
                         "data": event_data.get("data", event_data),
                     }
@@ -119,7 +119,7 @@ class ConnectionManagerService:
         raw_event = {
             "type": "hook",
             "subtype": event,  # e.g., "user_prompt", "pre_tool", "subagent_stop"
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": data,
             "source": "claude_hooks",  # Identify the source
             "session_id": data.get("sessionId"),  # Include session if available
@@ -190,7 +190,7 @@ class ConnectionManagerService:
 
         # Warn if no emission method is available
         if not self.connection_pool and DEBUG:
-            print(f"⚠️ No event emission method available for: {event}", file=sys.stderr)
+            print(f"⚠️ No event emission method available for: {claude_event_data.get('event', 'unknown')}", file=sys.stderr)
 
     def cleanup(self):
         """Cleanup connections on service destruction."""
@@ -198,5 +198,5 @@ class ConnectionManagerService:
         if self.connection_pool:
             try:
                 self.connection_pool.cleanup()
-            except:
+            except Exception:
                 pass  # Ignore cleanup errors during destruction

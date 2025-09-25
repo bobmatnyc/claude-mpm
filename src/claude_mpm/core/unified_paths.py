@@ -166,7 +166,7 @@ class PathContext:
 
     @staticmethod
     @lru_cache(maxsize=1)
-    def detect_deployment_context() -> DeploymentContext:
+    def detect_deployment_context() -> DeploymentContext:  # noqa: PLR0911
         """Detect the current deployment context.
 
         Priority order:

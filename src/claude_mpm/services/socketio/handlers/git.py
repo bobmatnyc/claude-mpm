@@ -601,7 +601,7 @@ class GitEventHandler(BaseEventHandler):
         file_path: str,
         timestamp: Optional[str] = None,
         working_dir: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, Any]:  # noqa: PLR0911
         """Generate git diff for a specific file operation.
 
         WHY: This method generates a git diff showing the changes made to a file

@@ -17,7 +17,7 @@ DESIGN DECISIONS:
 
 import os
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -223,7 +223,9 @@ class MemoryCRUDService(IMemoryCRUDService):
                     stat = memory_file.stat()
                     file_stats = {
                         "size_kb": stat.st_size / 1024,
-                        "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                        "modified": datetime.fromtimestamp(
+                            stat.st_mtime, tz=timezone.utc
+                        ).isoformat(),
                         "path": str(memory_file),
                     }
 
@@ -256,7 +258,7 @@ class MemoryCRUDService(IMemoryCRUDService):
                             "file_stats": {
                                 "size_kb": stat.st_size / 1024,
                                 "modified": datetime.fromtimestamp(
-                                    stat.st_mtime
+                                    stat.st_mtime, tz=timezone.utc
                                 ).isoformat(),
                                 "path": str(memory_file),
                             },
@@ -431,10 +433,10 @@ class MemoryCRUDService(IMemoryCRUDService):
                         {
                             "size_kb": stat.st_size / 1024,
                             "modified": datetime.fromtimestamp(
-                                stat.st_mtime
+                                stat.st_mtime, tz=timezone.utc
                             ).isoformat(),
                             "created": datetime.fromtimestamp(
-                                stat.st_ctime
+                                stat.st_ctime, tz=timezone.utc
                             ).isoformat(),
                         }
                     )
@@ -499,7 +501,10 @@ class MemoryCRUDService(IMemoryCRUDService):
                     continue
 
                 stat = memory_file.stat()
-                age_days = (datetime.now() - datetime.fromtimestamp(stat.st_mtime)).days
+                age_days = (
+                    datetime.now(timezone.utc)
+                    - datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+                ).days
 
                 # Identify files older than 30 days as candidates
                 if age_days > 30:

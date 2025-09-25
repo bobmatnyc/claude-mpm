@@ -21,7 +21,7 @@ DESIGN DECISIONS:
 import asyncio
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from claude_mpm.services.mcp_gateway.core.interfaces import (
@@ -192,7 +192,7 @@ class UnifiedTicketTool(BaseToolAdapter):
 
     def _validate_parameters(
         self, operation: str, params: Dict[str, Any]
-    ) -> Optional[str]:
+    ) -> Optional[str]:  # noqa: PLR0911
         """
         Validate parameters based on the operation type.
 
@@ -242,7 +242,7 @@ class UnifiedTicketTool(BaseToolAdapter):
         Returns:
             Tool execution result with created ticket ID
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             # Build aitrackdown command
@@ -269,7 +269,7 @@ class UnifiedTicketTool(BaseToolAdapter):
             )
 
             stdout, stderr = await process.communicate()
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             if process.returncode == 0:
                 # Parse ticket ID from output
@@ -305,7 +305,7 @@ class UnifiedTicketTool(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
 
             return MCPToolResult(
@@ -324,7 +324,7 @@ class UnifiedTicketTool(BaseToolAdapter):
         Returns:
             Tool execution result with list of tickets
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             limit = params.get("limit", 10)
@@ -342,7 +342,7 @@ class UnifiedTicketTool(BaseToolAdapter):
             )
 
             stdout, stderr = await process.communicate()
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             if process.returncode == 0:
                 try:
@@ -375,7 +375,7 @@ class UnifiedTicketTool(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
 
             return MCPToolResult(
@@ -394,7 +394,7 @@ class UnifiedTicketTool(BaseToolAdapter):
         Returns:
             Tool execution result
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             ticket_id = params["ticket_id"]
@@ -426,7 +426,7 @@ class UnifiedTicketTool(BaseToolAdapter):
             )
 
             stdout, stderr = await process.communicate()
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             if process.returncode == 0:
                 self._update_metrics(True, execution_time)
@@ -453,7 +453,7 @@ class UnifiedTicketTool(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
 
             return MCPToolResult(
@@ -472,7 +472,7 @@ class UnifiedTicketTool(BaseToolAdapter):
         Returns:
             Tool execution result with ticket details
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             ticket_id = params["ticket_id"]
@@ -487,7 +487,7 @@ class UnifiedTicketTool(BaseToolAdapter):
             )
 
             stdout, stderr = await process.communicate()
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             if process.returncode == 0:
                 output = stdout.decode().strip()
@@ -522,7 +522,7 @@ class UnifiedTicketTool(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
 
             return MCPToolResult(
@@ -541,7 +541,7 @@ class UnifiedTicketTool(BaseToolAdapter):
         Returns:
             Tool execution result with matching tickets
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         try:
             query = params["query"]
@@ -559,7 +559,7 @@ class UnifiedTicketTool(BaseToolAdapter):
             )
 
             stdout, stderr = await process.communicate()
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             if process.returncode == 0:
                 try:
@@ -588,7 +588,7 @@ class UnifiedTicketTool(BaseToolAdapter):
             )
 
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
             self._update_metrics(False, execution_time)
 
             return MCPToolResult(

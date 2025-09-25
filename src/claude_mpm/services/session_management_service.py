@@ -13,6 +13,7 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 
 import time
 import uuid
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService
@@ -153,7 +154,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
             session_logs_dir.mkdir(parents=True, exist_ok=True)
 
             # Generate unique session log filename
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             session_id = str(uuid.uuid4())[:8]
             log_filename = f"session_{timestamp}_{session_id}.jsonl"
             log_file = session_logs_dir / log_filename
@@ -183,7 +184,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
             from datetime import datetime
 
             # Add timestamp to event data
-            event_data["timestamp"] = datetime.now().isoformat()
+            event_data["timestamp"] = datetime.now(timezone.utc).isoformat()
 
             # Append to log file as JSONL
             with open(log_file, "a") as f:

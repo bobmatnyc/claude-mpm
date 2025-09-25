@@ -59,9 +59,9 @@ class AgentLifecycleRecord:
     @property
     def last_modified_datetime(self):
         """Get last modified as datetime."""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        return datetime.fromtimestamp(self.last_modified)
+        return datetime.fromtimestamp(self.last_modified, tz=timezone.utc)
 
 
 @dataclass

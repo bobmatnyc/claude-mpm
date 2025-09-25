@@ -37,7 +37,7 @@ class MonitorCommand(BaseCommand):
 
         return None
 
-    def run(self, args) -> CommandResult:
+    def run(self, args) -> CommandResult:  # noqa: PLR0911
         """Execute the monitor command using unified monitoring daemon."""
         try:
             self.logger.info("Monitor command using unified monitoring daemon")
@@ -142,7 +142,7 @@ class MonitorCommand(BaseCommand):
             return CommandResult.error_result(
                 f"Port {port} is already in use. Try 'claude-mpm monitor stop' first or use a different port."
             )
-        except:
+        except Exception:
             pass
 
         return CommandResult.error_result(

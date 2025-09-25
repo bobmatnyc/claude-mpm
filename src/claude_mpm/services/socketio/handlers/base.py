@@ -5,7 +5,7 @@ logging, error handling, and access to the server instance. All handler
 classes inherit from this to ensure consistent behavior.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from ....core.logger import get_logger
@@ -107,7 +107,7 @@ class BaseEventHandler:
         """
         event = {
             "type": event_type,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "data": data,
         }
         self.event_history.append(event)

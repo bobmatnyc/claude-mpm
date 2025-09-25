@@ -129,7 +129,7 @@ def has_code_files(directory_path, max_depth=5, current_depth=0):
     return False
 
 
-def should_show_item(item_name, item_path, is_directory):
+def should_show_item(item_name, item_path, is_directory):  # noqa: PLR0911
     """Determine if an item should be shown based on filtering rules"""
     # Always hide system files
     if item_name in {".DS_Store", "Thumbs.db", "desktop.ini"}:

@@ -13,7 +13,7 @@ import asyncio
 import threading
 import time
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Set
 
@@ -211,7 +211,7 @@ class SocketIOServerCore:
             await self.site.start()
 
             self.running = True
-            self.stats["start_time"] = datetime.now()
+            self.stats["start_time"] = datetime.now(timezone.utc)
 
             self.logger.info(
                 f"Socket.IO server listening on http://{self.host}:{self.port}"
@@ -428,7 +428,7 @@ class SocketIOServerCore:
         )
 
         # Add file reading endpoint for source viewer
-        async def file_read_handler(request):
+        async def file_read_handler(request):  # noqa: PLR0911
             """Handle GET /api/file/read for reading source files."""
             import os
 
@@ -749,7 +749,9 @@ class SocketIOServerCore:
                 uptime_seconds = 0
                 if self.stats.get("start_time"):
                     uptime_seconds = int(
-                        (datetime.now() - self.stats["start_time"]).total_seconds()
+                        (
+                            datetime.now(timezone.utc) - self.stats["start_time"]
+                        ).total_seconds()
                     )
 
                 # Get active sessions from main server if available
@@ -766,7 +768,7 @@ class SocketIOServerCore:
                 heartbeat_data = {
                     "type": "system",
                     "subtype": "heartbeat",
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "source": "server",
                     "data": {
                         "uptime_seconds": uptime_seconds,

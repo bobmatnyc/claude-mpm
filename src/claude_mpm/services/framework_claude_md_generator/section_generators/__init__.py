@@ -5,7 +5,7 @@ This module provides base classes and registry for section generators.
 """
 
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 
@@ -35,7 +35,7 @@ class BaseSectionGenerator(ABC):
 
     def get_timestamp(self) -> str:
         """Get current UTC timestamp."""
-        return datetime.utcnow().isoformat()
+        return datetime.now(timezone.utc).isoformat()
 
 
 class SectionGeneratorRegistry:

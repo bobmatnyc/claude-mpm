@@ -7,7 +7,7 @@ Assembles sections and applies template variable substitution.
 import hashlib
 import logging
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from claude_mpm.services.agents.management import AgentCapabilitiesGenerator
@@ -35,7 +35,7 @@ class ContentAssembler:
         Returns:
             str: 16-character hash of content
         """
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         hash_obj = hashlib.sha256(timestamp.encode())
         return hash_obj.hexdigest()[:16]
 
@@ -176,7 +176,7 @@ class ContentAssembler:
         Returns:
             Dict: Metadata for header
         """
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         return {
             "version": version,

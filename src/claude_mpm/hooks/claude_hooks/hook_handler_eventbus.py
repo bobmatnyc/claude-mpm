@@ -22,7 +22,7 @@ import sys
 import threading
 import time
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -55,7 +55,7 @@ except ImportError:
                         "type": event_data.get("type", "unknown"),
                         "subtype": event_data.get("subtype", "generic"),
                         "timestamp": event_data.get(
-                            "timestamp", datetime.now().isoformat()
+                            "timestamp", datetime.now(timezone.utc).isoformat()
                         ),
                         "data": event_data.get("data", event_data),
                         "source": source,
@@ -174,7 +174,7 @@ class HookHandler:
             raw_event = {
                 "type": "hook",
                 "subtype": event_type,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": data,
                 "source": "claude_hooks",
                 "session_id": data.get("sessionId", self.current_session_id),

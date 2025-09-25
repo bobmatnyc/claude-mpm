@@ -397,7 +397,7 @@ class StateStorage:
                         temp_file.unlink()
                         cleaned += 1
                         self.logger.debug(f"Cleaned up temp file: {temp_file}")
-                except:
+                except Exception:
                     pass
 
             # Clean up orphaned checksum files

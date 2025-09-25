@@ -16,7 +16,7 @@ import functools
 import threading
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Generic, Optional, Type, TypeVar
 
 from ..core.logger import get_logger
@@ -121,7 +121,7 @@ class LazyService(Generic[T]):
             # Track initialization
             start_time = time.time()
             if self._metrics.first_access is None:
-                self._metrics.first_access = datetime.now()
+                self._metrics.first_access = datetime.now(timezone.utc)
 
             try:
                 self._logger.debug(f"Initializing lazy service: {self._name}")
@@ -417,7 +417,7 @@ class AsyncLazyService(Generic[T]):
 
             start_time = time.time()
             if self._metrics.first_access is None:
-                self._metrics.first_access = datetime.now()
+                self._metrics.first_access = datetime.now(timezone.utc)
 
             try:
                 self._logger.debug(f"Async initializing: {self._name}")

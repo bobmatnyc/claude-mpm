@@ -938,7 +938,7 @@ class AgentsCommand(AgentCommand):
             self.logger.error(f"Error creating local agent: {e}", exc_info=True)
             return CommandResult.error_result(f"Error creating local agent: {e}")
 
-    def _edit_local_agent(self, args) -> CommandResult:
+    def _edit_local_agent(self, args) -> CommandResult:  # noqa: PLR0911
         """Edit a local agent template."""
         try:
             agent_id = getattr(args, "agent_id", None)
@@ -993,7 +993,7 @@ class AgentsCommand(AgentCommand):
             self.logger.error(f"Error editing local agent: {e}", exc_info=True)
             return CommandResult.error_result(f"Error editing local agent: {e}")
 
-    def _delete_local_agent(self, args) -> CommandResult:
+    def _delete_local_agent(self, args) -> CommandResult:  # noqa: PLR0911
         """Delete local agent templates."""
         try:
             agent_ids = getattr(args, "agent_ids", [])

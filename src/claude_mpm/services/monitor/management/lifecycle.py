@@ -514,7 +514,7 @@ class DaemonLifecycle:
             error_msg = f"Port {self.port} is already in use or cannot be bound: {e}"
             return False, error_msg
 
-    def is_our_service(self, host: str = "localhost") -> Tuple[bool, Optional[int]]:
+    def is_our_service(self, host: str = "localhost") -> Tuple[bool, Optional[int]]:  # noqa: PLR0911
         """Check if the service on the port is our Socket.IO service.
 
         This uses multiple detection methods:

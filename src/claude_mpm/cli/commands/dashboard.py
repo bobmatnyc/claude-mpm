@@ -65,7 +65,7 @@ class DashboardCommand(BaseCommand):
             self.logger.error(f"Error executing dashboard command: {e}", exc_info=True)
             return CommandResult.error_result(f"Error executing dashboard command: {e}")
 
-    def _start_dashboard(self, args) -> CommandResult:
+    def _start_dashboard(self, args) -> CommandResult:  # noqa: PLR0911
         """Start the dashboard server."""
         port = getattr(args, "port", 8765)
         host = getattr(args, "host", "localhost")

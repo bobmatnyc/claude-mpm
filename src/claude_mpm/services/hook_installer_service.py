@@ -24,7 +24,7 @@ class HookInstallerService:
         self.claude_dir = Path.home() / ".claude"
         self.settings_file = self.claude_dir / "settings.json"
 
-    def is_hooks_configured(self) -> bool:
+    def is_hooks_configured(self) -> bool:  # noqa: PLR0911
         """Check if hooks are configured in Claude settings.
 
         Returns:

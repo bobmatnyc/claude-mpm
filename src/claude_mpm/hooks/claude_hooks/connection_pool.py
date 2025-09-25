@@ -131,7 +131,7 @@ class SocketIOConnectionPool:
                             "source": "connection_pool",
                         },
                     )
-                except:
+                except Exception:
                     pass  # Ignore ping errors
                 return client
         except Exception:
@@ -168,10 +168,10 @@ class SocketIOConnectionPool:
                     },
                 )
                 return True
-            except:
+            except Exception:
                 # If ping fails, connection might be dead
                 return client.connected  # Fall back to basic check
-        except:
+        except Exception:
             return False
 
     def _close_connection(self, client: Any) -> None:
@@ -179,7 +179,7 @@ class SocketIOConnectionPool:
         try:
             if client:
                 client.disconnect()
-        except:
+        except Exception:
             pass
 
     def _cleanup_dead_connections(self) -> None:

@@ -21,7 +21,7 @@ ARCHITECTURE:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
@@ -169,7 +169,7 @@ class MemoryManager(IMemoryManager):
             ]
 
         # Add new memory as a bullet point
-        timestamp = datetime.now().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         lines.append(f"- [{timestamp}] {key}: {value}")
 
         # Write back
@@ -336,8 +336,11 @@ class MemoryManager(IMemoryManager):
             aggregated_pm = self._aggregate_memories(pm_memories)
             result["actual_memories"] = aggregated_pm
             # Count actual memory items in aggregated content
-            memory_items = [line.strip() for line in aggregated_pm.split("\n")
-                           if line.strip().startswith("-")]
+            memory_items = [
+                line.strip()
+                for line in aggregated_pm.split("\n")
+                if line.strip().startswith("-")
+            ]
             if memory_items:
                 self.logger.info(
                     f"Aggregated PM memory: {len(memory_items)} total items from {len(pm_memories)} source(s)"
@@ -352,16 +355,17 @@ class MemoryManager(IMemoryManager):
             result["agent_memories"] = agent_memories_dict
             for agent_name, memory_content in agent_memories_dict.items():
                 # Count actual memory items
-                memory_items = [line.strip() for line in memory_content.split("\n")
-                               if line.strip().startswith("-")]
+                memory_items = [
+                    line.strip()
+                    for line in memory_content.split("\n")
+                    if line.strip().startswith("-")
+                ]
                 if memory_items:
                     self.logger.debug(
                         f"Aggregated {agent_name} memory: {len(memory_items)} items"
                     )
                 else:
-                    self.logger.debug(
-                        f"Aggregated {agent_name} memory: no items"
-                    )
+                    self.logger.debug(f"Aggregated {agent_name} memory: no items")
 
         # Log summary
         if self._stats["loaded_count"] > 0 or self._stats["skipped_count"] > 0:
@@ -425,8 +429,11 @@ class MemoryManager(IMemoryManager):
                         }
                     )
                     # Count actual memory items (lines starting with "-")
-                    memory_items = [line.strip() for line in loaded_content.split("\n")
-                                   if line.strip().startswith("-")]
+                    memory_items = [
+                        line.strip()
+                        for line in loaded_content.split("\n")
+                        if line.strip().startswith("-")
+                    ]
                     if memory_items:
                         self.logger.info(
                             f"Loaded {source} PM memory: {len(memory_items)} items"
@@ -494,8 +501,11 @@ class MemoryManager(IMemoryManager):
                             )
 
                         # Count actual memory items (lines starting with "-")
-                        memory_items = [line.strip() for line in loaded_content.split("\n")
-                                       if line.strip().startswith("-")]
+                        memory_items = [
+                            line.strip()
+                            for line in loaded_content.split("\n")
+                            if line.strip().startswith("-")
+                        ]
                         if memory_items:
                             self.logger.info(
                                 f"Loaded {source} memory for {agent_name}: {len(memory_items)} items"
@@ -514,8 +524,11 @@ class MemoryManager(IMemoryManager):
                 # Log skipped memories only if they contain actual items
                 try:
                     loaded_content = memory_file.read_text(encoding="utf-8")
-                    memory_items = [line.strip() for line in loaded_content.split("\n")
-                                   if line.strip().startswith("-")]
+                    memory_items = [
+                        line.strip()
+                        for line in loaded_content.split("\n")
+                        if line.strip().startswith("-")
+                    ]
                     if memory_items:
                         self.logger.info(
                             f"Skipped {source} memory: {memory_file.name} (agent '{agent_name}' not deployed, {len(memory_items)} items)"
@@ -613,7 +626,9 @@ class MemoryManager(IMemoryManager):
             lines.append("# Agent Memory")
 
         # Add latest timestamp
-        lines.append(f"<!-- Last Updated: {datetime.now().isoformat()}Z -->")
+        lines.append(
+            f"<!-- Last Updated: {datetime.now(timezone.utc).isoformat()}Z -->"
+        )
         lines.append("")
 
         # Add all unique items (sorted for consistency)

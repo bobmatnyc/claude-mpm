@@ -13,7 +13,7 @@ organization and to reduce the complexity of the main server file.
 import asyncio
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 try:
@@ -172,7 +172,7 @@ class SocketIOClientProxy:
             try:
                 event = {
                     "type": event_type,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "data": data,
                 }
 

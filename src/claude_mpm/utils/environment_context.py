@@ -189,7 +189,7 @@ class EnvironmentContext:
             get_ipython = globals().get("get_ipython")
             if get_ipython is not None:
                 return True
-        except:
+        except Exception:
             pass
 
         # Check for Jupyter-specific environment variables
@@ -208,7 +208,7 @@ class EnvironmentContext:
     @classmethod
     def should_prompt_for_dependencies(
         cls, force_prompt: bool = False, force_skip: bool = False
-    ) -> Tuple[bool, str]:
+    ) -> Tuple[bool, str]:  # noqa: PLR0911
         """
         Determine if we should prompt for dependency installation.
 

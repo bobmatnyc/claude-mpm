@@ -20,7 +20,7 @@ DESIGN DECISIONS:
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -144,7 +144,7 @@ class MCPAutoConfigurator:
         prefs = {
             "asked": True,
             "choice": choice,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         try:
@@ -266,7 +266,7 @@ class MCPAutoConfigurator:
     def _create_backup(self) -> Optional[Path]:
         """Create backup of existing configuration."""
         try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             backup_path = self.claude_config_path.with_suffix(
                 f".backup.{timestamp}.json"
             )

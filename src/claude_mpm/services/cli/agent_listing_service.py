@@ -336,7 +336,7 @@ class AgentListingService(IAgentListingService):
             self.logger.error(f"Error listing agents by tier: {e}", exc_info=True)
             return AgentTierInfo(project=[], user=[], system=[])
 
-    def get_agent_details(self, agent_name: str) -> Optional[Dict[str, Any]]:
+    def get_agent_details(self, agent_name: str) -> Optional[Dict[str, Any]]:  # noqa: PLR0911
         """Get detailed information for a specific agent."""
         cache_key = f"agent_details_{agent_name}"
         cached = self._get_from_cache(cache_key)

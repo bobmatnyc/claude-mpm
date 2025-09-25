@@ -20,7 +20,7 @@ import subprocess
 import sys
 import threading
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from queue import Queue
 from typing import Any, Dict, List, Optional
@@ -41,7 +41,7 @@ class AnalysisRequest:
 
     def __post_init__(self):
         if self.timestamp is None:
-            self.timestamp = datetime.utcnow()
+            self.timestamp = datetime.now(timezone.utc)
 
 
 class CodeAnalysisRunner:
@@ -433,7 +433,7 @@ class CodeAnalysisRunner:
         if self.server:
             # Add timestamp if not present
             if "timestamp" not in data:
-                data["timestamp"] = datetime.utcnow().isoformat()
+                data["timestamp"] = datetime.now(timezone.utc).isoformat()
 
             # Broadcast to all clients
             self.server.broadcast_event(event_type, data)
@@ -450,6 +450,6 @@ class CodeAnalysisRunner:
             {
                 "request_id": request_id,
                 "message": message,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         )

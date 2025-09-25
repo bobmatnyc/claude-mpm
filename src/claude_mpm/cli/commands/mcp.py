@@ -186,7 +186,7 @@ def _show_status(
             ToolRegistry()
             # Don't initialize fully, just check
             print("\n🔧 Tools: Check with 'claude-mpm mcp tools'")
-        except:
+        except Exception:
             print("\n🔧 Tools: Registry not available")
 
     print("\n💡 Available Commands:")

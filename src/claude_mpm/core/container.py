@@ -636,7 +636,7 @@ class DIContainer(IServiceContainer):
                                 if reg_type.__name__ == param_type:
                                     param_type = reg_type
                                     break
-                    except:
+                    except Exception:
                         # If we can't resolve, skip this parameter
                         if param.default != param.empty:
                             kwargs[param_name] = param.default

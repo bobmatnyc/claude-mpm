@@ -11,7 +11,7 @@ import json
 import os
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Tuple
 
 # Debug mode is enabled by default for better visibility into hook processing
@@ -272,7 +272,7 @@ class SubagentResponseProcessor:
                         "duration_ms": event.get("duration_ms"),
                         "working_directory": working_dir,
                         "git_branch": git_branch,
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                         "event_type": "subagent_stop",
                         "reason": reason,
                         "original_request_timestamp": request_info.get("timestamp"),
@@ -347,7 +347,7 @@ class SubagentResponseProcessor:
             "session_id": session_id,
             "working_directory": working_dir,
             "git_branch": git_branch,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "is_successful_completion": reason in ["completed", "finished", "done"],
             "is_error_termination": reason in ["error", "timeout", "failed", "blocked"],
             "is_delegation_related": agent_type

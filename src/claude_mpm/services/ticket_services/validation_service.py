@@ -158,7 +158,7 @@ class TicketValidationService:
 
     def validate_create_params(
         self, params: Dict[str, Any]
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> Tuple[bool, Optional[str]]:  # noqa: PLR0911
         """
         Validate parameters for ticket creation.
 

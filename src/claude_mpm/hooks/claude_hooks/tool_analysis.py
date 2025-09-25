@@ -138,7 +138,7 @@ def summarize_todos(todos: list) -> dict:
     }
 
 
-def classify_tool_operation(tool_name: str, tool_input: dict) -> str:
+def classify_tool_operation(tool_name: str, tool_input: dict) -> str:  # noqa: PLR0911
     """Classify the type of operation being performed."""
     if tool_name in ["Read", "LS", "Glob", "Grep", "NotebookRead"]:
         return "read"
@@ -155,7 +155,7 @@ def classify_tool_operation(tool_name: str, tool_input: dict) -> str:
     return "other"
 
 
-def assess_security_risk(tool_name: str, tool_input: dict) -> str:
+def assess_security_risk(tool_name: str, tool_input: dict) -> str:  # noqa: PLR0911
     """Assess the security risk level of the tool operation."""
     if tool_name == "Bash":
         command = tool_input.get("command", "").lower()

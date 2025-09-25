@@ -185,7 +185,7 @@ class ConfigureCommand(BaseCommand):
 
         return None
 
-    def run(self, args) -> CommandResult:
+    def run(self, args) -> CommandResult:  # noqa: PLR0911
         """Execute the configure command."""
         # Set configuration scope
         self.current_scope = getattr(args, "scope", "project")
@@ -441,7 +441,7 @@ class ConfigureCommand(BaseCommand):
                         tools_display = f"Model: {model}"
                     else:
                         tools_display = "Default"
-                except:
+                except Exception:
                     tools_display = "Default"
 
             # Truncate description for table display
@@ -858,7 +858,7 @@ class ConfigureCommand(BaseCommand):
 [bold]Tags:[/bold] {', '.join(tags) if tags else 'None'}
 [bold]Tools:[/bold] {', '.join(tools[:5]) if tools else 'None'}{'...' if len(tools) > 5 else ''}
 """
-                    except:
+                    except Exception:
                         pass
 
                 # Create detail panel
@@ -1048,7 +1048,7 @@ class ConfigureCommand(BaseCommand):
                 )
                 if result.returncode == 0:
                     claude_version = result.stdout.strip()
-        except:
+        except Exception:
             pass
 
         # Create version panel
@@ -1191,7 +1191,7 @@ Directory: {self.project_dir}
             )
             if result.returncode == 0:
                 data["claude_version"] = result.stdout.strip()
-        except:
+        except Exception:
             data["claude_version"] = "Unknown"
 
         # Print formatted output

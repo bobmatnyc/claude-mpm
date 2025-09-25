@@ -15,7 +15,7 @@ import logging
 import os
 import subprocess
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 
@@ -366,7 +366,7 @@ class GitOperationsManager:
         Returns:
             GitOperationResult with operation details
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
         current_branch = self.get_current_branch()
 
         # Generate full branch name with prefix
@@ -398,7 +398,7 @@ class GitOperationsManager:
                     # Remote push failed, continue without remote tracking
                     pass
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return GitOperationResult(
                 success=True,
@@ -411,7 +411,7 @@ class GitOperationsManager:
             )
 
         except GitOperationError as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return GitOperationResult(
                 success=False,
@@ -433,7 +433,7 @@ class GitOperationsManager:
         Returns:
             GitOperationResult with operation details
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
         current_branch = self.get_current_branch()
 
         try:
@@ -448,13 +448,15 @@ class GitOperationsManager:
                     branch_before=current_branch,
                     branch_after=current_branch,
                     files_changed=modified_files,
-                    execution_time=(datetime.now() - start_time).total_seconds(),
+                    execution_time=(
+                        datetime.now(timezone.utc) - start_time
+                    ).total_seconds(),
                 )
 
             # Switch to the branch
             result = self._run_git_command(["checkout", branch_name])
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return GitOperationResult(
                 success=True,
@@ -467,7 +469,7 @@ class GitOperationsManager:
             )
 
         except GitOperationError as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return GitOperationResult(
                 success=False,
@@ -498,7 +500,7 @@ class GitOperationsManager:
         Returns:
             GitOperationResult with operation details
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
         current_branch = self.get_current_branch()
 
         try:
@@ -542,7 +544,7 @@ class GitOperationsManager:
                     # Branch deletion failed, but merge was successful
                     pass
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return GitOperationResult(
                 success=True,
@@ -555,7 +557,7 @@ class GitOperationsManager:
             )
 
         except GitOperationError as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return GitOperationResult(
                 success=False,
@@ -651,7 +653,7 @@ class GitOperationsManager:
         Returns:
             GitOperationResult with operation details
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
         current_branch = self.get_current_branch()
 
         if not branch_name:
@@ -668,7 +670,7 @@ class GitOperationsManager:
 
             result = self._run_git_command(push_args)
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return GitOperationResult(
                 success=True,
@@ -681,7 +683,7 @@ class GitOperationsManager:
             )
 
         except GitOperationError as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return GitOperationResult(
                 success=False,
@@ -706,7 +708,7 @@ class GitOperationsManager:
         Returns:
             GitOperationResult with operation details
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
         current_branch = self.get_current_branch()
 
         if not branch_name:
@@ -725,7 +727,7 @@ class GitOperationsManager:
                 result = self._run_git_command(["pull", remote, branch_name])
                 self._run_git_command(["checkout", current_branch])
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return GitOperationResult(
                 success=True,
@@ -738,7 +740,7 @@ class GitOperationsManager:
             )
 
         except GitOperationError as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return GitOperationResult(
                 success=False,
@@ -762,7 +764,7 @@ class GitOperationsManager:
         Returns:
             GitOperationResult with cleanup details
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
         current_branch = self.get_current_branch()
 
         try:
@@ -789,7 +791,7 @@ class GitOperationsManager:
             # Clean up remote tracking branches
             self._run_git_command(["remote", "prune", "origin"], check=False)
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return GitOperationResult(
                 success=True,
@@ -802,7 +804,7 @@ class GitOperationsManager:
             )
 
         except GitOperationError as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return GitOperationResult(
                 success=False,

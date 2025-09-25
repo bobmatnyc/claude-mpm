@@ -22,7 +22,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 try:
@@ -111,7 +111,7 @@ class OptimizedAgentLoader:
         try:
             mtime = file_path.stat().st_mtime
             return f"agent:{file_path}:{mtime}"
-        except:
+        except Exception:
             return f"agent:{file_path}"
 
     def _load_agent_file(self, file_path: Path) -> Optional[Dict[str, Any]]:
@@ -154,7 +154,7 @@ class OptimizedAgentLoader:
 
             # Add metadata
             agent_data["_file_path"] = str(file_path)
-            agent_data["_loaded_at"] = datetime.now().isoformat()
+            agent_data["_loaded_at"] = datetime.now(timezone.utc).isoformat()
 
             # Cache the result
             self.cache.put(cache_key, agent_data, ttl=self.cache_ttl)
@@ -188,7 +188,7 @@ class OptimizedAgentLoader:
                 data = yaml.safe_load(frontmatter) or {}
                 data["instructions"] = body
                 return data
-            except:
+            except Exception:
                 pass
 
         # No frontmatter, treat as pure instructions
@@ -322,7 +322,7 @@ class OptimizedAgentLoader:
 
             # Add metadata
             agent_data["_file_path"] = str(file_path)
-            agent_data["_loaded_at"] = datetime.now().isoformat()
+            agent_data["_loaded_at"] = datetime.now(timezone.utc).isoformat()
 
             # Cache the result
             self.cache.put(cache_key, agent_data, ttl=self.cache_ttl)
@@ -366,7 +366,7 @@ class OptimizedAgentLoader:
                     "template": template,
                     "variables": self._extract_variables(template),
                     "sections": self._extract_sections(template),
-                    "compiled_at": datetime.now().isoformat(),
+                    "compiled_at": datetime.now(timezone.utc).isoformat(),
                 }
 
                 # Cache compiled template

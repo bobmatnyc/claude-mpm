@@ -21,7 +21,7 @@ from typing import Any, Dict
 from ...core.logger import get_logger
 
 
-def manage_debug(args):
+def manage_debug(args):  # noqa: PLR0911
     """
     Main entry point for debug commands.
 
@@ -216,7 +216,7 @@ def debug_services(args, logger):
                 container = DIContainer.get_instance()
             else:
                 container = DIContainer()
-        except:
+        except Exception:
             # Create a new container if none exists
             container = DIContainer()
             logger.warning("No active container found, created new instance")
@@ -408,7 +408,7 @@ def debug_agents(args, logger):
                             agent_name = agent_file.stem
                             size = agent_file.stat().st_size
                             modified = datetime.fromtimestamp(
-                                agent_file.stat().st_mtime, timezone.utc
+                                agent_file.stat().st_mtime, tz=timezone.utc
                             )
                             print(f"   • {agent_name}")
                             print(f"     Size: {size:,} bytes")
@@ -684,7 +684,7 @@ def debug_hooks(args, logger):
                         hook.execute(test_context)
                         elapsed = time.time() - start
                         times.append(elapsed)
-                    except:
+                    except Exception:
                         pass
 
                 if times:
@@ -1075,7 +1075,7 @@ def _profile_memory_operations():
         try:
             memory.add_memory(f"category_{i}", {"data": f"test_{i}"})
             memory.get_memories()
-        except:
+        except Exception:
             pass
 
 

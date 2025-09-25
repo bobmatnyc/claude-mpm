@@ -8,6 +8,7 @@ WHY this integration module:
 """
 
 import logging
+from datetime import datetime, timezone
 from typing import Optional
 
 from claude_mpm.services.event_bus import EventBus
@@ -51,14 +52,14 @@ class EventBusIntegration:
         from datetime import datetime
 
         print(
-            f"[{datetime.now().isoformat()}] EventBusIntegration.setup() called",
+            f"[{datetime.now(timezone.utc).isoformat()}] EventBusIntegration.setup() called",
             flush=True,
         )
 
         if not self.enabled:
             logger.info("EventBus integration disabled by configuration")
             print(
-                f"[{datetime.now().isoformat()}] EventBus integration disabled by configuration",
+                f"[{datetime.now(timezone.utc).isoformat()}] EventBus integration disabled by configuration",
                 flush=True,
             )
             return False
@@ -66,12 +67,13 @@ class EventBusIntegration:
         try:
             # Get EventBus instance
             print(
-                f"[{datetime.now().isoformat()}] Getting EventBus instance...",
+                f"[{datetime.now(timezone.utc).isoformat()}] Getting EventBus instance...",
                 flush=True,
             )
             self.event_bus = EventBus.get_instance()
             print(
-                f"[{datetime.now().isoformat()}] EventBus instance obtained", flush=True
+                f"[{datetime.now(timezone.utc).isoformat()}] EventBus instance obtained",
+                flush=True,
             )
 
             # Apply configuration
@@ -79,31 +81,36 @@ class EventBusIntegration:
 
             # Create direct relay that uses server's broadcaster
             print(
-                f"[{datetime.now().isoformat()}] Creating DirectSocketIORelay...",
+                f"[{datetime.now(timezone.utc).isoformat()}] Creating DirectSocketIORelay...",
                 flush=True,
             )
             if self.server:
                 self.relay = DirectSocketIORelay(self.server)
                 print(
-                    f"[{datetime.now().isoformat()}] DirectSocketIORelay created with server instance",
+                    f"[{datetime.now(timezone.utc).isoformat()}] DirectSocketIORelay created with server instance",
                     flush=True,
                 )
             else:
                 logger.warning("No server instance provided, relay won't work")
                 print(
-                    f"[{datetime.now().isoformat()}] WARNING: No server instance for relay",
+                    f"[{datetime.now(timezone.utc).isoformat()}] WARNING: No server instance for relay",
                     flush=True,
                 )
                 return False
 
             # Start the relay
-            print(f"[{datetime.now().isoformat()}] Starting relay...", flush=True)
+            print(
+                f"[{datetime.now(timezone.utc).isoformat()}] Starting relay...",
+                flush=True,
+            )
             self.relay.start()
-            print(f"[{datetime.now().isoformat()}] Relay started", flush=True)
+            print(
+                f"[{datetime.now(timezone.utc).isoformat()}] Relay started", flush=True
+            )
 
             logger.info("EventBus integration setup complete with DirectSocketIORelay")
             print(
-                f"[{datetime.now().isoformat()}] EventBus integration setup complete with DirectSocketIORelay",
+                f"[{datetime.now(timezone.utc).isoformat()}] EventBus integration setup complete with DirectSocketIORelay",
                 flush=True,
             )
             return True
@@ -111,7 +118,7 @@ class EventBusIntegration:
         except Exception as e:
             logger.error(f"Failed to setup EventBus integration: {e}")
             print(
-                f"[{datetime.now().isoformat()}] Failed to setup EventBus integration: {e}",
+                f"[{datetime.now(timezone.utc).isoformat()}] Failed to setup EventBus integration: {e}",
                 flush=True,
             )
             import traceback

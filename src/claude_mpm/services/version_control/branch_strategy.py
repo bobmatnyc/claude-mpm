@@ -14,7 +14,7 @@ This module provides comprehensive branch strategy management including:
 import logging
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -396,7 +396,7 @@ class BranchStrategyManager:
                 return f"{prefix}{ticket_id}"
             if description:
                 return f"{prefix}{self._sanitize_branch_name(description)}"
-            return f"{prefix}{datetime.now().strftime('%Y%m%d')}"
+            return f"{prefix}{datetime.now(timezone.utc).strftime('%Y%m%d')}"
 
         # Generate name based on rule
         if strategy.strategy_type == BranchStrategyType.ISSUE_DRIVEN:

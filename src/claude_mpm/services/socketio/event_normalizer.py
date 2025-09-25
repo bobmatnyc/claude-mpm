@@ -15,7 +15,7 @@ DESIGN DECISION: Transform all events to a consistent schema:
 
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, Optional, Tuple
 
@@ -243,7 +243,7 @@ class EventNormalizer:
                 source="system",
                 type="unknown",
                 subtype="error",
-                timestamp=datetime.now().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
                 data={"original": str(event_data), "error": str(e)},
             )
 
@@ -277,7 +277,9 @@ class EventNormalizer:
             source=source,
             type=event_data.get("type", "unknown"),
             subtype=event_data.get("subtype", "generic"),
-            timestamp=event_data.get("timestamp", datetime.now().isoformat()),
+            timestamp=event_data.get(
+                "timestamp", datetime.now(timezone.utc).isoformat()
+            ),
             data=event_data.get("data", {}),
         )
 
@@ -340,7 +342,7 @@ class EventNormalizer:
 
         return "unknown"
 
-    def _map_event_name(self, event_name: str) -> Tuple[str, str]:
+    def _map_event_name(self, event_name: str) -> Tuple[str, str]:  # noqa: PLR0911
         """Map event name to (type, subtype) tuple.
 
         WHY: Consistent categorization helps clients filter and handle events.
@@ -553,16 +555,18 @@ class EventNormalizer:
                     # Convert other formats
                     try:
                         if isinstance(timestamp, (int, float)):
-                            return datetime.fromtimestamp(timestamp).isoformat()
-                    except:
+                            return datetime.fromtimestamp(
+                                timestamp, tz=timezone.utc
+                            ).isoformat()
+                    except Exception:
                         pass
 
         # Generate new timestamp if not found
-        return datetime.now().isoformat()
+        return datetime.now(timezone.utc).isoformat()
 
     def _determine_source(
         self, event_data: Any, event_type: str, source_override: Optional[str] = None
-    ) -> str:
+    ) -> str:  # noqa: PLR0911
         """Determine the source of an event.
 
         WHY: Knowing where events originate helps with debugging,

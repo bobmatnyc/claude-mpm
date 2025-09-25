@@ -479,9 +479,9 @@ class AgentOperationService(BaseService):
             backup_dir = get_path_manager().get_tracking_dir() / "backups"
             path_ops.ensure_dir(backup_dir)
 
-            from datetime import datetime
+            from datetime import datetime, timezone
 
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             backup_filename = f"{agent_name}_deleted_{timestamp}{source_path.suffix}"
             backup_path = backup_dir / backup_filename
 

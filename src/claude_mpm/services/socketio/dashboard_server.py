@@ -16,7 +16,7 @@ DESIGN DECISIONS:
 - Maintains backward compatibility with existing dashboard clients
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 try:
@@ -125,7 +125,7 @@ class DashboardServer(SocketIOServiceInterface):
         # Update state
         self.running = self.dashboard_server.is_running()
         if self.running:
-            self.stats["start_time"] = datetime.now().isoformat()
+            self.stats["start_time"] = datetime.now(timezone.utc).isoformat()
             self.stats["monitor_connected"] = monitor_connected
 
         self.logger.info(
@@ -224,7 +224,8 @@ class DashboardServer(SocketIOServiceInterface):
             "monitor_stats": monitor_stats,
             "uptime": (
                 (
-                    datetime.now() - datetime.fromisoformat(self.stats["start_time"])
+                    datetime.now(timezone.utc)
+                    - datetime.fromisoformat(self.stats["start_time"])
                 ).total_seconds()
                 if self.stats["start_time"]
                 else 0

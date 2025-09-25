@@ -10,7 +10,7 @@ WHY: Eliminates HTTP overhead for in-process events while maintaining external A
 
 import asyncio
 import weakref
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Set
 
 import aiohttp
@@ -203,7 +203,7 @@ class AsyncEventEmitter:
             "namespace": namespace,
             "event": event,
             "data": data,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "source": "async_emitter",
         }
 

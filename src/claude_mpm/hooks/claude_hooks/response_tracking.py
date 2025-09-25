@@ -9,7 +9,7 @@ import json
 import os
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 # Debug mode
@@ -192,7 +192,7 @@ class ResponseTrackingManager:
                 "has_error": bool(event.get("error")),
                 "duration_ms": event.get("duration_ms"),
                 "working_directory": event.get("cwd", ""),
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "tool_name": "Task",
                 "original_request_timestamp": request_info.get("timestamp"),
             }
@@ -344,7 +344,7 @@ class ResponseTrackingManager:
 
             # Track the response
             metadata = {
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "prompt_timestamp": prompt_data.get("timestamp"),
                 "working_directory": prompt_data.get("working_directory", ""),
                 "event_type": "assistant_response",

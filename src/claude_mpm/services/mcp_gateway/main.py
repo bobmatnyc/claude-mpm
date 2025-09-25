@@ -213,21 +213,35 @@ class MCPGatewayOrchestrator:
                 try:
                     self.logger.info("Initializing external MCP services...")
                     self.external_services = ExternalMCPServiceManager()
-                    external_services = await self.external_services.initialize_services()
+                    external_services = (
+                        await self.external_services.initialize_services()
+                    )
 
                     if external_services and self.registry:
                         for service in external_services:
                             try:
-                                if self.registry.register_tool(service, category="external"):
-                                    self.logger.info(f"Registered external service: {service.service_name}")
+                                if self.registry.register_tool(
+                                    service, category="external"
+                                ):
+                                    self.logger.info(
+                                        f"Registered external service: {service.service_name}"
+                                    )
                                 else:
-                                    self.logger.warning(f"Failed to register external service: {service.service_name}")
+                                    self.logger.warning(
+                                        f"Failed to register external service: {service.service_name}"
+                                    )
                             except Exception as e:
-                                self.logger.warning(f"Error registering {service.service_name}: {e}")
+                                self.logger.warning(
+                                    f"Error registering {service.service_name}: {e}"
+                                )
 
-                    self.logger.info(f"Initialized {len(external_services)} external MCP services")
+                    self.logger.info(
+                        f"Initialized {len(external_services)} external MCP services"
+                    )
                 except Exception as e:
-                    self.logger.warning(f"Failed to initialize external MCP services: {e}")
+                    self.logger.warning(
+                        f"Failed to initialize external MCP services: {e}"
+                    )
                     self.external_services = None
 
             # Initialize communication handler with fallback

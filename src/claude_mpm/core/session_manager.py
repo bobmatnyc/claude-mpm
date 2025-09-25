@@ -4,7 +4,7 @@ import gzip
 import json
 import shutil
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -41,8 +41,8 @@ class SessionManager:
         self.active_sessions[session_id] = {
             "id": session_id,
             "context": context,
-            "created_at": datetime.now().isoformat(),
-            "last_used": datetime.now().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "last_used": datetime.now(timezone.utc).isoformat(),
             "use_count": 0,
             "agents_run": [],
         }
@@ -65,7 +65,7 @@ class SessionManager:
             Session ID
         """
         # Look for existing session in context
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         max_age = timedelta(minutes=max_age_minutes)
 
         for session_id, session_data in self.active_sessions.items():
@@ -95,10 +95,12 @@ class SessionManager:
                 {
                     "agent": agent,
                     "task": task[:100],  # Truncate long tasks
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             )
-            self.active_sessions[session_id]["last_used"] = datetime.now().isoformat()
+            self.active_sessions[session_id]["last_used"] = datetime.now(
+                timezone.utc
+            ).isoformat()
             self._save_sessions()
 
     def cleanup_old_sessions(self, max_age_hours: int = 24, archive: bool = True):
@@ -111,7 +113,7 @@ class SessionManager:
             max_age_hours: Maximum age in hours
             archive: Whether to archive sessions before removing
         """
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         max_age = timedelta(hours=max_age_hours)
 
         expired = []
@@ -223,7 +225,7 @@ class SessionManager:
         archive_dir.mkdir(parents=True, exist_ok=True)
 
         # Create timestamped archive file
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         archive_name = f"sessions_archive_{timestamp}.json.gz"
         archive_path = archive_dir / archive_name
 
@@ -279,7 +281,7 @@ class SessionManager:
             archive_dir = Path.home() / ".claude-mpm" / "archives"
             archive_dir.mkdir(parents=True, exist_ok=True)
 
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             backup_name = f"claude_json_backup_{timestamp}.json.gz"
             backup_path = archive_dir / backup_name
 

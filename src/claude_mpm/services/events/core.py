@@ -12,7 +12,7 @@ import time
 import uuid
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Deque, Dict, List, Optional, Set
 
@@ -225,7 +225,7 @@ class EventBus(IEventBus):
 
         # Add metadata
         if event.metadata:
-            event.metadata.published_at = datetime.now()
+            event.metadata.published_at = datetime.now(timezone.utc)
 
         # Queue event
         self._event_queues[event.priority].append(event)
@@ -353,7 +353,7 @@ class EventBus(IEventBus):
                 # Update metrics
                 if events_processed > 0:
                     self._metrics["events_processed"] += events_processed
-                    self._metrics["last_event_time"] = datetime.now()
+                    self._metrics["last_event_time"] = datetime.now(timezone.utc)
                     self._metrics["queue_size"] = sum(
                         len(q) for q in self._event_queues.values()
                     )
