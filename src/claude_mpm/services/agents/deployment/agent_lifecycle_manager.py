@@ -32,6 +32,7 @@ Created for ISS-0118: Agent Registry and Hierarchical Discovery System
 
 import asyncio
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -52,6 +53,7 @@ from claude_mpm.services.agents.registry.modification_tracker import (
     ModificationType,
 )
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
+from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.utils.path_operations import path_ops
 
 # Import extracted services
@@ -758,7 +760,7 @@ class AgentLifecycleManager(BaseService):
             backup_dir = get_path_manager().get_tracking_dir() / "backups"
             path_ops.ensure_dir(backup_dir)
 
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             backup_filename = f"{agent_name}_deleted_{timestamp}{source_path.suffix}"
             backup_path = backup_dir / backup_filename
 
