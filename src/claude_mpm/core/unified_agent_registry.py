@@ -27,7 +27,6 @@ Architecture:
 
 import contextlib
 import json
-import logging
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -37,7 +36,8 @@ from typing import Any, Dict, List, Optional, Set, Union
 
 from .unified_paths import get_path_manager
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class AgentTier(Enum):

@@ -20,7 +20,6 @@ Security Considerations:
 """
 
 import json
-import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -36,7 +35,8 @@ from claude_mpm.core.constants import (
     TimeoutConfig,
 )
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 @dataclass

@@ -14,13 +14,13 @@ Aliases are stored in ~/.claude-mpm/config_aliases.json
 """
 
 import json
-import logging
 from typing import Dict, List, Optional, Tuple
 
 from ..utils.config_manager import ConfigurationManager
 from .unified_paths import get_path_manager
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class ConfigAliasError(Exception):

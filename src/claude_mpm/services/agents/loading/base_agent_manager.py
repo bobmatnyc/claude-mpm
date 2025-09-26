@@ -7,7 +7,6 @@ Specialized manager for base_agent.md with structured update capabilities.
 Enforces template structure and provides section-specific update methods.
 """
 
-import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -18,7 +17,8 @@ from claude_mpm.agents.base_agent_loader import clear_base_agent_cache
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 from claude_mpm.services.shared import ConfigServiceBase
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class BaseAgentSection(str, Enum):

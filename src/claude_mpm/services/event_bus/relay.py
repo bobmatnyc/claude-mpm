@@ -8,7 +8,6 @@ WHY separate relay component:
 - Supports batching and retry logic in one place
 """
 
-import logging
 import os
 import time
 from datetime import datetime, timezone
@@ -28,7 +27,8 @@ import contextlib
 from .event_bus import EventBus
 
 # Configure logger
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class SocketIORelay:

@@ -18,14 +18,14 @@ DESIGN DECISIONS:
 - Handles agent name normalization for consistent tracking
 """
 
-import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.shared.config_loader import ConfigLoader
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class ResponseTracker:

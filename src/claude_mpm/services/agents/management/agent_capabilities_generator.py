@@ -4,12 +4,12 @@ This service generates markdown content for agent capabilities section
 from discovered deployed agents.
 """
 
-import logging
 from typing import Any, Dict, List
 
 from jinja2 import Template
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class AgentCapabilitiesGenerator:

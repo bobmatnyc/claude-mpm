@@ -5,7 +5,6 @@ handling both new standardized schema and legacy agent formats.
 """
 
 import json
-import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -13,7 +12,8 @@ from claude_mpm.core.agent_registry import AgentRegistryAdapter
 from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.services.shared import ConfigServiceBase
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class DeployedAgentDiscovery(ConfigServiceBase):

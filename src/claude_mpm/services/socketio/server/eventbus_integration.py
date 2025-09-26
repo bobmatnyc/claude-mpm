@@ -7,7 +7,6 @@ WHY this integration module:
 - Provides clean separation of concerns
 """
 
-import logging
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -15,7 +14,8 @@ from claude_mpm.services.event_bus import EventBus
 from claude_mpm.services.event_bus.config import get_config
 from claude_mpm.services.event_bus.direct_relay import DirectSocketIORelay
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class EventBusIntegration:

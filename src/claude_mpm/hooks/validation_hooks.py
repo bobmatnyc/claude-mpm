@@ -6,14 +6,14 @@ Validation hooks for claude-mpm operations.
 Inspired by awesome-claude-code's pre-push validation approach.
 """
 
-import logging
 from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 
 from claude_mpm.validation import AgentValidator, ValidationResult
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class ValidationHooks:

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Memory Format Service - Handles memory content formatting and parsing."""
 
-import logging
 import re
 from datetime import datetime, timezone
 from typing import Dict, List
+
+from claude_mpm.core.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class MemoryFormatService:
@@ -12,7 +15,7 @@ class MemoryFormatService:
 
     def __init__(self):
         """Initialize the memory format service."""
-        self.logger = logging.getLogger(__name__)
+        pass
 
     def build_simple_memory_content(self, agent_id: str, items: List[str]) -> str:
         """Build memory content as a simple list with header and timestamp.

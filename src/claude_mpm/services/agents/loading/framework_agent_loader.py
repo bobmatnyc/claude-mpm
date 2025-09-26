@@ -12,7 +12,6 @@ This service integrates with the main agent_loader.py to provide
 markdown-based agent profiles alongside JSON-based templates.
 """
 
-import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -22,7 +21,8 @@ from claude_mpm.agents.agent_loader import (
 )
 from claude_mpm.core.unified_paths import get_path_manager
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class FrameworkAgentLoader:

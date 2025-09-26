@@ -24,7 +24,6 @@ Architecture:
 - Cached properties with smart invalidation
 """
 
-import logging
 import os
 import sys
 from enum import Enum
@@ -32,7 +31,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Optional, Union
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class PathType(Enum):

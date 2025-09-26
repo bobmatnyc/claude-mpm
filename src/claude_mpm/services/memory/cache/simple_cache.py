@@ -15,7 +15,6 @@ Features:
 """
 
 import fnmatch
-import logging
 import threading
 import time
 from dataclasses import dataclass, field
@@ -24,7 +23,8 @@ from typing import Any, Dict, List, Optional, Set
 
 from claude_mpm.core.interfaces import ICacheService
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 @dataclass

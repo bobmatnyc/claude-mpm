@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Memory Limits Service - Manages memory size limits and configuration."""
 
-import logging
 from typing import Any, Dict, Optional
 
 from claude_mpm.core.config import Config
+from claude_mpm.core.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class MemoryLimitsService:
@@ -24,7 +26,6 @@ class MemoryLimitsService:
             config: Optional Config object for reading configuration
         """
         self.config = config or Config()
-        self.logger = logging.getLogger(__name__)
         self.memory_limits = self._init_memory_limits()
 
     def _init_memory_limits(self) -> Dict[str, Any]:
