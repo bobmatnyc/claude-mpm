@@ -19,7 +19,6 @@ Created: 2025-01-26
 import difflib
 import hashlib
 import json
-import logging
 import re
 from datetime import datetime
 from pathlib import Path
@@ -27,7 +26,8 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from rich.console import Console
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 console = Console()
 
 

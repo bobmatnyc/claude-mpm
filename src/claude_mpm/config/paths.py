@@ -8,14 +8,14 @@ This module provides a consistent, reliable way to access project paths
 without fragile parent.parent.parent patterns.
 """
 
-import logging
 from pathlib import Path
 from typing import Optional, Union
 
 # Import from the unified path management system
 from ..core.unified_paths import get_path_manager
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class ClaudeMPMPaths:

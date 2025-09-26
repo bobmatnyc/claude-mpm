@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Memory Categorization Service - Categorizes learnings into appropriate sections."""
 
-import logging
 from typing import List
+
+from claude_mpm.core.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class MemoryCategorizationService:
@@ -82,7 +85,7 @@ class MemoryCategorizationService:
 
     def __init__(self):
         """Initialize the categorization service."""
-        self.logger = logging.getLogger(__name__)
+        pass
 
     def categorize_learning(self, learning: str) -> str:
         """Categorize a learning item based on its content.

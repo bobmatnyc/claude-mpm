@@ -16,7 +16,6 @@ Key Features:
 """
 
 import json
-import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,7 +23,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 @dataclass

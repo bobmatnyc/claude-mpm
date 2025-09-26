@@ -11,7 +11,11 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
+from claude_mpm.core.logging_utils import get_logger
+
 from .base import BaseEventHandler
+
+logger = get_logger(__name__)
 
 
 def timeout_handler(timeout_seconds: float = 5.0):
@@ -39,49 +43,26 @@ def timeout_handler(timeout_seconds: float = 5.0):
 
                 elapsed = time.time() - start_time
                 if elapsed > timeout_seconds * 0.8:  # Warn if close to timeout
-                    # Try to get logger from closure scope or fallback to print
-                    try:
-                        import logging
-
-                        logger = logging.getLogger(__name__)
-                        logger.warning(
-                            f"⚠️ Handler {handler_name} took {elapsed:.2f}s "
-                            f"(close to {timeout_seconds}s timeout)"
-                        )
-                    except Exception:
-                        print(
-                            f"⚠️ Handler {handler_name} took {elapsed:.2f}s (close to {timeout_seconds}s timeout)"
-                        )
+                    logger.warning(
+                        f"⚠️ Handler {handler_name} took {elapsed:.2f}s "
+                        f"(close to {timeout_seconds}s timeout)"
+                    )
 
                 return result
 
             except asyncio.TimeoutError:
                 elapsed = time.time() - start_time
-                # Try to get logger from closure scope or fallback to print
-                try:
-                    import logging
-
-                    logger = logging.getLogger(__name__)
-                    logger.error(
-                        f"❌ Handler {handler_name} timed out after {elapsed:.2f}s"
-                    )
-                except Exception:
-                    print(f"❌ Handler {handler_name} timed out after {elapsed:.2f}s")
+                logger.error(
+                    f"❌ Handler {handler_name} timed out after {elapsed:.2f}s"
+                )
 
                 return None
 
             except Exception as e:
                 elapsed = time.time() - start_time
-                # Try to get logger from closure scope or fallback to print
-                try:
-                    import logging
-
-                    logger = logging.getLogger(__name__)
-                    logger.error(
-                        f"❌ Handler {handler_name} failed after {elapsed:.2f}s: {e}"
-                    )
-                except Exception:
-                    print(f"❌ Handler {handler_name} failed after {elapsed:.2f}s: {e}")
+                logger.error(
+                    f"❌ Handler {handler_name} failed after {elapsed:.2f}s: {e}"
+                )
                 raise
 
         return wrapper

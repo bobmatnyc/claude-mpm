@@ -6,14 +6,14 @@ including session directory cleanup, archived log removal, and rotation manageme
 """
 
 import gzip
-import logging
 import os
 import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class LogCleanupConfig:

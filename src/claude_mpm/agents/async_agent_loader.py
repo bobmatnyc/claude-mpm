@@ -26,7 +26,6 @@ DESIGN DECISIONS:
 
 import asyncio
 import json
-import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
@@ -41,7 +40,8 @@ from ..validation.agent_validator import AgentValidator
 from .frontmatter_validator import FrontmatterValidator
 
 # Module-level logger
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class AgentTier(Enum):

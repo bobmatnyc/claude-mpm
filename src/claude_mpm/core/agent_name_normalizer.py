@@ -1,9 +1,9 @@
 """Agent name normalization utilities for consistent naming across the system."""
 
-import logging
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class AgentNameNormalizer:

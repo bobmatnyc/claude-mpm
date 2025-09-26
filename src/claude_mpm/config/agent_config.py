@@ -14,7 +14,6 @@ This module handles:
 UPDATED: Migrated to use shared ConfigLoader pattern (TSK-0141)
 """
 
-import logging
 import os
 from dataclasses import dataclass, field
 from enum import Enum
@@ -24,7 +23,8 @@ from typing import Any, Dict, List, Optional
 from claude_mpm.core.shared.config_loader import ConfigLoader, ConfigPattern
 from claude_mpm.core.unified_paths import get_path_manager
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class AgentPrecedenceMode(Enum):

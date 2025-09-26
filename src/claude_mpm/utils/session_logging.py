@@ -6,13 +6,13 @@ Session Logging Utilities
 Convenience functions for session-based response logging.
 """
 
-import logging
 import os
 from typing import Any, Dict, Optional
 
 from claude_mpm.services.claude_session_logger import get_session_logger
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 def is_session_logging_enabled() -> bool:

@@ -4,14 +4,14 @@ This module provides a centralized PathOperations class for common path validati
 and file operations, reducing code duplication across the codebase.
 """
 
-import logging
 import os
 import shutil
 import tempfile
 from pathlib import Path
 from typing import Callable, List, Optional, Union
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class PathOperations:

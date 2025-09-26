@@ -17,7 +17,8 @@ from typing import Any, Callable, Dict, List, Optional, Set
 from pyee.asyncio import AsyncIOEventEmitter
 
 # Configure logger
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class EventBus:

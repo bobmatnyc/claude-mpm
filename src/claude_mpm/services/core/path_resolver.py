@@ -13,13 +13,15 @@ that was previously embedded in FrameworkLoader. It manages:
 The service consolidates path management logic while maintaining backward compatibility.
 """
 
-import logging
 import subprocess
 from enum import Enum
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
+from claude_mpm.core.logging_utils import get_logger
 from .service_interfaces import ICacheManager, IPathResolver
+
+logger = get_logger(__name__)
 
 
 class DeploymentContext(Enum):
@@ -48,7 +50,6 @@ class PathResolver(IPathResolver):
         Args:
             cache_manager: Optional cache manager for caching resolved paths
         """
-        self.logger = logging.getLogger(__name__)
         self.cache_manager = cache_manager
         self._framework_path: Optional[Path] = None
         self._deployment_context: Optional[DeploymentContext] = None

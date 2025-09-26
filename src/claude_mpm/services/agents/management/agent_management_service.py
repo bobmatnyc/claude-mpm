@@ -11,7 +11,6 @@ section extraction/updates, and version management.
 Uses python-frontmatter and mistune for markdown parsing as recommended.
 """
 
-import logging
 import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -33,7 +32,8 @@ from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCac
 
 from ..deployment.agent_versioning import AgentVersionManager
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class AgentManager:

@@ -5,7 +5,6 @@ Assembles sections and applies template variable substitution.
 """
 
 import hashlib
-import logging
 from collections import OrderedDict
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
@@ -13,7 +12,8 @@ from typing import Any, Dict, Optional
 from claude_mpm.services.agents.management import AgentCapabilitiesGenerator
 from claude_mpm.services.agents.registry import DeployedAgentDiscovery
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class ContentAssembler:

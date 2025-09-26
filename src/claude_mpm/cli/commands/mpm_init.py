@@ -9,7 +9,6 @@ documentation with code structure analysis.
 """
 
 import contextlib
-import logging
 import subprocess
 import sys
 from pathlib import Path
@@ -28,7 +27,8 @@ from claude_mpm.services.project.documentation_manager import DocumentationManag
 from claude_mpm.services.project.enhanced_analyzer import EnhancedProjectAnalyzer
 from claude_mpm.services.project.project_organizer import ProjectOrganizer
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 console = Console()
 
 

@@ -16,7 +16,6 @@ import fcntl
 import gzip
 import hashlib
 import json
-import logging
 import os
 import pickle
 import platform
@@ -39,7 +38,8 @@ class StateStorage:
         self.storage_dir.mkdir(parents=True, exist_ok=True)
 
         # Logging
-        self.logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
         # File locking support (Unix-like systems)
         self.supports_locking = platform.system() != "Windows"

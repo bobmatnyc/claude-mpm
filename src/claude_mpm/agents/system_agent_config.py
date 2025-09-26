@@ -15,7 +15,6 @@ Key Features:
 Created: 2025-07-16
 """
 
-import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -29,7 +28,8 @@ from ..config.model_env_defaults import (
 )
 from ..services.model_selector import ModelSelector, ModelType
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 @dataclass

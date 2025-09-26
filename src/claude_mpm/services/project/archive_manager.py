@@ -20,7 +20,6 @@ import difflib
 import gzip
 import hashlib
 import json
-import logging
 import re
 import shutil
 import subprocess
@@ -31,7 +30,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from rich.console import Console
 from rich.table import Table
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 console = Console()
 
 

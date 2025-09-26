@@ -14,7 +14,6 @@ DESIGN DECISIONS:
 """
 
 import argparse
-import logging
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -52,7 +51,8 @@ def run_diagnostics(
         - warning_count: int - number of warnings found
         - message: str - optional error message if failed
     """
-    logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
     # Create diagnostic runner
     runner = DiagnosticRunner(verbose=verbose, fix=fix)

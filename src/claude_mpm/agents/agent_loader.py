@@ -32,7 +32,6 @@ Usage Examples:
     agents = list_available_agents()
 """
 
-import logging
 import os
 import time
 from enum import Enum
@@ -51,7 +50,8 @@ from ..core.agent_name_normalizer import AgentNameNormalizer
 from .base_agent_loader import prepend_base_instructions
 
 # Module-level logger
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class ModelType(str, Enum):

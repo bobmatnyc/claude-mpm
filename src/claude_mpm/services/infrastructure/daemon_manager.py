@@ -16,7 +16,6 @@ This service handles:
 - Status monitoring and health checks
 """
 
-import logging
 import os
 import signal
 import subprocess
@@ -34,7 +33,8 @@ except ImportError:
 # from claude_mpm.core.base_service import BaseService
 from claude_mpm.services.socketio.server.main import SocketIOServer
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class SocketIODaemonManager:
