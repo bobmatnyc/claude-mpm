@@ -340,6 +340,12 @@ class RobustPackageInstaller:
             "tree-sitter-java",
             "tree-sitter-cpp",
             "tree-sitter-c",
+            # Database packages that require compilation
+            "mysqlclient",  # Requires MySQL development headers
+            "psycopg2",  # Requires PostgreSQL development headers
+            "cx_oracle",  # Requires Oracle client libraries
+            "pycairo",  # Requires Cairo development headers
+            "lxml",  # Requires libxml2 development headers
         }
 
         return package_name.lower() in special_packages
@@ -362,6 +368,35 @@ class RobustPackageInstaller:
                 InstallStrategy.PIP_INDEX_URL,
                 InstallStrategy.PIP_NO_DEPS,
             ]
+
+        # Database packages that require compilation
+        compilation_packages = {
+            "mysqlclient": ["pymysql"],  # Pure Python alternative
+            "psycopg2": ["psycopg2-binary"],  # Binary wheel alternative
+            "cx_oracle": [],  # No good alternative
+            "pycairo": [],  # No good alternative
+            "lxml": [],  # Usually works with binary wheels
+        }
+
+        package_lower = package_name.lower()
+        if package_lower in compilation_packages:
+            # Try normal install first, but with limited retries
+            strategies = [InstallStrategy.PIP]
+
+            # If there are alternatives, log suggestion
+            alternatives = compilation_packages[package_lower]
+            if alternatives:
+                logger.info(
+                    f"Package {package_name} requires compilation. "
+                    f"Consider using alternative: {', '.join(alternatives)}"
+                )
+            else:
+                logger.warning(
+                    f"Package {package_name} requires compilation and may fail on systems "
+                    f"without development headers installed."
+                )
+
+            return strategies
 
         return [InstallStrategy.PIP, InstallStrategy.PIP_UPGRADE]
 
@@ -458,6 +493,27 @@ class RobustPackageInstaller:
         """
         if not stderr:
             return "Unknown error"
+
+        # Check for specific compilation errors
+        stderr_lower = stderr.lower()
+
+        if "mysql_config" in stderr_lower or "mysql.h" in stderr_lower:
+            return (
+                "mysqlclient compilation failed (missing MySQL development headers). "
+                "Use 'pip install pymysql' for a pure Python alternative that doesn't require compilation."
+            )
+
+        if "pg_config" in stderr_lower or "libpq-fe.h" in stderr_lower:
+            return (
+                "psycopg2 compilation failed (missing PostgreSQL development headers). "
+                "Use 'pip install psycopg2-binary' for a pre-compiled version."
+            )
+
+        if "oracle" in stderr_lower and "client" in stderr_lower:
+            return (
+                "cx_Oracle compilation failed (missing Oracle client libraries). "
+                "Use 'pip install oracledb' for a pure Python alternative."
+            )
 
         # Look for ERROR: lines
         error_lines = []

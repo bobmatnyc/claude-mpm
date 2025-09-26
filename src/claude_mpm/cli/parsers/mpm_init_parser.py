@@ -30,7 +30,10 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
         ),
         epilog=(
             "Examples:\n"
-            "  claude-mpm mpm-init                          # Initialize current directory\n"
+            "  claude-mpm mpm-init                          # Initialize/update current directory\n"
+            "  claude-mpm mpm-init --review                 # Review project state without changes\n"
+            "  claude-mpm mpm-init --update                 # Update existing CLAUDE.md\n"
+            "  claude-mpm mpm-init --organize               # Organize project structure\n"
             "  claude-mpm mpm-init --project-type web       # Initialize as web project\n"
             "  claude-mpm mpm-init --framework react        # Initialize with React framework\n"
             "  claude-mpm mpm-init /path/to/project --force # Force reinitialize project"
@@ -74,6 +77,16 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
         help="Force reinitialization even if project is already configured",
     )
     init_group.add_argument(
+        "--update",
+        action="store_true",
+        help="Update existing CLAUDE.md instead of recreating (smart merge)",
+    )
+    init_group.add_argument(
+        "--review",
+        action="store_true",
+        help="Review project state without making changes (analysis only)",
+    )
+    init_group.add_argument(
         "--minimal",
         action="store_true",
         help="Create minimal configuration (CLAUDE.md only, no additional setup)",
@@ -111,6 +124,31 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
     )
     template_group.add_argument(
         "--list-templates", action="store_true", help="List available project templates"
+    )
+
+    # Project organization options
+    org_group = mpm_init_parser.add_argument_group("organization options")
+    org_group.add_argument(
+        "--organize",
+        action="store_true",
+        help="Organize misplaced files into proper directories",
+    )
+    org_group.add_argument(
+        "--preserve-custom/--no-preserve-custom",
+        default=True,
+        dest="preserve_custom",
+        help="Preserve custom sections when updating (default: preserve)",
+    )
+    org_group.add_argument(
+        "--skip-archive",
+        action="store_true",
+        help="Skip archiving existing files before updating",
+    )
+    org_group.add_argument(
+        "--archive-dir",
+        type=str,
+        default="docs/_archive",
+        help="Directory for archiving old documentation (default: docs/_archive)",
     )
 
     # Output options

@@ -31,6 +31,22 @@ class AgentDependencyLoader:
     and being used, rather than all possible agents.
     """
 
+    # Optional database packages - if one fails, try alternatives
+    OPTIONAL_DB_PACKAGES = {
+        "mysqlclient": ["pymysql"],  # PyMySQL is a pure Python alternative
+        "psycopg2": ["psycopg2-binary"],  # Binary version doesn't require compilation
+        "cx_Oracle": [],  # No good alternative, mark as optional
+    }
+
+    # Packages that commonly fail compilation on certain platforms
+    COMPILATION_PRONE = [
+        "mysqlclient",  # Requires MySQL development headers
+        "psycopg2",  # Requires PostgreSQL development headers (use psycopg2-binary instead)
+        "cx_Oracle",  # Requires Oracle client libraries
+        "pycairo",  # Requires Cairo development headers
+        "lxml",  # Can fail if libxml2 dev headers missing
+    ]
+
     def __init__(self, auto_install: bool = False):
         """
         Initialize the agent dependency loader.
@@ -44,6 +60,7 @@ class AgentDependencyLoader:
         self.agent_dependencies: Dict[str, Dict] = {}
         self.missing_dependencies: Dict[str, List[str]] = {}
         self.checked_packages: Set[str] = set()
+        self.optional_failed: Dict[str, str] = {}  # Track optional packages that failed
         self.deployment_state_file = (
             Path.cwd() / ".claude" / "agents" / ".mpm_deployment_state"
         )
@@ -130,6 +147,11 @@ class AgentDependencyLoader:
                 self.checked_packages.add(package_name)
                 return True, "built-in"
 
+            # Check if this is an optional package that already failed
+            if package_name in self.optional_failed:
+                logger.debug(f"Skipping optional package {package_name} (previously failed)")
+                return True, "optional-skipped"
+
             # Try to import and check version
             try:
                 import importlib.metadata
@@ -147,6 +169,20 @@ class AgentDependencyLoader:
                     return False, version
 
                 except importlib.metadata.PackageNotFoundError:
+                    # Check if there's an alternative for this optional package
+                    if package_name in self.OPTIONAL_DB_PACKAGES:
+                        for alternative in self.OPTIONAL_DB_PACKAGES[package_name]:
+                            try:
+                                alt_version = importlib.metadata.version(alternative)
+                                logger.info(f"Using {alternative} as alternative to {package_name}")
+                                self.checked_packages.add(package_name)
+                                return True, f"{alternative}:{alt_version}"
+                            except importlib.metadata.PackageNotFoundError:
+                                continue
+                        # If no alternatives work, mark as optional failure
+                        self.optional_failed[package_name] = "No alternatives available"
+                        logger.warning(f"Optional package {package_name} not found, marking as optional")
+                        return True, "optional-not-found"
                     return False, None
 
             except ImportError:
@@ -162,6 +198,19 @@ class AgentDependencyLoader:
                     return False, version
 
                 except pkg_resources.DistributionNotFound:
+                    # Check alternatives for optional packages
+                    if package_name in self.OPTIONAL_DB_PACKAGES:
+                        for alternative in self.OPTIONAL_DB_PACKAGES[package_name]:
+                            try:
+                                alt_version = pkg_resources.get_distribution(alternative).version
+                                logger.info(f"Using {alternative} as alternative to {package_name}")
+                                self.checked_packages.add(package_name)
+                                return True, f"{alternative}:{alt_version}"
+                            except pkg_resources.DistributionNotFound:
+                                continue
+                        self.optional_failed[package_name] = "No alternatives available"
+                        logger.warning(f"Optional package {package_name} not found, marking as optional")
+                        return True, "optional-not-found"
                     return False, None
 
         except InvalidRequirement as e:
