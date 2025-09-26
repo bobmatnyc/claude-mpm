@@ -18,6 +18,7 @@ class MemoryFileService:
             memories_dir: Directory where memory files are stored
         """
         self.memories_dir = memories_dir
+        self.logger = logger  # Use the module-level logger
 
     def get_memory_file_with_migration(self, directory: Path, agent_id: str) -> Path:
         """Get memory file path with migration support.

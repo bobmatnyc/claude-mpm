@@ -107,8 +107,8 @@ def doctor_command(args):
         Exit code (0 for success, 1 for warnings, 2 for errors)
     """
     # Configure logging
-from claude_mpm.core.logging_utils import get_logger
-logger = get_logger(__name__)
+    from claude_mpm.core.logging_utils import get_logger
+    logger = get_logger(__name__)
 
     # Determine output format
     if args.json:

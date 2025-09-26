@@ -12,11 +12,14 @@ This module provides:
 - Content repair and structure validation
 """
 
-import logging
 import re
 from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from typing import Any, Dict, List, Optional, Tuple
+
+from claude_mpm.core.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class MemoryContentManager:
@@ -34,7 +37,7 @@ class MemoryContentManager:
             memory_limits: Dictionary containing memory limits configuration
         """
         self.memory_limits = memory_limits
-        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.logger = logger  # Use the module-level logger
 
     def add_item_to_list(self, content: str, new_item: str) -> str:
         """Add item to memory list with deduplication.
