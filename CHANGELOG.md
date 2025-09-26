@@ -1,3 +1,12 @@
+## [4.3.17] - 2025-09-25
+
+### Added
+- **Documentation Agent Enhancement**: Integrated mcp-vector-search for semantic documentation discovery
+  - Enhanced documentation discovery with semantic search capabilities
+  - Added vector search tools for pattern matching and consistency
+  - Improved documentation workflow with mandatory semantic discovery phase
+  - Updated Documentation agent to v3.4.0 with comprehensive vector search integration
+
 ## [4.3.16] - 2025-09-25
 
 ### Fixed
