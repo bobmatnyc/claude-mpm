@@ -1,3 +1,20 @@
+## [4.3.19] - 2025-09-25
+
+### Added
+- **TypeScript Engineer Agent**: Comprehensive TypeScript development specialist agent
+  - Modern TypeScript 5.0+ features and patterns expertise
+  - Integration with Vite, Bun, ESBuild, SWC for optimal performance
+  - Advanced type-level programming with generics and conditional types
+  - Testing excellence with Vitest, Playwright, and type testing
+  - React 19+, Next.js 15+, Vue 3+ framework integration
+
+### Enhanced
+- **Documentation Agent**: Integrated mcp-vector-search for semantic documentation discovery
+  - Mandatory semantic discovery phase before creating documentation
+  - Pattern matching to maintain consistency with existing docs
+  - Improved documentation workflow with vector search tools
+  - Updated to v3.4.0 with comprehensive search integration
+
 ## [4.3.18] - 2025-09-25
 
 ### Added
