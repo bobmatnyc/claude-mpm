@@ -15,6 +15,12 @@
   - Improved documentation workflow with vector search tools
   - Updated to v3.4.0 with comprehensive search integration
 
+- **Clerk Ops Agent**: Critical insight about ClerkProvider configuration requirements (v1.1.0)
+  - Added prominent documentation about ClerkProvider root-level placement requirement
+  - Emphasized that ClerkProvider cannot be dynamically imported (common pitfall)
+  - Included examples for proper auth-enabled/disabled modes with i18n support
+  - Updated best practices to prevent authentication hook failures
+
 ## [4.3.18] - 2025-09-25
 
 ### Added
