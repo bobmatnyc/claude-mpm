@@ -26,6 +26,7 @@ class MemoryLimitsService:
             config: Optional Config object for reading configuration
         """
         self.config = config or Config()
+        self.logger = logger  # Use the module-level logger
         self.memory_limits = self._init_memory_limits()
 
     def _init_memory_limits(self) -> Dict[str, Any]:
