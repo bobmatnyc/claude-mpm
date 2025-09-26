@@ -685,10 +685,14 @@ async def trigger_vector_search_indexing(project_root: Optional[Path] = None) ->
             cwd=str(project_root),
         )
 
-        # Don't wait for completion - let it run in the background
+        # Store PID for logging
+        pid = process.pid
         logger.debug(
-            f"MCP Vector Search: Indexing process started (PID: {process.pid})"
+            f"MCP Vector Search: Indexing process started (PID: {pid})"
         )
+
+        # Don't wait for completion - let it run independently in the background
+        # We don't need to track its completion, so we can safely detach
 
     except ImportError:
         logger.debug(
@@ -718,13 +722,11 @@ def start_vector_search_indexing(project_root: Optional[Path] = None) -> None:
         # Store reference to avoid RUF006 warning
         _ = loop.create_task(trigger_vector_search_indexing(project_root))
     except RuntimeError:
-        # No event loop running, try async approach first
-        try:
-            asyncio.run(trigger_vector_search_indexing(project_root))
-        except Exception as e:
-            # Fallback to simple subprocess approach
-            logger.debug(f"Async indexing failed, trying subprocess: {e}")
-            _start_vector_search_subprocess(project_root)
+        # No event loop running - use subprocess directly to avoid event loop lifecycle issues
+        # The async approach with asyncio.run() creates and closes a loop which causes
+        # warnings when subprocesses are still running
+        logger.debug("No event loop running, using subprocess approach")
+        _start_vector_search_subprocess(project_root)
 
 
 def _start_vector_search_subprocess(project_root: Optional[Path] = None) -> None:

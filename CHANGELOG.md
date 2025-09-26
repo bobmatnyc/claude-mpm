@@ -1,3 +1,27 @@
+## [4.3.21] - 2025-09-26
+
+### Enhanced
+- **mpm-init Command**: Major enhancement with intelligent update capabilities
+  - Smart detection when CLAUDE.md exists with update/recreate/review options
+  - Project organization verification with 70+ gitignore patterns
+  - Documentation review and archival to docs/_archive/
+  - New supporting services: DocumentationManager, ProjectOrganizer, ArchiveManager, EnhancedProjectAnalyzer
+  - New command options: --update, --review, --organize, --preserve-custom
+  - Git history integration for change tracking
+  - Project structure grading system (A-F)
+  - Maintains backward compatibility with existing functionality
+
+### Fixed
+- **Asyncio Loop Warning**: Fixed event loop lifecycle issue in startup_logging.py
+  - Eliminated "Loop closed" warnings during dependency loading
+  - Improved subprocess handling for background processes
+- **MySQLclient Installation**: Replaced with PyMySQL for better cross-platform compatibility
+  - Added intelligent fallback mechanisms for database drivers
+  - Created comprehensive database driver documentation
+- **Memory File Naming**: Fixed hyphenated vs underscore naming inconsistencies
+  - Automatic normalization and migration of memory files
+  - Backward compatibility for existing installations
+
 ## [4.3.20] - 2025-09-25
 
 ### Enhanced

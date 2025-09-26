@@ -57,6 +57,12 @@ def manage_mpm_init(args):  # noqa: PLR0911
             "verbose": getattr(args, "verbose", False),
             "use_venv": getattr(args, "use_venv", False),
             "ast_analysis": getattr(args, "ast_analysis", True),
+            "update_mode": getattr(args, "update", False),
+            "review_only": getattr(args, "review", False),
+            "organize_files": getattr(args, "organize", False),
+            "preserve_custom": getattr(args, "preserve_custom", True),
+            "skip_archive": getattr(args, "skip_archive", False),
+            "dry_run": getattr(args, "dry_run", False),
         }
 
         # Execute initialization (now synchronous)
