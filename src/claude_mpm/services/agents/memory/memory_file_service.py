@@ -21,18 +21,37 @@ class MemoryFileService:
         """Get memory file path with migration support.
 
         Migrates from old naming convention if needed.
+        Also handles hyphen to underscore conversion for agent IDs.
 
         Args:
             directory: Directory to check for memory file
-            agent_id: Agent identifier
+            agent_id: Agent identifier (may contain hyphens or underscores)
 
         Returns:
             Path to the memory file
         """
-        new_file = directory / f"{agent_id}_memories.md"
-        old_file = directory / f"{agent_id}_memory.md"
+        # Normalize agent_id to use underscores (matching deployed agent names)
+        normalized_id = agent_id.replace("-", "_")
 
-        # Migrate from old naming convention if needed
+        # Define possible file paths
+        new_file = directory / f"{normalized_id}_memories.md"
+        old_file = directory / f"{normalized_id}_memory.md"
+
+        # Also check for legacy hyphenated versions
+        hyphenated_file = directory / f"{agent_id}_memories.md" if "-" in agent_id else None
+
+        # Migration priority:
+        # 1. If hyphenated version exists and normalized doesn't, migrate it
+        if hyphenated_file and hyphenated_file.exists() and not new_file.exists():
+            try:
+                hyphenated_file.rename(new_file)
+                self.logger.info(f"Migrated hyphenated memory file: {hyphenated_file} -> {new_file}")
+            except Exception as e:
+                self.logger.warning(f"Could not migrate hyphenated memory file: {e}")
+                # Fall back to using the hyphenated version
+                return hyphenated_file
+
+        # 2. Migrate from old naming convention (_memory.md to _memories.md)
         if old_file.exists() and not new_file.exists():
             try:
                 old_file.rename(new_file)
