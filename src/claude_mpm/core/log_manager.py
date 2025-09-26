@@ -16,7 +16,6 @@ DESIGN DECISIONS:
 
 import asyncio
 import json
-import logging
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -27,7 +26,8 @@ from typing import Any, Dict, Optional
 from ..core.config import Config
 from ..core.constants import SystemLimits
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 # Import cleanup utility for automatic cleanup
 try:

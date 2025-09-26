@@ -18,7 +18,8 @@ from ..utils.config_manager import ConfigurationManager
 from .exceptions import ConfigurationError, FileOperationError
 from .unified_paths import get_path_manager
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class Config:

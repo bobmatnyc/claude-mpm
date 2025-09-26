@@ -1,3 +1,21 @@
+## [4.3.22] - 2025-09-26
+
+### Optimized
+- **Codebase Optimization Phase 1**: Major code deduplication and consolidation effort
+  - Centralized 397 duplicate logger instances to use LoggerFactory
+  - Created common utility module consolidating 20+ frequently duplicated functions
+  - Migrated 50+ files to use centralized utilities
+  - Initial reduction of ~550 lines of code
+  - Built automated migration scripts for safe refactoring
+
+### Fixed
+- **Hook Handler Errors**: Fixed critical indentation and import placement issues
+  - Corrected imports incorrectly placed inside methods by migration script
+  - Fixed TodoWrite tool functionality in hook system
+  - Resolved multiple Python syntax errors across 6+ files
+  - Restored proper event processing in claude_hooks module
+- **Circular Import**: Removed self-import in logging_utils.py
+
 ## [4.3.21] - 2025-09-26
 
 ### Enhanced

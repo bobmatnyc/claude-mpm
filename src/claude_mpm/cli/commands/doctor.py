@@ -11,7 +11,6 @@ DESIGN DECISIONS:
 - Future: Support --fix flag for automatic remediation
 """
 
-import logging
 import sys
 from pathlib import Path
 
@@ -108,7 +107,8 @@ def doctor_command(args):
         Exit code (0 for success, 1 for warnings, 2 for errors)
     """
     # Configure logging
-    logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
     # Determine output format
     if args.json:

@@ -8,7 +8,6 @@ with proper error handling, timeouts, and process cleanup.
 
 import asyncio
 import contextlib
-import logging
 import shlex
 import subprocess
 import time
@@ -16,7 +15,8 @@ from typing import Any, Dict, List, Optional
 
 import psutil
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class SubprocessError(Exception):

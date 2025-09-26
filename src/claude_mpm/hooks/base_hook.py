@@ -1,14 +1,14 @@
 """Base hook class and types for claude-mpm hook system."""
 
 import asyncio
-import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, Optional
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class HookType(Enum):

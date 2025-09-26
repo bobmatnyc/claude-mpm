@@ -22,7 +22,6 @@ Usage:
 """
 
 import json
-import logging
 import os
 from enum import Enum
 from pathlib import Path
@@ -31,7 +30,8 @@ from typing import Dict, Optional
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 
 # Module-level logger
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 # Cache key for base agent instructions
 BASE_AGENT_CACHE_KEY = "base_agent:instructions"

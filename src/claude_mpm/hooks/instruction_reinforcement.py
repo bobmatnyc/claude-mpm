@@ -5,13 +5,13 @@ This hook monitors PM behavior for delegation violations and provides
 escalating warnings when the PM attempts to implement instead of delegate.
 """
 
-import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class ViolationType(Enum):

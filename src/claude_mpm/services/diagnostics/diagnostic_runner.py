@@ -6,9 +6,10 @@ and aggregate results for reporting.
 """
 
 import asyncio
-import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Type
+
+from claude_mpm.core.logging_utils import get_logger
 
 from .checks import (
     AgentCheck,
@@ -24,6 +25,8 @@ from .checks import (
     StartupLogCheck,
 )
 from .models import DiagnosticResult, DiagnosticStatus, DiagnosticSummary
+
+logger = get_logger(__name__)
 
 
 class DiagnosticRunner:
@@ -42,8 +45,6 @@ class DiagnosticRunner:
         """
         self.verbose = verbose
         self.fix = fix
-        self.logger = logging.getLogger(__name__)
-
         # Define check order (dependencies first)
         self.check_classes: List[Type[BaseDiagnosticCheck]] = [
             InstallationCheck,

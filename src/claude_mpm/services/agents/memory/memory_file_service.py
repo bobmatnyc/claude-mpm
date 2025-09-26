@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Memory File Service - Handles file operations for agent memories."""
 
-import logging
 from pathlib import Path
+
+from claude_mpm.core.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class MemoryFileService:
@@ -15,7 +18,6 @@ class MemoryFileService:
             memories_dir: Directory where memory files are stored
         """
         self.memories_dir = memories_dir
-        self.logger = logging.getLogger(__name__)
 
     def get_memory_file_with_migration(self, directory: Path, agent_id: str) -> Path:
         """Get memory file path with migration support.

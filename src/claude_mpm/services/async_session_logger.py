@@ -33,7 +33,8 @@ from claude_mpm.core.constants import PerformanceConfig, SystemLimits, TimeoutCo
 # Import configuration manager
 from ..core.config import Config
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class LogFormat(Enum):

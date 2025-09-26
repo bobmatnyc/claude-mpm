@@ -25,11 +25,11 @@ integrate selected features into the main CLI.
 Implements error handling and user guidance patterns from awesome-claude-code.
 """
 
-import logging
 import sys
 
 import click
 
+from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.hooks.validation_hooks import ValidationHooks
 from claude_mpm.utils.error_handler import (
     ErrorContext,
@@ -38,7 +38,7 @@ from claude_mpm.utils.error_handler import (
 )
 from claude_mpm.validation import AgentValidator, ValidationResult
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class CLIContext:
@@ -53,6 +53,7 @@ class CLIContext:
 
     def setup_logging(self, debug: bool = False) -> None:
         """Setup logging based on debug flag."""
+        import logging
         level = logging.DEBUG if debug else logging.INFO
         format_str = (
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

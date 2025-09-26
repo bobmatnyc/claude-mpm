@@ -1,5 +1,3 @@
-from pathlib import Path
-
 """
 Enhanced version parsing system with multiple source support and fallback mechanisms.
 
@@ -17,12 +15,16 @@ The system includes caching for performance and validation for data integrity.
 
 import contextlib
 import json
-import logging
 import re
 import subprocess
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+from claude_mpm.core.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class VersionSource:
@@ -104,7 +106,6 @@ class EnhancedVersionParser:
         """
         self.project_root = project_root or Path.cwd()
         self.cache_ttl = cache_ttl
-        self.logger = logging.getLogger(__name__)
         self._cache: Dict[str, Tuple[datetime, any]] = {}
 
         # Compile regex patterns once for efficiency

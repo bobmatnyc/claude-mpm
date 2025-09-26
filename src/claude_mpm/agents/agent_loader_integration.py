@@ -7,14 +7,14 @@ Integrates the new agent management service with the existing agent loader.
 Provides backward compatibility while enabling advanced features.
 """
 
-import logging
 from typing import Any, Dict, Optional
 
 from ..models.agent_definition import AgentDefinition
 from ..services import AgentManager
 from .agent_loader import get_agent_prompt
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class EnhancedAgentLoader:

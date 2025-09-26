@@ -1,5 +1,3 @@
-from pathlib import Path
-
 #!/usr/bin/env python3
 """
 Agent Modification Tracker - Consolidated Service
@@ -25,22 +23,25 @@ combining all functionality into a single module for better maintainability.
 import asyncio
 import hashlib
 import json
-import logging
 import shutil
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
 from claude_mpm.core.base_service import BaseService
+from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.unified_agent_registry import UnifiedAgentRegistry as AgentRegistry
 from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
+
+logger = get_logger(__name__)
 
 # ============================================================================
 # Data Models
@@ -154,7 +155,6 @@ class AgentFileSystemHandler(FileSystemEventHandler):
 
     def __init__(self, tracker: "AgentModificationTracker"):
         self.tracker = tracker
-        self.logger = logging.getLogger(__name__)
 
     def on_created(self, event: FileSystemEvent) -> None:
         """Handle file creation events."""

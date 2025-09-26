@@ -10,7 +10,8 @@ from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Type
 
-logger = logging.getLogger(__name__)
+from claude_mpm.core.logging_utils import get_logger
+logger = get_logger(__name__)
 
 
 class MPMError(Exception):
