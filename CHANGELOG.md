@@ -1,3 +1,18 @@
+## [4.3.18] - 2025-09-25
+
+### Added
+- **TypeScript Engineer Agent**: New specialized agent for TypeScript development and optimization
+  - Advanced TypeScript patterns and best practices
+  - Frontend framework integration (React, Vue, Angular)
+  - Build system optimization and toolchain management
+  - TypeScript-specific testing and quality assurance
+
+### Enhanced
+- **Documentation Agent**: Further improved semantic search integration and capabilities
+  - Enhanced vector search patterns for better documentation discovery
+  - Improved consistency checks and pattern matching
+  - Optimized semantic discovery workflow performance
+
 ## [4.3.17] - 2025-09-25
 
 ### Added
