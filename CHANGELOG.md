@@ -1,3 +1,15 @@
+## [4.3.20] - 2025-09-25
+
+### Enhanced
+- **Clerk Ops Agent**: Enhanced ClerkProvider configuration insights (v1.1.0)
+  - Comprehensive ClerkProvider placement documentation for authentication reliability
+  - Critical insights about dynamic import limitations preventing common pitfalls
+  - Authentication mode examples with proper configuration patterns
+  - Updated best practices to ensure stable authentication workflows
+
+### Fixed
+- Version synchronization across all package configuration files
+
 ## [4.3.19] - 2025-09-25
 
 ### Added
