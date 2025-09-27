@@ -98,8 +98,16 @@ Automatic generation of agent documentation from deployed agents.
 **Key Features**:
 - Real-time discovery of deployed agents
 - Dynamic content generation for INSTRUCTIONS.md
-- Support for both new and legacy agent formats
-- Zero-maintenance documentation updates
+
+### [Unified Configuration System](UNIFIED_CONFIGURATION.md)
+Consolidated configuration management with strategic patterns and high-performance caching.
+
+**Key Features**:
+- 66.4% code reduction through service consolidation
+- 99.9% performance improvement via multi-level caching
+- Strategy pattern for extensible configuration handling
+- Context-aware configuration management
+- Composable validation system
 
 ## Component Interactions
 

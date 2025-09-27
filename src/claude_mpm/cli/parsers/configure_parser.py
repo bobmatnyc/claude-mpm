@@ -25,11 +25,11 @@ def add_configure_subparser(subparsers) -> argparse.ArgumentParser:
     Returns:
         The configured configure subparser
     """
-    # Configure command - interactive TUI configuration
+    # Configure command - interactive configuration
     configure_parser = subparsers.add_parser(
         CLICommands.CONFIGURE.value,
-        help="Interactive terminal-based configuration interface for managing agents and behaviors",
-        description="Launch an interactive Rich-based TUI for configuring claude-mpm agents, templates, and behavior files",
+        help="Interactive configuration interface for managing agents and behaviors",
+        description="Launch an interactive Rich-based menu for configuring claude-mpm agents, templates, and behavior files",
     )
 
     # Add common arguments
@@ -122,21 +122,10 @@ def add_configure_subparser(subparsers) -> argparse.ArgumentParser:
     # Display options
     display_group = configure_parser.add_argument_group("display options")
     display_group.add_argument(
-        "--no-colors", action="store_true", help="Disable colored output in the TUI"
+        "--no-colors", action="store_true", help="Disable colored output in the interface"
     )
     display_group.add_argument(
         "--compact", action="store_true", help="Use compact display mode"
-    )
-    display_group.add_argument(
-        "--force-rich",
-        action="store_true",
-        help="Force use of Rich menu interface instead of full-screen Textual TUI",
-    )
-    display_group.add_argument(
-        "--no-textual",
-        dest="use_textual",
-        action="store_false",
-        help="Disable Textual TUI and use Rich menu interface",
     )
 
     return configure_parser

@@ -246,35 +246,8 @@ class ConfigureCommand(BaseCommand):
         return self._run_interactive_tui(args)
 
     def _run_interactive_tui(self, args) -> CommandResult:
-        """Run the main interactive TUI."""
-        # Check if we can use the modern Textual TUI
-        use_textual = getattr(args, "use_textual", True)
-        force_rich = getattr(args, "force_rich", False)
-
-        if use_textual and not force_rich:
-            try:
-                # Try to import and use Textual TUI
-                from .configure_tui import can_use_tui, launch_tui
-
-                if can_use_tui():
-                    self.console.print(
-                        "[cyan]Launching full-screen configuration interface...[/cyan]"
-                    )
-                    return launch_tui(self.current_scope, self.project_dir)
-                # Fall back to Rich TUI if terminal doesn't support full-screen
-                self.console.print(
-                    "[yellow]Terminal doesn't support full-screen mode. Using menu interface.[/yellow]"
-                )
-            except ImportError:
-                # Textual not available, fall back to Rich
-                self.console.print(
-                    "[yellow]Textual not installed. Using menu interface.[/yellow]"
-                )
-                self.console.print(
-                    "[dim]Install textual for a better experience: pip install textual[/dim]"
-                )
-
-        # Original Rich-based TUI
+        """Run the main interactive menu interface."""
+        # Rich-based menu interface
         try:
             self.console.clear()
 

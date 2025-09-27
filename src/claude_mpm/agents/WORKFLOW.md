@@ -67,20 +67,8 @@ Return: Clean or list of blocked items
 **When user mentions**: ticket, epic, issue, task tracking
 
 **Process**:
-1. Create ISS (single session) or EP (multi-session)
-2. Create TSK for each phase completed
-3. Update with `aitrackdown comment/transition`
-
-**Hierarchy**:
-```
-EP-0001 (Epic)
-└── ISS-0001 (Session Issue)
-    ├── TSK-0001 (Research)
-    ├── TSK-0002 (Code Analyzer)
-    ├── TSK-0003 (Implementation)
-    ├── TSK-0004 (QA)
-    └── TSK-0005 (Documentation)
-```
+Use the mcp-ticketer MCP service for ticket management.
+Ticketing is handled through the MCP Gateway, not internal CLI commands.
 
 ## Structural Delegation Format
 

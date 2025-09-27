@@ -90,40 +90,6 @@ claude-mpm --logging DEBUG
 claude-mpm --no-hooks
 ```
 
-## Terminal UI Mode
-
-Claude MPM includes a terminal UI that shows Claude output, ToDo lists, and tickets in separate panes:
-
-```bash
-# Launch with rich UI (requires pip install claude-mpm[ui])
-claude-mpm --mpm:ui
-
-# Launch with basic curses UI
-claude-mpm --mpm:ui --mode curses
-```
-
-### Terminal UI Features
-
-- **Claude Output Pane**: Live Claude interaction
-- **ToDo List Pane**: Shows current tasks from Claude's todo system
-- **Tickets Pane**: Browse and create tickets
-- **Keyboard Shortcuts**:
-  - `Tab`: Switch between panes
-  - `F5`: Refresh ToDo and ticket lists
-  - `N`: Create new ticket (when in tickets pane)
-  - `Q`: Quit
-
-### Installing UI Dependencies
-
-For the best terminal UI experience:
-
-```bash
-# With UV
-uv pip install claude-mpm[ui]
-
-# With pip
-pip install claude-mpm[ui]
-```
 
 ## Development Installation
 
