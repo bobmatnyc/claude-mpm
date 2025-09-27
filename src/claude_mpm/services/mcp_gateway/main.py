@@ -107,13 +107,8 @@ try:
 except ImportError:
     DocumentSummarizerTool = None
 
-try:
-    from claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import (
-        UnifiedTicketTool,
-    )
-except ImportError:
-    # Unified ticket tool is optional
-    UnifiedTicketTool = None
+# Ticket tools removed - using mcp-ticketer instead
+UnifiedTicketTool = None
 
 try:
     from claude_mpm.services.mcp_gateway.tools.external_mcp_services import (
@@ -316,12 +311,7 @@ class MCPGatewayOrchestrator:
             except Exception as e:
                 self.logger.warning(f"Could not load document summarizer: {e}")
 
-        # Optional: Unified ticket management tool
-        if UnifiedTicketTool is not None:
-            try:
-                tools.append(UnifiedTicketTool())
-            except Exception as e:
-                self.logger.warning(f"Could not load unified ticket tool: {e}")
+        # Ticket tools removed - mcp-ticketer provides ticket functionality
 
         if not tools:
             self.logger.warning("No tools available to register")

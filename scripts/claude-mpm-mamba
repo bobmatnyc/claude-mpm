@@ -244,7 +244,7 @@ FIRST_ARG="${1:-}"
 # Check if first argument is an MPM command (with or without prefix)
 IS_MPM_COMMAND=false
 
-# Check for prefixed commands (including --mpm:ui)
+# Check for prefixed commands
 if [[ "$FIRST_ARG" == "$MPM_PREFIX"* ]]; then
     IS_MPM_COMMAND=true
     print_info "Detected MPM command: $FIRST_ARG"
@@ -280,10 +280,7 @@ if [[ "$IS_MPM_COMMAND" == true ]]; then
     # Transform --mpm: prefixed flags to regular flags for Python
     ARGS=()
     for arg in "$@"; do
-        if [[ "$arg" == "--mpm:ui" ]]; then
-            # Keep --mpm:ui as is for proper subparser handling
-            ARGS+=("--mpm:ui")
-        elif [[ "$arg" == "--mpm:"* ]]; then
+        if [[ "$arg" == "--mpm:"* ]]; then
             # Transform other --mpm: prefixed commands
             ARGS+=("--mpm:${arg#--mpm:}")
         elif [[ "$arg" == "-mpm:"* ]]; then

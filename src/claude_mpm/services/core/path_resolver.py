@@ -50,6 +50,7 @@ class PathResolver(IPathResolver):
         Args:
             cache_manager: Optional cache manager for caching resolved paths
         """
+        self.logger = get_logger("path_resolver")
         self.cache_manager = cache_manager
         self._framework_path: Optional[Path] = None
         self._deployment_context: Optional[DeploymentContext] = None
