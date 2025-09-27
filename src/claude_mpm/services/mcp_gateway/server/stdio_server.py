@@ -29,15 +29,8 @@ from mcp.types import TextContent, Tool
 # Import pydantic for model patching
 from claude_mpm.core.logger import get_logger
 
-# Import unified ticket tool if available
-try:
-    from claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import (
-        UnifiedTicketTool,
-    )
-
-    TICKET_TOOLS_AVAILABLE = True
-except ImportError:
-    TICKET_TOOLS_AVAILABLE = False
+# Ticket tools removed - using mcp-ticketer instead
+TICKET_TOOLS_AVAILABLE = False
 
 
 def apply_backward_compatibility_patches():
@@ -629,7 +622,8 @@ class SimpleMCPServer:
 
         try:
             self.logger.info("Initializing unified ticket tool...")
-            self.unified_ticket_tool = UnifiedTicketTool()
+            # Ticket tools removed - using mcp-ticketer instead
+            self.unified_ticket_tool = None
             # If the tool has an async init method, call it
             if hasattr(self.unified_ticket_tool, "initialize"):
                 await self.unified_ticket_tool.initialize()

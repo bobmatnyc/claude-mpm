@@ -45,7 +45,7 @@ class MCPGatewayStartupVerifier:
             "system_info",  # System diagnostics
             "health_check",  # Health diagnostics
             "document_summarizer",  # File summarizer
-            "ticket",  # Ticket service (unified)
+            # Ticket functionality now provided by mcp-ticketer
         ]
 
     async def verify_and_configure(self) -> Dict[str, Any]:
@@ -210,7 +210,7 @@ class MCPGatewayStartupVerifier:
                 "..tools.document_summarizer",
                 "DocumentSummarizerTool",
             ),
-            "ticket": ("..tools.unified_ticket_tool", "UnifiedTicketTool"),
+            # Ticket functionality now provided by mcp-ticketer
         }
 
         if tool_name not in tool_map:

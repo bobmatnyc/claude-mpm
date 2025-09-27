@@ -12,7 +12,7 @@ from .base_adapter import (
     SystemInfoToolAdapter,
 )
 from .document_summarizer import DocumentSummarizerTool
-from .unified_ticket_tool import UnifiedTicketTool
+# Ticket tools removed - using mcp-ticketer instead
 
 __all__ = [
     "BaseToolAdapter",
@@ -20,5 +20,4 @@ __all__ = [
     "DocumentSummarizerTool",
     "EchoToolAdapter",
     "SystemInfoToolAdapter",
-    "UnifiedTicketTool",
 ]

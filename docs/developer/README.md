@@ -54,6 +54,7 @@ make safe-release-build # Complete quality gate + build process
 #### 🏗️ System Design
 - **[Architecture Overview](ARCHITECTURE.md)** - Service-oriented design with 5 domains
 - **[Service Layer Guide](SERVICES.md)** - Service development patterns and interfaces
+- **[Unified Configuration](02-core-components/UNIFIED_CONFIGURATION.md)** - Consolidated config system with 99.9% performance improvement
 - **[Performance Guide](PERFORMANCE.md)** - Caching, optimization, and 50-80% improvements
 - **[Security Framework](../reference/SECURITY.md)** - Multi-layered security and validation
 
