@@ -2,7 +2,33 @@
 
 This document provides development guidelines for the claude-mpm project codebase.
 
-## IMPORTANT: Git Commit Message Format
+---
+
+## 🔴 Critical Priority Index
+
+**Essential items you MUST know immediately:**
+
+1. **🔴 [Git Commit Format](#important-git-commit-message-format)** - Use Claude MPM branding, not Claude Code
+2. **🔴 [Never Assume - Always Verify](#critical-principles)** - Core development principle
+3. **🔴 [Quality Commands](#daily-development-commands)** - `make lint-fix`, `make quality`, `make safe-release-build`
+4. **🔴 [File Organization](#project-structure-requirements)** - Scripts in `/scripts/`, tests in `/tests/`, modules in `/src/claude_mpm/`
+5. **🔴 [Development Environment](#development-environment)** - Use `./scripts/claude-mpm --use-venv` for reliable operation
+6. **🔴 [Temporary Files](#temporary-files-and-test-outputs)** - All temp files go in `/tmp/` directory
+
+**🟡 Important items for effective development:**
+- **[Architecture Overview](#architecture-v442)** - Service-oriented architecture with interfaces
+- **[Documentation Index](#-primary-entry-point)** - Start here for navigation
+- **[Service Development](#adding-a-new-service)** - Interface-based patterns
+- **[Version Management](#version-management)** - Dual tracking system
+
+**🟢 Recommended for comprehensive understanding:**
+- **[Common Issues](#common-issues-and-solutions)** - Troubleshooting guide
+- **[Contributing Guidelines](#contributing)** - Code quality standards
+- **[Deployment Process](#deployment-process)** - Release procedures
+
+---
+
+## 🔴 IMPORTANT: Git Commit Message Format
 
 When creating git commits in this project, ALWAYS use the Claude MPM branding:
 
@@ -23,7 +49,7 @@ Note: A git hook at `.git/hooks/prepare-commit-msg` will automatically fix this 
 
 Claude MPM (Multi-Agent Project Manager) is a framework that extends Claude Code with orchestration capabilities for multiple specialized agents, featuring a modern service-oriented architecture with interface-based contracts and dependency injection.
 
-## Architecture (v4.0.25+)
+## 🟡 Architecture (v4.4.2)
 
 Following the TSK-0053 refactoring, Claude MPM features:
 
@@ -68,7 +94,7 @@ Claude MPM supports both Mamba and traditional Python venv environments:
 - **Mamba status**: Currently experiencing dependency conflicts (see [DEVELOPMENT_SETUP.md](docs/user/getting-started/DEVELOPMENT_SETUP.md))
 - **Force venv**: Use `./scripts/claude-mpm --use-venv` for reliable operation
 
-### Critical Principles
+### 🔴 Critical Principles
 
 **🔴 NEVER ASSUME - ALWAYS VERIFY**
 - **NEVER assume** file locations, configurations, or implementations
@@ -77,7 +103,7 @@ Claude MPM supports both Mamba and traditional Python venv environments:
 - **NEVER guess** at directory structures or file contents
 - **ALWAYS confirm** dependencies and imports exist before using them
 
-### Project Structure Requirements
+### 🔴 Project Structure Requirements
 
 1. **File Organization**: Always refer to `docs/developer/STRUCTURE.md` when creating new files
    - **Scripts**: ALL scripts go in `/scripts/`, NEVER in project root
@@ -89,7 +115,7 @@ Claude MPM supports both Mamba and traditional Python venv environments:
    - Never use relative imports in main code
    - Check existing patterns before adding new imports
 
-### Testing Requirements
+### 🔴 Testing Requirements
 
 **Modern Quality Commands (Recommended):**
 ```bash

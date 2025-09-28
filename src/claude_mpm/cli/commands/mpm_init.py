@@ -643,9 +643,9 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
             ):
                 checks_passed.append("Archived existing CLAUDE.md")
 
-        # Check for issues
-        if structure_report.get('issues'):
-            for issue in structure_report['issues']:
+        # Check for issues in validation report
+        if validation.get('issues'):
+            for issue in validation['issues']:
                 warnings.append(issue['description'])
 
         if warnings:
