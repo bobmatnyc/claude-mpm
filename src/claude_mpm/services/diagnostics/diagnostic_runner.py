@@ -45,6 +45,7 @@ class DiagnosticRunner:
         """
         self.verbose = verbose
         self.fix = fix
+        self.logger = logger  # Add logger initialization
         # Define check order (dependencies first)
         self.check_classes: List[Type[BaseDiagnosticCheck]] = [
             InstallationCheck,

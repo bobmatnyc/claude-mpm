@@ -1,3 +1,16 @@
+## [4.4.3] - 2025-09-28
+
+### Fixed
+- Fixed DiagnosticRunner missing logger attribute in doctor command
+- Fixed mpm-init structure_report undefined variable error in update mode
+- Improved MCP service auto-detection and configuration
+- Enhanced error handling for MCP service installation
+
+### Verified
+- MCP service auto-installation flow working correctly
+- All commands functional in fresh installations
+- Docker-based testing infrastructure operational
+
 ## [4.4.2] - 2025-09-27
 
 ### Fixed
