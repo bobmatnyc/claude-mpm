@@ -539,10 +539,126 @@ async def auto_initialize_vector_search():
         logger.debug(f"Vector search auto-initialization error (non-critical): {e}")
 
 
+async def auto_initialize_kuzu_memory():
+    """
+    Auto-initialize kuzu-memory for persistent knowledge storage.
+
+    WHY: Kuzu-memory provides a graph database for structured memory storage
+    with semantic search capabilities, enabling persistent context across sessions.
+
+    DESIGN DECISION:
+    - Automatically install kuzu-memory if not present via pipx
+    - Initialize database in background to avoid blocking startup
+    - Failures are logged but don't prevent the system from starting
+    """
+    logger = get_logger("kuzu_memory_init")
+
+    try:
+        # Import MCPConfigManager to handle installation
+        from claude_mpm.services.mcp_config_manager import MCPConfigManager
+        config_manager = MCPConfigManager()
+
+        # Check if kuzu-memory is already installed
+        kuzu_memory_path = config_manager.detect_service_path("kuzu-memory")
+
+        if kuzu_memory_path:
+            logger.debug(f"kuzu-memory found at: {kuzu_memory_path}")
+        else:
+            # Not installed - attempt installation
+            logger.info("🧠 kuzu-memory not found. Installing via pipx...")
+
+            # First check if pipx is available
+            import shutil
+            import subprocess
+
+            if not shutil.which("pipx"):
+                logger.warning("⚠️ pipx not found. Please install pipx to enable automatic kuzu-memory installation")
+                logger.info("   Install pipx with: python -m pip install --user pipx")
+                return
+
+            try:
+                result = subprocess.run(
+                    ["pipx", "install", "kuzu-memory"],
+                    capture_output=True,
+                    text=True,
+                    timeout=60  # 1 minute timeout for installation
+                )
+
+                if result.returncode == 0:
+                    logger.info("✅ kuzu-memory installed successfully")
+                    # Detect the newly installed path
+                    kuzu_memory_path = config_manager.detect_service_path("kuzu-memory")
+                    if not kuzu_memory_path:
+                        logger.warning("kuzu-memory installed but command not found in PATH")
+                        return
+
+                    # Update the Claude configuration to include the newly installed service
+                    logger.info("📝 Updating Claude configuration...")
+                    config_success, config_msg = config_manager.ensure_mcp_services_configured()
+                    if config_success:
+                        logger.info(f"✅ {config_msg}")
+                    else:
+                        logger.warning(f"⚠️ Configuration update issue: {config_msg}")
+                else:
+                    logger.warning(f"Failed to install kuzu-memory: {result.stderr}")
+                    return
+
+            except subprocess.TimeoutExpired:
+                logger.warning("Installation of kuzu-memory timed out")
+                return
+            except Exception as e:
+                logger.warning(f"Error installing kuzu-memory: {e}")
+                return
+
+        # At this point, kuzu-memory should be available
+        # Get the actual command to use
+        import shutil
+        kuzu_memory_cmd = shutil.which("kuzu-memory")
+        if not kuzu_memory_cmd:
+            # Try pipx installation path as fallback
+            pipx_path = Path.home() / ".local/pipx/venvs/kuzu-memory/bin/kuzu-memory"
+            if pipx_path.exists():
+                kuzu_memory_cmd = str(pipx_path)
+            else:
+                logger.debug("kuzu-memory command not found after installation")
+                return
+
+        # Initialize kuzu-memory database in current project
+        current_dir = Path.cwd()
+        kuzu_memories_dir = current_dir / "kuzu-memories"
+
+        # Check if database is already initialized
+        if kuzu_memories_dir.exists():
+            logger.debug(f"Kuzu-memory database already initialized at {kuzu_memories_dir}")
+        else:
+            logger.info(f"🎯 Initializing kuzu-memory database for project: {current_dir}")
+
+            # Initialize the database in current project directory
+            import subprocess
+            proc = subprocess.run(
+                [kuzu_memory_cmd, "init"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=str(current_dir),
+            )
+
+            if proc.returncode == 0:
+                logger.info("✅ Kuzu-memory database initialized successfully")
+            else:
+                logger.warning(f"⚠️ Kuzu-memory initialization failed: {proc.stderr}")
+
+    except Exception as e:
+        logger.debug(f"Kuzu-memory auto-initialization error (non-critical): {e}")
+
+
 async def pre_warm_mcp_servers():
     """Pre-warm MCP servers from configuration."""
     # Auto-initialize vector search for current project
     await auto_initialize_vector_search()
+
+    # Auto-initialize kuzu-memory for persistent knowledge
+    await auto_initialize_kuzu_memory()
 
     pool = get_process_pool()
 
