@@ -37,6 +37,7 @@ class MCPConfigManager:
         "mcp-vector-search",
         "mcp-browser",
         "mcp-ticketer",
+        "kuzu-memory",
     }
 
     def __init__(self):
@@ -53,9 +54,10 @@ class MCPConfigManager:
         Detect the best path for an MCP service.
 
         Priority order:
-        1. Pipx installation (preferred)
-        2. System PATH (likely from pipx)
-        3. Local venv (fallback)
+        1. For kuzu-memory: prefer v1.1.0+ with MCP support
+        2. Pipx installation (preferred)
+        3. System PATH (likely from pipx or homebrew)
+        4. Local venv (fallback)
 
         Args:
             service_name: Name of the MCP service
@@ -63,6 +65,46 @@ class MCPConfigManager:
         Returns:
             Path to the service executable or None if not found
         """
+        # Special handling for kuzu-memory - prefer v1.1.0+ with MCP support
+        if service_name == "kuzu-memory":
+            candidates = []
+
+            # Check pipx installation
+            pipx_path = self._check_pipx_installation(service_name)
+            if pipx_path:
+                candidates.append(pipx_path)
+
+            # Check system PATH (including homebrew)
+            import shutil
+            system_path = shutil.which(service_name)
+            if system_path and system_path not in candidates:
+                candidates.append(system_path)
+
+            # Choose the best candidate (prefer v1.1.0+ with MCP support)
+            for path in candidates:
+                try:
+                    result = subprocess.run(
+                        [path, "--help"],
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    # Check if this version has MCP support
+                    if "claude" in result.stdout or "mcp" in result.stdout:
+                        self.logger.debug(f"Found kuzu-memory with MCP support at {path}")
+                        return path
+                except:
+                    pass
+
+            # If no MCP-capable version found, log warning but return None
+            if candidates:
+                self.logger.warning(
+                    f"Found kuzu-memory at {candidates[0]} but it lacks MCP support. "
+                    f"Upgrade to v1.1.0+ for MCP integration: pipx upgrade kuzu-memory"
+                )
+            return None  # Don't configure MCP for incompatible versions
+
+        # Standard detection for other services
         # Check pipx installation first
         pipx_path = self._check_pipx_installation(service_name)
         if pipx_path:
@@ -83,7 +125,7 @@ class MCPConfigManager:
             )
             return local_path
 
-        self.logger.warning(f"Service {service_name} not found")
+        self.logger.debug(f"Service {service_name} not found - will auto-install when needed")
         return None
 
     def _check_pipx_installation(self, service_name: str) -> Optional[str]:
@@ -178,6 +220,27 @@ class MCPConfigManager:
             config["env"] = {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
         elif service_name == "mcp-ticketer":
             config["args"] = ["mcp"]
+        elif service_name == "kuzu-memory":
+            # Check kuzu-memory version to determine correct command
+            # v1.1.0+ has "claude mcp-server", v1.0.0 has "serve"
+            import subprocess
+            try:
+                result = subprocess.run(
+                    [service_path, "--help"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                if "claude" in result.stdout:
+                    # v1.1.0+ with claude command
+                    config["args"] = ["claude", "mcp-server"]
+                else:
+                    # v1.0.0 with serve command
+                    config["args"] = ["serve"]
+            except:
+                # Default to older version command
+                config["args"] = ["serve"]
+            # kuzu-memory works with project-specific databases, no custom path needed
         else:
             # Generic config for unknown services
             config["args"] = []

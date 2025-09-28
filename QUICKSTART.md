@@ -76,12 +76,16 @@ Opens dashboard at http://localhost:8765 showing agent activity.
 
 ## What Just Happened?
 
-✅ **Multi-Agent Orchestration**: PM agent automatically delegates to specialists:  
+✅ **Multi-Agent Orchestration**: PM agent automatically delegates to specialists:
    Research → Engineer → QA → Documentation
+
+✅ **Auto-Installing MCP Services**: mcp-vector-search and kuzu-memory installed automatically
+
+✅ **Persistent Knowledge**: Project-specific memory graph tracks learnings across sessions
 
 ✅ **Session Persistence**: Everything saved, resume anytime
 
-✅ **Project Learning**: Agents remember your patterns and preferences
+✅ **Intelligent Context**: Prompts automatically enriched with relevant memories
 
 ✅ **Real-Time Monitoring**: See agent collaboration live
 
@@ -104,9 +108,11 @@ claude-mpm run -i "your task" --non-interactive
 ## 🎯 You're Ready!
 
 That's it! You now have:
-- Multi-agent task delegation
+- Multi-agent task delegation with streamlined Rich interface
+- Auto-installing MCP services (mcp-vector-search, kuzu-memory)
+- Project-specific knowledge graphs for persistent learning
+- Intelligent context enrichment across conversations
 - Persistent sessions
-- Project-aware agents
 - Real-time monitoring
 
 ### Quick Tips

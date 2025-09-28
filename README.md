@@ -1,20 +1,20 @@
 # Claude MPM - Multi-Agent Project Manager
 
-A powerful orchestration framework for Claude Code that enables multi-agent workflows, session management, and real-time monitoring through an intuitive interface.
+A powerful orchestration framework for Claude Code that enables multi-agent workflows, session management, and real-time monitoring through a streamlined Rich-based interface.
 
 > **Quick Start**: See [QUICKSTART.md](QUICKSTART.md) to get running in 5 minutes!
 
 ## Features
 
 - 🤖 **Multi-Agent System**: 15 specialized agents for comprehensive project management
-- 🧠 **Agent Memory System**: Simple list-based persistent learning with JSON response field updates
-- 🔄 **Session Management**: Resume previous sessions with `--resume` 
+- 🧠 **Persistent Knowledge System**: Project-specific kuzu-memory integration for intelligent context retention
+- 🔄 **Session Management**: Resume previous sessions with `--resume`
 - 📊 **Real-Time Monitoring**: Live dashboard with `--monitor` flag
-- 🔌 **MCP Gateway**: Model Context Protocol integration for extensible tool capabilities
-- 📁 **Multi-Project Support**: Per-session working directories
+- 🔌 **Auto-Installing MCP Services**: mcp-vector-search and kuzu-memory automatically installed via pipx
+- 📁 **Multi-Project Support**: Per-session working directories with persistent knowledge graphs
 - 🔍 **Git Integration**: View diffs and track changes across projects
 - 🎯 **Smart Task Orchestration**: PM agent intelligently routes work to specialists
-- ⚡ **50-80% Performance Improvement**: Through intelligent caching and lazy loading
+- ⚡ **Simplified Architecture**: ~3,700 lines removed for better performance and maintainability
 - 🔒 **Enhanced Security**: Comprehensive input validation and sanitization framework
 
 ## Quick Installation
@@ -67,17 +67,17 @@ claude-mpm cleanup-memory
 See [QUICKSTART.md](QUICKSTART.md) for complete usage examples.
 
 
-## Architecture (v4.3.3)
+## Architecture (v4.4.1)
 
-Following continuous improvements through v4.3.3, Claude MPM features:
+Following Phase 3 architectural simplification in v4.4.1, Claude MPM features:
 
-- **Service-Oriented Architecture**: Five specialized service domains with Socket.IO stability improvements
+- **Streamlined Rich Interface**: Removed complex TUI system (~2,500 lines) for cleaner user experience
+- **Auto-Installing MCP Services**: mcp-vector-search and kuzu-memory install automatically via pipx
+- **Persistent Knowledge System**: Project-specific kuzu-memory databases with intelligent prompt enrichment
+- **Service-Oriented Architecture**: Simplified five specialized service domains
 - **Interface-Based Contracts**: All services implement explicit interfaces
-- **Dependency Injection**: Service container with automatic resolution
-- **50-80% Performance Improvement**: Through lazy loading and intelligent caching
+- **Enhanced Performance**: ~3,700 lines removed for better startup time and maintainability
 - **Enhanced Security**: Comprehensive input validation and sanitization framework
-- **Improved Monitoring**: Enhanced dashboard with hierarchical agent display
-- **Socket.IO Stability**: Major reliability improvements for real-time communication
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture information.
 

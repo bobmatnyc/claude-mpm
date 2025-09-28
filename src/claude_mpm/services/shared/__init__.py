@@ -9,7 +9,7 @@ from .async_service_base import AsyncServiceBase
 from .config_service_base import ConfigServiceBase
 from .lifecycle_service_base import LifecycleServiceBase
 from .manager_base import ManagerBase
-from .service_factory import ServiceFactory
+from .service_factory import ServiceFactory, get_service_factory
 
 __all__ = [
     "AsyncServiceBase",
@@ -17,4 +17,5 @@ __all__ = [
     "LifecycleServiceBase",
     "ManagerBase",
     "ServiceFactory",
+    "get_service_factory",
 ]

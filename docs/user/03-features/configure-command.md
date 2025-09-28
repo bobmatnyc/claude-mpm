@@ -1,10 +1,10 @@
 # Configure Command
 
-The `claude-mpm configure` command provides an interactive terminal-based interface for managing claude-mpm configurations, agents, and behavior files.
+The `claude-mpm configure` command provides an interactive Rich-based interface for managing claude-mpm configurations, agents, and behavior files.
 
 ## Overview
 
-The configure command offers both interactive (TUI) and non-interactive modes for:
+The configure command offers both interactive (Rich menu) and non-interactive modes for:
 - Managing agent configurations (enable/disable)
 - Editing agent JSON templates
 - Managing behavior files (identity and workflow)
@@ -15,12 +15,12 @@ The configure command offers both interactive (TUI) and non-interactive modes fo
 
 ### Interactive Mode
 
-Launch the interactive TUI:
+Launch the interactive Rich-based menu:
 ```bash
 claude-mpm configure
 ```
 
-This opens a menu-driven interface with options for:
+This opens a streamlined menu-driven interface with options for:
 - Agent Management
 - Template Editing (coming soon)
 - Behavior File Management (coming soon)
@@ -91,7 +91,7 @@ claude-mpm configure --project-dir /path/to/project
 
 Customize the interface appearance:
 ```bash
-# Disable colors in the TUI
+# Disable colors in the Rich interface
 claude-mpm configure --no-colors
 
 # Use compact display mode
@@ -149,7 +149,7 @@ claude-mpm configure --import-config team_config.json
 # Launch interactive mode
 claude-mpm configure
 
-# In the TUI:
+# In the Rich interface:
 # - Press [1] for Agent Management
 # - Press [e] to enable an agent
 # - Enter the agent ID

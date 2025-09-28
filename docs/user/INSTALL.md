@@ -69,6 +69,8 @@ claude-mpm
 This launches Claude Code with the PM framework loaded, including:
 - System instructions for orchestration
 - Deployed specialized agents (engineer, qa, research, etc.)
+- Automatic MCP service installation (mcp-vector-search, kuzu-memory)
+- Persistent knowledge management with project-specific databases
 - Delegation-only operation mode
 
 ### Non-Interactive Mode
@@ -163,8 +165,25 @@ pip uninstall claude-mpm
 npm uninstall -g @bobmatnyc/claude-mpm
 ```
 
+## Automatic MCP Services
+
+Claude MPM v4.4.1+ automatically installs and configures these MCP services:
+
+### mcp-vector-search
+- **Purpose**: Intelligent code search and project indexing
+- **Installation**: Automatically installed via pipx on first run
+- **Features**: Semantic code search, project analysis, similarity detection
+
+### kuzu-memory
+- **Purpose**: Persistent knowledge management with graph database
+- **Installation**: Automatically installed via pipx on first run
+- **Features**: Project-specific memory storage, context enrichment, conversation history
+
+These services are automatically detected and installed if missing. No manual configuration required!
+
 ## Next Steps
 
 - See [Getting Started Guide](docs/user/01-getting-started/README.md)
 - Read the [User Documentation](docs/user/README.md)
 - Check out [Example Usage](docs/user/02-guides/basic-usage.md)
+- Learn about [Kuzu-Memory Integration](docs/user/03-features/kuzu-memory.md)

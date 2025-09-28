@@ -1,3 +1,52 @@
+## [4.4.2] - 2025-09-27
+
+### Fixed
+- **Critical**: Fixed PathResolver logger attribute error on fresh installs
+- Fixed ServiceFactory creating instances at module import time (now uses lazy initialization)
+- Changed MCP service detection warnings to debug level for cleaner startup
+- Fixed BaseToolAdapter compatibility in ExternalMCPService
+- Resolved kuzu-memory MCP configuration with version detection
+
+### Improved
+- Better error messages for missing MCP services
+- Cleaner startup experience for fresh installations
+- More informative debug messages for service auto-installation
+
+## [4.4.1] - 2025-09-27
+
+### Changed
+- **TUI Removal**: Simplified to Rich-based menu interface (~2,500 lines removed)
+  - Replaced complex Textual TUI with straightforward Rich menus
+  - Removed all TUI-related components, tests, and documentation
+  - Enhanced user experience with cleaner, more reliable menu system
+
+- **Ticket System Migration**: Migrated to mcp-ticketer MCP service (~1,200 lines removed)
+  - Removed internal ticket_tools.py and unified_ticket_tool.py
+  - Full functionality now provided through MCP service integration
+  - Maintained seamless user experience with improved reliability
+
+### Added
+- **Automatic mcp-vector-search Integration**: Smart project indexing on startup
+  - Automatic installation if not present
+  - Intelligent project indexing for code search capabilities
+  - Seamless integration with MCP gateway
+
+- **Modular Framework Components**: New extensible framework architecture
+  - Added src/claude_mpm/core/framework/ for better modularity
+  - Improved service strategy patterns for extensibility
+  - Enhanced configuration management with unified strategies
+
+### Fixed
+- **MCP Service Initialization**: Robust error handling for service startup
+  - Graceful handling of missing or misconfigured MCP services
+  - Improved error messages and recovery mechanisms
+  - Better service health monitoring and reporting
+
+### Technical
+- **Net Code Reduction**: ~3,700 lines removed (significant simplification)
+- **Improved Maintainability**: Cleaner architecture with fewer dependencies
+- **Better Performance**: Reduced startup time and memory footprint
+
 ## [4.4.0] - 2025-09-26
 
 ### Added

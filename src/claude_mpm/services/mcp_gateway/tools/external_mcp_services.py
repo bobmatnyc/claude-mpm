@@ -16,10 +16,10 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
-from claude_mpm.services.mcp_gateway.tools.base_adapter import BaseMCPToolAdapter
+from claude_mpm.services.mcp_gateway.tools.base_adapter import BaseToolAdapter
 
 
-class ExternalMCPService(BaseMCPToolAdapter):
+class ExternalMCPService(BaseToolAdapter):
     """Base class for external MCP service integration."""
 
     def __init__(self, service_name: str, package_name: str):
@@ -30,11 +30,39 @@ class ExternalMCPService(BaseMCPToolAdapter):
             service_name: Name of the service for MCP
             package_name: Python package name to install/run
         """
-        super().__init__()
+        # Import here to avoid circular imports
+        from claude_mpm.services.mcp_gateway.core.interfaces import MCPToolDefinition
+
+        # Create a basic tool definition for the service
+        tool_def = MCPToolDefinition(
+            name=service_name,
+            description=f"External MCP service: {package_name}",
+            input_schema={
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        )
+        super().__init__(tool_def)
         self.service_name = service_name
         self.package_name = package_name
         self.process = None
         self._is_installed = False
+
+    async def invoke(self, invocation):
+        """
+        Invoke method required by BaseToolAdapter interface.
+
+        This base implementation should be overridden by subclasses.
+        """
+        # Import here to avoid circular imports
+        from claude_mpm.services.mcp_gateway.core.interfaces import MCPToolResult
+
+        return MCPToolResult(
+            success=False,
+            error="invoke method not implemented in base ExternalMCPService",
+            execution_time=0.0,
+        )
 
     async def initialize(self) -> bool:
         """Initialize the external service."""
@@ -43,8 +71,8 @@ class ExternalMCPService(BaseMCPToolAdapter):
             self._is_installed = await self._check_installation()
 
             if not self._is_installed:
-                self.logger.warning(
-                    f"{self.package_name} not installed, attempting installation..."
+                self.logger.debug(
+                    f"{self.package_name} not installed - will attempt automatic installation if needed"
                 )
                 await self._install_package()
                 self._is_installed = await self._check_installation()
@@ -389,6 +417,8 @@ class ExternalMCPServiceManager:
         them as tools in the gateway - they run as separate MCP servers.
         """
         # Create service instances
+        # Note: kuzu-memory is configured via MCPConfigManager and runs as a separate MCP server
+        # It doesn't need to be included here since it's already set up through the MCP config
         services = [MCPVectorSearchService(), MCPBrowserService()]
 
         # Initialize each service
@@ -402,7 +432,7 @@ class ExternalMCPServiceManager:
                             f"Initialized external service: {service.service_name}"
                         )
                 elif self.logger:
-                    self.logger.warning(f"Failed to initialize: {service.service_name}")
+                    self.logger.debug(f"Service not available (optional): {service.service_name}")
             except Exception as e:
                 if self.logger:
                     self.logger.error(f"Error initializing {service.service_name}: {e}")
