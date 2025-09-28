@@ -24,9 +24,12 @@ claude-mpm run -i "Hello Claude! Please introduce yourself." --non-interactive
 
 You should see:
 1. Claude MPM starting up
-2. Framework instructions being loaded
-3. Claude's response
-4. Session information
+2. Automatic MCP service installation (mcp-vector-search, kuzu-memory)
+3. Framework instructions being loaded
+4. Claude's response
+5. Session information
+
+**Note**: On first run, Claude MPM automatically installs kuzu-memory and mcp-vector-search via pipx. This provides intelligent code search and persistent memory capabilities.
 
 ## Understanding the Output
 
@@ -58,6 +61,7 @@ claude-mpm
 This launches Claude in an enhanced interactive session where you can:
 - Have natural conversations
 - Claude MPM monitors for tickets and delegations
+- Automatic context enrichment from project knowledge graph
 - Everything is logged automatically
 
 Try these prompts:

@@ -287,20 +287,23 @@ class ServiceFactory:
         self.logger.debug("Cleared all service registrations")
 
 
-# Global factory instance
-_global_factory = ServiceFactory()
+# Global factory instance (lazy initialization)
+_global_factory: Optional[ServiceFactory] = None
 
 
 def get_service_factory() -> ServiceFactory:
-    """Get global service factory instance."""
+    """Get global service factory instance (created on first use)."""
+    global _global_factory
+    if _global_factory is None:
+        _global_factory = ServiceFactory()
     return _global_factory
 
 
 def create_service(service_class: Type[T], **kwargs) -> T:
     """Convenience function to create service using global factory."""
-    return _global_factory.create_service(service_class, **kwargs)
+    return get_service_factory().create_service(service_class, **kwargs)
 
 
 def register_service(service_name: str, service_class: Type) -> None:
     """Convenience function to register service with global factory."""
-    _global_factory.register_service(service_name, service_class)
+    get_service_factory().register_service(service_name, service_class)
