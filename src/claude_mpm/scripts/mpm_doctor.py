@@ -51,9 +51,9 @@ def run_diagnostics(
         - warning_count: int - number of warnings found
         - message: str - optional error message if failed
     """
-from claude_mpm.core.logging_utils import get_logger
+    from claude_mpm.core.logging_utils import get_logger
 
-logger = get_logger(__name__)
+    logger = get_logger(__name__)
 
     # Create diagnostic runner
     runner = DiagnosticRunner(verbose=verbose, fix=fix)
