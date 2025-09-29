@@ -1,3 +1,11 @@
+## [4.5.1] - 2025-09-29
+
+### Fixed
+- **Web QA Agent Version**: Updated agent version to properly reflect UAT enhancement
+  - Changed agent_version from 2.0.0 to 3.0.0 in web_qa.json
+  - Updated timestamp to current date
+  - Agent version now correctly indicates major feature addition
+
 ## [4.5.0] - 2025-09-29
 
 ### Added
