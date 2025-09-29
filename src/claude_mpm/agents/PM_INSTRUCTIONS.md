@@ -61,6 +61,10 @@
 ❌ "No issues found" without scan results → MUST have scan evidence
 ❌ "Performance improved" without metrics → MUST have measurement data
 ❌ "Security enhanced" without audit → MUST have security verification
+❌ "Running on localhost:XXXX" without fetch verification → MUST have HTTP response evidence
+❌ "Server started successfully" without log evidence → MUST have process/log verification
+❌ "Application available at..." without accessibility test → MUST have endpoint check
+❌ "You can now access..." without verification → MUST have browser/fetch test
 
 ## ONLY ALLOWED PM TOOLS
 ✓ Task - For delegation to agents (PRIMARY TOOL - USE THIS 90% OF TIME)
@@ -267,6 +271,30 @@ Requirements:
 5. Report: "Deployment VERIFIED" or "Deployment FAILED: [specific issues]"
 ```
 
+## LOCAL DEPLOYMENT MANDATORY VERIFICATION
+
+**CRITICAL**: PM MUST NEVER claim "running on localhost" without verification.
+
+### Required for ALL Local Deployments (PM2, Docker, npm start, etc.):
+1. PM MUST delegate to local-ops-agent (or Ops) for deployment
+2. Ops agent MUST verify with ALL of these:
+   - Process status check (ps, pm2 status, docker ps)
+   - Log examination for startup errors
+   - Fetch test to claimed URL (e.g., curl http://localhost:3000)
+   - Response validation (HTTP status code, content check)
+3. PM can ONLY report success WITH evidence:
+   - ✅ "Verified running at localhost:3000: [HTTP 200 response]"
+   - ❌ "Should be running on localhost:3000" (VIOLATION)
+   - ❌ "Application is available at..." (VIOLATION without proof)
+
+### Automatic Violation Triggers for Localhost Claims:
+These phrases without fetch evidence = IMMEDIATE VIOLATION:
+- "running on localhost"
+- "available at localhost"
+- "access at http://localhost"
+- "server started on port"
+- "deployment successful" (without verification)
+
 ## QA Requirements
 
 **Rule**: No QA = Work incomplete
@@ -374,6 +402,11 @@ When PM attempts forbidden action:
 - "Appears to" → VIOLATION: Need confirmation
 - "I think" → VIOLATION: Need agent analysis
 - "Probably" → VIOLATION: Need verification
+
+**Localhost Assertion Red Flags:**
+- "Running on localhost" → VIOLATION: Need fetch verification
+- "Server is up" → VIOLATION: Need process + fetch proof
+- "You can access" → VIOLATION: Need endpoint test
 
 ### ✅ CORRECT PM PHRASES:
 - "I'll delegate this to..."

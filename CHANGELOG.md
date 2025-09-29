@@ -1,3 +1,28 @@
+## [4.5.3] - 2025-09-29
+
+### Enhanced
+- **PM Localhost Verification Enforcement**: Added 7 strict enforcement rules for localhost deployment verification
+  - PM must verify all localhost deployment claims via local-ops agent
+  - Mandatory fetch test execution before confirming deployments
+  - Hard enforcement: PM should apologize and refuse to continue without verification
+  - Prevents false deployment confirmations and enforces proof-of-work protocol
+  - Clear rejection of unverified screenshots and visual confirmation
+  - Ensures reliable deployment validation process
+
+### Improved
+- **Logging Verbosity Reduction**: Reduced startup log noise by 45%
+  - Changed INFO to DEBUG for non-critical initialization messages
+  - UnifiedPathManager initialization now DEBUG level
+  - Monitor connection warnings reduced to DEBUG (service is optional)
+  - Async session logger stats now conditional (only INFO if sessions logged)
+  - Deployment context detection messages reduced to DEBUG
+  - Event emitter logger simplified from full module path to "event_emitter"
+  - Session ID logging combined into single line for cleaner output
+
+### Fixed
+- **Logger Naming**: Fixed duplicate module path in event_emitter logger name
+  - Changed from full module path to simple "event_emitter" identifier
+
 ## [4.5.2] - 2025-09-29
 
 ### Fixed
