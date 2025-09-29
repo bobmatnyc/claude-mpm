@@ -47,7 +47,9 @@ class MCPConfigManager:
     STATIC_MCP_CONFIGS = {
         "kuzu-memory": {
             "type": "stdio",
-            "command": "kuzu-memory",  # Will be resolved to full path
+            # Use full path to kuzu-memory binary from pipx venv
+            # This ensures it runs with the correct Python version
+            "command": "kuzu-memory",  # Will be resolved to pipx venv path
             "args": ["mcp", "serve"],  # v1.1.0+ uses 'mcp serve' command
         },
         "mcp-ticketer": {
@@ -580,57 +582,38 @@ class MCPConfigManager:
                 config["args"] = ["mcp"]
 
         elif service_name == "kuzu-memory":
-            # Determine kuzu-memory command version
-            kuzu_args = ["mcp", "serve"]  # Default to the standard v1.1.0+ format
-            test_cmd = None
+            # For kuzu-memory, prefer using the binary from pipx venv
+            # This ensures it runs with Python 3.12 instead of system Python 3.13
+            pipx_binary = (
+                Path.home()
+                / ".local"
+                / "pipx"
+                / "venvs"
+                / "kuzu-memory"
+                / "bin"
+                / "kuzu-memory"
+            )
 
-            if use_pipx_run:
-                test_cmd = ["pipx", "run", "kuzu-memory", "--help"]
-            elif use_uvx:
-                test_cmd = ["uvx", "kuzu-memory", "--help"]
-            elif service_path:
-                test_cmd = [service_path, "--help"]
-
-            if test_cmd:
-                try:
-                    result = subprocess.run(
-                        test_cmd,
-                        capture_output=True,
-                        text=True,
-                        timeout=10,
-                        check=False,
-                    )
-                    # Check for MCP support in help output
-                    help_output = result.stdout.lower() + result.stderr.lower()
-
-                    # Standard version detection - look for "mcp serve" command (v1.1.0+)
-                    # This is the correct format for kuzu-memory v1.1.0 and later
-                    if "mcp serve" in help_output or (
-                        "mcp" in help_output and "serve" in help_output
-                    ):
-                        # Standard v1.1.0+ version with mcp serve command
-                        kuzu_args = ["mcp", "serve"]
-                    # Legacy version detection - only "serve" without "mcp"
-                    elif "serve" in help_output and "mcp" not in help_output:
-                        # Very old version that only has serve command
-                        kuzu_args = ["serve"]
-                    else:
-                        # Default to the standard mcp serve format (v1.1.0+)
-                        # Note: "claude mcp-server" format is deprecated and does not work
-                        kuzu_args = ["mcp", "serve"]
-                except Exception:
-                    # Default to the standard mcp serve command on any error
-                    kuzu_args = ["mcp", "serve"]
-
-            if use_pipx_run:
+            if pipx_binary.exists():
+                # Use pipx venv binary directly - this runs with the correct Python
+                config["command"] = str(pipx_binary)
+                config["args"] = ["mcp", "serve"]
+            elif use_pipx_run:
+                # Fallback to pipx run
                 config["command"] = "pipx"
-                config["args"] = ["run", "kuzu-memory"] + kuzu_args
+                config["args"] = ["run", "kuzu-memory", "mcp", "serve"]
             elif use_uvx:
+                # UVX fallback
                 config["command"] = "uvx"
-                config["args"] = ["kuzu-memory"] + kuzu_args
-            else:
+                config["args"] = ["kuzu-memory", "mcp", "serve"]
+            elif service_path:
+                # Direct binary path
                 config["command"] = service_path
-                config["args"] = kuzu_args
+                config["args"] = ["mcp", "serve"]
+            else:
+                # Default fallback
+                config["command"] = "pipx"
+                config["args"] = ["run", "kuzu-memory", "mcp", "serve"]
 
         # Generic config for unknown services
         elif use_pipx_run:
