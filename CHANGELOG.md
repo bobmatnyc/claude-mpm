@@ -1,3 +1,19 @@
+## [4.5.2] - 2025-09-29
+
+### Fixed
+- **MCP Ticketer Dependency Handling**: Enhanced v0.1.8 workaround for missing gql dependency
+  - Added version checking to detect when workaround is needed
+  - Improved documentation explaining temporary nature of fix
+  - Added defensive check to avoid unnecessary re-injection when gql already present
+  - More informative log messages with context and rationale
+  - Better error handling with timeout and detailed error logging
+
+- **Doctor Command MCP Checks**: Eliminated duplicate MCP service validation
+  - Fixed issue where MCP service checks ran twice, 9 seconds apart
+  - Added early return in _check_mcp_auto_configuration() when doctor command detected
+  - Doctor command now performs comprehensive checks without interference
+  - Prevents duplicate log messages and improves user experience
+
 ## [4.5.1] - 2025-09-29
 
 ### Fixed

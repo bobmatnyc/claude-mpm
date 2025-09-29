@@ -1000,48 +1000,112 @@ class MCPConfigManager:
 
         return False, "none"
 
-    def _check_and_fix_mcp_ticketer_dependencies(self) -> bool:
-        """Check and fix mcp-ticketer missing gql dependency.
+    def _get_mcp_ticketer_version(self) -> Optional[str]:
+        """Get the installed version of mcp-ticketer.
 
-        Note: This is a workaround for mcp-ticketer <= 0.1.8 which is missing
-        the gql dependency in its package metadata. Future versions (> 0.1.8)
-        should include 'gql[httpx]>=3.0.0' as a dependency, making this fix
-        unnecessary. We keep this for backward compatibility with older versions.
+        Returns:
+            Version string (e.g., "0.1.8") or None if not installed
         """
         try:
-            # Test if gql is available in mcp-ticketer's environment
-            test_result = subprocess.run(
-                ["pipx", "run", "--spec", "mcp-ticketer", "python", "-c", "import gql"],
+            result = subprocess.run(
+                ["pipx", "runpip", "mcp-ticketer", "show", "mcp-ticketer"],
                 capture_output=True,
                 text=True,
                 timeout=5,
                 check=False,
             )
 
-            # If import fails, inject the dependency
-            if test_result.returncode != 0:
-                self.logger.info("🔧 mcp-ticketer missing gql dependency, fixing...")
+            if result.returncode == 0:
+                # Parse version from output
+                for line in result.stdout.split("\n"):
+                    if line.startswith("Version:"):
+                        return line.split(":", 1)[1].strip()
+            return None
+        except Exception:
+            return None
 
-                inject_result = subprocess.run(
-                    ["pipx", "inject", "mcp-ticketer", "gql"],
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    check=False,
+    def _check_and_fix_mcp_ticketer_dependencies(self) -> bool:
+        """Check and fix mcp-ticketer missing gql dependency.
+
+        WORKAROUND for mcp-ticketer v0.1.8 (current latest as of 2025-01):
+        - mcp-ticketer v0.1.8 requires 'gql' but doesn't declare it in package metadata
+        - This causes "ModuleNotFoundError: No module named 'gql'" when running
+        - We defensively inject the missing dependency into the pipx venv
+
+        TODO: Remove this workaround when mcp-ticketer > 0.1.8 is released with proper
+              dependency declaration for 'gql[httpx]>=3.0.0' in its package metadata.
+
+        Returns:
+            True if dependency was injected, False if already present or on error
+        """
+        # Check if this workaround is still needed for the installed version
+        version = self._get_mcp_ticketer_version()
+        if version and version > "0.1.8":
+            self.logger.debug(
+                f"mcp-ticketer {version} installed - gql dependency workaround may not be needed"
+            )
+            # Still check anyway in case the issue persists in newer versions
+
+        try:
+            # First, check if gql is already installed to avoid unnecessary injection
+            # This is more efficient than always trying to import
+            gql_check_cmd = [
+                "pipx", "runpip", "mcp-ticketer", "show", "gql"
+            ]
+
+            check_result = subprocess.run(
+                gql_check_cmd,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+
+            # If gql is already installed (exit code 0), nothing to do
+            if check_result.returncode == 0:
+                self.logger.debug(
+                    "gql dependency already present in mcp-ticketer environment"
                 )
-
-                if inject_result.returncode == 0:
-                    self.logger.info(
-                        "✅ Successfully injected gql dependency into mcp-ticketer"
-                    )
-                    return True
-                self.logger.warning(f"Failed to inject gql: {inject_result.stderr}")
                 return False
 
+            # gql is missing - explain WHY we need to inject it
+            self.logger.info(
+                "🔧 Fixing mcp-ticketer v0.1.8 issue: package requires 'gql' but "
+                "doesn't declare it in metadata (missing from install_requires)"
+            )
+
+            # Inject the missing dependency
+            inject_result = subprocess.run(
+                ["pipx", "inject", "mcp-ticketer", "gql[httpx]"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+
+            if inject_result.returncode == 0:
+                self.logger.info(
+                    "✅ Successfully injected missing 'gql' dependency into mcp-ticketer v0.1.8 "
+                    "(this workaround needed until package metadata is fixed)"
+                )
+                return True
+
+            # Log detailed error for debugging
+            self.logger.warning(
+                f"Failed to inject gql dependency for mcp-ticketer v0.1.8 workaround: "
+                f"{inject_result.stderr}"
+            )
             return False
 
+        except subprocess.TimeoutExpired:
+            self.logger.warning(
+                "Timeout checking mcp-ticketer dependencies - pipx command took too long"
+            )
+            return False
         except Exception as e:
-            self.logger.debug(f"Could not check/fix mcp-ticketer dependencies: {e}")
+            self.logger.debug(
+                f"Could not check/fix mcp-ticketer v0.1.8 dependency issue: {e}"
+            )
             return False
 
     def fix_mcp_service_issues(self) -> Tuple[bool, str]:
@@ -1092,7 +1156,8 @@ class MCPConfigManager:
                 )
                 success = self._reinstall_service(service_name)
                 if success:
-                    # Special handling for mcp-ticketer - inject missing gql dependency
+                    # WORKAROUND: mcp-ticketer v0.1.8 has undeclared gql dependency
+                    # After reinstall, we need to inject it manually
                     if service_name == "mcp-ticketer":
                         self._check_and_fix_mcp_ticketer_dependencies()
                     fixed_services.append(f"{service_name} (reinstalled)")
@@ -1101,12 +1166,13 @@ class MCPConfigManager:
 
             elif issue_type == "missing_dependency":
                 # Fix missing dependencies
+                # Currently only mcp-ticketer v0.1.8 has this issue (missing gql in metadata)
                 if service_name == "mcp-ticketer":
                     if self._check_and_fix_mcp_ticketer_dependencies():
-                        fixed_services.append(f"{service_name} (dependency fixed)")
+                        fixed_services.append(f"{service_name} (gql dependency injected)")
                     else:
                         failed_services.append(
-                            f"{service_name} (dependency fix failed)"
+                            f"{service_name} (gql injection failed)"
                         )
                 else:
                     failed_services.append(f"{service_name} (unknown dependency issue)")

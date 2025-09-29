@@ -222,6 +222,13 @@ def _check_mcp_auto_configuration():
         logger = get_logger("cli")
         logger.debug(f"MCP auto-configuration check failed: {e}")
 
+    # Skip MCP service fixes for the doctor command
+    # The doctor command performs its own comprehensive MCP service check
+    # Running both would cause duplicate checks and log messages (9 seconds apart)
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "doctor":
+        return
+
     # Also ensure MCP services are properly configured in ~/.claude.json
     # This fixes incorrect paths and adds missing services
     try:
