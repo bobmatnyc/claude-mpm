@@ -56,7 +56,7 @@ class Config:
                 # Double-check locking pattern for thread safety
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
-                    logger.info("Creating new Config singleton instance")
+                    logger.debug("Creating new Config singleton instance")
                 else:
                     logger.debug(
                         "Reusing existing Config singleton instance (concurrent init)"
@@ -102,7 +102,7 @@ class Config:
                 return
 
             Config._initialized = True
-            logger.info("Initializing Config singleton for the first time")
+            logger.debug("Initializing Config singleton for the first time")
 
             # Initialize instance variables inside the lock to ensure thread safety
             self._config: Dict[str, Any] = {}

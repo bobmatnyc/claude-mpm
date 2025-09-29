@@ -484,8 +484,12 @@ class AsyncSessionLogger:
                 if self._worker_thread.is_alive():
                     logger.warning("Worker thread did not shutdown cleanly")
 
-            # Log final statistics
-            logger.info(f"Logger stats: {self.stats}")
+            # Log final statistics only if we actually logged something
+            if self.stats.get("logged", 0) > 0:
+                logger.info(f"Logger stats: {self.stats}")
+            else:
+                # Use debug level when nothing was logged
+                logger.debug(f"Logger stats (no sessions logged): {self.stats}")
 
     def get_stats(self) -> Dict[str, Any]:
         """Get logger statistics."""

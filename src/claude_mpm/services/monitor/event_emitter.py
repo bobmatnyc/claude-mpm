@@ -26,7 +26,8 @@ class AsyncEventEmitter:
 
     def __init__(self):
         """Initialize the event emitter."""
-        self.logger = get_logger(__name__)
+        # Use a shorter, cleaner logger name instead of full module path
+        self.logger = get_logger("event_emitter")
 
         # Direct emission targets (in-process)
         self._socketio_servers: Set[weakref.ref] = set()
@@ -221,7 +222,8 @@ class AsyncEventEmitter:
             self.logger.warning(f"HTTP emission timeout: {event}")
             return False
         except aiohttp.ClientError as e:
-            self.logger.warning(f"HTTP emission client error: {e}")
+            # Use DEBUG since the monitor service is optional and may not be running
+            self.logger.debug(f"HTTP emission client error (monitor may not be running): {e}")
             return False
         except Exception as e:
             self.logger.error(f"HTTP emission unexpected error: {e}")

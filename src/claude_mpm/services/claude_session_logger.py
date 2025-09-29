@@ -135,9 +135,9 @@ class ClaudeSessionLogger:
         if not session_id:
             # Use a timestamp-based session ID as fallback
             session_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-            logger.info(f"No Claude session ID found, using generated: {session_id}")
+            logger.info(f"Session ID: {session_id} (generated)")
         else:
-            logger.info(f"Using Claude session ID: {session_id}")
+            logger.info(f"Session ID: {session_id}")
 
         return session_id
 
