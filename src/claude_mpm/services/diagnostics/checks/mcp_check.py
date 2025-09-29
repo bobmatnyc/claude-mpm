@@ -2,7 +2,7 @@
 Check MCP (Model Context Protocol) server status.
 
 WHY: Verify that the MCP gateway is properly installed, configured,
-and functioning for enhanced Claude Desktop capabilities.
+and functioning for enhanced Claude Code capabilities.
 """
 
 import json
@@ -129,7 +129,7 @@ class MCPCheck(BaseDiagnosticCheck):
         )
 
     def _check_configuration(self) -> DiagnosticResult:
-        """Check MCP configuration in Claude Desktop."""
+        """Check MCP configuration in Claude Code."""
         config_paths = [
             Path.home() / ".config/claude/claude_desktop_config.json",
             Path.home()
@@ -147,10 +147,10 @@ class MCPCheck(BaseDiagnosticCheck):
             return DiagnosticResult(
                 category="MCP Configuration",
                 status=DiagnosticStatus.WARNING,
-                message="Claude Desktop config not found",
+                message="Claude Code config not found",
                 details={"configured": False},
                 fix_command="claude-mpm mcp config",
-                fix_description="Configure MCP server in Claude Desktop",
+                fix_description="Configure MCP server in Claude Code",
             )
 
         try:
@@ -167,7 +167,7 @@ class MCPCheck(BaseDiagnosticCheck):
                         message="MCP gateway not configured",
                         details={"configured": False, "config_path": str(config_path)},
                         fix_command="claude-mpm mcp config",
-                        fix_description="Add MCP gateway to Claude Desktop configuration",
+                        fix_description="Add MCP gateway to Claude Code configuration",
                     )
 
                 # Check configuration validity
@@ -203,7 +203,7 @@ class MCPCheck(BaseDiagnosticCheck):
                 status=DiagnosticStatus.ERROR,
                 message="Invalid JSON in config file",
                 details={"error": str(e), "config_path": str(config_path)},
-                fix_description="Fix JSON syntax in Claude Desktop config",
+                fix_description="Fix JSON syntax in Claude Code config",
             )
         except Exception as e:
             return DiagnosticResult(

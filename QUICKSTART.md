@@ -2,6 +2,8 @@
 
 Get Claude MPM running in 5 minutes or less!
 
+> **⚠️ Important**: Claude MPM extends **Claude Code (CLI)**, not Claude Desktop (app). Ensure you have Claude Code CLI installed from https://claude.ai/code
+
 ## 1. Install (30 seconds)
 
 **Recommended: pipx with monitor support**
@@ -25,7 +27,7 @@ pip install claude-mpm==4.3.4
 pip install --upgrade claude-mpm
 ```
 
-**Requirements**: Python 3.8+, Claude Code
+**Requirements**: Python 3.8+, Claude Code (CLI)
 
 **Why `[monitor]`?** Enables the real-time dashboard that shows agent collaboration in action. Without it, monitoring features won't work!
 

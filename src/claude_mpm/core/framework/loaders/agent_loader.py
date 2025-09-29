@@ -47,7 +47,9 @@ class AgentLoader:
         self.logger.debug(f"Total deployed agents found: {len(deployed)}")
         return deployed
 
-    def load_single_agent(self, agent_file: Path) -> Tuple[Optional[str], Optional[str]]:
+    def load_single_agent(
+        self, agent_file: Path
+    ) -> Tuple[Optional[str], Optional[str]]:
         """
         Load a single agent file.
 
@@ -120,7 +122,9 @@ class AgentLoader:
 
         # Check for local JSON templates in priority order
         template_dirs = [
-            Path.cwd() / ".claude-mpm" / "agents",  # Project local agents (highest priority)
+            Path.cwd()
+            / ".claude-mpm"
+            / "agents",  # Project local agents (highest priority)
             Path.home() / ".claude-mpm" / "agents",  # User local agents
         ]
 

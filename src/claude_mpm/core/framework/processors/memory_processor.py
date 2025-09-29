@@ -1,7 +1,7 @@
 """Memory content processor for framework memory management."""
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Set
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -28,7 +28,9 @@ class MemoryProcessor:
                 content = project_memory_file.read_text()
                 memories["actual_memories"] = content
                 memories["memory_source"] = "project"
-                self.logger.info(f"Loaded PM memories from project: {project_memory_file}")
+                self.logger.info(
+                    f"Loaded PM memories from project: {project_memory_file}"
+                )
                 return memories
             except Exception as e:
                 self.logger.error(f"Failed to load project PM memories: {e}")
@@ -74,10 +76,14 @@ class MemoryProcessor:
                     try:
                         content = memory_file.read_text()
                         agent_memories[agent_name] = content
-                        self.logger.debug(f"Loaded memories for {agent_name} from {memory_file}")
+                        self.logger.debug(
+                            f"Loaded memories for {agent_name} from {memory_file}"
+                        )
                         break  # Use first found (project > user)
                     except Exception as e:
-                        self.logger.error(f"Failed to load memories for {agent_name}: {e}")
+                        self.logger.error(
+                            f"Failed to load memories for {agent_name}: {e}"
+                        )
 
         return agent_memories
 
@@ -217,6 +223,8 @@ class MemoryProcessor:
                     self.logger.info(f"Migrated memories from {old_path} to {new_path}")
                     migrated = True
                 except Exception as e:
-                    self.logger.error(f"Failed to migrate memories from {old_path}: {e}")
+                    self.logger.error(
+                        f"Failed to migrate memories from {old_path}: {e}"
+                    )
 
         return migrated

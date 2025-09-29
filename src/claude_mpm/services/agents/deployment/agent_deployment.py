@@ -369,12 +369,18 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                     else "single"
                 )
 
+                # When using multi-source deployment, we've already determined which
+                # agents need updates. Don't re-check versions in single_agent_deployer.
+                # This prevents the issue where multi-source says "deploying 9 agents"
+                # but then all get skipped due to redundant version checks.
+                skip_version_check = use_multi_source and not force_rebuild
+
                 self.single_agent_deployer.deploy_single_agent(
                     template_file=template_file_path,
                     agents_dir=agents_dir,
                     base_agent_data=base_agent_data,
                     base_agent_version=base_agent_version,
-                    force_rebuild=force_rebuild,
+                    force_rebuild=force_rebuild or skip_version_check,
                     deployment_mode=deployment_mode,
                     results=results,
                     source_info=source_info,
@@ -817,11 +823,9 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
 
                 agents_to_deploy = filtered_agents
 
-                if agents_to_deploy:
-                    self.logger.info(
-                        f"Deploying {len(agents_to_deploy)} agents that need updates"
-                    )
-                else:
+                # Don't log this redundant message - we already logged the upgrades above
+                # The "Deploying X agent upgrade(s)" message is sufficient
+                if not agents_to_deploy:
                     self.logger.debug(
                         f"All {len(comparison_results.get('up_to_date', []))} agents are up to date"
                     )

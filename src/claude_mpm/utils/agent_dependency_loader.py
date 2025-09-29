@@ -149,7 +149,9 @@ class AgentDependencyLoader:
 
             # Check if this is an optional package that already failed
             if package_name in self.optional_failed:
-                logger.debug(f"Skipping optional package {package_name} (previously failed)")
+                logger.debug(
+                    f"Skipping optional package {package_name} (previously failed)"
+                )
                 return True, "optional-skipped"
 
             # Try to import and check version
@@ -174,14 +176,18 @@ class AgentDependencyLoader:
                         for alternative in self.OPTIONAL_DB_PACKAGES[package_name]:
                             try:
                                 alt_version = importlib.metadata.version(alternative)
-                                logger.info(f"Using {alternative} as alternative to {package_name}")
+                                logger.info(
+                                    f"Using {alternative} as alternative to {package_name}"
+                                )
                                 self.checked_packages.add(package_name)
                                 return True, f"{alternative}:{alt_version}"
                             except importlib.metadata.PackageNotFoundError:
                                 continue
                         # If no alternatives work, mark as optional failure
                         self.optional_failed[package_name] = "No alternatives available"
-                        logger.warning(f"Optional package {package_name} not found, marking as optional")
+                        logger.warning(
+                            f"Optional package {package_name} not found, marking as optional"
+                        )
                         return True, "optional-not-found"
                     return False, None
 
@@ -202,14 +208,20 @@ class AgentDependencyLoader:
                     if package_name in self.OPTIONAL_DB_PACKAGES:
                         for alternative in self.OPTIONAL_DB_PACKAGES[package_name]:
                             try:
-                                alt_version = pkg_resources.get_distribution(alternative).version
-                                logger.info(f"Using {alternative} as alternative to {package_name}")
+                                alt_version = pkg_resources.get_distribution(
+                                    alternative
+                                ).version
+                                logger.info(
+                                    f"Using {alternative} as alternative to {package_name}"
+                                )
                                 self.checked_packages.add(package_name)
                                 return True, f"{alternative}:{alt_version}"
                             except pkg_resources.DistributionNotFound:
                                 continue
                         self.optional_failed[package_name] = "No alternatives available"
-                        logger.warning(f"Optional package {package_name} not found, marking as optional")
+                        logger.warning(
+                            f"Optional package {package_name} not found, marking as optional"
+                        )
                         return True, "optional-not-found"
                     return False, None
 

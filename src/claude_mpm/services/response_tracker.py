@@ -22,9 +22,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from claude_mpm.core.config import Config
+from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.shared.config_loader import ConfigLoader
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

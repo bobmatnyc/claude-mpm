@@ -242,40 +242,74 @@ class DoctorReporter:
         print(json.dumps(output, indent=2))
 
     def _report_markdown(self, summary: DiagnosticSummary):
-        """Generate Markdown-formatted report."""
-        print("# Claude MPM Doctor Report\n")
+        """Generate comprehensive Markdown-formatted report."""
+        import datetime
 
-        # Summary table
-        print("## Summary\n")
-        print("| Status | Count |")
-        print("|--------|-------|")
-        print(f"| ✅ OK | {summary.ok_count} |")
-        print(f"| ⚠️  Warning | {summary.warning_count} |")
-        print(f"| ❌ Error | {summary.error_count} |")
-        print(f"| ⏭️  Skipped | {summary.skipped_count} |")
+        # Header with timestamp
+        print("# Claude MPM Doctor Report")
+        print(
+            f"\n**Generated:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        )
+        print(f"**Version:** {self._get_version()}\n")
+        print("---\n")
+
+        # System Overview
+        print("## System Overview\n")
+        self._print_system_overview_markdown(summary)
         print()
 
-        # Detailed results
-        print("## Diagnostic Results\n")
+        # Summary Statistics
+        print("## Summary Statistics\n")
+        print("| Status | Count | Percentage |")
+        print("|--------|-------|------------|")
+        total = (
+            summary.ok_count
+            + summary.warning_count
+            + summary.error_count
+            + summary.skipped_count
+        )
+        if total > 0:
+            print(f"| ✅ OK | {summary.ok_count} | {summary.ok_count*100//total}% |")
+            print(
+                f"| ⚠️  Warning | {summary.warning_count} | {summary.warning_count*100//total}% |"
+            )
+            print(
+                f"| ❌ Error | {summary.error_count} | {summary.error_count*100//total}% |"
+            )
+            print(
+                f"| ⏭️  Skipped | {summary.skipped_count} | {summary.skipped_count*100//total}% |"
+            )
+        print()
 
+        # Overall Health Status
+        overall = summary.overall_status
+        if overall == DiagnosticStatus.OK:
+            print("### 🎉 Overall Status: **Healthy**")
+            print("Your Claude MPM installation is functioning properly.\n")
+        elif overall == DiagnosticStatus.WARNING:
+            print("### ⚠️ Overall Status: **Needs Attention**")
+            print("Your installation has minor issues that should be addressed.\n")
+        else:
+            print("### ❌ Overall Status: **Critical Issues**")
+            print(
+                "Your installation has critical issues that need immediate attention.\n"
+            )
+
+        # MCP Services Status (if available)
+        self._print_mcp_services_markdown(summary)
+
+        # Installation Details
+        self._print_installation_details_markdown(summary)
+
+        # Detailed Diagnostic Results
+        print("## Detailed Diagnostic Results\n")
         for result in summary.results:
-            symbol = self.STATUS_SYMBOLS.get(result.status, "?")
-            print(f"### {symbol} {result.category}\n")
-            print(f"**Status:** {result.status.value}")
-            print(f"**Message:** {result.message}\n")
+            self._print_result_markdown(result)
 
-            if result.fix_command:
-                print(f"**Fix:** `{result.fix_command}`")
-                if result.fix_description:
-                    print(f"_{result.fix_description}_\n")
+        # Recommendations Section
+        self._print_recommendations_markdown(summary)
 
-            if self.verbose and result.details:
-                print("**Details:**")
-                for key, value in result.details.items():
-                    print(f"- {key}: {value}")
-                print()
-
-        # Fixes section
+        # Fixes Section
         fixes = [
             (r.category, r.fix_command, r.fix_description)
             for r in summary.results
@@ -283,12 +317,23 @@ class DoctorReporter:
         ]
 
         if fixes:
-            print("## Suggested Fixes\n")
+            print("## 🔧 Suggested Fixes\n")
+            print("Run these commands to fix identified issues:\n")
+            print("```bash")
             for category, command, description in fixes:
-                print(f"- **{category}:** `{command}`")
+                print(f"# Fix: {category}")
                 if description:
-                    print(f"  - {description}")
+                    print(f"# {description}")
+                print(command)
+                print()
+            print("```")
             print()
+
+        # Footer
+        print("---")
+        print(
+            "\n*For more information, run `claude-mpm doctor --verbose` or visit the [documentation](https://github.com/bobmatnyc/claude-mpm).*"
+        )
 
     def _color(self, text: str, color: str) -> str:
         """Apply color to text if colors are enabled."""
@@ -318,3 +363,185 @@ class DoctorReporter:
             return service.get_version()
         except Exception:
             return "unknown"
+
+    def _print_system_overview_markdown(self, summary: DiagnosticSummary):
+        """Print system overview in markdown format."""
+        import platform
+        import sys
+
+        print("| Component | Value |")
+        print("|-----------|-------|")
+        print(f"| Platform | {platform.system()} {platform.release()} |")
+        print(f"| Python Version | {sys.version.split()[0]} |")
+
+        # Extract key details from results
+        for result in summary.results:
+            if result.category == "Installation":
+                if result.details.get("claude_mpm_version"):
+                    print(
+                        f"| Claude MPM Version | {result.details['claude_mpm_version']} |"
+                    )
+                if result.details.get("installation_method"):
+                    print(
+                        f"| Installation Method | {result.details['installation_method']} |"
+                    )
+            elif result.category == "Claude Code":
+                if result.details.get("version"):
+                    print(f"| Claude Code (CLI) | {result.details['version']} |")
+
+    def _print_mcp_services_markdown(self, summary: DiagnosticSummary):
+        """Print MCP services status table in markdown."""
+        # Find MCP Services result
+        mcp_services_result = None
+        for result in summary.results:
+            if result.category == "MCP Services":
+                mcp_services_result = result
+                break
+
+        if not mcp_services_result or not mcp_services_result.details.get("services"):
+            return
+
+        print("## MCP Services Status\n")
+        print("| Service | Installed | Accessible | Version | Status |")
+        print("|---------|-----------|------------|---------|--------|")
+
+        services = mcp_services_result.details.get("services", {})
+        for service_name, service_info in services.items():
+            installed = "✅" if service_info.get("installed") else "❌"
+            accessible = "✅" if service_info.get("accessible") else "❌"
+            version = service_info.get("version")
+            if version:
+                version = str(version)[:20]  # Truncate long versions
+            else:
+                version = "N/A"
+            status = service_info.get("status", "unknown")
+
+            # Map status to emoji
+            if status == "ok":
+                status_emoji = "✅"
+            elif status == "warning":
+                status_emoji = "⚠️"
+            elif status == "error":
+                status_emoji = "❌"
+            else:
+                status_emoji = "❓"
+
+            print(
+                f"| {service_name} | {installed} | {accessible} | {version} | {status_emoji} |"
+            )
+        print()
+
+    def _print_installation_details_markdown(self, summary: DiagnosticSummary):
+        """Print installation details in markdown."""
+        # Find installation result
+        install_result = None
+        for result in summary.results:
+            if result.category == "Installation":
+                install_result = result
+                break
+
+        if not install_result:
+            return
+
+        print("## Installation Details\n")
+
+        # Print sub-results if available
+        if install_result.sub_results and self.verbose:
+            for sub in install_result.sub_results:
+                if sub.category == "Python Version":
+                    print("### Python Environment")
+                    print(f"- **Version:** {sub.message}")
+                elif sub.category == "Installation Method":
+                    print("### Installation Method")
+                    print(f"- **Method:** {sub.message}")
+                    if sub.details.get("container_type"):
+                        print(f"- **Container:** {sub.details['container_type']}")
+                    if sub.details.get("pipx_metadata"):
+                        metadata = sub.details["pipx_metadata"]
+                        if metadata.get("version"):
+                            print(f"- **Pipx Version:** {metadata['version']}")
+                elif sub.category == "Dependencies":
+                    print("### Dependencies")
+                    print(f"- **Status:** {sub.message}")
+                    if sub.details.get("installed"):
+                        print(
+                            f"- **Installed Packages:** {len(sub.details['installed'])}"
+                        )
+            print()
+
+    def _print_result_markdown(self, result: DiagnosticResult):
+        """Print a single result in markdown format."""
+        symbol = self.STATUS_SYMBOLS.get(result.status, "?")
+        print(f"### {symbol} {result.category}\n")
+
+        # Status badge
+        status_badge = {
+            DiagnosticStatus.OK: "![OK](https://img.shields.io/badge/status-OK-green)",
+            DiagnosticStatus.WARNING: "![Warning](https://img.shields.io/badge/status-Warning-yellow)",
+            DiagnosticStatus.ERROR: "![Error](https://img.shields.io/badge/status-Error-red)",
+            DiagnosticStatus.SKIPPED: "![Skipped](https://img.shields.io/badge/status-Skipped-gray)",
+        }.get(result.status, "")
+
+        print(f"{status_badge}")
+        print(f"\n**Message:** {result.message}\n")
+
+        if result.fix_command:
+            print("**Fix Available:**")
+            print("```bash")
+            print(result.fix_command)
+            print("```")
+            if result.fix_description:
+                print(f"*{result.fix_description}*\n")
+
+        if self.verbose and result.details:
+            print("<details>")
+            print("<summary>Details</summary>\n")
+            print("```json")
+            import json
+
+            print(json.dumps(result.details, indent=2, default=str))
+            print("```")
+            print("</details>\n")
+
+    def _print_recommendations_markdown(self, summary: DiagnosticSummary):
+        """Print recommendations based on diagnostic results."""
+        recommendations = []
+
+        # Analyze results for recommendations
+        has_errors = summary.error_count > 0
+        has_warnings = summary.warning_count > 0
+
+        # Check specific conditions
+        for result in summary.results:
+            if (
+                result.category == "Installation"
+                and result.status != DiagnosticStatus.OK
+            ):
+                if "pipx" not in str(result.details.get("installation_method", "")):
+                    recommendations.append(
+                        "Consider using pipx for isolated installation: `pipx install claude-mpm`"
+                    )
+
+            if result.category == "MCP Services":
+                services = result.details.get("services", {})
+                missing = [
+                    s for s, info in services.items() if not info.get("installed")
+                ]
+                if missing:
+                    recommendations.append(
+                        f"Install missing MCP services for enhanced features: {', '.join(missing)}"
+                    )
+
+            if (
+                result.category == "Claude Code"
+                and result.status == DiagnosticStatus.WARNING
+            ):
+                recommendations.append(
+                    "Update Claude Code (CLI) to the latest version for best compatibility"
+                )
+
+        if recommendations:
+            print("## 📋 Recommendations\n")
+            for i, rec in enumerate(recommendations, 1):
+                print(f"{i}. {rec}")
+            print()

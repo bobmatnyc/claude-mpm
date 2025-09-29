@@ -31,9 +31,9 @@ except ImportError:
     import psutil
 
 # from claude_mpm.core.base_service import BaseService
+from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.socketio.server.main import SocketIOServer
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

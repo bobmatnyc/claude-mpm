@@ -395,6 +395,7 @@ async def auto_initialize_vector_search():
     try:
         # Import MCPConfigManager to handle installation
         from claude_mpm.services.mcp_config_manager import MCPConfigManager
+
         config_manager = MCPConfigManager()
 
         # Check if mcp-vector-search is already installed
@@ -411,7 +412,9 @@ async def auto_initialize_vector_search():
             import subprocess
 
             if not shutil.which("pipx"):
-                logger.warning("⚠️ pipx not found. Please install pipx to enable automatic mcp-vector-search installation")
+                logger.warning(
+                    "⚠️ pipx not found. Please install pipx to enable automatic mcp-vector-search installation"
+                )
                 logger.info("   Install pipx with: python -m pip install --user pipx")
                 return
 
@@ -420,26 +423,35 @@ async def auto_initialize_vector_search():
                     ["pipx", "install", "mcp-vector-search"],
                     capture_output=True,
                     text=True,
-                    timeout=60  # 1 minute timeout for installation
+                    timeout=60,
+                    check=False,  # 1 minute timeout for installation
                 )
 
                 if result.returncode == 0:
                     logger.info("✅ mcp-vector-search installed successfully")
                     # Detect the newly installed path
-                    vector_search_path = config_manager.detect_service_path("mcp-vector-search")
+                    vector_search_path = config_manager.detect_service_path(
+                        "mcp-vector-search"
+                    )
                     if not vector_search_path:
-                        logger.warning("mcp-vector-search installed but command not found in PATH")
+                        logger.warning(
+                            "mcp-vector-search installed but command not found in PATH"
+                        )
                         return
 
                     # Update the Claude configuration to include the newly installed service
                     logger.info("📝 Updating Claude configuration...")
-                    config_success, config_msg = config_manager.ensure_mcp_services_configured()
+                    config_success, config_msg = (
+                        config_manager.ensure_mcp_services_configured()
+                    )
                     if config_success:
                         logger.info(f"✅ {config_msg}")
                     else:
                         logger.warning(f"⚠️ Configuration update issue: {config_msg}")
                 else:
-                    logger.warning(f"Failed to install mcp-vector-search: {result.stderr}")
+                    logger.warning(
+                        f"Failed to install mcp-vector-search: {result.stderr}"
+                    )
                     return
 
             except subprocess.TimeoutExpired:
@@ -452,10 +464,14 @@ async def auto_initialize_vector_search():
         # At this point, mcp-vector-search should be available
         # Get the actual command to use
         import shutil
+
         vector_search_cmd = shutil.which("mcp-vector-search")
         if not vector_search_cmd:
             # Try pipx installation path as fallback
-            pipx_path = Path.home() / ".local/pipx/venvs/mcp-vector-search/bin/mcp-vector-search"
+            pipx_path = (
+                Path.home()
+                / ".local/pipx/venvs/mcp-vector-search/bin/mcp-vector-search"
+            )
             if pipx_path.exists():
                 vector_search_cmd = str(pipx_path)
             else:
@@ -477,10 +493,11 @@ async def auto_initialize_vector_search():
                     if chroma_db.exists() and chroma_db.stat().st_size > 0:
                         logger.info("✓ Vector search index is healthy and ready")
                         return
-                    else:
-                        logger.info("⚠️ Vector search index may be corrupted, rebuilding...")
+                    logger.info("⚠️ Vector search index may be corrupted, rebuilding...")
                 except Exception as e:
-                    logger.debug(f"Vector search health check failed: {e}, will attempt to rebuild")
+                    logger.debug(
+                        f"Vector search health check failed: {e}, will attempt to rebuild"
+                    )
 
         # Initialize or reinitialize the project
         logger.info(f"🎯 Initializing vector search for project: {current_dir}")
@@ -488,12 +505,14 @@ async def auto_initialize_vector_search():
         # Initialize the project (this creates the config)
         # Note: mcp-vector-search operates on the current directory
         import subprocess
+
         proc = subprocess.run(
             [vector_search_cmd, "init"],
             capture_output=True,
             text=True,
             timeout=30,
-            cwd=str(current_dir)  # Run in the project directory
+            cwd=str(current_dir),
+            check=False,  # Run in the project directory
         )
 
         if proc.returncode == 0:
@@ -508,29 +527,37 @@ async def auto_initialize_vector_search():
                         capture_output=True,
                         text=True,
                         timeout=300,  # 5 minute timeout for indexing
-                        cwd=str(current_dir)  # Run in the project directory
+                        cwd=str(current_dir),
+                        check=False,  # Run in the project directory
                     )
                     if index_proc.returncode == 0:
                         logger.info("✅ Project indexing completed successfully")
                         # Parse output to show statistics if available
                         if "indexed" in index_proc.stdout.lower():
                             # Extract and log indexing statistics
-                            lines = index_proc.stdout.strip().split('\n')
+                            lines = index_proc.stdout.strip().split("\n")
                             for line in lines:
                                 if "indexed" in line.lower() or "files" in line.lower():
                                     logger.info(f"   {line.strip()}")
                     else:
-                        logger.warning(f"⚠️ Project indexing failed: {index_proc.stderr}")
+                        logger.warning(
+                            f"⚠️ Project indexing failed: {index_proc.stderr}"
+                        )
                 except subprocess.TimeoutExpired:
-                    logger.warning("⚠️ Project indexing timed out (will continue in background)")
+                    logger.warning(
+                        "⚠️ Project indexing timed out (will continue in background)"
+                    )
                 except Exception as e:
                     logger.debug(f"Background indexing error (non-critical): {e}")
 
             # Run indexing in background thread
             import threading
+
             index_thread = threading.Thread(target=background_index, daemon=True)
             index_thread.start()
-            logger.info("📚 Background indexing started - vector search will be available shortly")
+            logger.info(
+                "📚 Background indexing started - vector search will be available shortly"
+            )
 
         else:
             logger.warning(f"⚠️ Vector search initialization failed: {proc.stderr}")
@@ -556,6 +583,7 @@ async def auto_initialize_kuzu_memory():
     try:
         # Import MCPConfigManager to handle installation
         from claude_mpm.services.mcp_config_manager import MCPConfigManager
+
         config_manager = MCPConfigManager()
 
         # Check if kuzu-memory is already installed
@@ -572,7 +600,9 @@ async def auto_initialize_kuzu_memory():
             import subprocess
 
             if not shutil.which("pipx"):
-                logger.warning("⚠️ pipx not found. Please install pipx to enable automatic kuzu-memory installation")
+                logger.warning(
+                    "⚠️ pipx not found. Please install pipx to enable automatic kuzu-memory installation"
+                )
                 logger.info("   Install pipx with: python -m pip install --user pipx")
                 return
 
@@ -581,7 +611,8 @@ async def auto_initialize_kuzu_memory():
                     ["pipx", "install", "kuzu-memory"],
                     capture_output=True,
                     text=True,
-                    timeout=60  # 1 minute timeout for installation
+                    timeout=60,
+                    check=False,  # 1 minute timeout for installation
                 )
 
                 if result.returncode == 0:
@@ -589,12 +620,16 @@ async def auto_initialize_kuzu_memory():
                     # Detect the newly installed path
                     kuzu_memory_path = config_manager.detect_service_path("kuzu-memory")
                     if not kuzu_memory_path:
-                        logger.warning("kuzu-memory installed but command not found in PATH")
+                        logger.warning(
+                            "kuzu-memory installed but command not found in PATH"
+                        )
                         return
 
                     # Update the Claude configuration to include the newly installed service
                     logger.info("📝 Updating Claude configuration...")
-                    config_success, config_msg = config_manager.ensure_mcp_services_configured()
+                    config_success, config_msg = (
+                        config_manager.ensure_mcp_services_configured()
+                    )
                     if config_success:
                         logger.info(f"✅ {config_msg}")
                     else:
@@ -613,6 +648,7 @@ async def auto_initialize_kuzu_memory():
         # At this point, kuzu-memory should be available
         # Get the actual command to use
         import shutil
+
         kuzu_memory_cmd = shutil.which("kuzu-memory")
         if not kuzu_memory_cmd:
             # Try pipx installation path as fallback
@@ -629,18 +665,24 @@ async def auto_initialize_kuzu_memory():
 
         # Check if database is already initialized
         if kuzu_memories_dir.exists():
-            logger.debug(f"Kuzu-memory database already initialized at {kuzu_memories_dir}")
+            logger.debug(
+                f"Kuzu-memory database already initialized at {kuzu_memories_dir}"
+            )
         else:
-            logger.info(f"🎯 Initializing kuzu-memory database for project: {current_dir}")
+            logger.info(
+                f"🎯 Initializing kuzu-memory database for project: {current_dir}"
+            )
 
             # Initialize the database in current project directory
             import subprocess
+
             proc = subprocess.run(
                 [kuzu_memory_cmd, "init"],
                 capture_output=True,
                 text=True,
                 timeout=30,
                 cwd=str(current_dir),
+                check=False,
             )
 
             if proc.returncode == 0:

@@ -11,6 +11,7 @@ MCP service installations.
 
 import json
 import subprocess
+import sys
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
@@ -76,6 +77,7 @@ class MCPConfigManager:
 
             # Check system PATH (including homebrew)
             import shutil
+
             system_path = shutil.which(service_name)
             if system_path and system_path not in candidates:
                 candidates.append(system_path)
@@ -87,11 +89,14 @@ class MCPConfigManager:
                         [path, "--help"],
                         capture_output=True,
                         text=True,
-                        timeout=5
+                        timeout=5,
+                        check=False,
                     )
                     # Check if this version has MCP support
                     if "claude" in result.stdout or "mcp" in result.stdout:
-                        self.logger.debug(f"Found kuzu-memory with MCP support at {path}")
+                        self.logger.debug(
+                            f"Found kuzu-memory with MCP support at {path}"
+                        )
                         return path
                 except:
                     pass
@@ -125,7 +130,9 @@ class MCPConfigManager:
             )
             return local_path
 
-        self.logger.debug(f"Service {service_name} not found - will auto-install when needed")
+        self.logger.debug(
+            f"Service {service_name} not found - will auto-install when needed"
+        )
         return None
 
     def _check_pipx_installation(self, service_name: str) -> Optional[str]:
@@ -192,57 +199,172 @@ class MCPConfigManager:
         """
         Generate configuration for a specific MCP service.
 
+        Prefers 'pipx run' or 'uvx' commands over direct execution for better isolation.
+
         Args:
             service_name: Name of the MCP service
 
         Returns:
             Service configuration dict or None if service not found
         """
-        service_path = self.detect_service_path(service_name)
-        if not service_path:
-            return None
+        import shutil
 
-        config = {
-            "type": "stdio",
-            "command": service_path,
-        }
+        # Check for pipx run first (preferred for isolation)
+        use_pipx_run = False
+        use_uvx = False
+
+        # Try pipx run test
+        if shutil.which("pipx"):
+            try:
+                result = subprocess.run(
+                    ["pipx", "run", service_name, "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                    check=False,
+                )
+                if result.returncode == 0 or "version" in result.stdout.lower():
+                    use_pipx_run = True
+                    self.logger.debug(f"Will use 'pipx run' for {service_name}")
+            except:
+                pass
+
+        # Try uvx if pipx run not available
+        if not use_pipx_run and shutil.which("uvx"):
+            try:
+                result = subprocess.run(
+                    ["uvx", service_name, "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                    check=False,
+                )
+                if result.returncode == 0 or "version" in result.stdout.lower():
+                    use_uvx = True
+                    self.logger.debug(f"Will use 'uvx' for {service_name}")
+            except:
+                pass
+
+        # If neither work, try to find direct path
+        service_path = None
+        if not use_pipx_run and not use_uvx:
+            service_path = self.detect_service_path(service_name)
+            if not service_path:
+                return None
+
+        # Build configuration
+        config = {"type": "stdio"}
 
         # Service-specific configurations
         if service_name == "mcp-vector-search":
-            config["args"] = [
-                "-m",
-                "mcp_vector_search.mcp.server",
-                str(self.project_root),
-            ]
+            if use_pipx_run:
+                config["command"] = "pipx"
+                config["args"] = [
+                    "run",
+                    "mcp-vector-search",
+                    "-m",
+                    "mcp_vector_search.mcp.server",
+                    str(self.project_root),
+                ]
+            elif use_uvx:
+                config["command"] = "uvx"
+                config["args"] = [
+                    "mcp-vector-search",
+                    "-m",
+                    "mcp_vector_search.mcp.server",
+                    str(self.project_root),
+                ]
+            else:
+                config["command"] = service_path
+                config["args"] = [
+                    "-m",
+                    "mcp_vector_search.mcp.server",
+                    str(self.project_root),
+                ]
             config["env"] = {}
+
         elif service_name == "mcp-browser":
-            config["args"] = ["mcp"]
+            if use_pipx_run:
+                config["command"] = "pipx"
+                config["args"] = ["run", "mcp-browser", "mcp"]
+            elif use_uvx:
+                config["command"] = "uvx"
+                config["args"] = ["mcp-browser", "mcp"]
+            else:
+                config["command"] = service_path
+                config["args"] = ["mcp"]
             config["env"] = {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
+
         elif service_name == "mcp-ticketer":
-            config["args"] = ["mcp"]
+            if use_pipx_run:
+                config["command"] = "pipx"
+                config["args"] = ["run", "mcp-ticketer", "mcp"]
+            elif use_uvx:
+                config["command"] = "uvx"
+                config["args"] = ["mcp-ticketer", "mcp"]
+            else:
+                config["command"] = service_path
+                config["args"] = ["mcp"]
+
         elif service_name == "kuzu-memory":
-            # Check kuzu-memory version to determine correct command
-            # v1.1.0+ has "claude mcp-server", v1.0.0 has "serve"
-            import subprocess
-            try:
-                result = subprocess.run(
-                    [service_path, "--help"],
-                    capture_output=True,
-                    text=True,
-                    timeout=10
-                )
-                if "claude" in result.stdout:
-                    # v1.1.0+ with claude command
-                    config["args"] = ["claude", "mcp-server"]
-                else:
-                    # v1.0.0 with serve command
-                    config["args"] = ["serve"]
-            except:
-                # Default to older version command
-                config["args"] = ["serve"]
-            # kuzu-memory works with project-specific databases, no custom path needed
+            # Determine kuzu-memory command version
+            kuzu_args = ["mcp", "serve"]  # Default to the correct modern format
+            test_cmd = None
+
+            if use_pipx_run:
+                test_cmd = ["pipx", "run", "kuzu-memory", "--help"]
+            elif use_uvx:
+                test_cmd = ["uvx", "kuzu-memory", "--help"]
+            elif service_path:
+                test_cmd = [service_path, "--help"]
+
+            if test_cmd:
+                try:
+                    result = subprocess.run(
+                        test_cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                        check=False,
+                    )
+                    # Check for MCP support in help output
+                    help_output = result.stdout.lower() + result.stderr.lower()
+
+                    # Modern version detection - look for "mcp serve" command
+                    if "mcp serve" in help_output or ("mcp" in help_output and "serve" in help_output):
+                        # Modern version with mcp serve command
+                        kuzu_args = ["mcp", "serve"]
+                    # Legacy version detection - only "serve" without "mcp"
+                    elif "serve" in help_output and "mcp" not in help_output:
+                        # Very old version that only has serve command
+                        kuzu_args = ["serve"]
+                    # Note: "claude mcp-server" format is deprecated and not used
+                    else:
+                        # Default to the correct modern format
+                        kuzu_args = ["mcp", "serve"]
+                except Exception:
+                    # Default to the correct mcp serve command on any error
+                    kuzu_args = ["mcp", "serve"]
+
+            if use_pipx_run:
+                config["command"] = "pipx"
+                config["args"] = ["run", "kuzu-memory"] + kuzu_args
+            elif use_uvx:
+                config["command"] = "uvx"
+                config["args"] = ["kuzu-memory"] + kuzu_args
+            else:
+                config["command"] = service_path
+                config["args"] = kuzu_args
+
+        # Generic config for unknown services
+        elif use_pipx_run:
+            config["command"] = "pipx"
+            config["args"] = ["run", service_name]
+        elif use_uvx:
+            config["command"] = "uvx"
+            config["args"] = [service_name]
         else:
-            # Generic config for unknown services
+            config["command"] = service_path
             config["args"] = []
 
         return config
@@ -464,7 +586,7 @@ class MCPConfigManager:
 
     def install_missing_services(self) -> Tuple[bool, str]:
         """
-        Install missing MCP services via pipx.
+        Install missing MCP services via pipx with verification and fallbacks.
 
         Returns:
             Tuple of (success, message)
@@ -481,22 +603,167 @@ class MCPConfigManager:
         failed = []
 
         for service_name in missing:
-            try:
-                self.logger.info(f"Installing {service_name} via pipx...")
-                subprocess.run(
-                    ["pipx", "install", service_name],
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                )
-                installed.append(service_name)
-                self.logger.info(f"Successfully installed {service_name}")
-            except subprocess.CalledProcessError as e:
+            # Try pipx install first
+            success, method = self._install_service_with_fallback(service_name)
+            if success:
+                installed.append(f"{service_name} ({method})")
+                self.logger.info(f"Successfully installed {service_name} via {method}")
+            else:
                 failed.append(service_name)
-                self.logger.error(f"Failed to install {service_name}: {e.stderr}")
+                self.logger.error(f"Failed to install {service_name}")
 
         if failed:
             return False, f"Failed to install: {', '.join(failed)}"
         if installed:
             return True, f"Successfully installed: {', '.join(installed)}"
         return True, "No services needed installation"
+
+    def _install_service_with_fallback(self, service_name: str) -> Tuple[bool, str]:
+        """
+        Install a service with multiple fallback methods.
+
+        Returns:
+            Tuple of (success, installation_method)
+        """
+        import shutil
+
+        # Method 1: Try pipx install
+        if shutil.which("pipx"):
+            try:
+                self.logger.debug(f"Attempting to install {service_name} via pipx...")
+                result = subprocess.run(
+                    ["pipx", "install", service_name],
+                    capture_output=True,
+                    text=True,
+                    timeout=120,  # 2 minute timeout
+                    check=False,
+                )
+
+                if result.returncode == 0:
+                    # Verify installation worked
+                    if self._verify_service_installed(service_name, "pipx"):
+                        return True, "pipx"
+
+                    self.logger.warning(
+                        f"pipx install succeeded but verification failed for {service_name}"
+                    )
+                else:
+                    self.logger.debug(f"pipx install failed: {result.stderr}")
+            except subprocess.TimeoutExpired:
+                self.logger.warning(f"pipx install timed out for {service_name}")
+            except Exception as e:
+                self.logger.debug(f"pipx install error: {e}")
+
+        # Method 2: Try uvx (if available)
+        if shutil.which("uvx"):
+            try:
+                self.logger.debug(f"Attempting to install {service_name} via uvx...")
+                result = subprocess.run(
+                    ["uvx", "install", service_name],
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                    check=False,
+                )
+
+                if result.returncode == 0:
+                    if self._verify_service_installed(service_name, "uvx"):
+                        return True, "uvx"
+            except Exception as e:
+                self.logger.debug(f"uvx install error: {e}")
+
+        # Method 3: Try pip install --user
+        try:
+            self.logger.debug(f"Attempting to install {service_name} via pip --user...")
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "install", "--user", service_name],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+
+            if result.returncode == 0:
+                if self._verify_service_installed(service_name, "pip"):
+                    return True, "pip --user"
+
+                self.logger.warning(
+                    f"pip install succeeded but verification failed for {service_name}"
+                )
+        except Exception as e:
+            self.logger.debug(f"pip install error: {e}")
+
+        return False, "none"
+
+    def _verify_service_installed(self, service_name: str, method: str) -> bool:
+        """
+        Verify that a service was successfully installed and is functional.
+
+        Args:
+            service_name: Name of the service
+            method: Installation method used
+
+        Returns:
+            True if service is installed and functional
+        """
+        import time
+
+        # Give the installation a moment to settle
+        time.sleep(1)
+
+        # Check if we can find the service
+        service_path = self.detect_service_path(service_name)
+        if not service_path:
+            # Try pipx run as fallback for pipx installations
+            if method == "pipx":
+                try:
+                    result = subprocess.run(
+                        ["pipx", "run", service_name, "--version"],
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                        check=False,
+                    )
+                    if result.returncode == 0 or "version" in result.stdout.lower():
+                        self.logger.debug(f"{service_name} accessible via 'pipx run'")
+                        return True
+                except:
+                    pass
+            return False
+
+        # Try to verify it works
+        try:
+            # Different services may need different verification
+            test_commands = [
+                [service_path, "--version"],
+                [service_path, "--help"],
+            ]
+
+            for cmd in test_commands:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    check=False,
+                )
+
+                output = (result.stdout + result.stderr).lower()
+                # Check for signs of success
+                if result.returncode == 0:
+                    return True
+                # Some tools return non-zero but still work
+                if any(
+                    indicator in output
+                    for indicator in ["version", "usage", "help", service_name.lower()]
+                ):
+                    # Make sure it's not an error message
+                    if not any(
+                        error in output
+                        for error in ["error", "not found", "traceback", "no such"]
+                    ):
+                        return True
+        except Exception as e:
+            self.logger.debug(f"Verification error for {service_name}: {e}")
+
+        return False

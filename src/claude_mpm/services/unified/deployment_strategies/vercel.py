@@ -16,7 +16,11 @@ from typing import Any, Dict, List, Optional
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.unified.strategies import StrategyMetadata, StrategyPriority
 
-from .base import DeploymentContext, DeploymentResult, DeploymentStrategy, DeploymentType
+from .base import (
+    DeploymentContext,
+    DeploymentResult,
+    DeploymentStrategy,
+)
 
 
 class VercelDeploymentStrategy(DeploymentStrategy):
@@ -117,11 +121,13 @@ class VercelDeploymentStrategy(DeploymentStrategy):
             # Single file deployment (e.g., serverless function)
             deploy_file = deploy_dir / source_path.name
             import shutil
+
             shutil.copy2(source_path, deploy_file)
             artifacts.append(deploy_file)
         else:
             # Directory deployment
             import shutil
+
             shutil.copytree(source_path, deploy_dir / "app", dirs_exist_ok=True)
             artifacts.append(deploy_dir / "app")
 
@@ -200,8 +206,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
                     "stdout": result.stdout,
                     "timestamp": datetime.now().isoformat(),
                 }
-            else:
-                raise Exception("Could not parse deployment URL from Vercel output")
+            raise Exception("Could not parse deployment URL from Vercel output")
 
         except subprocess.CalledProcessError as e:
             self._logger.error(f"Vercel deployment failed: {e.stderr}")
@@ -235,18 +240,15 @@ class VercelDeploymentStrategy(DeploymentStrategy):
                 if response.status == 200:
                     self._logger.info(f"Deployment verified: {deployment_url}")
                     return True
-                else:
-                    self._logger.error(f"Deployment returned status: {response.status}")
-                    return False
+                self._logger.error(f"Deployment returned status: {response.status}")
+                return False
 
         except Exception as e:
-            self._logger.error(f"Failed to verify deployment: {str(e)}")
+            self._logger.error(f"Failed to verify deployment: {e!s}")
             # May still be building, check via CLI
             return self._check_deployment_status(deployment_info.get("deployment_id"))
 
-    def rollback(
-        self, context: DeploymentContext, result: DeploymentResult
-    ) -> bool:
+    def rollback(self, context: DeploymentContext, result: DeploymentResult) -> bool:
         """
         Rollback Vercel deployment.
 
@@ -280,23 +282,20 @@ class VercelDeploymentStrategy(DeploymentStrategy):
                     check=True,
                 )
 
-                self._logger.info(f"Rolled back to previous deployment")
+                self._logger.info("Rolled back to previous deployment")
                 return True
 
-            else:
-                self._logger.warning(
-                    "No previous deployment ID available for rollback. "
-                    "Manual rollback required via Vercel dashboard."
-                )
-                return False
-
-        except Exception as e:
-            self._logger.error(f"Rollback failed: {str(e)}")
+            self._logger.warning(
+                "No previous deployment ID available for rollback. "
+                "Manual rollback required via Vercel dashboard."
+            )
             return False
 
-    def get_health_status(
-        self, deployment_info: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        except Exception as e:
+            self._logger.error(f"Rollback failed: {e!s}")
+            return False
+
+    def get_health_status(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
         """
         Get health status of Vercel deployment.
 
@@ -325,7 +324,9 @@ class VercelDeploymentStrategy(DeploymentStrategy):
             # Check main deployment URL
             with urllib.request.urlopen(deployment_url) as response:
                 health["checks"]["main_url"] = response.status == 200
-                health["response_time_ms"] = response.info().get("X-Vercel-Trace", "N/A")
+                health["response_time_ms"] = response.info().get(
+                    "X-Vercel-Trace", "N/A"
+                )
 
             # Check functions if configured
             if deployment_info.get("functions"):
@@ -333,7 +334,9 @@ class VercelDeploymentStrategy(DeploymentStrategy):
                     func_url = f"{deployment_url}/api/{func_name}"
                     try:
                         with urllib.request.urlopen(func_url) as response:
-                            health["checks"][f"function_{func_name}"] = response.status < 500
+                            health["checks"][f"function_{func_name}"] = (
+                                response.status < 500
+                            )
                     except:
                         health["checks"][f"function_{func_name}"] = False
 
@@ -443,6 +446,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
             if "https://" in line:
                 # Extract URL
                 import re
+
                 url_match = re.search(r"https://[^\s]+", line)
                 if url_match:
                     return url_match.group(0)
@@ -468,4 +472,6 @@ class VercelDeploymentStrategy(DeploymentStrategy):
 
     def _generate_deployment_id(self) -> str:
         """Generate unique deployment ID."""
-        return f"vercel_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"
+        return (
+            f"vercel_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"
+        )

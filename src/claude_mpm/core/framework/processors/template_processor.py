@@ -82,7 +82,9 @@ class TemplateProcessor:
         Returns:
             Template data or None if not found
         """
-        templates_dir = self.framework_path / "src" / "claude_mpm" / "agents" / "templates"
+        templates_dir = (
+            self.framework_path / "src" / "claude_mpm" / "agents" / "templates"
+        )
 
         # Try exact match first
         template_file = templates_dir / f"{agent_name}.json"
@@ -114,8 +116,8 @@ class TemplateProcessor:
             {
                 agent_name.replace("-", "_"),  # api-qa -> api_qa
                 agent_name.replace("_", "-"),  # api_qa -> api-qa
-                agent_name.replace("-", ""),   # api-qa -> apiqa
-                agent_name.replace("_", ""),   # api_qa -> apiqa
+                agent_name.replace("-", ""),  # api-qa -> apiqa
+                agent_name.replace("_", ""),  # api_qa -> apiqa
                 agent_name.replace("-agent", ""),  # research-agent -> research
                 agent_name.replace("_agent", ""),  # research_agent -> research
                 agent_name + "_agent",  # research -> research_agent
@@ -123,7 +125,9 @@ class TemplateProcessor:
             }
         )
 
-    def extract_routing(self, template_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def extract_routing(
+        self, template_data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """Extract routing information from template.
 
         Args:
@@ -134,7 +138,9 @@ class TemplateProcessor:
         """
         return template_data.get("routing")
 
-    def extract_memory_routing(self, template_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def extract_memory_routing(
+        self, template_data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """Extract memory routing information from template.
 
         Args:

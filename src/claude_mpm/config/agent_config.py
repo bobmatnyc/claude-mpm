@@ -20,10 +20,10 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.shared.config_loader import ConfigLoader, ConfigPattern
 from claude_mpm.core.unified_paths import get_path_manager
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

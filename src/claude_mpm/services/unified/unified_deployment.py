@@ -21,7 +21,6 @@ Features:
 - Metrics and monitoring integration
 """
 
-import asyncio
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -114,7 +113,7 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
             return True
 
         except Exception as e:
-            self._logger.error(f"Failed to initialize: {str(e)}")
+            self._logger.error(f"Failed to initialize: {e!s}")
             return False
 
     async def shutdown(self) -> None:
@@ -215,7 +214,9 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
         strategy = self._registry.select_strategy(DeploymentStrategy, context)
 
         if not strategy:
-            errors.append(f"No strategy available for deployment type: {deployment_type}")
+            errors.append(
+                f"No strategy available for deployment type: {deployment_type}"
+            )
         else:
             # Delegate validation to strategy
             strategy_errors = strategy.validate_input(config)
@@ -314,20 +315,19 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
                     metadata=result,
                     rollback_info=rollback_info,
                 )
-            else:
-                self._metrics["failed_deployments"] += 1
-                return DeploymentResult(
-                    success=False,
-                    message=result.get("error", "Deployment failed"),
-                    metadata=result,
-                )
-
-        except Exception as e:
-            self._logger.error(f"Deployment error: {str(e)}")
             self._metrics["failed_deployments"] += 1
             return DeploymentResult(
                 success=False,
-                message=f"Deployment failed: {str(e)}",
+                message=result.get("error", "Deployment failed"),
+                metadata=result,
+            )
+
+        except Exception as e:
+            self._logger.error(f"Deployment error: {e!s}")
+            self._metrics["failed_deployments"] += 1
+            return DeploymentResult(
+                success=False,
+                message=f"Deployment failed: {e!s}",
             )
 
     def rollback(
@@ -355,9 +355,7 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
         try:
             # Get the strategy used for deployment
             strategy_name = deployment["strategy"]
-            strategy = self._registry.get_strategy(
-                DeploymentStrategy, strategy_name
-            )
+            strategy = self._registry.get_strategy(DeploymentStrategy, strategy_name)
 
             if not strategy:
                 return DeploymentResult(
@@ -380,17 +378,16 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
                     success=True,
                     message=f"Successfully rolled back deployment {deployment_id}",
                 )
-            else:
-                return DeploymentResult(
-                    success=False,
-                    message="Rollback failed",
-                )
-
-        except Exception as e:
-            self._logger.error(f"Rollback error: {str(e)}")
             return DeploymentResult(
                 success=False,
-                message=f"Rollback failed: {str(e)}",
+                message="Rollback failed",
+            )
+
+        except Exception as e:
+            self._logger.error(f"Rollback error: {e!s}")
+            return DeploymentResult(
+                success=False,
+                message=f"Rollback failed: {e!s}",
             )
 
     def list_deployments(
@@ -409,9 +406,7 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
 
         if target:
             target_str = str(target)
-            deployments = [
-                d for d in deployments if d["target"] == target_str
-            ]
+            deployments = [d for d in deployments if d["target"] == target_str]
 
         return deployments
 

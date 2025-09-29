@@ -18,8 +18,10 @@ import click
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Prompt
 from rich.table import Table
+
+from claude_mpm.core.logging_utils import get_logger
 
 # Import new services
 from claude_mpm.services.project.archive_manager import ArchiveManager
@@ -27,7 +29,6 @@ from claude_mpm.services.project.documentation_manager import DocumentationManag
 from claude_mpm.services.project.enhanced_analyzer import EnhancedProjectAnalyzer
 from claude_mpm.services.project.project_organizer import ProjectOrganizer
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 console = Console()
 
@@ -93,10 +94,14 @@ class MPMInitCommand:
                 # Auto-select update mode if organize_files or dry_run is specified
                 if organize_files or dry_run:
                     update_mode = True
-                    console.print("[cyan]Auto-selecting update mode for organization tasks.[/cyan]\n")
+                    console.print(
+                        "[cyan]Auto-selecting update mode for organization tasks.[/cyan]\n"
+                    )
                 else:
                     # Offer update mode
-                    console.print("[yellow]⚠️  Project already has CLAUDE.md file.[/yellow]\n")
+                    console.print(
+                        "[yellow]⚠️  Project already has CLAUDE.md file.[/yellow]\n"
+                    )
 
                     # Show current documentation analysis
                     doc_analysis = self.doc_manager.analyze_existing_content()
@@ -112,7 +117,10 @@ class MPMInitCommand:
                     elif action == "review":
                         return self._run_review_mode()
                     else:
-                        return {"status": "cancelled", "message": "Initialization cancelled"}
+                        return {
+                            "status": "cancelled",
+                            "message": "Initialization cancelled",
+                        }
 
             # Handle dry-run mode
             if dry_run:
@@ -156,7 +164,9 @@ class MPMInitCommand:
                 task = progress.add_task(task_desc, total=None)
 
                 # Run the initialization through subprocess
-                result = self._run_initialization(prompt, verbose, use_venv, update_mode)
+                result = self._run_initialization(
+                    prompt, verbose, use_venv, update_mode
+                )
 
                 complete_desc = (
                     "[green]✓ Update complete"
@@ -406,24 +416,28 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
         table.add_column("Value", style="white")
 
         table.add_row("Size", f"{analysis.get('size', 0):,} characters")
-        table.add_row("Lines", str(analysis.get('lines', 0)))
-        table.add_row("Sections", str(len(analysis.get('sections', []))))
-        table.add_row("Has Priority Index", "✓" if analysis.get('has_priority_index') else "✗")
-        table.add_row("Has Priority Markers", "✓" if analysis.get('has_priority_markers') else "✗")
+        table.add_row("Lines", str(analysis.get("lines", 0)))
+        table.add_row("Sections", str(len(analysis.get("sections", []))))
+        table.add_row(
+            "Has Priority Index", "✓" if analysis.get("has_priority_index") else "✗"
+        )
+        table.add_row(
+            "Has Priority Markers", "✓" if analysis.get("has_priority_markers") else "✗"
+        )
 
-        if analysis.get('last_modified'):
-            table.add_row("Last Modified", analysis['last_modified'])
+        if analysis.get("last_modified"):
+            table.add_row("Last Modified", analysis["last_modified"])
 
         console.print(table)
 
-        if analysis.get('outdated_patterns'):
+        if analysis.get("outdated_patterns"):
             console.print("\n[yellow]⚠️  Outdated patterns detected:[/yellow]")
-            for pattern in analysis['outdated_patterns']:
+            for pattern in analysis["outdated_patterns"]:
                 console.print(f"  • {pattern}")
 
-        if analysis.get('custom_sections'):
+        if analysis.get("custom_sections"):
             console.print("\n[blue]ℹ️  Custom sections found:[/blue]")
-            for section in analysis['custom_sections'][:5]:
+            for section in analysis["custom_sections"][:5]:
                 console.print(f"  • {section}")
 
     def _prompt_update_action(self) -> str:
@@ -440,7 +454,9 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
         for key, (_, desc) in choices.items():
             console.print(f"  [{key}] {desc}")
 
-        choice = Prompt.ask("\nSelect option", choices=list(choices.keys()), default="1")
+        choice = Prompt.ask(
+            "\nSelect option", choices=list(choices.keys()), default="1"
+        )
         return choices[choice][0]
 
     def _run_review_mode(self) -> Dict:
@@ -460,7 +476,9 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
             # Analyze documentation
             task = progress.add_task("[cyan]Analyzing documentation...", total=None)
             doc_analysis = self.doc_manager.analyze_existing_content()
-            progress.update(task, description="[green]✓ Documentation analysis complete")
+            progress.update(
+                task, description="[green]✓ Documentation analysis complete"
+            )
 
             # Analyze git history
             if self.analyzer.is_git_repo:
@@ -476,7 +494,9 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
             progress.update(task, description="[green]✓ State detection complete")
 
         # Display comprehensive report
-        self._display_review_report(structure_report, doc_analysis, git_analysis, project_state)
+        self._display_review_report(
+            structure_report, doc_analysis, git_analysis, project_state
+        )
 
         return {
             "status": "success",
@@ -498,46 +518,56 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
         # Project State
         console.print("[bold cyan]📊 Project State[/bold cyan]")
         console.print(f"  Phase: {state.get('phase', 'unknown')}")
-        if state.get('indicators'):
+        if state.get("indicators"):
             console.print("  Indicators:")
-            for indicator in state['indicators'][:5]:
+            for indicator in state["indicators"][:5]:
                 console.print(f"    • {indicator}")
 
         # Structure Report
         console.print("\n[bold cyan]📁 Project Structure[/bold cyan]")
         console.print(f"  Existing directories: {len(structure.get('exists', []))}")
         console.print(f"  Missing directories: {len(structure.get('missing', []))}")
-        if structure.get('issues'):
+        if structure.get("issues"):
             console.print(f"  Issues found: {len(structure['issues'])}")
-            for issue in structure['issues'][:3]:
+            for issue in structure["issues"][:3]:
                 console.print(f"    ⚠️  {issue['description']}")
 
         # Documentation Report
         console.print("\n[bold cyan]📚 Documentation Status[/bold cyan]")
-        if docs.get('exists'):
+        if docs.get("exists"):
             console.print(f"  CLAUDE.md: Found ({docs.get('size', 0):,} chars)")
             console.print(f"  Sections: {len(docs.get('sections', []))}")
-            console.print(f"  Priority markers: {'Yes' if docs.get('has_priority_markers') else 'No'}")
+            console.print(
+                f"  Priority markers: {'Yes' if docs.get('has_priority_markers') else 'No'}"
+            )
         else:
             console.print("  CLAUDE.md: Not found")
 
         # Git Analysis
-        if git and git.get('git_available'):
+        if git and git.get("git_available"):
             console.print("\n[bold cyan]📈 Recent Activity (30 days)[/bold cyan]")
             console.print(f"  Commits: {len(git.get('recent_commits', []))}")
-            console.print(f"  Authors: {git.get('authors', {}).get('total_authors', 0)}")
-            console.print(f"  Changed files: {git.get('changed_files', {}).get('total_files', 0)}")
+            console.print(
+                f"  Authors: {git.get('authors', {}).get('total_authors', 0)}"
+            )
+            console.print(
+                f"  Changed files: {git.get('changed_files', {}).get('total_files', 0)}"
+            )
 
-            if git.get('branch_info'):
-                branch_info = git['branch_info']
-                console.print(f"  Current branch: {branch_info.get('current_branch', 'unknown')}")
-                if branch_info.get('has_uncommitted_changes'):
-                    console.print(f"  ⚠️  Uncommitted changes: {branch_info.get('uncommitted_files', 0)} files")
+            if git.get("branch_info"):
+                branch_info = git["branch_info"]
+                console.print(
+                    f"  Current branch: {branch_info.get('current_branch', 'unknown')}"
+                )
+                if branch_info.get("has_uncommitted_changes"):
+                    console.print(
+                        f"  ⚠️  Uncommitted changes: {branch_info.get('uncommitted_files', 0)} files"
+                    )
 
         # Recommendations
-        if state.get('recommendations'):
+        if state.get("recommendations"):
             console.print("\n[bold cyan]💡 Recommendations[/bold cyan]")
-            for rec in state['recommendations'][:5]:
+            for rec in state["recommendations"][:5]:
                 console.print(f"  → {rec}")
 
         console.print("\n" + "=" * 60 + "\n")
@@ -557,7 +587,9 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
             if validation.get("issues"):
                 console.print("  [yellow]Files that would be organized:[/yellow]")
                 for issue in validation["issues"][:10]:
-                    actions_planned.append(f"Organize: {issue.get('description', 'Unknown')}")
+                    actions_planned.append(
+                        f"Organize: {issue.get('description', 'Unknown')}"
+                    )
                     console.print(f"    • {issue.get('description', 'Unknown')}")
             else:
                 console.print("  ✅ Project structure is already well-organized")
@@ -567,15 +599,15 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
             console.print("\n[bold]📚 Documentation Updates:[/bold]")
             doc_analysis = self.doc_manager.analyze_existing_content()
 
-            if not doc_analysis.get('has_priority_markers'):
+            if not doc_analysis.get("has_priority_markers"):
                 actions_planned.append("Add priority markers (🔴🟡🟢⚪)")
                 console.print("  • Add priority markers (🔴🟡🟢⚪)")
 
-            if doc_analysis.get('outdated_patterns'):
+            if doc_analysis.get("outdated_patterns"):
                 actions_planned.append("Update outdated patterns")
                 console.print("  • Update outdated patterns")
 
-            if not doc_analysis.get('has_priority_index'):
+            if not doc_analysis.get("has_priority_index"):
                 actions_planned.append("Add priority index section")
                 console.print("  • Add priority index section")
 
@@ -589,23 +621,27 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
 
         # General improvements
         console.print("\n[bold]🔧 General Improvements:[/bold]")
-        actions_planned.extend([
-            "Update/create .gitignore if needed",
-            "Verify project structure compliance",
-            "Add memory system initialization",
-            "Set up single-path workflows"
-        ])
+        actions_planned.extend(
+            [
+                "Update/create .gitignore if needed",
+                "Verify project structure compliance",
+                "Add memory system initialization",
+                "Set up single-path workflows",
+            ]
+        )
         for action in actions_planned[-4:]:
             console.print(f"  • {action}")
 
-        console.print(f"\n[bold cyan]Summary: {len(actions_planned)} actions would be performed[/bold cyan]")
+        console.print(
+            f"\n[bold cyan]Summary: {len(actions_planned)} actions would be performed[/bold cyan]"
+        )
         console.print("\n[dim]Run without --dry-run to execute these changes.[/dim]\n")
 
         return {
             "status": "success",
             "mode": "dry_run",
             "actions_planned": actions_planned,
-            "message": "Dry run completed - no changes made"
+            "message": "Dry run completed - no changes made",
         }
 
     def _run_pre_initialization_checks(
@@ -618,7 +654,7 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
         # Run comprehensive project readiness check
         ready, actions = self.organizer.ensure_project_ready(
             auto_organize=organize_files,
-            safe_mode=True  # Only perform safe operations by default
+            safe_mode=True,  # Only perform safe operations by default
         )
 
         if actions:
@@ -638,15 +674,14 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
         # Archive existing documentation if needed
         if has_existing and not skip_archive:
             if self.archive_manager.auto_archive_before_update(
-                self.project_path / "CLAUDE.md",
-                update_reason="Before mpm-init update"
+                self.project_path / "CLAUDE.md", update_reason="Before mpm-init update"
             ):
                 checks_passed.append("Archived existing CLAUDE.md")
 
         # Check for issues in validation report
-        if validation.get('issues'):
-            for issue in validation['issues']:
-                warnings.append(issue['description'])
+        if validation.get("issues"):
+            for issue in validation["issues"]:
+                warnings.append(issue["description"])
 
         if warnings:
             console.print("\n[yellow]⚠️  Project issues detected:[/yellow]")
@@ -660,7 +695,11 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
                 console.print(f"  • {check}")
             console.print()
 
-        return {"status": "success", "checks_passed": checks_passed, "warnings": warnings}
+        return {
+            "status": "success",
+            "checks_passed": checks_passed,
+            "warnings": warnings,
+        }
 
     def _show_update_plan(self, ast_analysis: bool, preserve_custom: bool) -> None:
         """Show update mode plan."""
@@ -673,7 +712,11 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
                 + "• Priority-based reorganization (🔴🟡🟢⚪)\n"
                 "• Updated single-path workflows\n"
                 "• Refreshed tool configurations\n"
-                + ("• AST analysis for enhanced documentation\n" if ast_analysis else "")
+                + (
+                    "• AST analysis for enhanced documentation\n"
+                    if ast_analysis
+                    else ""
+                )
                 + "• Automatic archival of previous version\n"
                 + "• Holistic review and optimization\n"
                 + "\n[dim]Previous version will be archived in docs/_archive/[/dim]",
@@ -694,7 +737,11 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
                 "• Tool configurations (linting, formatting, testing)\n"
                 "• GitHub workflows and CI/CD setup\n"
                 "• Memory system initialization\n"
-                + ("• AST analysis for comprehensive code documentation\n" if ast_analysis else "")
+                + (
+                    "• AST analysis for comprehensive code documentation\n"
+                    if ast_analysis
+                    else ""
+                )
                 + "• Holistic CLAUDE.md organization with ranked instructions\n"
                 + "• Priority-based content structure (🔴🟡🟢⚪)\n"
                 + "\n[dim]Powered by Agentic Coder Optimizer Agent[/dim]",
@@ -732,7 +779,7 @@ Existing Documentation Analysis:
 - Has Priority Index: {'Yes' if doc_analysis.get('has_priority_index') else 'No'}
 - Custom Sections: {len(doc_analysis.get('custom_sections', []))} found
 """
-        if preserve_custom and doc_analysis.get('custom_sections'):
+        if preserve_custom and doc_analysis.get("custom_sections"):
             prompt += f"- Preserve Custom Sections: {', '.join(doc_analysis['custom_sections'][:5])}\n"
 
         prompt += """
@@ -789,18 +836,25 @@ preserving valuable project-specific information while refreshing standard secti
             latest_archive = self.archive_manager.get_latest_archive("CLAUDE.md")
             if latest_archive:
                 comparison = self.archive_manager.compare_with_archive(
-                    self.project_path / "CLAUDE.md",
-                    latest_archive.name
+                    self.project_path / "CLAUDE.md", latest_archive.name
                 )
 
                 if not comparison.get("identical"):
                     console.print("\n[bold cyan]📊 Update Summary[/bold cyan]")
-                    console.print(f"  Lines changed: {comparison.get('lines_added', 0):+d}")
-                    console.print(f"  Size change: {comparison.get('size_change', 0):+,} characters")
+                    console.print(
+                        f"  Lines changed: {comparison.get('lines_added', 0):+d}"
+                    )
+                    console.print(
+                        f"  Size change: {comparison.get('size_change', 0):+,} characters"
+                    )
                     console.print(f"  Previous version: {latest_archive.name}")
 
     def _run_initialization(
-        self, prompt: str, verbose: bool, use_venv: bool = False, update_mode: bool = False
+        self,
+        prompt: str,
+        verbose: bool,
+        use_venv: bool = False,
+        update_mode: bool = False,
     ) -> Dict:
         """Run the initialization through subprocess calling claude-mpm."""
         import tempfile

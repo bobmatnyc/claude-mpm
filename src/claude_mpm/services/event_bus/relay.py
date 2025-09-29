@@ -24,10 +24,11 @@ except ImportError:
 
 import contextlib
 
-from .event_bus import EventBus
-
 # Configure logger
 from claude_mpm.core.logging_utils import get_logger
+
+from .event_bus import EventBus
+
 logger = get_logger(__name__)
 
 

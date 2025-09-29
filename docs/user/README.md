@@ -1,7 +1,7 @@
 # 👥 Claude MPM User Guide
 
 **Complete user documentation for Claude MPM (Multi-Agent Project Manager)**
-**Version 4.3.3** | Last Updated: September 19, 2025
+**Version 4.4.x** | Last Updated: September 28, 2025
 
 Welcome to Claude MPM! This comprehensive guide covers everything you need to know to use Claude MPM effectively, from installation to advanced features.
 

@@ -18,6 +18,7 @@ from pyee.asyncio import AsyncIOEventEmitter
 
 # Configure logger
 from claude_mpm.core.logging_utils import get_logger
+
 logger = get_logger(__name__)
 
 

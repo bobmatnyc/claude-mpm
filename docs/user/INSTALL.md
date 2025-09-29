@@ -1,64 +1,297 @@
 # Installation Guide
 
-Claude MPM can be installed via UV, pip, or npm. UV is recommended for the best experience.
+Complete installation instructions for Claude MPM v4.4.x across different environments and use cases.
 
-## Prerequisites
+> **⚠️ Important**: Claude MPM extends **Claude Code (CLI)**, not Claude Desktop (app). All MCP integrations work with Claude Code's CLI interface only.
 
-- **Claude Code** 1.0.60 or later (required)
-- **Python** 3.8 or later
-- **Package Manager**: UV (recommended), pip, or npm
+**Version**: 4.4.x
+**Last Updated**: 2025-09-28
 
-## Option 1: Install via UV (Recommended)
+## System Requirements
 
-[UV](https://github.com/astral-sh/uv) is a fast Python package installer that handles virtual environments automatically:
+- **Operating System**: macOS, Linux, or Windows (WSL recommended)
+- **Python**: 3.8 or higher (3.11+ recommended)
+- **Claude Code (CLI)**: Version 1.0.60 or later (required)
+- **Memory**: At least 4GB RAM recommended
+- **Storage**: 500MB free space
+
+## Quick Start
+
+### Recommended: UV Installation
+
+[UV](https://github.com/astral-sh/uv) is the fastest and most reliable installation method:
 
 ```bash
 # Install UV if not already installed
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install claude-mpm
+# Basic installation
 uv pip install claude-mpm
+
+# Install with optional MCP services (recommended)
+uv pip install "claude-mpm[mcp]"
+
+# Verify installation
+claude-mpm --version
 ```
 
-## Option 2: Install via pip
+### Alternative: pipx (Isolated Global Installation)
 
-Traditional Python installation:
+For isolated package management without virtual environment hassles:
+
+```bash
+# Install pipx if not already installed
+python -m pip install --user pipx
+python -m pipx ensurepath
+
+# Basic installation
+pipx install claude-mpm
+
+# Install with all optional features (recommended)
+pipx install "claude-mpm[mcp,monitor]"
+
+# Configure MCP for pipx users
+claude-mpm mcp-pipx-config
+```
+
+## Optional Dependencies
+
+Claude MPM offers several optional dependency groups that can be combined:
+
+| Dependency Group | Description | Packages Included |
+|-----------------|-------------|------------------|
+| `[mcp]` | MCP services for external tool integration | mcp, mcp-vector-search, mcp-browser, mcp-ticketer, kuzu-memory |
+| `[monitor]` | Real-time monitoring dashboard | python-socketio, aiohttp, websockets, aiofiles |
+| `[dev]` | Development tools | pytest, black, flake8, mypy, ruff |
+| `[docs]` | Documentation building | sphinx, sphinx-rtd-theme |
+
+### Installing Multiple Optional Groups
+
+You can combine multiple optional dependency groups using comma separation:
+
+```bash
+# Install with MCP services only
+pip install "claude-mpm[mcp]"
+
+# Install with monitoring only
+pip install "claude-mpm[monitor]"
+
+# Install with BOTH MCP and monitoring (recommended for full features)
+pip install "claude-mpm[mcp,monitor]"
+
+# Install with all development dependencies
+pip install "claude-mpm[mcp,monitor,dev,docs]"
+
+# Using pipx (recommended for global installation)
+pipx install "claude-mpm[mcp,monitor]"
+
+# Using UV (fastest)
+uv pip install "claude-mpm[mcp,monitor]"
+```
+
+### Common Installation Scenarios
+
+| Use Case | Installation Command | What You Get |
+|----------|---------------------|--------------|
+| Basic CLI only | `pip install claude-mpm` | Core Claude MPM functionality |
+| With AI tools | `pip install "claude-mpm[mcp]"` | + MCP services, vector search, kuzu-memory |
+| With dashboard | `pip install "claude-mpm[monitor]"` | + Real-time monitoring web interface |
+| **Full features** | `pip install "claude-mpm[mcp,monitor]"` | All features enabled (recommended) |
+| Development | `pip install "claude-mpm[mcp,monitor,dev]"` | + Testing and linting tools |
+
+## Installation Methods
+
+### Method 1: UV (Recommended)
+
+**Best for**: Most users, handles virtual environments automatically
+
+```bash
+# Install UV
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Basic installation
+uv pip install claude-mpm
+
+# Install with optional MCP services (recommended)
+uv pip install "claude-mpm[mcp]"
+
+# Install with all features
+uv pip install "claude-mpm[mcp,monitor]"
+
+# For development
+git clone https://github.com/bobmatnyc/claude-mpm.git
+cd claude-mpm
+uv pip install -e ".[mcp,monitor,dev]"
+```
+
+**Advantages**:
+- Fastest installation
+- Automatic virtual environment management
+- Best dependency resolution
+- Works across all platforms
+
+### Method 2: pipx (Isolated Installation)
+
+**Best for**: Global tools, avoiding dependency conflicts
+
+```bash
+# Install pipx
+python -m pip install --user pipx
+python -m pipx ensurepath
+
+# Basic installation
+pipx install claude-mpm
+
+# Install with MCP services (recommended)
+pipx install "claude-mpm[mcp]"
+
+# Install with all features
+pipx install "claude-mpm[mcp,monitor]"
+
+# Configure MCP services
+claude-mpm mcp-pipx-config
+```
+
+**Advantages**:
+- Clean isolation from other Python packages
+- Global command access
+- Easy updates with `pipx upgrade claude-mpm`
+- Complete removal with `pipx uninstall claude-mpm`
+
+### Method 3: pip (Traditional)
+
+**Best for**: Existing Python workflows, custom environments
 
 ```bash
 # Create virtual environment (recommended)
 python -m venv claude-mpm-env
-source claude-mpm-env/bin/activate  # On Windows: claude-mpm-env\Scripts\activate
+source claude-mpm-env/bin/activate  # Windows: claude-mpm-env\Scripts\activate
+
+# Basic installation
+pip install claude-mpm
+
+# Install with MCP services (recommended)
+pip install "claude-mpm[mcp]"
+
+# Install with all features
+pip install "claude-mpm[mcp,monitor,agents,dev,docs]"
+```
+
+**Optional Dependencies**:
+- `claude-mpm[mcp]`: **NEW** - Include MCP services (mcp-vector-search, kuzu-memory)
+- `claude-mpm[monitor]`: Include real-time monitoring features
+- `claude-mpm[agents]`: Include agent analysis tools
+- `claude-mpm[dev]`: Include development and testing tools
+- `claude-mpm[docs]`: Include documentation tools
+
+### Method 4: npm (Wrapper)
+
+**Best for**: Node.js-centric workflows
+
+```bash
+# Install globally
+npm install -g @bobmatnyc/claude-mpm
+
+# The wrapper installs Python dependencies on first run
+claude-mpm
+```
+
+**Note**: This is a wrapper around the Python package. Python 3.8+ must be installed separately.
+
+## Platform-Specific Instructions
+
+### macOS
+
+**Homebrew users (PEP 668 restrictions)**:
+
+```bash
+# Option 1: Use UV (recommended)
+brew install uv
+uv pip install claude-mpm
+
+# Option 2: Use pipx
+brew install pipx
+pipx install "claude-mpm[monitor]"
+
+# Option 3: Virtual environment
+python -m venv claude-mpm-env
+source claude-mpm-env/bin/activate
+pip install claude-mpm
+```
+
+### Linux
+
+```bash
+# Ubuntu/Debian
+sudo apt update && sudo apt install python3 python3-pip git
+
+# Install via UV (recommended)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv pip install claude-mpm
+
+# Or via pip
+pip3 install claude-mpm
+```
+
+### Windows
+
+**WSL (Recommended)**:
+1. Install WSL2 with Ubuntu
+2. Follow Linux instructions above
+
+**Native Windows**:
+```powershell
+# Install Python from python.org
+# Install Git from git-scm.com
 
 # Install claude-mpm
 pip install claude-mpm
 ```
 
-## Option 3: Install via npm (Wrapper)
+## Development Installation
 
-The npm package provides a convenient wrapper that will install the Python package on first run:
+For contributors and developers:
 
 ```bash
-npm install -g @bobmatnyc/claude-mpm
+# Clone repository
+git clone https://github.com/bobmatnyc/claude-mpm.git
+cd claude-mpm
+
+# Auto-install with environment detection
+./install_dev.sh
+
+# Manual setup
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -e ".[agents,dev,docs,monitor]"
+
+# Run tests
+make quality
+./scripts/run_all_tests.sh
 ```
 
-**Note**: This is just a wrapper - Python 3.8+ must be installed on your system.
+## Verification
 
-## Verify Installation
-
-After installation, verify it works:
+After installation, verify everything works:
 
 ```bash
-# Show version and help
-claude-mpm --help
+# Check version
+claude-mpm --version
 
-# Test in interactive mode
+# Verify Claude Code is available
+claude --version
+
+# Show system information
+claude-mpm info
+
+# Quick test
+claude-mpm run -i "test installation" --non-interactive
+
+# Interactive mode
 claude-mpm
-
-# Run a simple test
-claude-mpm run -i "Say hello" --non-interactive
 ```
 
-## Usage
+## Usage Overview
 
 ### Interactive Mode (Default)
 
@@ -66,17 +299,17 @@ claude-mpm run -i "Say hello" --non-interactive
 claude-mpm
 ```
 
-This launches Claude Code with the PM framework loaded, including:
-- System instructions for orchestration
-- Deployed specialized agents (engineer, qa, research, etc.)
-- Automatic MCP service installation (mcp-vector-search, kuzu-memory)
+Launches Claude Code (CLI) with:
+- Project Manager orchestration framework
+- Deployed specialized agents (engineer, qa, researcher, etc.)
+- Automatic MCP service installation and configuration
 - Persistent knowledge management with project-specific databases
-- Delegation-only operation mode
+- Real-time monitoring and event tracking
 
 ### Non-Interactive Mode
 
 ```bash
-claude-mpm run -i "Your task here" --non-interactive
+claude-mpm run -i "Your task description" --non-interactive
 ```
 
 ### Common Options
@@ -88,54 +321,144 @@ claude-mpm --no-native-agents
 # Enable debug logging
 claude-mpm --logging DEBUG
 
-# Disable hooks
+# Disable hooks and monitoring
 claude-mpm --no-hooks
+
+# Show all available commands
+claude-mpm --help
 ```
 
+## MCP Services Overview
 
-## Development Installation
+Claude MPM v4.4.x includes optional MCP (Model Context Protocol) services that enhance functionality:
 
-For contributing or modifying Claude MPM:
+### Available MCP Services
+
+#### mcp-vector-search
+- **Purpose**: Intelligent code search and project indexing
+- **Features**: Semantic code search, project analysis, similarity detection
+- **Database**: Project-specific vector indices
+- **Installation**: Optional dependency or automatic via pipx
+
+#### kuzu-memory
+- **Purpose**: Persistent knowledge management with graph database
+- **Features**: Project context storage, conversation history, learning retention
+- **Database**: Project-specific graph database
+- **Installation**: Optional dependency or automatic via pipx
+
+### Installation Options
+
+#### Option 1: Include MCP Services (Recommended)
+```bash
+# Install with MCP services as dependencies
+pip install "claude-mpm[mcp]"
+# or
+pipx install "claude-mpm[mcp]"
+# or
+uv pip install "claude-mpm[mcp]"
+```
+
+#### Option 2: Basic Installation with Automatic Fallback
+```bash
+# Basic installation - MCP services auto-install on first use
+pip install claude-mpm
+```
+
+When MCP services are needed but not pre-installed:
+- Claude MPM automatically detects missing services
+- Attempts installation via pipx in the background
+- Falls back gracefully if installation fails
+- Provides clear diagnostic information via `claude-mpm doctor`
+
+### Troubleshooting MCP Installation
+
+If automatic MCP service installation fails:
 
 ```bash
-# Clone repository
-git clone https://github.com/bobmatnyc/claude-mpm.git
-cd claude-mpm
+# Check MCP service status
+claude-mpm doctor --checks mcp
 
-# Run development install script (auto-detects UV)
-./install_dev.sh
+# Manual MCP service installation
+pipx install mcp-vector-search
+pipx install kuzu-memory
+
+# Configure MCP services for pipx users
+claude-mpm mcp-pipx-config
+
+# Verify installation
+claude-mpm doctor --checks mcp --verbose
 ```
 
 ## Troubleshooting
 
-### "claude: command not found"
+### Common Issues
 
-Install Claude Code 1.0.60+ from https://claude.ai/code
+**"claude: command not found"**
+- Install Claude Code (CLI) 1.0.60+ from https://claude.ai/code
+- Ensure Claude Code CLI is in your PATH
 
-### "Python not found"
+**"Python not found"**
+- **macOS**: `brew install python@3.11`
+- **Ubuntu/Debian**: `sudo apt install python3.11`
+- **Windows**: Download from https://python.org
 
-Install Python 3.8+ from:
-- macOS: `brew install python@3.11`
-- Ubuntu/Debian: `sudo apt install python3.11`
-- Windows/Other: https://python.org
+**PEP 668 "externally managed environment" error**
+1. Use UV (handles virtual environments automatically)
+2. Use pipx for isolated installation
+3. Create a virtual environment manually
 
-### PEP 668 "externally managed environment" error
+**"ModuleNotFoundError: No module named 'claude_mpm'"**
+- Ensure correct environment is activated
+- Verify installation: `pip list | grep claude-mpm`
+- Try reinstalling: `pip install --force-reinstall claude-mpm`
 
-Modern systems protect the global Python environment. Solutions:
+**Permission errors**
+- Use `--user` flag: `pip install --user claude-mpm`
+- Or use pipx/UV for better isolation
+- Make scripts executable: `chmod +x scripts/*`
 
-1. **Use UV** (automatically handles virtual environments)
-2. **Use pipx**: `pipx install claude-mpm`
-3. **Use a virtual environment** (see pip instructions above)
+**"claude-mpm: command not found" with pipx**
+- Ensure pipx PATH is configured: `pipx ensurepath`
+- Restart terminal or reload shell: `source ~/.bashrc` (Linux) or `source ~/.zshrc` (macOS)
+- Check pipx installation: `pipx list`
+- Alternative: Use full path: `~/.local/bin/claude-mpm`
 
-### npm install fails
+**MCP services not installing automatically**
+- Check pipx is available: `which pipx`
+- Install pipx if missing: `python -m pip install --user pipx`
+- Manual service installation: `pipx install mcp-vector-search kuzu-memory`
+- Use diagnostic command: `claude-mpm doctor --checks mcp --verbose`
 
-Ensure you have Node.js 14+ installed. The npm package is just a wrapper - the actual functionality requires Python.
+**Network/firewall issues**
+- Try different index: `pip install -i https://pypi.org/simple/ claude-mpm`
+- Update pip first: `pip install --upgrade pip`
+- Check corporate firewall settings
 
-## Updating
+### Platform-Specific Issues
+
+**macOS Monterey+ Security**
+- Allow terminal full disk access in System Preferences
+- Use `sudo` for global installations if needed
+
+**Windows WSL**
+- Ensure WSL2 is enabled
+- Install Windows Terminal for better experience
+- Set WSL as default for better performance
+
+**Linux Package Conflicts**
+- Use virtual environments or pipx
+- Update system packages: `sudo apt update && sudo apt upgrade`
+
+## Updates
 
 ### UV
 ```bash
 uv pip install --upgrade claude-mpm
+```
+
+### pipx
+```bash
+pipx upgrade claude-mpm
 ```
 
 ### pip
@@ -148,11 +471,23 @@ pip install --upgrade claude-mpm
 npm update -g @bobmatnyc/claude-mpm
 ```
 
+### Development
+```bash
+cd claude-mpm
+git pull
+pip install -e . --upgrade
+```
+
 ## Uninstalling
 
 ### UV
 ```bash
 uv pip uninstall claude-mpm
+```
+
+### pipx
+```bash
+pipx uninstall claude-mpm
 ```
 
 ### pip
@@ -165,25 +500,29 @@ pip uninstall claude-mpm
 npm uninstall -g @bobmatnyc/claude-mpm
 ```
 
-## Automatic MCP Services
+### Complete Removal
+```bash
+# Remove virtual environments
+rm -rf venv claude-mpm-env
 
-Claude MPM v4.4.1+ automatically installs and configures these MCP services:
+# Remove MCP services (optional)
+pipx uninstall mcp-vector-search kuzu-memory
 
-### mcp-vector-search
-- **Purpose**: Intelligent code search and project indexing
-- **Installation**: Automatically installed via pipx on first run
-- **Features**: Semantic code search, project analysis, similarity detection
-
-### kuzu-memory
-- **Purpose**: Persistent knowledge management with graph database
-- **Installation**: Automatically installed via pipx on first run
-- **Features**: Project-specific memory storage, context enrichment, conversation history
-
-These services are automatically detected and installed if missing. No manual configuration required!
+# Remove project databases (optional)
+rm -rf ~/.claude-mpm
+```
 
 ## Next Steps
 
-- See [Getting Started Guide](docs/user/01-getting-started/README.md)
-- Read the [User Documentation](docs/user/README.md)
-- Check out [Example Usage](docs/user/02-guides/basic-usage.md)
-- Learn about [Kuzu-Memory Integration](docs/user/03-features/kuzu-memory.md)
+1. **Quick Start**: Follow the [Getting Started Guide](01-getting-started/README.md)
+2. **First Run**: See [First Run Guide](01-getting-started/first-run.md) for initial setup
+3. **Basic Usage**: Learn common patterns in [Basic Usage](02-guides/basic-usage.md)
+4. **Memory System**: Understand [Kuzu-Memory Integration](03-features/kuzu-memory.md)
+5. **Configuration**: Customize with [Configuration Guide](04-reference/configuration.md)
+
+## Getting Help
+
+- **Documentation**: [User Guide](README.md) | [Troubleshooting](04-reference/troubleshooting.md)
+- **Issues**: [GitHub Issues](https://github.com/bobmatnyc/claude-mpm/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/bobmatnyc/claude-mpm/discussions)
+- **Support**: Check [FAQ](faq.md) for common questions

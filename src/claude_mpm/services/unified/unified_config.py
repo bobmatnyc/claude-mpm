@@ -22,7 +22,6 @@ Features:
 - Version control and rollback capabilities
 """
 
-import asyncio
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -121,7 +120,7 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
             return True
 
         except Exception as e:
-            self._logger.error(f"Failed to initialize: {str(e)}")
+            self._logger.error(f"Failed to initialize: {e!s}")
             return False
 
     async def shutdown(self) -> None:
@@ -266,16 +265,18 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
                 success=True,
                 config=config_with_defaults,
                 validation_errors=[],
-                applied_defaults=self._get_applied_defaults(config, config_with_defaults),
+                applied_defaults=self._get_applied_defaults(
+                    config, config_with_defaults
+                ),
                 source=str(source),
             )
 
         except Exception as e:
-            self._logger.error(f"Failed to load configuration: {str(e)}")
+            self._logger.error(f"Failed to load configuration: {e!s}")
             self._metrics["validation_errors"] += 1
             return ConfigurationResult(
                 success=False,
-                validation_errors=[f"Load failed: {str(e)}"],
+                validation_errors=[f"Load failed: {e!s}"],
             )
 
     def save_config(
@@ -352,10 +353,10 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
             )
 
         except Exception as e:
-            self._logger.error(f"Failed to save configuration: {str(e)}")
+            self._logger.error(f"Failed to save configuration: {e!s}")
             return ConfigurationResult(
                 success=False,
-                validation_errors=[f"Save failed: {str(e)}"],
+                validation_errors=[f"Save failed: {e!s}"],
             )
 
     def validate_config(self, config: Dict[str, Any]) -> List[str]:
@@ -414,13 +415,12 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
         # Implement merge based on strategy
         if strategy == "deep":
             return self._deep_merge(*configs)
-        elif strategy == "shallow":
+        if strategy == "shallow":
             return self._shallow_merge(*configs)
-        elif strategy == "override":
+        if strategy == "override":
             return self._override_merge(*configs)
-        else:
-            self._logger.warning(f"Unknown merge strategy: {strategy}, using deep")
-            return self._deep_merge(*configs)
+        self._logger.warning(f"Unknown merge strategy: {strategy}, using deep")
+        return self._deep_merge(*configs)
 
     def get_config_value(
         self, key: str, default: Any = None, config: Optional[Dict[str, Any]] = None
@@ -595,9 +595,9 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
             # Infer from filename
             if "project" in path.name.lower():
                 return "project"
-            elif "agent" in path.name.lower():
+            if "agent" in path.name.lower():
                 return "agent"
-            elif "env" in path.name.lower():
+            if "env" in path.name.lower():
                 return "environment"
 
         return "generic"
@@ -639,9 +639,7 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
                 applied[key] = value
         return applied
 
-    def _add_to_version_history(
-        self, config_id: str, config: Dict[str, Any]
-    ) -> None:
+    def _add_to_version_history(self, config_id: str, config: Dict[str, Any]) -> None:
         """Add configuration to version history."""
         if config_id not in self._config_versions:
             self._config_versions[config_id] = []
@@ -663,7 +661,11 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
 
         for config in configs:
             for key, value in config.items():
-                if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                if (
+                    key in result
+                    and isinstance(result[key], dict)
+                    and isinstance(value, dict)
+                ):
                     result[key] = self._deep_merge(result[key], value)
                 else:
                     result[key] = value

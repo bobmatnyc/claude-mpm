@@ -4,18 +4,21 @@ Test script to verify claude-mpm v4.4.2 fresh installation works without errors.
 This simulates a clean environment test without Docker.
 """
 
-import os
-import sys
-import subprocess
-import tempfile
-import shutil
-from pathlib import Path
-import logging
 import json
+import logging
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
+
 
 class FreshInstallTester:
     def __init__(self):
@@ -37,16 +40,18 @@ class FreshInstallTester:
             shutil.rmtree(self.test_dir)
             logger.info(f"Cleaned up test directory: {self.test_dir}")
 
-    def run_command(self, cmd, description, capture_output=True, check_return_code=True):
+    def run_command(
+        self, cmd, description, capture_output=True, check_return_code=True
+    ):
         """Run a command and capture output"""
         logger.info(f"Running: {description}")
         logger.info(f"Command: {' '.join(cmd)}")
 
         try:
             if capture_output:
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
             else:
-                result = subprocess.run(cmd, text=True, timeout=60)
+                result = subprocess.run(cmd, text=True, timeout=60, check=False)
 
             if check_return_code and result.returncode != 0:
                 error_msg = f"Command failed: {' '.join(cmd)}"
@@ -74,7 +79,7 @@ class FreshInstallTester:
             logger.error(error_msg)
             return None
         except Exception as e:
-            error_msg = f"Command failed with exception: {' '.join(cmd)} - {str(e)}"
+            error_msg = f"Command failed with exception: {' '.join(cmd)} - {e!s}"
             self.errors.append(error_msg)
             logger.error(error_msg)
             return None
@@ -82,8 +87,7 @@ class FreshInstallTester:
     def test_version_command(self):
         """Test claude-mpm --version"""
         result = self.run_command(
-            ["claude-mpm", "--version"],
-            "Testing claude-mpm --version"
+            ["claude-mpm", "--version"], "Testing claude-mpm --version"
         )
         if result and result.returncode == 0:
             version_output = result.stdout.strip()
@@ -95,10 +99,7 @@ class FreshInstallTester:
 
     def test_help_command(self):
         """Test claude-mpm --help"""
-        result = self.run_command(
-            ["claude-mpm", "--help"],
-            "Testing claude-mpm --help"
-        )
+        result = self.run_command(["claude-mpm", "--help"], "Testing claude-mpm --help")
         if result and result.returncode == 0:
             help_output = result.stdout
             logger.info("Help command executed successfully")
@@ -111,8 +112,7 @@ class FreshInstallTester:
     def test_list_agents_command(self):
         """Test claude-mpm list agents"""
         result = self.run_command(
-            ["claude-mpm", "list", "agents"],
-            "Testing claude-mpm list agents"
+            ["claude-mpm", "list", "agents"], "Testing claude-mpm list agents"
         )
         if result and result.returncode == 0:
             agents_output = result.stdout
@@ -129,7 +129,7 @@ class FreshInstallTester:
         """Test claude-mpm mpm-init --dry-run"""
         result = self.run_command(
             ["claude-mpm", "mpm-init", "--dry-run"],
-            "Testing claude-mpm mpm-init --dry-run"
+            "Testing claude-mpm mpm-init --dry-run",
         )
         if result and result.returncode == 0:
             logger.info("MPM-init dry-run command executed successfully")
@@ -139,8 +139,7 @@ class FreshInstallTester:
     def test_mpm_init_command(self):
         """Test claude-mpm mpm-init"""
         result = self.run_command(
-            ["claude-mpm", "mpm-init"],
-            "Testing claude-mpm mpm-init"
+            ["claude-mpm", "mpm-init"], "Testing claude-mpm mpm-init"
         )
         if result and result.returncode == 0:
             logger.info("MPM-init command executed successfully")
@@ -162,7 +161,7 @@ class FreshInstallTester:
                 if config_file.exists():
                     logger.info("✓ .claude/config.yaml created")
                     try:
-                        with open(config_file, 'r') as f:
+                        with open(config_file) as f:
                             config_content = f.read()
                             logger.info(f"Config file contents:\n{config_content}")
                     except Exception as e:
@@ -178,8 +177,7 @@ class FreshInstallTester:
     def test_run_help_command(self):
         """Test claude-mpm run --help"""
         result = self.run_command(
-            ["claude-mpm", "run", "--help"],
-            "Testing claude-mpm run --help"
+            ["claude-mpm", "run", "--help"], "Testing claude-mpm run --help"
         )
         if result and result.returncode == 0:
             logger.info("Run help command executed successfully")
@@ -241,10 +239,12 @@ class FreshInstallTester:
         finally:
             self.cleanup_test_environment()
 
+
 def main():
     tester = FreshInstallTester()
     success = tester.run_all_tests()
     sys.exit(0 if success else 1)
+
 
 if __name__ == "__main__":
     main()

@@ -39,6 +39,7 @@ class StateStorage:
 
         # Logging
 from claude_mpm.core.logging_utils import get_logger
+
 logger = get_logger(__name__)
 
         # File locking support (Unix-like systems)

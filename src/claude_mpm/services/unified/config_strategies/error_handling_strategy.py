@@ -3,31 +3,33 @@ Error Handling Strategy - Unifies 99 error handling patterns into composable han
 Part of Phase 3 Configuration Consolidation
 """
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union, Callable, Type
-from dataclasses import dataclass, field
-from enum import Enum
-import traceback
-import sys
-from datetime import datetime
-from pathlib import Path
 import json
+import traceback
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 from claude_mpm.core.logging_utils import get_logger
+
 from .unified_config_service import IConfigStrategy
 
 
 class ErrorSeverity(Enum):
     """Error severity levels"""
+
     CRITICAL = "critical"  # System failure
-    ERROR = "error"        # Operation failure
-    WARNING = "warning"    # Recoverable issue
-    INFO = "info"         # Informational
-    DEBUG = "debug"       # Debug information
+    ERROR = "error"  # Operation failure
+    WARNING = "warning"  # Recoverable issue
+    INFO = "info"  # Informational
+    DEBUG = "debug"  # Debug information
 
 
 class ErrorCategory(Enum):
     """Categories of errors for handling strategy"""
+
     FILE_IO = "file_io"
     PARSING = "parsing"
     VALIDATION = "validation"
@@ -43,6 +45,7 @@ class ErrorCategory(Enum):
 @dataclass
 class ErrorContext:
     """Context information for error handling"""
+
     error: Exception
     category: ErrorCategory
     severity: ErrorSeverity
@@ -58,6 +61,7 @@ class ErrorContext:
 @dataclass
 class ErrorHandlingResult:
     """Result of error handling operation"""
+
     handled: bool
     recovered: bool = False
     fallback_value: Any = None
@@ -77,12 +81,10 @@ class BaseErrorHandler(ABC):
     @abstractmethod
     def can_handle(self, context: ErrorContext) -> bool:
         """Check if this handler can handle the error"""
-        pass
 
     @abstractmethod
     def handle(self, context: ErrorContext) -> ErrorHandlingResult:
         """Handle the error"""
-        pass
 
     def log_error(self, context: ErrorContext, message: str = None):
         """Log error with appropriate level"""
@@ -109,14 +111,13 @@ class FileIOErrorHandler(BaseErrorHandler):
         IsADirectoryError: "Path is a directory",
         NotADirectoryError: "Path is not a directory",
         IOError: "I/O operation failed",
-        OSError: "Operating system error"
+        OSError: "Operating system error",
     }
 
     def can_handle(self, context: ErrorContext) -> bool:
         """Check if error is file I/O related"""
-        return (
-            context.category == ErrorCategory.FILE_IO or
-            isinstance(context.error, (FileNotFoundError, PermissionError, IOError, OSError))
+        return context.category == ErrorCategory.FILE_IO or isinstance(
+            context.error, (FileNotFoundError, PermissionError, IOError, OSError)
         )
 
     def handle(self, context: ErrorContext) -> ErrorHandlingResult:
@@ -145,8 +146,8 @@ class FileIOErrorHandler(BaseErrorHandler):
         result = ErrorHandlingResult(handled=True)
 
         # Check for fallback locations
-        if context.metadata.get('fallback_paths'):
-            for fallback in context.metadata['fallback_paths']:
+        if context.metadata.get("fallback_paths"):
+            for fallback in context.metadata["fallback_paths"]:
                 fallback_path = Path(fallback)
                 if fallback_path.exists():
                     result.recovered = True
@@ -156,22 +157,22 @@ class FileIOErrorHandler(BaseErrorHandler):
                     return result
 
         # Check for default values
-        if context.metadata.get('default_config'):
+        if context.metadata.get("default_config"):
             result.recovered = True
-            result.fallback_value = context.metadata['default_config']
+            result.fallback_value = context.metadata["default_config"]
             result.actions_taken.append("Used default configuration")
             return result
 
         # Create file if requested
-        if context.metadata.get('create_if_missing'):
+        if context.metadata.get("create_if_missing"):
             path = Path(context.source)
             try:
                 path.parent.mkdir(parents=True, exist_ok=True)
 
                 # Create with default content
-                default_content = context.metadata.get('default_content', {})
+                default_content = context.metadata.get("default_content", {})
 
-                if path.suffix == '.json':
+                if path.suffix == ".json":
                     path.write_text(json.dumps(default_content, indent=2))
                 else:
                     path.write_text(str(default_content))
@@ -192,12 +193,12 @@ class FileIOErrorHandler(BaseErrorHandler):
         result = ErrorHandlingResult(handled=True)
 
         # Try alternative location
-        if context.metadata.get('alt_location'):
-            alt_path = Path(context.metadata['alt_location'])
+        if context.metadata.get("alt_location"):
+            alt_path = Path(context.metadata["alt_location"])
             try:
                 # Test write permission
                 alt_path.parent.mkdir(parents=True, exist_ok=True)
-                test_file = alt_path.parent / '.test_write'
+                test_file = alt_path.parent / ".test_write"
                 test_file.touch()
                 test_file.unlink()
 
@@ -209,9 +210,9 @@ class FileIOErrorHandler(BaseErrorHandler):
                 result.should_escalate = True
 
         # Use read-only mode if applicable
-        elif context.metadata.get('allow_readonly'):
+        elif context.metadata.get("allow_readonly"):
             result.recovered = True
-            result.fallback_value = {'readonly': True}
+            result.fallback_value = {"readonly": True}
             result.actions_taken.append("Switched to read-only mode")
 
         return result
@@ -221,13 +222,15 @@ class FileIOErrorHandler(BaseErrorHandler):
         result = ErrorHandlingResult(handled=True)
 
         # Retry with exponential backoff
-        retry_count = context.metadata.get('retry_count', 0)
-        max_retries = context.metadata.get('max_retries', 3)
+        retry_count = context.metadata.get("retry_count", 0)
+        max_retries = context.metadata.get("max_retries", 3)
 
         if retry_count < max_retries:
             result.should_retry = True
-            result.retry_after = 2 ** retry_count  # Exponential backoff
-            result.actions_taken.append(f"Retry {retry_count + 1}/{max_retries} after {result.retry_after}s")
+            result.retry_after = 2**retry_count  # Exponential backoff
+            result.actions_taken.append(
+                f"Retry {retry_count + 1}/{max_retries} after {result.retry_after}s"
+            )
         else:
             result.should_escalate = True
             result.message = f"Failed after {max_retries} retries"
@@ -241,16 +244,16 @@ class ParsingErrorHandler(BaseErrorHandler):
     PARSER_ERRORS = {
         json.JSONDecodeError: ErrorCategory.PARSING,
         ValueError: ErrorCategory.PARSING,  # Common for parsing
-        SyntaxError: ErrorCategory.PARSING
+        SyntaxError: ErrorCategory.PARSING,
     }
 
     def can_handle(self, context: ErrorContext) -> bool:
         """Check if error is parsing related"""
         return (
-            context.category == ErrorCategory.PARSING or
-            type(context.error) in self.PARSER_ERRORS or
-            'parse' in str(context.error).lower() or
-            'decode' in str(context.error).lower()
+            context.category == ErrorCategory.PARSING
+            or type(context.error) in self.PARSER_ERRORS
+            or "parse" in str(context.error).lower()
+            or "decode" in str(context.error).lower()
         )
 
     def handle(self, context: ErrorContext) -> ErrorHandlingResult:
@@ -260,7 +263,7 @@ class ParsingErrorHandler(BaseErrorHandler):
         # Try recovery strategies based on error type
         if isinstance(context.error, json.JSONDecodeError):
             result = self._handle_json_error(context)
-        elif 'yaml' in str(context.error).lower():
+        elif "yaml" in str(context.error).lower():
             result = self._handle_yaml_error(context)
         else:
             result = self._handle_generic_parse_error(context)
@@ -271,14 +274,14 @@ class ParsingErrorHandler(BaseErrorHandler):
         """Handle JSON parsing errors"""
         result = ErrorHandlingResult(handled=True)
 
-        content = context.metadata.get('content', '')
+        content = context.metadata.get("content", "")
 
         # Try to fix common JSON issues
         fixes = [
             self._fix_json_comments,
             self._fix_json_quotes,
             self._fix_json_trailing_commas,
-            self._fix_json_unquoted_keys
+            self._fix_json_unquoted_keys,
         ]
 
         for fix_func in fixes:
@@ -294,7 +297,7 @@ class ParsingErrorHandler(BaseErrorHandler):
                 continue
 
         # Use lenient parser if available
-        if context.metadata.get('allow_lenient'):
+        if context.metadata.get("allow_lenient"):
             result = self._parse_lenient_json(content, result)
 
         return result
@@ -302,15 +305,17 @@ class ParsingErrorHandler(BaseErrorHandler):
     def _fix_json_comments(self, content: str) -> str:
         """Remove comments from JSON"""
         import re
+
         # Remove single-line comments
-        content = re.sub(r'//.*?$', '', content, flags=re.MULTILINE)
+        content = re.sub(r"//.*?$", "", content, flags=re.MULTILINE)
         # Remove multi-line comments
-        content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+        content = re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)
         return content
 
     def _fix_json_quotes(self, content: str) -> str:
         """Fix quote issues in JSON"""
         import re
+
         # Replace single quotes with double quotes (careful with values)
         # This is a simple approach - more sophisticated parsing might be needed
         content = re.sub(r"'([^']*)':", r'"\1":', content)  # Keys
@@ -320,22 +325,27 @@ class ParsingErrorHandler(BaseErrorHandler):
     def _fix_json_trailing_commas(self, content: str) -> str:
         """Remove trailing commas"""
         import re
-        content = re.sub(r',\s*}', '}', content)
-        content = re.sub(r',\s*]', ']', content)
+
+        content = re.sub(r",\s*}", "}", content)
+        content = re.sub(r",\s*]", "]", content)
         return content
 
     def _fix_json_unquoted_keys(self, content: str) -> str:
         """Add quotes to unquoted keys"""
         import re
+
         # Match unquoted keys (word characters followed by colon)
-        content = re.sub(r'(\w+):', r'"\1":', content)
+        content = re.sub(r"(\w+):", r'"\1":', content)
         return content
 
-    def _parse_lenient_json(self, content: str, result: ErrorHandlingResult) -> ErrorHandlingResult:
+    def _parse_lenient_json(
+        self, content: str, result: ErrorHandlingResult
+    ) -> ErrorHandlingResult:
         """Parse JSON leniently"""
         try:
             # Try using ast.literal_eval for Python literals
             import ast
+
             parsed = ast.literal_eval(content)
             result.recovered = True
             result.fallback_value = parsed
@@ -352,7 +362,7 @@ class ParsingErrorHandler(BaseErrorHandler):
         """Handle YAML parsing errors"""
         result = ErrorHandlingResult(handled=True)
 
-        content = context.metadata.get('content', '')
+        content = context.metadata.get("content", "")
 
         # Try to fix common YAML issues
         try:
@@ -366,7 +376,7 @@ class ParsingErrorHandler(BaseErrorHandler):
 
         except:
             # Try to fix tabs
-            content = content.replace('\t', '    ')
+            content = content.replace("\t", "    ")
             try:
                 parsed = yaml.safe_load(content)
                 result.recovered = True
@@ -383,13 +393,13 @@ class ParsingErrorHandler(BaseErrorHandler):
         result = ErrorHandlingResult(handled=True)
 
         # Try alternative formats
-        content = context.metadata.get('content', '')
+        content = context.metadata.get("content", "")
 
         formats = [
-            ('json', json.loads),
-            ('yaml', self._try_yaml),
-            ('ini', self._try_ini),
-            ('properties', self._try_properties)
+            ("json", json.loads),
+            ("yaml", self._try_yaml),
+            ("ini", self._try_ini),
+            ("properties", self._try_properties),
         ]
 
         for format_name, parser in formats:
@@ -405,7 +415,7 @@ class ParsingErrorHandler(BaseErrorHandler):
 
         # Use default/empty config
         result.recovered = True
-        result.fallback_value = context.metadata.get('default_config', {})
+        result.fallback_value = context.metadata.get("default_config", {})
         result.actions_taken.append("Used default configuration")
 
         return result
@@ -413,11 +423,13 @@ class ParsingErrorHandler(BaseErrorHandler):
     def _try_yaml(self, content: str) -> Dict:
         """Try parsing as YAML"""
         import yaml
+
         return yaml.safe_load(content)
 
     def _try_ini(self, content: str) -> Dict:
         """Try parsing as INI"""
         import configparser
+
         parser = configparser.ConfigParser()
         parser.read_string(content)
         return {s: dict(parser.items(s)) for s in parser.sections()}
@@ -427,8 +439,8 @@ class ParsingErrorHandler(BaseErrorHandler):
         result = {}
         for line in content.splitlines():
             line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                key, value = line.split('=', 1)
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
                 result[key.strip()] = value.strip()
         return result
 
@@ -439,10 +451,10 @@ class ValidationErrorHandler(BaseErrorHandler):
     def can_handle(self, context: ErrorContext) -> bool:
         """Check if error is validation related"""
         return (
-            context.category == ErrorCategory.VALIDATION or
-            'validation' in str(context.error).lower() or
-            'invalid' in str(context.error).lower() or
-            'constraint' in str(context.error).lower()
+            context.category == ErrorCategory.VALIDATION
+            or "validation" in str(context.error).lower()
+            or "invalid" in str(context.error).lower()
+            or "constraint" in str(context.error).lower()
         )
 
     def handle(self, context: ErrorContext) -> ErrorHandlingResult:
@@ -450,9 +462,9 @@ class ValidationErrorHandler(BaseErrorHandler):
         result = ErrorHandlingResult(handled=True)
 
         # Get validation details
-        field = context.metadata.get('field')
-        value = context.metadata.get('value')
-        schema = context.metadata.get('schema')
+        field = context.metadata.get("field")
+        value = context.metadata.get("value")
+        schema = context.metadata.get("schema")
 
         # Try to fix or provide default
         if field and schema:
@@ -463,18 +475,14 @@ class ValidationErrorHandler(BaseErrorHandler):
         return result
 
     def _fix_validation_error(
-        self,
-        field: str,
-        value: Any,
-        schema: Dict,
-        result: ErrorHandlingResult
+        self, field: str, value: Any, schema: Dict, result: ErrorHandlingResult
     ) -> ErrorHandlingResult:
         """Try to fix validation error"""
-        field_schema = schema.get('properties', {}).get(field, {})
+        field_schema = schema.get("properties", {}).get(field, {})
 
         # Try type coercion
-        if 'type' in field_schema:
-            expected_type = field_schema['type']
+        if "type" in field_schema:
+            expected_type = field_schema["type"]
             coerced = self._coerce_type(value, expected_type)
 
             if coerced is not None:
@@ -484,24 +492,24 @@ class ValidationErrorHandler(BaseErrorHandler):
                 return result
 
         # Use default value if available
-        if 'default' in field_schema:
+        if "default" in field_schema:
             result.recovered = True
-            result.fallback_value = {field: field_schema['default']}
+            result.fallback_value = {field: field_schema["default"]}
             result.actions_taken.append(f"Used default value for {field}")
             return result
 
         # Use minimum/maximum for range errors
-        if 'minimum' in field_schema and isinstance(value, (int, float)):
-            if value < field_schema['minimum']:
+        if "minimum" in field_schema and isinstance(value, (int, float)):
+            if value < field_schema["minimum"]:
                 result.recovered = True
-                result.fallback_value = {field: field_schema['minimum']}
+                result.fallback_value = {field: field_schema["minimum"]}
                 result.actions_taken.append(f"Clamped {field} to minimum")
                 return result
 
-        if 'maximum' in field_schema and isinstance(value, (int, float)):
-            if value > field_schema['maximum']:
+        if "maximum" in field_schema and isinstance(value, (int, float)):
+            if value > field_schema["maximum"]:
                 result.recovered = True
-                result.fallback_value = {field: field_schema['maximum']}
+                result.fallback_value = {field: field_schema["maximum"]}
                 result.actions_taken.append(f"Clamped {field} to maximum")
                 return result
 
@@ -510,22 +518,22 @@ class ValidationErrorHandler(BaseErrorHandler):
     def _coerce_type(self, value: Any, expected_type: str) -> Any:
         """Attempt to coerce value to expected type"""
         try:
-            if expected_type == 'string':
+            if expected_type == "string":
                 return str(value)
-            elif expected_type == 'integer':
+            if expected_type == "integer":
                 return int(value)
-            elif expected_type == 'number':
+            if expected_type == "number":
                 return float(value)
-            elif expected_type == 'boolean':
+            if expected_type == "boolean":
                 if isinstance(value, str):
-                    return value.lower() in ['true', 'yes', '1', 'on']
+                    return value.lower() in ["true", "yes", "1", "on"]
                 return bool(value)
-            elif expected_type == 'array':
+            if expected_type == "array":
                 if isinstance(value, str):
                     # Try comma-separated
-                    return [v.strip() for v in value.split(',')]
+                    return [v.strip() for v in value.split(",")]
                 return list(value)
-            elif expected_type == 'object':
+            if expected_type == "object":
                 if isinstance(value, str):
                     return json.loads(value)
                 return dict(value)
@@ -533,21 +541,21 @@ class ValidationErrorHandler(BaseErrorHandler):
             return None
 
     def _handle_generic_validation(
-        self,
-        context: ErrorContext,
-        result: ErrorHandlingResult
+        self, context: ErrorContext, result: ErrorHandlingResult
     ) -> ErrorHandlingResult:
         """Handle generic validation errors"""
         # Use strict vs lenient mode
-        if context.metadata.get('strict', True):
+        if context.metadata.get("strict", True):
             result.should_escalate = True
             result.message = "Validation failed in strict mode"
         else:
             # In lenient mode, use config as-is with warnings
             result.recovered = True
-            result.fallback_value = context.metadata.get('config', {})
+            result.fallback_value = context.metadata.get("config", {})
             result.actions_taken.append("Accepted configuration in lenient mode")
-            self.logger.warning(f"Validation error ignored in lenient mode: {context.error}")
+            self.logger.warning(
+                f"Validation error ignored in lenient mode: {context.error}"
+            )
 
         return result
 
@@ -560,16 +568,16 @@ class NetworkErrorHandler(BaseErrorHandler):
         TimeoutError,
         ConnectionRefusedError,
         ConnectionResetError,
-        BrokenPipeError
+        BrokenPipeError,
     ]
 
     def can_handle(self, context: ErrorContext) -> bool:
         """Check if error is network related"""
         return (
-            context.category == ErrorCategory.NETWORK or
-            any(isinstance(context.error, err) for err in self.NETWORK_ERRORS) or
-            'connection' in str(context.error).lower() or
-            'timeout' in str(context.error).lower()
+            context.category == ErrorCategory.NETWORK
+            or any(isinstance(context.error, err) for err in self.NETWORK_ERRORS)
+            or "connection" in str(context.error).lower()
+            or "timeout" in str(context.error).lower()
         )
 
     def handle(self, context: ErrorContext) -> ErrorHandlingResult:
@@ -577,29 +585,31 @@ class NetworkErrorHandler(BaseErrorHandler):
         result = ErrorHandlingResult(handled=True)
 
         # Implement exponential backoff retry
-        retry_count = context.metadata.get('retry_count', 0)
-        max_retries = context.metadata.get('max_retries', 5)
+        retry_count = context.metadata.get("retry_count", 0)
+        max_retries = context.metadata.get("max_retries", 5)
 
         if retry_count < max_retries:
             # Calculate backoff time
-            backoff = min(300, 2 ** retry_count)  # Max 5 minutes
+            backoff = min(300, 2**retry_count)  # Max 5 minutes
             result.should_retry = True
             result.retry_after = backoff
-            result.actions_taken.append(f"Retry {retry_count + 1}/{max_retries} after {backoff}s")
+            result.actions_taken.append(
+                f"Retry {retry_count + 1}/{max_retries} after {backoff}s"
+            )
 
             # Add jitter to prevent thundering herd
             import random
+
             result.retry_after += random.uniform(0, backoff * 0.1)
 
+        # Try offline/cached mode
+        elif context.metadata.get("cache_available"):
+            result.recovered = True
+            result.fallback_value = context.metadata.get("cached_config")
+            result.actions_taken.append("Using cached configuration")
         else:
-            # Try offline/cached mode
-            if context.metadata.get('cache_available'):
-                result.recovered = True
-                result.fallback_value = context.metadata.get('cached_config')
-                result.actions_taken.append("Using cached configuration")
-            else:
-                result.should_escalate = True
-                result.message = f"Network error after {max_retries} retries"
+            result.should_escalate = True
+            result.message = f"Network error after {max_retries} retries"
 
         return result
 
@@ -610,18 +620,18 @@ class TypeConversionErrorHandler(BaseErrorHandler):
     def can_handle(self, context: ErrorContext) -> bool:
         """Check if error is type conversion related"""
         return (
-            context.category == ErrorCategory.TYPE_CONVERSION or
-            isinstance(context.error, (TypeError, ValueError)) or
-            'type' in str(context.error).lower() or
-            'convert' in str(context.error).lower()
+            context.category == ErrorCategory.TYPE_CONVERSION
+            or isinstance(context.error, (TypeError, ValueError))
+            or "type" in str(context.error).lower()
+            or "convert" in str(context.error).lower()
         )
 
     def handle(self, context: ErrorContext) -> ErrorHandlingResult:
         """Handle type conversion errors"""
         result = ErrorHandlingResult(handled=True)
 
-        source_value = context.metadata.get('value')
-        target_type = context.metadata.get('target_type')
+        source_value = context.metadata.get("value")
+        target_type = context.metadata.get("target_type")
 
         if source_value is not None and target_type:
             # Try intelligent conversion
@@ -648,7 +658,7 @@ class TypeConversionErrorHandler(BaseErrorHandler):
             float: self._to_float,
             bool: self._to_bool,
             list: self._to_list,
-            dict: self._to_dict
+            dict: self._to_dict,
         }
 
         converter = converters.get(target_type)
@@ -663,7 +673,7 @@ class TypeConversionErrorHandler(BaseErrorHandler):
     def _to_string(self, value: Any) -> str:
         """Convert to string"""
         if isinstance(value, bytes):
-            return value.decode('utf-8', errors='replace')
+            return value.decode("utf-8", errors="replace")
         return str(value)
 
     def _to_int(self, value: Any) -> int:
@@ -671,7 +681,8 @@ class TypeConversionErrorHandler(BaseErrorHandler):
         if isinstance(value, str):
             # Try to extract number from string
             import re
-            match = re.search(r'-?\d+', value)
+
+            match = re.search(r"-?\d+", value)
             if match:
                 return int(match.group())
         return int(float(value))
@@ -680,30 +691,30 @@ class TypeConversionErrorHandler(BaseErrorHandler):
         """Convert to float"""
         if isinstance(value, str):
             # Handle percentage
-            if '%' in value:
-                return float(value.replace('%', '')) / 100
+            if "%" in value:
+                return float(value.replace("%", "")) / 100
             # Handle comma as decimal separator
-            value = value.replace(',', '.')
+            value = value.replace(",", ".")
         return float(value)
 
     def _to_bool(self, value: Any) -> bool:
         """Convert to boolean"""
         if isinstance(value, str):
-            return value.lower() in ['true', 'yes', '1', 'on', 'enabled']
+            return value.lower() in ["true", "yes", "1", "on", "enabled"]
         return bool(value)
 
     def _to_list(self, value: Any) -> list:
         """Convert to list"""
         if isinstance(value, str):
             # Try JSON array
-            if value.startswith('['):
+            if value.startswith("["):
                 try:
                     return json.loads(value)
                 except:
                     pass
             # Try comma-separated
-            return [v.strip() for v in value.split(',')]
-        elif hasattr(value, '__iter__') and not isinstance(value, (str, bytes, dict)):
+            return [v.strip() for v in value.split(",")]
+        if hasattr(value, "__iter__") and not isinstance(value, (str, bytes, dict)):
             return list(value)
         return [value]
 
@@ -717,27 +728,27 @@ class TypeConversionErrorHandler(BaseErrorHandler):
                 pass
             # Try key=value pairs
             result = {}
-            for pair in value.split(','):
-                if '=' in pair:
-                    k, v = pair.split('=', 1)
+            for pair in value.split(","):
+                if "=" in pair:
+                    k, v = pair.split("=", 1)
                     result[k.strip()] = v.strip()
             return result
-        elif hasattr(value, '__dict__'):
+        if hasattr(value, "__dict__"):
             return vars(value)
         return {}
 
     def _get_type_default(self, target_type: Type) -> Any:
         """Get default value for type"""
         defaults = {
-            str: '',
+            str: "",
             int: 0,
             float: 0.0,
             bool: False,
             list: [],
             dict: {},
-            type(None): None
+            type(None): None,
         }
-        return defaults.get(target_type, None)
+        return defaults.get(target_type)
 
 
 class CompositeErrorHandler(BaseErrorHandler):
@@ -750,7 +761,7 @@ class CompositeErrorHandler(BaseErrorHandler):
             ParsingErrorHandler(),
             ValidationErrorHandler(),
             NetworkErrorHandler(),
-            TypeConversionErrorHandler()
+            TypeConversionErrorHandler(),
         ]
 
     def can_handle(self, context: ErrorContext) -> bool:
@@ -776,16 +787,15 @@ class CompositeErrorHandler(BaseErrorHandler):
 
         # Log the full error
         self.logger.error(
-            f"Unknown error in {context.operation}: {context.error}",
-            exc_info=True
+            f"Unknown error in {context.operation}: {context.error}", exc_info=True
         )
 
         # Try generic recovery strategies
-        if context.metadata.get('default_config'):
+        if context.metadata.get("default_config"):
             result.recovered = True
-            result.fallback_value = context.metadata['default_config']
+            result.fallback_value = context.metadata["default_config"]
             result.actions_taken.append("Used default configuration for unknown error")
-        elif context.metadata.get('skip_on_error'):
+        elif context.metadata.get("skip_on_error"):
             result.recovered = True
             result.fallback_value = {}
             result.actions_taken.append("Skipped configuration due to error")
@@ -829,7 +839,7 @@ class ErrorHandlingStrategy(IConfigStrategy):
         error: Exception,
         source: Optional[str] = None,
         operation: Optional[str] = None,
-        **metadata
+        **metadata,
     ) -> ErrorHandlingResult:
         """Main error handling entry point"""
         # Categorize error
@@ -844,7 +854,7 @@ class ErrorHandlingStrategy(IConfigStrategy):
             source=source,
             operation=operation,
             traceback=traceback.format_exc(),
-            metadata=metadata
+            metadata=metadata,
         )
 
         # Record in history
@@ -873,7 +883,7 @@ class ErrorHandlingStrategy(IConfigStrategy):
 
         # Parsing errors
         if isinstance(error, (json.JSONDecodeError, ValueError, SyntaxError)):
-            if 'parse' in str(error).lower() or 'decode' in str(error).lower():
+            if "parse" in str(error).lower() or "decode" in str(error).lower():
                 return ErrorCategory.PARSING
 
         # Network errors
@@ -887,18 +897,20 @@ class ErrorHandlingStrategy(IConfigStrategy):
         # Check error message for hints
         error_msg = str(error).lower()
 
-        if 'validation' in error_msg or 'invalid' in error_msg:
+        if "validation" in error_msg or "invalid" in error_msg:
             return ErrorCategory.VALIDATION
-        elif 'permission' in error_msg or 'access' in error_msg:
+        if "permission" in error_msg or "access" in error_msg:
             return ErrorCategory.PERMISSION
-        elif 'not found' in error_msg or 'missing' in error_msg:
+        if "not found" in error_msg or "missing" in error_msg:
             return ErrorCategory.MISSING_DEPENDENCY
-        elif 'config' in error_msg or 'setting' in error_msg:
+        if "config" in error_msg or "setting" in error_msg:
             return ErrorCategory.CONFIGURATION
 
         return ErrorCategory.UNKNOWN
 
-    def _determine_severity(self, error: Exception, category: ErrorCategory) -> ErrorSeverity:
+    def _determine_severity(
+        self, error: Exception, category: ErrorCategory
+    ) -> ErrorSeverity:
         """Determine error severity"""
         # Critical errors
         critical_types = [MemoryError, SystemError, KeyboardInterrupt]
@@ -916,15 +928,13 @@ class ErrorHandlingStrategy(IConfigStrategy):
             ErrorCategory.MISSING_DEPENDENCY: ErrorSeverity.ERROR,
             ErrorCategory.CONFIGURATION: ErrorSeverity.ERROR,
             ErrorCategory.RUNTIME: ErrorSeverity.ERROR,
-            ErrorCategory.UNKNOWN: ErrorSeverity.ERROR
+            ErrorCategory.UNKNOWN: ErrorSeverity.ERROR,
         }
 
         return severity_map.get(category, ErrorSeverity.ERROR)
 
     def _apply_recovery_strategies(
-        self,
-        context: ErrorContext,
-        result: ErrorHandlingResult
+        self, context: ErrorContext, result: ErrorHandlingResult
     ) -> ErrorHandlingResult:
         """Apply custom recovery strategies"""
         for name, strategy in self.recovery_strategies.items():
@@ -949,10 +959,10 @@ class ErrorHandlingStrategy(IConfigStrategy):
         """Get error handling statistics"""
         if not self.error_history:
             return {
-                'total_errors': 0,
-                'categories': {},
-                'severities': {},
-                'recovery_rate': 0.0
+                "total_errors": 0,
+                "categories": {},
+                "severities": {},
+                "recovery_rate": 0.0,
             }
 
         total = len(self.error_history)
@@ -971,29 +981,29 @@ class ErrorHandlingStrategy(IConfigStrategy):
             severities[sev_name] = severities.get(sev_name, 0) + 1
 
         return {
-            'total_errors': total,
-            'recovered': recovered,
-            'recovery_rate': (recovered / total) * 100 if total > 0 else 0,
-            'categories': categories,
-            'severities': severities,
-            'recent_errors': [
+            "total_errors": total,
+            "recovered": recovered,
+            "recovery_rate": (recovered / total) * 100 if total > 0 else 0,
+            "categories": categories,
+            "severities": severities,
+            "recent_errors": [
                 {
-                    'timestamp': e.timestamp.isoformat(),
-                    'category': e.category.value,
-                    'severity': e.severity.value,
-                    'operation': e.operation,
-                    'recovered': e.recovery_successful
+                    "timestamp": e.timestamp.isoformat(),
+                    "category": e.category.value,
+                    "severity": e.severity.value,
+                    "operation": e.operation,
+                    "recovered": e.recovery_successful,
                 }
                 for e in self.error_history[-10:]  # Last 10 errors
-            ]
+            ],
         }
 
 
 # Export main components
 __all__ = [
-    'ErrorHandlingStrategy',
-    'ErrorContext',
-    'ErrorHandlingResult',
-    'ErrorCategory',
-    'ErrorSeverity'
+    "ErrorCategory",
+    "ErrorContext",
+    "ErrorHandlingResult",
+    "ErrorHandlingStrategy",
+    "ErrorSeverity",
 ]

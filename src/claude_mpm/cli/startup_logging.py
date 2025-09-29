@@ -687,9 +687,7 @@ async def trigger_vector_search_indexing(project_root: Optional[Path] = None) ->
 
         # Store PID for logging
         pid = process.pid
-        logger.debug(
-            f"MCP Vector Search: Indexing process started (PID: {pid})"
-        )
+        logger.debug(f"MCP Vector Search: Indexing process started (PID: {pid})")
 
         # Don't wait for completion - let it run independently in the background
         # We don't need to track its completion, so we can safely detach

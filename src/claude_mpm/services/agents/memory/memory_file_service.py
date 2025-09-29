@@ -41,14 +41,18 @@ class MemoryFileService:
         old_file = directory / f"{normalized_id}_memory.md"
 
         # Also check for legacy hyphenated versions
-        hyphenated_file = directory / f"{agent_id}_memories.md" if "-" in agent_id else None
+        hyphenated_file = (
+            directory / f"{agent_id}_memories.md" if "-" in agent_id else None
+        )
 
         # Migration priority:
         # 1. If hyphenated version exists and normalized doesn't, migrate it
         if hyphenated_file and hyphenated_file.exists() and not new_file.exists():
             try:
                 hyphenated_file.rename(new_file)
-                self.logger.info(f"Migrated hyphenated memory file: {hyphenated_file} -> {new_file}")
+                self.logger.info(
+                    f"Migrated hyphenated memory file: {hyphenated_file} -> {new_file}"
+                )
             except Exception as e:
                 self.logger.warning(f"Could not migrate hyphenated memory file: {e}")
                 # Fall back to using the hyphenated version

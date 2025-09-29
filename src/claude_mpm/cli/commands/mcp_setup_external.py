@@ -1,7 +1,7 @@
 """MCP external services setup module.
 
 This module handles the registration of external MCP services
-(mcp-vector-search, mcp-browser) as separate MCP servers in Claude Desktop.
+(mcp-vector-search, mcp-browser) as separate MCP servers in Claude Code.
 """
 
 import json
@@ -13,7 +13,7 @@ from typing import Dict, Optional, Tuple
 
 
 class MCPExternalServicesSetup:
-    """Handles setup of external MCP services in Claude Desktop configuration."""
+    """Handles setup of external MCP services in Claude Code configuration."""
 
     def get_project_services(self, project_path: Path) -> Dict:
         """Get external services configuration for the current project.
@@ -472,9 +472,9 @@ class MCPExternalServicesSetup:
                     f"\n✅ Successfully configured {success_count} external services in .mcp.json"
                 )
                 print(
-                    "\n📌 Note: Claude Desktop will automatically load these services"
+                    "\n📌 Note: Claude Code will automatically load these services"
                 )
-                print("   when you open this project directory in Claude Desktop.")
+                print("   when you open this project directory in Claude Code.")
                 return True
             print("❌ Failed to save configuration")
             return False
@@ -487,7 +487,7 @@ class MCPExternalServicesSetup:
         """Setup a single external MCP service.
 
         Args:
-            config: The Claude Desktop configuration
+            config: The Claude Code configuration
             service_name: Name of the service to setup
             service_info: Service configuration information
             force: Whether to overwrite existing configuration
@@ -814,7 +814,7 @@ class MCPExternalServicesSetup:
             print("✅ Successfully updated mcp-browser configuration in .mcp.json")
             print(f"   Command: {browser_config['command']}")
             print(f"   Args: {browser_config['args']}")
-            print("\n📌 Note: Claude Desktop will automatically use this configuration")
+            print("\n📌 Note: Claude Code will automatically use this configuration")
             print("   when you open this project directory.")
             return True
         print("❌ Failed to save configuration")

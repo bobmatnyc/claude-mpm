@@ -3,38 +3,41 @@ File Loader Strategy - Consolidates 215 file loading instances into 5 strategic 
 Part of Phase 3 Configuration Consolidation
 """
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, List, Union, Callable
-from pathlib import Path
-import json
-import yaml
-import os
-import re
-from dataclasses import dataclass
-from enum import Enum
 import configparser
 import importlib.util
-from contextlib import contextmanager
+import json
+import os
+import re
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Union
+
+import yaml
 
 from claude_mpm.core.logging_utils import get_logger
-from .unified_config_service import IConfigStrategy, ConfigFormat
+
+from .unified_config_service import ConfigFormat, IConfigStrategy
 
 
 class LoaderType(Enum):
     """Strategic loader types consolidating 215 instances"""
-    STRUCTURED = "structured"      # JSON, YAML, TOML - 85 instances
-    ENVIRONMENT = "environment"     # ENV files and variables - 45 instances
-    PROGRAMMATIC = "programmatic"   # Python modules - 35 instances
-    LEGACY = "legacy"              # INI, properties - 30 instances
-    COMPOSITE = "composite"        # Multi-source loading - 20 instances
+
+    STRUCTURED = "structured"  # JSON, YAML, TOML - 85 instances
+    ENVIRONMENT = "environment"  # ENV files and variables - 45 instances
+    PROGRAMMATIC = "programmatic"  # Python modules - 35 instances
+    LEGACY = "legacy"  # INI, properties - 30 instances
+    COMPOSITE = "composite"  # Multi-source loading - 20 instances
 
 
 @dataclass
 class FileLoadContext:
     """Context for file loading operations"""
+
     path: Path
     format: ConfigFormat
-    encoding: str = 'utf-8'
+    encoding: str = "utf-8"
     strict: bool = True
     interpolate: bool = False
     includes: List[str] = None
@@ -53,33 +56,31 @@ class BaseFileLoader(ABC):
     @abstractmethod
     def load(self, context: FileLoadContext) -> Dict[str, Any]:
         """Load configuration from file"""
-        pass
 
     @abstractmethod
     def supports(self, format: ConfigFormat) -> bool:
         """Check if loader supports the format"""
-        pass
 
-    def _read_file(self, path: Path, encoding: str = 'utf-8') -> str:
+    def _read_file(self, path: Path, encoding: str = "utf-8") -> str:
         """Read file with proper error handling"""
         try:
-            with open(path, 'r', encoding=encoding) as f:
+            with open(path, encoding=encoding) as f:
                 return f.read()
         except UnicodeDecodeError:
             # Try with different encodings
-            for enc in ['latin-1', 'cp1252', 'utf-16']:
+            for enc in ["latin-1", "cp1252", "utf-16"]:
                 try:
-                    with open(path, 'r', encoding=enc) as f:
-                        self.logger.warning(f"Read {path} with fallback encoding: {enc}")
+                    with open(path, encoding=enc) as f:
+                        self.logger.warning(
+                            f"Read {path} with fallback encoding: {enc}"
+                        )
                         return f.read()
                 except:
                     continue
             raise
 
     def _apply_transformations(
-        self,
-        config: Dict[str, Any],
-        transformations: List[Callable]
+        self, config: Dict[str, Any], transformations: List[Callable]
     ) -> Dict[str, Any]:
         """Apply transformation pipeline"""
         if not transformations:
@@ -140,7 +141,7 @@ class StructuredFileLoader(BaseFileLoader):
     def _load_json(self, content: str, context: FileLoadContext) -> Dict[str, Any]:
         """Load JSON with comments support"""
         # Remove comments if present
-        if '//' in content or '/*' in content:
+        if "//" in content or "/*" in content:
             content = self._strip_json_comments(content)
 
         try:
@@ -159,13 +160,12 @@ class StructuredFileLoader(BaseFileLoader):
 
             if len(docs) == 1:
                 return docs[0] or {}
-            else:
-                # Merge multiple documents
-                result = {}
-                for doc in docs:
-                    if doc:
-                        result.update(doc)
-                return result
+            # Merge multiple documents
+            result = {}
+            for doc in docs:
+                if doc:
+                    result.update(doc)
+            return result
 
         except yaml.YAMLError as e:
             if context.strict:
@@ -177,11 +177,13 @@ class StructuredFileLoader(BaseFileLoader):
         """Load TOML configuration"""
         try:
             import toml
+
             return toml.loads(content)
         except ImportError:
             self.logger.error("toml package not installed")
             try:
                 import tomli
+
                 return tomli.loads(content)
             except ImportError:
                 raise ImportError("Neither toml nor tomli package is installed")
@@ -194,24 +196,26 @@ class StructuredFileLoader(BaseFileLoader):
     def _strip_json_comments(self, content: str) -> str:
         """Remove comments from JSON content"""
         # Remove single-line comments
-        content = re.sub(r'//.*?$', '', content, flags=re.MULTILINE)
+        content = re.sub(r"//.*?$", "", content, flags=re.MULTILINE)
         # Remove multi-line comments
-        content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+        content = re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)
         return content
 
     def _recover_json(self, content: str) -> Dict[str, Any]:
         """Attempt to recover from malformed JSON"""
         # Try to fix common issues
         content = content.replace("'", '"')  # Single to double quotes
-        content = re.sub(r',\s*}', '}', content)  # Trailing commas in objects
-        content = re.sub(r',\s*]', ']', content)  # Trailing commas in arrays
+        content = re.sub(r",\s*}", "}", content)  # Trailing commas in objects
+        content = re.sub(r",\s*]", "]", content)  # Trailing commas in arrays
 
         try:
             return json.loads(content)
         except:
             return {}
 
-    def _process_includes(self, config: Dict[str, Any], context: FileLoadContext) -> Dict[str, Any]:
+    def _process_includes(
+        self, config: Dict[str, Any], context: FileLoadContext
+    ) -> Dict[str, Any]:
         """Process include directives"""
         for include_key in context.includes:
             if include_key in config:
@@ -224,7 +228,7 @@ class StructuredFileLoader(BaseFileLoader):
                         path=include_path,
                         format=self._detect_format(include_path),
                         encoding=context.encoding,
-                        strict=context.strict
+                        strict=context.strict,
                     )
                     included_config = self.load(include_context)
 
@@ -236,7 +240,9 @@ class StructuredFileLoader(BaseFileLoader):
 
         return config
 
-    def _process_excludes(self, config: Dict[str, Any], context: FileLoadContext) -> Dict[str, Any]:
+    def _process_excludes(
+        self, config: Dict[str, Any], context: FileLoadContext
+    ) -> Dict[str, Any]:
         """Process exclude patterns"""
         for pattern in context.excludes:
             config = self._exclude_keys(config, pattern)
@@ -244,21 +250,27 @@ class StructuredFileLoader(BaseFileLoader):
 
     def _exclude_keys(self, config: Dict[str, Any], pattern: str) -> Dict[str, Any]:
         """Exclude keys matching pattern"""
-        if '*' in pattern or '?' in pattern:
+        if "*" in pattern or "?" in pattern:
             # Glob pattern
             import fnmatch
-            return {k: v for k, v in config.items() if not fnmatch.fnmatch(k, pattern)}
-        else:
-            # Exact match
-            config.pop(pattern, None)
-            return config
 
-    def _merge_configs(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+            return {k: v for k, v in config.items() if not fnmatch.fnmatch(k, pattern)}
+        # Exact match
+        config.pop(pattern, None)
+        return config
+
+    def _merge_configs(
+        self, base: Dict[str, Any], override: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Deep merge configurations"""
         result = base.copy()
 
         for key, value in override.items():
-            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
                 result[key] = self._merge_configs(result[key], value)
             else:
                 result[key] = value
@@ -269,21 +281,19 @@ class StructuredFileLoader(BaseFileLoader):
         """Detect file format from extension"""
         suffix = path.suffix.lower()
 
-        if suffix == '.json':
+        if suffix == ".json":
             return ConfigFormat.JSON
-        elif suffix in ['.yaml', '.yml']:
+        if suffix in [".yaml", ".yml"]:
             return ConfigFormat.YAML
-        elif suffix == '.toml':
+        if suffix == ".toml":
             return ConfigFormat.TOML
-        else:
-            # Try to detect from content
-            content = self._read_file(path)
-            if content.strip().startswith('{'):
-                return ConfigFormat.JSON
-            elif ':' in content:
-                return ConfigFormat.YAML
-            else:
-                return ConfigFormat.JSON
+        # Try to detect from content
+        content = self._read_file(path)
+        if content.strip().startswith("{"):
+            return ConfigFormat.JSON
+        if ":" in content:
+            return ConfigFormat.YAML
+        return ConfigFormat.JSON
 
 
 class EnvironmentFileLoader(BaseFileLoader):
@@ -325,19 +335,19 @@ class EnvironmentFileLoader(BaseFileLoader):
             line = line.strip()
 
             # Skip comments and empty lines
-            if not line or line.startswith('#'):
+            if not line or line.startswith("#"):
                 continue
 
             # Parse KEY=VALUE format
-            if '=' in line:
-                key, value = line.split('=', 1)
+            if "=" in line:
+                key, value = line.split("=", 1)
                 key = key.strip()
                 value = value.strip()
 
                 # Remove quotes if present
-                if value.startswith('"') and value.endswith('"'):
-                    value = value[1:-1]
-                elif value.startswith("'") and value.endswith("'"):
+                if (value.startswith('"') and value.endswith('"')) or (
+                    value.startswith("'") and value.endswith("'")
+                ):
                     value = value[1:-1]
 
                 # Parse value type
@@ -348,7 +358,7 @@ class EnvironmentFileLoader(BaseFileLoader):
     def _load_env_vars(self, context: FileLoadContext) -> Dict[str, Any]:
         """Load from environment variables"""
         config = {}
-        prefix = context.path.stem.upper() if context.path else ''
+        prefix = context.path.stem.upper() if context.path else ""
 
         for key, value in os.environ.items():
             # Check if key matches pattern
@@ -358,81 +368,82 @@ class EnvironmentFileLoader(BaseFileLoader):
 
         return config
 
-    def _should_include_env_var(self, key: str, prefix: str, context: FileLoadContext) -> bool:
+    def _should_include_env_var(
+        self, key: str, prefix: str, context: FileLoadContext
+    ) -> bool:
         """Check if environment variable should be included"""
         if context.includes:
             return any(key.startswith(inc) for inc in context.includes)
-        elif context.excludes:
+        if context.excludes:
             return not any(key.startswith(exc) for exc in context.excludes)
-        elif prefix:
+        if prefix:
             return key.startswith(prefix)
         return True
 
     def _clean_env_key(self, key: str, prefix: str) -> str:
         """Clean environment variable key"""
         if prefix and key.startswith(prefix):
-            key = key[len(prefix):]
-            if key.startswith('_'):
+            key = key[len(prefix) :]
+            if key.startswith("_"):
                 key = key[1:]
 
         # Convert to lowercase and replace underscores
-        return key.lower().replace('__', '.').replace('_', '-')
+        return key.lower().replace("__", ".").replace("_", "-")
 
     def _parse_env_value(self, value: str) -> Any:
         """Parse environment variable value to appropriate type"""
         # Boolean
-        if value.lower() in ['true', 'false']:
-            return value.lower() == 'true'
+        if value.lower() in ["true", "false"]:
+            return value.lower() == "true"
 
         # None
-        if value.lower() in ['none', 'null']:
+        if value.lower() in ["none", "null"]:
             return None
 
         # Number
         try:
-            if '.' in value:
+            if "." in value:
                 return float(value)
-            else:
-                return int(value)
+            return int(value)
         except ValueError:
             pass
 
         # JSON array or object
-        if value.startswith('[') or value.startswith('{'):
+        if value.startswith("[") or value.startswith("{"):
             try:
                 return json.loads(value)
             except:
                 pass
 
         # Comma-separated list
-        if ',' in value:
-            return [v.strip() for v in value.split(',')]
+        if "," in value:
+            return [v.strip() for v in value.split(",")]
 
         return value
 
     def _interpolate_variables(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """Interpolate variables in configuration values"""
+
         def interpolate_value(value: Any) -> Any:
             if isinstance(value, str):
                 # Replace ${VAR} or $VAR patterns
-                pattern = r'\$\{([^}]+)\}|\$(\w+)'
+                pattern = r"\$\{([^}]+)\}|\$(\w+)"
 
                 def replacer(match):
                     var_name = match.group(1) or match.group(2)
                     # Look in config first, then environment
                     if var_name in config:
                         return str(config[var_name])
-                    elif var_name in os.environ:
+                    if var_name in os.environ:
                         return os.environ[var_name]
-                    else:
-                        return match.group(0)
+                    return match.group(0)
 
                 return re.sub(pattern, replacer, value)
 
-            elif isinstance(value, dict):
+            if isinstance(value, dict):
                 return {k: interpolate_value(v) for k, v in value.items()}
 
-            elif isinstance(value, list):
+            if isinstance(value, list):
                 return [interpolate_value(v) for v in value]
 
             return value
@@ -476,22 +487,22 @@ class ProgrammaticFileLoader(BaseFileLoader):
         config = {}
 
         # Look for specific config patterns
-        if hasattr(module, 'CONFIG'):
+        if hasattr(module, "CONFIG"):
             # Direct CONFIG dict
             config = module.CONFIG
-        elif hasattr(module, 'config'):
+        elif hasattr(module, "config"):
             # config dict or function
             if callable(module.config):
                 config = module.config()
             else:
                 config = module.config
-        elif hasattr(module, 'get_config'):
+        elif hasattr(module, "get_config"):
             # get_config function
             config = module.get_config()
         else:
             # Extract all uppercase variables
             for name in dir(module):
-                if name.isupper() and not name.startswith('_'):
+                if name.isupper() and not name.startswith("_"):
                     value = getattr(module, name)
                     # Skip modules and functions unless specified
                     if not (callable(value) or isinstance(value, type)):
@@ -534,13 +545,15 @@ class LegacyFileLoader(BaseFileLoader):
     def _is_properties_format(self, content: str) -> bool:
         """Check if content is Java properties format"""
         # Properties files don't have sections
-        return not any(line.strip().startswith('[') for line in content.splitlines())
+        return not any(line.strip().startswith("[") for line in content.splitlines())
 
     def _load_ini(self, content: str, context: FileLoadContext) -> Dict[str, Any]:
         """Load INI format configuration"""
         parser = configparser.ConfigParser(
-            interpolation=configparser.ExtendedInterpolation() if context.interpolate else None,
-            allow_no_value=True
+            interpolation=(
+                configparser.ExtendedInterpolation() if context.interpolate else None
+            ),
+            allow_no_value=True,
         )
 
         try:
@@ -556,7 +569,7 @@ class LegacyFileLoader(BaseFileLoader):
 
         # Handle DEFAULT section
         if parser.defaults():
-            config['_defaults'] = dict(parser.defaults())
+            config["_defaults"] = dict(parser.defaults())
 
         # Handle other sections
         for section in parser.sections():
@@ -565,13 +578,15 @@ class LegacyFileLoader(BaseFileLoader):
                 config[section][key] = self._parse_ini_value(value)
 
         # Flatten if only one section (excluding defaults)
-        sections = [s for s in config.keys() if s != '_defaults']
-        if len(sections) == 1 and not config.get('_defaults'):
+        sections = [s for s in config if s != "_defaults"]
+        if len(sections) == 1 and not config.get("_defaults"):
             config = config[sections[0]]
 
         return config
 
-    def _load_properties(self, content: str, context: FileLoadContext) -> Dict[str, Any]:
+    def _load_properties(
+        self, content: str, context: FileLoadContext
+    ) -> Dict[str, Any]:
         """Load Java properties format"""
         config = {}
 
@@ -579,24 +594,24 @@ class LegacyFileLoader(BaseFileLoader):
             line = line.strip()
 
             # Skip comments and empty lines
-            if not line or line.startswith('#') or line.startswith('!'):
+            if not line or line.startswith("#") or line.startswith("!"):
                 continue
 
             # Handle line continuation
-            while line.endswith('\\'):
+            while line.endswith("\\"):
                 line = line[:-1]
-                next_line = next(content.splitlines(), '')
+                next_line = next(content.splitlines(), "")
                 line += next_line.strip()
 
             # Parse key=value or key:value
-            if '=' in line:
-                key, value = line.split('=', 1)
-            elif ':' in line:
-                key, value = line.split(':', 1)
+            if "=" in line:
+                key, value = line.split("=", 1)
+            elif ":" in line:
+                key, value = line.split(":", 1)
             else:
                 # Key without value
                 key = line
-                value = ''
+                value = ""
 
             key = key.strip()
             value = value.strip()
@@ -612,39 +627,38 @@ class LegacyFileLoader(BaseFileLoader):
     def _parse_ini_value(self, value: str) -> Any:
         """Parse INI value to appropriate type"""
         if not value:
-            return ''
+            return ""
 
         # Boolean
-        if value.lower() in ['true', 'yes', 'on', '1']:
+        if value.lower() in ["true", "yes", "on", "1"]:
             return True
-        elif value.lower() in ['false', 'no', 'off', '0']:
+        if value.lower() in ["false", "no", "off", "0"]:
             return False
 
         # Number
         try:
-            if '.' in value:
+            if "." in value:
                 return float(value)
-            else:
-                return int(value)
+            return int(value)
         except ValueError:
             pass
 
         # List (comma-separated)
-        if ',' in value:
-            return [v.strip() for v in value.split(',')]
+        if "," in value:
+            return [v.strip() for v in value.split(",")]
 
         return value
 
     def _unescape_properties_value(self, value: str) -> str:
         """Unescape Java properties special characters"""
         replacements = {
-            '\\n': '\n',
-            '\\r': '\r',
-            '\\t': '\t',
-            '\\\\': '\\',
-            '\\:': ':',
-            '\\=': '=',
-            '\\ ': ' '
+            "\\n": "\n",
+            "\\r": "\r",
+            "\\t": "\t",
+            "\\\\": "\\",
+            "\\:": ":",
+            "\\=": "=",
+            "\\ ": " ",
         }
 
         for old, new in replacements.items():
@@ -654,7 +668,7 @@ class LegacyFileLoader(BaseFileLoader):
 
     def _set_nested_value(self, config: Dict[str, Any], key: str, value: Any):
         """Set value in nested dict structure based on dot notation"""
-        parts = key.split('.')
+        parts = key.split(".")
         current = config
 
         for part in parts[:-1]:
@@ -677,7 +691,7 @@ class CompositeFileLoader(BaseFileLoader):
             LoaderType.STRUCTURED: StructuredFileLoader(),
             LoaderType.ENVIRONMENT: EnvironmentFileLoader(),
             LoaderType.PROGRAMMATIC: ProgrammaticFileLoader(),
-            LoaderType.LEGACY: LegacyFileLoader()
+            LoaderType.LEGACY: LegacyFileLoader(),
         }
 
     def supports(self, format: ConfigFormat) -> bool:
@@ -700,7 +714,7 @@ class CompositeFileLoader(BaseFileLoader):
                         path=fallback,
                         format=self._detect_format(fallback),
                         encoding=context.encoding,
-                        strict=False  # Non-strict for fallbacks
+                        strict=False,  # Non-strict for fallbacks
                     )
                     try:
                         config = self._load_single(fallback_context)
@@ -728,13 +742,7 @@ class CompositeFileLoader(BaseFileLoader):
         configs = []
 
         # Define load order
-        patterns = [
-            'default.*',
-            'config.*',
-            'settings.*',
-            '*.config.*',
-            '*.settings.*'
-        ]
+        patterns = ["default.*", "config.*", "settings.*", "*.config.*", "*.settings.*"]
 
         # Load files in order
         for pattern in patterns:
@@ -744,7 +752,7 @@ class CompositeFileLoader(BaseFileLoader):
                         path=file_path,
                         format=self._detect_format(file_path),
                         encoding=context.encoding,
-                        strict=context.strict
+                        strict=context.strict,
                     )
                     try:
                         config = self._load_single(file_context)
@@ -768,21 +776,23 @@ class CompositeFileLoader(BaseFileLoader):
         suffix = path.suffix.lower()
 
         format_map = {
-            '.json': ConfigFormat.JSON,
-            '.yaml': ConfigFormat.YAML,
-            '.yml': ConfigFormat.YAML,
-            '.toml': ConfigFormat.TOML,
-            '.env': ConfigFormat.ENV,
-            '.py': ConfigFormat.PYTHON,
-            '.ini': ConfigFormat.INI,
-            '.cfg': ConfigFormat.INI,
-            '.conf': ConfigFormat.INI,
-            '.properties': ConfigFormat.INI
+            ".json": ConfigFormat.JSON,
+            ".yaml": ConfigFormat.YAML,
+            ".yml": ConfigFormat.YAML,
+            ".toml": ConfigFormat.TOML,
+            ".env": ConfigFormat.ENV,
+            ".py": ConfigFormat.PYTHON,
+            ".ini": ConfigFormat.INI,
+            ".cfg": ConfigFormat.INI,
+            ".conf": ConfigFormat.INI,
+            ".properties": ConfigFormat.INI,
         }
 
         return format_map.get(suffix, ConfigFormat.JSON)
 
-    def _deep_merge(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    def _deep_merge(
+        self, base: Dict[str, Any], override: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Deep merge two configurations"""
         result = base.copy()
 
@@ -825,14 +835,14 @@ class FileLoaderStrategy(IConfigStrategy):
         # Create load context
         context = FileLoadContext(
             path=path,
-            format=kwargs.get('format', self._detect_format(path)),
-            encoding=kwargs.get('encoding', 'utf-8'),
-            strict=kwargs.get('strict', True),
-            interpolate=kwargs.get('interpolate', False),
-            includes=kwargs.get('includes'),
-            excludes=kwargs.get('excludes'),
-            transformations=kwargs.get('transformations'),
-            fallback_paths=[Path(p) for p in kwargs.get('fallback_paths', [])]
+            format=kwargs.get("format", self._detect_format(path)),
+            encoding=kwargs.get("encoding", "utf-8"),
+            strict=kwargs.get("strict", True),
+            interpolate=kwargs.get("interpolate", False),
+            includes=kwargs.get("includes"),
+            excludes=kwargs.get("excludes"),
+            transformations=kwargs.get("transformations"),
+            fallback_paths=[Path(p) for p in kwargs.get("fallback_paths", [])],
         )
 
         return self.composite_loader.load(context)
@@ -857,7 +867,7 @@ class FileLoaderStrategy(IConfigStrategy):
         normalized = {}
 
         for key, value in config.items():
-            norm_key = key.lower().replace('-', '_')
+            norm_key = key.lower().replace("-", "_")
 
             if isinstance(value, dict):
                 normalized[norm_key] = self._normalize_config(value)
@@ -868,4 +878,4 @@ class FileLoaderStrategy(IConfigStrategy):
 
 
 # Export the main strategy
-__all__ = ['FileLoaderStrategy', 'LoaderType', 'FileLoadContext']
+__all__ = ["FileLoadContext", "FileLoaderStrategy", "LoaderType"]

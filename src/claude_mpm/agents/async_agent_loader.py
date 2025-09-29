@@ -33,14 +33,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import aiofiles
 
+# Module-level logger
+from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 
 from ..core.unified_paths import get_path_manager
 from ..validation.agent_validator import AgentValidator
 from .frontmatter_validator import FrontmatterValidator
 
-# Module-level logger
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

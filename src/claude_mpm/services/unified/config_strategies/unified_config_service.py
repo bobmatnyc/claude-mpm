@@ -4,26 +4,29 @@ Consolidates 15+ configuration services into a single unified service
 Achieves 65-75% code reduction through strategic patterns
 """
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Type, Union, List, Callable, TypeVar, Generic
-from pathlib import Path
-import json
-import yaml
-import os
-from enum import Enum
-from dataclasses import dataclass, field
-import threading
-from datetime import datetime, timedelta
-from collections import defaultdict
 import hashlib
+import json
+import os
 import pickle
+import threading
+from abc import ABC, abstractmethod
+from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+
+import yaml
 
 from claude_mpm.core.logging_utils import get_logger
 
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 class ConfigFormat(Enum):
     """Supported configuration formats"""
+
     JSON = "json"
     YAML = "yaml"
     ENV = "env"
@@ -31,8 +34,10 @@ class ConfigFormat(Enum):
     TOML = "toml"
     INI = "ini"
 
+
 class ConfigContext(Enum):
     """Configuration contexts for lifecycle management"""
+
     GLOBAL = "global"
     PROJECT = "project"
     USER = "user"
@@ -41,9 +46,11 @@ class ConfigContext(Enum):
     RUNTIME = "runtime"
     TEST = "test"
 
+
 @dataclass
 class ConfigMetadata:
     """Metadata for configuration tracking"""
+
     source: str
     format: ConfigFormat
     context: ConfigContext
@@ -54,28 +61,26 @@ class ConfigMetadata:
     hot_reload: bool = False
     ttl: Optional[timedelta] = None
 
+
 class IConfigStrategy(ABC):
     """Base strategy interface for configuration operations"""
 
     @abstractmethod
     def can_handle(self, source: Union[str, Path, Dict]) -> bool:
         """Check if this strategy can handle the given source"""
-        pass
 
     @abstractmethod
     def load(self, source: Any, **kwargs) -> Dict[str, Any]:
         """Load configuration from source"""
-        pass
 
     @abstractmethod
     def validate(self, config: Dict[str, Any], schema: Optional[Dict] = None) -> bool:
         """Validate configuration against schema"""
-        pass
 
     @abstractmethod
     def transform(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """Transform configuration to standard format"""
-        pass
+
 
 class UnifiedConfigService:
     """
@@ -97,7 +102,7 @@ class UnifiedConfigService:
 
     def __init__(self):
         """Initialize the unified configuration service"""
-        if not hasattr(self, '_initialized'):
+        if not hasattr(self, "_initialized"):
             self.logger = get_logger(self.__class__.__name__)
             self._strategies: Dict[str, IConfigStrategy] = {}
             self._loaders: Dict[ConfigFormat, Callable] = {}
@@ -134,21 +139,21 @@ class UnifiedConfigService:
     def _initialize_core_validators(self):
         """Initialize the 15 composable validators (reduced from 236)"""
         # Core validators that can be composed for complex validation
-        self._validators['required'] = self._validate_required
-        self._validators['type'] = self._validate_type
-        self._validators['range'] = self._validate_range
-        self._validators['pattern'] = self._validate_pattern
-        self._validators['enum'] = self._validate_enum
-        self._validators['schema'] = self._validate_schema
-        self._validators['dependency'] = self._validate_dependency
-        self._validators['unique'] = self._validate_unique
-        self._validators['format'] = self._validate_format
-        self._validators['length'] = self._validate_length
-        self._validators['custom'] = self._validate_custom
-        self._validators['conditional'] = self._validate_conditional
-        self._validators['recursive'] = self._validate_recursive
-        self._validators['cross_field'] = self._validate_cross_field
-        self._validators['composite'] = self._validate_composite
+        self._validators["required"] = self._validate_required
+        self._validators["type"] = self._validate_type
+        self._validators["range"] = self._validate_range
+        self._validators["pattern"] = self._validate_pattern
+        self._validators["enum"] = self._validate_enum
+        self._validators["schema"] = self._validate_schema
+        self._validators["dependency"] = self._validate_dependency
+        self._validators["unique"] = self._validate_unique
+        self._validators["format"] = self._validate_format
+        self._validators["length"] = self._validate_length
+        self._validators["custom"] = self._validate_custom
+        self._validators["conditional"] = self._validate_conditional
+        self._validators["recursive"] = self._validate_recursive
+        self._validators["cross_field"] = self._validate_cross_field
+        self._validators["composite"] = self._validate_composite
 
     def register_strategy(self, name: str, strategy: IConfigStrategy):
         """Register a configuration strategy"""
@@ -164,7 +169,7 @@ class UnifiedConfigService:
         schema: Optional[Dict] = None,
         hot_reload: bool = False,
         ttl: Optional[timedelta] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Universal configuration loading method
@@ -214,7 +219,7 @@ class UnifiedConfigService:
                     loaded_at=datetime.now(),
                     checksum=self._calculate_checksum(config),
                     hot_reload=hot_reload,
-                    ttl=ttl
+                    ttl=ttl,
                 )
 
                 # Cache configuration
@@ -235,7 +240,7 @@ class UnifiedConfigService:
         self,
         config: Dict[str, Any],
         schema: Union[Dict, str],
-        validators: Optional[List[str]] = None
+        validators: Optional[List[str]] = None,
     ) -> bool:
         """
         Universal validation method using composable validators
@@ -263,10 +268,7 @@ class UnifiedConfigService:
             return False
 
     def get(
-        self,
-        key: str,
-        context: Optional[ConfigContext] = None,
-        default: Any = None
+        self, key: str, context: Optional[ConfigContext] = None, default: Any = None
     ) -> Any:
         """Get configuration value by key with context awareness"""
         # Check specific context first
@@ -287,7 +289,7 @@ class UnifiedConfigService:
         key: str,
         value: Any,
         context: ConfigContext = ConfigContext.RUNTIME,
-        persist: bool = False
+        persist: bool = False,
     ):
         """Set configuration value with optional persistence"""
         with self._lock:
@@ -320,7 +322,9 @@ class UnifiedConfigService:
         self._watchers[key].append(callback)
         self.logger.debug(f"Added watcher for key: {key}")
 
-    def reload(self, cache_key: Optional[str] = None, context: Optional[ConfigContext] = None):
+    def reload(
+        self, cache_key: Optional[str] = None, context: Optional[ConfigContext] = None
+    ):
         """Reload configuration(s)"""
         with self._lock:
             if cache_key:
@@ -332,7 +336,7 @@ class UnifiedConfigService:
                         metadata.context,
                         metadata.format,
                         hot_reload=metadata.hot_reload,
-                        ttl=metadata.ttl
+                        ttl=metadata.ttl,
                     )
             elif context:
                 # Reload all configurations in context
@@ -344,7 +348,7 @@ class UnifiedConfigService:
                             metadata.context,
                             metadata.format,
                             hot_reload=metadata.hot_reload,
-                            ttl=metadata.ttl
+                            ttl=metadata.ttl,
                         )
             else:
                 # Reload all configurations
@@ -354,14 +358,14 @@ class UnifiedConfigService:
                         metadata.context,
                         metadata.format,
                         hot_reload=metadata.hot_reload,
-                        ttl=metadata.ttl
+                        ttl=metadata.ttl,
                     )
 
     def merge(
         self,
         *configs: Dict[str, Any],
         strategy: str = "deep",
-        context: ConfigContext = ConfigContext.RUNTIME
+        context: ConfigContext = ConfigContext.RUNTIME,
     ) -> Dict[str, Any]:
         """Merge multiple configurations with specified strategy"""
         if not configs:
@@ -372,21 +376,20 @@ class UnifiedConfigService:
             for config in configs:
                 self._deep_merge(result, config)
             return result
-        elif strategy == "shallow":
+        if strategy == "shallow":
             result = {}
             for config in configs:
                 result.update(config)
             return result
-        elif strategy == "override":
+        if strategy == "override":
             return configs[-1] if configs else {}
-        else:
-            raise ValueError(f"Unknown merge strategy: {strategy}")
+        raise ValueError(f"Unknown merge strategy: {strategy}")
 
     def export(
         self,
         format: ConfigFormat,
         context: Optional[ConfigContext] = None,
-        path: Optional[Path] = None
+        path: Optional[Path] = None,
     ) -> Union[str, None]:
         """Export configuration to specified format"""
         configs = []
@@ -436,7 +439,7 @@ class UnifiedConfigService:
 
         path = Path(source)
         if path.exists():
-            with open(path, 'r') as f:
+            with open(path) as f:
                 return json.load(f)
 
         # Try to parse as JSON string
@@ -449,7 +452,7 @@ class UnifiedConfigService:
 
         path = Path(source)
         if path.exists():
-            with open(path, 'r') as f:
+            with open(path) as f:
                 return yaml.safe_load(f)
 
         # Try to parse as YAML string
@@ -457,7 +460,7 @@ class UnifiedConfigService:
 
     def _load_env(self, source: Union[str, Path, Dict], **kwargs) -> Dict[str, Any]:
         """Load environment variables as configuration"""
-        prefix = kwargs.get('prefix', '')
+        prefix = kwargs.get("prefix", "")
         config = {}
 
         for key, value in os.environ.items():
@@ -465,7 +468,7 @@ class UnifiedConfigService:
                 continue
 
             # Remove prefix if present
-            clean_key = key[len(prefix):] if prefix else key
+            clean_key = key[len(prefix) :] if prefix else key
 
             # Convert to lowercase and replace underscores
             clean_key = clean_key.lower()
@@ -490,7 +493,7 @@ class UnifiedConfigService:
         # Extract configuration from module
         config = {}
         for key in dir(module):
-            if not key.startswith('_'):
+            if not key.startswith("_"):
                 config[key] = getattr(module, key)
 
         return config
@@ -505,14 +508,14 @@ class UnifiedConfigService:
 
         path = Path(source)
         if path.exists():
-            with open(path, 'r') as f:
+            with open(path) as f:
                 return toml.load(f)
 
         return toml.loads(str(source))
 
     def _validate_required(self, config: Dict[str, Any], schema: Dict) -> bool:
         """Validate required fields"""
-        required = schema.get('required', [])
+        required = schema.get("required", [])
         for field in required:
             if field not in config:
                 self.logger.error(f"Required field missing: {field}")
@@ -521,44 +524,47 @@ class UnifiedConfigService:
 
     def _validate_type(self, config: Dict[str, Any], schema: Dict) -> bool:
         """Validate field types"""
-        properties = schema.get('properties', {})
+        properties = schema.get("properties", {})
         for key, value in config.items():
             if key in properties:
-                expected_type = properties[key].get('type')
+                expected_type = properties[key].get("type")
                 if expected_type and not self._check_type(value, expected_type):
-                    self.logger.error(f"Type mismatch for {key}: expected {expected_type}")
+                    self.logger.error(
+                        f"Type mismatch for {key}: expected {expected_type}"
+                    )
                     return False
         return True
 
     def _validate_range(self, config: Dict[str, Any], schema: Dict) -> bool:
         """Validate numeric ranges"""
-        properties = schema.get('properties', {})
+        properties = schema.get("properties", {})
         for key, value in config.items():
             if key in properties:
                 prop = properties[key]
-                if 'minimum' in prop and value < prop['minimum']:
+                if "minimum" in prop and value < prop["minimum"]:
                     return False
-                if 'maximum' in prop and value > prop['maximum']:
+                if "maximum" in prop and value > prop["maximum"]:
                     return False
         return True
 
     def _validate_pattern(self, config: Dict[str, Any], schema: Dict) -> bool:
         """Validate string patterns"""
         import re
-        properties = schema.get('properties', {})
+
+        properties = schema.get("properties", {})
         for key, value in config.items():
-            if key in properties and 'pattern' in properties[key]:
-                pattern = properties[key]['pattern']
+            if key in properties and "pattern" in properties[key]:
+                pattern = properties[key]["pattern"]
                 if not re.match(pattern, str(value)):
                     return False
         return True
 
     def _validate_enum(self, config: Dict[str, Any], schema: Dict) -> bool:
         """Validate enum values"""
-        properties = schema.get('properties', {})
+        properties = schema.get("properties", {})
         for key, value in config.items():
-            if key in properties and 'enum' in properties[key]:
-                if value not in properties[key]['enum']:
+            if key in properties and "enum" in properties[key]:
+                if value not in properties[key]["enum"]:
                     return False
         return True
 
@@ -579,7 +585,7 @@ class UnifiedConfigService:
 
     def _validate_dependency(self, config: Dict[str, Any], schema: Dict) -> bool:
         """Validate field dependencies"""
-        dependencies = schema.get('dependencies', {})
+        dependencies = schema.get("dependencies", {})
         for field, deps in dependencies.items():
             if field in config:
                 for dep in deps:
@@ -590,9 +596,9 @@ class UnifiedConfigService:
 
     def _validate_unique(self, config: Dict[str, Any], schema: Dict) -> bool:
         """Validate unique values in arrays"""
-        properties = schema.get('properties', {})
+        properties = schema.get("properties", {})
         for key, value in config.items():
-            if key in properties and properties[key].get('uniqueItems'):
+            if key in properties and properties[key].get("uniqueItems"):
                 if isinstance(value, list) and len(value) != len(set(map(str, value))):
                     return False
         return True
@@ -604,48 +610,48 @@ class UnifiedConfigService:
 
     def _validate_length(self, config: Dict[str, Any], schema: Dict) -> bool:
         """Validate string/array lengths"""
-        properties = schema.get('properties', {})
+        properties = schema.get("properties", {})
         for key, value in config.items():
             if key in properties:
                 prop = properties[key]
-                if 'minLength' in prop and len(value) < prop['minLength']:
+                if "minLength" in prop and len(value) < prop["minLength"]:
                     return False
-                if 'maxLength' in prop and len(value) > prop['maxLength']:
+                if "maxLength" in prop and len(value) > prop["maxLength"]:
                     return False
         return True
 
     def _validate_custom(self, config: Dict[str, Any], schema: Dict) -> bool:
         """Apply custom validation functions"""
-        if 'custom' in schema:
-            validator = schema['custom']
+        if "custom" in schema:
+            validator = schema["custom"]
             if callable(validator):
                 return validator(config)
         return True
 
     def _validate_conditional(self, config: Dict[str, Any], schema: Dict) -> bool:
         """Validate conditional requirements"""
-        if 'if' in schema:
-            condition = schema['if']
+        if "if" in schema:
+            condition = schema["if"]
             if self._evaluate_condition(config, condition):
-                if 'then' in schema:
-                    return self._validate_schema(config, schema['then'])
-            elif 'else' in schema:
-                return self._validate_schema(config, schema['else'])
+                if "then" in schema:
+                    return self._validate_schema(config, schema["then"])
+            elif "else" in schema:
+                return self._validate_schema(config, schema["else"])
         return True
 
     def _validate_recursive(self, config: Dict[str, Any], schema: Dict) -> bool:
         """Recursively validate nested structures"""
-        properties = schema.get('properties', {})
+        properties = schema.get("properties", {})
         for key, value in config.items():
             if key in properties and isinstance(value, dict):
-                if 'properties' in properties[key]:
+                if "properties" in properties[key]:
                     if not self._validate_schema(value, properties[key]):
                         return False
         return True
 
     def _validate_cross_field(self, config: Dict[str, Any], schema: Dict) -> bool:
         """Validate cross-field constraints"""
-        constraints = schema.get('crossField', [])
+        constraints = schema.get("crossField", [])
         for constraint in constraints:
             if not self._evaluate_constraint(config, constraint):
                 return False
@@ -653,7 +659,7 @@ class UnifiedConfigService:
 
     def _validate_composite(self, config: Dict[str, Any], schema: Dict) -> bool:
         """Composite validation using multiple validators"""
-        validators = schema.get('validators', [])
+        validators = schema.get("validators", [])
         for validator_name in validators:
             if validator_name in self._validators:
                 if not self._validators[validator_name](config, schema):
@@ -668,22 +674,22 @@ class UnifiedConfigService:
         path = Path(source)
         if path.exists():
             suffix = path.suffix.lower()
-            if suffix == '.json':
+            if suffix == ".json":
                 return ConfigFormat.JSON
-            elif suffix in ['.yaml', '.yml']:
+            if suffix in [".yaml", ".yml"]:
                 return ConfigFormat.YAML
-            elif suffix == '.toml':
+            if suffix == ".toml":
                 return ConfigFormat.TOML
-            elif suffix in ['.py', '.python']:
+            if suffix in [".py", ".python"]:
                 return ConfigFormat.PYTHON
-            elif suffix in ['.env']:
+            if suffix in [".env"]:
                 return ConfigFormat.ENV
 
         # Try to detect from content
         content = str(source)
-        if content.startswith('{'):
+        if content.startswith("{"):
             return ConfigFormat.JSON
-        elif ':' in content and '\n' in content:
+        if ":" in content and "\n" in content:
             return ConfigFormat.YAML
 
         return ConfigFormat.JSON
@@ -712,11 +718,10 @@ class UnifiedConfigService:
         source: Any,
         format: ConfigFormat,
         schema: Optional[Dict],
-        context: ConfigContext
+        context: ConfigContext,
     ):
         """Setup hot reload for configuration"""
         # Implementation for file watching and hot reload
-        pass
 
     def _trigger_watchers(self, key: str, value: Any):
         """Trigger registered watchers for key"""
@@ -729,9 +734,10 @@ class UnifiedConfigService:
     def _persist_config(self, key: str, value: Any, context: ConfigContext):
         """Persist configuration change"""
         # Implementation for persisting configuration changes
-        pass
 
-    def _handle_error(self, error: Exception, source: Any, context: ConfigContext) -> Dict[str, Any]:
+    def _handle_error(
+        self, error: Exception, source: Any, context: ConfigContext
+    ) -> Dict[str, Any]:
         """Unified error handling"""
         for handler in self._error_handlers:
             try:
@@ -747,7 +753,11 @@ class UnifiedConfigService:
     def _deep_merge(self, target: Dict, source: Dict):
         """Deep merge source into target"""
         for key, value in source.items():
-            if key in target and isinstance(target[key], dict) and isinstance(value, dict):
+            if (
+                key in target
+                and isinstance(target[key], dict)
+                and isinstance(value, dict)
+            ):
                 self._deep_merge(target[key], value)
             else:
                 target[key] = value
@@ -755,12 +765,12 @@ class UnifiedConfigService:
     def _check_type(self, value: Any, expected_type: str) -> bool:
         """Check if value matches expected type"""
         type_map = {
-            'string': str,
-            'number': (int, float),
-            'integer': int,
-            'boolean': bool,
-            'array': list,
-            'object': dict
+            "string": str,
+            "number": (int, float),
+            "integer": int,
+            "boolean": bool,
+            "array": list,
+            "object": dict,
         }
         expected = type_map.get(expected_type)
         if expected:
@@ -785,14 +795,16 @@ class UnifiedConfigService:
     def get_statistics(self) -> Dict[str, Any]:
         """Get service statistics for monitoring"""
         return {
-            'total_configs': len(self._cache),
-            'contexts': {ctx.value: len(configs) for ctx, configs in self._contexts.items()},
-            'strategies': len(self._strategies),
-            'loaders': len(self._loaders),
-            'validators': len(self._validators),
-            'watchers': sum(len(w) for w in self._watchers.values()),
-            'cache_size': sum(len(str(c)) for c in self._cache.values()),
-            'metadata_entries': len(self._metadata)
+            "total_configs": len(self._cache),
+            "contexts": {
+                ctx.value: len(configs) for ctx, configs in self._contexts.items()
+            },
+            "strategies": len(self._strategies),
+            "loaders": len(self._loaders),
+            "validators": len(self._validators),
+            "watchers": sum(len(w) for w in self._watchers.values()),
+            "cache_size": sum(len(str(c)) for c in self._cache.values()),
+            "metadata_entries": len(self._metadata),
         }
 
 

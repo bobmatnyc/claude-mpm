@@ -11,10 +11,11 @@ without fragile parent.parent.parent patterns.
 from pathlib import Path
 from typing import Optional, Union
 
+from claude_mpm.core.logging_utils import get_logger
+
 # Import from the unified path management system
 from ..core.unified_paths import get_path_manager
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

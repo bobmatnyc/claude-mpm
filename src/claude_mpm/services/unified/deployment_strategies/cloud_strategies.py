@@ -10,7 +10,7 @@ import json
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.unified.strategies import StrategyMetadata, StrategyPriority
@@ -29,14 +29,16 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
 
     def __init__(self):
         """Initialize Railway strategy."""
-        super().__init__(StrategyMetadata(
-            name="RailwayDeploymentStrategy",
-            description="Deploy to Railway cloud platform",
-            supported_types=["application", "service", "*"],
-            supported_operations=["deploy", "rollback", "verify"],
-            priority=StrategyPriority.NORMAL,
-            tags={"railway", "cloud", "paas"},
-        ))
+        super().__init__(
+            StrategyMetadata(
+                name="RailwayDeploymentStrategy",
+                description="Deploy to Railway cloud platform",
+                supported_types=["application", "service", "*"],
+                supported_operations=["deploy", "rollback", "verify"],
+                priority=StrategyPriority.NORMAL,
+                tags={"railway", "cloud", "paas"},
+            )
+        )
         self._logger = get_logger(f"{__name__}.RailwayDeploymentStrategy")
 
     def validate(self, context: DeploymentContext) -> List[str]:
@@ -47,7 +49,9 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
         try:
             subprocess.run(["railway", "--version"], capture_output=True, check=True)
         except:
-            errors.append("Railway CLI not installed. Install with: npm i -g @railway/cli")
+            errors.append(
+                "Railway CLI not installed. Install with: npm i -g @railway/cli"
+            )
 
         # Check authentication
         try:
@@ -64,7 +68,9 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
         )
         return [artifact_path]
 
-    def execute(self, context: DeploymentContext, artifacts: List[Path]) -> Dict[str, Any]:
+    def execute(
+        self, context: DeploymentContext, artifacts: List[Path]
+    ) -> Dict[str, Any]:
         """Execute Railway deployment."""
         deploy_dir = artifacts[0] if artifacts else Path(context.source)
 
@@ -75,13 +81,16 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
             cmd.extend(["--environment", context.config["environment"]])
 
         try:
-            result = subprocess.run(cmd, cwd=deploy_dir, capture_output=True, text=True, check=True)
+            result = subprocess.run(
+                cmd, cwd=deploy_dir, capture_output=True, text=True, check=True
+            )
 
             # Parse deployment URL from output
             deployment_url = None
             for line in result.stdout.split("\n"):
                 if "https://" in line:
                     import re
+
                     match = re.search(r"https://[^\s]+", line)
                     if match:
                         deployment_url = match.group(0)
@@ -96,11 +105,16 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
         except subprocess.CalledProcessError as e:
             raise Exception(f"Railway deployment failed: {e.stderr}")
 
-    def verify(self, context: DeploymentContext, deployment_info: Dict[str, Any]) -> bool:
+    def verify(
+        self, context: DeploymentContext, deployment_info: Dict[str, Any]
+    ) -> bool:
         """Verify Railway deployment."""
-        return verify_deployment_health(
-            "railway", deployment_info, ["accessibility"]
-        )["status"] == "healthy"
+        return (
+            verify_deployment_health("railway", deployment_info, ["accessibility"])[
+                "status"
+            ]
+            == "healthy"
+        )
 
     def rollback(self, context: DeploymentContext, result: DeploymentResult) -> bool:
         """Railway doesn't support CLI rollback."""
@@ -117,14 +131,16 @@ class AWSDeploymentStrategy(DeploymentStrategy):
 
     def __init__(self):
         """Initialize AWS strategy."""
-        super().__init__(StrategyMetadata(
-            name="AWSDeploymentStrategy",
-            description="Deploy to AWS services",
-            supported_types=["lambda", "ec2", "ecs", "application", "*"],
-            supported_operations=["deploy", "rollback", "verify"],
-            priority=StrategyPriority.NORMAL,
-            tags={"aws", "cloud", "serverless"},
-        ))
+        super().__init__(
+            StrategyMetadata(
+                name="AWSDeploymentStrategy",
+                description="Deploy to AWS services",
+                supported_types=["lambda", "ec2", "ecs", "application", "*"],
+                supported_operations=["deploy", "rollback", "verify"],
+                priority=StrategyPriority.NORMAL,
+                tags={"aws", "cloud", "serverless"},
+            )
+        )
         self._logger = get_logger(f"{__name__}.AWSDeploymentStrategy")
 
     def validate(self, context: DeploymentContext) -> List[str]:
@@ -139,7 +155,9 @@ class AWSDeploymentStrategy(DeploymentStrategy):
 
         # Check credentials
         try:
-            subprocess.run(["aws", "sts", "get-caller-identity"], capture_output=True, check=True)
+            subprocess.run(
+                ["aws", "sts", "get-caller-identity"], capture_output=True, check=True
+            )
         except:
             errors.append("AWS credentials not configured")
 
@@ -160,24 +178,26 @@ class AWSDeploymentStrategy(DeploymentStrategy):
                 context.source, "zip", context.config
             )
             return [artifact_path]
-        else:
-            artifact_path, _ = prepare_deployment_artifact(
-                context.source, "directory", context.config
-            )
-            return [artifact_path]
+        artifact_path, _ = prepare_deployment_artifact(
+            context.source, "directory", context.config
+        )
+        return [artifact_path]
 
-    def execute(self, context: DeploymentContext, artifacts: List[Path]) -> Dict[str, Any]:
+    def execute(
+        self, context: DeploymentContext, artifacts: List[Path]
+    ) -> Dict[str, Any]:
         """Execute AWS deployment."""
         service = context.config.get("service", "lambda")
 
         if service == "lambda":
             return self._deploy_lambda(context, artifacts[0])
-        elif service == "s3":
+        if service == "s3":
             return self._deploy_s3(context, artifacts[0])
-        else:
-            raise NotImplementedError(f"AWS {service} deployment not implemented")
+        raise NotImplementedError(f"AWS {service} deployment not implemented")
 
-    def _deploy_lambda(self, context: DeploymentContext, artifact: Path) -> Dict[str, Any]:
+    def _deploy_lambda(
+        self, context: DeploymentContext, artifact: Path
+    ) -> Dict[str, Any]:
         """Deploy AWS Lambda function."""
         function_name = context.config.get("function_name", artifact.stem)
 
@@ -185,23 +205,35 @@ class AWSDeploymentStrategy(DeploymentStrategy):
         try:
             subprocess.run(
                 ["aws", "lambda", "get-function", "--function-name", function_name],
-                capture_output=True, check=True
+                capture_output=True,
+                check=True,
             )
             # Update existing function
             cmd = [
-                "aws", "lambda", "update-function-code",
-                "--function-name", function_name,
-                "--zip-file", f"fileb://{artifact}"
+                "aws",
+                "lambda",
+                "update-function-code",
+                "--function-name",
+                function_name,
+                "--zip-file",
+                f"fileb://{artifact}",
             ]
         except:
             # Create new function
             cmd = [
-                "aws", "lambda", "create-function",
-                "--function-name", function_name,
-                "--runtime", context.config.get("runtime", "python3.9"),
-                "--role", context.config.get("role"),
-                "--handler", context.config.get("handler", "index.handler"),
-                "--zip-file", f"fileb://{artifact}"
+                "aws",
+                "lambda",
+                "create-function",
+                "--function-name",
+                function_name,
+                "--runtime",
+                context.config.get("runtime", "python3.9"),
+                "--role",
+                context.config.get("role"),
+                "--handler",
+                context.config.get("handler", "index.handler"),
+                "--zip-file",
+                f"fileb://{artifact}",
             ]
 
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
@@ -228,14 +260,21 @@ class AWSDeploymentStrategy(DeploymentStrategy):
             "deployed_path": artifact,
         }
 
-    def verify(self, context: DeploymentContext, deployment_info: Dict[str, Any]) -> bool:
+    def verify(
+        self, context: DeploymentContext, deployment_info: Dict[str, Any]
+    ) -> bool:
         """Verify AWS deployment."""
         service = context.config.get("service", "lambda")
 
         if service == "lambda" and "function_arn" in deployment_info:
             try:
-                cmd = ["aws", "lambda", "get-function", "--function-name",
-                      deployment_info["function_arn"]]
+                cmd = [
+                    "aws",
+                    "lambda",
+                    "get-function",
+                    "--function-name",
+                    deployment_info["function_arn"],
+                ]
                 subprocess.run(cmd, capture_output=True, check=True)
                 return True
             except:
@@ -249,10 +288,15 @@ class AWSDeploymentStrategy(DeploymentStrategy):
         if context.config.get("service") == "lambda" and result.previous_version:
             function_name = context.config.get("function_name")
             cmd = [
-                "aws", "lambda", "update-alias",
-                "--function-name", function_name,
-                "--name", "PROD",
-                "--function-version", result.previous_version
+                "aws",
+                "lambda",
+                "update-alias",
+                "--function-name",
+                function_name,
+                "--name",
+                "PROD",
+                "--function-version",
+                result.previous_version,
             ]
             try:
                 subprocess.run(cmd, check=True)
@@ -271,14 +315,16 @@ class DockerDeploymentStrategy(DeploymentStrategy):
 
     def __init__(self):
         """Initialize Docker strategy."""
-        super().__init__(StrategyMetadata(
-            name="DockerDeploymentStrategy",
-            description="Deploy using Docker containers",
-            supported_types=["container", "application", "service", "*"],
-            supported_operations=["deploy", "rollback", "verify", "stop"],
-            priority=StrategyPriority.HIGH,
-            tags={"docker", "container", "microservice"},
-        ))
+        super().__init__(
+            StrategyMetadata(
+                name="DockerDeploymentStrategy",
+                description="Deploy using Docker containers",
+                supported_types=["container", "application", "service", "*"],
+                supported_operations=["deploy", "rollback", "verify", "stop"],
+                priority=StrategyPriority.HIGH,
+                tags={"docker", "container", "microservice"},
+            )
+        )
         self._logger = get_logger(f"{__name__}.DockerDeploymentStrategy")
 
     def validate(self, context: DeploymentContext) -> List[str]:
@@ -304,10 +350,14 @@ class DockerDeploymentStrategy(DeploymentStrategy):
         """Prepare Docker artifacts."""
         return [Path(context.source)]
 
-    def execute(self, context: DeploymentContext, artifacts: List[Path]) -> Dict[str, Any]:
+    def execute(
+        self, context: DeploymentContext, artifacts: List[Path]
+    ) -> Dict[str, Any]:
         """Execute Docker deployment."""
         source_dir = artifacts[0] if artifacts[0].is_dir() else artifacts[0].parent
-        image_name = context.config.get("image_name", f"app_{datetime.now().timestamp()}")
+        image_name = context.config.get(
+            "image_name", f"app_{datetime.now().timestamp()}"
+        )
         container_name = context.config.get("container_name", image_name)
 
         # Build image
@@ -315,8 +365,12 @@ class DockerDeploymentStrategy(DeploymentStrategy):
         subprocess.run(build_cmd, check=True)
 
         # Stop existing container if exists
-        subprocess.run(["docker", "stop", container_name], capture_output=True, check=False)
-        subprocess.run(["docker", "rm", container_name], capture_output=True, check=False)
+        subprocess.run(
+            ["docker", "stop", container_name], capture_output=True, check=False
+        )
+        subprocess.run(
+            ["docker", "rm", container_name], capture_output=True, check=False
+        )
 
         # Run container
         run_cmd = ["docker", "run", "-d", "--name", container_name]
@@ -344,7 +398,9 @@ class DockerDeploymentStrategy(DeploymentStrategy):
             "deployed_path": source_dir,
         }
 
-    def verify(self, context: DeploymentContext, deployment_info: Dict[str, Any]) -> bool:
+    def verify(
+        self, context: DeploymentContext, deployment_info: Dict[str, Any]
+    ) -> bool:
         """Verify Docker deployment."""
         return check_docker_container(deployment_info.get("container_id"))
 
@@ -369,14 +425,16 @@ class GitDeploymentStrategy(DeploymentStrategy):
 
     def __init__(self):
         """Initialize Git strategy."""
-        super().__init__(StrategyMetadata(
-            name="GitDeploymentStrategy",
-            description="Deploy using Git repositories",
-            supported_types=["repository", "code", "*"],
-            supported_operations=["deploy", "rollback", "verify"],
-            priority=StrategyPriority.NORMAL,
-            tags={"git", "github", "gitlab", "version-control"},
-        ))
+        super().__init__(
+            StrategyMetadata(
+                name="GitDeploymentStrategy",
+                description="Deploy using Git repositories",
+                supported_types=["repository", "code", "*"],
+                supported_operations=["deploy", "rollback", "verify"],
+                priority=StrategyPriority.NORMAL,
+                tags={"git", "github", "gitlab", "version-control"},
+            )
+        )
         self._logger = get_logger(f"{__name__}.GitDeploymentStrategy")
 
     def validate(self, context: DeploymentContext) -> List[str]:
@@ -399,7 +457,9 @@ class GitDeploymentStrategy(DeploymentStrategy):
         """Prepare Git artifacts."""
         return [Path(context.source)]
 
-    def execute(self, context: DeploymentContext, artifacts: List[Path]) -> Dict[str, Any]:
+    def execute(
+        self, context: DeploymentContext, artifacts: List[Path]
+    ) -> Dict[str, Any]:
         """Execute Git deployment."""
         source_dir = artifacts[0] if artifacts[0].is_dir() else artifacts[0].parent
         remote_url = context.config.get("remote_url")
@@ -412,7 +472,9 @@ class GitDeploymentStrategy(DeploymentStrategy):
         # Add remote
         subprocess.run(
             ["git", "remote", "add", "deploy", remote_url],
-            cwd=source_dir, capture_output=True, check=False
+            cwd=source_dir,
+            capture_output=True,
+            check=False,
         )
 
         # Add all files
@@ -422,19 +484,23 @@ class GitDeploymentStrategy(DeploymentStrategy):
         commit_msg = context.config.get("commit_message", "Deploy via Claude MPM")
         subprocess.run(
             ["git", "commit", "-m", commit_msg],
-            cwd=source_dir, capture_output=True, check=False
+            cwd=source_dir,
+            capture_output=True,
+            check=False,
         )
 
         # Push
         subprocess.run(
-            ["git", "push", "-u", "deploy", branch],
-            cwd=source_dir, check=True
+            ["git", "push", "-u", "deploy", branch], cwd=source_dir, check=True
         )
 
         # Get commit hash
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],
-            cwd=source_dir, capture_output=True, text=True, check=True
+            cwd=source_dir,
+            capture_output=True,
+            text=True,
+            check=True,
         )
         commit_hash = result.stdout.strip()
 
@@ -446,14 +512,21 @@ class GitDeploymentStrategy(DeploymentStrategy):
             "deployed_path": source_dir,
         }
 
-    def verify(self, context: DeploymentContext, deployment_info: Dict[str, Any]) -> bool:
+    def verify(
+        self, context: DeploymentContext, deployment_info: Dict[str, Any]
+    ) -> bool:
         """Verify Git deployment."""
         # Check if commit exists on remote
         try:
             subprocess.run(
-                ["git", "ls-remote", deployment_info.get("remote_url"),
-                 deployment_info.get("commit_hash")],
-                capture_output=True, check=True
+                [
+                    "git",
+                    "ls-remote",
+                    deployment_info.get("remote_url"),
+                    deployment_info.get("commit_hash"),
+                ],
+                capture_output=True,
+                check=True,
             )
             return True
         except:
@@ -465,12 +538,19 @@ class GitDeploymentStrategy(DeploymentStrategy):
             try:
                 subprocess.run(
                     ["git", "checkout", result.previous_version],
-                    cwd=result.deployed_path, check=True
+                    cwd=result.deployed_path,
+                    check=True,
                 )
                 subprocess.run(
-                    ["git", "push", "--force", "deploy",
-                     f"{result.previous_version}:{context.config.get('branch', 'main')}"],
-                    cwd=result.deployed_path, check=True
+                    [
+                        "git",
+                        "push",
+                        "--force",
+                        "deploy",
+                        f"{result.previous_version}:{context.config.get('branch', 'main')}",
+                    ],
+                    cwd=result.deployed_path,
+                    check=True,
                 )
                 return True
             except:

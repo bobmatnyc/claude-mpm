@@ -1,7 +1,7 @@
 # 🚀 Claude MPM Quick Start Guide
 
 **Get Claude MPM running in 5 minutes!**
-**Version 4.3.4** | For immediate productivity
+**Version 4.4.x** | For immediate productivity
 
 ## ⚡ Quick Setup (5 Minutes Total)
 
@@ -12,8 +12,8 @@
 # Install with real-time dashboard functionality
 pipx install "claude-mpm[monitor]"
 
-# Or install specific version
-pipx install "claude-mpm[monitor]==4.3.4"
+# Latest version (recommended)
+pipx install "claude-mpm[monitor]"
 ```
 
 **📦 Alternative: pip Installation**
@@ -21,8 +21,8 @@ pipx install "claude-mpm[monitor]==4.3.4"
 # New installation
 pip install claude-mpm
 
-# Install specific version
-pip install claude-mpm==4.3.4
+# Latest version (recommended)
+pip install claude-mpm
 
 # Upgrade existing installation
 pip install --upgrade claude-mpm

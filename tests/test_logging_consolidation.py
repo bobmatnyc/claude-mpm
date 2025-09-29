@@ -12,6 +12,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+
 # Test old pattern
 def get_logger_old_pattern(name):
     """Old pattern used across 397 instances."""
@@ -22,10 +23,10 @@ def get_logger_old_pattern(name):
 # Test new pattern
 from claude_mpm.core.logging_utils import (
     LoggerFactory,
-    get_logger,
     get_component_logger,
-    get_structured_logger,
+    get_logger,
     get_performance_logger,
+    get_structured_logger,
     initialize_logging,
     set_log_level,
 )
@@ -51,6 +52,7 @@ class TestLoggerConsolidation(unittest.TestCase):
         # Clean up temp directory
         if self.temp_dir.exists():
             import shutil
+
             shutil.rmtree(self.temp_dir)
 
     def test_old_pattern_behavior(self):
@@ -75,8 +77,9 @@ class TestLoggerConsolidation(unittest.TestCase):
         logger2 = get_logger("test.cached")
 
         # Should return the same instance from cache
-        self.assertIs(logging.getLogger("test.cached"),
-                     logging.getLogger("test.cached"))
+        self.assertIs(
+            logging.getLogger("test.cached"), logging.getLogger("test.cached")
+        )
 
     def test_logger_levels(self):
         """Test that log levels are properly set."""
@@ -98,11 +101,7 @@ class TestLoggerConsolidation(unittest.TestCase):
         """Test file logging functionality."""
         log_file = self.temp_dir / "test.log"
 
-        initialize_logging(
-            log_level="INFO",
-            log_dir=self.temp_dir,
-            log_to_file=True
-        )
+        initialize_logging(log_level="INFO", log_dir=self.temp_dir, log_to_file=True)
 
         logger = get_logger("test.file")
         logger.info("Test message")
@@ -116,10 +115,7 @@ class TestLoggerConsolidation(unittest.TestCase):
     def test_structured_logger(self):
         """Test structured logger functionality."""
         logger = get_structured_logger(
-            "test.structured",
-            component="test",
-            request_id="123",
-            user="test_user"
+            "test.structured", component="test", request_id="123", user="test_user"
         )
 
         self.assertIsNotNone(logger)
@@ -133,6 +129,7 @@ class TestLoggerConsolidation(unittest.TestCase):
         logger.start_timer("test_operation")
         # Simulate some work
         import time
+
         time.sleep(0.01)
         duration = logger.end_timer("test_operation")
 
@@ -153,7 +150,7 @@ class TestLoggerConsolidation(unittest.TestCase):
 
     def test_logger_format_preservation(self):
         """Test that log formatting is preserved."""
-        with patch('sys.stdout', new_callable=MagicMock) as mock_stdout:
+        with patch("sys.stdout", new_callable=MagicMock) as mock_stdout:
             initialize_logging(log_level="INFO")
             logger = get_logger("test.format")
             logger.info("Test message")
@@ -218,6 +215,7 @@ class TestLoggerMigration(unittest.TestCase):
 
     def test_migration_preserves_functionality(self):
         """Test that migration preserves all logger functionality."""
+
         # Simulate a module using old pattern
         class OldModule:
             def __init__(self):

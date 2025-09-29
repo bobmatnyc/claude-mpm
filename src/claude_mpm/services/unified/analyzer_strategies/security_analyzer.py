@@ -12,11 +12,16 @@ Created: 2025-01-26
 import ast
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
-from ..strategies import AnalyzerStrategy, StrategyContext, StrategyMetadata, StrategyPriority
+from ..strategies import (
+    AnalyzerStrategy,
+    StrategyContext,
+    StrategyMetadata,
+    StrategyPriority,
+)
 
 logger = get_logger(__name__)
 
@@ -38,7 +43,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
         "sql_injection": {
             "patterns": [
                 r'(execute|query)\s*\(\s*["\'].*%[s|d].*["\'].*%',
-                r'(execute|query)\s*\(\s*.*\+.*\)',
+                r"(execute|query)\s*\(\s*.*\+.*\)",
                 r'f["\'].*SELECT.*{.*}.*FROM',
             ],
             "severity": "critical",
@@ -55,35 +60,35 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
         },
         "weak_crypto": {
             "patterns": [
-                r'(MD5|SHA1)\s*\(',
-                r'DES\s*\(',
-                r'Random\(\)(?!\.SystemRandom)',
+                r"(MD5|SHA1)\s*\(",
+                r"DES\s*\(",
+                r"Random\(\)(?!\.SystemRandom)",
             ],
             "severity": "medium",
             "description": "Weak cryptographic algorithm usage",
         },
         "command_injection": {
             "patterns": [
-                r'os\.(system|popen|spawn.*)\s*\([^)]*\+[^)]*\)',
-                r'subprocess\.(run|call|Popen)\s*\([^)]*shell\s*=\s*True',
-                r'eval\s*\([^)]*input\s*\(',
+                r"os\.(system|popen|spawn.*)\s*\([^)]*\+[^)]*\)",
+                r"subprocess\.(run|call|Popen)\s*\([^)]*shell\s*=\s*True",
+                r"eval\s*\([^)]*input\s*\(",
             ],
             "severity": "critical",
             "description": "Potential command injection vulnerability",
         },
         "path_traversal": {
             "patterns": [
-                r'open\s*\([^)]*\.\.[/\\]',
-                r'(read_file|write_file)\s*\([^)]*user_input',
-                r'Path\s*\([^)]*\+[^)]*\)',
+                r"open\s*\([^)]*\.\.[/\\]",
+                r"(read_file|write_file)\s*\([^)]*user_input",
+                r"Path\s*\([^)]*\+[^)]*\)",
             ],
             "severity": "high",
             "description": "Potential path traversal vulnerability",
         },
         "xss": {
             "patterns": [
-                r'innerHTML\s*=\s*[^;]*user',
-                r'document\.write\s*\([^)]*user',
+                r"innerHTML\s*=\s*[^;]*user",
+                r"document\.write\s*\([^)]*user",
                 r'v-html\s*=\s*["\'][^"\']*user',
             ],
             "severity": "high",
@@ -95,27 +100,27 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
     CONFIG_ISSUES = {
         "debug_enabled": {
             "patterns": [
-                r'DEBUG\s*=\s*True',
-                r'debug\s*:\s*true',
-                r'app\.debug\s*=\s*True',
+                r"DEBUG\s*=\s*True",
+                r"debug\s*:\s*true",
+                r"app\.debug\s*=\s*True",
             ],
             "severity": "medium",
             "description": "Debug mode enabled in production configuration",
         },
         "insecure_cors": {
             "patterns": [
-                r'Access-Control-Allow-Origin.*\*',
+                r"Access-Control-Allow-Origin.*\*",
                 r'cors\s*\(.*origin\s*:\s*["\'].*\*',
-                r'CORS_ORIGIN_ALLOW_ALL\s*=\s*True',
+                r"CORS_ORIGIN_ALLOW_ALL\s*=\s*True",
             ],
             "severity": "medium",
             "description": "Insecure CORS configuration allowing all origins",
         },
         "missing_csrf": {
             "patterns": [
-                r'csrf_enabled\s*=\s*False',
-                r'CSRF_ENABLED\s*=\s*False',
-                r'@csrf_exempt',
+                r"csrf_enabled\s*=\s*False",
+                r"CSRF_ENABLED\s*=\s*False",
+                r"@csrf_exempt",
             ],
             "severity": "high",
             "description": "CSRF protection disabled",
@@ -189,7 +194,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
             if target_path.is_file():
                 return self._analyze_file(target_path, options)
-            elif target_path.is_dir():
+            if target_path.is_dir():
                 return self._analyze_directory(target_path, options)
 
         return {
@@ -227,7 +232,9 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
                 results["vulnerabilities"].extend(js_issues)
 
             # Calculate risk score
-            results["risk_score"] = self._calculate_risk_score(results["vulnerabilities"])
+            results["risk_score"] = self._calculate_risk_score(
+                results["vulnerabilities"]
+            )
 
             # Add summary
             results["summary"] = self._generate_summary(results["vulnerabilities"])
@@ -239,7 +246,9 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
         return results
 
-    def _analyze_directory(self, dir_path: Path, options: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_directory(
+        self, dir_path: Path, options: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Analyze all files in a directory for security issues."""
         results = {
             "status": "success",
@@ -254,10 +263,29 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
         # Define file extensions to analyze
         analyzable_extensions = {
-            ".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".cs",
-            ".php", ".rb", ".go", ".rs", ".cpp", ".c", ".h",
-            ".yml", ".yaml", ".json", ".xml", ".conf", ".config",
-            ".env", ".ini", ".properties",
+            ".py",
+            ".js",
+            ".jsx",
+            ".ts",
+            ".tsx",
+            ".java",
+            ".cs",
+            ".php",
+            ".rb",
+            ".go",
+            ".rs",
+            ".cpp",
+            ".c",
+            ".h",
+            ".yml",
+            ".yaml",
+            ".json",
+            ".xml",
+            ".conf",
+            ".config",
+            ".env",
+            ".ini",
+            ".properties",
         }
 
         # Analyze each file
@@ -272,16 +300,22 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
                     continue
 
                 file_result = self._analyze_file(file_path, options)
-                if file_result["status"] == "success" and file_result["vulnerabilities"]:
+                if (
+                    file_result["status"] == "success"
+                    and file_result["vulnerabilities"]
+                ):
                     results["files"].append(file_result)
                     results["files_analyzed"] += 1
-                    results["total_vulnerabilities"] += len(file_result["vulnerabilities"])
+                    results["total_vulnerabilities"] += len(
+                        file_result["vulnerabilities"]
+                    )
 
                     # Count by severity
                     for vuln in file_result["vulnerabilities"]:
                         severity = vuln.get("severity", "unknown")
-                        results["vulnerabilities_by_severity"][severity] = \
+                        results["vulnerabilities_by_severity"][severity] = (
                             results["vulnerabilities_by_severity"].get(severity, 0) + 1
+                        )
 
         # Calculate overall risk score
         results["risk_score"] = self._calculate_overall_risk(results)
@@ -291,7 +325,9 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
         return results
 
-    def _scan_for_vulnerabilities(self, content: str, file_path: Path) -> List[Dict[str, Any]]:
+    def _scan_for_vulnerabilities(
+        self, content: str, file_path: Path
+    ) -> List[Dict[str, Any]]:
         """Scan content for known vulnerability patterns."""
         vulnerabilities = []
 
@@ -299,48 +335,67 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
             for pattern in vuln_info["patterns"]:
                 matches = re.finditer(pattern, content, re.IGNORECASE | re.MULTILINE)
                 for match in matches:
-                    line_num = content[:match.start()].count("\n") + 1
+                    line_num = content[: match.start()].count("\n") + 1
 
-                    vulnerabilities.append({
-                        "type": vuln_type,
-                        "severity": vuln_info["severity"],
-                        "description": vuln_info["description"],
-                        "file": str(file_path),
-                        "line": line_num,
-                        "code": match.group(0)[:100],  # Truncate long matches
-                        "pattern": pattern,
-                    })
+                    vulnerabilities.append(
+                        {
+                            "type": vuln_type,
+                            "severity": vuln_info["severity"],
+                            "description": vuln_info["description"],
+                            "file": str(file_path),
+                            "line": line_num,
+                            "code": match.group(0)[:100],  # Truncate long matches
+                            "pattern": pattern,
+                        }
+                    )
 
         return vulnerabilities
 
-    def _scan_for_config_issues(self, content: str, file_path: Path) -> List[Dict[str, Any]]:
+    def _scan_for_config_issues(
+        self, content: str, file_path: Path
+    ) -> List[Dict[str, Any]]:
         """Scan for insecure configuration patterns."""
         issues = []
 
         # Only check configuration files
-        config_extensions = {".yml", ".yaml", ".json", ".conf", ".config", ".ini", ".env"}
-        if file_path.suffix not in config_extensions and \
-           file_path.name not in ["settings.py", "config.py", "configuration.py"]:
+        config_extensions = {
+            ".yml",
+            ".yaml",
+            ".json",
+            ".conf",
+            ".config",
+            ".ini",
+            ".env",
+        }
+        if file_path.suffix not in config_extensions and file_path.name not in [
+            "settings.py",
+            "config.py",
+            "configuration.py",
+        ]:
             return issues
 
         for issue_type, issue_info in self.CONFIG_ISSUES.items():
             for pattern in issue_info["patterns"]:
                 matches = re.finditer(pattern, content, re.IGNORECASE | re.MULTILINE)
                 for match in matches:
-                    line_num = content[:match.start()].count("\n") + 1
+                    line_num = content[: match.start()].count("\n") + 1
 
-                    issues.append({
-                        "type": f"config_{issue_type}",
-                        "severity": issue_info["severity"],
-                        "description": issue_info["description"],
-                        "file": str(file_path),
-                        "line": line_num,
-                        "code": match.group(0),
-                    })
+                    issues.append(
+                        {
+                            "type": f"config_{issue_type}",
+                            "severity": issue_info["severity"],
+                            "description": issue_info["description"],
+                            "file": str(file_path),
+                            "line": line_num,
+                            "code": match.group(0),
+                        }
+                    )
 
         return issues
 
-    def _analyze_python_security(self, content: str, file_path: Path) -> List[Dict[str, Any]]:
+    def _analyze_python_security(
+        self, content: str, file_path: Path
+    ) -> List[Dict[str, Any]]:
         """Perform Python-specific security analysis."""
         issues = []
 
@@ -362,33 +417,41 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
                     if isinstance(node.func, ast.Name):
                         func_name = node.func.id
                         if func_name in dangerous_functions:
-                            issues.append({
-                                "type": "dangerous_function",
-                                "severity": dangerous_functions[func_name],
-                                "description": f"Use of dangerous function: {func_name}",
-                                "file": str(file_path),
-                                "line": node.lineno,
-                                "code": func_name,
-                            })
+                            issues.append(
+                                {
+                                    "type": "dangerous_function",
+                                    "severity": dangerous_functions[func_name],
+                                    "description": f"Use of dangerous function: {func_name}",
+                                    "file": str(file_path),
+                                    "line": node.lineno,
+                                    "code": func_name,
+                                }
+                            )
 
                     # Check for subprocess with shell=True
                     elif isinstance(node.func, ast.Attribute):
-                        if (hasattr(node.func.value, "id") and
-                            node.func.value.id == "subprocess" and
-                            node.func.attr in ["run", "call", "Popen"]):
+                        if (
+                            hasattr(node.func.value, "id")
+                            and node.func.value.id == "subprocess"
+                            and node.func.attr in ["run", "call", "Popen"]
+                        ):
 
                             for keyword in node.keywords:
-                                if keyword.arg == "shell" and \
-                                   isinstance(keyword.value, ast.Constant) and \
-                                   keyword.value.value is True:
-                                    issues.append({
-                                        "type": "shell_injection",
-                                        "severity": "critical",
-                                        "description": "subprocess with shell=True is vulnerable to injection",
-                                        "file": str(file_path),
-                                        "line": node.lineno,
-                                        "code": "subprocess with shell=True",
-                                    })
+                                if (
+                                    keyword.arg == "shell"
+                                    and isinstance(keyword.value, ast.Constant)
+                                    and keyword.value.value is True
+                                ):
+                                    issues.append(
+                                        {
+                                            "type": "shell_injection",
+                                            "severity": "critical",
+                                            "description": "subprocess with shell=True is vulnerable to injection",
+                                            "file": str(file_path),
+                                            "line": node.lineno,
+                                            "code": "subprocess with shell=True",
+                                        }
+                                    )
 
                     self.generic_visit(node)
 
@@ -401,24 +464,26 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
         return issues
 
-    def _analyze_javascript_security(self, content: str, file_path: Path) -> List[Dict[str, Any]]:
+    def _analyze_javascript_security(
+        self, content: str, file_path: Path
+    ) -> List[Dict[str, Any]]:
         """Perform JavaScript-specific security analysis."""
         issues = []
 
         # Check for dangerous JavaScript patterns
         js_patterns = {
             "eval_usage": {
-                "pattern": r'\beval\s*\(',
+                "pattern": r"\beval\s*\(",
                 "severity": "critical",
                 "description": "Use of eval() is dangerous and should be avoided",
             },
             "innerhtml": {
-                "pattern": r'\.innerHTML\s*=',
+                "pattern": r"\.innerHTML\s*=",
                 "severity": "high",
                 "description": "Direct innerHTML assignment can lead to XSS",
             },
             "document_write": {
-                "pattern": r'document\.write\s*\(',
+                "pattern": r"document\.write\s*\(",
                 "severity": "medium",
                 "description": "document.write() can be dangerous with user input",
             },
@@ -432,16 +497,18 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
         for issue_type, issue_info in js_patterns.items():
             matches = re.finditer(issue_info["pattern"], content, re.IGNORECASE)
             for match in matches:
-                line_num = content[:match.start()].count("\n") + 1
+                line_num = content[: match.start()].count("\n") + 1
 
-                issues.append({
-                    "type": f"js_{issue_type}",
-                    "severity": issue_info["severity"],
-                    "description": issue_info["description"],
-                    "file": str(file_path),
-                    "line": line_num,
-                    "code": match.group(0),
-                })
+                issues.append(
+                    {
+                        "type": f"js_{issue_type}",
+                        "severity": issue_info["severity"],
+                        "description": issue_info["description"],
+                        "file": str(file_path),
+                        "line": line_num,
+                        "code": match.group(0),
+                    }
+                )
 
         return issues
 
@@ -492,7 +559,9 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
         # Normalize and cap at 100
         return min(100.0, round(weighted_score / max(results["files_analyzed"], 1), 2))
 
-    def _generate_summary(self, vulnerabilities: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _generate_summary(
+        self, vulnerabilities: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Generate summary of security findings."""
         summary = {
             "total": len(vulnerabilities),
@@ -504,7 +573,9 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
         for vuln in vulnerabilities:
             # Count by severity
             severity = vuln.get("severity", "unknown")
-            summary["by_severity"][severity] = summary["by_severity"].get(severity, 0) + 1
+            summary["by_severity"][severity] = (
+                summary["by_severity"].get(severity, 0) + 1
+            )
 
             # Count by type
             vuln_type = vuln.get("type", "unknown")
@@ -529,9 +600,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
             )
 
         if vuln_by_severity.get("high", 0) > 0:
-            recommendations.append(
-                "Prioritize fixing high-severity vulnerabilities"
-            )
+            recommendations.append("Prioritize fixing high-severity vulnerabilities")
 
         # Type-specific recommendations
         if results["files"]:
@@ -566,7 +635,9 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
                 )
 
         if not recommendations:
-            recommendations.append("No critical security issues found. Continue with regular security audits.")
+            recommendations.append(
+                "No critical security issues found. Continue with regular security audits."
+            )
 
         return recommendations
 
@@ -578,10 +649,12 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
             return metrics
 
         if analysis_result.get("type") == "file":
-            metrics.update({
-                "vulnerabilities": len(analysis_result.get("vulnerabilities", [])),
-                "risk_score": analysis_result.get("risk_score", 0),
-            })
+            metrics.update(
+                {
+                    "vulnerabilities": len(analysis_result.get("vulnerabilities", [])),
+                    "risk_score": analysis_result.get("risk_score", 0),
+                }
+            )
 
             # Count by severity
             for vuln in analysis_result.get("vulnerabilities", []):
@@ -590,14 +663,20 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
                 metrics[key] = metrics.get(key, 0) + 1
 
         elif analysis_result.get("type") == "directory":
-            metrics.update({
-                "files_analyzed": analysis_result.get("files_analyzed", 0),
-                "total_vulnerabilities": analysis_result.get("total_vulnerabilities", 0),
-                "risk_score": analysis_result.get("risk_score", 0),
-            })
+            metrics.update(
+                {
+                    "files_analyzed": analysis_result.get("files_analyzed", 0),
+                    "total_vulnerabilities": analysis_result.get(
+                        "total_vulnerabilities", 0
+                    ),
+                    "risk_score": analysis_result.get("risk_score", 0),
+                }
+            )
 
             # Add severity breakdown
-            for severity, count in analysis_result.get("vulnerabilities_by_severity", {}).items():
+            for severity, count in analysis_result.get(
+                "vulnerabilities_by_severity", {}
+            ).items():
                 metrics[f"severity_{severity}"] = count
 
         return metrics
@@ -624,7 +703,12 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
         baseline_metrics = self.extract_metrics(baseline)
         current_metrics = self.extract_metrics(current)
 
-        for key in ["severity_critical", "severity_high", "severity_medium", "severity_low"]:
+        for key in [
+            "severity_critical",
+            "severity_high",
+            "severity_medium",
+            "severity_low",
+        ]:
             baseline_count = baseline_metrics.get(key, 0)
             current_count = current_metrics.get(key, 0)
 

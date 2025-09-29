@@ -68,7 +68,9 @@ class PackagedLoader:
                 self.logger.warning(f"File {filename} not found in package")
                 return None
         except Exception as e:
-            self.logger.error(f"Failed to load {filename} from package with fallback: {e}")
+            self.logger.error(
+                f"Failed to load {filename} from package with fallback: {e}"
+            )
             return None
 
     def extract_metadata_from_content(self, content: str, filename: str) -> None:
@@ -97,7 +99,9 @@ class PackagedLoader:
             content: Dictionary to update with loaded content
         """
         if not files:
-            self.logger.warning("importlib.resources not available, cannot load packaged framework")
+            self.logger.warning(
+                "importlib.resources not available, cannot load packaged framework"
+            )
             self.logger.debug(f"files variable is: {files}")
             # Try alternative import methods
             try:
@@ -107,7 +111,9 @@ class PackagedLoader:
                 self.load_framework_content_fallback(content, resources)
                 return
             except ImportError:
-                self.logger.error("No importlib.resources available, using minimal framework")
+                self.logger.error(
+                    "No importlib.resources available, using minimal framework"
+                )
                 return
 
         try:
@@ -118,7 +124,9 @@ class PackagedLoader:
                 content["loaded"] = True
                 self.logger.info("Loaded consolidated PM_INSTRUCTIONS.md from package")
                 # Extract and store version/timestamp metadata
-                self.extract_metadata_from_content(pm_instructions_content, "PM_INSTRUCTIONS.md")
+                self.extract_metadata_from_content(
+                    pm_instructions_content, "PM_INSTRUCTIONS.md"
+                )
             else:
                 # Fall back to legacy INSTRUCTIONS.md
                 instructions_content = self.load_packaged_file("INSTRUCTIONS.md")
@@ -127,7 +135,9 @@ class PackagedLoader:
                     content["loaded"] = True
                     self.logger.warning("Using legacy INSTRUCTIONS.md from package")
                     # Extract and store version/timestamp metadata
-                    self.extract_metadata_from_content(instructions_content, "INSTRUCTIONS.md")
+                    self.extract_metadata_from_content(
+                        instructions_content, "INSTRUCTIONS.md"
+                    )
 
             if self.framework_version:
                 content["instructions_version"] = self.framework_version
@@ -155,7 +165,9 @@ class PackagedLoader:
         except Exception as e:
             self.logger.error(f"Failed to load packaged framework content: {e}")
 
-    def load_framework_content_fallback(self, content: Dict[str, Any], resources) -> None:
+    def load_framework_content_fallback(
+        self, content: Dict[str, Any], resources
+    ) -> None:
         """Load framework content using importlib.resources fallback.
 
         Args:
@@ -164,22 +176,30 @@ class PackagedLoader:
         """
         try:
             # Try new consolidated PM_INSTRUCTIONS.md first
-            pm_instructions_content = self.load_packaged_file_fallback("PM_INSTRUCTIONS.md", resources)
+            pm_instructions_content = self.load_packaged_file_fallback(
+                "PM_INSTRUCTIONS.md", resources
+            )
             if pm_instructions_content:
                 content["framework_instructions"] = pm_instructions_content
                 content["loaded"] = True
                 self.logger.info("Loaded consolidated PM_INSTRUCTIONS.md via fallback")
                 # Extract and store version/timestamp metadata
-                self.extract_metadata_from_content(pm_instructions_content, "PM_INSTRUCTIONS.md")
+                self.extract_metadata_from_content(
+                    pm_instructions_content, "PM_INSTRUCTIONS.md"
+                )
             else:
                 # Fall back to legacy INSTRUCTIONS.md
-                instructions_content = self.load_packaged_file_fallback("INSTRUCTIONS.md", resources)
+                instructions_content = self.load_packaged_file_fallback(
+                    "INSTRUCTIONS.md", resources
+                )
                 if instructions_content:
                     content["framework_instructions"] = instructions_content
                     content["loaded"] = True
                     self.logger.warning("Using legacy INSTRUCTIONS.md via fallback")
                     # Extract and store version/timestamp metadata
-                    self.extract_metadata_from_content(instructions_content, "INSTRUCTIONS.md")
+                    self.extract_metadata_from_content(
+                        instructions_content, "INSTRUCTIONS.md"
+                    )
 
             if self.framework_version:
                 content["instructions_version"] = self.framework_version
@@ -193,7 +213,9 @@ class PackagedLoader:
                 content["base_pm_instructions"] = base_pm_content
 
             # Load WORKFLOW.md
-            workflow_content = self.load_packaged_file_fallback("WORKFLOW.md", resources)
+            workflow_content = self.load_packaged_file_fallback(
+                "WORKFLOW.md", resources
+            )
             if workflow_content:
                 content["workflow_instructions"] = workflow_content
                 content["workflow_instructions_level"] = "system"
@@ -205,4 +227,6 @@ class PackagedLoader:
                 content["memory_instructions_level"] = "system"
 
         except Exception as e:
-            self.logger.error(f"Failed to load packaged framework content with fallback: {e}")
+            self.logger.error(
+                f"Failed to load packaged framework content with fallback: {e}"
+            )

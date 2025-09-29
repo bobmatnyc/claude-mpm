@@ -174,7 +174,10 @@ You are a multi-agent orchestrator. Your primary responsibilities are:
                 # Use the actual agent_name as the ID (it's the filename stem)
                 agent_id = agent_name
                 clean_name = agent_name.replace("-", " ").replace("_", " ").title()
-                if "engineer" in agent_name.lower() and "data" not in agent_name.lower():
+                if (
+                    "engineer" in agent_name.lower()
+                    and "data" not in agent_name.lower()
+                ):
                     agent_list.append(
                         f"- **Engineer Agent** (`{agent_id}`): Code implementation and development"
                     )
@@ -215,7 +218,9 @@ You are a multi-agent orchestrator. Your primary responsibilities are:
 
             # Add full agent details
             instructions += "### Agent Details\n\n"
-            for agent_name, agent_content in sorted(framework_content["agents"].items()):
+            for agent_name, agent_content in sorted(
+                framework_content["agents"].items()
+            ):
                 instructions += f"#### {agent_name.replace('-', ' ').title()}\n"
                 instructions += agent_content + "\n\n"
 

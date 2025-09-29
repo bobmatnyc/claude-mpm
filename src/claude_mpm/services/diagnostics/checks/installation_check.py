@@ -5,9 +5,11 @@ WHY: Verify that claude-mpm is properly installed with correct Python version,
 dependencies, and installation method.
 """
 
+import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 from ..models import DiagnosticResult, DiagnosticStatus
 from .base_check import BaseDiagnosticCheck
@@ -145,31 +147,41 @@ class InstallationCheck(BaseDiagnosticCheck):
         exe_path = sys.executable
         details["python_executable"] = exe_path
 
-        # 2. Check if we're in a virtual environment
+        # 2. Check for container environment
+        container_type = self._detect_container_environment()
+        if container_type:
+            details["container_type"] = container_type
+            methods_found.append("container")
+
+        # 3. Check if we're in a virtual environment
         in_venv = hasattr(sys, "real_prefix") or (
             hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix
         )
 
-        # 3. Check if running from pipx environment
+        # 4. Check if running from pipx environment
         # Pipx creates venvs in specific locations
         is_pipx_venv = False
         if in_venv and (".local/pipx/venvs" in exe_path or "pipx/venvs" in exe_path):
             is_pipx_venv = True
             methods_found.append("pipx")
             details["pipx_venv"] = sys.prefix
+            # Get pipx metadata if available
+            pipx_metadata = self._get_pipx_metadata()
+            if pipx_metadata:
+                details["pipx_metadata"] = pipx_metadata
         elif in_venv:
             # Regular virtual environment (not pipx)
             methods_found.append("venv")
             details["venv_path"] = sys.prefix
 
-        # 4. Check if running from source (development mode)
+        # 5. Check if running from source (development mode)
         claude_mpm_path = Path(__file__).parent.parent.parent.parent.parent
         if (claude_mpm_path / "pyproject.toml").exists():
             if (claude_mpm_path / ".git").exists():
                 methods_found.append("development")
                 details["source_path"] = str(claude_mpm_path)
 
-        # 5. Check Homebrew Python
+        # 6. Check Homebrew Python
         if not in_venv and "/opt/homebrew" in exe_path:
             methods_found.append("homebrew")
             details["homebrew_python"] = exe_path
@@ -178,33 +190,24 @@ class InstallationCheck(BaseDiagnosticCheck):
             methods_found.append("homebrew")
             details["homebrew_python"] = exe_path
 
-        # 6. Check for system Python
+        # 7. Check for system Python
         if not in_venv and not methods_found:
             if "/usr/bin/python" in exe_path or "/usr/local/bin/python" in exe_path:
                 methods_found.append("system")
                 details["system_python"] = exe_path
 
-        # 7. Additional check for pipx if not detected via venv
+        # 8. Additional check for pipx if not detected via venv
         if "pipx" not in methods_found:
-            try:
-                result = subprocess.run(
-                    ["pipx", "list"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
-                    check=False,
-                )
-                if "claude-mpm" in result.stdout:
-                    if not is_pipx_venv:
-                        # Pipx is installed but we're not running from it
-                        details["pipx_installed"] = True
-                        details["pipx_not_active"] = (
-                            "claude-mpm is installed via pipx but not currently running from pipx environment"
-                        )
-            except (subprocess.SubprocessError, FileNotFoundError):
-                pass
+            pipx_check = self._check_pipx_installation_status()
+            if pipx_check:
+                if not is_pipx_venv:
+                    # Pipx is installed but we're not running from it
+                    details["pipx_installed"] = True
+                    details["pipx_not_active"] = (
+                        "claude-mpm is installed via pipx but not currently running from pipx environment"
+                    )
 
-        # 8. Check pip installation status
+        # 9. Check pip installation status
         try:
             result = subprocess.run(
                 [sys.executable, "-m", "pip", "show", "claude-mpm"],
@@ -239,6 +242,22 @@ class InstallationCheck(BaseDiagnosticCheck):
                 category="Installation Method",
                 status=DiagnosticStatus.WARNING,
                 message="Installation method unknown",
+                details=details,
+            )
+
+        # Container environments are special
+        if "container" in methods_found:
+            container_msg = (
+                f"Running in {details.get('container_type', 'container')} environment"
+            )
+            if "pipx" in methods_found:
+                container_msg += " with pipx"
+            elif "venv" in methods_found:
+                container_msg += " with virtual environment"
+            return DiagnosticResult(
+                category="Installation Method",
+                status=DiagnosticStatus.OK,
+                message=container_msg,
                 details=details,
             )
 
@@ -413,3 +432,85 @@ class InstallationCheck(BaseDiagnosticCheck):
                 "in_venv": in_venv,
             },
         )
+
+    def _detect_container_environment(self) -> Optional[str]:
+        """Detect if running in a container environment."""
+        # Check for Docker
+        if Path("/.dockerenv").exists():
+            return "Docker"
+
+        # Check for Kubernetes
+        if Path("/var/run/secrets/kubernetes.io").exists():
+            return "Kubernetes"
+
+        # Check cgroup for container indicators
+        try:
+            with open("/proc/1/cgroup") as f:
+                cgroup = f.read()
+                if "docker" in cgroup:
+                    return "Docker"
+                if "kubepods" in cgroup:
+                    return "Kubernetes"
+                if "containerd" in cgroup:
+                    return "containerd"
+                if "lxc" in cgroup:
+                    return "LXC"
+        except (FileNotFoundError, PermissionError):
+            pass
+
+        # Check environment variables
+        if os.environ.get("CONTAINER"):
+            return os.environ.get("CONTAINER_ENGINE", "Container")
+
+        # Check for Podman
+        if Path("/run/.containerenv").exists():
+            return "Podman"
+
+        # Check for WSL
+        if Path("/proc/sys/fs/binfmt_misc/WSLInterop").exists():
+            return "WSL"
+
+        return None
+
+    def _get_pipx_metadata(self) -> Optional[dict]:
+        """Get pipx metadata for the current installation."""
+        try:
+            import json
+
+            result = subprocess.run(
+                ["pipx", "list", "--json"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if result.returncode == 0:
+                data = json.loads(result.stdout)
+                venvs = data.get("venvs", {})
+                if "claude-mpm" in venvs:
+                    return {
+                        "version": venvs["claude-mpm"]
+                        .get("metadata", {})
+                        .get("main_package", {})
+                        .get("package_version"),
+                        "python": venvs["claude-mpm"]
+                        .get("metadata", {})
+                        .get("python_version"),
+                    }
+        except Exception:
+            pass
+        return None
+
+    def _check_pipx_installation_status(self) -> bool:
+        """Check if claude-mpm is installed via pipx."""
+        try:
+            result = subprocess.run(
+                ["pipx", "list"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            return "claude-mpm" in result.stdout
+        except (subprocess.SubprocessError, FileNotFoundError):
+            return False

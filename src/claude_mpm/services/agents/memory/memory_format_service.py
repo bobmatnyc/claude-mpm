@@ -15,7 +15,6 @@ class MemoryFormatService:
 
     def __init__(self):
         """Initialize the memory format service."""
-        pass
 
     def build_simple_memory_content(self, agent_id: str, items: List[str]) -> str:
         """Build memory content as a simple list with header and timestamp.
