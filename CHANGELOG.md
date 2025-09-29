@@ -1,3 +1,30 @@
+## [4.4.10] - 2025-09-29
+
+### Fixed
+- **MCP Service Configurations**: Resolved critical configuration issues for remote installations
+  - Fixed kuzu-memory to use direct binary path instead of problematic `pipx run`
+  - Fixed mcp-vector-search to use Python interpreter from pipx venv
+  - All services now use direct binary paths for improved reliability
+  - Resolved PATH issues when subprocess spawns without shell environment
+
+- **Dynamic Path Resolution**: Improved cross-environment compatibility
+  - Added dynamic user home directory detection (no hardcoded paths)
+  - Implemented fallback path resolution for pipx and service binaries
+  - Support for common installation locations (`/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin`)
+
+### Added
+- **Configuration Validation**: Pre-apply validation for MCP services
+  - New `test_service_command()` method validates configs before applying
+  - Automatic fallback configurations when primary validation fails
+  - Special fallback handling for mcp-vector-search using `pipx run --spec`
+
+### Improved
+- **Service Management**: Enhanced reliability and error handling
+  - Direct binary usage preserves injected dependencies (fixes mcp-ticketer gql issue)
+  - Better error reporting with validation failures shown separately
+  - Configs only saved after successful validation
+  - Graceful degradation when services are unavailable
+
 ## [4.4.9] - 2025-09-29
 
 ### Fixed

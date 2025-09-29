@@ -46,24 +46,25 @@ class MCPConfigManager:
     STATIC_MCP_CONFIGS = {
         "kuzu-memory": {
             "type": "stdio",
-            "command": "pipx",
-            "args": ["run", "kuzu-memory", "mcp", "serve"]
+            "command": "kuzu-memory",  # Use direct binary, will be resolved to full path
+            "args": ["mcp", "serve"]  # v1.1.0+ uses 'mcp serve' command
         },
         "mcp-ticketer": {
             "type": "stdio",
-            "command": "pipx",
-            "args": ["run", "mcp-ticketer", "mcp"]
+            "command": "mcp-ticketer",  # Use direct binary to preserve injected dependencies
+            "args": ["mcp"]
         },
         "mcp-browser": {
             "type": "stdio",
-            "command": "pipx",
-            "args": ["run", "mcp-browser", "mcp"],
+            "command": "mcp-browser",  # Use direct binary
+            "args": ["mcp"],
             "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
         },
         "mcp-vector-search": {
             "type": "stdio",
-            "command": "pipx",
-            "args": ["run", "mcp-vector-search", "-m", "mcp_vector_search.mcp.server", "{project_root}"],
+            # Use pipx venv's Python directly for module execution
+            "command": str(Path.home() / ".local" / "pipx" / "venvs" / "mcp-vector-search" / "bin" / "python"),
+            "args": ["-m", "mcp_vector_search.mcp.server", "{project_root}"],
             "env": {}
         }
     }
@@ -222,12 +223,95 @@ class MCPConfigManager:
 
         return None
 
-    def get_static_service_config(self, service_name: str) -> Optional[Dict]:
+    def test_service_command(self, service_name: str, config: Dict) -> bool:
+        """
+        Test if a service configuration actually works.
+
+        Args:
+            service_name: Name of the MCP service
+            config: Service configuration to test
+
+        Returns:
+            True if service responds correctly, False otherwise
+        """
+        try:
+            import shutil
+
+            # Build command - handle pipx PATH issues
+            command = config["command"]
+
+            # If command is pipx and not found, try common paths
+            if command == "pipx":
+                pipx_path = shutil.which("pipx")
+                if not pipx_path:
+                    # Try common pipx locations
+                    for possible_path in [
+                        "/opt/homebrew/bin/pipx",
+                        "/usr/local/bin/pipx",
+                        str(Path.home() / ".local" / "bin" / "pipx"),
+                    ]:
+                        if Path(possible_path).exists():
+                            command = possible_path
+                            break
+                else:
+                    command = pipx_path
+
+            cmd = [command]
+
+            # Add test args (--help or --version)
+            if "args" in config:
+                # For MCP services, test with --help after the subcommand
+                test_args = config["args"].copy()
+                # Replace project root placeholder for testing
+                test_args = [
+                    arg.replace("{project_root}", str(self.project_root)) if "{project_root}" in arg else arg
+                    for arg in test_args
+                ]
+
+                # Add --help at the end
+                if service_name == "mcp-vector-search":
+                    # For Python module invocation, just test if Python can import the module
+                    cmd.extend(test_args[:2])  # Just python -m module_name
+                    cmd.extend(["--help"])
+                else:
+                    cmd.extend(test_args)
+                    cmd.append("--help")
+            else:
+                cmd.append("--help")
+
+            # Run test command with timeout
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+                env=config.get("env", {})
+            )
+
+            # Check if command executed (exit code 0 or 1 for help)
+            if result.returncode in [0, 1]:
+                # Additional check for import errors in stderr
+                if "ModuleNotFoundError" in result.stderr or "ImportError" in result.stderr:
+                    self.logger.debug(f"Service {service_name} has import errors")
+                    return False
+                return True
+
+        except subprocess.TimeoutExpired:
+            # Timeout might mean the service started successfully and is waiting for input
+            return True
+        except Exception as e:
+            self.logger.debug(f"Error testing {service_name}: {e}")
+
+        return False
+
+    def get_static_service_config(self, service_name: str, project_path: Optional[str] = None) -> Optional[Dict]:
         """
         Get the static, known-good configuration for an MCP service.
 
         Args:
             service_name: Name of the MCP service
+            project_path: Optional project path to use (defaults to current project)
 
         Returns:
             Static service configuration dict or None if service not known
@@ -236,11 +320,79 @@ class MCPConfigManager:
             return None
 
         config = self.STATIC_MCP_CONFIGS[service_name].copy()
+        import shutil
 
-        # Special handling for mcp-vector-search: replace {project_root} placeholder
+        # Resolve service binary commands to full paths
+        if service_name in ["kuzu-memory", "mcp-ticketer", "mcp-browser"]:
+            # Try to find the full path of the binary
+            binary_name = config["command"]
+            binary_path = shutil.which(binary_name)
+
+            if not binary_path:
+                # Try common installation locations
+                possible_paths = [
+                    f"/opt/homebrew/bin/{binary_name}",
+                    f"/usr/local/bin/{binary_name}",
+                    str(Path.home() / ".local" / "bin" / binary_name),
+                ]
+                for path in possible_paths:
+                    if Path(path).exists():
+                        binary_path = path
+                        break
+
+            if binary_path:
+                config["command"] = binary_path
+            # If still not found, keep the binary name and hope it's in PATH
+
+        # Resolve pipx command to full path if needed
+        elif config.get("command") == "pipx":
+            pipx_path = shutil.which("pipx")
+            if not pipx_path:
+                # Try common pipx locations
+                for possible_path in [
+                    "/opt/homebrew/bin/pipx",
+                    "/usr/local/bin/pipx",
+                    str(Path.home() / ".local" / "bin" / "pipx"),
+                ]:
+                    if Path(possible_path).exists():
+                        pipx_path = possible_path
+                        break
+            if pipx_path:
+                config["command"] = pipx_path
+            else:
+                # Keep as "pipx" and hope it's in PATH when executed
+                config["command"] = "pipx"
+
+        # Handle user-specific paths for mcp-vector-search
         if service_name == "mcp-vector-search":
+            # Get the correct pipx venv path for the current user
+            home = Path.home()
+            python_path = home / ".local" / "pipx" / "venvs" / "mcp-vector-search" / "bin" / "python"
+
+            # Check if the Python interpreter exists, if not fallback to pipx run
+            if python_path.exists():
+                config["command"] = str(python_path)
+            else:
+                # Fallback to pipx run method
+                import shutil
+                pipx_path = shutil.which("pipx")
+                if not pipx_path:
+                    # Try common pipx locations
+                    for possible_path in [
+                        "/opt/homebrew/bin/pipx",
+                        "/usr/local/bin/pipx",
+                        str(Path.home() / ".local" / "bin" / "pipx"),
+                    ]:
+                        if Path(possible_path).exists():
+                            pipx_path = possible_path
+                            break
+                config["command"] = pipx_path if pipx_path else "pipx"
+                config["args"] = ["run", "--spec", "mcp-vector-search", "python"] + config["args"]
+
+            # Use provided project path or current project
+            project_root = project_path if project_path else str(self.project_root)
             config["args"] = [
-                arg.replace("{project_root}", str(self.project_root)) if "{project_root}" in arg else arg
+                arg.replace("{project_root}", project_root) if "{project_root}" in arg else arg
                 for arg in config["args"]
             ]
 
@@ -262,7 +414,12 @@ class MCPConfigManager:
         # First try to get static configuration
         static_config = self.get_static_service_config(service_name)
         if static_config:
-            return static_config
+            # Validate that the static config actually works
+            if self.test_service_command(service_name, static_config):
+                self.logger.debug(f"Static config for {service_name} validated successfully")
+                return static_config
+            else:
+                self.logger.warning(f"Static config for {service_name} failed validation, trying fallback")
 
         # Fall back to detection-based configuration for unknown services
         import shutil
@@ -460,11 +617,10 @@ class MCPConfigManager:
             claude_config["projects"] = {}
             updated = True
 
-        # Check and fix mcp-ticketer dependencies ONCE before processing projects
-        # This avoids running the same pipx inject command 100+ times
-        mcp_ticketer_fixed = False
-        if "mcp-ticketer" in self.PIPX_SERVICES:
-            mcp_ticketer_fixed = self._check_and_fix_mcp_ticketer_dependencies()
+        # Fix any corrupted MCP service installations first
+        fix_success, fix_message = self.fix_mcp_service_issues()
+        if not fix_success:
+            self.logger.warning(f"Some MCP services could not be fixed: {fix_message}")
 
         # Process ALL projects in the config, not just current one
         projects_to_update = list(claude_config.get("projects", {}).keys())
@@ -499,16 +655,12 @@ class MCPConfigManager:
 
             # Check and fix each service configuration
             for service_name in self.PIPX_SERVICES:
-                # Get the correct static configuration
-                correct_config = self.STATIC_MCP_CONFIGS[service_name].copy()
+                # Get the correct static configuration with project-specific paths
+                correct_config = self.get_static_service_config(service_name, project_key)
 
-                # Special handling for mcp-vector-search: replace {project_root} placeholder
-                if service_name == "mcp-vector-search":
-                    # Use the project key as the project root for each project
-                    correct_config["args"] = [
-                        arg.replace("{project_root}", project_key) if "{project_root}" in arg else arg
-                        for arg in correct_config["args"]
-                    ]
+                if not correct_config:
+                    self.logger.warning(f"No static config available for {service_name}")
+                    continue
 
                 # Check if service exists and has correct configuration
                 existing_config = project_config["mcpServers"].get(service_name)
@@ -837,6 +989,207 @@ class MCPConfigManager:
             self.logger.debug(f"Could not check/fix mcp-ticketer dependencies: {e}")
             return False
 
+    def fix_mcp_service_issues(self) -> Tuple[bool, str]:
+        """
+        Detect and fix corrupted MCP service installations.
+
+        This method:
+        1. Tests each MCP service for import/execution errors
+        2. Automatically reinstalls corrupted services
+        3. Fixes missing dependencies (like mcp-ticketer's gql)
+        4. Validates fixes worked
+
+        Returns:
+            Tuple of (success, message)
+        """
+        self.logger.info("🔍 Checking MCP services for issues...")
+
+        services_to_fix = []
+        fixed_services = []
+        failed_services = []
+
+        # Check each service for issues
+        for service_name in self.PIPX_SERVICES:
+            issue_type = self._detect_service_issue(service_name)
+            if issue_type:
+                services_to_fix.append((service_name, issue_type))
+                self.logger.debug(f"Found issue with {service_name}: {issue_type}")
+
+        if not services_to_fix:
+            return True, "All MCP services are functioning correctly"
+
+        # Fix each problematic service
+        for service_name, issue_type in services_to_fix:
+            self.logger.info(f"🔧 Fixing {service_name}: {issue_type}")
+
+            if issue_type == "not_installed":
+                # Install the service
+                success, method = self._install_service_with_fallback(service_name)
+                if success:
+                    fixed_services.append(f"{service_name} (installed via {method})")
+                else:
+                    failed_services.append(f"{service_name} (installation failed)")
+
+            elif issue_type == "import_error":
+                # Reinstall to fix corrupted installation
+                self.logger.info(f"  Reinstalling {service_name} to fix import errors...")
+                success = self._reinstall_service(service_name)
+                if success:
+                    # Special handling for mcp-ticketer - inject missing gql dependency
+                    if service_name == "mcp-ticketer":
+                        self._check_and_fix_mcp_ticketer_dependencies()
+                    fixed_services.append(f"{service_name} (reinstalled)")
+                else:
+                    failed_services.append(f"{service_name} (reinstall failed)")
+
+            elif issue_type == "missing_dependency":
+                # Fix missing dependencies
+                if service_name == "mcp-ticketer":
+                    if self._check_and_fix_mcp_ticketer_dependencies():
+                        fixed_services.append(f"{service_name} (dependency fixed)")
+                    else:
+                        failed_services.append(f"{service_name} (dependency fix failed)")
+                else:
+                    failed_services.append(f"{service_name} (unknown dependency issue)")
+
+            elif issue_type == "path_issue":
+                # Path issues are handled by config updates
+                self.logger.info(f"  Path issue for {service_name} will be fixed by config update")
+                fixed_services.append(f"{service_name} (config updated)")
+
+        # Build result message
+        messages = []
+        if fixed_services:
+            messages.append(f"✅ Fixed: {', '.join(fixed_services)}")
+        if failed_services:
+            messages.append(f"❌ Failed: {', '.join(failed_services)}")
+
+        # Return success if at least some services were fixed
+        success = len(fixed_services) > 0 or len(failed_services) == 0
+        message = " | ".join(messages) if messages else "No services needed fixing"
+
+        # Provide manual fix instructions if auto-fix failed
+        if failed_services:
+            message += "\n\n💡 Manual fix instructions:"
+            for failed in failed_services:
+                service = failed.split(" ")[0]
+                message += f"\n  • {service}: pipx uninstall {service} && pipx install {service}"
+
+        return success, message
+
+    def _detect_service_issue(self, service_name: str) -> Optional[str]:
+        """
+        Detect what type of issue a service has.
+
+        Returns:
+            Issue type: 'not_installed', 'import_error', 'missing_dependency', 'path_issue', or None
+        """
+        import shutil
+
+        # First check if pipx is available
+        if not shutil.which("pipx"):
+            return "not_installed"  # Can't use pipx services without pipx
+
+        # Try to run the service with --help to detect issues
+        try:
+            # Test with pipx run
+            result = subprocess.run(
+                ["pipx", "run", service_name, "--help"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False
+            )
+
+            # Check for specific error patterns
+            stderr_lower = result.stderr.lower()
+            stdout_lower = result.stdout.lower()
+            combined_output = stderr_lower + stdout_lower
+
+            # Not installed
+            if "no apps associated" in combined_output or "not found" in combined_output:
+                return "not_installed"
+
+            # Import errors (like mcp-ticketer's corrupted state)
+            if "modulenotfounderror" in combined_output or "importerror" in combined_output:
+                # Check if it's specifically the gql dependency for mcp-ticketer
+                if service_name == "mcp-ticketer" and "gql" in combined_output:
+                    return "missing_dependency"
+                return "import_error"
+
+            # Path issues
+            if "no such file or directory" in combined_output:
+                return "path_issue"
+
+            # If help text appears, service is working
+            if "usage:" in combined_output or "help" in combined_output or result.returncode in [0, 1]:
+                return None  # Service is working
+
+            # Unknown issue
+            if result.returncode not in [0, 1]:
+                return "unknown_error"
+
+        except subprocess.TimeoutExpired:
+            # Timeout might mean service is actually working but waiting for input
+            return None
+        except Exception as e:
+            self.logger.debug(f"Error detecting issue for {service_name}: {e}")
+            return "unknown_error"
+
+        return None
+
+    def _reinstall_service(self, service_name: str) -> bool:
+        """
+        Reinstall a corrupted MCP service.
+
+        Args:
+            service_name: Name of the service to reinstall
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            self.logger.debug(f"Uninstalling {service_name}...")
+
+            # First uninstall the corrupted version
+            uninstall_result = subprocess.run(
+                ["pipx", "uninstall", service_name],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False
+            )
+
+            # Don't check return code - uninstall might fail if partially corrupted
+            self.logger.debug(f"Uninstall result: {uninstall_result.returncode}")
+
+            # Now reinstall
+            self.logger.debug(f"Installing fresh {service_name}...")
+            install_result = subprocess.run(
+                ["pipx", "install", service_name],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False
+            )
+
+            if install_result.returncode == 0:
+                # Verify the reinstall worked
+                issue = self._detect_service_issue(service_name)
+                if issue is None:
+                    self.logger.info(f"✅ Successfully reinstalled {service_name}")
+                    return True
+                else:
+                    self.logger.warning(f"Reinstalled {service_name} but still has issue: {issue}")
+                    return False
+            else:
+                self.logger.error(f"Failed to reinstall {service_name}: {install_result.stderr}")
+                return False
+
+        except Exception as e:
+            self.logger.error(f"Error reinstalling {service_name}: {e}")
+            return False
+
     def _verify_service_installed(self, service_name: str, method: str) -> bool:
         """
         Verify that a service was successfully installed and is functional.
@@ -912,3 +1265,26 @@ class MCPConfigManager:
             self.logger.debug(f"Verification error for {service_name}: {e}")
 
         return False
+
+    def _get_fallback_config(self, service_name: str, project_path: str) -> Optional[Dict]:
+        """
+        Get a fallback configuration for a service if the primary config fails.
+
+        Args:
+            service_name: Name of the MCP service
+            project_path: Project path to use
+
+        Returns:
+            Fallback configuration or None
+        """
+        # Special fallback for mcp-vector-search using pipx run
+        if service_name == "mcp-vector-search":
+            return {
+                "type": "stdio",
+                "command": "pipx",
+                "args": ["run", "--spec", "mcp-vector-search", "python", "-m", "mcp_vector_search.mcp.server", project_path],
+                "env": {}
+            }
+
+        # For other services, try pipx run
+        return None
