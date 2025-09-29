@@ -1,3 +1,31 @@
+## [4.5.0] - 2025-09-29
+
+### Added
+- **UAT Mode for Web QA Agent**: Comprehensive User Acceptance Testing capabilities
+  - Business intent verification beyond technical validation
+  - PRD and documentation review before testing
+  - Proactive clarification questions for unclear requirements
+  - Behavioral test script creation in Gherkin/BDD format
+  - User journey testing for complete workflows
+  - Business value validation and goal achievement assessment
+  - UAT report generation with business impact analysis
+
+### Enhanced
+- **Web QA Agent Capabilities**: Dual-mode testing approach
+  - Maintains all existing technical testing features (6-phase progressive protocol)
+  - Adds business-focused UAT methodology
+  - Creates human-readable test scripts in `tests/uat/scripts/`
+  - Reports on both technical success and business alignment
+  - Validates acceptance criteria from user perspective
+  - Links technical findings to business impact
+
+### Improved
+- **Testing Philosophy**: Shifted from "does it work?" to "does it meet goals?"
+  - Intent verification vs just functional validation
+  - Business requirements coverage tracking
+  - User experience validation throughout journey
+  - Stakeholder-friendly reporting format
+
 ## [4.4.12] - 2025-09-29
 
 ### Fixed
