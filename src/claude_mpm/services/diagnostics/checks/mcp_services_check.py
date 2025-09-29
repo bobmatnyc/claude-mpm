@@ -84,6 +84,33 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             sub_results = []
             services_status = {}
 
+            # Use MCPConfigManager to detect and fix corrupted installations
+            from claude_mpm.services.mcp_config_manager import MCPConfigManager
+            mcp_manager = MCPConfigManager()
+
+            # Run comprehensive fix for all MCP service issues
+            fix_success, fix_message = mcp_manager.fix_mcp_service_issues()
+            if fix_message and fix_message != "All MCP services are functioning correctly":
+                # Create diagnostic result for the fixes
+                fix_result = DiagnosticResult(
+                    category="MCP Service Fixes",
+                    status=DiagnosticStatus.OK if fix_success else DiagnosticStatus.WARNING,
+                    message=fix_message,
+                    details={"auto_fix_applied": True}
+                )
+                sub_results.append(fix_result)
+
+            # Also ensure configurations are updated for all projects
+            config_success, config_message = mcp_manager.ensure_mcp_services_configured()
+            if config_message and config_message != "All MCP services already configured correctly":
+                config_result = DiagnosticResult(
+                    category="MCP Configuration Update",
+                    status=DiagnosticStatus.OK if config_success else DiagnosticStatus.WARNING,
+                    message=config_message,
+                    details={"auto_config_applied": True}
+                )
+                sub_results.append(config_result)
+
             # Check for kuzu-memory configuration issues and offer auto-fix
             kuzu_config_result = self._check_and_fix_kuzu_memory_config()
             if kuzu_config_result:
