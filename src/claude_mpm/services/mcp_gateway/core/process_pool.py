@@ -20,6 +20,7 @@ import json
 import os
 import signal
 import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -659,6 +660,12 @@ async def auto_initialize_kuzu_memory():
                 logger.debug("kuzu-memory command not found after installation")
                 return
 
+        # Check for kuzu-memory updates (non-blocking)
+        try:
+            await _check_kuzu_memory_updates(kuzu_memory_cmd)
+        except Exception as e:
+            logger.debug(f"Update check failed (non-critical): {e}")
+
         # Initialize kuzu-memory database in current project
         current_dir = Path.cwd()
         kuzu_memories_dir = current_dir / "kuzu-memories"
@@ -692,6 +699,144 @@ async def auto_initialize_kuzu_memory():
 
     except Exception as e:
         logger.debug(f"Kuzu-memory auto-initialization error (non-critical): {e}")
+
+
+async def _check_kuzu_memory_updates(kuzu_cmd: Path) -> None:
+    """
+    Check for kuzu-memory updates and prompt user.
+
+    Args:
+        kuzu_cmd: Path to kuzu-memory command
+
+    WHY: Keep users informed about important updates that may fix bugs
+    or add features they need.
+
+    DESIGN DECISIONS:
+    - Non-blocking with timeout to prevent startup delays
+    - Respects user preferences and environment variables
+    - Only prompts in interactive TTY sessions
+    """
+    logger = get_logger("kuzu_memory_update")
+
+    # Skip if environment variable set
+    if os.environ.get("CLAUDE_MPM_SKIP_UPDATE_CHECK"):
+        return
+
+    # Skip if not TTY (can't prompt)
+    if not sys.stdin.isatty():
+        return
+
+    # Import update utilities
+    from ..utils.package_version_checker import PackageVersionChecker
+    from ..utils.update_preferences import UpdatePreferences
+
+    # Check if updates are enabled for this package
+    if not UpdatePreferences.should_check_package("kuzu-memory"):
+        return
+
+    try:
+        # Get current version from pipx
+        result = subprocess.run(
+            ["pipx", "list", "--json"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+
+        if result.returncode == 0:
+            pipx_data = json.loads(result.stdout)
+            venvs = pipx_data.get("venvs", {})
+            kuzu_info = venvs.get("kuzu-memory", {})
+            metadata = kuzu_info.get("metadata", {})
+            current_version = metadata.get("main_package", {}).get(
+                "package_version", "unknown"
+            )
+
+            if current_version != "unknown":
+                # Check for updates
+                checker = PackageVersionChecker()
+                update_info = await checker.check_for_update(
+                    "kuzu-memory", current_version
+                )
+
+                if update_info and update_info.get("update_available"):
+                    latest_version = update_info["latest"]
+
+                    # Check if user wants to skip this version
+                    if UpdatePreferences.should_skip_version(
+                        "kuzu-memory", latest_version
+                    ):
+                        logger.debug(
+                            f"Skipping kuzu-memory update to {latest_version} per user preference"
+                        )
+                        return
+
+                    # Prompt for update
+                    _prompt_kuzu_update(update_info["current"], latest_version)
+
+    except Exception as e:
+        logger.debug(f"Update check error: {e}")
+
+
+def _prompt_kuzu_update(current: str, latest: str) -> None:
+    """
+    Prompt user to update kuzu-memory.
+
+    Args:
+        current: Current installed version
+        latest: Latest available version
+    """
+    from ...cli.shared.error_handling import confirm_operation
+    from ..utils.update_preferences import UpdatePreferences
+
+    logger = get_logger("kuzu_memory_update")
+
+    message = (
+        f"\n🔄 A new version of kuzu-memory is available!\n"
+        f"   Current: v{current}\n"
+        f"   Latest:  v{latest}\n\n"
+        f"   This update may include bug fixes and performance improvements.\n"
+        f"   Update now?"
+    )
+
+    # Check if running in a non-interactive context
+    try:
+        if confirm_operation(message):
+            print("🚀 Updating kuzu-memory...")
+            try:
+                result = subprocess.run(
+                    ["pipx", "upgrade", "kuzu-memory"],
+                    capture_output=True,
+                    text=True,
+                    timeout=30, check=False,
+                )
+                if result.returncode == 0:
+                    print("✅ Successfully updated kuzu-memory!")
+                    logger.info(f"Updated kuzu-memory from {current} to {latest}")
+                else:
+                    print(f"⚠️ Update failed: {result.stderr}")
+                    logger.warning(f"kuzu-memory update failed: {result.stderr}")
+            except subprocess.TimeoutExpired:
+                print("⚠️ Update timed out. Please try again later.")
+                logger.warning("kuzu-memory update timed out")
+            except Exception as e:
+                print(f"⚠️ Update failed: {e}")
+                logger.warning(f"kuzu-memory update error: {e}")
+        else:
+            # User declined update
+            print("\n  To skip this version permanently, run:")
+            print(f"    claude-mpm config set-skip-version kuzu-memory {latest}")
+            print("  To disable update checks for kuzu-memory:")
+            print("    claude-mpm config disable-update-checks kuzu-memory")
+
+            # Ask if user wants to skip this version
+            if confirm_operation("\n  Skip this version in future checks?"):
+                UpdatePreferences.set_skip_version("kuzu-memory", latest)
+                print(f"  Version {latest} will be skipped in future checks.")
+    except (KeyboardInterrupt, EOFError):
+        # User interrupted or input not available
+        pass
 
 
 async def pre_warm_mcp_servers():
