@@ -1,3 +1,26 @@
+## [4.4.11] - 2025-09-29
+
+### Fixed
+- **MPM Doctor Command**: Resolved slash command execution in Claude Code
+  - Added `claude-mpm-doctor` as standalone CLI entry point
+  - Enhanced PM instructions to properly recognize `/mpm-*` commands
+  - Fixed command invocation to use SlashCommand tool instead of Bash
+  - Improved error handling and diagnostic output
+
+### Added
+- **Dedicated Doctor Entry Point**: New `claude-mpm-doctor` command
+  - Standalone binary for direct doctor command execution
+  - Maintains full compatibility with `claude-mpm doctor`
+  - Supports all diagnostic options (--verbose, --json, --fix, etc.)
+  - Returns appropriate exit codes for CI/CD integration
+
+### Improved
+- **Command Recognition**: Better slash command handling
+  - PM instructions now explicitly guide SlashCommand tool usage
+  - Clear differentiation between MPM commands and file paths
+  - Examples of correct vs incorrect command invocation
+  - Prevents confusion when users type `/mpm-doctor` in Claude Code
+
 ## [4.4.10] - 2025-09-29
 
 ### Fixed
