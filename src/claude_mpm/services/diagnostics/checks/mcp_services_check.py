@@ -871,38 +871,51 @@ class MCPServicesCheck(BaseDiagnosticCheck):
     def _check_gateway_configuration(self) -> DiagnosticResult:
         """Check if MCP services are configured in the gateway."""
         try:
-            # Check MCP config file
-            config_dir = Path.home() / ".claude" / "mcp"
-            config_file = config_dir / "config.json"
+            # Check Claude config file (the correct location for Claude Code)
+            config_file = Path.home() / ".claude.json"
 
             if not config_file.exists():
                 return DiagnosticResult(
                     category="MCP Gateway Configuration",
                     status=DiagnosticStatus.WARNING,
-                    message="MCP configuration file not found",
+                    message="Claude configuration file not found",
                     details={"config_path": str(config_file), "exists": False},
                     fix_command="claude-mpm configure --mcp",
-                    fix_description="Initialize MCP configuration",
+                    fix_description="Initialize Claude configuration",
                 )
 
             with open(config_file) as f:
                 config = json.load(f)
 
-            # Check for external services configuration
-            external_services = config.get("external_services", {})
+            # Get the current project configuration
+            from pathlib import Path
+            import os
+
+            current_project = str(Path.cwd())
+
+            # Check if current project has MCP servers configured
+            projects = config.get("projects", {})
+            if current_project not in projects:
+                return DiagnosticResult(
+                    category="MCP Gateway Configuration",
+                    status=DiagnosticStatus.WARNING,
+                    message="Current project not configured in Claude",
+                    details={"config_path": str(config_file), "project": current_project},
+                    fix_command="claude-mpm configure --mcp",
+                    fix_description="Configure MCP services for current project",
+                )
+
+            project_config = projects[current_project]
+            mcp_servers = project_config.get("mcpServers", {})
+
             configured_services = []
             missing_services = []
 
             for service_name in self.MCP_SERVICES:
-                if service_name in external_services:
+                if service_name in mcp_servers:
                     configured_services.append(service_name)
                 else:
-                    # Also check if it's in the services list directly
-                    services = config.get("services", [])
-                    if any(s.get("name") == service_name for s in services):
-                        configured_services.append(service_name)
-                    else:
-                        missing_services.append(service_name)
+                    missing_services.append(service_name)
 
             details = {
                 "config_path": str(config_file),
