@@ -1,3 +1,28 @@
+## [4.4.12] - 2025-09-29
+
+### Fixed
+- **MCP Configuration Path**: Corrected config file location check
+  - Fixed mpm-doctor checking wrong path `~/.claude/mcp/config.json`
+  - Now correctly checks `~/.claude.json` (Claude Code's actual config)
+  - Diagnostic reports now show accurate configuration status
+
+- **MCP Service PATH Resolution**: Improved service binary discovery
+  - Services now resolve to pipx venv paths first for better isolation
+  - Added proper fallback to `pipx run` when direct paths aren't available
+  - Fixed mcp-vector-search and mcp-ticketer PATH accessibility issues
+
+- **Startup Configuration**: Automatic MCP service setup on launch
+  - Added automatic configuration during Claude MPM startup
+  - Detects and fixes corrupted MCP service installations
+  - Updates all projects in `~/.claude.json`, not just current one
+  - Auto-injects missing dependencies (e.g., gql for mcp-ticketer)
+
+### Improved
+- **Service Reliability**: Better handling of MCP service variations
+  - Supports both pipx venv paths and system-wide installations
+  - Graceful fallback when services aren't directly accessible
+  - More robust path resolution across different environments
+
 ## [4.4.11] - 2025-09-29
 
 ### Fixed

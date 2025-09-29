@@ -43,27 +43,28 @@ class MCPConfigManager:
 
     # Static known-good MCP service configurations
     # These are the correct, tested configurations that work reliably
+    # Note: Commands will be resolved to full paths dynamically in get_static_service_config()
     STATIC_MCP_CONFIGS = {
         "kuzu-memory": {
             "type": "stdio",
-            "command": "kuzu-memory",  # Use direct binary, will be resolved to full path
+            "command": "kuzu-memory",  # Will be resolved to full path
             "args": ["mcp", "serve"]  # v1.1.0+ uses 'mcp serve' command
         },
         "mcp-ticketer": {
             "type": "stdio",
-            "command": "mcp-ticketer",  # Use direct binary to preserve injected dependencies
+            "command": "mcp-ticketer",  # Will be resolved to full path
             "args": ["mcp"]
         },
         "mcp-browser": {
             "type": "stdio",
-            "command": "mcp-browser",  # Use direct binary
+            "command": "mcp-browser",  # Will be resolved to full path
             "args": ["mcp"],
             "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
         },
         "mcp-vector-search": {
             "type": "stdio",
-            # Use pipx venv's Python directly for module execution
-            "command": str(Path.home() / ".local" / "pipx" / "venvs" / "mcp-vector-search" / "bin" / "python"),
+            # Special handling: needs Python interpreter from pipx venv
+            "command": "python",  # Will be resolved to pipx venv Python
             "args": ["-m", "mcp_vector_search.mcp.server", "{project_root}"],
             "env": {}
         }
@@ -326,42 +327,51 @@ class MCPConfigManager:
         if service_name in ["kuzu-memory", "mcp-ticketer", "mcp-browser"]:
             # Try to find the full path of the binary
             binary_name = config["command"]
-            binary_path = shutil.which(binary_name)
 
-            if not binary_path:
-                # Try common installation locations
-                possible_paths = [
-                    f"/opt/homebrew/bin/{binary_name}",
-                    f"/usr/local/bin/{binary_name}",
-                    str(Path.home() / ".local" / "bin" / binary_name),
-                ]
-                for path in possible_paths:
-                    if Path(path).exists():
-                        binary_path = path
-                        break
+            # First check pipx location
+            pipx_bin = Path.home() / ".local" / "pipx" / "venvs" / service_name / "bin" / binary_name
+            if pipx_bin.exists():
+                binary_path = str(pipx_bin)
+            else:
+                # Try which command
+                binary_path = shutil.which(binary_name)
+
+                if not binary_path:
+                    # Try common installation locations
+                    possible_paths = [
+                        Path.home() / ".local" / "bin" / binary_name,
+                        Path("/opt/homebrew/bin") / binary_name,
+                        Path("/usr/local/bin") / binary_name,
+                    ]
+                    for path in possible_paths:
+                        if path.exists():
+                            binary_path = str(path)
+                            break
 
             if binary_path:
                 config["command"] = binary_path
-            # If still not found, keep the binary name and hope it's in PATH
+            else:
+                # Fall back to pipx run method if binary not found
+                self.logger.debug(f"Could not find {binary_name}, using pipx run fallback")
+                config["command"] = "pipx"
+                config["args"] = ["run", service_name] + config["args"]
 
-        # Resolve pipx command to full path if needed
-        elif config.get("command") == "pipx":
+        # Resolve pipx command to full path if needed (for fallback configs)
+        if config.get("command") == "pipx":
             pipx_path = shutil.which("pipx")
             if not pipx_path:
                 # Try common pipx locations
-                for possible_path in [
-                    "/opt/homebrew/bin/pipx",
-                    "/usr/local/bin/pipx",
-                    str(Path.home() / ".local" / "bin" / "pipx"),
-                ]:
-                    if Path(possible_path).exists():
-                        pipx_path = possible_path
+                possible_pipx_paths = [
+                    Path.home() / ".local" / "bin" / "pipx",
+                    Path("/opt/homebrew/bin/pipx"),
+                    Path("/usr/local/bin/pipx"),
+                ]
+                for path in possible_pipx_paths:
+                    if path.exists():
+                        pipx_path = str(path)
                         break
             if pipx_path:
                 config["command"] = pipx_path
-            else:
-                # Keep as "pipx" and hope it's in PATH when executed
-                config["command"] = "pipx"
 
         # Handle user-specific paths for mcp-vector-search
         if service_name == "mcp-vector-search":
@@ -369,25 +379,31 @@ class MCPConfigManager:
             home = Path.home()
             python_path = home / ".local" / "pipx" / "venvs" / "mcp-vector-search" / "bin" / "python"
 
-            # Check if the Python interpreter exists, if not fallback to pipx run
+            # Check if the Python interpreter exists
             if python_path.exists():
                 config["command"] = str(python_path)
             else:
                 # Fallback to pipx run method
-                import shutil
                 pipx_path = shutil.which("pipx")
                 if not pipx_path:
                     # Try common pipx locations
-                    for possible_path in [
-                        "/opt/homebrew/bin/pipx",
-                        "/usr/local/bin/pipx",
-                        str(Path.home() / ".local" / "bin" / "pipx"),
-                    ]:
-                        if Path(possible_path).exists():
-                            pipx_path = possible_path
+                    possible_pipx_paths = [
+                        Path.home() / ".local" / "bin" / "pipx",
+                        Path("/opt/homebrew/bin/pipx"),
+                        Path("/usr/local/bin/pipx"),
+                    ]
+                    for path in possible_pipx_paths:
+                        if path.exists():
+                            pipx_path = str(path)
                             break
-                config["command"] = pipx_path if pipx_path else "pipx"
-                config["args"] = ["run", "--spec", "mcp-vector-search", "python"] + config["args"]
+
+                if pipx_path:
+                    config["command"] = pipx_path
+                else:
+                    config["command"] = "pipx"  # Hope it's in PATH
+
+                # Use pipx run with the spec argument
+                config["args"] = ["run", "--spec", "mcp-vector-search", "python", "-m", "mcp_vector_search.mcp.server", "{project_root}"]
 
             # Use provided project path or current project
             project_root = project_path if project_path else str(self.project_root)
