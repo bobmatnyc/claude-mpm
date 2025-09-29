@@ -41,6 +41,33 @@ class MCPConfigManager:
         "kuzu-memory",
     }
 
+    # Static known-good MCP service configurations
+    # These are the correct, tested configurations that work reliably
+    STATIC_MCP_CONFIGS = {
+        "kuzu-memory": {
+            "type": "stdio",
+            "command": "pipx",
+            "args": ["run", "kuzu-memory", "mcp", "serve"]
+        },
+        "mcp-ticketer": {
+            "type": "stdio",
+            "command": "pipx",
+            "args": ["run", "mcp-ticketer", "mcp"]
+        },
+        "mcp-browser": {
+            "type": "stdio",
+            "command": "pipx",
+            "args": ["run", "mcp-browser", "mcp"],
+            "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
+        },
+        "mcp-vector-search": {
+            "type": "stdio",
+            "command": "pipx",
+            "args": ["run", "mcp-vector-search", "-m", "mcp_vector_search.mcp.server", "{project_root}"],
+            "env": {}
+        }
+    }
+
     def __init__(self):
         """Initialize the MCP configuration manager."""
         self.logger = get_logger(__name__)
@@ -195,11 +222,36 @@ class MCPConfigManager:
 
         return None
 
+    def get_static_service_config(self, service_name: str) -> Optional[Dict]:
+        """
+        Get the static, known-good configuration for an MCP service.
+
+        Args:
+            service_name: Name of the MCP service
+
+        Returns:
+            Static service configuration dict or None if service not known
+        """
+        if service_name not in self.STATIC_MCP_CONFIGS:
+            return None
+
+        config = self.STATIC_MCP_CONFIGS[service_name].copy()
+
+        # Special handling for mcp-vector-search: replace {project_root} placeholder
+        if service_name == "mcp-vector-search":
+            config["args"] = [
+                arg.replace("{project_root}", str(self.project_root)) if "{project_root}" in arg else arg
+                for arg in config["args"]
+            ]
+
+        return config
+
     def generate_service_config(self, service_name: str) -> Optional[Dict]:
         """
         Generate configuration for a specific MCP service.
 
-        Prefers 'pipx run' or 'uvx' commands over direct execution for better isolation.
+        Prefers static configurations over detection. Falls back to detection
+        only for unknown services.
 
         Args:
             service_name: Name of the MCP service
@@ -207,6 +259,12 @@ class MCPConfigManager:
         Returns:
             Service configuration dict or None if service not found
         """
+        # First try to get static configuration
+        static_config = self.get_static_service_config(service_name)
+        if static_config:
+            return static_config
+
+        # Fall back to detection-based configuration for unknown services
         import shutil
 
         # Check for pipx run first (preferred for isolation)
@@ -308,7 +366,7 @@ class MCPConfigManager:
 
         elif service_name == "kuzu-memory":
             # Determine kuzu-memory command version
-            kuzu_args = ["mcp", "serve"]  # Default to the correct modern format
+            kuzu_args = ["mcp", "serve"]  # Default to the standard v1.1.0+ format
             test_cmd = None
 
             if use_pipx_run:
@@ -330,20 +388,21 @@ class MCPConfigManager:
                     # Check for MCP support in help output
                     help_output = result.stdout.lower() + result.stderr.lower()
 
-                    # Modern version detection - look for "mcp serve" command
+                    # Standard version detection - look for "mcp serve" command (v1.1.0+)
+                    # This is the correct format for kuzu-memory v1.1.0 and later
                     if "mcp serve" in help_output or ("mcp" in help_output and "serve" in help_output):
-                        # Modern version with mcp serve command
+                        # Standard v1.1.0+ version with mcp serve command
                         kuzu_args = ["mcp", "serve"]
                     # Legacy version detection - only "serve" without "mcp"
                     elif "serve" in help_output and "mcp" not in help_output:
                         # Very old version that only has serve command
                         kuzu_args = ["serve"]
-                    # Note: "claude mcp-server" format is deprecated and not used
                     else:
-                        # Default to the correct modern format
+                        # Default to the standard mcp serve format (v1.1.0+)
+                        # Note: "claude mcp-server" format is deprecated and does not work
                         kuzu_args = ["mcp", "serve"]
                 except Exception:
-                    # Default to the correct mcp serve command on any error
+                    # Default to the standard mcp serve command on any error
                     kuzu_args = ["mcp", "serve"]
 
             if use_pipx_run:
@@ -371,17 +430,20 @@ class MCPConfigManager:
 
     def ensure_mcp_services_configured(self) -> Tuple[bool, str]:
         """
-        Ensure MCP services are configured in ~/.claude.json on startup.
+        Ensure MCP services are configured correctly in ~/.claude.json on startup.
 
-        This method checks if the core MCP services are configured in the
-        current project's mcpServers section and automatically adds them if missing.
+        This method checks ALL projects in ~/.claude.json and ensures each has
+        the correct, static MCP service configurations. It will:
+        1. Add missing services
+        2. Fix incorrect configurations
+        3. Update all projects, not just the current one
 
         Returns:
             Tuple of (success, message)
         """
         updated = False
+        fixed_services = []
         added_services = []
-        project_key = str(self.project_root)
 
         # Load existing Claude config or create minimal structure
         claude_config = {}
@@ -396,9 +458,23 @@ class MCPConfigManager:
         # Ensure projects structure exists
         if "projects" not in claude_config:
             claude_config["projects"] = {}
+            updated = True
 
-        if project_key not in claude_config["projects"]:
-            claude_config["projects"][project_key] = {
+        # Check and fix mcp-ticketer dependencies ONCE before processing projects
+        # This avoids running the same pipx inject command 100+ times
+        mcp_ticketer_fixed = False
+        if "mcp-ticketer" in self.PIPX_SERVICES:
+            mcp_ticketer_fixed = self._check_and_fix_mcp_ticketer_dependencies()
+
+        # Process ALL projects in the config, not just current one
+        projects_to_update = list(claude_config.get("projects", {}).keys())
+
+        # Also add the current project if not in list
+        current_project_key = str(self.project_root)
+        if current_project_key not in projects_to_update:
+            projects_to_update.append(current_project_key)
+            # Initialize new project structure
+            claude_config["projects"][current_project_key] = {
                 "allowedTools": [],
                 "history": [],
                 "mcpContextUris": [],
@@ -412,29 +488,51 @@ class MCPConfigManager:
             }
             updated = True
 
-        # Get the project's mcpServers section
-        project_config = claude_config["projects"][project_key]
-        if "mcpServers" not in project_config:
-            project_config["mcpServers"] = {}
-            updated = True
+        # Update each project's MCP configurations
+        for project_key in projects_to_update:
+            project_config = claude_config["projects"][project_key]
 
-        # Check each service and add if missing
-        for service_name in self.PIPX_SERVICES:
-            if service_name not in project_config["mcpServers"]:
-                # Try to detect and configure the service
-                service_path = self.detect_service_path(service_name)
-                if service_path:
-                    config = self.generate_service_config(service_name)
-                    if config:
-                        project_config["mcpServers"][service_name] = config
-                        added_services.append(service_name)
-                        updated = True
-                        self.logger.debug(
-                            f"Added MCP service to config: {service_name}"
-                        )
+            # Ensure mcpServers section exists
+            if "mcpServers" not in project_config:
+                project_config["mcpServers"] = {}
+                updated = True
+
+            # Check and fix each service configuration
+            for service_name in self.PIPX_SERVICES:
+                # Get the correct static configuration
+                correct_config = self.STATIC_MCP_CONFIGS[service_name].copy()
+
+                # Special handling for mcp-vector-search: replace {project_root} placeholder
+                if service_name == "mcp-vector-search":
+                    # Use the project key as the project root for each project
+                    correct_config["args"] = [
+                        arg.replace("{project_root}", project_key) if "{project_root}" in arg else arg
+                        for arg in correct_config["args"]
+                    ]
+
+                # Check if service exists and has correct configuration
+                existing_config = project_config["mcpServers"].get(service_name)
+
+                # Determine if we need to update
+                needs_update = False
+                if not existing_config:
+                    # Service is missing
+                    needs_update = True
+                    added_services.append(f"{service_name} in {Path(project_key).name}")
                 else:
+                    # Service exists, check if configuration is correct
+                    # Compare command and args (the most critical parts)
+                    if (existing_config.get("command") != correct_config.get("command") or
+                        existing_config.get("args") != correct_config.get("args")):
+                        needs_update = True
+                        fixed_services.append(f"{service_name} in {Path(project_key).name}")
+
+                # Update configuration if needed
+                if needs_update:
+                    project_config["mcpServers"][service_name] = correct_config
+                    updated = True
                     self.logger.debug(
-                        f"MCP service {service_name} not found for auto-configuration"
+                        f"Updated MCP service config for {service_name} in project {Path(project_key).name}"
                     )
 
         # Write updated config if changes were made
@@ -448,7 +546,6 @@ class MCPConfigManager:
                             f".backup.{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
                         )
                         import shutil
-
                         shutil.copy2(self.claude_config_path, backup_path)
                         self.logger.debug(f"Created backup: {backup_path}")
 
@@ -456,18 +553,20 @@ class MCPConfigManager:
                 with open(self.claude_config_path, "w") as f:
                     json.dump(claude_config, f, indent=2)
 
+                messages = []
                 if added_services:
-                    message = (
-                        f"Auto-configured MCP services: {', '.join(added_services)}"
-                    )
-                    # Don't log here - let the caller handle logging to avoid duplicates
-                    return True, message
-                return True, "All MCP services already configured"
+                    messages.append(f"Added MCP services: {', '.join(added_services[:3])}")
+                if fixed_services:
+                    messages.append(f"Fixed MCP services: {', '.join(fixed_services[:3])}")
+
+                if messages:
+                    return True, "; ".join(messages)
+                return True, "All MCP services already configured correctly"
             except Exception as e:
                 self.logger.error(f"Failed to write Claude config: {e}")
                 return False, f"Failed to write configuration: {e}"
 
-        return True, "All MCP services already configured"
+        return True, "All MCP services already configured correctly"
 
     def update_mcp_config(self, force_pipx: bool = True) -> Tuple[bool, str]:
         """
@@ -695,6 +794,49 @@ class MCPConfigManager:
 
         return False, "none"
 
+    def _check_and_fix_mcp_ticketer_dependencies(self) -> bool:
+        """Check and fix mcp-ticketer missing gql dependency.
+
+        Note: This is a workaround for mcp-ticketer <= 0.1.8 which is missing
+        the gql dependency in its package metadata. Future versions (> 0.1.8)
+        should include 'gql[httpx]>=3.0.0' as a dependency, making this fix
+        unnecessary. We keep this for backward compatibility with older versions.
+        """
+        try:
+            # Test if gql is available in mcp-ticketer's environment
+            test_result = subprocess.run(
+                ["pipx", "run", "--spec", "mcp-ticketer", "python", "-c", "import gql"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+
+            # If import fails, inject the dependency
+            if test_result.returncode != 0:
+                self.logger.info("🔧 mcp-ticketer missing gql dependency, fixing...")
+
+                inject_result = subprocess.run(
+                    ["pipx", "inject", "mcp-ticketer", "gql"],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=False,
+                )
+
+                if inject_result.returncode == 0:
+                    self.logger.info("✅ Successfully injected gql dependency into mcp-ticketer")
+                    return True
+                else:
+                    self.logger.warning(f"Failed to inject gql: {inject_result.stderr}")
+                    return False
+
+            return False
+
+        except Exception as e:
+            self.logger.debug(f"Could not check/fix mcp-ticketer dependencies: {e}")
+            return False
+
     def _verify_service_installed(self, service_name: str, method: str) -> bool:
         """
         Verify that a service was successfully installed and is functional.
@@ -710,6 +852,9 @@ class MCPConfigManager:
 
         # Give the installation a moment to settle
         time.sleep(1)
+
+        # Note: mcp-ticketer dependency fix is now handled once in ensure_mcp_services_configured()
+        # to avoid running the same pipx inject command multiple times
 
         # Check if we can find the service
         service_path = self.detect_service_path(service_name)
