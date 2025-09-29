@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 from jinja2 import Template
 
 from claude_mpm.core.logging_utils import get_logger
+
 logger = get_logger(__name__)
 
 

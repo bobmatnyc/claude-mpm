@@ -45,7 +45,7 @@ class MCPExternalCommands:
         return 1
 
     def _setup_external(self, args):
-        """Setup external MCP services in Claude Desktop.
+        """Setup external MCP services in Claude Code.
 
         Args:
             args: Command line arguments
@@ -67,13 +67,13 @@ class MCPExternalCommands:
             print("   You may need to install them manually:")
             print("   pip install mcp-vector-search mcp-browser")
 
-        # Then configure in Claude Desktop
-        print("\n2️⃣  Configuring Claude Desktop...")
+        # Then configure in Claude Code
+        print("\n2️⃣  Configuring Claude Code...")
         force = getattr(args, "force", False)
         if setup.setup_external_services(force=force):
             print("\n✅ External services setup completed successfully!")
             print("\nNext steps:")
-            print("1. Restart Claude Desktop to load the new services")
+            print("1. Restart Claude Code to load the new services")
             print("2. Check status with: claude-mpm mcp external list")
             print("3. The services will be available in Claude as separate MCP servers")
             return 0
@@ -111,7 +111,7 @@ class MCPExternalCommands:
         import json
         from pathlib import Path
 
-        # Check Claude Desktop configuration
+        # Check Claude Code configuration
         config_paths = [
             Path.home()
             / "Library"
@@ -157,7 +157,7 @@ class MCPExternalCommands:
                 break
 
         if not config_found:
-            print("❌ No Claude Desktop configuration found")
+            print("❌ No Claude Code configuration found")
             print("   Please run: claude-mpm mcp install")
 
         # Check Python packages
@@ -215,7 +215,7 @@ class MCPExternalCommands:
             print("\n✅ Configuration updated successfully!")
             print("\nNext steps:")
             print("1. Review the .mcp.json file to verify the configuration")
-            print("2. Restart Claude Desktop to load the updated services")
+            print("2. Restart Claude Code to load the updated services")
             return 0
         print("\n❌ Failed to update configuration")
         return 1

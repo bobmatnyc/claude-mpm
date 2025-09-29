@@ -3,36 +3,39 @@ Context Strategy - Context-based lifecycle management for configurations
 Part of Phase 3 Configuration Consolidation
 """
 
+import threading
+import weakref
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union, Callable, Set
+from collections import OrderedDict
+from contextlib import contextmanager
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-import threading
-from datetime import datetime, timedelta
-from contextlib import contextmanager
-import weakref
-from collections import OrderedDict
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 from claude_mpm.core.logging_utils import get_logger
-from .unified_config_service import IConfigStrategy, ConfigContext
+
+from .unified_config_service import IConfigStrategy
 
 
 class ContextScope(Enum):
     """Configuration context scopes"""
-    GLOBAL = "global"          # Application-wide
-    SESSION = "session"        # User session
-    PROJECT = "project"        # Project-specific
-    AGENT = "agent"           # Agent-specific
-    SERVICE = "service"       # Service-specific
-    TRANSACTION = "transaction" # Transaction-specific
-    REQUEST = "request"       # Request-specific
-    THREAD = "thread"         # Thread-local
-    TEMPORARY = "temporary"   # Temporary context
+
+    GLOBAL = "global"  # Application-wide
+    SESSION = "session"  # User session
+    PROJECT = "project"  # Project-specific
+    AGENT = "agent"  # Agent-specific
+    SERVICE = "service"  # Service-specific
+    TRANSACTION = "transaction"  # Transaction-specific
+    REQUEST = "request"  # Request-specific
+    THREAD = "thread"  # Thread-local
+    TEMPORARY = "temporary"  # Temporary context
 
 
 class ContextLifecycle(Enum):
     """Context lifecycle states"""
+
     CREATED = "created"
     INITIALIZING = "initializing"
     ACTIVE = "active"
@@ -44,6 +47,7 @@ class ContextLifecycle(Enum):
 @dataclass
 class ContextMetadata:
     """Metadata for context tracking"""
+
     id: str
     scope: ContextScope
     lifecycle: ContextLifecycle
@@ -59,6 +63,7 @@ class ContextMetadata:
 @dataclass
 class ContextConfig:
     """Configuration within a context"""
+
     context_id: str
     data: Dict[str, Any]
     overrides: Dict[str, Any] = field(default_factory=dict)
@@ -79,17 +84,14 @@ class BaseContextManager(ABC):
     @abstractmethod
     def create_context(self, scope: ContextScope, **kwargs) -> str:
         """Create a new context"""
-        pass
 
     @abstractmethod
     def get_context(self, context_id: str) -> Optional[ContextMetadata]:
         """Get context metadata"""
-        pass
 
     @abstractmethod
     def close_context(self, context_id: str):
         """Close a context"""
-        pass
 
 
 class HierarchicalContextManager(BaseContextManager):
@@ -105,7 +107,7 @@ class HierarchicalContextManager(BaseContextManager):
         scope: ContextScope,
         parent_id: Optional[str] = None,
         ttl: Optional[timedelta] = None,
-        **kwargs
+        **kwargs,
     ) -> str:
         """Create a new hierarchical context"""
         with self._lock:
@@ -113,7 +115,7 @@ class HierarchicalContextManager(BaseContextManager):
             context_id = self._generate_context_id(scope)
 
             # Use current context as parent if not specified
-            if parent_id is None and hasattr(self.context_stack, 'stack'):
+            if parent_id is None and hasattr(self.context_stack, "stack"):
                 if self.context_stack.stack:
                     parent_id = self.context_stack.stack[-1]
 
@@ -127,7 +129,7 @@ class HierarchicalContextManager(BaseContextManager):
                 parent_id=parent_id,
                 ttl=ttl,
                 expires_at=datetime.now() + ttl if ttl else None,
-                attributes=kwargs
+                attributes=kwargs,
             )
 
             # Store context
@@ -142,10 +144,7 @@ class HierarchicalContextManager(BaseContextManager):
                     self.context_hierarchy[parent_id].append(context_id)
 
             # Initialize context config
-            self.configs[context_id] = ContextConfig(
-                context_id=context_id,
-                data={}
-            )
+            self.configs[context_id] = ContextConfig(context_id=context_id, data={})
 
             # Set lifecycle to active
             metadata.lifecycle = ContextLifecycle.ACTIVE
@@ -216,6 +215,7 @@ class HierarchicalContextManager(BaseContextManager):
     def _generate_context_id(self, scope: ContextScope) -> str:
         """Generate unique context ID"""
         import uuid
+
         return f"{scope.value}_{uuid.uuid4().hex[:8]}"
 
     @contextmanager
@@ -224,7 +224,7 @@ class HierarchicalContextManager(BaseContextManager):
         context_id = self.create_context(scope, **kwargs)
 
         # Push to thread-local stack
-        if not hasattr(self.context_stack, 'stack'):
+        if not hasattr(self.context_stack, "stack"):
             self.context_stack.stack = []
         self.context_stack.stack.append(context_id)
 
@@ -248,10 +248,7 @@ class ScopedConfigManager:
         self._lock = threading.RLock()
 
     def get_config(
-        self,
-        context_id: str,
-        key: Optional[str] = None,
-        inherit: bool = True
+        self, context_id: str, key: Optional[str] = None, inherit: bool = True
     ) -> Any:
         """Get configuration value from context"""
         with self._lock:
@@ -275,7 +272,7 @@ class ScopedConfigManager:
         key: str,
         value: Any,
         override: bool = False,
-        lock: bool = False
+        lock: bool = False,
     ):
         """Set configuration value in context"""
         with self._lock:
@@ -330,7 +327,11 @@ class ScopedConfigManager:
         result = base.copy()
 
         for key, value in override.items():
-            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
                 result[key] = self._deep_merge(result[key], value)
             else:
                 result[key] = value
@@ -339,7 +340,7 @@ class ScopedConfigManager:
 
     def _get_nested_value(self, config: Dict, key: str) -> Any:
         """Get nested value using dot notation"""
-        parts = key.split('.')
+        parts = key.split(".")
         current = config
 
         for part in parts:
@@ -352,7 +353,7 @@ class ScopedConfigManager:
 
     def _set_nested_value(self, config: Dict, key: str, value: Any):
         """Set nested value using dot notation"""
-        parts = key.split('.')
+        parts = key.split(".")
         current = config
 
         for part in parts[:-1]:
@@ -377,8 +378,9 @@ class ScopedConfigManager:
 
             # Trigger pattern watchers
             for pattern, watchers in config.watchers.items():
-                if '*' in pattern or '?' in pattern:
+                if "*" in pattern or "?" in pattern:
                     import fnmatch
+
                     if fnmatch.fnmatch(key, pattern):
                         for watcher in watchers:
                             try:
@@ -396,11 +398,11 @@ class IsolatedContextManager:
         self._lock = threading.RLock()
 
     def create_isolated_context(
-        self,
-        base_config: Optional[Dict[str, Any]] = None
+        self, base_config: Optional[Dict[str, Any]] = None
     ) -> str:
         """Create an isolated context with no inheritance"""
         import uuid
+
         context_id = f"isolated_{uuid.uuid4().hex[:8]}"
 
         with self._lock:
@@ -434,11 +436,13 @@ class ThreadLocalContextManager:
     def __init__(self):
         self.logger = get_logger(self.__class__.__name__)
         self.thread_contexts = threading.local()
-        self._global_registry: weakref.WeakValueDictionary = weakref.WeakValueDictionary()
+        self._global_registry: weakref.WeakValueDictionary = (
+            weakref.WeakValueDictionary()
+        )
 
     def get_thread_context(self) -> Optional[Dict[str, Any]]:
         """Get current thread's context"""
-        if hasattr(self.thread_contexts, 'config'):
+        if hasattr(self.thread_contexts, "config"):
             return self.thread_contexts.config
         return None
 
@@ -449,8 +453,8 @@ class ThreadLocalContextManager:
 
     def clear_thread_context(self):
         """Clear current thread's context"""
-        if hasattr(self.thread_contexts, 'config'):
-            delattr(self.thread_contexts, 'config')
+        if hasattr(self.thread_contexts, "config"):
+            delattr(self.thread_contexts, "config")
 
     @contextmanager
     def thread_context(self, config: Dict[str, Any]):
@@ -507,8 +511,7 @@ class CachingContextManager:
         """Invalidate all cached values for context"""
         with self._lock:
             keys_to_remove = [
-                k for k in self.cache.keys()
-                if k.startswith(f"{context_id}:")
+                k for k in self.cache.keys() if k.startswith(f"{context_id}:")
             ]
 
             for key in keys_to_remove:
@@ -519,12 +522,16 @@ class CachingContextManager:
         total_requests = self.hit_count + self.miss_count
 
         return {
-            'size': len(self.cache),
-            'max_size': self.max_size,
-            'hit_count': self.hit_count,
-            'miss_count': self.miss_count,
-            'hit_rate': (self.hit_count / total_requests * 100) if total_requests > 0 else 0,
-            'utilization': (len(self.cache) / self.max_size * 100) if self.max_size > 0 else 0
+            "size": len(self.cache),
+            "max_size": self.max_size,
+            "hit_count": self.hit_count,
+            "miss_count": self.miss_count,
+            "hit_rate": (
+                (self.hit_count / total_requests * 100) if total_requests > 0 else 0
+            ),
+            "utilization": (
+                (len(self.cache) / self.max_size * 100) if self.max_size > 0 else 0
+            ),
         }
 
 
@@ -548,14 +555,13 @@ class ContextStrategy(IConfigStrategy):
 
     def load(self, source: Any, **kwargs) -> Dict[str, Any]:
         """Load configuration into context"""
-        context_scope = kwargs.get('context_scope', ContextScope.TEMPORARY)
-        context_id = kwargs.get('context_id')
+        context_scope = kwargs.get("context_scope", ContextScope.TEMPORARY)
+        context_id = kwargs.get("context_id")
 
         if not context_id:
             # Create new context
             context_id = self.hierarchy_manager.create_context(
-                context_scope,
-                ttl=kwargs.get('ttl')
+                context_scope, ttl=kwargs.get("ttl")
             )
 
         # Load config into context
@@ -577,9 +583,7 @@ class ContextStrategy(IConfigStrategy):
         if context:
             # Apply context-specific overrides
             overrides = self.scoped_manager.get_config(
-                context,
-                'transformations.overrides',
-                inherit=True
+                context, "transformations.overrides", inherit=True
             )
 
             if overrides:
@@ -592,31 +596,29 @@ class ContextStrategy(IConfigStrategy):
         scope: ContextScope = ContextScope.TEMPORARY,
         parent: Optional[str] = None,
         isolated: bool = False,
-        **kwargs
+        **kwargs,
     ) -> str:
         """Create a new configuration context"""
         if isolated:
             return self.isolated_manager.create_isolated_context(
-                kwargs.get('base_config')
+                kwargs.get("base_config")
             )
-        else:
-            return self.hierarchy_manager.create_context(
-                scope,
-                parent_id=parent,
-                **kwargs
-            )
+        return self.hierarchy_manager.create_context(scope, parent_id=parent, **kwargs)
 
     def get_current_context(self) -> Optional[str]:
         """Get current active context"""
         # Check thread-local stack
-        if hasattr(self.hierarchy_manager.context_stack, 'stack'):
+        if hasattr(self.hierarchy_manager.context_stack, "stack"):
             stack = self.hierarchy_manager.context_stack.stack
             if stack:
                 return stack[-1]
 
         # Check for global context
         for ctx_id, metadata in self.hierarchy_manager.contexts.items():
-            if metadata.scope == ContextScope.GLOBAL and metadata.lifecycle == ContextLifecycle.ACTIVE:
+            if (
+                metadata.scope == ContextScope.GLOBAL
+                and metadata.lifecycle == ContextLifecycle.ACTIVE
+            ):
                 return ctx_id
 
         return None
@@ -624,7 +626,7 @@ class ContextStrategy(IConfigStrategy):
     def with_context(self, context_id: str, operation: Callable) -> Any:
         """Execute operation within specified context"""
         # Push context
-        if not hasattr(self.hierarchy_manager.context_stack, 'stack'):
+        if not hasattr(self.hierarchy_manager.context_stack, "stack"):
             self.hierarchy_manager.context_stack.stack = []
 
         self.hierarchy_manager.context_stack.stack.append(context_id)
@@ -646,7 +648,7 @@ class ContextStrategy(IConfigStrategy):
         self,
         key: Optional[str] = None,
         context: Optional[str] = None,
-        default: Any = None
+        default: Any = None,
     ) -> Any:
         """Get configuration value from context"""
         context_id = context or self.get_current_context()
@@ -669,13 +671,7 @@ class ContextStrategy(IConfigStrategy):
 
         return value if value is not None else default
 
-    def set_config(
-        self,
-        key: str,
-        value: Any,
-        context: Optional[str] = None,
-        **kwargs
-    ):
+    def set_config(self, key: str, value: Any, context: Optional[str] = None, **kwargs):
         """Set configuration value in context"""
         context_id = context or self.get_current_context()
 
@@ -694,7 +690,7 @@ class ContextStrategy(IConfigStrategy):
         self.cache_manager.invalidate_context(context_id)
 
         # Close context
-        if context_id.startswith('isolated_'):
+        if context_id.startswith("isolated_"):
             self.isolated_manager.close_isolated_context(context_id)
         else:
             self.hierarchy_manager.close_context(context_id)
@@ -704,7 +700,11 @@ class ContextStrategy(IConfigStrategy):
         result = config.copy()
 
         for key, value in overrides.items():
-            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
                 result[key] = self._apply_overrides(result[key], value)
             else:
                 result[key] = value
@@ -714,11 +714,11 @@ class ContextStrategy(IConfigStrategy):
     def get_statistics(self) -> Dict[str, Any]:
         """Get context strategy statistics"""
         return {
-            'active_contexts': len(self.hierarchy_manager.contexts),
-            'isolated_contexts': len(self.isolated_manager.isolated_contexts),
-            'cache_stats': self.cache_manager.get_statistics(),
-            'contexts_by_scope': self._count_by_scope(),
-            'contexts_by_lifecycle': self._count_by_lifecycle()
+            "active_contexts": len(self.hierarchy_manager.contexts),
+            "isolated_contexts": len(self.isolated_manager.isolated_contexts),
+            "cache_stats": self.cache_manager.get_statistics(),
+            "contexts_by_scope": self._count_by_scope(),
+            "contexts_by_lifecycle": self._count_by_lifecycle(),
         }
 
     def _count_by_scope(self) -> Dict[str, int]:
@@ -740,9 +740,9 @@ class ContextStrategy(IConfigStrategy):
 
 # Export main components
 __all__ = [
-    'ContextStrategy',
-    'ContextScope',
-    'ContextLifecycle',
-    'HierarchicalContextManager',
-    'ScopedConfigManager'
+    "ContextLifecycle",
+    "ContextScope",
+    "ContextStrategy",
+    "HierarchicalContextManager",
+    "ScopedConfigManager",
 ]

@@ -6,18 +6,21 @@ Focused test script to verify specific fixes in claude-mpm v4.4.2:
 3. Clean system startup
 """
 
-import os
-import sys
-import subprocess
-import tempfile
-import shutil
-from pathlib import Path
 import logging
+import os
 import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
+
 
 class SpecificFixesTester:
     def __init__(self):
@@ -48,7 +51,7 @@ class SpecificFixesTester:
         pathresolver_patterns = [
             r"PathResolver.*logger.*attribute",
             r"AttributeError.*logger.*PathResolver",
-            r"PathResolver.*has no attribute.*logger"
+            r"PathResolver.*has no attribute.*logger",
         ]
         for pattern in pathresolver_patterns:
             if re.search(pattern, combined_output, re.IGNORECASE):
@@ -86,7 +89,7 @@ class SpecificFixesTester:
         logger.info(f"Command: {' '.join(cmd)}")
 
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
 
             logger.info(f"Return code: {result.returncode}")
             if result.stdout:
@@ -103,33 +106,28 @@ class SpecificFixesTester:
             logger.error(f"Command timed out: {' '.join(cmd)}")
             return None
         except Exception as e:
-            logger.error(f"Command failed with exception: {' '.join(cmd)} - {str(e)}")
+            logger.error(f"Command failed with exception: {' '.join(cmd)} - {e!s}")
             return None
 
     def test_version_command(self):
         """Test claude-mpm --version for clean output"""
         logger.info("\n=== Testing version command for clean output ===")
         result = self.run_command_and_analyze(
-            ["claude-mpm", "--version"],
-            "Version command"
+            ["claude-mpm", "--version"], "Version command"
         )
         return result is not None
 
     def test_help_command(self):
         """Test claude-mpm --help for clean output"""
         logger.info("\n=== Testing help command for clean output ===")
-        result = self.run_command_and_analyze(
-            ["claude-mpm", "--help"],
-            "Help command"
-        )
+        result = self.run_command_and_analyze(["claude-mpm", "--help"], "Help command")
         return result is not None
 
     def test_list_agents_command(self):
         """Test claude-mpm list agents for clean output"""
         logger.info("\n=== Testing list agents command for clean output ===")
         result = self.run_command_and_analyze(
-            ["claude-mpm", "agents", "list"],
-            "List agents command"
+            ["claude-mpm", "agents", "list"], "List agents command"
         )
         return result is not None
 
@@ -137,8 +135,7 @@ class SpecificFixesTester:
         """Test claude-mpm doctor for clean output"""
         logger.info("\n=== Testing doctor command for clean output ===")
         result = self.run_command_and_analyze(
-            ["claude-mpm", "doctor"],
-            "Doctor command"
+            ["claude-mpm", "doctor"], "Doctor command"
         )
         return result is not None
 
@@ -146,8 +143,7 @@ class SpecificFixesTester:
         """Test claude-mpm mpm-init for clean output"""
         logger.info("\n=== Testing mpm-init command for clean output ===")
         result = self.run_command_and_analyze(
-            ["claude-mpm", "mpm-init"],
-            "MPM-init command"
+            ["claude-mpm", "mpm-init"], "MPM-init command"
         )
         return result is not None
 
@@ -179,7 +175,9 @@ class SpecificFixesTester:
 
             # PathResolver errors
             if self.pathresolver_errors:
-                logger.error(f"❌ PathResolver logger attribute errors found ({len(self.pathresolver_errors)}):")
+                logger.error(
+                    f"❌ PathResolver logger attribute errors found ({len(self.pathresolver_errors)}):"
+                )
                 for error in self.pathresolver_errors:
                     logger.error(f"  - {error}")
             else:
@@ -187,7 +185,9 @@ class SpecificFixesTester:
 
             # MCP warnings at INFO level
             if self.mcp_warnings:
-                logger.warning(f"⚠️  MCP service warnings at INFO level found ({len(self.mcp_warnings)}):")
+                logger.warning(
+                    f"⚠️  MCP service warnings at INFO level found ({len(self.mcp_warnings)}):"
+                )
                 for warning in self.mcp_warnings:
                     logger.warning(f"  - {warning}")
             else:
@@ -202,10 +202,14 @@ class SpecificFixesTester:
                 logger.info("✅ No other critical issues found")
 
             # Overall assessment
-            total_issues = len(self.pathresolver_errors) + len(self.mcp_warnings) + len(self.other_issues)
+            total_issues = (
+                len(self.pathresolver_errors)
+                + len(self.mcp_warnings)
+                + len(self.other_issues)
+            )
             critical_issues = len(self.pathresolver_errors)
 
-            logger.info(f"\n=== SUMMARY ===")
+            logger.info("\n=== SUMMARY ===")
             logger.info(f"Total issues found: {total_issues}")
             logger.info(f"Critical PathResolver issues: {critical_issues}")
             logger.info(f"MCP warning issues: {len(self.mcp_warnings)}")
@@ -216,20 +220,22 @@ class SpecificFixesTester:
                 if len(self.mcp_warnings) == 0:
                     logger.info("🎉 EXCELLENT: No MCP warning issues either!")
                     return True
-                else:
-                    logger.info("✅ GOOD: PathResolver fixes working, but MCP warnings still present")
-                    return True
-            else:
-                logger.error("❌ FAILURE: PathResolver errors still present")
-                return False
+                logger.info(
+                    "✅ GOOD: PathResolver fixes working, but MCP warnings still present"
+                )
+                return True
+            logger.error("❌ FAILURE: PathResolver errors still present")
+            return False
 
         finally:
             self.cleanup_test_environment()
+
 
 def main():
     tester = SpecificFixesTester()
     success = tester.run_all_tests()
     sys.exit(0 if success else 1)
+
 
 if __name__ == "__main__":
     main()

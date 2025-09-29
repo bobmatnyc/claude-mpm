@@ -267,7 +267,7 @@ claude-mpm check-health [options] # alias
 - `installation` - Verify Claude MPM installation and dependencies
 - `configuration` - Check configuration files and settings
 - `filesystem` - Validate directory structure and permissions
-- `claude` - Test Claude Desktop integration
+- `claude` - Test Claude Code CLI integration
 - `agents` - Check agent deployments and availability
 - `mcp` - Verify MCP server configuration and connectivity
 - `monitor` - Check monitoring service status
@@ -304,6 +304,78 @@ claude-mpm doctor --json | jq '.checks[] | select(.status == "error")'
 ```
 
 For detailed information, see the [Doctor Command Guide](../doctor-command.md).
+
+### `claude-mpm verify`
+
+Verify MCP services installation and configuration with comprehensive health checks.
+
+```bash
+claude-mpm verify [options]
+```
+
+**Options:**
+- `--fix` - Attempt to automatically fix detected issues
+- `--service SERVICE` - Verify a specific service only
+- `--json` - Output results in JSON format
+
+**Available services for `--service` option:**
+- `mcp-vector-search` - Vector search service for code indexing
+- `mcp-browser` - Browser automation service
+- `mcp-ticketer` - Ticket management service
+- `kuzu-memory` - Knowledge graph memory service
+
+**Examples:**
+```bash
+# Verify all MCP services
+claude-mpm verify
+
+# Auto-fix detected issues
+claude-mpm verify --fix
+
+# Verify specific service
+claude-mpm verify --service kuzu-memory
+
+# Get JSON output for automation
+claude-mpm verify --json
+
+# Combine specific service with auto-fix
+claude-mpm verify --service mcp-vector-search --fix
+```
+
+**What it checks:**
+- Service installation status and availability
+- Configuration file validity
+- Command execution capability
+- Service-specific requirements and dependencies
+- Startup verification issues
+
+**Exit codes:**
+- `0` - All verified services are fully operational
+- `1` - One or more services have issues
+- `2` - Verification failed due to errors
+
+**Auto-fix capabilities:**
+- Install missing MCP services via pipx
+- Fix common configuration issues
+- Repair service registry entries
+- Update service paths and commands
+
+**JSON output format:**
+```json
+{
+  "service-name": {
+    "status": "working|missing|broken",
+    "message": "Status description",
+    "installed_path": "/path/to/service",
+    "configured_command": "service command",
+    "fix_command": "command to fix issues",
+    "details": "Additional diagnostic details"
+  }
+}
+```
+
+**Startup verification:**
+Claude MPM automatically runs verification checks on startup and displays warnings for any MCP service issues. Use the verify command for detailed diagnostics and repair options.
 
 ## Environment Variables
 

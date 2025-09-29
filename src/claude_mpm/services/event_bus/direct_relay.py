@@ -18,9 +18,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
+from claude_mpm.core.logging_utils import get_logger
+
 from .event_bus import EventBus
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

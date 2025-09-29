@@ -56,8 +56,16 @@ class TestLoggingConfig:
     def test_component_names(self):
         """Test component namespace mappings."""
         expected_components = {
-            "agent", "service", "core", "cli", "hooks",
-            "monitor", "socketio", "memory", "config", "utils"
+            "agent",
+            "service",
+            "core",
+            "cli",
+            "hooks",
+            "monitor",
+            "socketio",
+            "memory",
+            "config",
+            "utils",
         }
         assert set(LoggingConfig.COMPONENT_NAMES.keys()) == expected_components
 
@@ -163,7 +171,7 @@ class TestConvenienceFunctions:
                 log_level="DEBUG",
                 log_dir=Path(tmpdir),
                 log_to_file=True,
-                log_format=LoggingConfig.SIMPLE_FORMAT
+                log_format=LoggingConfig.SIMPLE_FORMAT,
             )
             assert LoggerFactory._initialized is True
             assert LoggerFactory._log_level == "DEBUG"
@@ -254,7 +262,7 @@ class TestPerformanceLogger:
         duration = perf_logger.end_timer("nonexistent")
         assert duration == 0.0
 
-    @mock.patch('psutil.Process')
+    @mock.patch("psutil.Process")
     def test_log_memory_usage(self, mock_process, caplog):
         """Test memory usage logging."""
         # Mock memory info
@@ -275,11 +283,7 @@ class TestPerformanceLogger:
         """Test metrics logging."""
         perf_logger = get_performance_logger("test_perf")
 
-        metrics = {
-            "requests": 100,
-            "errors": 2,
-            "latency_ms": 45.5
-        }
+        metrics = {"requests": 100, "errors": 2, "latency_ms": 45.5}
 
         with caplog.at_level(logging.INFO):
             perf_logger.log_metrics(metrics, "api_endpoint")

@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 from claude_mpm.core.logging_utils import get_logger
+
 logger = get_logger(__name__)
 
 

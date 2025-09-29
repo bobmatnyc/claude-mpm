@@ -18,15 +18,15 @@ Created: 2025-01-26
 
 import difflib
 import hashlib
-import json
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Tuple
 
 from rich.console import Console
 
 from claude_mpm.core.logging_utils import get_logger
+
 logger = get_logger(__name__)
 console = Console()
 
@@ -70,7 +70,9 @@ class DocumentationManager:
         if self.claude_md_path.exists():
             self.existing_content = self.claude_md_path.read_text(encoding="utf-8")
             self.content_hash = hashlib.md5(self.existing_content.encode()).hexdigest()
-            logger.info(f"Loaded existing CLAUDE.md ({len(self.existing_content)} chars)")
+            logger.info(
+                f"Loaded existing CLAUDE.md ({len(self.existing_content)} chars)"
+            )
 
     def has_existing_documentation(self) -> bool:
         """Check if project has existing CLAUDE.md."""
@@ -118,15 +120,17 @@ class DocumentationManager:
             if line.startswith("#"):
                 # Save previous section if exists
                 if current_section:
-                    sections.append({
-                        "title": current_section,
-                        "level": current_level,
-                        "start_line": section_start,
-                        "end_line": i - 1,
-                        "content_preview": self._get_content_preview(
-                            lines[section_start:i]
-                        ),
-                    })
+                    sections.append(
+                        {
+                            "title": current_section,
+                            "level": current_level,
+                            "start_line": section_start,
+                            "end_line": i - 1,
+                            "content_preview": self._get_content_preview(
+                                lines[section_start:i]
+                            ),
+                        }
+                    )
 
                 # Parse new section
                 level = len(line.split()[0])
@@ -137,13 +141,15 @@ class DocumentationManager:
 
         # Add last section
         if current_section:
-            sections.append({
-                "title": current_section,
-                "level": current_level,
-                "start_line": section_start,
-                "end_line": len(lines) - 1,
-                "content_preview": self._get_content_preview(lines[section_start:]),
-            })
+            sections.append(
+                {
+                    "title": current_section,
+                    "level": current_level,
+                    "start_line": section_start,
+                    "end_line": len(lines) - 1,
+                    "content_preview": self._get_content_preview(lines[section_start:]),
+                }
+            )
 
         return sections
 
@@ -160,13 +166,18 @@ class DocumentationManager:
 
         if self.existing_content:
             # Check for old patterns
-            if "## Installation" in self.existing_content and "pip install" not in self.existing_content:
+            if (
+                "## Installation" in self.existing_content
+                and "pip install" not in self.existing_content
+            ):
                 patterns.append("Missing installation instructions")
 
             if "TODO" in self.existing_content or "FIXME" in self.existing_content:
                 patterns.append("Contains TODO/FIXME items")
 
-            if not re.search(r"Last Updated:|Last Modified:", self.existing_content, re.IGNORECASE):
+            if not re.search(
+                r"Last Updated:|Last Modified:", self.existing_content, re.IGNORECASE
+            ):
                 patterns.append("Missing update timestamp")
 
             if "```" not in self.existing_content:
@@ -193,12 +204,16 @@ class DocumentationManager:
         custom = []
         for section in sections:
             title_lower = section["title"].lower()
-            if not any(re.search(pattern, title_lower) for pattern in standard_patterns):
+            if not any(
+                re.search(pattern, title_lower) for pattern in standard_patterns
+            ):
                 custom.append(section["title"])
 
         return custom
 
-    def merge_with_template(self, new_content: str, preserve_custom: bool = True) -> str:
+    def merge_with_template(
+        self, new_content: str, preserve_custom: bool = True
+    ) -> str:
         """Merge existing content with new template content."""
         if not self.existing_content:
             return new_content
@@ -279,35 +294,37 @@ class DocumentationManager:
         # Map to known section types
         if "priority" in title and "index" in title:
             return "priority_index"
-        elif "critical" in title and "security" in title:
+        if "critical" in title and "security" in title:
             return "critical_security"
-        elif "critical" in title and "business" in title:
+        if "critical" in title and "business" in title:
             return "critical_business"
-        elif "important" in title and "architecture" in title:
+        if "important" in title and "architecture" in title:
             return "important_architecture"
-        elif "important" in title and "workflow" in title:
+        if "important" in title and "workflow" in title:
             return "important_workflow"
-        elif "project" in title and "overview" in title:
+        if "project" in title and "overview" in title:
             return "project_overview"
-        elif "standard" in title and "coding" in title:
+        if "standard" in title and "coding" in title:
             return "standard_coding"
-        elif "standard" in title and "tasks" in title:
+        if "standard" in title and "tasks" in title:
             return "standard_tasks"
-        elif "documentation" in title:
+        if "documentation" in title:
             return "documentation_links"
-        elif "optional" in title or "future" in title:
+        if "optional" in title or "future" in title:
             return "optional_future"
-        elif "meta" in title or "maintain" in title:
+        if "meta" in title or "maintain" in title:
             return "meta_maintenance"
-        else:
-            return "unknown"
+        return "unknown"
 
     def _merge_section_content(
         self, existing: str, new: str, section_header: str
     ) -> str:
         """Merge content from existing and new sections."""
         # For critical sections, prefer new content but append unique existing items
-        if "critical" in section_header.lower() or "important" in section_header.lower():
+        if (
+            "critical" in section_header.lower()
+            or "important" in section_header.lower()
+        ):
             # Extract bullet points from both
             existing_items = self._extract_bullet_points(existing)
             new_items = self._extract_bullet_points(new)
@@ -321,13 +338,11 @@ class DocumentationManager:
             # Reconstruct section
             if all_items:
                 return "\n".join([""] + all_items + [""])
-            else:
-                return new
-        else:
-            # For other sections, use new as base and append existing
-            if existing.strip() and existing.strip() != new.strip():
-                return f"{new}\n\n<!-- Preserved from previous version -->\n{existing}"
             return new
+        # For other sections, use new as base and append existing
+        if existing.strip() and existing.strip() != new.strip():
+            return f"{new}\n\n<!-- Preserved from previous version -->\n{existing}"
+        return new
 
     def _extract_bullet_points(self, content: str) -> List[str]:
         """Extract bullet points from content."""
@@ -343,7 +358,9 @@ class DocumentationManager:
         for existing in items:
             existing_clean = re.sub(r"[^a-zA-Z0-9\s]", "", existing.lower())
             # Use fuzzy matching for similarity
-            similarity = difflib.SequenceMatcher(None, item_clean, existing_clean).ratio()
+            similarity = difflib.SequenceMatcher(
+                None, item_clean, existing_clean
+            ).ratio()
             if similarity > 0.8:  # 80% similarity threshold
                 return True
         return False
@@ -464,7 +481,9 @@ class DocumentationManager:
                 issues.append(f"Missing required section: {section}")
 
         # Check for priority markers
-        has_markers = any(marker in content for marker in self.PRIORITY_MARKERS.values())
+        has_markers = any(
+            marker in content for marker in self.PRIORITY_MARKERS.values()
+        )
         if not has_markers:
             issues.append("No priority markers found (🔴🟡🟢⚪)")
 

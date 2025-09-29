@@ -46,8 +46,8 @@ class MCPInstallCommands:
                 print("\nPlease install manually with: pip install mcp")
                 return 1
 
-        # Step 2: Configure Claude Desktop with the new CLI command
-        print("\n2️⃣  Configuring Claude Desktop...")
+        # Step 2: Configure Claude Code with the new CLI command
+        print("\n2️⃣  Configuring Claude Code...")
         try:
             success = self._configure_claude_desktop(args.force)
             if not success:
@@ -72,7 +72,7 @@ class MCPInstallCommands:
                 # Install Python packages for external services
                 external_setup.check_and_install_pip_packages()
 
-                # Setup external services in Claude Desktop config
+                # Setup external services in Claude Code config
                 if external_setup.setup_external_services(force=args.force):
                     print("✅ External services configured successfully")
                 else:
@@ -86,7 +86,7 @@ class MCPInstallCommands:
             print("\n✅ Configuration completed successfully")
             print("\n🎉 MCP Gateway is ready to use!")
             print("\nNext steps:")
-            print("1. Restart Claude Desktop (if running)")
+            print("1. Restart Claude Code (if running)")
             print("2. Test the server: claude-mpm mcp server --test")
             print("3. Check status: claude-mpm mcp status")
             print("4. List external services: claude-mpm mcp external list")
@@ -97,9 +97,9 @@ class MCPInstallCommands:
             return 1
 
     def _configure_claude_desktop(self, force=False):
-        """Configure Claude Desktop to use the MCP gateway via CLI command.
+        """Configure Claude Code to use the MCP gateway via CLI command.
 
-        WHY: Claude Desktop reads MCP server configurations from a platform-specific
+        WHY: Claude Code reads MCP server configurations from a platform-specific
         configuration file. This method updates that file to include the claude-mpm-gateway
         server configuration.
 
@@ -166,14 +166,14 @@ class MCPInstallCommands:
         return self._save_config(config, config_path)
 
     def _get_claude_config_path(self):
-        """Get the Claude Desktop configuration file path.
+        """Get the Claude Code configuration file path.
 
         Returns:
-            Path or None: Path to Claude Desktop config file
+            Path or None: Path to Claude Code config file
         """
         import platform
 
-        # Try multiple possible locations for Claude Desktop config
+        # Try multiple possible locations for Claude Code config
         possible_paths = [
             Path.home()
             / "Library"

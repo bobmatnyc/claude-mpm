@@ -64,6 +64,63 @@ claude-mpm init
 claude-mpm init --force
 ```
 
+### `claude-mpm doctor`
+
+Run comprehensive diagnostics on your Claude MPM installation with enhanced reporting capabilities.
+
+```bash
+claude-mpm doctor [OPTIONS]
+claude-mpm diagnose [OPTIONS]     # alias
+claude-mpm check-health [OPTIONS] # alias
+```
+
+**Options:**
+- `--verbose, -v`: Show detailed diagnostic information including internal checks and debug details
+- `--json`: Output results in JSON format for programmatic processing
+- `--markdown`: Output results in comprehensive Markdown format
+- `--no-color`: Disable colored output for terminal compatibility
+- `--output FILE, -o FILE`: Save output to specified file
+- `--output-file [PATH]`: Save comprehensive report to file (defaults to `mpm-doctor-report.md` when used without path)
+- `--checks CHECKS`: Run only specific check categories (installation, configuration, filesystem, claude, agents, mcp, monitor, common)
+- `--parallel`: Run checks in parallel for faster execution (experimental)
+- `--fix`: Attempt to automatically fix detected issues (experimental)
+
+**Examples:**
+```bash
+# Basic health check
+claude-mpm doctor
+
+# Detailed diagnostics with verbose output
+claude-mpm doctor --verbose
+
+# Generate comprehensive markdown report
+claude-mpm doctor --verbose --output-file
+
+# Create report with custom filename
+claude-mpm doctor --verbose --output-file system-health-report.md
+
+# JSON output for automation
+claude-mpm doctor --json --output system-status.json
+
+# Check specific components only
+claude-mpm doctor --checks installation configuration agents
+
+# Attempt automatic fixes
+claude-mpm doctor --fix --verbose
+
+# Fast parallel execution
+claude-mpm doctor --parallel --no-color
+
+# Terminal-safe output for CI/CD
+claude-mpm doctor --no-color --json
+```
+
+**Exit Codes:**
+- `0`: All checks passed successfully
+- `1`: Warnings found but no critical errors
+- `2`: Critical errors detected requiring attention
+- `130`: Interrupted by user (Ctrl+C)
+
 ## Agent Manager Commands
 
 The `agent-manager` command provides comprehensive agent lifecycle management.
@@ -625,6 +682,24 @@ claude-mpm agent-manager deploy-local --agent-id test-analyzer --force
 ```
 
 ## Troubleshooting Commands
+
+### System Health Diagnostics
+```bash
+# Comprehensive system health check
+claude-mpm doctor
+
+# Detailed diagnostics with report generation
+claude-mpm doctor --verbose --output-file
+
+# Quick targeted checks
+claude-mpm doctor --checks installation configuration
+
+# Attempt automatic fixes
+claude-mpm doctor --fix --verbose
+
+# JSON output for monitoring systems
+claude-mpm doctor --json --output system-health.json
+```
 
 ### Check Agent Status
 ```bash

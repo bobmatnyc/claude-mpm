@@ -31,6 +31,7 @@ class TestArchiveManager(unittest.TestCase):
     def tearDown(self):
         """Clean up test environment."""
         import shutil
+
         shutil.rmtree(self.test_dir)
 
     def test_archive_file_with_metadata(self):
@@ -61,6 +62,7 @@ class TestArchiveManager(unittest.TestCase):
         """Test listing archives."""
         # Create multiple archives
         import time
+
         for i in range(3):
             self.test_file.write_text(f"Version {i}")
             self.manager.archive_file(self.test_file, reason=f"Version {i}")
@@ -81,7 +83,9 @@ class TestArchiveManager(unittest.TestCase):
         original_content = self.test_file.read_text()
 
         # Archive original
-        archive_result = self.manager.archive_file(self.test_file, reason="Before change")
+        archive_result = self.manager.archive_file(
+            self.test_file, reason="Before change"
+        )
         self.assertIsNotNone(archive_result)
 
         # Get the archive name immediately after creation
@@ -95,7 +99,9 @@ class TestArchiveManager(unittest.TestCase):
         self.test_file.unlink()
 
         # Restore using the specific archive name
-        success, message = self.manager.restore_archive(archive_name, target_path=self.test_file)
+        success, message = self.manager.restore_archive(
+            archive_name, target_path=self.test_file
+        )
         self.assertTrue(success)
         self.assertIn("Successfully restored", message)
 
@@ -132,7 +138,7 @@ class TestArchiveManager(unittest.TestCase):
         archives = self.manager.list_archives("test_doc.md")
         self.assertLessEqual(len(archives), self.manager.MAX_ARCHIVES)
 
-    @patch.object(ArchiveManager, '_run_git_command')
+    @patch.object(ArchiveManager, "_run_git_command")
     def test_git_history_integration(self, mock_git):
         """Test Git history integration."""
         # Set git repo flag
@@ -151,19 +157,21 @@ class TestArchiveManager(unittest.TestCase):
         self.assertEqual(history[0]["author"], "John Doe")
         self.assertIn("initial commit", history[0]["message"])
 
-    @patch.object(ArchiveManager, '_run_git_command')
+    @patch.object(ArchiveManager, "_run_git_command")
     def test_documentation_review(self, mock_git):
         """Test documentation review with outdated detection."""
         # Create test documentation
         claude_md = self.test_dir / "CLAUDE.md"
-        claude_md.write_text("""
+        claude_md.write_text(
+            """
 # Claude MPM v3.0.0
 
 TODO: Update this section
 This is deprecated functionality
 Coming soon in future release
 Temporary workaround for issue
-        """)
+        """
+        )
 
         # Mock git history
         mock_git.return_value = "abc12345|Test|1704067200|test commit"
@@ -214,7 +222,8 @@ Temporary workaround for issue
         """Test auto-detection of outdated documentation."""
         # Create outdated documentation
         old_doc = self.test_dir / "CLAUDE.md"
-        old_doc.write_text("""
+        old_doc.write_text(
+            """
 # Old Documentation
 
 TODO: Fix this
@@ -229,7 +238,8 @@ TODO: Refactor this
 FIXME: Known bug
 XXX: Bad code
 Workaround for problem
-        """)
+        """
+        )
 
         result = self.manager.auto_detect_and_archive_outdated(dry_run=True)
 
@@ -279,6 +289,7 @@ Workaround for problem
 
         old_time = datetime.now() - timedelta(days=10)
         import os
+
         os.utime(archive_path, (old_time.timestamp(), old_time.timestamp()))
 
         # Create another archive to trigger cleanup
@@ -316,10 +327,7 @@ class TestArchiveManagerGitIntegration(unittest.TestCase):
         self.project_dir = Path.cwd()
         self.manager = ArchiveManager(self.project_dir)
 
-    @unittest.skipUnless(
-        (Path.cwd() / ".git").exists(),
-        "Requires Git repository"
-    )
+    @unittest.skipUnless((Path.cwd() / ".git").exists(), "Requires Git repository")
     def test_real_git_history(self):
         """Test with real Git history."""
         # Test on CLAUDE.md which should exist
@@ -333,10 +341,7 @@ class TestArchiveManagerGitIntegration(unittest.TestCase):
                 self.assertIn("date", history[0])
                 self.assertIn("message", history[0])
 
-    @unittest.skipUnless(
-        (Path.cwd() / ".git").exists(),
-        "Requires Git repository"
-    )
+    @unittest.skipUnless((Path.cwd() / ".git").exists(), "Requires Git repository")
     def test_real_documentation_review(self):
         """Test documentation review on real project."""
         review = self.manager.review_documentation()

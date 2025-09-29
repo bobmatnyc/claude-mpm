@@ -16,15 +16,15 @@ Author: Claude MPM Development Team
 Created: 2025-01-26
 """
 
-import json
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional
 
 from rich.console import Console
 
 from claude_mpm.core.logging_utils import get_logger
+
 logger = get_logger(__name__)
 console = Console()
 
@@ -77,12 +77,14 @@ class EnhancedProjectAnalyzer:
         since_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
 
         # Get commit log with structured format
-        output = self._run_git_command([
-            "log",
-            f"--since={since_date}",
-            "--pretty=format:%H|%an|%ae|%at|%s",
-            "--no-merges",
-        ])
+        output = self._run_git_command(
+            [
+                "log",
+                f"--since={since_date}",
+                "--pretty=format:%H|%an|%ae|%at|%s",
+                "--no-merges",
+            ]
+        )
 
         if not output:
             return []
@@ -91,13 +93,15 @@ class EnhancedProjectAnalyzer:
         for line in output.splitlines():
             parts = line.split("|", 4)
             if len(parts) == 5:
-                commits.append({
-                    "hash": parts[0][:8],
-                    "author": parts[1],
-                    "email": parts[2],
-                    "timestamp": datetime.fromtimestamp(int(parts[3])).isoformat(),
-                    "message": parts[4],
-                })
+                commits.append(
+                    {
+                        "hash": parts[0][:8],
+                        "author": parts[1],
+                        "email": parts[2],
+                        "timestamp": datetime.fromtimestamp(int(parts[3])).isoformat(),
+                        "message": parts[4],
+                    }
+                )
 
         return commits[:50]  # Limit to 50 most recent
 
@@ -105,13 +109,15 @@ class EnhancedProjectAnalyzer:
         """Get files changed in recent commits."""
         since_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
 
-        output = self._run_git_command([
-            "log",
-            f"--since={since_date}",
-            "--pretty=format:",
-            "--name-only",
-            "--no-merges",
-        ])
+        output = self._run_git_command(
+            [
+                "log",
+                f"--since={since_date}",
+                "--pretty=format:",
+                "--name-only",
+                "--no-merges",
+            ]
+        )
 
         if not output:
             return {}
@@ -134,13 +140,15 @@ class EnhancedProjectAnalyzer:
         """Get files added in recent commits."""
         since_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
 
-        output = self._run_git_command([
-            "log",
-            f"--since={since_date}",
-            "--pretty=format:",
-            "--name-status",
-            "--diff-filter=A",  # Added files only
-        ])
+        output = self._run_git_command(
+            [
+                "log",
+                f"--since={since_date}",
+                "--pretty=format:",
+                "--name-status",
+                "--diff-filter=A",  # Added files only
+            ]
+        )
 
         if not output:
             return []
@@ -156,12 +164,14 @@ class EnhancedProjectAnalyzer:
         """Get author contribution statistics."""
         since_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
 
-        output = self._run_git_command([
-            "shortlog",
-            "-sne",
-            f"--since={since_date}",
-            "--no-merges",
-        ])
+        output = self._run_git_command(
+            [
+                "shortlog",
+                "-sne",
+                f"--since={since_date}",
+                "--no-merges",
+            ]
+        )
 
         if not output:
             return {}
@@ -201,10 +211,12 @@ class EnhancedProjectAnalyzer:
             for line in remotes.splitlines():
                 parts = line.split()
                 if len(parts) >= 2:
-                    info["remotes"].append({
-                        "name": parts[0],
-                        "url": parts[1],
-                    })
+                    info["remotes"].append(
+                        {
+                            "name": parts[0],
+                            "url": parts[1],
+                        }
+                    )
 
         # Check for uncommitted changes
         status = self._run_git_command(["status", "--porcelain"])
@@ -223,12 +235,15 @@ class EnhancedProjectAnalyzer:
 
         doc_changes = {}
         for pattern in doc_patterns:
-            output = self._run_git_command([
-                "log",
-                f"--since={since_date}",
-                "--pretty=format:%H|%s",
-                "--", pattern,
-            ])
+            output = self._run_git_command(
+                [
+                    "log",
+                    f"--since={since_date}",
+                    "--pretty=format:%H|%s",
+                    "--",
+                    pattern,
+                ]
+            )
 
             if output:
                 for line in output.splitlines():
@@ -236,29 +251,38 @@ class EnhancedProjectAnalyzer:
                     if len(parts) == 2:
                         if pattern not in doc_changes:
                             doc_changes[pattern] = []
-                        doc_changes[pattern].append({
-                            "commit": parts[0][:8],
-                            "message": parts[1],
-                        })
+                        doc_changes[pattern].append(
+                            {
+                                "commit": parts[0][:8],
+                                "message": parts[1],
+                            }
+                        )
 
         # Check CLAUDE.md specifically
-        claude_history = self._run_git_command([
-            "log",
-            f"--since={since_date}",
-            "--pretty=format:%H|%at|%s",
-            "--", "CLAUDE.md",
-        ])
+        claude_history = self._run_git_command(
+            [
+                "log",
+                f"--since={since_date}",
+                "--pretty=format:%H|%at|%s",
+                "--",
+                "CLAUDE.md",
+            ]
+        )
 
         claude_updates = []
         if claude_history:
             for line in claude_history.splitlines():
                 parts = line.split("|", 2)
                 if len(parts) == 3:
-                    claude_updates.append({
-                        "commit": parts[0][:8],
-                        "timestamp": datetime.fromtimestamp(int(parts[1])).isoformat(),
-                        "message": parts[2],
-                    })
+                    claude_updates.append(
+                        {
+                            "commit": parts[0][:8],
+                            "timestamp": datetime.fromtimestamp(
+                                int(parts[1])
+                            ).isoformat(),
+                            "message": parts[2],
+                        }
+                    )
 
         return {
             "documentation_commits": doc_changes,
@@ -284,7 +308,9 @@ class EnhancedProjectAnalyzer:
                 patterns["features"].append(commit["message"][:100])
             elif any(kw in msg_lower for kw in ["fix", "bug", "resolve", "patch"]):
                 patterns["fixes"].append(commit["message"][:100])
-            elif any(kw in msg_lower for kw in ["refactor", "restructure", "reorganize"]):
+            elif any(
+                kw in msg_lower for kw in ["refactor", "restructure", "reorganize"]
+            ):
                 patterns["refactoring"].append(commit["message"][:100])
             elif any(kw in msg_lower for kw in ["doc", "readme", "comment"]):
                 patterns["documentation"].append(commit["message"][:100])
@@ -318,12 +344,14 @@ class EnhancedProjectAnalyzer:
         hot_spots = []
         for file_path, change_count in list(changed_files["most_changed"].items())[:10]:
             file_type = Path(file_path).suffix
-            hot_spots.append({
-                "file": file_path,
-                "changes": change_count,
-                "type": file_type,
-                "category": self._categorize_file(file_path),
-            })
+            hot_spots.append(
+                {
+                    "file": file_path,
+                    "changes": change_count,
+                    "type": file_type,
+                    "category": self._categorize_file(file_path),
+                }
+            )
 
         return hot_spots
 
@@ -334,18 +362,17 @@ class EnhancedProjectAnalyzer:
         # Check directory
         if "test" in str(path).lower():
             return "test"
-        elif "docs" in str(path).lower():
+        if "docs" in str(path).lower():
             return "documentation"
-        elif "src" in str(path) or "lib" in str(path):
+        if "src" in str(path) or "lib" in str(path):
             return "source"
-        elif "scripts" in str(path):
+        if "scripts" in str(path):
             return "scripts"
-        elif path.suffix in [".yml", ".yaml", ".json", ".toml", ".ini"]:
+        if path.suffix in [".yml", ".yaml", ".json", ".toml", ".ini"]:
             return "configuration"
-        elif path.suffix in [".md", ".rst", ".txt"]:
+        if path.suffix in [".md", ".rst", ".txt"]:
             return "documentation"
-        else:
-            return "other"
+        return "other"
 
     def detect_project_state(self) -> Dict:
         """Detect the current state and lifecycle phase of the project."""
@@ -371,7 +398,9 @@ class EnhancedProjectAnalyzer:
             indicators.append("Has GitLab CI")
 
         # Check for tests
-        if (self.project_path / "tests").exists() or (self.project_path / "test").exists():
+        if (self.project_path / "tests").exists() or (
+            self.project_path / "test"
+        ).exists():
             indicators.append("Has test directory")
 
         # Check for documentation
@@ -391,33 +420,45 @@ class EnhancedProjectAnalyzer:
                 # Determine phase based on commit count
                 if count < 10:
                     state["phase"] = "initial"
-                    state["recommendations"].append("Focus on establishing core structure")
+                    state["recommendations"].append(
+                        "Focus on establishing core structure"
+                    )
                 elif count < 50:
                     state["phase"] = "early_development"
-                    state["recommendations"].append("Consider adding tests and documentation")
+                    state["recommendations"].append(
+                        "Consider adding tests and documentation"
+                    )
                 elif count < 200:
                     state["phase"] = "active_development"
-                    state["recommendations"].append("Ensure CI/CD and testing are in place")
+                    state["recommendations"].append(
+                        "Ensure CI/CD and testing are in place"
+                    )
                 elif count < 1000:
                     state["phase"] = "maturing"
-                    state["recommendations"].append("Focus on optimization and documentation")
+                    state["recommendations"].append(
+                        "Focus on optimization and documentation"
+                    )
                 else:
                     state["phase"] = "mature"
                     state["recommendations"].append("Maintain backward compatibility")
 
             # Check age
-            first_commit = self._run_git_command([
-                "log", "--reverse", "--format=%at", "-1"
-            ])
+            first_commit = self._run_git_command(
+                ["log", "--reverse", "--format=%at", "-1"]
+            )
             if first_commit:
-                age_days = (datetime.now() - datetime.fromtimestamp(int(first_commit))).days
+                age_days = (
+                    datetime.now() - datetime.fromtimestamp(int(first_commit))
+                ).days
                 indicators.append(f"{age_days} days old")
 
         state["indicators"] = indicators
 
         # Add phase-specific recommendations
         if not (self.project_path / "CLAUDE.md").exists():
-            state["recommendations"].append("Create CLAUDE.md for AI agent documentation")
+            state["recommendations"].append(
+                "Create CLAUDE.md for AI agent documentation"
+            )
         if not (self.project_path / "tests").exists():
             state["recommendations"].append("Add tests directory for test organization")
         if not (self.project_path / ".gitignore").exists():
@@ -474,10 +515,12 @@ class EnhancedProjectAnalyzer:
                 try:
                     size = path.stat().st_size
                     if size > 1024 * 1024:  # Files over 1MB
-                        stats["largest_files"].append({
-                            "path": str(path.relative_to(self.project_path)),
-                            "size_mb": round(size / (1024 * 1024), 2),
-                        })
+                        stats["largest_files"].append(
+                            {
+                                "path": str(path.relative_to(self.project_path)),
+                                "size_mb": round(size / (1024 * 1024), 2),
+                            }
+                        )
                 except (OSError, PermissionError):
                     pass
 

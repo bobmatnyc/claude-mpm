@@ -22,7 +22,6 @@ Features:
 - Recommendation generation
 """
 
-import asyncio
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -111,7 +110,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
             return True
 
         except Exception as e:
-            self._logger.error(f"Failed to initialize: {str(e)}")
+            self._logger.error(f"Failed to initialize: {e!s}")
             return False
 
     async def shutdown(self) -> None:
@@ -228,9 +227,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
                 )
 
             # Execute analysis using strategy
-            self._logger.info(
-                f"Analyzing {target} using {strategy.metadata.name}"
-            )
+            self._logger.info(f"Analyzing {target} using {strategy.metadata.name}")
 
             # Validate input
             validation_errors = strategy.validate_input(target)
@@ -264,11 +261,11 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
             return result
 
         except Exception as e:
-            self._logger.error(f"Analysis error: {str(e)}")
+            self._logger.error(f"Analysis error: {e!s}")
             self._metrics["analysis_errors"] += 1
             return AnalysisResult(
                 success=False,
-                summary=f"Analysis failed: {str(e)}",
+                summary=f"Analysis failed: {e!s}",
                 severity="error",
             )
 
@@ -380,7 +377,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
             }
 
         except Exception as e:
-            self._logger.error(f"Comparison error: {str(e)}")
+            self._logger.error(f"Comparison error: {e!s}")
             return {"success": False, "error": str(e)}
 
     def get_recommendations(
@@ -399,31 +396,37 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
 
         # Basic recommendations from result
         for rec in analysis_result.recommendations:
-            recommendations.append({
-                "type": "general",
-                "description": rec,
-                "priority": "medium",
-            })
+            recommendations.append(
+                {
+                    "type": "general",
+                    "description": rec,
+                    "priority": "medium",
+                }
+            )
 
         # Add severity-based recommendations
         if analysis_result.severity == "critical":
-            recommendations.insert(0, {
-                "type": "urgent",
-                "description": "Critical issues found - immediate attention required",
-                "priority": "high",
-            })
+            recommendations.insert(
+                0,
+                {
+                    "type": "urgent",
+                    "description": "Critical issues found - immediate attention required",
+                    "priority": "high",
+                },
+            )
         elif analysis_result.severity == "error":
-            recommendations.insert(0, {
-                "type": "important",
-                "description": "Errors found - should be addressed soon",
-                "priority": "high",
-            })
+            recommendations.insert(
+                0,
+                {
+                    "type": "important",
+                    "description": "Errors found - should be addressed soon",
+                    "priority": "high",
+                },
+            )
 
         # Add metric-based recommendations
         if analysis_result.metrics:
-            metric_recs = self._generate_metric_recommendations(
-                analysis_result.metrics
-            )
+            metric_recs = self._generate_metric_recommendations(analysis_result.metrics)
             recommendations.extend(metric_recs)
 
         return recommendations
@@ -436,9 +439,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
         # This would be extended with actual strategy implementations
         self._logger.debug("Default strategies registered")
 
-    def _determine_analysis_type(
-        self, target: Any, options: Dict[str, Any]
-    ) -> str:
+    def _determine_analysis_type(self, target: Any, options: Dict[str, Any]) -> str:
         """
         Determine analysis type from target and options.
 
@@ -460,7 +461,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
                 # Determine by file extension
                 if path.suffix in [".py", ".js", ".ts", ".java"]:
                     return "code"
-                elif path.suffix in [".json", ".yaml", ".yml"]:
+                if path.suffix in [".json", ".yaml", ".yml"]:
                     return "config"
             elif path.is_dir():
                 return "project"
@@ -482,7 +483,6 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
     def _aggregate_batch_metrics(self, results: List[AnalysisResult]) -> None:
         """Aggregate metrics from batch analysis."""
         # Implementation would aggregate metrics across results
-        pass
 
     def _compare_metrics(
         self, metrics1: Dict[str, Any], metrics2: Dict[str, Any]
@@ -492,8 +492,8 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
         all_keys = set(metrics1.keys()) | set(metrics2.keys())
 
         for key in all_keys:
-            val1 = metrics1.get(key, None)
-            val2 = metrics2.get(key, None)
+            val1 = metrics1.get(key)
+            val2 = metrics2.get(key)
 
             if val1 != val2:
                 diff[key] = {"target1": val1, "target2": val2}
@@ -518,17 +518,21 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
 
         # Example metric-based recommendations
         if metrics.get("complexity", 0) > 10:
-            recommendations.append({
-                "type": "complexity",
-                "description": "Consider refactoring to reduce complexity",
-                "priority": "medium",
-            })
+            recommendations.append(
+                {
+                    "type": "complexity",
+                    "description": "Consider refactoring to reduce complexity",
+                    "priority": "medium",
+                }
+            )
 
         if metrics.get("code_duplication", 0) > 20:
-            recommendations.append({
-                "type": "duplication",
-                "description": "High code duplication detected - consider extracting common functionality",
-                "priority": "medium",
-            })
+            recommendations.append(
+                {
+                    "type": "duplication",
+                    "description": "High code duplication detected - consider extracting common functionality",
+                    "priority": "medium",
+                }
+            )
 
         return recommendations

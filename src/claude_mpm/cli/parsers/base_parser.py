@@ -422,6 +422,11 @@ def create_parser(
         from ..commands.doctor import add_doctor_parser
 
         add_doctor_parser(subparsers)
+
+        # Add verify command for MCP service verification
+        from ..commands.verify import add_parser as add_verify_parser
+
+        add_verify_parser(subparsers)
     except ImportError:
         # Commands module may not be available during testing or refactoring
         pass

@@ -1,3 +1,96 @@
+## [4.4.7] - TBD
+
+### Added
+- **MCP Service Verification Command**: Comprehensive MCP service health checks and auto-fix capabilities
+  - New `claude-mpm verify` command for checking MCP service installation and configuration
+  - Auto-fix functionality with `--fix` flag to automatically resolve common issues
+  - Service-specific verification with `--service` option for targeted diagnostics
+  - JSON output support with `--json` flag for automation and scripting
+  - Startup verification automatically checks MCP services and displays warnings
+  - Support for all MCP services: kuzu-memory, mcp-vector-search, mcp-browser, mcp-ticketer
+
+### Documentation
+- **Enhanced CLI Documentation**: Added comprehensive verify command documentation
+  - Updated README.md with verify command examples and usage patterns
+  - Added detailed verify command reference in CLI commands documentation
+  - Added dedicated MCP Service Issues section to troubleshooting guide
+  - Included startup verification behavior documentation
+  - Enhanced troubleshooting with specific service recovery procedures
+
+### Improved
+- **MCP Service Diagnostics**: Enhanced user experience for MCP service management
+  - Clear status indicators: working, missing, broken with detailed messages
+  - Automatic service installation via pipx when services are missing
+  - Detailed diagnostic information including paths, commands, and fix suggestions
+  - Integration with existing doctor command for comprehensive health checks
+
+## [4.4.6] - 2025-09-28
+
+### Fixed
+- **kuzu-memory MCP Server**: Fixed command format for MCP server execution
+  - Changed from `kuzu-memory server` to correct `mcp serve` command
+  - Resolved server startup failures due to incorrect command format
+  - Properly integrated with MCP service infrastructure
+
+### Documentation
+- **Claude Code Integration**: Clarified integration requirements
+  - Updated all references to correctly specify Claude Code CLI (not Claude Desktop)
+  - Emphasized that Claude MPM is designed for Claude Code CLI integration
+  - Fixed diagnostic checks to reference Claude Code instead of Claude Desktop
+  - Improved clarity in installation and setup documentation
+
+### Improved
+- **MCP Service Commands**: Standardized MCP server invocation
+  - All MCP services now use consistent `mcp serve` command format
+  - Better error messages when MCP services fail to start
+  - Enhanced service configuration validation
+
+## [4.4.5] - 2025-09-28
+
+### Fixed
+- **MCP Service Diagnostics**: Resolved false positives in mpm-doctor command
+  - Fixed incorrect service availability detection
+  - Made MCP services truly optional dependencies
+  - Improved accuracy of service health status reporting
+
+### Improved
+- **MCP Service Auto-Installation**: Enhanced fallback installation methods
+  - Added `pipx run` fallback when direct import fails
+  - Better handling of PATH configuration issues
+  - More robust service availability detection
+  - Clearer error messages for installation failures
+
+### Changed
+- **Optional Dependencies**: MCP services now properly optional
+  - Services install on-demand when first needed
+  - No longer required for core Claude MPM functionality
+  - Graceful degradation when services unavailable
+
+## [4.4.4] - 2025-09-28
+
+### Added
+- **Enhanced mpm-doctor command**: Comprehensive MCP service diagnostics
+  - Detailed MCP service configuration validation
+  - Service health checks with connection testing
+  - Markdown report generation with `--output-file` parameter
+  - Rich terminal output with color-coded status indicators
+
+### Improved
+- **Installation Detection**: Better detection of pipx vs source installations
+  - Accurate identification of installation method
+  - Appropriate command suggestions based on installation type
+  - Clearer diagnostic output for troubleshooting
+
+- **Documentation**: Consolidated and cleaned up documentation
+  - Removed duplicate and outdated documentation files
+  - Streamlined MCP service documentation
+  - Updated user guides with current command options
+
+### Fixed
+- Corrected mpm-doctor service validation logic
+- Fixed MCP service status reporting accuracy
+- Improved error handling in diagnostic reports
+
 ## [4.4.3] - 2025-09-28
 
 ### Fixed

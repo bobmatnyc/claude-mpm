@@ -17,17 +17,15 @@ DESIGN DECISIONS:
 
 import json
 import subprocess
-import sys
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from claude_mpm.services.mcp_gateway.tools.base_adapter import BaseToolAdapter
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     MCPToolDefinition,
     MCPToolInvocation,
     MCPToolResult,
 )
+from claude_mpm.services.mcp_gateway.tools.base_adapter import BaseToolAdapter
 
 
 class KuzuMemoryService(BaseToolAdapter):
@@ -181,45 +179,33 @@ class KuzuMemoryService(BaseToolAdapter):
         try:
             if action == "store":
                 result = await self.store_memory(
-                    params.get("content"),
-                    params.get("tags"),
-                    {}  # metadata
+                    params.get("content"), params.get("tags"), {}  # metadata
                 )
             elif action == "recall":
                 result = await self.recall_memories(
-                    params.get("query"),
-                    params.get("limit", 5),
-                    params.get("tags")
+                    params.get("query"), params.get("limit", 5), params.get("tags")
                 )
             elif action == "search":
                 result = await self.search_memories(
                     params.get("query", ""),
                     "both",  # search_type
-                    params.get("limit", 10)
+                    params.get("limit", 10),
                 )
             elif action == "context":
                 result = await self.get_context(
-                    params.get("query", ""),
-                    2,  # depth
-                    True  # include_related
+                    params.get("query", ""), 2, True  # depth  # include_related
                 )
             else:
-                return MCPToolResult(
-                    success=False,
-                    error=f"Unknown action: {action}"
-                )
+                return MCPToolResult(success=False, error=f"Unknown action: {action}")
 
             return MCPToolResult(
                 success=result.get("success", False),
                 data=result,
-                error=result.get("error")
+                error=result.get("error"),
             )
 
         except Exception as e:
-            return MCPToolResult(
-                success=False,
-                error=str(e)
-            )
+            return MCPToolResult(success=False, error=str(e))
 
     def validate_parameters(self, parameters: Dict[str, Any]) -> bool:
         """Validate tool parameters - basic implementation."""
@@ -227,8 +213,7 @@ class KuzuMemoryService(BaseToolAdapter):
 
     async def shutdown(self) -> None:
         """Shutdown the service."""
-        pass  # No resources to clean up
-
+        # No resources to clean up
 
     async def store_memory(
         self,
@@ -265,12 +250,13 @@ class KuzuMemoryService(BaseToolAdapter):
                 text=True,
                 timeout=10,
                 cwd=str(self.project_path),
+                check=False,
             )
 
             if result.returncode == 0:
                 return {
                     "success": True,
-                    "message": f"Memory stored successfully",
+                    "message": "Memory stored successfully",
                     "content": content[:100],
                     "tags": tags or [],
                 }
@@ -331,6 +317,7 @@ class KuzuMemoryService(BaseToolAdapter):
                 text=True,
                 timeout=10,
                 cwd=str(self.project_path),
+                check=False,
             )
 
             if result.returncode == 0 and result.stdout:
@@ -400,6 +387,7 @@ class KuzuMemoryService(BaseToolAdapter):
                 text=True,
                 timeout=10,
                 cwd=str(self.project_path),
+                check=False,
             )
 
             if result.returncode == 0 and result.stdout:
@@ -477,6 +465,7 @@ class KuzuMemoryService(BaseToolAdapter):
                 text=True,
                 timeout=15,
                 cwd=str(self.project_path),
+                check=False,
             )
 
             if result.returncode == 0 and result.stdout:
@@ -484,7 +473,7 @@ class KuzuMemoryService(BaseToolAdapter):
                     "success": True,
                     "topic": topic,
                     "context": result.stdout.strip(),
-                    "memories": []  # Enhanced context is already processed
+                    "memories": [],  # Enhanced context is already processed
                 }
 
             # Fallback to recall if enhance fails

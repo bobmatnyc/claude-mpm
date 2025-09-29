@@ -29,11 +29,11 @@ from threading import Lock, Thread
 from typing import Any, Dict, Optional
 
 from claude_mpm.core.constants import PerformanceConfig, SystemLimits, TimeoutConfig
+from claude_mpm.core.logging_utils import get_logger
 
 # Import configuration manager
 from ..core.config import Config
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

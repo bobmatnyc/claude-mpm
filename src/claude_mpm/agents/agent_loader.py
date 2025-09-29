@@ -38,6 +38,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+# Module-level logger
+from claude_mpm.core.logging_utils import get_logger
+
 # Import modular components
 from claude_mpm.core.unified_agent_registry import (
     AgentTier,
@@ -49,8 +52,6 @@ from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCac
 from ..core.agent_name_normalizer import AgentNameNormalizer
 from .base_agent_loader import prepend_base_instructions
 
-# Module-level logger
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

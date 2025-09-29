@@ -21,12 +21,11 @@ import json
 import re
 import shutil
 import subprocess
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.logging_utils import get_logger
-from claude_mpm.hooks.base_hook import HookContext, HookResult, HookType, SubmitHook
+from claude_mpm.hooks.base_hook import HookContext, HookResult, SubmitHook
 
 logger = get_logger(__name__)
 
@@ -51,9 +50,7 @@ class KuzuMemoryHook(SubmitHook):
         self.enabled = self.kuzu_memory_cmd is not None
 
         if not self.enabled:
-            logger.info(
-                "Kuzu-memory not found. Install with: pipx install kuzu-memory"
-            )
+            logger.info("Kuzu-memory not found. Install with: pipx install kuzu-memory")
         else:
             logger.info(f"Kuzu-memory integration enabled: {self.kuzu_memory_cmd}")
 
@@ -77,7 +74,15 @@ class KuzuMemoryHook(SubmitHook):
         3. Return None if not found
         """
         # Check pipx installation
-        pipx_path = Path.home() / ".local" / "pipx" / "venvs" / "kuzu-memory" / "bin" / "kuzu-memory"
+        pipx_path = (
+            Path.home()
+            / ".local"
+            / "pipx"
+            / "venvs"
+            / "kuzu-memory"
+            / "bin"
+            / "kuzu-memory"
+        )
         if pipx_path.exists():
             return str(pipx_path)
 
@@ -126,7 +131,7 @@ class KuzuMemoryHook(SubmitHook):
                     metadata={
                         "memories_added": len(memories),
                         "memory_source": "kuzu",
-                    }
+                    },
                 )
 
             return HookResult(success=True, data=context.data, modified=False)
@@ -138,7 +143,7 @@ class KuzuMemoryHook(SubmitHook):
                 success=True,
                 data=context.data,
                 modified=False,
-                error=f"Memory integration failed: {e}"
+                error=f"Memory integration failed: {e}",
             )
 
     def _retrieve_memories(self, query: str) -> List[Dict[str, Any]]:
@@ -159,6 +164,7 @@ class KuzuMemoryHook(SubmitHook):
                 text=True,
                 timeout=5,
                 cwd=str(self.project_path),
+                check=False,
             )
 
             if result.returncode == 0 and result.stdout:
@@ -263,6 +269,7 @@ Note: Use the memories above to provide more informed and contextual responses.
                 text=True,
                 timeout=5,
                 cwd=str(self.project_path),
+                check=False,
             )
 
             if result.returncode == 0:
@@ -318,7 +325,9 @@ Note: Use the memories above to provide more informed and contextual responses.
         content_lower = content.lower()
 
         # Technical tags
-        if any(word in content_lower for word in ["code", "function", "class", "module"]):
+        if any(
+            word in content_lower for word in ["code", "function", "class", "module"]
+        ):
             tags.append("technical")
         if any(word in content_lower for word in ["bug", "error", "fix", "issue"]):
             tags.append("debugging")

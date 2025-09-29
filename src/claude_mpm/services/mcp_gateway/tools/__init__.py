@@ -14,11 +14,12 @@ from .base_adapter import (
 from .document_summarizer import DocumentSummarizerTool
 from .kuzu_memory_service import (
     KuzuMemoryService,
-    store_memory,
+    get_context,
     recall_memories,
     search_memories,
-    get_context,
+    store_memory,
 )
+
 # Ticket tools removed - using mcp-ticketer instead
 
 __all__ = [
@@ -26,10 +27,10 @@ __all__ = [
     "CalculatorToolAdapter",
     "DocumentSummarizerTool",
     "EchoToolAdapter",
-    "SystemInfoToolAdapter",
     "KuzuMemoryService",
-    "store_memory",
+    "SystemInfoToolAdapter",
+    "get_context",
     "recall_memories",
     "search_memories",
-    "get_context",
+    "store_memory",
 ]

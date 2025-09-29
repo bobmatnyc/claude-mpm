@@ -1,7 +1,6 @@
 """Agent capability generator for dynamic agent discovery."""
 
 import json
-import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -128,7 +127,9 @@ class CapabilityGenerator:
             if agent.get("memory_routing"):
                 memory_routing = agent["memory_routing"]
                 if memory_routing.get("description"):
-                    section += f"- **Memory Routing**: {memory_routing['description']}\n"
+                    section += (
+                        f"- **Memory Routing**: {memory_routing['description']}\n"
+                    )
 
         # Add simple Context-Aware Agent Selection
         section += "\n## Context-Aware Agent Selection\n\n"
@@ -159,7 +160,9 @@ class CapabilityGenerator:
             # Default values
             agent_data = {
                 "id": agent_file.stem,
-                "display_name": agent_file.stem.replace("_", " ").replace("-", " ").title(),
+                "display_name": agent_file.stem.replace("_", " ")
+                .replace("-", " ")
+                .title(),
                 "description": "Specialized agent",
             }
 
@@ -191,7 +194,9 @@ class CapabilityGenerator:
 
             # Try to load memory routing metadata from JSON template
             if "memory_routing" not in agent_data:
-                memory_routing_data = self.load_memory_routing_from_template(agent_file.stem)
+                memory_routing_data = self.load_memory_routing_from_template(
+                    agent_file.stem
+                )
                 if memory_routing_data:
                     agent_data["memory_routing"] = memory_routing_data
 
@@ -233,7 +238,9 @@ class CapabilityGenerator:
                 return None
 
             # For development mode, load from filesystem
-            templates_dir = framework_path / "src" / "claude_mpm" / "agents" / "templates"
+            templates_dir = (
+                framework_path / "src" / "claude_mpm" / "agents" / "templates"
+            )
             template_file = templates_dir / f"{agent_name}.json"
 
             if template_file.exists():
@@ -297,7 +304,9 @@ class CapabilityGenerator:
                 return None
 
             # For development mode, load from filesystem
-            templates_dir = framework_path / "src" / "claude_mpm" / "agents" / "templates"
+            templates_dir = (
+                framework_path / "src" / "claude_mpm" / "agents" / "templates"
+            )
             template_file = templates_dir / f"{agent_name}.json"
 
             if template_file.exists():
@@ -328,7 +337,9 @@ class CapabilityGenerator:
             return None
 
         except Exception as e:
-            self.logger.debug(f"Could not load memory routing from template for {agent_name}: {e}")
+            self.logger.debug(
+                f"Could not load memory routing from template for {agent_name}: {e}"
+            )
             return None
 
     def get_fallback_capabilities(self) -> str:

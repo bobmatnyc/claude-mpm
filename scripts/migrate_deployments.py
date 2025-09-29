@@ -33,24 +33,20 @@ SERVICE_MIGRATION_MAP = {
     "LocalTemplateDeployment": "LocalDeploymentStrategy",
     "SystemInstructionsDeployer": "LocalDeploymentStrategy",
     "AgentFileSystemManager": "LocalDeploymentStrategy",
-
     # Cloud deployment services
     "VercelDeploymentService": "VercelDeploymentStrategy",
     "RailwayDeploymentService": "RailwayDeploymentStrategy",
     "AWSLambdaDeployment": "AWSDeploymentStrategy",
     "EC2DeploymentService": "AWSDeploymentStrategy",
     "ECSDeploymentService": "AWSDeploymentStrategy",
-
     # Container deployment services
     "DockerDeploymentService": "DockerDeploymentStrategy",
     "ContainerDeployment": "DockerDeploymentStrategy",
     "KubernetesDeployment": "DockerDeploymentStrategy",
-
     # Version control deployment
     "GitDeploymentService": "GitDeploymentStrategy",
     "GitHubDeployment": "GitDeploymentStrategy",
     "GitLabDeployment": "GitDeploymentStrategy",
-
     # Pipeline services (consolidated)
     "DeploymentPipeline": "unified_deployment",
     "PipelineManager": "unified_deployment",
@@ -60,14 +56,9 @@ SERVICE_MIGRATION_MAP = {
 # Import statement mappings
 IMPORT_MIGRATIONS = {
     # Old imports -> New imports
-    r"from claude_mpm\.services\.agents\.deployment\.agent_deployment import AgentDeploymentService":
-        "from claude_mpm.services.unified.deployment_strategies import LocalDeploymentStrategy",
-
-    r"from claude_mpm\.services\.agents\.deployment\.(\w+) import (\w+)":
-        "from claude_mpm.services.unified.deployment_strategies import get_deployment_strategy",
-
-    r"from claude_mpm\.services\.deployment\.(\w+) import (\w+)":
-        "from claude_mpm.services.unified.deployment_strategies import get_deployment_strategy",
+    r"from claude_mpm\.services\.agents\.deployment\.agent_deployment import AgentDeploymentService": "from claude_mpm.services.unified.deployment_strategies import LocalDeploymentStrategy",
+    r"from claude_mpm\.services\.agents\.deployment\.(\w+) import (\w+)": "from claude_mpm.services.unified.deployment_strategies import get_deployment_strategy",
+    r"from claude_mpm\.services\.deployment\.(\w+) import (\w+)": "from claude_mpm.services.unified.deployment_strategies import get_deployment_strategy",
 }
 
 # Class instantiation patterns
@@ -82,7 +73,9 @@ INSTANTIATION_PATTERNS = {
 class DeploymentMigrator:
     """Handles migration of deployment services to unified strategies."""
 
-    def __init__(self, check_only: bool = False, backup: bool = False, verbose: bool = False):
+    def __init__(
+        self, check_only: bool = False, backup: bool = False, verbose: bool = False
+    ):
         """
         Initialize migrator.
 
@@ -111,7 +104,9 @@ class DeploymentMigrator:
         Returns:
             Migration report
         """
-        print(f"{'[DRY RUN] ' if self.check_only else ''}Starting deployment service migration...")
+        print(
+            f"{'[DRY RUN] ' if self.check_only else ''}Starting deployment service migration..."
+        )
         print(f"Project root: {self.project_root}")
 
         # Find all Python files
@@ -174,13 +169,13 @@ class DeploymentMigrator:
                     print(f"  Would update: {file_path.relative_to(self.project_root)}")
 
         except Exception as e:
-            error_msg = f"Error processing {file_path}: {str(e)}"
+            error_msg = f"Error processing {file_path}: {e!s}"
             self.migration_report["errors"].append(error_msg)
             print(f"✗ {error_msg}")
 
     def _uses_old_services(self, content: str) -> bool:
         """Check if file uses old deployment services."""
-        for old_service in SERVICE_MIGRATION_MAP.keys():
+        for old_service in SERVICE_MIGRATION_MAP:
             if old_service in content:
                 return True
         return False
@@ -204,16 +199,24 @@ class DeploymentMigrator:
                 count += len(matches)
 
         # Add new imports if needed
-        if count > 0 and "from claude_mpm.services.unified.deployment_strategies" not in content:
+        if (
+            count > 0
+            and "from claude_mpm.services.unified.deployment_strategies" not in content
+        ):
             # Find the last import statement
-            import_lines = [i for i, line in enumerate(content.split("\n"))
-                          if line.startswith("import ") or line.startswith("from ")]
+            import_lines = [
+                i
+                for i, line in enumerate(content.split("\n"))
+                if line.startswith("import ") or line.startswith("from ")
+            ]
 
             if import_lines:
                 lines = content.split("\n")
                 insert_pos = import_lines[-1] + 1
-                lines.insert(insert_pos,
-                           "from claude_mpm.services.unified.deployment_strategies import (")
+                lines.insert(
+                    insert_pos,
+                    "from claude_mpm.services.unified.deployment_strategies import (",
+                )
                 lines.insert(insert_pos + 1, "    get_deployment_strategy,")
                 lines.insert(insert_pos + 2, "    DeploymentContext,")
                 lines.insert(insert_pos + 3, "    DeploymentResult,")
@@ -275,7 +278,9 @@ class DeploymentMigrator:
             for i, line in enumerate(lines):
                 if "deploy_agent(" in line or "deploy_config(" in line:
                     if "# TODO: Review migration" not in line:
-                        lines[i] = line + "  # TODO: Review migration - check parameters"
+                        lines[i] = (
+                            line + "  # TODO: Review migration - check parameters"
+                        )
             content = "\n".join(lines)
 
         return content
@@ -288,7 +293,9 @@ class DeploymentMigrator:
         print(f"Files analyzed: {self.migration_report['files_analyzed']}")
         print(f"Files modified: {self.migration_report['files_modified']}")
         print(f"Imports updated: {self.migration_report['imports_updated']}")
-        print(f"Instantiations updated: {self.migration_report['instantiations_updated']}")
+        print(
+            f"Instantiations updated: {self.migration_report['instantiations_updated']}"
+        )
 
         if self.migration_report["errors"]:
             print(f"\nErrors ({len(self.migration_report['errors'])}):")
@@ -299,7 +306,9 @@ class DeploymentMigrator:
             print("\n✓ Dry run complete. No files were modified.")
             print("Run without --check-only to apply changes.")
         else:
-            print(f"\n✓ Migration complete. {self.migration_report['files_modified']} files updated.")
+            print(
+                f"\n✓ Migration complete. {self.migration_report['files_modified']} files updated."
+            )
 
         # Estimate LOC reduction
         print("\n" + "=" * 60)
@@ -307,7 +316,9 @@ class DeploymentMigrator:
         print("=" * 60)
         print("Before: ~17,938 LOC across 45+ deployment services")
         print("After:  ~6,000 LOC in unified strategy architecture")
-        print(f"Reduction: ~{17938 - 6000:,} LOC ({((17938 - 6000) / 17938) * 100:.1f}%)")
+        print(
+            f"Reduction: ~{17938 - 6000:,} LOC ({((17938 - 6000) / 17938) * 100:.1f}%)"
+        )
         print("\nBenefits:")
         print("  ✓ 66% code reduction")
         print("  ✓ Eliminated massive duplication")
@@ -322,27 +333,19 @@ def main():
         description="Migrate old deployment services to unified strategies"
     )
     parser.add_argument(
-        "--check-only",
-        action="store_true",
-        help="Only analyze, don't make changes"
+        "--check-only", action="store_true", help="Only analyze, don't make changes"
     )
     parser.add_argument(
-        "--backup",
-        action="store_true",
-        help="Create backups before migration"
+        "--backup", action="store_true", help="Create backups before migration"
     )
     parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Show detailed migration information"
+        "--verbose", action="store_true", help="Show detailed migration information"
     )
 
     args = parser.parse_args()
 
     migrator = DeploymentMigrator(
-        check_only=args.check_only,
-        backup=args.backup,
-        verbose=args.verbose
+        check_only=args.check_only, backup=args.backup, verbose=args.verbose
     )
 
     migrator.migrate()

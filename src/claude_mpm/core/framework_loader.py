@@ -5,9 +5,6 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
-from claude_mpm.core.logging_utils import get_logger
-from claude_mpm.utils.imports import safe_import
-
 # Import framework components
 from claude_mpm.core.framework import (
     AgentLoader,
@@ -21,6 +18,8 @@ from claude_mpm.core.framework import (
     PackagedLoader,
     TemplateProcessor,
 )
+from claude_mpm.core.logging_utils import get_logger
+from claude_mpm.utils.imports import safe_import
 
 # Import with fallback support
 AgentRegistryAdapter = safe_import(
@@ -108,7 +107,9 @@ class FrameworkLoader:
         self._memory_manager = self.container.resolve(IMemoryManager)
 
         # Initialize framework path
-        self.framework_path = framework_path or self._path_resolver.detect_framework_path()
+        self.framework_path = (
+            framework_path or self._path_resolver.detect_framework_path()
+        )
 
         # Initialize modular components
         self._init_components()
@@ -219,7 +220,7 @@ class FrameworkLoader:
             "memory_instructions": "",
             "memory_instructions_level": "",
             "project_workflow": "",  # Deprecated
-            "project_memory": "",    # Deprecated
+            "project_memory": "",  # Deprecated
             "actual_memories": "",
             "agent_memories": {},
         }
@@ -241,7 +242,9 @@ class FrameworkLoader:
         agents_dir, templates_dir, main_dir = self._path_resolver.discover_agent_paths(
             agents_dir=self.agents_dir, framework_path=self.framework_path
         )
-        agents = self.agent_loader.load_agents_directory(agents_dir, templates_dir, main_dir)
+        agents = self.agent_loader.load_agents_directory(
+            agents_dir, templates_dir, main_dir
+        )
         if agents:
             content["agents"] = agents
             content["loaded"] = True
@@ -296,7 +299,9 @@ class FrameworkLoader:
                 routing = self.template_processor.extract_routing(template_data)
                 if routing:
                     agent_data["routing"] = routing
-                memory_routing = self.template_processor.extract_memory_routing(template_data)
+                memory_routing = self.template_processor.extract_memory_routing(
+                    template_data
+                )
                 if memory_routing:
                     agent_data["memory_routing"] = memory_routing
 
@@ -321,8 +326,7 @@ class FrameworkLoader:
         # Generate the instructions
         if self.framework_content["loaded"]:
             return self._format_full_framework()
-        else:
-            return self._format_minimal_framework()
+        return self._format_minimal_framework()
 
     def _format_full_framework(self) -> str:
         """Format full framework instructions using modular components."""
@@ -414,13 +418,17 @@ class FrameworkLoader:
             self._log_output_style_status()
 
             # Extract and save output style content
-            output_style_content = self.output_style_manager.extract_output_style_content(
-                framework_loader=self
+            output_style_content = (
+                self.output_style_manager.extract_output_style_content(
+                    framework_loader=self
+                )
             )
             self.output_style_manager.save_output_style(output_style_content)
 
             # Deploy to Claude Code if supported
-            deployed = self.output_style_manager.deploy_output_style(output_style_content)
+            deployed = self.output_style_manager.deploy_output_style(
+                output_style_content
+            )
 
             if deployed:
                 self.logger.info("✅ Output style deployed to Claude Code >= 1.0.83")
@@ -443,12 +451,20 @@ class FrameworkLoader:
                 self.logger.info("✅ Claude Code supports output styles (>= 1.0.83)")
                 output_style_path = self.output_style_manager.output_style_path
                 if output_style_path.exists():
-                    self.logger.info(f"📁 Output style file exists: {output_style_path}")
+                    self.logger.info(
+                        f"📁 Output style file exists: {output_style_path}"
+                    )
                 else:
-                    self.logger.info(f"📝 Output style will be created at: {output_style_path}")
+                    self.logger.info(
+                        f"📝 Output style will be created at: {output_style_path}"
+                    )
             else:
-                self.logger.info(f"⚠️ Claude Code {claude_version} does not support output styles")
-                self.logger.info("📝 Output style will be injected into framework instructions")
+                self.logger.info(
+                    f"⚠️ Claude Code {claude_version} does not support output styles"
+                )
+                self.logger.info(
+                    "📝 Output style will be injected into framework instructions"
+                )
         else:
             self.logger.info("⚠️ Claude Code not detected or version unknown")
             self.logger.info("📝 Output style will be injected as fallback")
@@ -480,13 +496,21 @@ class FrameworkLoader:
             }
 
             # Log the prompt asynchronously
-            instructions = self._format_full_framework() if self.framework_content["loaded"] else self._format_minimal_framework()
+            instructions = (
+                self._format_full_framework()
+                if self.framework_content["loaded"]
+                else self._format_minimal_framework()
+            )
             metadata["instructions_length"] = len(instructions)
 
             if loop.is_running():
-                asyncio.create_task(log_manager.log_prompt("system_prompt", instructions, metadata))
+                asyncio.create_task(
+                    log_manager.log_prompt("system_prompt", instructions, metadata)
+                )
             else:
-                loop.run_until_complete(log_manager.log_prompt("system_prompt", instructions, metadata))
+                loop.run_until_complete(
+                    log_manager.log_prompt("system_prompt", instructions, metadata)
+                )
 
             self.logger.debug("System prompt logged to prompts directory")
         except Exception as e:

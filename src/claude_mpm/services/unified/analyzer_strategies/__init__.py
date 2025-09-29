@@ -29,9 +29,9 @@ from .structure_analyzer import StructureAnalyzerStrategy
 __all__ = [
     "CodeAnalyzerStrategy",
     "DependencyAnalyzerStrategy",
-    "StructureAnalyzerStrategy",
-    "SecurityAnalyzerStrategy",
     "PerformanceAnalyzerStrategy",
+    "SecurityAnalyzerStrategy",
+    "StructureAnalyzerStrategy",
 ]
 
 # Strategy registry for automatic discovery

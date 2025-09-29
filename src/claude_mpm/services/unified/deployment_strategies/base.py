@@ -31,6 +31,7 @@ from claude_mpm.services.unified.strategies import (
 
 class DeploymentStatus(Enum):
     """Deployment status enumeration."""
+
     PENDING = "pending"
     VALIDATING = "validating"
     PREPARING = "preparing"
@@ -43,6 +44,7 @@ class DeploymentStatus(Enum):
 
 class DeploymentType(Enum):
     """Types of deployments."""
+
     AGENT = "agent"
     CONFIG = "config"
     RESOURCE = "resource"
@@ -62,6 +64,7 @@ class DeploymentContext:
     - multi_source_deployment_service.py
     - deployment_config_loader.py
     """
+
     # Core deployment info
     source: Union[str, Path]
     target: Union[str, Path]
@@ -110,6 +113,7 @@ class DeploymentResult:
 
     Consolidates result patterns from multiple deployment services.
     """
+
     # Core result
     success: bool
     status: DeploymentStatus
@@ -156,7 +160,9 @@ class DeploymentResult:
             "version": self.version,
             "previous_version": self.previous_version,
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": (
+                self.completed_at.isoformat() if self.completed_at else None
+            ),
             "duration_seconds": self.duration_seconds,
             "artifacts": [str(a) for a in self.artifacts],
             "logs": self.logs,
@@ -255,7 +261,9 @@ class DeploymentStrategy(BaseDeploymentStrategy):
         try:
             # Validation phase
             result.status = DeploymentStatus.VALIDATING
-            self._logger.info(f"Validating deployment: {context.source} -> {context.target}")
+            self._logger.info(
+                f"Validating deployment: {context.source} -> {context.target}"
+            )
 
             validation_errors = self.validate(context)
             if validation_errors:
@@ -309,7 +317,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
                 result.message = "Dry run completed successfully"
 
         except Exception as e:
-            self._logger.error(f"Deployment failed: {str(e)}")
+            self._logger.error(f"Deployment failed: {e!s}")
             result.status = DeploymentStatus.FAILED
             result.message = str(e)
             result.errors.append(str(e))
@@ -322,8 +330,8 @@ class DeploymentStrategy(BaseDeploymentStrategy):
                     result.status = DeploymentStatus.ROLLED_BACK
                     result.message += " (rolled back)"
                 except Exception as rollback_error:
-                    self._logger.error(f"Rollback failed: {str(rollback_error)}")
-                    result.errors.append(f"Rollback failed: {str(rollback_error)}")
+                    self._logger.error(f"Rollback failed: {rollback_error!s}")
+                    result.errors.append(f"Rollback failed: {rollback_error!s}")
 
         finally:
             result.completed_at = datetime.now()
@@ -353,7 +361,6 @@ class DeploymentStrategy(BaseDeploymentStrategy):
         Returns:
             List of validation errors (empty if valid)
         """
-        pass
 
     @abstractmethod
     def prepare(self, context: DeploymentContext) -> List[Path]:
@@ -366,7 +373,6 @@ class DeploymentStrategy(BaseDeploymentStrategy):
         Returns:
             List of prepared artifact paths
         """
-        pass
 
     @abstractmethod
     def execute(
@@ -382,7 +388,6 @@ class DeploymentStrategy(BaseDeploymentStrategy):
         Returns:
             Deployment information including deployment_id, deployed_path, etc.
         """
-        pass
 
     @abstractmethod
     def verify(
@@ -398,12 +403,9 @@ class DeploymentStrategy(BaseDeploymentStrategy):
         Returns:
             True if deployment verified successfully
         """
-        pass
 
     @abstractmethod
-    def rollback(
-        self, context: DeploymentContext, result: DeploymentResult
-    ) -> bool:
+    def rollback(self, context: DeploymentContext, result: DeploymentResult) -> bool:
         """
         Rollback failed deployment.
 
@@ -414,12 +416,9 @@ class DeploymentStrategy(BaseDeploymentStrategy):
         Returns:
             True if rollback successful
         """
-        pass
 
     @abstractmethod
-    def get_health_status(
-        self, deployment_info: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def get_health_status(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
         """
         Get health status of deployment.
 
@@ -429,7 +428,6 @@ class DeploymentStrategy(BaseDeploymentStrategy):
         Returns:
             Health status information
         """
-        pass
 
     # Helper methods
 
@@ -458,14 +456,13 @@ class DeploymentStrategy(BaseDeploymentStrategy):
 
         if "agent" in source_path.name.lower():
             return DeploymentType.AGENT
-        elif "config" in source_path.name.lower():
+        if "config" in source_path.name.lower():
             return DeploymentType.CONFIG
-        elif "template" in source_path.name.lower():
+        if "template" in source_path.name.lower():
             return DeploymentType.TEMPLATE
-        elif source_path.suffix in [".yaml", ".yml", ".json"]:
+        if source_path.suffix in [".yaml", ".yml", ".json"]:
             return DeploymentType.CONFIG
-        else:
-            return DeploymentType.RESOURCE
+        return DeploymentType.RESOURCE
 
     def _collect_metrics(
         self, context: DeploymentContext, result: DeploymentResult
@@ -484,9 +481,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
             "deployment_type": context.deployment_type.value,
             "source_size": self._get_size(context.source) if context.source else 0,
             "artifact_count": len(result.artifacts),
-            "artifact_total_size": sum(
-                self._get_size(a) for a in result.artifacts
-            ),
+            "artifact_total_size": sum(self._get_size(a) for a in result.artifacts),
             "duration_seconds": result.duration_seconds,
             "error_count": len(result.errors),
             "warning_count": len(result.warnings),
@@ -497,7 +492,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
         path = Path(path)
         if path.is_file():
             return path.stat().st_size
-        elif path.is_dir():
+        if path.is_dir():
             return sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
         return 0
 
@@ -550,8 +545,9 @@ class DeploymentStrategy(BaseDeploymentStrategy):
                     target_path.unlink()
                 elif target_path.is_dir():
                     import shutil
+
                     shutil.rmtree(target_path)
             return True
         except Exception as e:
-            self._logger.error(f"Cleanup failed: {str(e)}")
+            self._logger.error(f"Cleanup failed: {e!s}")
             return False

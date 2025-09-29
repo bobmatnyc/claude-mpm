@@ -16,15 +16,12 @@ This module reduces ~5000 LOC of duplicated utility functions across:
 
 import hashlib
 import json
-import os
 import shutil
 import subprocess
 import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
-
-import yaml
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -33,6 +30,7 @@ logger = get_logger(__name__)
 
 # Validation Utilities
 # ====================
+
 
 def validate_deployment_config(config: Dict[str, Any]) -> List[str]:
     """
@@ -57,8 +55,16 @@ def validate_deployment_config(config: Dict[str, Any]) -> List[str]:
     # Type validation
     if "type" in config:
         valid_types = [
-            "local", "vercel", "railway", "aws", "docker", "git",
-            "agent", "config", "template", "resource"
+            "local",
+            "vercel",
+            "railway",
+            "aws",
+            "docker",
+            "git",
+            "agent",
+            "config",
+            "template",
+            "resource",
         ]
         if config["type"] not in valid_types:
             errors.append(f"Invalid deployment type: {config['type']}")
@@ -133,10 +139,11 @@ def validate_path_security(path: Path, base_path: Path) -> bool:
 # Artifact Preparation
 # ====================
 
+
 def prepare_deployment_artifact(
     source: Union[str, Path],
     artifact_type: str = "auto",
-    config: Optional[Dict[str, Any]] = None
+    config: Optional[Dict[str, Any]] = None,
 ) -> Tuple[Path, Dict[str, Any]]:
     """
     Prepare deployment artifact from source.
@@ -230,10 +237,11 @@ def create_tar_artifact(source: Path, output_dir: Path) -> Path:
 # Health Check Utilities
 # ======================
 
+
 def verify_deployment_health(
     deployment_type: str,
     deployment_info: Dict[str, Any],
-    checks: Optional[List[str]] = None
+    checks: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Perform health checks on deployment.
@@ -275,8 +283,7 @@ def verify_deployment_health(
         if "integrity" in checks:
             if "checksum" in deployment_info:
                 health["checks"]["integrity"] = verify_checksum(
-                    deployment_info.get("deployed_path"),
-                    deployment_info["checksum"]
+                    deployment_info.get("deployed_path"), deployment_info["checksum"]
                 )
 
         # Service-specific checks
@@ -285,9 +292,7 @@ def verify_deployment_health(
                 deployment_info.get("container_id")
             )
         elif deployment_type == "aws":
-            health["checks"]["aws_status"] = check_aws_deployment(
-                deployment_info
-            )
+            health["checks"]["aws_status"] = check_aws_deployment(deployment_info)
 
         # Determine overall status
         if all(health["checks"].values()):
@@ -308,6 +313,7 @@ def check_url_accessibility(url: str, timeout: int = 10) -> bool:
     """Check if URL is accessible."""
     try:
         import urllib.request
+
         with urllib.request.urlopen(url, timeout=timeout) as response:
             return response.status < 400
     except Exception:
@@ -340,10 +346,11 @@ def check_aws_deployment(deployment_info: Dict[str, Any]) -> bool:
 # Rollback Utilities
 # ==================
 
+
 def rollback_deployment(
     deployment_type: str,
     deployment_info: Dict[str, Any],
-    backup_info: Optional[Dict[str, Any]] = None
+    backup_info: Optional[Dict[str, Any]] = None,
 ) -> bool:
     """
     Rollback deployment to previous state.
@@ -361,22 +368,20 @@ def rollback_deployment(
     try:
         if deployment_type == "local":
             return rollback_local_deployment(deployment_info, backup_info)
-        elif deployment_type == "docker":
+        if deployment_type == "docker":
             return rollback_docker_deployment(deployment_info)
-        elif deployment_type == "git":
+        if deployment_type == "git":
             return rollback_git_deployment(deployment_info)
-        else:
-            logger.warning(f"No rollback strategy for type: {deployment_type}")
-            return False
+        logger.warning(f"No rollback strategy for type: {deployment_type}")
+        return False
 
     except Exception as e:
-        logger.error(f"Rollback failed: {str(e)}")
+        logger.error(f"Rollback failed: {e!s}")
         return False
 
 
 def rollback_local_deployment(
-    deployment_info: Dict[str, Any],
-    backup_info: Optional[Dict[str, Any]] = None
+    deployment_info: Dict[str, Any], backup_info: Optional[Dict[str, Any]] = None
 ) -> bool:
     """Rollback local filesystem deployment."""
     deployed_path = Path(deployment_info.get("deployed_path", ""))
@@ -413,8 +418,7 @@ def rollback_docker_deployment(deployment_info: Dict[str, Any]) -> bool:
     # Restore previous container if specified
     if "previous_container" in deployment_info:
         subprocess.run(
-            ["docker", "start", deployment_info["previous_container"]],
-            check=True
+            ["docker", "start", deployment_info["previous_container"]], check=True
         )
 
     return True
@@ -426,11 +430,7 @@ def rollback_git_deployment(deployment_info: Dict[str, Any]) -> bool:
     previous_commit = deployment_info.get("previous_commit")
 
     if repo_path.exists() and previous_commit:
-        subprocess.run(
-            ["git", "checkout", previous_commit],
-            cwd=repo_path,
-            check=True
-        )
+        subprocess.run(["git", "checkout", previous_commit], cwd=repo_path, check=True)
         return True
 
     return False
@@ -438,6 +438,7 @@ def rollback_git_deployment(deployment_info: Dict[str, Any]) -> bool:
 
 # Version Management
 # ==================
+
 
 def get_version_info(path: Union[str, Path]) -> Dict[str, Any]:
     """
@@ -474,6 +475,7 @@ def get_version_info(path: Union[str, Path]) -> Dict[str, Any]:
             elif version_file in ["setup.py", "pyproject.toml"]:
                 # Simple regex extraction
                 import re
+
                 content = file_path.read_text()
                 match = re.search(r'version\s*=\s*["\'](.*?)["\']', content)
                 if match:
@@ -491,9 +493,7 @@ def get_version_info(path: Union[str, Path]) -> Dict[str, Any]:
 
 
 def update_version(
-    path: Union[str, Path],
-    new_version: str,
-    create_backup: bool = True
+    path: Union[str, Path], new_version: str, create_backup: bool = True
 ) -> bool:
     """
     Update version in deployment.
@@ -520,12 +520,13 @@ def update_version(
         return True
 
     except Exception as e:
-        logger.error(f"Failed to update version: {str(e)}")
+        logger.error(f"Failed to update version: {e!s}")
         return False
 
 
 # Checksum and Integrity
 # ======================
+
 
 def calculate_checksum(path: Union[str, Path], algorithm: str = "sha256") -> str:
     """
@@ -558,9 +559,7 @@ def calculate_checksum(path: Union[str, Path], algorithm: str = "sha256") -> str
 
 
 def verify_checksum(
-    path: Union[str, Path],
-    expected_checksum: str,
-    algorithm: str = "sha256"
+    path: Union[str, Path], expected_checksum: str, algorithm: str = "sha256"
 ) -> bool:
     """
     Verify checksum of file or directory.
@@ -594,18 +593,18 @@ def get_size(path: Union[str, Path]) -> int:
 
     if path.is_file():
         return path.stat().st_size
-    elif path.is_dir():
+    if path.is_dir():
         total_size = 0
         for file_path in path.rglob("*"):
             if file_path.is_file():
                 total_size += file_path.stat().st_size
         return total_size
-    else:
-        return 0
+    return 0
 
 
 # Environment Management
 # =====================
+
 
 def load_env_file(env_file: Union[str, Path]) -> Dict[str, str]:
     """
@@ -650,10 +649,7 @@ def merge_environments(*env_dicts: Dict[str, str]) -> Dict[str, str]:
     return merged
 
 
-def export_env_to_file(
-    env_vars: Dict[str, str],
-    output_file: Union[str, Path]
-) -> None:
+def export_env_to_file(env_vars: Dict[str, str], output_file: Union[str, Path]) -> None:
     """
     Export environment variables to file.
 

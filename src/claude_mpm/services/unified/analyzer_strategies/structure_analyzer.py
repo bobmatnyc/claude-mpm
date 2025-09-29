@@ -10,13 +10,17 @@ Created: 2025-01-26
 """
 
 import fnmatch
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.logging_utils import get_logger
 
-from ..strategies import AnalyzerStrategy, StrategyContext, StrategyMetadata, StrategyPriority
+from ..strategies import (
+    AnalyzerStrategy,
+    StrategyContext,
+    StrategyMetadata,
+    StrategyPriority,
+)
 
 logger = get_logger(__name__)
 
@@ -87,11 +91,26 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
 
     # Common ignore patterns
     IGNORE_PATTERNS = [
-        "*.pyc", "__pycache__", ".git", ".svn", ".hg",
-        "node_modules", "venv", ".venv", "env",
-        "dist", "build", "target", "bin", "obj",
-        ".idea", ".vscode", "*.egg-info",
-        ".pytest_cache", ".coverage", ".tox",
+        "*.pyc",
+        "__pycache__",
+        ".git",
+        ".svn",
+        ".hg",
+        "node_modules",
+        "venv",
+        ".venv",
+        "env",
+        "dist",
+        "build",
+        "target",
+        "bin",
+        "obj",
+        ".idea",
+        ".vscode",
+        "*.egg-info",
+        ".pytest_cache",
+        ".coverage",
+        ".tox",
     ]
 
     def __init__(self):
@@ -166,7 +185,9 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
             "message": f"Unsupported target type: {type(target).__name__}",
         }
 
-    def _analyze_structure(self, root_path: Path, options: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_structure(
+        self, root_path: Path, options: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Analyze the structure of a project directory."""
         results = {
             "status": "success",
@@ -264,7 +285,9 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
                     # Track file types
                     ext = item.suffix.lower()
                     if ext:
-                        statistics["file_types"][ext] = statistics["file_types"].get(ext, 0) + 1
+                        statistics["file_types"][ext] = (
+                            statistics["file_types"].get(ext, 0) + 1
+                        )
 
                     # Get file info
                     try:
@@ -321,8 +344,8 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
         config_files = {
             child["name"].lower()
             for child in tree.get("children", [])
-            if child["type"] == "file"
-            and child["name"].startswith(".") or child["name"].endswith(".config.js")
+            if (child["type"] == "file" and child["name"].startswith("."))
+            or child["name"].endswith(".config.js")
         }
         patterns["has_config"] = len(config_files) > 0
 
@@ -338,7 +361,11 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
         def collect_names(node: Dict[str, Any]) -> None:
             """Collect all file and directory names."""
             if node["type"] == "file":
-                name = node["name"].rsplit(".", 1)[0] if "." in node["name"] else node["name"]
+                name = (
+                    node["name"].rsplit(".", 1)[0]
+                    if "." in node["name"]
+                    else node["name"]
+                )
                 file_names.append(name)
             elif node["type"] == "directory":
                 file_names.append(node["name"])
@@ -353,8 +380,12 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
         # Count naming patterns
         snake_case = sum(1 for n in file_names if "_" in n and n.islower())
         kebab_case = sum(1 for n in file_names if "-" in n)
-        camel_case = sum(1 for n in file_names if n[0].islower() and any(c.isupper() for c in n))
-        pascal_case = sum(1 for n in file_names if n[0].isupper() and any(c.islower() for c in n))
+        camel_case = sum(
+            1 for n in file_names if n[0].islower() and any(c.isupper() for c in n)
+        )
+        pascal_case = sum(
+            1 for n in file_names if n[0].isupper() and any(c.islower() for c in n)
+        )
 
         # Determine dominant pattern
         patterns = {
@@ -411,9 +442,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
             )
 
         # Check file distribution
-        avg_files_per_dir = (
-            stats["total_files"] / max(stats["total_dirs"], 1)
-        )
+        avg_files_per_dir = stats["total_files"] / max(stats["total_dirs"], 1)
         if avg_files_per_dir > 20:
             score -= 10
             organization["recommendations"].append(
@@ -472,17 +501,18 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
             found_dirs = required_dirs & dir_names
 
             if len(found_dirs) >= len(required_dirs) * pattern_info["confidence"]:
-                architecture["detected_patterns"].append({
-                    "name": pattern_name,
-                    "confidence": len(found_dirs) / len(required_dirs),
-                    "matched_dirs": list(found_dirs),
-                })
+                architecture["detected_patterns"].append(
+                    {
+                        "name": pattern_name,
+                        "confidence": len(found_dirs) / len(required_dirs),
+                        "matched_dirs": list(found_dirs),
+                    }
+                )
 
         # Select the pattern with highest confidence
         if architecture["detected_patterns"]:
             best_pattern = max(
-                architecture["detected_patterns"],
-                key=lambda x: x["confidence"]
+                architecture["detected_patterns"], key=lambda x: x["confidence"]
             )
             architecture["pattern"] = best_pattern["name"]
             architecture["confidence"] = best_pattern["confidence"]
@@ -502,14 +532,12 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
 
         # Structural complexity based on file and directory count
         total_nodes = stats["total_files"] + stats["total_dirs"]
-        complexity["structural_complexity"] = (
-            (total_nodes / 100) * (stats["max_depth"] / 3)
+        complexity["structural_complexity"] = (total_nodes / 100) * (
+            stats["max_depth"] / 3
         )
 
         # Nesting complexity
-        complexity["nesting_complexity"] = min(
-            100, (stats["max_depth"] / 7) * 100
-        )
+        complexity["nesting_complexity"] = min(100, (stats["max_depth"] / 7) * 100)
 
         # File dispersion (how spread out files are)
         if stats["total_dirs"] > 0:
@@ -562,10 +590,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
 
         file_counts = {}
         for language, extensions in language_extensions.items():
-            count = sum(
-                len(list(root_path.rglob(f"*{ext}")))
-                for ext in extensions
-            )
+            count = sum(len(list(root_path.rglob(f"*{ext}"))) for ext in extensions)
             if count > 0:
                 file_counts[language] = count
 
@@ -621,12 +646,14 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
         # Extract structure statistics
         if "statistics" in analysis_result:
             stats = analysis_result["statistics"]
-            metrics.update({
-                "total_files": stats.get("total_files", 0),
-                "total_directories": stats.get("total_dirs", 0),
-                "max_depth": stats.get("max_depth", 0),
-                "unique_file_types": len(stats.get("file_types", {})),
-            })
+            metrics.update(
+                {
+                    "total_files": stats.get("total_files", 0),
+                    "total_directories": stats.get("total_dirs", 0),
+                    "max_depth": stats.get("max_depth", 0),
+                    "unique_file_types": len(stats.get("file_types", {})),
+                }
+            )
 
         # Extract organization metrics
         if "organization" in analysis_result:
@@ -636,12 +663,14 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
         # Extract complexity metrics
         if "complexity" in analysis_result:
             complexity = analysis_result["complexity"]
-            metrics.update({
-                "structural_complexity": complexity.get("structural_complexity", 0),
-                "nesting_complexity": complexity.get("nesting_complexity", 0),
-                "file_dispersion": complexity.get("file_dispersion", 0),
-                "coupling_indicator": complexity.get("coupling_indicator", 0),
-            })
+            metrics.update(
+                {
+                    "structural_complexity": complexity.get("structural_complexity", 0),
+                    "nesting_complexity": complexity.get("nesting_complexity", 0),
+                    "file_dispersion": complexity.get("file_dispersion", 0),
+                    "coupling_indicator": complexity.get("coupling_indicator", 0),
+                }
+            )
 
         return metrics
 
@@ -668,7 +697,8 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
                     "change": diff,
                     "percent_change": (
                         (diff / baseline_metrics[key] * 100)
-                        if baseline_metrics[key] else 0
+                        if baseline_metrics[key]
+                        else 0
                     ),
                 }
 
@@ -687,7 +717,10 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
 
         # Compare architecture
         if "architecture" in baseline and "architecture" in current:
-            if baseline["architecture"]["pattern"] != current["architecture"]["pattern"]:
+            if (
+                baseline["architecture"]["pattern"]
+                != current["architecture"]["pattern"]
+            ):
                 comparison["architecture_change"] = {
                     "baseline": baseline["architecture"]["pattern"],
                     "current": current["architecture"]["pattern"],

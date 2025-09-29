@@ -54,7 +54,9 @@ class ContextGenerator:
             time_str = now.strftime("%H:%M:%S")
             day_name = now.strftime("%A")
 
-            context_lines.append(f"**Current DateTime**: {date_str} {time_str} {tz_info}\n")
+            context_lines.append(
+                f"**Current DateTime**: {date_str} {time_str} {tz_info}\n"
+            )
             context_lines.append(f"**Day**: {day_name}\n")
 
         except Exception as e:
@@ -148,7 +150,9 @@ class ContextGenerator:
                 try:
                     platform_version = platform.release()
                     if platform_version:
-                        context_lines.append(f"**System Version**: {platform_version}\n")
+                        context_lines.append(
+                            f"**System Version**: {platform_version}\n"
+                        )
                 except Exception:
                     pass
 

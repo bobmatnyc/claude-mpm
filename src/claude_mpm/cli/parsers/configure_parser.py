@@ -122,7 +122,9 @@ def add_configure_subparser(subparsers) -> argparse.ArgumentParser:
     # Display options
     display_group = configure_parser.add_argument_group("display options")
     display_group.add_argument(
-        "--no-colors", action="store_true", help="Disable colored output in the interface"
+        "--no-colors",
+        action="store_true",
+        help="Disable colored output in the interface",
     )
     display_group.add_argument(
         "--compact", action="store_true", help="Use compact display mode"

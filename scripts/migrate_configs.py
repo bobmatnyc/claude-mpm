@@ -5,19 +5,19 @@ Maps old configuration services to unified service
 Achieves 65-75% code reduction (10,000+ lines)
 """
 
-import os
-import sys
-import re
-import ast
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Set
-from dataclasses import dataclass
-from collections import defaultdict
 import argparse
+import ast
 import json
+import os
+import re
+import sys
+from collections import defaultdict
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple
 
 # Add src directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -27,6 +27,7 @@ logger = get_logger("ConfigMigration")
 @dataclass
 class MigrationStats:
     """Statistics for migration process"""
+
     files_processed: int = 0
     files_modified: int = 0
     imports_replaced: int = 0
@@ -52,49 +53,46 @@ class ConfigServiceMapper:
     # Mapping of old services/classes to unified service
     OLD_TO_NEW_MAPPINGS = {
         # Configuration services
-        'ConfigLoader': 'UnifiedConfigService',
-        'ConfigManager': 'UnifiedConfigService',
-        'ConfigService': 'UnifiedConfigService',
-        'MCPConfigManager': 'UnifiedConfigService',
-        'SystemAgentConfigManager': 'UnifiedConfigService',
-        'DeploymentConfigManager': 'UnifiedConfigService',
-        'DeploymentConfigLoader': 'UnifiedConfigService',
-        'BaseAgentManager': 'UnifiedConfigService',
-        'ConfigServiceBase': 'UnifiedConfigService',
-        'ProjectConfigService': 'UnifiedConfigService',
-
+        "ConfigLoader": "UnifiedConfigService",
+        "ConfigManager": "UnifiedConfigService",
+        "ConfigService": "UnifiedConfigService",
+        "MCPConfigManager": "UnifiedConfigService",
+        "SystemAgentConfigManager": "UnifiedConfigService",
+        "DeploymentConfigManager": "UnifiedConfigService",
+        "DeploymentConfigLoader": "UnifiedConfigService",
+        "BaseAgentManager": "UnifiedConfigService",
+        "ConfigServiceBase": "UnifiedConfigService",
+        "ProjectConfigService": "UnifiedConfigService",
         # File loading functions - map to unified load method
-        'load_config': 'unified_config.load',
-        'load_json': 'unified_config.load',
-        'load_yaml': 'unified_config.load',
-        'load_env': 'unified_config.load',
-        'load_ini': 'unified_config.load',
-        'load_toml': 'unified_config.load',
-        'load_settings': 'unified_config.load',
-        'read_config': 'unified_config.load',
-        'get_config': 'unified_config.get',
-
+        "load_config": "unified_config.load",
+        "load_json": "unified_config.load",
+        "load_yaml": "unified_config.load",
+        "load_env": "unified_config.load",
+        "load_ini": "unified_config.load",
+        "load_toml": "unified_config.load",
+        "load_settings": "unified_config.load",
+        "read_config": "unified_config.load",
+        "get_config": "unified_config.get",
         # Validation functions - map to unified validate method
-        'validate_config': 'unified_config.validate',
-        'check_config': 'unified_config.validate',
-        'verify_config': 'unified_config.validate',
-        'validate_schema': 'unified_config.validate',
-        'validate_required': 'unified_config.validate',
-        'validate_types': 'unified_config.validate',
-
+        "validate_config": "unified_config.validate",
+        "check_config": "unified_config.validate",
+        "verify_config": "unified_config.validate",
+        "validate_schema": "unified_config.validate",
+        "validate_required": "unified_config.validate",
+        "validate_types": "unified_config.validate",
         # Error handling patterns
-        'handle_config_error': 'error_strategy.handle_error',
-        'handle_parse_error': 'error_strategy.handle_error',
-        'handle_validation_error': 'error_strategy.handle_error',
+        "handle_config_error": "error_strategy.handle_error",
+        "handle_parse_error": "error_strategy.handle_error",
+        "handle_validation_error": "error_strategy.handle_error",
     }
 
     # Import mappings
     IMPORT_MAPPINGS = {
-        'from claude_mpm.core.config import': 'from claude_mpm.services.unified.config_strategies.unified_config_service import UnifiedConfigService',
-        'from claude_mpm.core.config_loader import': 'from claude_mpm.services.unified.config_strategies.unified_config_service import UnifiedConfigService',
-        'from claude_mpm.config.': 'from claude_mpm.services.unified.config_strategies.unified_config_service import UnifiedConfigService',
-        'from claude_mpm.services.mcp_config_manager import': 'from claude_mpm.services.unified.config_strategies.unified_config_service import UnifiedConfigService',
-        'from claude_mpm.agents.system_agent_config import': 'from claude_mpm.services.unified.config_strategies.unified_config_service import UnifiedConfigService',
+        "from claude_mpm.core.config import": "from claude_mpm.services.unified.config_strategies.unified_config_service import UnifiedConfigService",
+        "from claude_mpm.core.config_loader import": "from claude_mpm.services.unified.config_strategies.unified_config_service import UnifiedConfigService",
+        "from claude_mpm.config.": "from claude_mpm.services.unified.config_strategies.unified_config_service import UnifiedConfigService",
+        "from claude_mpm.services.mcp_config_manager import": "from claude_mpm.services.unified.config_strategies.unified_config_service import UnifiedConfigService",
+        "from claude_mpm.agents.system_agent_config import": "from claude_mpm.services.unified.config_strategies.unified_config_service import UnifiedConfigService",
     }
 
 
@@ -111,11 +109,11 @@ class CodeAnalyzer:
             tree = ast.parse(content)
 
             return {
-                'imports': self._extract_imports(tree),
-                'classes': self._extract_classes(tree),
-                'functions': self._extract_functions(tree),
-                'config_patterns': self._find_config_patterns(content),
-                'line_count': len(content.splitlines())
+                "imports": self._extract_imports(tree),
+                "classes": self._extract_classes(tree),
+                "functions": self._extract_functions(tree),
+                "config_patterns": self._find_config_patterns(content),
+                "line_count": len(content.splitlines()),
             }
         except Exception as e:
             self.logger.error(f"Failed to analyze {filepath}: {e}")
@@ -129,7 +127,7 @@ class CodeAnalyzer:
                 for alias in node.names:
                     imports.append(f"import {alias.name}")
             elif isinstance(node, ast.ImportFrom):
-                module = node.module or ''
+                module = node.module or ""
                 for alias in node.names:
                     imports.append(f"from {module} import {alias.name}")
         return imports
@@ -140,17 +138,27 @@ class CodeAnalyzer:
 
     def _extract_functions(self, tree: ast.AST) -> List[str]:
         """Extract function definitions"""
-        return [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
+        return [
+            node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+        ]
 
     def _find_config_patterns(self, content: str) -> Dict[str, int]:
         """Find configuration-related patterns in code"""
         patterns = {
-            'file_loading': len(re.findall(r'(open\(|\.read\(|\.load\(|\.loads\()', content)),
-            'json_operations': len(re.findall(r'json\.(load|loads|dump|dumps)', content)),
-            'yaml_operations': len(re.findall(r'yaml\.(safe_load|load|dump)', content)),
-            'validation': len(re.findall(r'(validate|check|verify|assert)', content)),
-            'error_handling': len(re.findall(r'(try:|except\s+\w+:|raise\s+)', content)),
-            'config_access': len(re.findall(r'(config\[|\.config\.|get_config|set_config)', content))
+            "file_loading": len(
+                re.findall(r"(open\(|\.read\(|\.load\(|\.loads\()", content)
+            ),
+            "json_operations": len(
+                re.findall(r"json\.(load|loads|dump|dumps)", content)
+            ),
+            "yaml_operations": len(re.findall(r"yaml\.(safe_load|load|dump)", content)),
+            "validation": len(re.findall(r"(validate|check|verify|assert)", content)),
+            "error_handling": len(
+                re.findall(r"(try:|except\s+\w+:|raise\s+)", content)
+            ),
+            "config_access": len(
+                re.findall(r"(config\[|\.config\.|get_config|set_config)", content)
+            ),
         }
         return patterns
 
@@ -180,11 +188,11 @@ class ConfigMigrator:
         # Process each file
         for filepath in python_files:
             # Skip migration script itself
-            if 'migrate_configs' in str(filepath):
+            if "migrate_configs" in str(filepath):
                 continue
 
             # Skip test files if not explicitly included
-            if '/test' in str(filepath) or '_test.py' in str(filepath):
+            if "/test" in str(filepath) or "_test.py" in str(filepath):
                 continue
 
             self._process_file(filepath)
@@ -224,14 +232,14 @@ class ConfigMigrator:
                 new_lines = len(content.splitlines())
 
                 if new_lines < original_lines:
-                    self.stats.lines_removed += (original_lines - new_lines)
+                    self.stats.lines_removed += original_lines - new_lines
                 else:
-                    self.stats.lines_added += (new_lines - original_lines)
+                    self.stats.lines_added += new_lines - original_lines
 
                 # Write changes
                 if not self.dry_run:
                     if self.backup:
-                        backup_path = filepath.with_suffix('.py.bak')
+                        backup_path = filepath.with_suffix(".py.bak")
                         backup_path.write_text(original_content)
 
                     filepath.write_text(content)
@@ -246,26 +254,26 @@ class ConfigMigrator:
     def _needs_migration(self, analysis: Dict) -> bool:
         """Check if file needs migration"""
         # Check imports
-        for imp in analysis.get('imports', []):
+        for imp in analysis.get("imports", []):
             for old_pattern in self.mapper.IMPORT_MAPPINGS.keys():
                 if old_pattern in imp:
                     return True
 
         # Check classes
-        for cls in analysis.get('classes', []):
+        for cls in analysis.get("classes", []):
             if cls in self.mapper.OLD_TO_NEW_MAPPINGS:
                 return True
 
         # Check functions
-        for func in analysis.get('functions', []):
+        for func in analysis.get("functions", []):
             if func in self.mapper.OLD_TO_NEW_MAPPINGS:
                 return True
 
         # Check patterns
-        patterns = analysis.get('config_patterns', {})
-        if patterns.get('file_loading', 0) > 5:
+        patterns = analysis.get("config_patterns", {})
+        if patterns.get("file_loading", 0) > 5:
             return True
-        if patterns.get('validation', 0) > 10:
+        if patterns.get("validation", 0) > 10:
             return True
 
         return False
@@ -282,25 +290,25 @@ class ConfigMigrator:
 
         # Replace class names
         for old_class, new_class in self.mapper.OLD_TO_NEW_MAPPINGS.items():
-            if old_class in analysis.get('classes', []):
+            if old_class in analysis.get("classes", []):
                 # Replace class definition
-                pattern = rf'\bclass\s+{old_class}\b'
-                replacement = f'class {new_class}'
+                pattern = rf"\bclass\s+{old_class}\b"
+                replacement = f"class {new_class}"
                 content = re.sub(pattern, replacement, content)
                 changes += 1
 
                 # Replace instantiations
-                pattern = rf'\b{old_class}\s*\('
-                replacement = f'{new_class}('
+                pattern = rf"\b{old_class}\s*\("
+                replacement = f"{new_class}("
                 content = re.sub(pattern, replacement, content)
                 changes += 1
 
         # Replace function calls
         for old_func, new_func in self.mapper.OLD_TO_NEW_MAPPINGS.items():
-            if '.' in new_func:
+            if "." in new_func:
                 # Method call replacement
-                pattern = rf'\b{old_func}\s*\('
-                content = re.sub(pattern, f'{new_func}(', content)
+                pattern = rf"\b{old_func}\s*\("
+                content = re.sub(pattern, f"{new_func}(", content)
                 if pattern in content:
                     changes += 1
 
@@ -318,7 +326,7 @@ class ConfigMigrator:
     def _consolidate_file_operations(self, content: str) -> str:
         """Consolidate multiple file operations into unified loader"""
         # Pattern: Multiple sequential file loads
-        pattern = r'(with open\([^)]+\) as .+:\n\s+.+\.load\(.+\))'
+        pattern = r"(with open\([^)]+\) as .+:\n\s+.+\.load\(.+\))"
 
         def replace_with_unified(match):
             # Extract filepath from the match
@@ -334,9 +342,9 @@ class ConfigMigrator:
         """Consolidate multiple validation functions into unified validator"""
         # Pattern: Multiple validation functions
         validation_patterns = [
-            r'def validate_\w+\([^)]*\):[^}]+?(?=\n(?:def|class|\Z))',
-            r'def check_\w+\([^)]*\):[^}]+?(?=\n(?:def|class|\Z))',
-            r'def verify_\w+\([^)]*\):[^}]+?(?=\n(?:def|class|\Z))'
+            r"def validate_\w+\([^)]*\):[^}]+?(?=\n(?:def|class|\Z))",
+            r"def check_\w+\([^)]*\):[^}]+?(?=\n(?:def|class|\Z))",
+            r"def verify_\w+\([^)]*\):[^}]+?(?=\n(?:def|class|\Z))",
         ]
 
         for pattern in validation_patterns:
@@ -344,7 +352,7 @@ class ConfigMigrator:
             if len(matches) > 3:
                 # Replace with unified validation
                 for match in matches[1:]:  # Keep first one, replace others
-                    content = content.replace(match, '')
+                    content = content.replace(match, "")
                     self.stats.lines_removed += len(match.splitlines())
 
         return content
@@ -352,16 +360,18 @@ class ConfigMigrator:
     def _remove_redundant_error_handling(self, content: str) -> str:
         """Remove redundant error handling patterns"""
         # Pattern: Repeated try-except blocks with similar handling
-        pattern = r'try:\s*\n\s+.+\nexcept\s+\w+Error.*?:\s*\n\s+(?:logger\.|print\(|raise)'
+        pattern = (
+            r"try:\s*\n\s+.+\nexcept\s+\w+Error.*?:\s*\n\s+(?:logger\.|print\(|raise)"
+        )
 
         matches = re.findall(pattern, content, re.DOTALL)
         if len(matches) > 5:
             # Keep unique patterns, remove duplicates
             seen = set()
             for match in matches:
-                normalized = re.sub(r'\s+', ' ', match)
+                normalized = re.sub(r"\s+", " ", match)
                 if normalized in seen:
-                    content = content.replace(match, '', 1)
+                    content = content.replace(match, "", 1)
                     self.stats.lines_removed += len(match.splitlines())
                 seen.add(normalized)
 
@@ -384,7 +394,11 @@ class ConfigMigrator:
         self.logger.info(f"Lines added: {self.stats.lines_added}")
         self.logger.info(f"Net reduction: {self.stats.net_reduction} lines")
 
-        reduction_percentage = (self.stats.net_reduction / 15000 * 100) if self.stats.net_reduction > 0 else 0
+        reduction_percentage = (
+            (self.stats.net_reduction / 15000 * 100)
+            if self.stats.net_reduction > 0
+            else 0
+        )
         self.logger.info(f"Reduction percentage: {reduction_percentage:.1f}% of target")
 
         if self.stats.errors:
@@ -395,23 +409,23 @@ class ConfigMigrator:
         # Save report to file
         report_path = Path("migration_report.json")
         report_data = {
-            'timestamp': str(Path.cwd()),
-            'dry_run': self.dry_run,
-            'stats': {
-                'files_processed': self.stats.files_processed,
-                'files_modified': self.stats.files_modified,
-                'imports_replaced': self.stats.imports_replaced,
-                'classes_replaced': self.stats.classes_replaced,
-                'functions_replaced': self.stats.functions_replaced,
-                'lines_removed': self.stats.lines_removed,
-                'lines_added': self.stats.lines_added,
-                'net_reduction': self.stats.net_reduction,
-                'reduction_percentage': reduction_percentage
+            "timestamp": str(Path.cwd()),
+            "dry_run": self.dry_run,
+            "stats": {
+                "files_processed": self.stats.files_processed,
+                "files_modified": self.stats.files_modified,
+                "imports_replaced": self.stats.imports_replaced,
+                "classes_replaced": self.stats.classes_replaced,
+                "functions_replaced": self.stats.functions_replaced,
+                "lines_removed": self.stats.lines_removed,
+                "lines_added": self.stats.lines_added,
+                "net_reduction": self.stats.net_reduction,
+                "reduction_percentage": reduction_percentage,
             },
-            'errors': self.stats.errors
+            "errors": self.stats.errors,
         }
 
-        with open(report_path, 'w') as f:
+        with open(report_path, "w") as f:
             json.dump(report_data, f, indent=2)
 
         self.logger.info(f"\nReport saved to: {report_path}")
@@ -487,25 +501,21 @@ def main():
         description="Migrate configuration services to unified service (Phase 3 Consolidation)"
     )
     parser.add_argument(
-        '--project-path',
+        "--project-path",
         type=Path,
-        default=Path.cwd() / 'src',
-        help='Path to project source directory'
+        default=Path.cwd() / "src",
+        help="Path to project source directory",
     )
     parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help='Perform dry run without modifying files'
+        "--dry-run", action="store_true", help="Perform dry run without modifying files"
     )
     parser.add_argument(
-        '--no-backup',
-        action='store_true',
-        help='Do not create backup files'
+        "--no-backup", action="store_true", help="Do not create backup files"
     )
     parser.add_argument(
-        '--generate-compatibility',
-        action='store_true',
-        help='Generate backward compatibility layer'
+        "--generate-compatibility",
+        action="store_true",
+        help="Generate backward compatibility layer",
     )
 
     args = parser.parse_args()
@@ -516,17 +526,14 @@ def main():
         sys.exit(1)
 
     # Run migration
-    migrator = ConfigMigrator(
-        dry_run=args.dry_run,
-        backup=not args.no_backup
-    )
+    migrator = ConfigMigrator(dry_run=args.dry_run, backup=not args.no_backup)
 
     stats = migrator.migrate_project(args.project_path)
 
     # Generate compatibility layer if requested
     if args.generate_compatibility:
         compat_gen = BackwardCompatibilityGenerator()
-        compat_path = args.project_path / 'claude_mpm' / 'config_compat.py'
+        compat_path = args.project_path / "claude_mpm" / "config_compat.py"
         compat_gen.generate_compatibility_layer(compat_path)
 
     # Exit with appropriate code

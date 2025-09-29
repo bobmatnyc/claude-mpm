@@ -27,10 +27,10 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, Optional
 
-from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
-
 # Module-level logger
 from claude_mpm.core.logging_utils import get_logger
+from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
+
 logger = get_logger(__name__)
 
 # Cache key for base agent instructions

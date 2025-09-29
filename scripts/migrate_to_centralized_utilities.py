@@ -35,7 +35,9 @@ class CodeMigrator:
         self.dry_run = dry_run
         self.project_root = PROJECT_ROOT
         self.src_dir = self.project_root / "src" / "claude_mpm"
-        self.backup_dir = self.project_root / f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        self.backup_dir = (
+            self.project_root / f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        )
         self.changes: Dict[Path, List[str]] = {}
         self.stats = {
             "files_analyzed": 0,
@@ -66,11 +68,11 @@ class CodeMigrator:
 
         # Pattern 1: import logging + logger = logging.getLogger
         pattern1 = re.compile(
-            r'^import logging\s*\n(.*?\n)?logger = logging\.getLogger\(__name__\)',
-            re.MULTILINE
+            r"^import logging\s*\n(.*?\n)?logger = logging\.getLogger\(__name__\)",
+            re.MULTILINE,
         )
 
-        replacement1 = 'from claude_mpm.core.logging_utils import get_logger\nlogger = get_logger(__name__)'
+        replacement1 = "from claude_mpm.core.logging_utils import get_logger\nlogger = get_logger(__name__)"
 
         if pattern1.search(content):
             content = pattern1.sub(replacement1, content)
@@ -78,8 +80,8 @@ class CodeMigrator:
 
         # Pattern 2: from logging import getLogger
         pattern2 = re.compile(
-            r'^from logging import .*?getLogger.*?\n.*?logger = getLogger\(__name__\)',
-            re.MULTILINE
+            r"^from logging import .*?getLogger.*?\n.*?logger = getLogger\(__name__\)",
+            re.MULTILINE,
         )
 
         if pattern2.search(content):
@@ -87,32 +89,44 @@ class CodeMigrator:
             changes += 1
 
         # Pattern 3: Just logging.getLogger without import at top
-        if 'logging.getLogger' in content and 'import logging' in content:
+        if "logging.getLogger" in content and "import logging" in content:
             # Check if we haven't already replaced it
-            if 'from claude_mpm.core.logging_utils import get_logger' not in content:
+            if "from claude_mpm.core.logging_utils import get_logger" not in content:
                 # Add import at top after other imports
                 import_added = False
-                lines = content.split('\n')
+                lines = content.split("\n")
                 new_lines = []
 
                 for i, line in enumerate(lines):
                     new_lines.append(line)
                     # Add after first import block
-                    if not import_added and line.startswith('import ') and i + 1 < len(lines) and not lines[i + 1].startswith('import '):
-                        new_lines.append('from claude_mpm.core.logging_utils import get_logger')
+                    if (
+                        not import_added
+                        and line.startswith("import ")
+                        and i + 1 < len(lines)
+                        and not lines[i + 1].startswith("import ")
+                    ):
+                        new_lines.append(
+                            "from claude_mpm.core.logging_utils import get_logger"
+                        )
                         import_added = True
 
-                content = '\n'.join(new_lines)
+                content = "\n".join(new_lines)
 
                 # Replace logging.getLogger with get_logger
-                content = re.sub(r'logging\.getLogger\(', 'get_logger(', content)
+                content = re.sub(r"logging\.getLogger\(", "get_logger(", content)
                 changes += 1
 
         # Remove now-unused logging import if no other logging usage
-        if 'from claude_mpm.core.logging_utils import get_logger' in content:
+        if "from claude_mpm.core.logging_utils import get_logger" in content:
             # Check if logging is still used for other purposes
-            if not re.search(r'logging\.(debug|info|warning|error|critical|DEBUG|INFO|WARNING|ERROR|CRITICAL)', content):
-                content = re.sub(r'^import logging\s*\n', '', content, flags=re.MULTILINE)
+            if not re.search(
+                r"logging\.(debug|info|warning|error|critical|DEBUG|INFO|WARNING|ERROR|CRITICAL)",
+                content,
+            ):
+                content = re.sub(
+                    r"^import logging\s*\n", "", content, flags=re.MULTILINE
+                )
                 changes += 1
 
         return content, changes
@@ -130,58 +144,63 @@ class CodeMigrator:
         changes = 0
 
         # Skip if it's the common.py file itself
-        if file_path.name == 'common.py':
+        if file_path.name == "common.py":
             return content, changes
 
         replacements = []
 
         # Pattern: JSON loading with try/except
         json_pattern = re.compile(
-            r'try:\s*\n\s*with open\((.*?)\) as f:\s*\n\s*.*?json\.load\(f\).*?\n.*?except.*?:.*?\n.*?(?:return )?\{\}',
-            re.DOTALL
+            r"try:\s*\n\s*with open\((.*?)\) as f:\s*\n\s*.*?json\.load\(f\).*?\n.*?except.*?:.*?\n.*?(?:return )?\{\}",
+            re.DOTALL,
         )
 
         if json_pattern.search(content):
-            replacements.append(('json_loading', 'load_json_safe'))
+            replacements.append(("json_loading", "load_json_safe"))
             changes += 1
 
         # Pattern: Path existence check with creation
         path_pattern = re.compile(
-            r'if not .*?\.exists\(\):\s*\n\s*.*?\.mkdir\(parents=True, exist_ok=True\)',
-            re.DOTALL
+            r"if not .*?\.exists\(\):\s*\n\s*.*?\.mkdir\(parents=True, exist_ok=True\)",
+            re.DOTALL,
         )
 
         if path_pattern.search(content):
-            replacements.append(('path_exists', 'ensure_path_exists'))
+            replacements.append(("path_exists", "ensure_path_exists"))
             changes += 1
 
         # Pattern: subprocess.run with common options
         subprocess_pattern = re.compile(
-            r'subprocess\.run\([^,]+,\s*capture_output=True,\s*text=True[^)]*\)',
-            re.DOTALL
+            r"subprocess\.run\([^,]+,\s*capture_output=True,\s*text=True[^)]*\)",
+            re.DOTALL,
         )
 
         if subprocess_pattern.search(content):
-            replacements.append(('subprocess', 'run_command_safe'))
+            replacements.append(("subprocess", "run_command_safe"))
             changes += 1
 
         # Add imports if we have replacements
         if replacements:
-            import_line = 'from claude_mpm.utils.common import '
-            import_line += ', '.join([repl[1] for repl in replacements])
+            import_line = "from claude_mpm.utils.common import "
+            import_line += ", ".join([repl[1] for repl in replacements])
 
             # Add import after other imports
-            lines = content.split('\n')
+            lines = content.split("\n")
             import_added = False
             new_lines = []
 
             for i, line in enumerate(lines):
                 new_lines.append(line)
-                if not import_added and line.startswith('import ') and i + 1 < len(lines) and not lines[i + 1].startswith('import '):
+                if (
+                    not import_added
+                    and line.startswith("import ")
+                    and i + 1 < len(lines)
+                    and not lines[i + 1].startswith("import ")
+                ):
                     new_lines.append(import_line)
                     import_added = True
 
-            content = '\n'.join(new_lines)
+            content = "\n".join(new_lines)
 
         return content, changes
 
@@ -194,7 +213,10 @@ class CodeMigrator:
         self.stats["files_analyzed"] += 1
 
         # Skip test files and migration script itself
-        if 'test' in file_path.name or file_path.name == 'migrate_to_centralized_utilities.py':
+        if (
+            "test" in file_path.name
+            or file_path.name == "migrate_to_centralized_utilities.py"
+        ):
             return
 
         try:
@@ -277,7 +299,10 @@ class CodeMigrator:
         print("\n".join(report))
 
         # Save report to file
-        report_path = self.project_root / f"migration_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        report_path = (
+            self.project_root
+            / f"migration_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        )
         report_path.write_text("\n".join(report))
         print(f"\nReport saved to: {report_path}")
 

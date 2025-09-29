@@ -25,26 +25,13 @@ from typing import Dict, List, Set, Tuple
 # Mapping of old services to new strategies
 SERVICE_MAPPING = {
     # Old service imports -> New strategy imports
-    "from claude_mpm.services.project.enhanced_analyzer import EnhancedProjectAnalyzer":
-        "from claude_mpm.services.unified.unified_analyzer import UnifiedAnalyzer",
-
-    "from claude_mpm.services.project.analyzer import ProjectAnalyzer":
-        "from claude_mpm.services.unified.unified_analyzer import UnifiedAnalyzer",
-
-    "from claude_mpm.services.project.analyzer_v2 import ProjectAnalyzerV2":
-        "from claude_mpm.services.unified.unified_analyzer import UnifiedAnalyzer",
-
-    "from claude_mpm.services.project.analyzer_refactored import RefactoredAnalyzer":
-        "from claude_mpm.services.unified.unified_analyzer import UnifiedAnalyzer",
-
-    "from claude_mpm.services.project.dependency_analyzer import DependencyAnalyzerService":
-        "from claude_mpm.services.unified.analyzer_strategies import DependencyAnalyzerStrategy",
-
-    "from claude_mpm.services.project.architecture_analyzer import ArchitectureAnalyzer":
-        "from claude_mpm.services.unified.analyzer_strategies import StructureAnalyzerStrategy",
-
-    "from claude_mpm.services.project.language_analyzer import LanguageAnalyzer":
-        "from claude_mpm.services.unified.analyzer_strategies import CodeAnalyzerStrategy",
+    "from claude_mpm.services.project.enhanced_analyzer import EnhancedProjectAnalyzer": "from claude_mpm.services.unified.unified_analyzer import UnifiedAnalyzer",
+    "from claude_mpm.services.project.analyzer import ProjectAnalyzer": "from claude_mpm.services.unified.unified_analyzer import UnifiedAnalyzer",
+    "from claude_mpm.services.project.analyzer_v2 import ProjectAnalyzerV2": "from claude_mpm.services.unified.unified_analyzer import UnifiedAnalyzer",
+    "from claude_mpm.services.project.analyzer_refactored import RefactoredAnalyzer": "from claude_mpm.services.unified.unified_analyzer import UnifiedAnalyzer",
+    "from claude_mpm.services.project.dependency_analyzer import DependencyAnalyzerService": "from claude_mpm.services.unified.analyzer_strategies import DependencyAnalyzerStrategy",
+    "from claude_mpm.services.project.architecture_analyzer import ArchitectureAnalyzer": "from claude_mpm.services.unified.analyzer_strategies import StructureAnalyzerStrategy",
+    "from claude_mpm.services.project.language_analyzer import LanguageAnalyzer": "from claude_mpm.services.unified.analyzer_strategies import CodeAnalyzerStrategy",
 }
 
 # Class name mappings
@@ -99,7 +86,9 @@ class AnalyzerMigrator:
         Returns:
             Migration statistics
         """
-        print(f"{'[DRY RUN] ' if self.dry_run else ''}Migrating analyzers in {project_path}")
+        print(
+            f"{'[DRY RUN] ' if self.dry_run else ''}Migrating analyzers in {project_path}"
+        )
 
         # Find all Python files
         python_files = list(project_path.rglob("*.py"))
@@ -150,7 +139,7 @@ class AnalyzerMigrator:
             # Update class names
             for old_class, new_class in CLASS_MAPPING.items():
                 # Use word boundaries to avoid partial replacements
-                pattern = rf'\b{old_class}\b'
+                pattern = rf"\b{old_class}\b"
                 if re.search(pattern, content):
                     content = re.sub(pattern, new_class, content)
                     self.classes_updated += 1
@@ -159,13 +148,15 @@ class AnalyzerMigrator:
 
             # Update method calls
             for old_method, new_method in METHOD_MAPPING.items():
-                pattern = rf'\.{old_method}\('
-                replacement = f'.{new_method}('
+                pattern = rf"\.{old_method}\("
+                replacement = f".{new_method}("
                 if re.search(pattern, content):
                     content = re.sub(pattern, replacement, content)
                     self.methods_updated += 1
                     modified = True
-                    print(f"  Updated method {old_method} -> {new_method} in {file_path}")
+                    print(
+                        f"  Updated method {old_method} -> {new_method} in {file_path}"
+                    )
 
             # Update instantiation patterns
             content = self._update_instantiation_patterns(content)
@@ -175,8 +166,8 @@ class AnalyzerMigrator:
                 self.files_processed += 1
 
                 # Calculate line changes
-                original_lines = original_content.count('\n')
-                new_lines = content.count('\n')
+                original_lines = original_content.count("\n")
+                new_lines = content.count("\n")
                 if new_lines < original_lines:
                     self.lines_removed += original_lines - new_lines
                 else:
@@ -209,14 +200,18 @@ class AnalyzerMigrator:
         #               analyzer.register_strategy(NewStrategy())
 
         patterns = [
-            (r'(\w+)\s*=\s*EnhancedProjectAnalyzer\([^)]*\)',
-             r'\1 = UnifiedAnalyzer()\n    \1.register_strategy(CodeAnalyzerStrategy())'),
-
-            (r'(\w+)\s*=\s*DependencyAnalyzerService\([^)]*\)',
-             r'\1 = UnifiedAnalyzer()\n    \1.register_strategy(DependencyAnalyzerStrategy())'),
-
-            (r'(\w+)\s*=\s*ArchitectureAnalyzer\([^)]*\)',
-             r'\1 = UnifiedAnalyzer()\n    \1.register_strategy(StructureAnalyzerStrategy())'),
+            (
+                r"(\w+)\s*=\s*EnhancedProjectAnalyzer\([^)]*\)",
+                r"\1 = UnifiedAnalyzer()\n    \1.register_strategy(CodeAnalyzerStrategy())",
+            ),
+            (
+                r"(\w+)\s*=\s*DependencyAnalyzerService\([^)]*\)",
+                r"\1 = UnifiedAnalyzer()\n    \1.register_strategy(DependencyAnalyzerStrategy())",
+            ),
+            (
+                r"(\w+)\s*=\s*ArchitectureAnalyzer\([^)]*\)",
+                r"\1 = UnifiedAnalyzer()\n    \1.register_strategy(StructureAnalyzerStrategy())",
+            ),
         ]
 
         for pattern, replacement in patterns:
@@ -231,7 +226,9 @@ class AnalyzerMigrator:
         Args:
             project_path: Project root path
         """
-        shim_dir = project_path / "src" / "claude_mpm" / "services" / "project" / "compat"
+        shim_dir = (
+            project_path / "src" / "claude_mpm" / "services" / "project" / "compat"
+        )
         shim_dir.mkdir(parents=True, exist_ok=True)
 
         # Create __init__.py with compatibility imports
@@ -313,9 +310,9 @@ __all__ = [
         }
 
         # Print report
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("ANALYZER MIGRATION REPORT")
-        print("="*60)
+        print("=" * 60)
         print(f"Files Processed:      {report['files_processed']}")
         print(f"Imports Updated:      {report['imports_updated']}")
         print(f"Classes Updated:      {report['classes_updated']}")
@@ -323,11 +320,11 @@ __all__ = [
         print(f"Lines Removed:        {report['lines_removed']}")
         print(f"Lines Added:          {report['lines_added']}")
         print(f"Net Change:           {report['net_lines_changed']}")
-        print("-"*60)
+        print("-" * 60)
         print(f"Original LOC:         {report['original_loc']}")
         print(f"New LOC:              {report['new_loc']}")
         print(f"Reduction:            {report['reduction_percentage']:.1f}%")
-        print("="*60)
+        print("=" * 60)
 
         if self.dry_run:
             print("\n[DRY RUN] No files were actually modified.")
@@ -358,13 +355,15 @@ __all__ = [
                 content = file_path.read_text()
 
                 # Check for old service names
-                for old_class in CLASS_MAPPING.keys():
+                for old_class in CLASS_MAPPING:
                     if old_class in content and "compat" not in str(file_path):
                         issues.append(f"Found old class {old_class} in {file_path}")
 
                 # Check for old imports
-                for old_import in SERVICE_MAPPING.keys():
-                    if old_import.split()[-1] in content and "compat" not in str(file_path):
+                for old_import in SERVICE_MAPPING:
+                    if old_import.split()[-1] in content and "compat" not in str(
+                        file_path
+                    ):
                         issues.append(f"Found old import pattern in {file_path}")
 
             except Exception as e:
@@ -415,22 +414,21 @@ def main():
             for issue in issues:
                 print(f"  - {issue}")
             return 1
-        else:
-            print("\n✓ Migration validation passed!")
-            return 0
-    else:
-        # Migration mode
-        report = migrator.migrate_project(args.project_path)
-
-        # Save report if not dry run
-        if not args.dry_run:
-            report_file = args.project_path / "analyzer_migration_report.json"
-            import json
-            with open(report_file, "w") as f:
-                json.dump(report, f, indent=2)
-            print(f"\nMigration report saved to {report_file}")
-
+        print("\n✓ Migration validation passed!")
         return 0
+    # Migration mode
+    report = migrator.migrate_project(args.project_path)
+
+    # Save report if not dry run
+    if not args.dry_run:
+        report_file = args.project_path / "analyzer_migration_report.json"
+        import json
+
+        with open(report_file, "w") as f:
+            json.dump(report, f, indent=2)
+        print(f"\nMigration report saved to {report_file}")
+
+    return 0
 
 
 if __name__ == "__main__":

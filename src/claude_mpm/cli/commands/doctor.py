@@ -79,6 +79,15 @@ def add_doctor_parser(subparsers):
 
     parser.add_argument("--output", "-o", type=Path, help="Save output to file")
 
+    parser.add_argument(
+        "--output-file",
+        nargs="?",
+        const=".",
+        type=Path,
+        default=None,
+        help="Save report to file (default: mpm-doctor-report.md when used without path)",
+    )
+
     parser.set_defaults(func=doctor_command)
 
 
@@ -108,13 +117,30 @@ def doctor_command(args):
     """
     # Configure logging
     from claude_mpm.core.logging_utils import get_logger
+
     logger = get_logger(__name__)
+
+    # Handle output file parameter - support both --output and --output-file
+    output_file = args.output or args.output_file
+    if output_file is not None:
+        # If output_file is specified without a path, use default
+        if str(output_file) == ".":
+            output_file = Path("mpm-doctor-report.md")
+        elif not str(output_file).endswith((".md", ".json", ".txt")):
+            # Add .md extension if no extension provided
+            output_file = Path(str(output_file) + ".md")
 
     # Determine output format
     if args.json:
         output_format = "json"
     elif args.markdown:
         output_format = "markdown"
+    elif output_file:
+        # Force markdown format when writing to file (unless json specified)
+        if str(output_file).endswith(".json"):
+            output_format = "json"
+        else:
+            output_format = "markdown"
     else:
         output_format = "terminal"
 
@@ -152,17 +178,29 @@ def doctor_command(args):
     reporter = DoctorReporter(use_color=not args.no_color, verbose=args.verbose)
 
     # Output results
-    if args.output:
+    if output_file:
         # Save to file
         try:
             import sys
 
             original_stdout = sys.stdout
-            with open(args.output, "w") as f:
+            with open(output_file, "w") as f:
                 sys.stdout = f
                 reporter.report(summary, format=output_format)
             sys.stdout = original_stdout
-            print(f"Report saved to: {args.output}")
+            print(f"✅ Report saved to: {output_file}")
+
+            # Also print brief summary to terminal
+            if summary.error_count > 0:
+                print(
+                    f"❌ {summary.error_count} error(s) found - see report for details"
+                )
+            elif summary.warning_count > 0:
+                print(
+                    f"⚠️  {summary.warning_count} warning(s) found - see report for details"
+                )
+            else:
+                print("✅ System is healthy!")
         except Exception as e:
             logger.error(f"Failed to save report: {e}")
             print(f"❌ Failed to save report: {e!s}")
@@ -187,13 +225,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Claude MPM Doctor")
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--markdown", action="store_true")
     parser.add_argument("--fix", action="store_true")
     parser.add_argument("--no-color", action="store_true")
     parser.add_argument("--checks", nargs="+")
     parser.add_argument("--parallel", action="store_true")
+    parser.add_argument("--output", "-o", type=Path)
+    parser.add_argument("--output-file", type=Path)
 
     args = parser.parse_args()
-    args.markdown = False
-    args.output = None
 
     sys.exit(doctor_command(args))

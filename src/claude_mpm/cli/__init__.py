@@ -234,6 +234,19 @@ def _verify_mcp_gateway_startup():
     DESIGN DECISION: This is non-blocking - failures are logged but don't prevent
     startup to ensure claude-mpm remains functional even if MCP gateway has issues.
     """
+    # Quick verification of MCP services installation
+    try:
+        from ..services.mcp_service_verifier import verify_mcp_services_on_startup
+        from ..core.logger import get_logger
+
+        logger = get_logger("mcp_verify")
+        all_ok, message = verify_mcp_services_on_startup()
+        if not all_ok:
+            logger.warning(message)
+    except Exception:
+        # Non-critical - continue with startup
+        pass
+
     try:
         import asyncio
         import time
@@ -448,6 +461,14 @@ def _execute_command(command: str, args) -> int:
         result = cmd.execute(args)
         # Convert CommandResult to exit code
         return result.exit_code if result else 0
+
+    # Handle verify command with lazy import
+    if command == "verify":
+        # Lazy import to avoid loading unless needed
+        from .commands.verify import handle_verify
+
+        result = handle_verify(args)
+        return result if result is not None else 0
 
     # Map stable commands to their implementations
     command_map = {

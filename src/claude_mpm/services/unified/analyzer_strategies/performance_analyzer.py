@@ -12,11 +12,16 @@ Created: 2025-01-26
 import ast
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
-from ..strategies import AnalyzerStrategy, StrategyContext, StrategyMetadata, StrategyPriority
+from ..strategies import (
+    AnalyzerStrategy,
+    StrategyContext,
+    StrategyMetadata,
+    StrategyPriority,
+)
 
 logger = get_logger(__name__)
 
@@ -37,8 +42,8 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
     PERFORMANCE_PATTERNS = {
         "n_plus_one_query": {
             "patterns": [
-                r'for .* in .*:\s*\n.*\.(get|filter|select|find)',
-                r'\.map\s*\([^)]*=>\s*[^)]*fetch',
+                r"for .* in .*:\s*\n.*\.(get|filter|select|find)",
+                r"\.map\s*\([^)]*=>\s*[^)]*fetch",
             ],
             "severity": "high",
             "description": "Potential N+1 query problem",
@@ -46,8 +51,8 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
         },
         "unnecessary_loop": {
             "patterns": [
-                r'for .* in .*:\s*\n\s*for .* in .*:\s*\n\s*for .* in .*:',
-                r'\.forEach\s*\([^)]*\)\s*{\s*[^}]*\.forEach',
+                r"for .* in .*:\s*\n\s*for .* in .*:\s*\n\s*for .* in .*:",
+                r"\.forEach\s*\([^)]*\)\s*{\s*[^}]*\.forEach",
             ],
             "severity": "medium",
             "description": "Triple nested loop detected",
@@ -56,7 +61,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
         "string_concatenation_loop": {
             "patterns": [
                 r'for .* in .*:\s*\n.*\+=\s*["\']',
-                r'\.forEach\s*\([^)]*\)\s*{\s*[^}]*\+=',
+                r"\.forEach\s*\([^)]*\)\s*{\s*[^}]*\+=",
             ],
             "severity": "medium",
             "description": "String concatenation in loop",
@@ -64,9 +69,9 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
         },
         "synchronous_io": {
             "patterns": [
-                r'open\s*\([^)]*\)\.read\s*\(',
-                r'fs\.readFileSync\s*\(',
-                r'requests\.get\s*\([^)]*\)\.text',
+                r"open\s*\([^)]*\)\.read\s*\(",
+                r"fs\.readFileSync\s*\(",
+                r"requests\.get\s*\([^)]*\)\.text",
             ],
             "severity": "medium",
             "description": "Synchronous I/O operation",
@@ -74,8 +79,8 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
         },
         "missing_index": {
             "patterns": [
-                r'SELECT .* FROM .* WHERE .* LIKE .*%',
-                r'\.find\s*\(\s*{\s*[^}]*:\s*{\s*\$regex',
+                r"SELECT .* FROM .* WHERE .* LIKE .*%",
+                r"\.find\s*\(\s*{\s*[^}]*:\s*{\s*\$regex",
             ],
             "severity": "high",
             "description": "Potentially unindexed database query",
@@ -96,24 +101,24 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
     MEMORY_PATTERNS = {
         "memory_leak": {
             "patterns": [
-                r'global\s+\w+\s*=',
-                r'window\.\w+\s*=',
-                r'self\.\w+\s*=\s*\[\]',
+                r"global\s+\w+\s*=",
+                r"window\.\w+\s*=",
+                r"self\.\w+\s*=\s*\[\]",
             ],
             "description": "Potential memory leak from global variable",
         },
         "large_data_structure": {
             "patterns": [
-                r'\[\s*\*\s*range\s*\(\s*\d{6,}',
-                r'Array\s*\(\s*\d{6,}\s*\)',
+                r"\[\s*\*\s*range\s*\(\s*\d{6,}",
+                r"Array\s*\(\s*\d{6,}\s*\)",
             ],
             "description": "Large data structure allocation",
         },
         "inefficient_copy": {
             "patterns": [
-                r'deepcopy\s*\(',
-                r'JSON\.parse\s*\(\s*JSON\.stringify',
-                r'\.slice\s*\(\s*\)\.map',
+                r"deepcopy\s*\(",
+                r"JSON\.parse\s*\(\s*JSON\.stringify",
+                r"\.slice\s*\(\s*\)\.map",
             ],
             "description": "Inefficient data copying",
         },
@@ -177,7 +182,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
             if target_path.is_file():
                 return self._analyze_file(target_path, options)
-            elif target_path.is_dir():
+            if target_path.is_dir():
                 return self._analyze_directory(target_path, options)
         elif isinstance(target, ast.AST):
             return self._analyze_ast_performance(target, options)
@@ -215,7 +220,9 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
                 python_analysis = self._analyze_python_performance(content, file_path)
                 results["complexity"] = python_analysis.get("complexity", {})
                 results["issues"].extend(python_analysis.get("issues", []))
-                results["optimizations"].extend(python_analysis.get("optimizations", []))
+                results["optimizations"].extend(
+                    python_analysis.get("optimizations", [])
+                )
 
             elif file_path.suffix in [".js", ".jsx", ".ts", ".tsx"]:
                 js_analysis = self._analyze_javascript_performance(content, file_path)
@@ -227,7 +234,9 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
             # Generate optimization recommendations
             if not results["optimizations"]:
-                results["optimizations"] = self._generate_optimizations(results["issues"])
+                results["optimizations"] = self._generate_optimizations(
+                    results["issues"]
+                )
 
         except Exception as e:
             logger.error(f"Error analyzing file {file_path}: {e}")
@@ -236,7 +245,9 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
         return results
 
-    def _analyze_directory(self, dir_path: Path, options: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_directory(
+        self, dir_path: Path, options: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Analyze all files in a directory for performance issues."""
         results = {
             "status": "success",
@@ -251,8 +262,18 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
         # Define file extensions to analyze
         analyzable_extensions = {
-            ".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".cs",
-            ".go", ".rs", ".cpp", ".c", ".sql",
+            ".py",
+            ".js",
+            ".jsx",
+            ".ts",
+            ".tsx",
+            ".java",
+            ".cs",
+            ".go",
+            ".rs",
+            ".cpp",
+            ".c",
+            ".sql",
         }
 
         files_with_issues = []
@@ -264,7 +285,10 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
                 # Skip common ignore patterns
                 if any(part.startswith(".") for part in file_path.parts):
                     continue
-                if any(ignore in file_path.parts for ignore in ["node_modules", "__pycache__", "dist", "build"]):
+                if any(
+                    ignore in file_path.parts
+                    for ignore in ["node_modules", "__pycache__", "dist", "build"]
+                ):
                     continue
 
                 file_result = self._analyze_file(file_path, options)
@@ -279,8 +303,9 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
                         # Categorize issues
                         for issue in file_result["issues"]:
                             category = issue.get("category", "unknown")
-                            results["issues_by_category"][category] = \
+                            results["issues_by_category"][category] = (
                                 results["issues_by_category"].get(category, 0) + 1
+                            )
 
         # Calculate average performance score
         if results["files_analyzed"] > 0:
@@ -292,7 +317,9 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
         return results
 
-    def _scan_performance_patterns(self, content: str, file_path: Path) -> List[Dict[str, Any]]:
+    def _scan_performance_patterns(
+        self, content: str, file_path: Path
+    ) -> List[Dict[str, Any]]:
         """Scan for performance anti-patterns."""
         issues = []
 
@@ -300,21 +327,25 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
             for pattern in pattern_info["patterns"]:
                 matches = re.finditer(pattern, content, re.IGNORECASE | re.MULTILINE)
                 for match in matches:
-                    line_num = content[:match.start()].count("\n") + 1
+                    line_num = content[: match.start()].count("\n") + 1
 
-                    issues.append({
-                        "type": pattern_name,
-                        "severity": pattern_info["severity"],
-                        "category": pattern_info["category"],
-                        "description": pattern_info["description"],
-                        "file": str(file_path),
-                        "line": line_num,
-                        "code": match.group(0)[:100],
-                    })
+                    issues.append(
+                        {
+                            "type": pattern_name,
+                            "severity": pattern_info["severity"],
+                            "category": pattern_info["category"],
+                            "description": pattern_info["description"],
+                            "file": str(file_path),
+                            "line": line_num,
+                            "code": match.group(0)[:100],
+                        }
+                    )
 
         return issues
 
-    def _scan_memory_patterns(self, content: str, file_path: Path) -> List[Dict[str, Any]]:
+    def _scan_memory_patterns(
+        self, content: str, file_path: Path
+    ) -> List[Dict[str, Any]]:
         """Scan for memory usage issues."""
         issues = []
 
@@ -322,21 +353,25 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
             for pattern in pattern_info["patterns"]:
                 matches = re.finditer(pattern, content, re.IGNORECASE | re.MULTILINE)
                 for match in matches:
-                    line_num = content[:match.start()].count("\n") + 1
+                    line_num = content[: match.start()].count("\n") + 1
 
-                    issues.append({
-                        "type": f"memory_{pattern_name}",
-                        "severity": "medium",
-                        "category": "memory",
-                        "description": pattern_info["description"],
-                        "file": str(file_path),
-                        "line": line_num,
-                        "code": match.group(0),
-                    })
+                    issues.append(
+                        {
+                            "type": f"memory_{pattern_name}",
+                            "severity": "medium",
+                            "category": "memory",
+                            "description": pattern_info["description"],
+                            "file": str(file_path),
+                            "line": line_num,
+                            "code": match.group(0),
+                        }
+                    )
 
         return issues
 
-    def _analyze_python_performance(self, content: str, file_path: Path) -> Dict[str, Any]:
+    def _analyze_python_performance(
+        self, content: str, file_path: Path
+    ) -> Dict[str, Any]:
         """Perform Python-specific performance analysis."""
         results = {
             "complexity": {},
@@ -366,15 +401,17 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
                     # Check for performance issues
                     if complexity["time_complexity"] in ["O(n^2)", "O(n^3)", "O(2^n)"]:
-                        results["issues"].append({
-                            "type": "high_complexity",
-                            "severity": "high",
-                            "category": "algorithm",
-                            "description": f"Function '{node.name}' has {complexity['time_complexity']} complexity",
-                            "file": str(file_path),
-                            "line": node.lineno,
-                            "code": node.name,
-                        })
+                        results["issues"].append(
+                            {
+                                "type": "high_complexity",
+                                "severity": "high",
+                                "category": "algorithm",
+                                "description": f"Function '{node.name}' has {complexity['time_complexity']} complexity",
+                                "file": str(file_path),
+                                "line": node.lineno,
+                                "code": node.name,
+                            }
+                        )
 
                     self.generic_visit(node)
                     self.current_function = old_function
@@ -383,15 +420,17 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
                 def visit_For(self, node):
                     self.loop_depth += 1
                     if self.loop_depth > 2:
-                        results["issues"].append({
-                            "type": "deep_nesting",
-                            "severity": "medium",
-                            "category": "algorithm",
-                            "description": f"Deep loop nesting (level {self.loop_depth})",
-                            "file": str(file_path),
-                            "line": node.lineno,
-                            "code": f"Loop depth: {self.loop_depth}",
-                        })
+                        results["issues"].append(
+                            {
+                                "type": "deep_nesting",
+                                "severity": "medium",
+                                "category": "algorithm",
+                                "description": f"Deep loop nesting (level {self.loop_depth})",
+                                "file": str(file_path),
+                                "line": node.lineno,
+                                "code": f"Loop depth: {self.loop_depth}",
+                            }
+                        )
                     self.generic_visit(node)
                     self.loop_depth -= 1
 
@@ -400,24 +439,31 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
                 def visit_ListComp(self, node):
                     # Check for nested list comprehensions
-                    nested_comps = sum(
-                        1 for child in ast.walk(node)
-                        if isinstance(child, (ast.ListComp, ast.SetComp, ast.DictComp))
-                    ) - 1
+                    nested_comps = (
+                        sum(
+                            1
+                            for child in ast.walk(node)
+                            if isinstance(
+                                child, (ast.ListComp, ast.SetComp, ast.DictComp)
+                            )
+                        )
+                        - 1
+                    )
 
                     if nested_comps > 1:
-                        results["optimizations"].append({
-                            "type": "nested_comprehension",
-                            "description": "Consider breaking down nested comprehensions for clarity",
-                            "file": str(file_path),
-                            "line": node.lineno,
-                        })
+                        results["optimizations"].append(
+                            {
+                                "type": "nested_comprehension",
+                                "description": "Consider breaking down nested comprehensions for clarity",
+                                "file": str(file_path),
+                                "line": node.lineno,
+                            }
+                        )
 
                 def _calculate_complexity(self, node):
                     """Calculate time and space complexity of a function."""
                     loop_count = sum(
-                        1 for n in ast.walk(node)
-                        if isinstance(n, (ast.For, ast.While))
+                        1 for n in ast.walk(node) if isinstance(n, (ast.For, ast.While))
                     )
 
                     # Detect nested loops
@@ -467,26 +513,35 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
         return results
 
-    def _check_python_optimizations(self, tree: ast.AST, results: Dict, file_path: Path):
+    def _check_python_optimizations(
+        self, tree: ast.AST, results: Dict, file_path: Path
+    ):
         """Check for Python-specific optimization opportunities."""
+
         class OptimizationVisitor(ast.NodeVisitor):
             def visit_For(self, node):
                 # Check for range(len()) anti-pattern
                 if isinstance(node.iter, ast.Call):
-                    if (isinstance(node.iter.func, ast.Name) and
-                        node.iter.func.id == "range" and
-                        len(node.iter.args) == 1):
+                    if (
+                        isinstance(node.iter.func, ast.Name)
+                        and node.iter.func.id == "range"
+                        and len(node.iter.args) == 1
+                    ):
 
                         if isinstance(node.iter.args[0], ast.Call):
-                            if (isinstance(node.iter.args[0].func, ast.Name) and
-                                node.iter.args[0].func.id == "len"):
+                            if (
+                                isinstance(node.iter.args[0].func, ast.Name)
+                                and node.iter.args[0].func.id == "len"
+                            ):
 
-                                results["optimizations"].append({
-                                    "type": "range_len_pattern",
-                                    "description": "Use enumerate() instead of range(len())",
-                                    "file": str(file_path),
-                                    "line": node.lineno,
-                                })
+                                results["optimizations"].append(
+                                    {
+                                        "type": "range_len_pattern",
+                                        "description": "Use enumerate() instead of range(len())",
+                                        "file": str(file_path),
+                                        "line": node.lineno,
+                                    }
+                                )
 
                 self.generic_visit(node)
 
@@ -500,22 +555,31 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
                             break
 
                 if parent and isinstance(parent, ast.Call):
-                    if (isinstance(parent.func, ast.Name) and
-                        parent.func.id in ["sum", "any", "all", "min", "max"]):
+                    if isinstance(parent.func, ast.Name) and parent.func.id in [
+                        "sum",
+                        "any",
+                        "all",
+                        "min",
+                        "max",
+                    ]:
 
-                        results["optimizations"].append({
-                            "type": "generator_opportunity",
-                            "description": "Consider using generator expression instead of list comprehension",
-                            "file": str(file_path),
-                            "line": node.lineno,
-                        })
+                        results["optimizations"].append(
+                            {
+                                "type": "generator_opportunity",
+                                "description": "Consider using generator expression instead of list comprehension",
+                                "file": str(file_path),
+                                "line": node.lineno,
+                            }
+                        )
 
                 self.generic_visit(node)
 
         visitor = OptimizationVisitor()
         visitor.visit(tree)
 
-    def _analyze_javascript_performance(self, content: str, file_path: Path) -> Dict[str, Any]:
+    def _analyze_javascript_performance(
+        self, content: str, file_path: Path
+    ) -> Dict[str, Any]:
         """Perform JavaScript-specific performance analysis."""
         results = {
             "issues": [],
@@ -525,7 +589,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
         # Check for common JS performance issues
         js_patterns = {
             "dom_in_loop": {
-                "pattern": r'for\s*\([^)]*\)\s*{\s*[^}]*document\.(getElementById|querySelector)',
+                "pattern": r"for\s*\([^)]*\)\s*{\s*[^}]*document\.(getElementById|querySelector)",
                 "description": "DOM access inside loop - consider caching",
                 "severity": "high",
             },
@@ -535,50 +599,60 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
                 "severity": "medium",
             },
             "sync_ajax": {
-                "pattern": r'async\s*:\s*false',
+                "pattern": r"async\s*:\s*false",
                 "description": "Synchronous AJAX request",
                 "severity": "high",
             },
             "inefficient_array": {
-                "pattern": r'\.shift\s*\(\s*\)',
+                "pattern": r"\.shift\s*\(\s*\)",
                 "description": "Array.shift() is O(n) - consider using different data structure",
                 "severity": "medium",
             },
         }
 
         for issue_name, issue_info in js_patterns.items():
-            matches = re.finditer(issue_info["pattern"], content, re.IGNORECASE | re.MULTILINE)
+            matches = re.finditer(
+                issue_info["pattern"], content, re.IGNORECASE | re.MULTILINE
+            )
             for match in matches:
-                line_num = content[:match.start()].count("\n") + 1
+                line_num = content[: match.start()].count("\n") + 1
 
-                results["issues"].append({
-                    "type": f"js_{issue_name}",
-                    "severity": issue_info["severity"],
-                    "category": "performance",
-                    "description": issue_info["description"],
-                    "file": str(file_path),
-                    "line": line_num,
-                    "code": match.group(0)[:100],
-                })
+                results["issues"].append(
+                    {
+                        "type": f"js_{issue_name}",
+                        "severity": issue_info["severity"],
+                        "category": "performance",
+                        "description": issue_info["description"],
+                        "file": str(file_path),
+                        "line": line_num,
+                        "code": match.group(0)[:100],
+                    }
+                )
 
         # Check for optimization opportunities
         if "forEach" in content and "return" not in content:
-            results["optimizations"].append({
-                "type": "use_for_of",
-                "description": "Consider using for...of instead of forEach for better performance",
-                "file": str(file_path),
-            })
+            results["optimizations"].append(
+                {
+                    "type": "use_for_of",
+                    "description": "Consider using for...of instead of forEach for better performance",
+                    "file": str(file_path),
+                }
+            )
 
         if ".map(" in content and ".filter(" in content:
-            results["optimizations"].append({
-                "type": "combine_array_methods",
-                "description": "Consider combining map and filter operations for better performance",
-                "file": str(file_path),
-            })
+            results["optimizations"].append(
+                {
+                    "type": "combine_array_methods",
+                    "description": "Consider combining map and filter operations for better performance",
+                    "file": str(file_path),
+                }
+            )
 
         return results
 
-    def _analyze_ast_performance(self, node: ast.AST, options: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_ast_performance(
+        self, node: ast.AST, options: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Analyze performance of an AST node."""
         results = {
             "status": "success",
@@ -590,22 +664,27 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
         # Calculate complexity for the node
         if isinstance(node, ast.FunctionDef):
             loop_count = sum(
-                1 for n in ast.walk(node)
-                if isinstance(n, (ast.For, ast.While))
+                1 for n in ast.walk(node) if isinstance(n, (ast.For, ast.While))
             )
 
             results["complexity"] = {
                 "name": node.name,
                 "loop_count": loop_count,
-                "line_count": node.end_lineno - node.lineno + 1 if hasattr(node, "end_lineno") else 0,
+                "line_count": (
+                    node.end_lineno - node.lineno + 1
+                    if hasattr(node, "end_lineno")
+                    else 0
+                ),
             }
 
             if loop_count > 3:
-                results["issues"].append({
-                    "type": "excessive_loops",
-                    "severity": "medium",
-                    "description": f"Function has {loop_count} loops",
-                })
+                results["issues"].append(
+                    {
+                        "type": "excessive_loops",
+                        "severity": "medium",
+                        "description": f"Function has {loop_count} loops",
+                    }
+                )
 
         return results
 
@@ -627,7 +706,9 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
         return max(0, score)
 
-    def _generate_optimizations(self, issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _generate_optimizations(
+        self, issues: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Generate optimization recommendations based on issues."""
         optimizations = []
         categories = set()
@@ -637,32 +718,40 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
             categories.add(category)
 
         if "database" in categories:
-            optimizations.append({
-                "type": "database_optimization",
-                "description": "Consider adding database indexes and optimizing queries",
-                "priority": "high",
-            })
+            optimizations.append(
+                {
+                    "type": "database_optimization",
+                    "description": "Consider adding database indexes and optimizing queries",
+                    "priority": "high",
+                }
+            )
 
         if "algorithm" in categories:
-            optimizations.append({
-                "type": "algorithm_optimization",
-                "description": "Review algorithm complexity and consider more efficient approaches",
-                "priority": "high",
-            })
+            optimizations.append(
+                {
+                    "type": "algorithm_optimization",
+                    "description": "Review algorithm complexity and consider more efficient approaches",
+                    "priority": "high",
+                }
+            )
 
         if "memory" in categories:
-            optimizations.append({
-                "type": "memory_optimization",
-                "description": "Optimize memory usage by using generators and avoiding large allocations",
-                "priority": "medium",
-            })
+            optimizations.append(
+                {
+                    "type": "memory_optimization",
+                    "description": "Optimize memory usage by using generators and avoiding large allocations",
+                    "priority": "medium",
+                }
+            )
 
         if "io" in categories:
-            optimizations.append({
-                "type": "io_optimization",
-                "description": "Use asynchronous I/O operations to improve responsiveness",
-                "priority": "medium",
-            })
+            optimizations.append(
+                {
+                    "type": "io_optimization",
+                    "description": "Use asynchronous I/O operations to improve responsiveness",
+                    "priority": "medium",
+                }
+            )
 
         return optimizations
 
@@ -673,9 +762,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
             "total_issues": results["total_issues"],
             "average_score": results["performance_score"],
             "top_categories": sorted(
-                results["issues_by_category"].items(),
-                key=lambda x: x[1],
-                reverse=True
+                results["issues_by_category"].items(), key=lambda x: x[1], reverse=True
             )[:3],
         }
 
@@ -720,26 +807,34 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
             return metrics
 
         if analysis_result.get("type") == "file":
-            metrics.update({
-                "performance_score": analysis_result.get("performance_score", 0),
-                "issue_count": len(analysis_result.get("issues", [])),
-                "optimization_count": len(analysis_result.get("optimizations", [])),
-            })
+            metrics.update(
+                {
+                    "performance_score": analysis_result.get("performance_score", 0),
+                    "issue_count": len(analysis_result.get("issues", [])),
+                    "optimization_count": len(analysis_result.get("optimizations", [])),
+                }
+            )
 
             # Add complexity metrics if available
             if "complexity" in analysis_result:
                 for func_name, complexity in analysis_result["complexity"].items():
-                    metrics[f"complexity_{func_name}"] = complexity.get("time_complexity", "O(1)")
+                    metrics[f"complexity_{func_name}"] = complexity.get(
+                        "time_complexity", "O(1)"
+                    )
 
         elif analysis_result.get("type") == "directory":
-            metrics.update({
-                "files_analyzed": analysis_result.get("files_analyzed", 0),
-                "total_issues": analysis_result.get("total_issues", 0),
-                "average_score": analysis_result.get("performance_score", 0),
-            })
+            metrics.update(
+                {
+                    "files_analyzed": analysis_result.get("files_analyzed", 0),
+                    "total_issues": analysis_result.get("total_issues", 0),
+                    "average_score": analysis_result.get("performance_score", 0),
+                }
+            )
 
             # Add category breakdown
-            for category, count in analysis_result.get("issues_by_category", {}).items():
+            for category, count in analysis_result.get(
+                "issues_by_category", {}
+            ).items():
                 metrics[f"category_{category}"] = count
 
         return metrics
@@ -764,8 +859,12 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
         baseline_metrics = self.extract_metrics(baseline)
         current_metrics = self.extract_metrics(current)
 
-        baseline_issues = baseline_metrics.get("total_issues", baseline_metrics.get("issue_count", 0))
-        current_issues = current_metrics.get("total_issues", current_metrics.get("issue_count", 0))
+        baseline_issues = baseline_metrics.get(
+            "total_issues", baseline_metrics.get("issue_count", 0)
+        )
+        current_issues = current_metrics.get(
+            "total_issues", current_metrics.get("issue_count", 0)
+        )
 
         if current_issues < baseline_issues:
             comparison["improvements"].append(

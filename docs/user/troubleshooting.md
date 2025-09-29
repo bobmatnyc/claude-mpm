@@ -2,8 +2,8 @@
 
 Solutions to common issues and problems with Claude MPM.
 
-**Last Updated**: 2025-08-29  
-**Version**: 4.1.14
+**Last Updated**: 2025-09-28
+**Version**: 4.4.x
 
 ## Quick Diagnostics
 
@@ -57,7 +57,7 @@ Fix: claude-mpm agents deploy
 **Configuration Problems:**
 ```
 ⚠️ Configuration Check
-   ⚠ Claude Desktop config: MCP server not configured
+   ⚠ Claude Code config: MCP server not configured
    
 Fix: claude-mpm mcp install
 ```
@@ -323,6 +323,182 @@ claude-mpm hooks restart
 ```
 
 For detailed hook system troubleshooting, see [Hook System Troubleshooting](troubleshooting/hook-system.md).
+
+## MCP Service Issues
+
+Claude MPM includes several optional MCP (Model Context Protocol) services that enhance functionality. Use the `verify` command for comprehensive MCP service diagnostics.
+
+### Quick MCP Diagnostics
+
+```bash
+# Verify all MCP services
+claude-mpm verify
+
+# Auto-fix detected issues
+claude-mpm verify --fix
+
+# Verify specific service
+claude-mpm verify --service kuzu-memory
+
+# Get detailed JSON output
+claude-mpm verify --json
+```
+
+### Common MCP Service Problems
+
+**Service Not Found:**
+```bash
+# Check if service is installed
+claude-mpm verify --service mcp-vector-search
+
+# Auto-install missing service
+claude-mpm verify --service mcp-vector-search --fix
+
+# Manual installation via pipx
+pipx install mcp-vector-search
+```
+
+**Configuration Issues:**
+```bash
+# Check MCP configuration
+claude-mpm doctor --checks mcp --verbose
+
+# Verify service commands
+claude-mpm verify --json | jq '.["service-name"].configured_command'
+
+# Fix configuration automatically
+claude-mpm verify --fix
+```
+
+**Service Won't Start:**
+```bash
+# Check service-specific diagnostics
+claude-mpm verify --service kuzu-memory --json
+
+# Review startup logs
+tail -f .claude-mpm/logs/claude-mpm.log | grep -i mcp
+
+# Test service manually (example for kuzu-memory)
+python -m kuzu_memory.server --help
+```
+
+### Specific Service Troubleshooting
+
+**kuzu-memory (Knowledge Graph Memory):**
+```bash
+# Verify knowledge graph database
+claude-mpm verify --service kuzu-memory
+
+# Check memory directory permissions
+ls -la .claude-mpm/kuzu-memories/
+
+# Reset memory database if corrupted
+rm -rf .claude-mpm/kuzu-memories/
+claude-mpm memory init
+```
+
+**mcp-vector-search (Code Search):**
+```bash
+# Verify search index
+claude-mpm verify --service mcp-vector-search
+
+# Rebuild search index
+python -c "import mcp_vector_search; mcp_vector_search.rebuild_index()"
+
+# Check embedding model availability
+python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+```
+
+**mcp-browser (Browser Automation):**
+```bash
+# Check browser dependencies
+claude-mpm verify --service mcp-browser
+
+# Verify Playwright installation
+python -c "from playwright.sync_api import sync_playwright; print('Playwright OK')"
+
+# Install browser binaries if missing
+playwright install chromium
+```
+
+**mcp-ticketer (Ticket Management):**
+```bash
+# Verify ticket service
+claude-mpm verify --service mcp-ticketer
+
+# Check ticket database
+ls -la .claude-mpm/tickets/
+
+# Reset ticket database
+rm -f .claude-mpm/tickets/tickets.db
+```
+
+### Startup Verification Warnings
+
+Claude MPM automatically checks MCP services on startup. Common warnings:
+
+**"MCP service 'service-name' not available":**
+- Service is not installed or not in PATH
+- Run `claude-mpm verify --service service-name --fix` to auto-install
+
+**"MCP service 'service-name' configuration invalid":**
+- Service command or path is incorrect
+- Run `claude-mpm verify --fix` to repair configuration
+
+**"Startup verification timed out":**
+- Service is installed but takes too long to respond
+- Check service logs and system resources
+
+### Advanced MCP Debugging
+
+**Enable MCP debug logging:**
+```bash
+export CLAUDE_MPM_MCP_DEBUG=true
+claude-mpm run --debug
+```
+
+**Check MCP Gateway status:**
+```bash
+# Verify MCP Gateway is running
+curl -s http://localhost:8765/health | jq '.'
+
+# Check registered services
+curl -s http://localhost:8765/services | jq '.'
+
+# Monitor MCP traffic
+tail -f .claude-mpm/logs/mcp-gateway.log
+```
+
+**Manual service testing:**
+```bash
+# Test service directly (example)
+echo '{"method": "list_tools", "params": {}}' | \
+  python -m kuzu_memory.server
+
+# Verify service binary
+which kuzu-memory-server || echo "Service not in PATH"
+
+# Check service installation
+pipx list | grep -E "(kuzu-memory|mcp-vector-search|mcp-browser|mcp-ticketer)"
+```
+
+### MCP Service Recovery
+
+**Complete MCP reset:**
+```bash
+# Reinstall all MCP services
+pipx uninstall kuzu-memory mcp-vector-search mcp-browser mcp-ticketer
+claude-mpm verify --fix
+
+# Reset MCP configuration
+rm -f ~/.claude-mpm/mcp-config.json
+claude-mpm mcp install
+
+# Verify everything works
+claude-mpm verify
+```
+
+For detailed MCP integration information, see [MCP Gateway Documentation](../developer/13-mcp-gateway/README.md).
 
 ## Performance Issues
 

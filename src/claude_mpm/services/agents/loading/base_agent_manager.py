@@ -14,10 +14,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.agents.base_agent_loader import clear_base_agent_cache
+from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 from claude_mpm.services.shared import ConfigServiceBase
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

@@ -13,15 +13,15 @@ Claude MPM uses a three-tier agent hierarchy with clear precedence:
    - Deployed per-project for custom workflows
    - Persists with project repository
 
-2. **User Level** (`~/.claude/agents/`) - Middle priority (deprecated deployment location)
+2. **User Level** (`~/.claude/agents/`) - Middle priority
    - User's personal agent collection
-   - **Note**: As of v4.0.32+, user agents deploy to project directories
+   - **Current**: In v4.4.x+, all agents deploy to project-level `.claude/agents/`
    - Overrides system agents but not project agents
 
 3. **System Level** (Framework installation) - Lowest priority
    - Default agents shipped with claude-mpm
    - Available to all users and projects
-   - **Note**: As of v4.0.32+, system agents deploy to project directories
+   - **Current**: In v4.4.x+, all agents deploy to project-level `.claude/agents/`
 
 ## Getting Started
 

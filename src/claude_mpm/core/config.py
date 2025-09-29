@@ -14,11 +14,12 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import yaml
 
+from claude_mpm.core.logging_utils import get_logger
+
 from ..utils.config_manager import ConfigurationManager
 from .exceptions import ConfigurationError, FileOperationError
 from .unified_paths import get_path_manager
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

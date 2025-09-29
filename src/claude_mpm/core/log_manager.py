@@ -23,10 +23,11 @@ from queue import Full, Queue
 from threading import Lock, Thread
 from typing import Any, Dict, Optional
 
+from claude_mpm.core.logging_utils import get_logger
+
 from ..core.config import Config
 from ..core.constants import SystemLimits
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 # Import cleanup utility for automatic cleanup

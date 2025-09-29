@@ -21,10 +21,9 @@ Migration Strategy:
 """
 
 import inspect
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -131,9 +130,7 @@ class ServiceMapper:
     def __init__(self):
         """Initialize service mapper."""
         self._mappings: Dict[str, ServiceMapping] = {}
-        self._feature_flags: Dict[FeatureFlag, bool] = {
-            flag: False for flag in FeatureFlag
-        }
+        self._feature_flags: Dict[FeatureFlag, bool] = dict.fromkeys(FeatureFlag, False)
         self._metrics = MigrationMetrics()
         self._logger = get_logger(f"{__name__}.ServiceMapper")
         self._initialize_mappings()
@@ -199,9 +196,7 @@ class ServiceMapper:
         """
         return self._mappings.get(legacy_service)
 
-    def get_unified_service(
-        self, legacy_path: str, legacy_class: str
-    ) -> Optional[str]:
+    def get_unified_service(self, legacy_path: str, legacy_class: str) -> Optional[str]:
         """
         Get unified service for a legacy service.
 
@@ -216,9 +211,7 @@ class ServiceMapper:
         mapping = self._mappings.get(key)
         return mapping.unified_service if mapping else None
 
-    def update_status(
-        self, legacy_service: str, status: MigrationStatus
-    ) -> bool:
+    def update_status(self, legacy_service: str, status: MigrationStatus) -> bool:
         """
         Update migration status for a service.
 
@@ -247,9 +240,7 @@ class ServiceMapper:
             elif status == MigrationStatus.REMOVED:
                 self._metrics.removed_services += 1
 
-        self._logger.info(
-            f"Updated {legacy_service} status: {old_status} -> {status}"
-        )
+        self._logger.info(f"Updated {legacy_service} status: {old_status} -> {status}")
         return True
 
     def set_feature_flag(self, flag: FeatureFlag, enabled: bool) -> None:
@@ -336,9 +327,7 @@ def create_compatibility_wrapper(
         def __init__(self, *args, **kwargs):
             """Initialize wrapper with unified service."""
             self._unified_service = unified_service
-            self._logger = get_logger(
-                f"{__name__}.{legacy_class.__name__}Wrapper"
-            )
+            self._logger = get_logger(f"{__name__}.{legacy_class.__name__}Wrapper")
             self._logger.debug(
                 f"Created compatibility wrapper for {legacy_class.__name__}"
             )
@@ -375,9 +364,7 @@ def create_compatibility_wrapper(
                 return attr
 
             # Fallback to legacy implementation if allowed
-            if ServiceMapper().is_feature_enabled(
-                FeatureFlag.ALLOW_LEGACY_FALLBACK
-            ):
+            if ServiceMapper().is_feature_enabled(FeatureFlag.ALLOW_LEGACY_FALLBACK):
                 if hasattr(legacy_class, name):
                     self._logger.warning(
                         f"Falling back to legacy implementation for {name}"
@@ -434,26 +421,22 @@ class MigrationValidator:
 
         # Get public methods from legacy class
         legacy_methods = {
-            name for name, _ in inspect.getmembers(
-                legacy_class, inspect.ismethod
-            )
+            name
+            for name, _ in inspect.getmembers(legacy_class, inspect.ismethod)
             if not name.startswith("_")
         }
 
         # Get public methods from unified class
         unified_methods = {
-            name for name, _ in inspect.getmembers(
-                unified_class, inspect.ismethod
-            )
+            name
+            for name, _ in inspect.getmembers(unified_class, inspect.ismethod)
             if not name.startswith("_")
         }
 
         # Check for missing methods
         missing = legacy_methods - unified_methods
         if missing:
-            issues.append(
-                f"Missing methods in unified service: {', '.join(missing)}"
-            )
+            issues.append(f"Missing methods in unified service: {', '.join(missing)}")
 
         # Check method signatures
         for method_name in legacy_methods & unified_methods:
@@ -494,14 +477,10 @@ class MigrationValidator:
 
             try:
                 # Execute on legacy service
-                legacy_result = getattr(legacy_instance, method_name)(
-                    *args, **kwargs
-                )
+                legacy_result = getattr(legacy_instance, method_name)(*args, **kwargs)
 
                 # Execute on unified service
-                unified_result = getattr(unified_instance, method_name)(
-                    *args, **kwargs
-                )
+                unified_result = getattr(unified_instance, method_name)(*args, **kwargs)
 
                 # Compare results
                 if legacy_result != unified_result:
@@ -511,9 +490,7 @@ class MigrationValidator:
                     )
 
             except Exception as e:
-                differences.append(
-                    f"Error testing {method_name}: {str(e)}"
-                )
+                differences.append(f"Error testing {method_name}: {e!s}")
 
         return differences
 

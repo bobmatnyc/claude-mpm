@@ -22,7 +22,12 @@ import yaml
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.unified.strategies import StrategyMetadata, StrategyPriority
 
-from .base import DeploymentContext, DeploymentResult, DeploymentStrategy, DeploymentType
+from .base import (
+    DeploymentContext,
+    DeploymentResult,
+    DeploymentStrategy,
+    DeploymentType,
+)
 
 
 class LocalDeploymentStrategy(DeploymentStrategy):
@@ -83,13 +88,14 @@ class LocalDeploymentStrategy(DeploymentStrategy):
                 target_parent.mkdir(parents=True, exist_ok=True)
                 target_parent.rmdir()  # Clean up test directory
             except PermissionError:
-                errors.append(f"No permission to create target directory: {target_parent}")
-        else:
-            # Check write permissions
-            if not target_parent.is_dir():
-                errors.append(f"Target parent is not a directory: {target_parent}")
-            elif not self._check_write_permission(target_parent):
-                errors.append(f"No write permission for target: {target_parent}")
+                errors.append(
+                    f"No permission to create target directory: {target_parent}"
+                )
+        # Check write permissions
+        elif not target_parent.is_dir():
+            errors.append(f"Target parent is not a directory: {target_parent}")
+        elif not self._check_write_permission(target_parent):
+            errors.append(f"No write permission for target: {target_parent}")
 
         # Validate deployment type specific requirements
         if context.deployment_type == DeploymentType.AGENT:
@@ -209,16 +215,14 @@ class LocalDeploymentStrategy(DeploymentStrategy):
         # Type-specific verification
         if context.deployment_type == DeploymentType.AGENT:
             return self._verify_agent_deployment(deployed_path, context)
-        elif context.deployment_type == DeploymentType.CONFIG:
+        if context.deployment_type == DeploymentType.CONFIG:
             return self._verify_config_deployment(deployed_path, context)
-        elif context.deployment_type == DeploymentType.TEMPLATE:
+        if context.deployment_type == DeploymentType.TEMPLATE:
             return self._verify_template_deployment(deployed_path, context)
 
         return True
 
-    def rollback(
-        self, context: DeploymentContext, result: DeploymentResult
-    ) -> bool:
+    def rollback(self, context: DeploymentContext, result: DeploymentResult) -> bool:
         """
         Rollback local deployment.
 
@@ -252,12 +256,10 @@ class LocalDeploymentStrategy(DeploymentStrategy):
             return True
 
         except Exception as e:
-            self._logger.error(f"Rollback failed: {str(e)}")
+            self._logger.error(f"Rollback failed: {e!s}")
             return False
 
-    def get_health_status(
-        self, deployment_info: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def get_health_status(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
         """
         Get health status of local deployment.
 
@@ -307,7 +309,9 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
     def _generate_deployment_id(self) -> str:
         """Generate unique deployment ID."""
-        return f"local_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"
+        return (
+            f"local_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"
+        )
 
     def _create_backup(self, context: DeploymentContext) -> Optional[Path]:
         """Create backup of target before deployment."""
@@ -333,7 +337,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
             return backup_path
 
         except Exception as e:
-            self._logger.warning(f"Failed to create backup: {str(e)}")
+            self._logger.warning(f"Failed to create backup: {e!s}")
             return None
 
     def _write_version_file(self, target_path: Path, version: str) -> None:
@@ -354,9 +358,11 @@ class LocalDeploymentStrategy(DeploymentStrategy):
                 errors.append(f"Invalid agent file format: {source_path.suffix}")
         elif source_path.is_dir():
             # Check for agent definition files
-            agent_files = list(source_path.glob("*.json")) + \
-                         list(source_path.glob("*.yaml")) + \
-                         list(source_path.glob("*.yml"))
+            agent_files = (
+                list(source_path.glob("*.json"))
+                + list(source_path.glob("*.yaml"))
+                + list(source_path.glob("*.yml"))
+            )
             if not agent_files:
                 errors.append(f"No agent definition files found in: {source_path}")
 
@@ -397,8 +403,9 @@ class LocalDeploymentStrategy(DeploymentStrategy):
     ) -> bool:
         """Verify agent deployment."""
         # Check for valid YAML structure
-        yaml_files = list(deployed_path.glob("*.yaml")) + \
-                    list(deployed_path.glob("*.yml"))
+        yaml_files = list(deployed_path.glob("*.yaml")) + list(
+            deployed_path.glob("*.yml")
+        )
 
         for yaml_file in yaml_files:
             try:
@@ -411,7 +418,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
                         self._logger.error(f"Agent missing 'name' field: {yaml_file}")
                         return False
             except Exception as e:
-                self._logger.error(f"Invalid agent YAML: {yaml_file}: {str(e)}")
+                self._logger.error(f"Invalid agent YAML: {yaml_file}: {e!s}")
                 return False
 
         return True
@@ -436,7 +443,14 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
         if source_path.is_file():
             # Validate config file format
-            if source_path.suffix not in [".json", ".yaml", ".yml", ".toml", ".ini", ".env"]:
+            if source_path.suffix not in [
+                ".json",
+                ".yaml",
+                ".yml",
+                ".toml",
+                ".ini",
+                ".env",
+            ]:
                 errors.append(f"Unsupported config format: {source_path.suffix}")
 
         return errors
@@ -496,15 +510,16 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
         # Process template with variables
         if source_path.is_file():
-            processed = self._process_template(source_path, context.config.get("variables", {}))
+            processed = self._process_template(
+                source_path, context.config.get("variables", {})
+            )
             artifacts.append(processed)
         else:
             # Process all template files in directory
             for template_file in source_path.rglob("*"):
                 if template_file.is_file():
                     processed = self._process_template(
-                        template_file,
-                        context.config.get("variables", {})
+                        template_file, context.config.get("variables", {})
                     )
                     artifacts.append(processed)
 
@@ -552,9 +567,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
         return True
 
-    def _process_template(
-        self, template_path: Path, variables: Dict[str, Any]
-    ) -> Path:
+    def _process_template(self, template_path: Path, variables: Dict[str, Any]) -> Path:
         """Process template file with variables."""
         content = template_path.read_text()
 
@@ -578,7 +591,9 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
         for artifact in artifacts:
             if artifact.is_file():
-                dest = target_path / artifact.name if target_path.is_dir() else target_path
+                dest = (
+                    target_path / artifact.name if target_path.is_dir() else target_path
+                )
                 shutil.copy2(artifact, dest)
                 deployed.append(dest)
             elif artifact.is_dir():

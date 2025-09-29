@@ -5,7 +5,7 @@ from .content_formatter import ContentFormatter
 from .context_generator import ContextGenerator
 
 __all__ = [
-    "ContentFormatter",
     "CapabilityGenerator",
+    "ContentFormatter",
     "ContextGenerator",
 ]

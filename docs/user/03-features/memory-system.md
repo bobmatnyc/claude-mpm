@@ -1,47 +1,106 @@
-# Agent Memory System User Guide
+# Memory System Guide
 
-Learn how to effectively use the Claude MPM Agent Memory System to help agents learn and improve over time.
+Claude MPM v4.4.x features an advanced memory system combining traditional agent memories with the powerful kuzu-memory knowledge graph for comprehensive project context retention.
 
-## What is Agent Memory?
+**Version**: 4.4.x
+**Last Updated**: 2025-09-28
 
-The Agent Memory System allows Claude agents to remember important insights, patterns, and learnings from your project across sessions. Instead of starting fresh each time, agents build up project-specific knowledge that makes them more effective helpers.
+## Overview
+
+The Claude MPM Memory System provides two complementary memory technologies:
+
+### 1. Kuzu-Memory (Primary - v4.4.x+)
+- **Graph Database**: Uses Kuzu for efficient storage and semantic search
+- **Automatic Installation**: Installed via pipx on first run
+- **Project-Specific**: Each project gets its own isolated memory store
+- **Context Enrichment**: Automatically enhances prompts with relevant context
+- **Conversation History**: Persistent memory across sessions
+
+### 2. Agent Memory Files (Legacy)
+- **File-Based**: Traditional text-based memory files per agent
+- **Manual Management**: CLI commands for viewing and editing
+- **Agent-Specific**: Each agent type has its own memory file
+- **Backwards Compatible**: Still supported for existing workflows
 
 ### Key Benefits
 
-- **Continuity**: Agents remember past conversations and learnings
-- **Context-Awareness**: Agents learn your project's specific patterns and conventions
-- **Efficiency**: Less time explaining the same concepts repeatedly
-- **Quality**: Agents learn from mistakes and successful patterns
+- **Continuity**: Persistent memory across conversations and sessions
+- **Context-Awareness**: Intelligent retrieval of relevant project knowledge
+- **Efficiency**: Automated context enrichment reduces repetitive explanations
+- **Quality**: Accumulated project knowledge improves response accuracy
 
 ## Getting Started
 
+### Automatic Setup
+
+Claude MPM v4.4.x automatically sets up the memory system:
+
+1. **Kuzu-Memory Detection**: Checks for existing kuzu-memory installation
+2. **Auto-Installation**: Installs kuzu-memory via pipx if not found
+3. **Project Database**: Creates project-specific knowledge graph
+4. **Graceful Fallback**: Falls back to agent memory files if kuzu-memory unavailable
+
 ### Quick Start
 
-1. **Initialize memories for your project:**
-   ```bash
-   claude-mpm memory init
-   ```
+```bash
+# Start claude-mpm (memory system auto-initializes)
+claude-mpm
 
-2. **Check memory system status:**
-   ```bash
-   claude-mpm memory status
-   ```
+# Check memory system status
+claude-mpm info  # Shows kuzu-memory status
 
-3. **View what agents have learned:**
-   ```bash
-   claude-mpm memory show
-   ```
+# Traditional memory commands (still supported)
+claude-mpm memory status
+```
 
-### How Agents Learn
+### How Memory Works
 
-Agents accumulate knowledge automatically through:
+**Kuzu-Memory (Primary)**:
+- Automatically stores conversation memories
+- Enriches prompts with relevant context
+- Uses semantic search for intelligent retrieval
+- No manual intervention required
 
-- **Natural conversations**: When you say "remember this for next time"
-- **Project analysis**: Automatic analysis of your codebase and documentation
-- **Pattern recognition**: Learning from successful solutions and common mistakes
-- **Manual additions**: You can directly add important insights
+**Agent Memory Files (Legacy)**:
+- Manual memory management via CLI
+- Agent-specific knowledge storage
+- Explicit memory commands
 
-## Using Memory Commands
+## Kuzu-Memory System (Primary)
+
+### How It Works
+
+The kuzu-memory system operates automatically:
+
+1. **Context Collection**: Captures conversation context and project information
+2. **Graph Storage**: Stores memories with tags and relationships in Kuzu database
+3. **Semantic Search**: Finds relevant memories using advanced retrieval algorithms
+4. **Context Enrichment**: Automatically adds relevant context to user prompts
+5. **Project Isolation**: Each project maintains its own memory database
+
+### Database Locations
+
+```bash
+# Project-specific databases
+~/.claude-mpm/kuzu-memory/projects/<project-hash>/
+
+# Shared memories (if enabled)
+~/.claude-mpm/kuzu-memory/shared/
+```
+
+### Checking Kuzu-Memory Status
+
+```bash
+# General system information (includes kuzu-memory status)
+claude-mpm info
+
+# Output includes:
+# ✅ Kuzu-Memory: Available at /path/to/kuzu-memory
+# 📊 Project Database: /path/to/project/db
+# 💾 Memory Count: X memories stored
+```
+
+## Agent Memory Files (Legacy)
 
 ### Viewing Agent Memories
 
@@ -61,34 +120,23 @@ claude-mpm memory show qa
 claude-mpm memory show engineer --format detailed
 ```
 
-Example output:
-```
-🤖 Engineer Agent
-📚 8 sections, 24 total items
+### Memory Storage Methods
 
-📖 Project Architecture:
-   • React TypeScript SPA with Node.js backend
-   • Component-based architecture with atomic design
-   • State management using Redux Toolkit
-   ... and 3 more
+**Kuzu-Memory (Automatic)**:
+- Memories are automatically stored during conversations
+- Context is intelligently extracted and indexed
+- No manual commands required
+- Uses project-specific graph database
 
-📖 Implementation Guidelines:
-   • Use functional components with hooks pattern
-   • All API calls go through service layer
-   • Follow ESLint and Prettier configurations
-   ... and 5 more
-```
-
-### Adding Memories Manually
-
-**Add specific learnings:**
+**Agent Memory Files (Manual)**:
 ```bash
+# Add specific learnings to agent memory files
 claude-mpm memory add engineer pattern "Use dependency injection for service classes"
-claude-mpm memory add qa error "Missing test coverage causes deployment failures"  
+claude-mpm memory add qa error "Missing test coverage causes deployment failures"
 claude-mpm memory add documentation context "API docs are in OpenAPI 3.0 format"
 ```
 
-**Learning types you can add:**
+**Learning types for agent files:**
 - `pattern`: Architectural or design patterns
 - `error`: Common mistakes to avoid
 - `optimization`: Performance improvements
@@ -97,7 +145,7 @@ claude-mpm memory add documentation context "API docs are in OpenAPI 3.0 format"
 
 ### Natural Language Learning
 
-Agents also learn when you use these phrases in conversation:
+Both memory systems respond to natural language cues:
 
 - "Remember this for next time"
 - "Add this to memory"
@@ -105,64 +153,74 @@ Agents also learn when you use these phrases in conversation:
 - "Store this insight"
 - "Don't forget that we..."
 
-**Example conversation:**
+**Example with kuzu-memory:**
 ```
-You: The authentication service uses JWT tokens with 24-hour expiration. 
+You: The authentication service uses JWT tokens with 24-hour expiration.
      Remember this for future API development.
 
-Agent: I'll remember that the authentication service uses JWT tokens 
-       with 24-hour expiration for future API development tasks.
+Agent: I'll store this information in the project knowledge graph.
+       [Kuzu-memory automatically indexes this information]
 ```
 
-## Understanding Agent Types
+## Memory System Architecture
 
-The system supports 10 specialized agents, each focusing on different aspects:
+### Kuzu-Memory vs Agent Files
 
-### Core Development Agents
+**Kuzu-Memory (Recommended)**:
+- Graph-based storage with semantic relationships
+- Automatic context enrichment during conversations
+- Project-specific isolation with shared knowledge option
+- Advanced search and retrieval capabilities
+- No manual maintenance required
 
-**Engineer Agent** (`engineer`)
-- Focuses on coding patterns, architecture, performance
-- Learns implementation techniques and best practices
-- Example memory: "Use async/await pattern for all API calls"
+**Agent Memory Files (Legacy)**:
+- File-based storage per agent type
+- Manual memory management via CLI
+- Explicit memory commands and optimization
+- Backwards compatible with existing workflows
 
-**QA Agent** (`qa`) 
-- Focuses on testing strategies, quality standards, bug patterns
-- Learns testing approaches and common issues
-- Example memory: "Integration tests require database seeding"
+### Agent Types (For Legacy Memory Files)
 
-**Research Agent** (`research`)
-- Focuses on analysis, investigation, domain knowledge
-- Learns research findings and technical insights
-- Example memory: "GraphQL preferred over REST for this project"
+The system supports 10+ specialized agents:
 
-### Specialized Agents
+**Core Development**:
+- `engineer` - Coding patterns, architecture, performance
+- `qa` - Testing strategies, quality standards, bug patterns
+- `research` - Analysis, investigation, domain knowledge
 
-**Data Engineer** (`data_engineer`)
-- Focuses on data pipelines, databases, analytics, AI APIs
-- Learns data processing patterns and optimization techniques
-- Example memory: "Use connection pooling for PostgreSQL queries"
-
-**Security Agent** (`security`)
-- Focuses on security analysis, compliance, threat assessment
-- Learns security patterns and compliance requirements
-- Example memory: "All user inputs must be sanitized for XSS prevention"
-
-**Documentation Agent** (`documentation`)
-- Focuses on technical writing, user guides, API docs
-- Learns documentation standards and content organization
-- Example memory: "Code examples must include error handling"
-
-And 4 more specialized agents for ops, version control, project management, and test integration.
+**Specialized**:
+- `data_engineer` - Data pipelines, databases, analytics
+- `security` - Security analysis, compliance, threats
+- `documentation` - Technical writing, user guides
+- `devops` - Infrastructure, deployment, monitoring
+- `version_control` - Git workflows, branching strategies
+- `project_manager` - Planning, coordination, requirements
+- `test_integration` - CI/CD, automated testing
 
 ## System Status and Health
 
-### Checking Memory Status
+### Checking Overall Memory Status
 
 ```bash
+# Comprehensive system information (includes kuzu-memory)
+claude-mpm info
+
+# Legacy agent memory files status
 claude-mpm memory status
 ```
 
-Example output:
+**Claude MPM Info Output** (includes kuzu-memory):
+```
+Claude MPM v4.4.x System Information
+────────────────────────────────────────────────────────────────────────────────
+✅ Kuzu-Memory: Available at /opt/homebrew/bin/kuzu-memory
+📊 Project Database: /Users/name/.claude-mpm/kuzu-memory/projects/abc123/
+💾 Memory Count: 47 memories stored
+🔧 Auto Context Enrichment: Enabled
+📁 Agent Memory Files: 4 agents with legacy memories
+```
+
+**Agent Memory Status** (legacy system):
 ```
 Agent Memory System Status
 ────────────────────────────────────────────────────────────────────────────────
@@ -172,67 +230,40 @@ Agent Memory System Status
 📚 Auto Learning: Yes
 📊 Total Agents: 4
 💾 Total Size: 28.4 KB
-
-📋 Agent Memory Details:
-   🟢 engineer
-      Size: 8.2 KB / 8 KB (102.5%)
-      Content: 6 sections, 23 items
-      Auto-learning: On
-      Last modified: 2025-08-06 10:30:15
-   
-   🟡 qa
-      Size: 6.1 KB / 8 KB (76.3%)
-      Content: 5 sections, 18 items
-      Auto-learning: On
-      Last modified: 2025-08-06 09:45:20
 ```
 
-**Status indicators:**
-- 🟢 Green: Low usage (< 70%)
-- 🟡 Yellow: Medium usage (70-90%) 
-- 🔴 Red: High usage (> 90%)
+## Memory Maintenance
 
-## Memory Optimization
+### Kuzu-Memory (No Maintenance Required)
 
-### When to Optimize
+The kuzu-memory system is self-managing:
+- **Automatic Optimization**: Graph database handles storage efficiently
+- **Smart Retrieval**: Advanced algorithms ensure relevant context
+- **No Size Limits**: Scales automatically with project needs
+- **Background Cleanup**: Handles duplicate detection internally
 
-Optimize agent memories when:
-- Memory files are near size limits (red indicators)
-- You notice duplicate or redundant information
-- Agent responses seem outdated or inconsistent
+### Agent Memory Files (Manual Optimization)
+
+**When to optimize legacy memory files:**
+- Memory files near size limits (red indicators)
+- Duplicate or redundant information
+- Outdated or inconsistent responses
 - Monthly maintenance (recommended)
 
-### Running Optimization
-
-**Optimize all agents:**
+**Running optimization:**
 ```bash
+# Optimize all agent memory files
 claude-mpm memory optimize
-```
 
-**Optimize specific agent:**
-```bash
+# Optimize specific agent
 claude-mpm memory optimize engineer
 ```
 
-Example output:
-```
-✅ Optimization completed for engineer
-   Original size: 8,456 bytes
-   Optimized size: 6,823 bytes
-   Size reduction: 1,633 bytes (19.3%)
-   
-   Duplicates removed: 3
-   Items consolidated: 5
-   Sections reordered: 2
-   Backup created: /project/.claude-mpm/memories/engineer_agent.md.backup
-```
-
-### What Optimization Does
-
-- **Removes duplicates**: Eliminates identical or very similar items
-- **Consolidates similar items**: Merges related learnings
-- **Reorders by priority**: Moves important items to the top
-- **Creates backups**: Saves original before changes
+**What optimization does:**
+- Removes duplicates and consolidates similar items
+- Reorders by priority and relevance
+- Creates backups before changes
+- Reduces file size and improves performance
 
 ## Finding Patterns and Cross-References
 
@@ -322,7 +353,19 @@ This helps you understand:
 
 ## Best Practices
 
-### Effective Memory Usage
+### Working with Kuzu-Memory
+
+**1. Natural Conversations**
+- Use natural language to indicate important information
+- The system automatically extracts and stores relevant context
+- No manual commands needed for most use cases
+
+**2. Project-Specific Context**
+- Focus conversations on project-specific decisions and patterns
+- Kuzu-memory automatically categorizes and relates information
+- Context enrichment improves over time with more conversations
+
+### Legacy Agent Memory Files
 
 **1. Be Specific and Actionable**
 ```bash
@@ -333,22 +376,13 @@ claude-mpm memory add engineer pattern "Use React.memo for components that re-re
 claude-mpm memory add engineer pattern "Use React best practices"
 ```
 
-**2. Include Context**
+**2. Include Project Context**
 ```bash
 # ✅ Good: Includes project context
 claude-mpm memory add qa context "E2E tests run against staging environment with real database"
 
-# ❌ Poor: Missing context  
+# ❌ Poor: Missing context
 claude-mpm memory add qa context "Run E2E tests"
-```
-
-**3. Focus on Project-Specific Knowledge**
-```bash
-# ✅ Good: Project-specific
-claude-mpm memory add data_engineer pattern "User events pipeline processes 10M+ events/day via Kafka"
-
-# ❌ Poor: Generic knowledge
-claude-mpm memory add data_engineer pattern "Kafka is good for streaming"
 ```
 
 ### When to Use Different Agents
@@ -375,6 +409,13 @@ claude-mpm memory add documentation preference "Code examples must show both suc
 
 ### Maintenance Schedule
 
+**For Kuzu-Memory (Minimal)**:
+- No regular maintenance required
+- System self-optimizes and manages storage
+- Monitor via `claude-mpm info` occasionally
+
+**For Agent Memory Files (Legacy)**:
+
 **Weekly:**
 - Review memory status: `claude-mpm memory status`
 - Check for optimization opportunities
@@ -382,55 +423,77 @@ claude-mpm memory add documentation preference "Code examples must show both suc
 **Monthly:**
 - Run optimization: `claude-mpm memory optimize`
 - Review and clean outdated memories manually
-- Rebuild from docs: `claude-mpm memory build --force-rebuild`
 
 **Project milestones:**
-- Add key learnings from completed features
-- Document architectural decisions
-- Update context for major changes
+- Document key architectural decisions explicitly
+- Add important project-specific patterns
 
 ## Troubleshooting
 
-### Common Issues
+### Kuzu-Memory Issues
+
+**Kuzu-memory not found:**
+1. Check installation: `which kuzu-memory`
+2. Verify pipx installation: `pipx list | grep kuzu-memory`
+3. Reinstall: `pipx install kuzu-memory`
+4. Check system info: `claude-mpm info`
+
+**Context not enriching properly:**
+1. Verify project database exists: Check `~/.claude-mpm/kuzu-memory/projects/`
+2. Ensure conversations are being stored
+3. Try starting a new conversation to test memory
+
+**Database corruption:**
+1. Check database files in project memory directory
+2. Consider deleting and recreating project database
+3. Kuzu-memory will recreate on next conversation
+
+### Agent Memory Files Issues
 
 **Memories not updating:**
 1. Check if memory system is enabled: `claude-mpm memory status`
 2. Verify directory permissions on `.claude-mpm/memories/`
 3. Check available disk space
 
-**Wrong agent getting memories:**
-1. Test routing: `claude-mpm memory route --content "your content"`
-2. Use more specific keywords
-3. Manually specify the agent: `claude-mpm memory add <agent> <type> "content"`
-
 **Memory files too large:**
 1. Run optimization: `claude-mpm memory optimize`
 2. Review and remove outdated content
 3. Consider increasing size limits in configuration
 
-**Agent responses seem outdated:**
-1. Check last modified dates: `claude-mpm memory status`
-2. Rebuild from documentation: `claude-mpm memory build --force-rebuild`
-3. Add recent learnings manually
-
 ### Getting Help
 
-**View all available commands:**
+**System Information:**
 ```bash
+# Overall system status (includes kuzu-memory)
+claude-mpm info
+
+# Legacy agent memory commands
 claude-mpm memory --help
-```
-
-**Get command-specific help:**
-```bash
 claude-mpm memory show --help
-claude-mpm memory add --help
 ```
 
-**Debug memory issues:**
+**Debug Memory Issues:**
 ```bash
 # Enable verbose output
 export CLAUDE_MPM_LOG_LEVEL=DEBUG
+claude-mpm info
 claude-mpm memory status
 ```
 
-The Agent Memory System makes Claude agents more effective by learning from your project over time. Start with `claude-mpm memory init` and let agents begin learning from your specific codebase and working patterns.
+**Testing Memory Systems:**
+```bash
+# Test kuzu-memory availability
+which kuzu-memory
+
+# Test agent memory routing
+claude-mpm memory route --content "test content"
+```
+
+## Summary
+
+Claude MPM v4.4.x provides a dual-layer memory system:
+
+1. **Kuzu-Memory (Primary)**: Automatic, graph-based knowledge storage with intelligent context enrichment
+2. **Agent Memory Files (Legacy)**: Manual, file-based memory management for specific use cases
+
+The kuzu-memory system handles most memory needs automatically, while legacy agent memory files remain available for explicit knowledge management. Both systems work together to provide comprehensive project context retention across conversations and sessions.

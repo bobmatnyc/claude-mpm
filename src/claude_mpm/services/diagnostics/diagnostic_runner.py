@@ -14,13 +14,14 @@ from claude_mpm.core.logging_utils import get_logger
 from .checks import (
     AgentCheck,
     BaseDiagnosticCheck,
-    ClaudeDesktopCheck,
+    ClaudeCodeCheck,
     CommonIssuesCheck,
     ConfigurationCheck,
     FilesystemCheck,
     InstallationCheck,
     InstructionsCheck,
     MCPCheck,
+    MCPServicesCheck,
     MonitorCheck,
     StartupLogCheck,
 )
@@ -52,9 +53,10 @@ class DiagnosticRunner:
             ConfigurationCheck,
             FilesystemCheck,
             InstructionsCheck,  # Check instruction files early
-            ClaudeDesktopCheck,
+            ClaudeCodeCheck,
             AgentCheck,
             MCPCheck,
+            MCPServicesCheck,  # Check external MCP services
             MonitorCheck,
             StartupLogCheck,  # Check startup logs for recent issues
             CommonIssuesCheck,
@@ -119,9 +121,10 @@ class DiagnosticRunner:
         ]
         # Level 2: May depend on level 1
         level2 = [
-            ClaudeDesktopCheck,
+            ClaudeCodeCheck,
             AgentCheck,
             MCPCheck,
+            MCPServicesCheck,
             MonitorCheck,
             StartupLogCheck,
         ]
@@ -206,8 +209,8 @@ class DiagnosticRunner:
             "config": ConfigurationCheck,
             "filesystem": FilesystemCheck,
             "fs": FilesystemCheck,
-            "claude": ClaudeDesktopCheck,
-            "claude_desktop": ClaudeDesktopCheck,
+            "claude": ClaudeCodeCheck,
+            "claude_code": ClaudeCodeCheck,
             "agents": AgentCheck,
             "agent": AgentCheck,
             "mcp": MCPCheck,
