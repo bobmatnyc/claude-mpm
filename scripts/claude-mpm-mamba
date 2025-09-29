@@ -228,7 +228,7 @@ print_info "Python version: $(python --version 2>&1)"
 
 # Check if this is a claude-mpm specific command or should be passed to claude
 MPM_PREFIX="--mpm:"
-MPM_COMMANDS=("run" "run-guarded" "tickets" "info" "agents" "ui" "memory" "monitor" "config" "aggregate" "cleanup-memory" "cleanup" "clean")
+MPM_COMMANDS=("run" "run-guarded" "tickets" "info" "agents" "ui" "memory" "monitor" "config" "configure" "dashboard" "aggregate" "cleanup-memory" "cleanup" "clean" "doctor" "diagnose" "check-health" "mcp" "agent-manager" "debug" "analyze" "analyze-code" "mpm-init" "search" "uninstall" "verify" "mcp-pipx-config")
 FIRST_ARG="${1:-}"
 
 # Remove --update-env from arguments if present

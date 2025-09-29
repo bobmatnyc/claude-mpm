@@ -1,4 +1,47 @@
-## [4.4.7] - TBD
+## [4.4.9] - 2025-09-29
+
+### Fixed
+- **Agent Deployment Logging**: Eliminated duplicate deployment messages
+  - Fixed redundant version checking in multi-source deployments
+  - Added `skip_version_check` parameter to prevent repeated checks
+  - Resolved "Deploying 9 agents" followed by "Deployed 0 agents" issue
+
+- **kuzu-memory Command**: Corrected MCP server command arguments
+  - Fixed command from incorrect `["claude", "mcp-server"]` to correct `["mcp", "serve"]`
+  - Resolved failures on both local and remote installations
+  - Properly handles all kuzu-memory invocation scenarios
+
+- **mcp-ticketer Dependencies**: Auto-fix for missing gql dependency
+  - Automatically injects gql dependency when missing (for versions <= 0.1.8)
+  - Prevents runtime failures due to packaging bug in older versions
+  - Optimized check to run once per session, not per project
+
+### Added
+- **MCP Connection Testing**: Enhanced mpm-doctor with actual connection tests
+  - Now sends JSON-RPC 2.0 initialize requests to verify connectivity
+  - Tests tool discovery with tools/list requests
+  - Measures response times for performance monitoring
+  - Provides detailed connection diagnostics beyond installation checks
+
+- **Static MCP Configuration**: Reliable service configuration system
+  - Implemented STATIC_MCP_CONFIGS for known-good service configurations
+  - Updates all projects in ~/.claude.json, not just current one
+  - Eliminates detection errors from dynamic service discovery
+  - Ensures consistent configuration across all environments
+
+### Improved
+- **mpm-doctor Command**: Made accessible and enhanced functionality
+  - Added to CLI wrapper scripts (claude-mpm and claude-mpm-mamba)
+  - Enhanced with real JSON-RPC connection testing
+  - Better error reporting and diagnostic output
+  - Auto-fix capabilities for common configuration issues
+
+- **Startup Performance**: Optimized MCP service checks
+  - Dependency checks now run once per startup, not per project
+  - Reduced startup time for multi-project environments
+  - More efficient configuration update process
+
+## [4.4.8] - 2025-09-28
 
 ### Added
 - **MCP Service Verification Command**: Comprehensive MCP service health checks and auto-fix capabilities
