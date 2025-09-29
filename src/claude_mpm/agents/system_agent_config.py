@@ -18,6 +18,8 @@ Created: 2025-07-16
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from claude_mpm.core.logging_utils import get_logger
+
 from ..config.default_model_config import (
     DefaultModelConfigManager,
     get_default_model_for_agent_type,
@@ -28,7 +30,6 @@ from ..config.model_env_defaults import (
 )
 from ..services.model_selector import ModelSelector, ModelType
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

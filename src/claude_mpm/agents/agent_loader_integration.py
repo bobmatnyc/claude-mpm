@@ -9,11 +9,12 @@ Provides backward compatibility while enabling advanced features.
 
 from typing import Any, Dict, Optional
 
+from claude_mpm.core.logging_utils import get_logger
+
 from ..models.agent_definition import AgentDefinition
 from ..services import AgentManager
 from .agent_loader import get_agent_prompt
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

@@ -47,7 +47,7 @@ class OptimizationApplicator:
             # Pattern 1: Basic logger pattern
             if "import logging" in content and "logging.getLogger" in content:
                 # Add new import after existing imports
-                lines = content.split('\n')
+                lines = content.split("\n")
                 new_lines = []
                 import_added = False
 
@@ -55,7 +55,10 @@ class OptimizationApplicator:
                     # Skip the old import logging line
                     if line.strip() == "import logging":
                         # Check if logging is used for other purposes
-                        if re.search(r'logging\.(DEBUG|INFO|WARNING|ERROR|CRITICAL|basicConfig)', content):
+                        if re.search(
+                            r"logging\.(DEBUG|INFO|WARNING|ERROR|CRITICAL|basicConfig)",
+                            content,
+                        ):
                             new_lines.append(line)  # Keep it
                         continue
 
@@ -63,7 +66,9 @@ class OptimizationApplicator:
                     if "logger = logging.getLogger(__name__)" in line:
                         if not import_added:
                             # Add import before this line
-                            new_lines.append("from claude_mpm.core.logging_utils import get_logger")
+                            new_lines.append(
+                                "from claude_mpm.core.logging_utils import get_logger"
+                            )
                             import_added = True
                         new_lines.append("logger = get_logger(__name__)")
                         modified = True
@@ -72,20 +77,20 @@ class OptimizationApplicator:
                         new_lines.append(line)
 
                 if modified:
-                    content = '\n'.join(new_lines)
+                    content = "\n".join(new_lines)
 
             # Pattern 2: getLogger import pattern
             elif "from logging import" in content and "getLogger" in content:
                 # Replace the import and usage
                 content = re.sub(
-                    r'from logging import .*getLogger.*',
-                    'from claude_mpm.core.logging_utils import get_logger',
-                    content
+                    r"from logging import .*getLogger.*",
+                    "from claude_mpm.core.logging_utils import get_logger",
+                    content,
                 )
                 content = re.sub(
-                    r'logger = getLogger\(__name__\)',
-                    'logger = get_logger(__name__)',
-                    content
+                    r"logger = getLogger\(__name__\)",
+                    "logger = get_logger(__name__)",
+                    content,
                 )
                 modified = True
                 self.stats["loggers_migrated"] += 1
@@ -108,11 +113,16 @@ class OptimizationApplicator:
             content = file_path.read_text()
 
             # Skip if logging is still used for other purposes
-            if re.search(r'logging\.(DEBUG|INFO|WARNING|ERROR|CRITICAL|basicConfig|StreamHandler)', content):
+            if re.search(
+                r"logging\.(DEBUG|INFO|WARNING|ERROR|CRITICAL|basicConfig|StreamHandler)",
+                content,
+            ):
                 return False
 
             # Remove standalone import logging if not used
-            if "import logging\n" in content and "logging." not in content.replace("import logging", ""):
+            if "import logging\n" in content and "logging." not in content.replace(
+                "import logging", ""
+            ):
                 content = content.replace("import logging\n", "")
                 file_path.write_text(content)
                 self.stats["imports_cleaned"] += 1
@@ -127,7 +137,9 @@ class OptimizationApplicator:
         """Process all Python files in a directory."""
         python_files = list(directory.rglob("*.py"))
 
-        print(f"\nProcessing {len(python_files)} files in {directory.relative_to(self.project_root)}")
+        print(
+            f"\nProcessing {len(python_files)} files in {directory.relative_to(self.project_root)}"
+        )
 
         for file_path in python_files:
             # Skip test files and already processed files

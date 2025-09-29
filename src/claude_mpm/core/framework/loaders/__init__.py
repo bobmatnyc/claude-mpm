@@ -6,8 +6,8 @@ from .instruction_loader import InstructionLoader
 from .packaged_loader import PackagedLoader
 
 __all__ = [
-    "FileLoader",
-    "PackagedLoader",
-    "InstructionLoader",
     "AgentLoader",
+    "FileLoader",
+    "InstructionLoader",
+    "PackagedLoader",
 ]

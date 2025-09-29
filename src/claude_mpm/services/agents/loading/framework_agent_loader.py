@@ -19,9 +19,9 @@ from claude_mpm.agents.agent_loader import (
     AgentTier,
     list_agents_by_tier,
 )
+from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.unified_paths import get_path_manager
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

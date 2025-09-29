@@ -24,7 +24,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar, Union
+from typing import Any, Dict, List, Optional, Set, Type, TypeVar, Union
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -104,9 +104,7 @@ class BaseStrategy(ABC):
         Args:
             metadata: Strategy metadata
         """
-        self.metadata = metadata or StrategyMetadata(
-            name=self.__class__.__name__
-        )
+        self.metadata = metadata or StrategyMetadata(name=self.__class__.__name__)
         self._logger = get_logger(f"{__name__}.{self.metadata.name}")
 
     @abstractmethod
@@ -120,7 +118,6 @@ class BaseStrategy(ABC):
         Returns:
             bool: True if strategy can handle context
         """
-        pass
 
     @abstractmethod
     def validate_input(self, input_data: Any) -> List[str]:
@@ -133,7 +130,6 @@ class BaseStrategy(ABC):
         Returns:
             List[str]: List of validation errors (empty if valid)
         """
-        pass
 
     def pre_execute(self, input_data: Any) -> Any:
         """
@@ -186,7 +182,6 @@ class DeploymentStrategy(BaseStrategy):
         Returns:
             Dict[str, Any]: Deployment result
         """
-        pass
 
     @abstractmethod
     def prepare_rollback(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
@@ -199,7 +194,6 @@ class DeploymentStrategy(BaseStrategy):
         Returns:
             Dict[str, Any]: Rollback information
         """
-        pass
 
     @abstractmethod
     def cleanup(self, target: Union[str, Path]) -> bool:
@@ -212,7 +206,6 @@ class DeploymentStrategy(BaseStrategy):
         Returns:
             bool: True if cleanup successful
         """
-        pass
 
 
 class AnalyzerStrategy(BaseStrategy):
@@ -237,7 +230,6 @@ class AnalyzerStrategy(BaseStrategy):
         Returns:
             Dict[str, Any]: Analysis results
         """
-        pass
 
     @abstractmethod
     def extract_metrics(self, analysis_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -250,7 +242,6 @@ class AnalyzerStrategy(BaseStrategy):
         Returns:
             Dict[str, Any]: Extracted metrics
         """
-        pass
 
     @abstractmethod
     def generate_report(
@@ -266,7 +257,6 @@ class AnalyzerStrategy(BaseStrategy):
         Returns:
             Union[str, Dict[str, Any]]: Generated report
         """
-        pass
 
 
 class ConfigStrategy(BaseStrategy):
@@ -288,7 +278,6 @@ class ConfigStrategy(BaseStrategy):
         Returns:
             Dict[str, Any]: Loaded configuration
         """
-        pass
 
     @abstractmethod
     def validate(self, config: Dict[str, Any]) -> List[str]:
@@ -301,7 +290,6 @@ class ConfigStrategy(BaseStrategy):
         Returns:
             List[str]: Validation errors (empty if valid)
         """
-        pass
 
     @abstractmethod
     def transform(self, config: Dict[str, Any]) -> Dict[str, Any]:
@@ -314,7 +302,6 @@ class ConfigStrategy(BaseStrategy):
         Returns:
             Dict[str, Any]: Transformed configuration
         """
-        pass
 
     @abstractmethod
     def get_schema(self) -> Dict[str, Any]:
@@ -324,7 +311,6 @@ class ConfigStrategy(BaseStrategy):
         Returns:
             Dict[str, Any]: Configuration schema
         """
-        pass
 
 
 class StrategyRegistry:
@@ -372,7 +358,8 @@ class StrategyRegistry:
         # Remove old strategy if overriding
         if override and strategy_name in self._strategy_metadata:
             self._strategies[strategy_class] = [
-                s for s in self._strategies[strategy_class]
+                s
+                for s in self._strategies[strategy_class]
                 if s.metadata.name != strategy_name
             ]
 
@@ -399,7 +386,8 @@ class StrategyRegistry:
         # Remove from all strategy lists
         for strategy_class in self._strategies:
             self._strategies[strategy_class] = [
-                s for s in self._strategies[strategy_class]
+                s
+                for s in self._strategies[strategy_class]
                 if s.metadata.name != strategy_name
             ]
 
@@ -435,16 +423,11 @@ class StrategyRegistry:
                 candidates.append(strategy)
 
         if not candidates:
-            self._logger.warning(
-                f"No suitable strategy found for context: {context}"
-            )
+            self._logger.warning(f"No suitable strategy found for context: {context}")
             return None
 
         # Sort by priority (highest first)
-        candidates.sort(
-            key=lambda s: s.metadata.priority.value,
-            reverse=True
-        )
+        candidates.sort(key=lambda s: s.metadata.priority.value, reverse=True)
 
         selected = candidates[0]
         self._logger.debug(

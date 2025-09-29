@@ -61,7 +61,9 @@ class MetadataProcessor:
             # Default values
             agent_data = {
                 "id": agent_file.stem,
-                "display_name": agent_file.stem.replace("_", " ").replace("-", " ").title(),
+                "display_name": agent_file.stem.replace("_", " ")
+                .replace("-", " ")
+                .title(),
                 "description": "Specialized agent",
                 "file_path": str(agent_file),
                 "file_mtime": agent_file.stat().st_mtime,
@@ -96,9 +98,7 @@ class MetadataProcessor:
             self.logger.debug(f"Could not parse metadata from {agent_file}: {e}")
             return None
 
-    def extract_cache_metadata(
-        self, data: Any, cache_key: str
-    ) -> Tuple[Any, float]:
+    def extract_cache_metadata(self, data: Any, cache_key: str) -> Tuple[Any, float]:
         """Extract cache metadata for storage.
 
         Args:

@@ -29,10 +29,11 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from claude_mpm.services.project.archive_manager import ArchiveManager
 from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
+
+from claude_mpm.services.project.archive_manager import ArchiveManager
 
 console = Console()
 
@@ -163,7 +164,9 @@ def test_archive_with_metadata(project_path: Path):
         if meta_file.exists():
             meta_data = json.loads(meta_file.read_text())
             console.print("\n[cyan]Archive Metadata:[/cyan]")
-            console.print(Panel(Syntax(json.dumps(meta_data, indent=2), "json", theme="monokai")))
+            console.print(
+                Panel(Syntax(json.dumps(meta_data, indent=2), "json", theme="monokai"))
+            )
     else:
         console.print("[red]Archive failed![/red]")
 
@@ -228,8 +231,9 @@ def test_comprehensive_report(project_path: Path):
     # Generate report
     report = manager.create_archive_report()
 
-    console.print(Panel.fit(
-        f"""[bold]Archive Statistics[/bold]
+    console.print(
+        Panel.fit(
+            f"""[bold]Archive Statistics[/bold]
 
 📁 Archive Directory: {report['archive_directory']}
 📊 Total Archives: {report['total_archives']}
@@ -238,15 +242,18 @@ def test_comprehensive_report(project_path: Path):
 📅 Oldest: {report['oldest_archive'] or 'None'}
 🆕 Newest: {report['newest_archive'] or 'None'}
 """,
-        title="Archive Summary",
-        border_style="cyan",
-    ))
+            title="Archive Summary",
+            border_style="cyan",
+        )
+    )
 
     if report["files_tracked"]:
         console.print("\n[cyan]Files Being Tracked:[/cyan]")
         for filename, info in report["files_tracked"].items():
             console.print(f"  • {filename}")
-            console.print(f"    Versions: {info['count']}, Size: {info['total_size']:,} bytes")
+            console.print(
+                f"    Versions: {info['count']}, Size: {info['total_size']:,} bytes"
+            )
 
 
 def main():
@@ -255,7 +262,9 @@ def main():
 
     # Check if we're in a git repo
     if not (project_path / ".git").exists():
-        console.print("[red]Warning: Not in a git repository. Git features will be limited.[/red]")
+        console.print(
+            "[red]Warning: Not in a git repository. Git features will be limited.[/red]"
+        )
 
     # Parse command
     command = sys.argv[1] if len(sys.argv) > 1 else "review"
@@ -271,7 +280,7 @@ def main():
     }
 
     if command in commands:
-        console.print(f"\n[bold magenta]Claude MPM Archive Manager Test[/bold magenta]")
+        console.print("\n[bold magenta]Claude MPM Archive Manager Test[/bold magenta]")
         console.print(f"[dim]Testing: {command}[/dim]\n")
         commands[command]()
         console.print("\n[green]✓ Test completed successfully![/green]")

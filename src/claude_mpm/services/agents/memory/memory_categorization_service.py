@@ -85,7 +85,6 @@ class MemoryCategorizationService:
 
     def __init__(self):
         """Initialize the categorization service."""
-        pass
 
     def categorize_learning(self, learning: str) -> str:
         """Categorize a learning item based on its content.

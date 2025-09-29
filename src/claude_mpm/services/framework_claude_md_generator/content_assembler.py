@@ -9,10 +9,10 @@ from collections import OrderedDict
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
+from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.agents.management import AgentCapabilitiesGenerator
 from claude_mpm.services.agents.registry import DeployedAgentDiscovery
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

@@ -10,7 +10,6 @@ DESIGN DECISION: We prioritize pure Python implementations over native ones
 for better cross-platform compatibility, even if they might be slightly slower.
 """
 
-import logging
 from typing import Any, Dict, Optional, Tuple
 
 from ..core.logger import get_logger
@@ -92,12 +91,14 @@ class DatabaseConnector:
         """
         try:
             import importlib
+
             return importlib.import_module(module_name)
         except ImportError:
             return None
 
-    def get_mysql_connection_string(self, host: str, database: str, user: str,
-                                   password: str, port: int = 3306) -> Optional[str]:
+    def get_mysql_connection_string(
+        self, host: str, database: str, user: str, password: str, port: int = 3306
+    ) -> Optional[str]:
         """
         Get a SQLAlchemy connection string for MySQL with automatic driver selection.
 
@@ -125,15 +126,16 @@ class DatabaseConnector:
         # Format connection string based on driver
         if package_name == "pymysql":
             return f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
-        elif package_name == "mysqlclient":
+        if package_name == "mysqlclient":
             return f"mysql+mysqldb://{user}:{password}@{host}:{port}/{database}"
-        elif package_name == "mysql-connector-python":
+        if package_name == "mysql-connector-python":
             return f"mysql+mysqlconnector://{user}:{password}@{host}:{port}/{database}"
 
         return None
 
-    def get_postgresql_connection_string(self, host: str, database: str, user: str,
-                                        password: str, port: int = 5432) -> Optional[str]:
+    def get_postgresql_connection_string(
+        self, host: str, database: str, user: str, password: str, port: int = 5432
+    ) -> Optional[str]:
         """
         Get a SQLAlchemy connection string for PostgreSQL with automatic driver selection.
 
@@ -158,13 +160,14 @@ class DatabaseConnector:
         # Format connection string based on driver
         if package_name in ["psycopg2-binary", "psycopg2"]:
             return f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}"
-        elif package_name == "pg8000":
+        if package_name == "pg8000":
             return f"postgresql+pg8000://{user}:{password}@{host}:{port}/{database}"
 
         return None
 
-    def get_oracle_connection_string(self, host: str, database: str, user: str,
-                                    password: str, port: int = 1521) -> Optional[str]:
+    def get_oracle_connection_string(
+        self, host: str, database: str, user: str, password: str, port: int = 1521
+    ) -> Optional[str]:
         """
         Get a SQLAlchemy connection string for Oracle with automatic driver selection.
 
@@ -189,7 +192,7 @@ class DatabaseConnector:
         # Format connection string based on driver
         if package_name == "cx_Oracle":
             return f"oracle+cx_oracle://{user}:{password}@{host}:{port}/{database}"
-        elif package_name == "oracledb":
+        if package_name == "oracledb":
             return f"oracle+oracledb://{user}:{password}@{host}:{port}/{database}"
 
         return None

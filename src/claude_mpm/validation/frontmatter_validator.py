@@ -3,7 +3,7 @@ from pathlib import Path
 """
 Claude Code Frontmatter Validator
 
-Validates agent frontmatter against Claude Code Desktop specification.
+Validates agent frontmatter against Claude Code specification.
 Critical for ensuring agents work correctly with Claude Code.
 """
 

@@ -46,7 +46,7 @@ def load_json_safe(
     file_path = Path(file_path)
 
     try:
-        with open(file_path, "r", encoding=encoding) as f:
+        with open(file_path, encoding=encoding) as f:
             return json.load(f)
     except FileNotFoundError:
         logger.debug(f"JSON file not found: {file_path}")
@@ -112,7 +112,7 @@ def load_yaml_safe(
     file_path = Path(file_path)
 
     try:
-        with open(file_path, "r", encoding=encoding) as f:
+        with open(file_path, encoding=encoding) as f:
             return yaml.safe_load(f) or default or {}
     except FileNotFoundError:
         logger.debug(f"YAML file not found: {file_path}")
@@ -191,11 +191,10 @@ def ensure_path_exists(
                 path.parent.mkdir(parents=True, exist_ok=True)
             # Don't create the file itself, just ensure parent exists
             return path.parent.exists()
-        else:
-            if create_parents:
-                path.mkdir(parents=True, exist_ok=True)
-                return True
-            return False
+        if create_parents:
+            path.mkdir(parents=True, exist_ok=True)
+            return True
+        return False
     except Exception as e:
         logger.error(f"Error ensuring path exists {path}: {e}")
         return False
@@ -304,8 +303,7 @@ def find_files(
 
         if recursive:
             return list(directory.rglob(pattern))
-        else:
-            return list(directory.glob(pattern))
+        return list(directory.glob(pattern))
     except Exception as e:
         logger.error(f"Error finding files in {directory}: {e}")
         return []
@@ -357,7 +355,7 @@ def run_command_safe(
             env=env,
         )
         return result
-    except subprocess.TimeoutExpired as e:
+    except subprocess.TimeoutExpired:
         logger.error(f"Command timed out: {command}")
         raise
     except subprocess.CalledProcessError as e:
@@ -436,7 +434,9 @@ def get_env_int(key: str, default: int = 0) -> int:
         return default
 
 
-def get_env_list(key: str, separator: str = ",", default: Optional[List[str]] = None) -> List[str]:
+def get_env_list(
+    key: str, separator: str = ",", default: Optional[List[str]] = None
+) -> List[str]:
     """
     Get list from environment variable.
 
@@ -476,6 +476,7 @@ def safe_import(module_name: str, fallback: Any = None) -> Any:
     """
     try:
         import importlib
+
         return importlib.import_module(module_name)
     except ImportError as e:
         logger.debug(f"Could not import {module_name}: {e}")
@@ -524,6 +525,7 @@ def deprecated(replacement: str = None):
     Returns:
         Decorated function
     """
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             import warnings

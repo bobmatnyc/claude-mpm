@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 from claude_mpm.core.logging_utils import get_logger
+
 from .service_interfaces import ICacheManager, IPathResolver
 
 logger = get_logger(__name__)

@@ -1,6 +1,8 @@
 # Claude MPM - Multi-Agent Project Manager
 
-A powerful orchestration framework for Claude Code that enables multi-agent workflows, session management, and real-time monitoring through a streamlined Rich-based interface.
+A powerful orchestration framework for **Claude Code (CLI)** that enables multi-agent workflows, session management, and real-time monitoring through a streamlined Rich-based interface.
+
+> **⚠️ Important**: Claude MPM extends **Claude Code (CLI)**, not Claude Desktop (app). All MCP integrations work with Claude Code's CLI interface only.
 
 > **Quick Start**: See [QUICKSTART.md](QUICKSTART.md) to get running in 5 minutes!
 
@@ -10,7 +12,7 @@ A powerful orchestration framework for Claude Code that enables multi-agent work
 - 🧠 **Persistent Knowledge System**: Project-specific kuzu-memory integration for intelligent context retention
 - 🔄 **Session Management**: Resume previous sessions with `--resume`
 - 📊 **Real-Time Monitoring**: Live dashboard with `--monitor` flag
-- 🔌 **Auto-Installing MCP Services**: mcp-vector-search and kuzu-memory automatically installed via pipx
+- 🔌 **Optional MCP Services**: mcp-vector-search and kuzu-memory with automatic fallback installation
 - 📁 **Multi-Project Support**: Per-session working directories with persistent knowledge graphs
 - 🔍 **Git Integration**: View diffs and track changes across projects
 - 🎯 **Smart Task Orchestration**: PM agent intelligently routes work to specialists
@@ -20,22 +22,33 @@ A powerful orchestration framework for Claude Code that enables multi-agent work
 ## Quick Installation
 
 ```bash
+# Basic installation
 pip install claude-mpm
+
+# Install with optional MCP services (recommended)
+pip install "claude-mpm[mcp]"
 ```
 
 Or with pipx (recommended for isolated installation):
 ```bash
-# Install with monitor support (recommended)
-pipx install "claude-mpm[monitor]"
-
-# Basic installation without monitor
+# Basic installation
 pipx install claude-mpm
+
+# Install with optional MCP services (recommended)
+pipx install "claude-mpm[mcp]"
+
+# Install with all features
+pipx install "claude-mpm[mcp,monitor]"
 
 # Configure MCP for pipx users:
 claude-mpm mcp-pipx-config
 ```
 
-**💡 Pipx Tip**: Use `"claude-mpm[monitor]"` to get full monitoring dashboard functionality! The `[monitor]` optional dependency includes Socket.IO and async web server components needed for real-time agent monitoring.
+**💡 Optional Dependencies**:
+- `[mcp]` - Include MCP services (mcp-vector-search, mcp-browser, mcp-ticketer, kuzu-memory)
+- `[monitor]` - Full monitoring dashboard with Socket.IO and async web server components
+- **Combine both**: Use `"claude-mpm[mcp,monitor]"` to install all features
+- Without optional dependencies, MCP services auto-install on first use via pipx
 
 **🎉 Pipx Support Now Fully Functional!** Recent improvements ensure complete compatibility:
 - ✅ Socket.IO daemon script path resolution (fixed)
@@ -57,8 +70,29 @@ claude-mpm run --monitor
 # Use MCP Gateway for external tool integration
 claude-mpm mcp
 
-# Run health diagnostics  
+# Run comprehensive health diagnostics
 claude-mpm doctor
+
+# Generate detailed diagnostic report with MCP service analysis
+claude-mpm doctor --verbose --output-file doctor-report.md
+
+# Run specific diagnostic checks including MCP services
+claude-mpm doctor --checks installation configuration agents mcp
+
+# Check MCP service status specifically
+claude-mpm doctor --checks mcp --verbose
+
+# Verify MCP services installation and configuration
+claude-mpm verify
+
+# Auto-fix MCP service issues
+claude-mpm verify --fix
+
+# Verify specific service
+claude-mpm verify --service kuzu-memory
+
+# Get JSON output for automation
+claude-mpm verify --json
 
 # Manage memory for large conversation histories
 claude-mpm cleanup-memory
@@ -72,7 +106,7 @@ See [QUICKSTART.md](QUICKSTART.md) for complete usage examples.
 Following Phase 3 architectural simplification in v4.4.1, Claude MPM features:
 
 - **Streamlined Rich Interface**: Removed complex TUI system (~2,500 lines) for cleaner user experience
-- **Auto-Installing MCP Services**: mcp-vector-search and kuzu-memory install automatically via pipx
+- **Optional MCP Services**: mcp-vector-search and kuzu-memory with automatic fallback installation
 - **Persistent Knowledge System**: Project-specific kuzu-memory databases with intelligent prompt enrichment
 - **Service-Oriented Architecture**: Simplified five specialized service domains
 - **Interface-Based Contracts**: All services implement explicit interfaces
@@ -169,7 +203,7 @@ See [docs/MEMORY.md](docs/MEMORY.md) and [docs/developer/11-dashboard/README.md]
 #### 🚀 For Operations
 - **[🚀 Deployment](docs/DEPLOYMENT.md)** - Release management & versioning
 - **[📊 Monitoring](docs/MONITOR.md)** - Real-time dashboard & metrics
-- **[🐛 Troubleshooting](docs/TROUBLESHOOTING.md)** - Diagnostic & problem resolution
+- **[🐛 Troubleshooting](docs/TROUBLESHOOTING.md)** - Enhanced `doctor` command with detailed reports and auto-fix capabilities
 
 ### 🎯 Documentation Features
 - **Single Entry Point**: [docs/README.md](docs/README.md) is your navigation hub
@@ -230,5 +264,5 @@ MIT License - see [LICENSE](LICENSE) file.
 ## Credits
 
 - Based on [claude-multiagent-pm](https://github.com/kfsone/claude-multiagent-pm)
-- Enhanced for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) integration
+- Enhanced for [Claude Code (CLI)](https://docs.anthropic.com/en/docs/claude-code) integration
 - Built with ❤️ by the Claude MPM community

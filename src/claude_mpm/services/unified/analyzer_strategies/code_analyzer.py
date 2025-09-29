@@ -12,11 +12,16 @@ Created: 2025-01-26
 import ast
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
-from ..strategies import AnalyzerStrategy, StrategyContext, StrategyMetadata, StrategyPriority
+from ..strategies import (
+    AnalyzerStrategy,
+    StrategyContext,
+    StrategyMetadata,
+    StrategyPriority,
+)
 
 logger = get_logger(__name__)
 
@@ -109,7 +114,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
             target_path = Path(target)
             if target_path.is_file():
                 return self._analyze_file(target_path, options)
-            elif target_path.is_dir():
+            if target_path.is_dir():
                 return self._analyze_directory(target_path, options)
         elif isinstance(target, ast.AST):
             return self._analyze_ast(target, options)
@@ -143,7 +148,9 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
                 metrics.update(self._analyze_python_code(content, file_path))
 
             # Calculate complexity metrics
-            metrics["complexity"] = self._calculate_complexity_metrics(content, language)
+            metrics["complexity"] = self._calculate_complexity_metrics(
+                content, language
+            )
 
             # Detect code smells
             metrics["code_smells"] = self._detect_code_smells(content, metrics)
@@ -166,7 +173,9 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
                 "error": str(e),
             }
 
-    def _analyze_directory(self, dir_path: Path, options: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_directory(
+        self, dir_path: Path, options: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Analyze all code files in a directory."""
         results = {
             "status": "success",
@@ -198,7 +207,10 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
         results["summary"] = {
             "total_files": len(results["files"]),
             "total_lines": total_metrics.get("lines_of_code", 0),
-            "average_complexity": total_metrics.get("complexity", {}).get("cyclomatic", 0) / max(len(results["files"]), 1),
+            "average_complexity": total_metrics.get("complexity", {}).get(
+                "cyclomatic", 0
+            )
+            / max(len(results["files"]), 1),
             "code_smells_count": sum(
                 len(f.get("metrics", {}).get("code_smells", []))
                 for f in results["files"]
@@ -219,7 +231,9 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
 
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef):
-                    if any(isinstance(parent, ast.ClassDef) for parent in ast.walk(tree)):
+                    if any(
+                        isinstance(parent, ast.ClassDef) for parent in ast.walk(tree)
+                    ):
                         methods.append(node.name)
                     else:
                         functions.append(node.name)
@@ -248,17 +262,27 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
 
         # Analyze specific node types
         if isinstance(node, ast.FunctionDef):
-            metrics.update({
-                "name": node.name,
-                "parameters": len(node.args.args),
-                "lines": node.end_lineno - node.lineno + 1 if hasattr(node, "end_lineno") else 0,
-            })
+            metrics.update(
+                {
+                    "name": node.name,
+                    "parameters": len(node.args.args),
+                    "lines": (
+                        node.end_lineno - node.lineno + 1
+                        if hasattr(node, "end_lineno")
+                        else 0
+                    ),
+                }
+            )
         elif isinstance(node, ast.ClassDef):
-            metrics.update({
-                "name": node.name,
-                "methods": sum(1 for n in node.body if isinstance(n, ast.FunctionDef)),
-                "bases": len(node.bases),
-            })
+            metrics.update(
+                {
+                    "name": node.name,
+                    "methods": sum(
+                        1 for n in node.body if isinstance(n, ast.FunctionDef)
+                    ),
+                    "bases": len(node.bases),
+                }
+            )
 
         return {
             "status": "success",
@@ -266,7 +290,9 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
             "metrics": metrics,
         }
 
-    def _calculate_complexity_metrics(self, content: str, language: str) -> Dict[str, Any]:
+    def _calculate_complexity_metrics(
+        self, content: str, language: str
+    ) -> Dict[str, Any]:
         """Calculate various complexity metrics."""
         complexity = {
             "cyclomatic": 1,  # Base complexity
@@ -315,26 +341,35 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
         """Calculate complexity for a single AST node."""
         return self._calculate_cyclomatic_complexity(node)
 
-    def _detect_code_smells(self, content: str, metrics: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _detect_code_smells(
+        self, content: str, metrics: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """Detect common code smells."""
         smells = []
 
         # Long method/function
-        if metrics.get("lines_of_code", 0) > self.code_smell_patterns["long_method"]["threshold"]:
-            smells.append({
-                "type": "long_method",
-                "severity": "medium",
-                "message": f"Method/function has {metrics['lines_of_code']} lines (threshold: {self.code_smell_patterns['long_method']['threshold']})",
-            })
+        if (
+            metrics.get("lines_of_code", 0)
+            > self.code_smell_patterns["long_method"]["threshold"]
+        ):
+            smells.append(
+                {
+                    "type": "long_method",
+                    "severity": "medium",
+                    "message": f"Method/function has {metrics['lines_of_code']} lines (threshold: {self.code_smell_patterns['long_method']['threshold']})",
+                }
+            )
 
         # High complexity
         complexity = metrics.get("complexity", {}).get("cyclomatic", 0)
         if complexity > 10:
-            smells.append({
-                "type": "high_complexity",
-                "severity": "high",
-                "message": f"High cyclomatic complexity: {complexity}",
-            })
+            smells.append(
+                {
+                    "type": "high_complexity",
+                    "severity": "high",
+                    "message": f"High cyclomatic complexity: {complexity}",
+                }
+            )
 
         return smells
 
@@ -398,25 +433,35 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
         if "metrics" in analysis_result:
             raw_metrics = analysis_result["metrics"]
 
-            metrics.update({
-                "lines_of_code": raw_metrics.get("lines_of_code", 0),
-                "cyclomatic_complexity": raw_metrics.get("complexity", {}).get("cyclomatic", 0),
-                "cognitive_complexity": raw_metrics.get("complexity", {}).get("cognitive", 0),
-                "maintainability_index": raw_metrics.get("maintainability_index", 0),
-                "code_smells": len(raw_metrics.get("code_smells", [])),
-                "function_count": raw_metrics.get("function_count", 0),
-                "class_count": raw_metrics.get("class_count", 0),
-            })
+            metrics.update(
+                {
+                    "lines_of_code": raw_metrics.get("lines_of_code", 0),
+                    "cyclomatic_complexity": raw_metrics.get("complexity", {}).get(
+                        "cyclomatic", 0
+                    ),
+                    "cognitive_complexity": raw_metrics.get("complexity", {}).get(
+                        "cognitive", 0
+                    ),
+                    "maintainability_index": raw_metrics.get(
+                        "maintainability_index", 0
+                    ),
+                    "code_smells": len(raw_metrics.get("code_smells", [])),
+                    "function_count": raw_metrics.get("function_count", 0),
+                    "class_count": raw_metrics.get("class_count", 0),
+                }
+            )
 
         # Extract summary metrics for directory analysis
         if "summary" in analysis_result:
             summary = analysis_result["summary"]
-            metrics.update({
-                "total_files": summary.get("total_files", 0),
-                "total_lines": summary.get("total_lines", 0),
-                "average_complexity": summary.get("average_complexity", 0),
-                "total_code_smells": summary.get("code_smells_count", 0),
-            })
+            metrics.update(
+                {
+                    "total_files": summary.get("total_files", 0),
+                    "total_lines": summary.get("total_lines", 0),
+                    "average_complexity": summary.get("average_complexity", 0),
+                    "total_code_smells": summary.get("code_smells_count", 0),
+                }
+            )
 
         return metrics
 
@@ -461,13 +506,12 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
                         comparison["degraded"].append(result)
                     else:
                         comparison["unchanged"].append(result)
+                # Lower is better (complexity, code smells, etc.)
+                elif diff < 0:
+                    comparison["improved"].append(result)
+                elif diff > 0:
+                    comparison["degraded"].append(result)
                 else:
-                    # Lower is better (complexity, code smells, etc.)
-                    if diff < 0:
-                        comparison["improved"].append(result)
-                    elif diff > 0:
-                        comparison["degraded"].append(result)
-                    else:
-                        comparison["unchanged"].append(result)
+                    comparison["unchanged"].append(result)
 
         return comparison

@@ -66,7 +66,9 @@ class FileLoader:
             if "INSTRUCTIONS.md" in str(file_path):
                 self.framework_last_modified = timestamp
 
-    def load_instructions_file(self, current_dir: Path) -> tuple[Optional[str], Optional[str]]:
+    def load_instructions_file(
+        self, current_dir: Path
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Load custom INSTRUCTIONS.md from .claude-mpm directories.
 
@@ -106,7 +108,9 @@ class FileLoader:
 
         return None, None
 
-    def load_workflow_file(self, current_dir: Path, framework_path: Path) -> tuple[Optional[str], Optional[str]]:
+    def load_workflow_file(
+        self, current_dir: Path, framework_path: Path
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Load WORKFLOW.md from various locations.
 
@@ -148,7 +152,9 @@ class FileLoader:
 
         # Fall back to system workflow (lowest priority)
         if framework_path and framework_path != Path("__PACKAGED__"):
-            system_workflow_path = framework_path / "src" / "claude_mpm" / "agents" / "WORKFLOW.md"
+            system_workflow_path = (
+                framework_path / "src" / "claude_mpm" / "agents" / "WORKFLOW.md"
+            )
             if system_workflow_path.exists():
                 loaded_content = self.try_load_file(
                     system_workflow_path, "system WORKFLOW.md"
@@ -159,7 +165,9 @@ class FileLoader:
 
         return None, None
 
-    def load_memory_file(self, current_dir: Path, framework_path: Path) -> tuple[Optional[str], Optional[str]]:
+    def load_memory_file(
+        self, current_dir: Path, framework_path: Path
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Load MEMORY.md from various locations.
 
@@ -201,7 +209,9 @@ class FileLoader:
 
         # Fall back to system memory instructions (lowest priority)
         if framework_path and framework_path != Path("__PACKAGED__"):
-            system_memory_path = framework_path / "src" / "claude_mpm" / "agents" / "MEMORY.md"
+            system_memory_path = (
+                framework_path / "src" / "claude_mpm" / "agents" / "MEMORY.md"
+            )
             if system_memory_path.exists():
                 loaded_content = self.try_load_file(
                     system_memory_path, "system MEMORY.md"

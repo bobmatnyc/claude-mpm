@@ -52,6 +52,7 @@ def run_diagnostics(
         - message: str - optional error message if failed
     """
 from claude_mpm.core.logging_utils import get_logger
+
 logger = get_logger(__name__)
 
     # Create diagnostic runner

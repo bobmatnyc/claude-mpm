@@ -19,6 +19,7 @@ import frontmatter
 import mistune
 import yaml
 
+from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.models.agent_definition import (
     AgentDefinition,
@@ -32,7 +33,6 @@ from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCac
 
 from ..deployment.agent_versioning import AgentVersionManager
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

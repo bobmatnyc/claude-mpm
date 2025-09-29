@@ -11,6 +11,7 @@ from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Type
 
 from claude_mpm.core.logging_utils import get_logger
+
 logger = get_logger(__name__)
 
 

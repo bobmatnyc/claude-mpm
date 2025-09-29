@@ -5,22 +5,23 @@ Verifies the Phase 3 consolidation implementation
 """
 
 import json
-import yaml
 import tempfile
 from pathlib import Path
+
 import pytest
+import yaml
 
 from claude_mpm.services.unified.config_strategies import (
-    UnifiedConfigService,
-    ConfigFormat,
     ConfigContext,
+    ConfigFormat,
+    ContextScope,
+    ErrorCategory,
+    ErrorContext,
+    ErrorSeverity,
     SchemaBuilder,
+    UnifiedConfigService,
     ValidationRule,
     ValidationType,
-    ErrorContext,
-    ErrorCategory,
-    ErrorSeverity,
-    ContextScope
 )
 
 
@@ -35,20 +36,15 @@ class TestUnifiedConfigService:
     def teardown_method(self):
         """Cleanup test environment"""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_load_json_config(self):
         """Test loading JSON configuration"""
         # Create test JSON file
         config_data = {
-            "database": {
-                "host": "localhost",
-                "port": 5432,
-                "name": "testdb"
-            },
-            "logging": {
-                "level": "INFO"
-            }
+            "database": {"host": "localhost", "port": 5432, "name": "testdb"},
+            "logging": {"level": "INFO"},
         }
 
         json_path = Path(self.temp_dir) / "config.json"
@@ -56,9 +52,7 @@ class TestUnifiedConfigService:
 
         # Load configuration
         loaded = self.service.load(
-            str(json_path),
-            context=ConfigContext.PROJECT,
-            format=ConfigFormat.JSON
+            str(json_path), context=ConfigContext.PROJECT, format=ConfigFormat.JSON
         )
 
         assert loaded == config_data
@@ -68,11 +62,7 @@ class TestUnifiedConfigService:
     def test_load_yaml_config(self):
         """Test loading YAML configuration"""
         config_data = {
-            "api": {
-                "base_url": "https://api.example.com",
-                "timeout": 30,
-                "retry": 3
-            }
+            "api": {"base_url": "https://api.example.com", "timeout": 30, "retry": 3}
         }
 
         yaml_path = Path(self.temp_dir) / "config.yaml"
@@ -80,9 +70,7 @@ class TestUnifiedConfigService:
 
         # Load configuration
         loaded = self.service.load(
-            str(yaml_path),
-            context=ConfigContext.SERVICE,
-            format=ConfigFormat.YAML
+            str(yaml_path), context=ConfigContext.SERVICE, format=ConfigFormat.YAML
         )
 
         assert loaded == config_data
@@ -95,8 +83,8 @@ class TestUnifiedConfigService:
             "required": ["host", "port"],
             "properties": {
                 "host": {"type": "string"},
-                "port": {"type": "integer", "minimum": 1, "maximum": 65535}
-            }
+                "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+            },
         }
 
         # Valid config
@@ -115,13 +103,10 @@ class TestUnifiedConfigService:
         """Test configuration merging"""
         base = {
             "database": {"host": "localhost", "port": 5432},
-            "logging": {"level": "INFO"}
+            "logging": {"level": "INFO"},
         }
 
-        override = {
-            "database": {"port": 3306, "user": "admin"},
-            "api": {"timeout": 30}
-        }
+        override = {"database": {"port": 3306, "user": "admin"}, "api": {"timeout": 30}}
 
         merged = self.service.merge(base, override, strategy="deep")
 
@@ -165,8 +150,7 @@ class TestUnifiedConfigService:
         """Test error handling during load"""
         # Non-existent file
         result = self.service.load(
-            "/nonexistent/config.json",
-            context=ConfigContext.RUNTIME
+            "/nonexistent/config.json", context=ConfigContext.RUNTIME
         )
 
         # Should return empty dict on error
@@ -174,12 +158,14 @@ class TestUnifiedConfigService:
 
     def test_schema_builder(self):
         """Test schema builder"""
-        schema = (SchemaBuilder("Test Schema")
-                  .string("name", required=True)
-                  .integer("age", minimum=0, maximum=150)
-                  .boolean("active", default=True)
-                  .array("tags", min_items=1)
-                  .build())
+        schema = (
+            SchemaBuilder("Test Schema")
+            .string("name", required=True)
+            .integer("age", minimum=0, maximum=150)
+            .boolean("active", default=True)
+            .array("tags", min_items=1)
+            .build()
+        )
 
         assert schema.title == "Test Schema"
         assert "name" in schema.required
@@ -234,10 +220,7 @@ class TestValidationStrategy:
         from claude_mpm.services.unified.config_strategies import TypeValidator
 
         validator = TypeValidator()
-        rule = ValidationRule(
-            type=ValidationType.TYPE,
-            params={"type": "string"}
-        )
+        rule = ValidationRule(type=ValidationType.TYPE, params={"type": "string"})
 
         result = validator.validate("test", rule, {})
         assert result.valid == True
@@ -250,10 +233,7 @@ class TestValidationStrategy:
         from claude_mpm.services.unified.config_strategies import RangeValidator
 
         validator = RangeValidator()
-        rule = ValidationRule(
-            type=ValidationType.RANGE,
-            params={"min": 1, "max": 10}
-        )
+        rule = ValidationRule(type=ValidationType.RANGE, params={"min": 1, "max": 10})
 
         result = validator.validate(5, rule, {})
         assert result.valid == True
@@ -274,7 +254,7 @@ class TestErrorHandlingStrategy:
             error=FileNotFoundError("test.json"),
             category=ErrorCategory.FILE_IO,
             severity=ErrorSeverity.ERROR,
-            source="test.json"
+            source="test.json",
         )
 
         assert handler.can_handle(context) == True
@@ -290,7 +270,7 @@ class TestErrorHandlingStrategy:
         context = ErrorContext(
             error=json.JSONDecodeError("test", "doc", 0),
             category=ErrorCategory.PARSING,
-            severity=ErrorSeverity.WARNING
+            severity=ErrorSeverity.WARNING,
         )
 
         assert handler.can_handle(context) == True
@@ -301,7 +281,9 @@ class TestContextStrategy:
 
     def test_hierarchical_context(self):
         """Test hierarchical context management"""
-        from claude_mpm.services.unified.config_strategies import HierarchicalContextManager
+        from claude_mpm.services.unified.config_strategies import (
+            HierarchicalContextManager,
+        )
 
         manager = HierarchicalContextManager()
 

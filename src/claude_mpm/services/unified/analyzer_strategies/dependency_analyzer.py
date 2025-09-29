@@ -11,13 +11,17 @@ Created: 2025-01-26
 
 import json
 import re
-import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
-from ..strategies import AnalyzerStrategy, StrategyContext, StrategyMetadata, StrategyPriority
+from ..strategies import (
+    AnalyzerStrategy,
+    StrategyContext,
+    StrategyMetadata,
+    StrategyPriority,
+)
 
 logger = get_logger(__name__)
 
@@ -69,7 +73,15 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
     # Testing framework packages
     TESTING_PACKAGES = {
         "python": ["pytest", "unittest", "nose", "nose2", "tox", "coverage"],
-        "javascript": ["jest", "mocha", "chai", "jasmine", "cypress", "playwright", "vitest"],
+        "javascript": [
+            "jest",
+            "mocha",
+            "chai",
+            "jasmine",
+            "cypress",
+            "playwright",
+            "vitest",
+        ],
         "java": ["junit", "testng", "mockito", "assertj"],
         "ruby": ["rspec", "minitest", "cucumber"],
         "go": ["testify", "ginkgo", "gomega"],
@@ -79,7 +91,16 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
     # Web framework packages
     FRAMEWORK_PACKAGES = {
         "python": ["django", "flask", "fastapi", "pyramid", "tornado", "aiohttp"],
-        "javascript": ["express", "koa", "fastify", "hapi", "nestjs", "next", "nuxt", "gatsby"],
+        "javascript": [
+            "express",
+            "koa",
+            "fastify",
+            "hapi",
+            "nestjs",
+            "next",
+            "nuxt",
+            "gatsby",
+        ],
         "ruby": ["rails", "sinatra", "hanami"],
         "java": ["spring", "spring-boot", "struts", "play"],
         "php": ["laravel", "symfony", "slim", "lumen"],
@@ -141,7 +162,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
             if target_path.is_dir():
                 return self._analyze_project(target_path, options)
-            elif target_path.is_file():
+            if target_path.is_file():
                 return self._analyze_manifest(target_path, options)
 
         return {
@@ -149,7 +170,9 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
             "message": f"Unsupported target type: {type(target).__name__}",
         }
 
-    def _analyze_project(self, project_path: Path, options: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_project(
+        self, project_path: Path, options: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Analyze dependencies in a project directory."""
         results = {
             "status": "success",
@@ -172,7 +195,9 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
             manager_deps = self._analyze_package_manager(project_path, manager, options)
             if manager_deps:
                 results["dependencies"][manager] = manager_deps.get("dependencies", {})
-                results["dev_dependencies"][manager] = manager_deps.get("dev_dependencies", {})
+                results["dev_dependencies"][manager] = manager_deps.get(
+                    "dev_dependencies", {}
+                )
 
         # Detect frameworks, databases, and testing tools
         all_deps = self._flatten_dependencies(results["dependencies"])
@@ -191,7 +216,9 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
         return results
 
-    def _analyze_manifest(self, manifest_path: Path, options: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_manifest(
+        self, manifest_path: Path, options: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Analyze a specific package manifest file."""
         results = {
             "status": "success",
@@ -277,20 +304,21 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
         try:
             if manager in ["npm", "yarn", "pnpm"]:
                 return self._analyze_node_dependencies(project_path, manager)
-            elif manager in ["pip", "pipenv", "poetry"]:
+            if manager in ["pip", "pipenv", "poetry"]:
                 return self._analyze_python_dependencies(project_path, manager)
-            elif manager == "cargo":
+            if manager == "cargo":
                 return self._analyze_cargo_dependencies(project_path)
-            elif manager == "go":
+            if manager == "go":
                 return self._analyze_go_dependencies(project_path)
-            else:
-                logger.debug(f"Unsupported package manager for analysis: {manager}")
-                return None
+            logger.debug(f"Unsupported package manager for analysis: {manager}")
+            return None
         except Exception as e:
             logger.error(f"Error analyzing {manager} dependencies: {e}")
             return None
 
-    def _analyze_node_dependencies(self, project_path: Path, manager: str) -> Dict[str, Any]:
+    def _analyze_node_dependencies(
+        self, project_path: Path, manager: str
+    ) -> Dict[str, Any]:
         """Analyze Node.js dependencies."""
         package_json_path = project_path / "package.json"
         if not package_json_path.exists():
@@ -298,7 +326,9 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
         return self._parse_package_json(package_json_path)
 
-    def _analyze_python_dependencies(self, project_path: Path, manager: str) -> Dict[str, Any]:
+    def _analyze_python_dependencies(
+        self, project_path: Path, manager: str
+    ) -> Dict[str, Any]:
         """Analyze Python dependencies."""
         results = {"dependencies": {}, "dev_dependencies": {}}
 
@@ -345,7 +375,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
     def _parse_package_json(self, path: Path) -> Dict[str, Any]:
         """Parse package.json file."""
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 data = json.load(f)
 
             return {
@@ -479,7 +509,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
                 if line.startswith("require ("):
                     in_require = True
                     continue
-                elif line == ")":
+                if line == ")":
                     in_require = False
                     continue
 
@@ -494,7 +524,9 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
         return {"dependencies": dependencies}
 
-    def _flatten_dependencies(self, deps_dict: Dict[str, Dict[str, str]]) -> Dict[str, str]:
+    def _flatten_dependencies(
+        self, deps_dict: Dict[str, Dict[str, str]]
+    ) -> Dict[str, str]:
         """Flatten nested dependency dictionaries."""
         flattened = {}
         for manager_deps in deps_dict.values():
@@ -581,11 +613,13 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
         # Extract vulnerability metrics
         if "vulnerabilities" in analysis_result:
             vuln = analysis_result["vulnerabilities"]
-            metrics.update({
-                "vulnerability_total": vuln.get("total", 0),
-                "vulnerability_critical": vuln.get("critical", 0),
-                "vulnerability_high": vuln.get("high", 0),
-            })
+            metrics.update(
+                {
+                    "vulnerability_total": vuln.get("total", 0),
+                    "vulnerability_critical": vuln.get("critical", 0),
+                    "vulnerability_high": vuln.get("high", 0),
+                }
+            )
 
         return metrics
 
@@ -607,27 +641,33 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
         # Find added dependencies
         for dep, version in current_deps.items():
             if dep not in baseline_deps:
-                comparison["added_dependencies"].append({
-                    "name": dep,
-                    "version": version,
-                })
+                comparison["added_dependencies"].append(
+                    {
+                        "name": dep,
+                        "version": version,
+                    }
+                )
 
         # Find removed dependencies
         for dep, version in baseline_deps.items():
             if dep not in current_deps:
-                comparison["removed_dependencies"].append({
-                    "name": dep,
-                    "version": version,
-                })
+                comparison["removed_dependencies"].append(
+                    {
+                        "name": dep,
+                        "version": version,
+                    }
+                )
 
         # Find updated dependencies
         for dep in baseline_deps:
             if dep in current_deps and baseline_deps[dep] != current_deps[dep]:
-                comparison["updated_dependencies"].append({
-                    "name": dep,
-                    "old_version": baseline_deps[dep],
-                    "new_version": current_deps[dep],
-                })
+                comparison["updated_dependencies"].append(
+                    {
+                        "name": dep,
+                        "old_version": baseline_deps[dep],
+                        "new_version": current_deps[dep],
+                    }
+                )
 
         # Compare vulnerability counts
         if "vulnerabilities" in baseline and "vulnerabilities" in current:
@@ -636,7 +676,8 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
             comparison["vulnerability_changes"] = {
                 "total": current_vuln.get("total", 0) - baseline_vuln.get("total", 0),
-                "critical": current_vuln.get("critical", 0) - baseline_vuln.get("critical", 0),
+                "critical": current_vuln.get("critical", 0)
+                - baseline_vuln.get("critical", 0),
                 "high": current_vuln.get("high", 0) - baseline_vuln.get("high", 0),
             }
 

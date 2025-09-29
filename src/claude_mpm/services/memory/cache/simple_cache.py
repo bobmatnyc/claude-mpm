@@ -22,8 +22,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 from claude_mpm.core.interfaces import ICacheService
-
 from claude_mpm.core.logging_utils import get_logger
+
 logger = get_logger(__name__)
 
 

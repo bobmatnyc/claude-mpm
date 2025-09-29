@@ -10,9 +10,9 @@ from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 
+from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.validation import AgentValidator, ValidationResult
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 

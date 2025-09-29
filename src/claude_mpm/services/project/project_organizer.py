@@ -16,14 +16,13 @@ Author: Claude MPM Development Team
 Created: 2025-01-26
 """
 
-import os
-import stat
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from rich.console import Console
 
 from claude_mpm.core.logging_utils import get_logger
+
 logger = get_logger(__name__)
 console = Console()
 
@@ -55,7 +54,6 @@ class ProjectOrganizer:
         ".claude-mpm/cache/",
         ".claude-mpm/logs/",
         ".claude/cache/",
-
         # Python artifacts
         "__pycache__/",
         "*.py[cod]",
@@ -72,7 +70,6 @@ class ProjectOrganizer:
         "pip-wheel-metadata/",
         "*.manifest",
         "*.spec",
-
         # Testing and coverage
         ".pytest_cache/",
         ".coverage",
@@ -85,7 +82,6 @@ class ProjectOrganizer:
         ".pytype/",
         "coverage.xml",
         "*.pytest_cache",
-
         # Virtual environments
         ".env",
         ".venv",
@@ -97,7 +93,6 @@ class ProjectOrganizer:
         "virtualenv/",
         ".conda/",
         "conda-env/",
-
         # IDE and editor files
         ".vscode/",
         ".idea/",
@@ -109,7 +104,6 @@ class ProjectOrganizer:
         ".settings/",
         "*.sublime-workspace",
         "*.sublime-project",
-
         # OS-specific files
         ".DS_Store",
         "Thumbs.db",
@@ -121,7 +115,6 @@ class ProjectOrganizer:
         "*.msm",
         "*.msp",
         "*.lnk",
-
         # Logs and databases
         "*.log",
         "*.sql",
@@ -129,7 +122,6 @@ class ProjectOrganizer:
         "*.sqlite3",
         "*.db",
         "logs/",
-
         # Node/JavaScript
         "node_modules/",
         "npm-debug.log*",
@@ -137,12 +129,10 @@ class ProjectOrganizer:
         "yarn-error.log*",
         ".npm",
         ".yarn/",
-
         # Documentation builds
         "_build/",
         "site/",
         "docs/_build/",
-
         # Security and credentials
         ".env.*",
         "*.pem",
@@ -151,14 +141,12 @@ class ProjectOrganizer:
         "*.crt",
         ".secrets/",
         "credentials/",
-
         # Claude MPM specific
         ".claude-mpm/*.log",
         ".claude-mpm/sessions/",
         ".claude-mpm/tmp/",
         ".claude/sessions/",
         "*.mpm.tmp",
-
         # Backup files
         "*.bak",
         "*.backup",
@@ -197,28 +185,34 @@ class ProjectOrganizer:
         for dir_name, description in self.STANDARD_DIRECTORIES.items():
             dir_path = self.project_path / dir_name
             if dir_path.exists():
-                report["exists"].append({
-                    "path": dir_name,
-                    "description": description,
-                    "is_directory": dir_path.is_dir(),
-                })
+                report["exists"].append(
+                    {
+                        "path": dir_name,
+                        "description": description,
+                        "is_directory": dir_path.is_dir(),
+                    }
+                )
             else:
-                report["missing"].append({
-                    "path": dir_name,
-                    "description": description,
-                    "required": self._is_required_directory(dir_name, project_type),
-                })
+                report["missing"].append(
+                    {
+                        "path": dir_name,
+                        "description": description,
+                        "required": self._is_required_directory(dir_name, project_type),
+                    }
+                )
 
         # Check project-type specific directories
         if project_type and project_type in self.PROJECT_STRUCTURES:
             for dir_name in self.PROJECT_STRUCTURES[project_type]:
                 dir_path = self.project_path / dir_name
                 if not dir_path.exists():
-                    report["missing"].append({
-                        "path": dir_name,
-                        "description": f"{project_type} specific directory",
-                        "required": False,
-                    })
+                    report["missing"].append(
+                        {
+                            "path": dir_name,
+                            "description": f"{project_type} specific directory",
+                            "required": False,
+                        }
+                    )
 
         # Check for common issues
         report["issues"] = self._check_common_issues()
@@ -229,7 +223,9 @@ class ProjectOrganizer:
         self.structure_report = report
         return report
 
-    def _is_required_directory(self, dir_name: str, project_type: Optional[str]) -> bool:
+    def _is_required_directory(
+        self, dir_name: str, project_type: Optional[str]
+    ) -> bool:
         """Determine if a directory is required for the project."""
         # Always required directories
         always_required = {"tmp", "scripts", "docs"}
@@ -253,34 +249,43 @@ class ProjectOrganizer:
         root_files = list(self.project_path.glob("*.py"))
         test_files_in_root = [f for f in root_files if "test" in f.name.lower()]
         if test_files_in_root:
-            issues.append({
-                "type": "misplaced_tests",
-                "description": "Test files found in project root",
-                "files": [str(f.name) for f in test_files_in_root],
-                "recommendation": "Move test files to tests/ directory",
-            })
+            issues.append(
+                {
+                    "type": "misplaced_tests",
+                    "description": "Test files found in project root",
+                    "files": [str(f.name) for f in test_files_in_root],
+                    "recommendation": "Move test files to tests/ directory",
+                }
+            )
 
         script_files_in_root = [
-            f for f in root_files
+            f
+            for f in root_files
             if f.name.lower().endswith((".sh", ".bash", ".py"))
             and not f.name.startswith(".")
             and f.name not in ["setup.py", "pyproject.toml"]
         ]
         if script_files_in_root:
-            issues.append({
-                "type": "misplaced_scripts",
-                "description": "Script files found in project root",
-                "files": [str(f.name) for f in script_files_in_root[:5]],  # Limit to 5
-                "recommendation": "Move scripts to scripts/ directory",
-            })
+            issues.append(
+                {
+                    "type": "misplaced_scripts",
+                    "description": "Script files found in project root",
+                    "files": [
+                        str(f.name) for f in script_files_in_root[:5]
+                    ],  # Limit to 5
+                    "recommendation": "Move scripts to scripts/ directory",
+                }
+            )
 
         # Check for missing .gitignore
         if not self.gitignore_path.exists():
-            issues.append({
-                "type": "missing_gitignore",
-                "description": "No .gitignore file found",
-                "recommendation": "Create .gitignore with standard patterns",
-            })
+            issues.append(
+                {
+                    "type": "missing_gitignore",
+                    "description": "No .gitignore file found",
+                    "recommendation": "Create .gitignore with standard patterns",
+                }
+            )
         else:
             # Check .gitignore completeness
             gitignore_content = self.gitignore_path.read_text()
@@ -290,12 +295,14 @@ class ProjectOrganizer:
                     missing_patterns.append(pattern)
 
             if missing_patterns:
-                issues.append({
-                    "type": "incomplete_gitignore",
-                    "description": "Common patterns missing from .gitignore",
-                    "patterns": missing_patterns,
-                    "recommendation": "Update .gitignore with missing patterns",
-                })
+                issues.append(
+                    {
+                        "type": "incomplete_gitignore",
+                        "description": "Common patterns missing from .gitignore",
+                        "patterns": missing_patterns,
+                        "recommendation": "Update .gitignore with missing patterns",
+                    }
+                )
 
         # Check for large files that should be in tmp
         large_files = []
@@ -305,20 +312,24 @@ class ProjectOrganizer:
                     size_mb = file.stat().st_size / (1024 * 1024)
                     if size_mb > 10:  # Files larger than 10MB
                         if "tmp" not in str(file) and "node_modules" not in str(file):
-                            large_files.append({
-                                "path": str(file.relative_to(self.project_path)),
-                                "size_mb": round(size_mb, 2),
-                            })
+                            large_files.append(
+                                {
+                                    "path": str(file.relative_to(self.project_path)),
+                                    "size_mb": round(size_mb, 2),
+                                }
+                            )
                 except (OSError, PermissionError):
                     continue
 
         if large_files:
-            issues.append({
-                "type": "large_files",
-                "description": "Large files outside tmp/ directory",
-                "files": large_files[:5],  # Limit to 5
-                "recommendation": "Consider moving large files to tmp/ or adding to .gitignore",
-            })
+            issues.append(
+                {
+                    "type": "large_files",
+                    "description": "Large files outside tmp/ directory",
+                    "files": large_files[:5],  # Limit to 5
+                    "recommendation": "Consider moving large files to tmp/ or adding to .gitignore",
+                }
+            )
 
         return issues
 
@@ -433,7 +444,11 @@ This directory is used for {description.lower()}.
             existing_patterns = set()
             if self.gitignore_path.exists():
                 content = self.gitignore_path.read_text()
-                existing_patterns = set(line.strip() for line in content.splitlines() if line.strip() and not line.startswith("#"))
+                existing_patterns = set(
+                    line.strip()
+                    for line in content.splitlines()
+                    if line.strip() and not line.startswith("#")
+                )
             else:
                 content = ""
 
@@ -460,15 +475,16 @@ This directory is used for {description.lower()}.
                 self.gitignore_path.write_text(content)
                 logger.info(f"Updated .gitignore with {len(missing)} patterns")
                 return True
-            else:
-                logger.info(".gitignore already contains all standard patterns")
-                return False
+            logger.info(".gitignore already contains all standard patterns")
+            return False
 
         except Exception as e:
             logger.error(f"Failed to update .gitignore: {e}")
             return False
 
-    def organize_misplaced_files(self, dry_run: bool = True, auto_safe: bool = True) -> Dict:
+    def organize_misplaced_files(
+        self, dry_run: bool = True, auto_safe: bool = True
+    ) -> Dict:
         """Organize misplaced files into proper directories.
 
         Args:
@@ -481,13 +497,35 @@ This directory is used for {description.lower()}.
 
         # Files that should never be moved from root
         protected_root_files = {
-            "setup.py", "pyproject.toml", "package.json", "package-lock.json",
-            "requirements.txt", "Pipfile", "Pipfile.lock", "poetry.lock",
-            "Makefile", "makefile", "Dockerfile", "docker-compose.yml",
-            ".gitignore", ".gitattributes", "LICENSE", "README.md", "README.rst",
-            "CHANGELOG.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md",
-            "CLAUDE.md", "CODE.md", "DEVELOPER.md", "STRUCTURE.md", "OPS.md",
-            ".env.example", ".env.sample", "VERSION", "BUILD_NUMBER"
+            "setup.py",
+            "pyproject.toml",
+            "package.json",
+            "package-lock.json",
+            "requirements.txt",
+            "Pipfile",
+            "Pipfile.lock",
+            "poetry.lock",
+            "Makefile",
+            "makefile",
+            "Dockerfile",
+            "docker-compose.yml",
+            ".gitignore",
+            ".gitattributes",
+            "LICENSE",
+            "README.md",
+            "README.rst",
+            "CHANGELOG.md",
+            "CONTRIBUTING.md",
+            "CODE_OF_CONDUCT.md",
+            "CLAUDE.md",
+            "CODE.md",
+            "DEVELOPER.md",
+            "STRUCTURE.md",
+            "OPS.md",
+            ".env.example",
+            ".env.sample",
+            "VERSION",
+            "BUILD_NUMBER",
         }
 
         # Scan root directory for misplaced files
@@ -503,7 +541,9 @@ This directory is used for {description.lower()}.
 
                 # Test files (high confidence)
                 if "test" in file_lower and file.suffix == ".py":
-                    if file_lower.startswith("test_") or file_lower.endswith("_test.py"):
+                    if file_lower.startswith("test_") or file_lower.endswith(
+                        "_test.py"
+                    ):
                         target_dir = "tests"
                         confidence = "high"
                         reason = "Test file pattern detected"
@@ -513,7 +553,10 @@ This directory is used for {description.lower()}.
                     target_dir = "scripts"
                     confidence = "high"
                     reason = "Shell script file"
-                elif file.suffix == ".py" and any(pattern in file_lower for pattern in ["script", "run", "cli", "tool"]):
+                elif file.suffix == ".py" and any(
+                    pattern in file_lower
+                    for pattern in ["script", "run", "cli", "tool"]
+                ):
                     target_dir = "scripts"
                     confidence = "medium"
                     reason = "Python script pattern detected"
@@ -529,15 +572,23 @@ This directory is used for {description.lower()}.
                     reason = "Temporary file pattern"
 
                 # Documentation files (medium confidence)
-                elif file.suffix in [".md", ".rst", ".txt"] and file.name not in protected_root_files:
-                    if any(pattern in file_lower for pattern in ["notes", "draft", "todo", "spec", "design"]):
+                elif (
+                    file.suffix in [".md", ".rst", ".txt"]
+                    and file.name not in protected_root_files
+                ):
+                    if any(
+                        pattern in file_lower
+                        for pattern in ["notes", "draft", "todo", "spec", "design"]
+                    ):
                         target_dir = "docs"
                         confidence = "medium"
                         reason = "Documentation file pattern"
 
                 # Data files (medium confidence)
                 elif file.suffix in [".csv", ".json", ".xml", ".yaml", ".yml"]:
-                    if file.suffix in [".yaml", ".yml"] and any(pattern in file_lower for pattern in ["config", "settings"]):
+                    if file.suffix in [".yaml", ".yml"] and any(
+                        pattern in file_lower for pattern in ["config", "settings"]
+                    ):
                         # Config files might belong in root
                         confidence = "low"
                     else:
@@ -546,7 +597,9 @@ This directory is used for {description.lower()}.
                         reason = "Data file"
 
                 # Build artifacts (high confidence)
-                elif file.suffix in [".whl", ".tar.gz", ".zip"] and "dist" not in str(file.parent):
+                elif file.suffix in [".whl", ".tar.gz", ".zip"] and "dist" not in str(
+                    file.parent
+                ):
                     target_dir = "dist"
                     confidence = "high"
                     reason = "Build artifact"
@@ -559,16 +612,24 @@ This directory is used for {description.lower()}.
 
                 if target_dir:
                     # Check if we should move based on confidence and auto_safe setting
-                    should_move = (confidence == "high") if auto_safe else (confidence in ["high", "medium"])
+                    should_move = (
+                        (confidence == "high")
+                        if auto_safe
+                        else (confidence in ["high", "medium"])
+                    )
 
                     if should_move:
                         target_path = self.project_path / target_dir / file.name
-                        moves.append({
-                            "source": str(file.relative_to(self.project_path)),
-                            "target": str(target_path.relative_to(self.project_path)),
-                            "reason": reason,
-                            "confidence": confidence,
-                        })
+                        moves.append(
+                            {
+                                "source": str(file.relative_to(self.project_path)),
+                                "target": str(
+                                    target_path.relative_to(self.project_path)
+                                ),
+                                "reason": reason,
+                                "confidence": confidence,
+                            }
+                        )
 
                         if not dry_run:
                             try:
@@ -576,20 +637,21 @@ This directory is used for {description.lower()}.
                                 target_path.parent.mkdir(parents=True, exist_ok=True)
                                 # Move file
                                 file.rename(target_path)
-                                logger.info(f"Moved {file.name} to {target_dir}/ ({reason})")
+                                logger.info(
+                                    f"Moved {file.name} to {target_dir}/ ({reason})"
+                                )
                             except Exception as e:
-                                errors.append({
-                                    "file": str(file.name),
-                                    "error": str(e)
-                                })
+                                errors.append({"file": str(file.name), "error": str(e)})
                                 logger.error(f"Failed to move {file.name}: {e}")
                     else:
-                        skipped.append({
-                            "file": str(file.name),
-                            "suggested_dir": target_dir,
-                            "confidence": confidence,
-                            "reason": f"Low confidence move - skipped (use --no-auto-safe to include)"
-                        })
+                        skipped.append(
+                            {
+                                "file": str(file.name),
+                                "suggested_dir": target_dir,
+                                "confidence": confidence,
+                                "reason": "Low confidence move - skipped (use --no-auto-safe to include)",
+                            }
+                        )
 
         # Also check for deeply nested test files that should be in tests/
         if not auto_safe:  # Only in non-safe mode
@@ -598,16 +660,21 @@ This directory is used for {description.lower()}.
                 if "tests" in test_file.parts or "test" in test_file.parts:
                     continue
                 # Skip if in node_modules or venv
-                if any(part in test_file.parts for part in ["node_modules", "venv", ".venv", "site-packages"]):
+                if any(
+                    part in test_file.parts
+                    for part in ["node_modules", "venv", ".venv", "site-packages"]
+                ):
                     continue
 
                 target_path = self.project_path / "tests" / test_file.name
-                moves.append({
-                    "source": str(test_file.relative_to(self.project_path)),
-                    "target": str(target_path.relative_to(self.project_path)),
-                    "reason": "Test file found outside tests directory",
-                    "confidence": "medium",
-                })
+                moves.append(
+                    {
+                        "source": str(test_file.relative_to(self.project_path)),
+                        "target": str(target_path.relative_to(self.project_path)),
+                        "reason": "Test file found outside tests directory",
+                        "confidence": "medium",
+                    }
+                )
 
                 if not dry_run:
                     try:
@@ -615,10 +682,12 @@ This directory is used for {description.lower()}.
                         test_file.rename(target_path)
                         logger.info(f"Moved {test_file.name} to tests/")
                     except Exception as e:
-                        errors.append({
-                            "file": str(test_file.relative_to(self.project_path)),
-                            "error": str(e)
-                        })
+                        errors.append(
+                            {
+                                "file": str(test_file.relative_to(self.project_path)),
+                                "error": str(e),
+                            }
+                        )
 
         return {
             "dry_run": dry_run,
@@ -699,7 +768,13 @@ This directory is used for {description.lower()}.
         doc += "## .gitignore Configuration\n\n"
         if self.gitignore_path.exists():
             gitignore_content = self.gitignore_path.read_text()
-            critical_patterns = ["tmp/", "__pycache__", ".env", "*.log", ".claude-mpm/cache/"]
+            critical_patterns = [
+                "tmp/",
+                "__pycache__",
+                ".env",
+                "*.log",
+                ".claude-mpm/cache/",
+            ]
             doc += "### Critical Patterns Status:\n"
             for pattern in critical_patterns:
                 status = "✅" if pattern in gitignore_content else "❌"
@@ -741,14 +816,14 @@ This directory is used for {description.lower()}.
             "misplaced_files": organize_result,
             "gitignore": {
                 "exists": self.gitignore_path.exists(),
-                "patterns_status": {}
+                "patterns_status": {},
             },
             "statistics": {
                 "total_directories": 0,
                 "total_files": 0,
                 "misplaced_files": len(organize_result.get("proposed_moves", [])),
-                "structure_score": validation.get("score", 0)
-            }
+                "structure_score": validation.get("score", 0),
+            },
         }
 
         # Check directory status
@@ -758,7 +833,7 @@ This directory is used for {description.lower()}.
                 "exists": dir_path.exists(),
                 "description": description,
                 "file_count": len(list(dir_path.glob("*"))) if dir_path.exists() else 0,
-                "is_directory": dir_path.is_dir() if dir_path.exists() else None
+                "is_directory": dir_path.is_dir() if dir_path.exists() else None,
             }
             if dir_path.exists():
                 report["statistics"]["total_directories"] += 1
@@ -766,9 +841,17 @@ This directory is used for {description.lower()}.
         # Check gitignore patterns
         if self.gitignore_path.exists():
             gitignore_content = self.gitignore_path.read_text()
-            critical_patterns = ["tmp/", "__pycache__", ".env", "*.log", ".claude-mpm/cache/"]
+            critical_patterns = [
+                "tmp/",
+                "__pycache__",
+                ".env",
+                "*.log",
+                ".claude-mpm/cache/",
+            ]
             for pattern in critical_patterns:
-                report["gitignore"]["patterns_status"][pattern] = pattern in gitignore_content
+                report["gitignore"]["patterns_status"][pattern] = (
+                    pattern in gitignore_content
+                )
 
         # Count total files
         for item in self.project_path.rglob("*"):
@@ -777,7 +860,9 @@ This directory is used for {description.lower()}.
 
         return report
 
-    def ensure_project_ready(self, auto_organize: bool = False, safe_mode: bool = True) -> Tuple[bool, List[str]]:
+    def ensure_project_ready(
+        self, auto_organize: bool = False, safe_mode: bool = True
+    ) -> Tuple[bool, List[str]]:
         """Ensure project is ready for Claude MPM usage.
 
         Args:
@@ -799,7 +884,9 @@ This directory is used for {description.lower()}.
         tmp_dir = self.project_path / "tmp"
         if not tmp_dir.exists():
             tmp_dir.mkdir(parents=True, exist_ok=True)
-            self._add_directory_readme(tmp_dir, "Temporary files, test outputs, and experiments")
+            self._add_directory_readme(
+                tmp_dir, "Temporary files, test outputs, and experiments"
+            )
             actions_taken.append("Created tmp/ directory with README")
 
         # Update .gitignore with comprehensive patterns
@@ -807,11 +894,15 @@ This directory is used for {description.lower()}.
             actions_taken.append("Updated .gitignore with comprehensive patterns")
 
         # Check if organization is needed
-        organize_result = self.organize_misplaced_files(dry_run=True, auto_safe=safe_mode)
+        organize_result = self.organize_misplaced_files(
+            dry_run=True, auto_safe=safe_mode
+        )
         if organize_result["proposed_moves"]:
             if auto_organize:
                 # Perform the organization
-                actual_result = self.organize_misplaced_files(dry_run=False, auto_safe=safe_mode)
+                actual_result = self.organize_misplaced_files(
+                    dry_run=False, auto_safe=safe_mode
+                )
                 if actual_result["completed_moves"]:
                     actions_taken.append(
                         f"Organized {len(actual_result['completed_moves'])} files into proper directories"
@@ -832,7 +923,10 @@ This directory is used for {description.lower()}.
         # Check for remaining issues
         if self.structure_report.get("issues"):
             for issue in self.structure_report["issues"]:
-                if issue["type"] not in ["misplaced_scripts", "misplaced_tests"]:  # These may be handled
+                if issue["type"] not in [
+                    "misplaced_scripts",
+                    "misplaced_tests",
+                ]:  # These may be handled
                     issues_found.append(issue["description"])
 
         # Generate structure validation report
@@ -870,7 +964,9 @@ This directory is used for {description.lower()}.
             critical_patterns = ["tmp/", "__pycache__", ".env", "*.log"]
             for pattern in critical_patterns:
                 if pattern not in gitignore_content:
-                    validation["warnings"].append(f"Missing gitignore pattern: {pattern}")
+                    validation["warnings"].append(
+                        f"Missing gitignore pattern: {pattern}"
+                    )
                     validation["score"] -= 2
 
         # Check for files in wrong locations
@@ -878,15 +974,20 @@ This directory is used for {description.lower()}.
         misplaced_count = 0
         for file in root_files:
             if file.is_file():
-                if "test" in file.name.lower() and file.suffix == ".py":
-                    misplaced_count += 1
-                elif file.suffix in [".sh", ".bash"] and file.name not in ["Makefile"]:
-                    misplaced_count += 1
-                elif file.suffix in [".log", ".tmp", ".cache"]:
+                if (
+                    ("test" in file.name.lower() and file.suffix == ".py")
+                    or (
+                        file.suffix in [".sh", ".bash"]
+                        and file.name not in ["Makefile"]
+                    )
+                    or file.suffix in [".log", ".tmp", ".cache"]
+                ):
                     misplaced_count += 1
 
         if misplaced_count > 0:
-            validation["warnings"].append(f"{misplaced_count} files potentially misplaced in root")
+            validation["warnings"].append(
+                f"{misplaced_count} files potentially misplaced in root"
+            )
             validation["score"] -= min(misplaced_count * 2, 20)
 
         # Score interpretation

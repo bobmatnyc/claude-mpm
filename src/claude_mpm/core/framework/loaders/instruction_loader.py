@@ -75,14 +75,18 @@ class InstructionLoader:
             content["instructions_version"] = self.file_loader.framework_version
             content["version"] = self.file_loader.framework_version
         if self.file_loader.framework_last_modified:
-            content["instructions_last_modified"] = self.file_loader.framework_last_modified
+            content["instructions_last_modified"] = (
+                self.file_loader.framework_last_modified
+            )
 
         # Transfer metadata from packaged loader if available
         if self.packaged_loader.framework_version:
             content["instructions_version"] = self.packaged_loader.framework_version
             content["version"] = self.packaged_loader.framework_version
         if self.packaged_loader.framework_last_modified:
-            content["instructions_last_modified"] = self.packaged_loader.framework_last_modified
+            content["instructions_last_modified"] = (
+                self.packaged_loader.framework_last_modified
+            )
 
     def _load_filesystem_framework_instructions(self, content: Dict[str, Any]) -> None:
         """Load framework instructions from filesystem.
@@ -120,7 +124,9 @@ class InstructionLoader:
                 )
 
         # Load BASE_PM.md for core framework requirements
-        base_pm_path = self.framework_path / "src" / "claude_mpm" / "agents" / "BASE_PM.md"
+        base_pm_path = (
+            self.framework_path / "src" / "claude_mpm" / "agents" / "BASE_PM.md"
+        )
         if base_pm_path.exists():
             base_pm_content = self.file_loader.try_load_file(
                 base_pm_path, "BASE_PM framework requirements"
@@ -134,7 +140,9 @@ class InstructionLoader:
         Args:
             content: Dictionary to update with workflow instructions
         """
-        workflow, level = self.file_loader.load_workflow_file(self.current_dir, self.framework_path)
+        workflow, level = self.file_loader.load_workflow_file(
+            self.current_dir, self.framework_path
+        )
         if workflow:
             content["workflow_instructions"] = workflow
             content["workflow_instructions_level"] = level
@@ -145,7 +153,9 @@ class InstructionLoader:
         Args:
             content: Dictionary to update with memory instructions
         """
-        memory, level = self.file_loader.load_memory_file(self.current_dir, self.framework_path)
+        memory, level = self.file_loader.load_memory_file(
+            self.current_dir, self.framework_path
+        )
         if memory:
             content["memory_instructions"] = memory
             content["memory_instructions_level"] = level

@@ -46,6 +46,7 @@ class TestJSONUtilities(unittest.TestCase):
         """Clean up test environment."""
         if self.temp_dir.exists():
             import shutil
+
             shutil.rmtree(self.temp_dir)
 
     def test_load_json_safe_valid(self):
@@ -62,7 +63,9 @@ class TestJSONUtilities(unittest.TestCase):
         self.assertEqual(result, {})
 
         # With custom default
-        result = load_json_safe(self.temp_dir / "missing.json", default={"default": True})
+        result = load_json_safe(
+            self.temp_dir / "missing.json", default={"default": True}
+        )
         self.assertEqual(result, {"default": True})
 
     def test_load_json_safe_invalid_json(self):
@@ -106,6 +109,7 @@ class TestYAMLUtilities(unittest.TestCase):
         """Clean up test environment."""
         if self.temp_dir.exists():
             import shutil
+
             shutil.rmtree(self.temp_dir)
 
     def test_load_yaml_safe_valid(self):
@@ -145,6 +149,7 @@ class TestPathUtilities(unittest.TestCase):
         """Clean up test environment."""
         if self.temp_dir.exists():
             import shutil
+
             shutil.rmtree(self.temp_dir)
 
     def test_ensure_path_exists_directory(self):
@@ -338,6 +343,7 @@ class TestDeprecation(unittest.TestCase):
 
     def test_deprecated_decorator(self):
         """Test that deprecated decorator warns."""
+
         @deprecated()
         def old_function():
             return "result"
@@ -348,6 +354,7 @@ class TestDeprecation(unittest.TestCase):
 
     def test_deprecated_with_replacement(self):
         """Test deprecated decorator with replacement."""
+
         @deprecated(replacement="new_function")
         def old_function():
             return "result"
@@ -363,6 +370,7 @@ class TestPerformanceComparison(unittest.TestCase):
     def test_json_loading_performance(self):
         """Test that consolidated JSON loading is efficient."""
         import time
+
         temp_dir = Path(tempfile.mkdtemp())
 
         try:
@@ -391,6 +399,7 @@ class TestPerformanceComparison(unittest.TestCase):
 
         finally:
             import shutil
+
             shutil.rmtree(temp_dir)
 
 

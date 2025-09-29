@@ -9,9 +9,9 @@ Convenience functions for session-based response logging.
 import os
 from typing import Any, Dict, Optional
 
+from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.claude_session_logger import get_session_logger
 
-from claude_mpm.core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 
