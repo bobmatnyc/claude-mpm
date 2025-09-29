@@ -48,26 +48,26 @@ class MCPConfigManager:
         "kuzu-memory": {
             "type": "stdio",
             "command": "kuzu-memory",  # Will be resolved to full path
-            "args": ["mcp", "serve"]  # v1.1.0+ uses 'mcp serve' command
+            "args": ["mcp", "serve"],  # v1.1.0+ uses 'mcp serve' command
         },
         "mcp-ticketer": {
             "type": "stdio",
             "command": "mcp-ticketer",  # Will be resolved to full path
-            "args": ["mcp"]
+            "args": ["mcp"],
         },
         "mcp-browser": {
             "type": "stdio",
             "command": "mcp-browser",  # Will be resolved to full path
             "args": ["mcp"],
-            "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")}
+            "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")},
         },
         "mcp-vector-search": {
             "type": "stdio",
             # Special handling: needs Python interpreter from pipx venv
             "command": "python",  # Will be resolved to pipx venv Python
             "args": ["-m", "mcp_vector_search.mcp.server", "{project_root}"],
-            "env": {}
-        }
+            "env": {},
+        },
     }
 
     def __init__(self):
@@ -265,7 +265,11 @@ class MCPConfigManager:
                 test_args = config["args"].copy()
                 # Replace project root placeholder for testing
                 test_args = [
-                    arg.replace("{project_root}", str(self.project_root)) if "{project_root}" in arg else arg
+                    (
+                        arg.replace("{project_root}", str(self.project_root))
+                        if "{project_root}" in arg
+                        else arg
+                    )
                     for arg in test_args
                 ]
 
@@ -287,13 +291,16 @@ class MCPConfigManager:
                 text=True,
                 timeout=5,
                 check=False,
-                env=config.get("env", {})
+                env=config.get("env", {}),
             )
 
             # Check if command executed (exit code 0 or 1 for help)
             if result.returncode in [0, 1]:
                 # Additional check for import errors in stderr
-                if "ModuleNotFoundError" in result.stderr or "ImportError" in result.stderr:
+                if (
+                    "ModuleNotFoundError" in result.stderr
+                    or "ImportError" in result.stderr
+                ):
                     self.logger.debug(f"Service {service_name} has import errors")
                     return False
                 return True
@@ -306,7 +313,9 @@ class MCPConfigManager:
 
         return False
 
-    def get_static_service_config(self, service_name: str, project_path: Optional[str] = None) -> Optional[Dict]:
+    def get_static_service_config(
+        self, service_name: str, project_path: Optional[str] = None
+    ) -> Optional[Dict]:
         """
         Get the static, known-good configuration for an MCP service.
 
@@ -329,7 +338,15 @@ class MCPConfigManager:
             binary_name = config["command"]
 
             # First check pipx location
-            pipx_bin = Path.home() / ".local" / "pipx" / "venvs" / service_name / "bin" / binary_name
+            pipx_bin = (
+                Path.home()
+                / ".local"
+                / "pipx"
+                / "venvs"
+                / service_name
+                / "bin"
+                / binary_name
+            )
             if pipx_bin.exists():
                 binary_path = str(pipx_bin)
             else:
@@ -352,7 +369,9 @@ class MCPConfigManager:
                 config["command"] = binary_path
             else:
                 # Fall back to pipx run method if binary not found
-                self.logger.debug(f"Could not find {binary_name}, using pipx run fallback")
+                self.logger.debug(
+                    f"Could not find {binary_name}, using pipx run fallback"
+                )
                 config["command"] = "pipx"
                 config["args"] = ["run", service_name] + config["args"]
 
@@ -377,7 +396,15 @@ class MCPConfigManager:
         if service_name == "mcp-vector-search":
             # Get the correct pipx venv path for the current user
             home = Path.home()
-            python_path = home / ".local" / "pipx" / "venvs" / "mcp-vector-search" / "bin" / "python"
+            python_path = (
+                home
+                / ".local"
+                / "pipx"
+                / "venvs"
+                / "mcp-vector-search"
+                / "bin"
+                / "python"
+            )
 
             # Check if the Python interpreter exists
             if python_path.exists():
@@ -403,12 +430,24 @@ class MCPConfigManager:
                     config["command"] = "pipx"  # Hope it's in PATH
 
                 # Use pipx run with the spec argument
-                config["args"] = ["run", "--spec", "mcp-vector-search", "python", "-m", "mcp_vector_search.mcp.server", "{project_root}"]
+                config["args"] = [
+                    "run",
+                    "--spec",
+                    "mcp-vector-search",
+                    "python",
+                    "-m",
+                    "mcp_vector_search.mcp.server",
+                    "{project_root}",
+                ]
 
             # Use provided project path or current project
             project_root = project_path if project_path else str(self.project_root)
             config["args"] = [
-                arg.replace("{project_root}", project_root) if "{project_root}" in arg else arg
+                (
+                    arg.replace("{project_root}", project_root)
+                    if "{project_root}" in arg
+                    else arg
+                )
                 for arg in config["args"]
             ]
 
@@ -432,10 +471,13 @@ class MCPConfigManager:
         if static_config:
             # Validate that the static config actually works
             if self.test_service_command(service_name, static_config):
-                self.logger.debug(f"Static config for {service_name} validated successfully")
+                self.logger.debug(
+                    f"Static config for {service_name} validated successfully"
+                )
                 return static_config
-            else:
-                self.logger.warning(f"Static config for {service_name} failed validation, trying fallback")
+            self.logger.warning(
+                f"Static config for {service_name} failed validation, trying fallback"
+            )
 
         # Fall back to detection-based configuration for unknown services
         import shutil
@@ -563,7 +605,9 @@ class MCPConfigManager:
 
                     # Standard version detection - look for "mcp serve" command (v1.1.0+)
                     # This is the correct format for kuzu-memory v1.1.0 and later
-                    if "mcp serve" in help_output or ("mcp" in help_output and "serve" in help_output):
+                    if "mcp serve" in help_output or (
+                        "mcp" in help_output and "serve" in help_output
+                    ):
                         # Standard v1.1.0+ version with mcp serve command
                         kuzu_args = ["mcp", "serve"]
                     # Legacy version detection - only "serve" without "mcp"
@@ -672,10 +716,14 @@ class MCPConfigManager:
             # Check and fix each service configuration
             for service_name in self.PIPX_SERVICES:
                 # Get the correct static configuration with project-specific paths
-                correct_config = self.get_static_service_config(service_name, project_key)
+                correct_config = self.get_static_service_config(
+                    service_name, project_key
+                )
 
                 if not correct_config:
-                    self.logger.warning(f"No static config available for {service_name}")
+                    self.logger.warning(
+                        f"No static config available for {service_name}"
+                    )
                     continue
 
                 # Check if service exists and has correct configuration
@@ -687,13 +735,15 @@ class MCPConfigManager:
                     # Service is missing
                     needs_update = True
                     added_services.append(f"{service_name} in {Path(project_key).name}")
-                else:
-                    # Service exists, check if configuration is correct
-                    # Compare command and args (the most critical parts)
-                    if (existing_config.get("command") != correct_config.get("command") or
-                        existing_config.get("args") != correct_config.get("args")):
-                        needs_update = True
-                        fixed_services.append(f"{service_name} in {Path(project_key).name}")
+                # Service exists, check if configuration is correct
+                # Compare command and args (the most critical parts)
+                elif existing_config.get("command") != correct_config.get(
+                    "command"
+                ) or existing_config.get("args") != correct_config.get("args"):
+                    needs_update = True
+                    fixed_services.append(
+                        f"{service_name} in {Path(project_key).name}"
+                    )
 
                 # Update configuration if needed
                 if needs_update:
@@ -714,6 +764,7 @@ class MCPConfigManager:
                             f".backup.{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
                         )
                         import shutil
+
                         shutil.copy2(self.claude_config_path, backup_path)
                         self.logger.debug(f"Created backup: {backup_path}")
 
@@ -723,9 +774,13 @@ class MCPConfigManager:
 
                 messages = []
                 if added_services:
-                    messages.append(f"Added MCP services: {', '.join(added_services[:3])}")
+                    messages.append(
+                        f"Added MCP services: {', '.join(added_services[:3])}"
+                    )
                 if fixed_services:
-                    messages.append(f"Fixed MCP services: {', '.join(fixed_services[:3])}")
+                    messages.append(
+                        f"Fixed MCP services: {', '.join(fixed_services[:3])}"
+                    )
 
                 if messages:
                     return True, "; ".join(messages)
@@ -993,11 +1048,12 @@ class MCPConfigManager:
                 )
 
                 if inject_result.returncode == 0:
-                    self.logger.info("✅ Successfully injected gql dependency into mcp-ticketer")
+                    self.logger.info(
+                        "✅ Successfully injected gql dependency into mcp-ticketer"
+                    )
                     return True
-                else:
-                    self.logger.warning(f"Failed to inject gql: {inject_result.stderr}")
-                    return False
+                self.logger.warning(f"Failed to inject gql: {inject_result.stderr}")
+                return False
 
             return False
 
@@ -1048,7 +1104,9 @@ class MCPConfigManager:
 
             elif issue_type == "import_error":
                 # Reinstall to fix corrupted installation
-                self.logger.info(f"  Reinstalling {service_name} to fix import errors...")
+                self.logger.info(
+                    f"  Reinstalling {service_name} to fix import errors..."
+                )
                 success = self._reinstall_service(service_name)
                 if success:
                     # Special handling for mcp-ticketer - inject missing gql dependency
@@ -1064,13 +1122,17 @@ class MCPConfigManager:
                     if self._check_and_fix_mcp_ticketer_dependencies():
                         fixed_services.append(f"{service_name} (dependency fixed)")
                     else:
-                        failed_services.append(f"{service_name} (dependency fix failed)")
+                        failed_services.append(
+                            f"{service_name} (dependency fix failed)"
+                        )
                 else:
                     failed_services.append(f"{service_name} (unknown dependency issue)")
 
             elif issue_type == "path_issue":
                 # Path issues are handled by config updates
-                self.logger.info(f"  Path issue for {service_name} will be fixed by config update")
+                self.logger.info(
+                    f"  Path issue for {service_name} will be fixed by config update"
+                )
                 fixed_services.append(f"{service_name} (config updated)")
 
         # Build result message
@@ -1114,7 +1176,7 @@ class MCPConfigManager:
                 capture_output=True,
                 text=True,
                 timeout=10,
-                check=False
+                check=False,
             )
 
             # Check for specific error patterns
@@ -1123,11 +1185,17 @@ class MCPConfigManager:
             combined_output = stderr_lower + stdout_lower
 
             # Not installed
-            if "no apps associated" in combined_output or "not found" in combined_output:
+            if (
+                "no apps associated" in combined_output
+                or "not found" in combined_output
+            ):
                 return "not_installed"
 
             # Import errors (like mcp-ticketer's corrupted state)
-            if "modulenotfounderror" in combined_output or "importerror" in combined_output:
+            if (
+                "modulenotfounderror" in combined_output
+                or "importerror" in combined_output
+            ):
                 # Check if it's specifically the gql dependency for mcp-ticketer
                 if service_name == "mcp-ticketer" and "gql" in combined_output:
                     return "missing_dependency"
@@ -1138,7 +1206,11 @@ class MCPConfigManager:
                 return "path_issue"
 
             # If help text appears, service is working
-            if "usage:" in combined_output or "help" in combined_output or result.returncode in [0, 1]:
+            if (
+                "usage:" in combined_output
+                or "help" in combined_output
+                or result.returncode in [0, 1]
+            ):
                 return None  # Service is working
 
             # Unknown issue
@@ -1173,7 +1245,7 @@ class MCPConfigManager:
                 capture_output=True,
                 text=True,
                 timeout=30,
-                check=False
+                check=False,
             )
 
             # Don't check return code - uninstall might fail if partially corrupted
@@ -1186,7 +1258,7 @@ class MCPConfigManager:
                 capture_output=True,
                 text=True,
                 timeout=120,
-                check=False
+                check=False,
             )
 
             if install_result.returncode == 0:
@@ -1195,12 +1267,14 @@ class MCPConfigManager:
                 if issue is None:
                     self.logger.info(f"✅ Successfully reinstalled {service_name}")
                     return True
-                else:
-                    self.logger.warning(f"Reinstalled {service_name} but still has issue: {issue}")
-                    return False
-            else:
-                self.logger.error(f"Failed to reinstall {service_name}: {install_result.stderr}")
+                self.logger.warning(
+                    f"Reinstalled {service_name} but still has issue: {issue}"
+                )
                 return False
+            self.logger.error(
+                f"Failed to reinstall {service_name}: {install_result.stderr}"
+            )
+            return False
 
         except Exception as e:
             self.logger.error(f"Error reinstalling {service_name}: {e}")
@@ -1282,7 +1356,9 @@ class MCPConfigManager:
 
         return False
 
-    def _get_fallback_config(self, service_name: str, project_path: str) -> Optional[Dict]:
+    def _get_fallback_config(
+        self, service_name: str, project_path: str
+    ) -> Optional[Dict]:
         """
         Get a fallback configuration for a service if the primary config fails.
 
@@ -1298,8 +1374,16 @@ class MCPConfigManager:
             return {
                 "type": "stdio",
                 "command": "pipx",
-                "args": ["run", "--spec", "mcp-vector-search", "python", "-m", "mcp_vector_search.mcp.server", project_path],
-                "env": {}
+                "args": [
+                    "run",
+                    "--spec",
+                    "mcp-vector-search",
+                    "python",
+                    "-m",
+                    "mcp_vector_search.mcp.server",
+                    project_path,
+                ],
+                "env": {},
             }
 
         # For other services, try pipx run

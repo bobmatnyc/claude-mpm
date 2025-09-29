@@ -89,7 +89,9 @@ class SpecificFixesTester:
         logger.info(f"Command: {' '.join(cmd)}")
 
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=60, check=False
+            )
 
             logger.info(f"Return code: {result.returncode}")
             if result.stdout:

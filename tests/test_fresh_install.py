@@ -49,7 +49,9 @@ class FreshInstallTester:
 
         try:
             if capture_output:
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
+                result = subprocess.run(
+                    cmd, capture_output=True, text=True, timeout=60, check=False
+                )
             else:
                 result = subprocess.run(cmd, text=True, timeout=60, check=False)
 

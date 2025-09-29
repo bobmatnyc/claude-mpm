@@ -3,7 +3,6 @@ Verify command for MCP service health checks.
 """
 
 import argparse
-import sys
 
 from ...core.logger import get_logger
 from ...services.mcp_service_verifier import MCPServiceVerifier, ServiceStatus
@@ -61,7 +60,11 @@ def handle_verify(args: argparse.Namespace) -> int:
             diagnostics = {args.service: diagnostic}
 
             # Auto-fix if requested
-            if args.fix and diagnostic.fix_command and diagnostic.status != ServiceStatus.WORKING:
+            if (
+                args.fix
+                and diagnostic.fix_command
+                and diagnostic.status != ServiceStatus.WORKING
+            ):
                 logger.info(f"Attempting to fix {args.service}...")
                 if verifier._attempt_auto_fix(args.service, diagnostic):
                     # Re-verify after fix
@@ -93,25 +96,23 @@ def handle_verify(args: argparse.Namespace) -> int:
 
         # Determine exit code
         all_working = all(
-            d.status == ServiceStatus.WORKING
-            for d in diagnostics.values()
+            d.status == ServiceStatus.WORKING for d in diagnostics.values()
         )
 
         if all_working:
             logger.info("✅ All verified services are fully operational")
             return 0
-        else:
-            issues_count = sum(
-                1 for d in diagnostics.values()
-                if d.status != ServiceStatus.WORKING
-            )
-            logger.warning(f"⚠️ {issues_count} service(s) have issues")
-            return 1
+        issues_count = sum(
+            1 for d in diagnostics.values() if d.status != ServiceStatus.WORKING
+        )
+        logger.warning(f"⚠️ {issues_count} service(s) have issues")
+        return 1
 
     except Exception as e:
         logger.error(f"Verification failed: {e}")
         if args.json:
             import json
+
             print(json.dumps({"error": str(e)}, indent=2))
         else:
             print(f"\n❌ Verification failed: {e}")

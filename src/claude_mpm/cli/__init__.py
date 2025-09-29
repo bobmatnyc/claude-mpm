@@ -225,8 +225,8 @@ def _check_mcp_auto_configuration():
     # Also ensure MCP services are properly configured in ~/.claude.json
     # This fixes incorrect paths and adds missing services
     try:
-        from ..services.mcp_config_manager import MCPConfigManager
         from ..core.logger import get_logger
+        from ..services.mcp_config_manager import MCPConfigManager
 
         logger = get_logger("cli")
         mcp_manager = MCPConfigManager()
@@ -262,8 +262,8 @@ def _verify_mcp_gateway_startup():
     """
     # Quick verification of MCP services installation
     try:
-        from ..services.mcp_service_verifier import verify_mcp_services_on_startup
         from ..core.logger import get_logger
+        from ..services.mcp_service_verifier import verify_mcp_services_on_startup
 
         logger = get_logger("mcp_verify")
         all_ok, message = verify_mcp_services_on_startup()

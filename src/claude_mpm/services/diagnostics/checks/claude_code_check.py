@@ -87,7 +87,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
                 capture_output=True,
                 timeout=5,
                 check=False,
-                text=True
+                text=True,
             )
             if result.returncode == 0:
                 return DiagnosticResult(
@@ -97,7 +97,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
                     details={
                         "installed": True,
                         "path": "claude",
-                        "version_output": result.stdout.strip()
+                        "version_output": result.stdout.strip(),
                     },
                 )
         except (subprocess.SubprocessError, FileNotFoundError):
@@ -136,7 +136,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
                 capture_output=True,
                 timeout=5,
                 check=True,
-                text=True
+                text=True,
             )
             version_output = result.stdout.strip()
 
