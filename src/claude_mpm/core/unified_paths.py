@@ -178,7 +178,7 @@ class PathContext:
         """
         # Check for environment variable override
         if os.environ.get("CLAUDE_MPM_DEV_MODE", "").lower() in ("1", "true", "yes"):
-            logger.info(
+            logger.debug(
                 "Development mode forced via CLAUDE_MPM_DEV_MODE environment variable"
             )
             return DeploymentContext.DEVELOPMENT
@@ -198,10 +198,10 @@ class PathContext:
                         'name = "claude-mpm"' in pyproject_content
                         or '"claude-mpm"' in pyproject_content
                     ):
-                        logger.info(
+                        logger.debug(
                             f"Detected claude-mpm development directory at {current}"
                         )
-                        logger.info(
+                        logger.debug(
                             "Using development mode for local source preference"
                         )
                         return DeploymentContext.DEVELOPMENT
@@ -219,7 +219,7 @@ class PathContext:
             # First check if this is an editable install, regardless of path
             # This is important for cases where pipx points to a development installation
             if PathContext._is_editable_install():
-                logger.info("Detected editable/development installation")
+                logger.debug("Detected editable/development installation")
                 # Check if we should use development paths
                 # This could be because we're in a src/ directory or running from dev directory
                 if module_path.parent.name == "src":
@@ -233,7 +233,7 @@ class PathContext:
                         if (current / "src" / "claude_mpm").exists() and (
                             current / "pyproject.toml"
                         ).exists():
-                            logger.info(
+                            logger.debug(
                                 "Running pipx from development directory, using development mode"
                             )
                             return DeploymentContext.DEVELOPMENT
@@ -249,33 +249,33 @@ class PathContext:
                 module_path.parent.name == "src"
                 and (module_path.parent.parent / "src" / "claude_mpm").exists()
             ):
-                logger.info(
+                logger.debug(
                     f"Detected development mode via directory structure at {module_path}"
                 )
                 return DeploymentContext.DEVELOPMENT
 
             # Check for pipx install
             if "pipx" in str(module_path):
-                logger.info(f"Detected pipx installation at {module_path}")
+                logger.debug(f"Detected pipx installation at {module_path}")
                 return DeploymentContext.PIPX_INSTALL
 
             # Check for system package
             if "dist-packages" in str(module_path):
-                logger.info(f"Detected system package installation at {module_path}")
+                logger.debug(f"Detected system package installation at {module_path}")
                 return DeploymentContext.SYSTEM_PACKAGE
 
             # Check for site-packages (could be pip or editable)
             if "site-packages" in str(module_path):
                 # Already checked for editable above, so this is a regular pip install
-                logger.info(f"Detected pip installation at {module_path}")
+                logger.debug(f"Detected pip installation at {module_path}")
                 return DeploymentContext.PIP_INSTALL
 
             # Default to pip install
-            logger.info(f"Defaulting to pip installation for {module_path}")
+            logger.debug(f"Defaulting to pip installation for {module_path}")
             return DeploymentContext.PIP_INSTALL
 
         except ImportError:
-            logger.info(
+            logger.debug(
                 "ImportError during context detection, defaulting to development"
             )
             return DeploymentContext.DEVELOPMENT
@@ -321,7 +321,8 @@ class UnifiedPathManager:
         ]
         self._initialized = True
 
-        logger.info(
+        # Use debug level for initialization details
+        logger.debug(
             f"UnifiedPathManager initialized with context: {self._deployment_context.value}"
         )
 
