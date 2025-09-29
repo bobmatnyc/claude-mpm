@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from claude_mpm.core.logger import get_logger
+
 from ..models import DiagnosticResult, DiagnosticStatus
 from .base_check import BaseDiagnosticCheck
 
@@ -37,8 +38,20 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             "check_health": True,
             "health_command": ["mcp-vector-search", "--version"],
             "pipx_run_command": ["pipx", "run", "mcp-vector-search", "--version"],
-            "mcp_command": ["python", "-m", "mcp_vector_search.mcp.server"],  # Command to run as MCP server
-            "pipx_mcp_command": ["pipx", "run", "--spec", "mcp-vector-search", "python", "-m", "mcp_vector_search.mcp.server"],
+            "mcp_command": [
+                "python",
+                "-m",
+                "mcp_vector_search.mcp.server",
+            ],  # Command to run as MCP server
+            "pipx_mcp_command": [
+                "pipx",
+                "run",
+                "--spec",
+                "mcp-vector-search",
+                "python",
+                "-m",
+                "mcp_vector_search.mcp.server",
+            ],
         },
         "mcp-browser": {
             "package": "mcp-browser",
@@ -65,7 +78,11 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             "check_health": True,  # v1.1.0+ has version command
             "health_command": ["kuzu-memory", "--version"],
             "pipx_run_command": ["pipx", "run", "kuzu-memory", "--version"],
-            "mcp_command": ["kuzu-memory", "mcp", "serve"],  # v1.1.0+ uses 'mcp serve' args
+            "mcp_command": [
+                "kuzu-memory",
+                "mcp",
+                "serve",
+            ],  # v1.1.0+ uses 'mcp serve' args
         },
     }
 
@@ -86,28 +103,43 @@ class MCPServicesCheck(BaseDiagnosticCheck):
 
             # Use MCPConfigManager to detect and fix corrupted installations
             from claude_mpm.services.mcp_config_manager import MCPConfigManager
+
             mcp_manager = MCPConfigManager()
 
             # Run comprehensive fix for all MCP service issues
             fix_success, fix_message = mcp_manager.fix_mcp_service_issues()
-            if fix_message and fix_message != "All MCP services are functioning correctly":
+            if (
+                fix_message
+                and fix_message != "All MCP services are functioning correctly"
+            ):
                 # Create diagnostic result for the fixes
                 fix_result = DiagnosticResult(
                     category="MCP Service Fixes",
-                    status=DiagnosticStatus.OK if fix_success else DiagnosticStatus.WARNING,
+                    status=(
+                        DiagnosticStatus.OK if fix_success else DiagnosticStatus.WARNING
+                    ),
                     message=fix_message,
-                    details={"auto_fix_applied": True}
+                    details={"auto_fix_applied": True},
                 )
                 sub_results.append(fix_result)
 
             # Also ensure configurations are updated for all projects
-            config_success, config_message = mcp_manager.ensure_mcp_services_configured()
-            if config_message and config_message != "All MCP services already configured correctly":
+            config_success, config_message = (
+                mcp_manager.ensure_mcp_services_configured()
+            )
+            if (
+                config_message
+                and config_message != "All MCP services already configured correctly"
+            ):
                 config_result = DiagnosticResult(
                     category="MCP Configuration Update",
-                    status=DiagnosticStatus.OK if config_success else DiagnosticStatus.WARNING,
+                    status=(
+                        DiagnosticStatus.OK
+                        if config_success
+                        else DiagnosticStatus.WARNING
+                    ),
                     message=config_message,
-                    details={"auto_config_applied": True}
+                    details={"auto_config_applied": True},
                 )
                 sub_results.append(config_result)
 
@@ -149,7 +181,9 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             total_services = len(self.MCP_SERVICES)
 
             # Calculate total tools discovered
-            total_tools = sum(s.get("tools_discovered", 0) for s in services_status.values())
+            total_tools = sum(
+                s.get("tools_discovered", 0) for s in services_status.values()
+            )
 
             details["services"] = services_status
             details["installed_count"] = installed_count
@@ -201,9 +235,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 details={"error": str(e)},
             )
 
-    async def _test_mcp_connection(
-        self, service_name: str, command: List[str]
-    ) -> Dict:
+    async def _test_mcp_connection(self, service_name: str, command: List[str]) -> Dict:
         """Test MCP server connection by sending JSON-RPC requests."""
         result = {
             "connected": False,
@@ -234,12 +266,9 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 "params": {
                     "protocolVersion": "2024-11-05",
                     "capabilities": {},
-                    "clientInfo": {
-                        "name": "mpm-doctor",
-                        "version": "1.0.0"
-                    }
+                    "clientInfo": {"name": "mpm-doctor", "version": "1.0.0"},
                 },
-                "id": 1
+                "id": 1,
             }
 
             # Send initialize request
@@ -260,7 +289,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                     response_text = response_line.decode().strip()
 
                     # Skip empty lines or non-JSON lines
-                    while response_text and not response_text.startswith('{'):
+                    while response_text and not response_text.startswith("{"):
                         # Try to read the next line
                         try:
                             response_line = await asyncio.wait_for(
@@ -273,7 +302,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                         except asyncio.TimeoutError:
                             break
 
-                    if not response_text or not response_text.startswith('{'):
+                    if not response_text or not response_text.startswith("{"):
                         result["error"] = "No valid JSON response received"
                         return result
 
@@ -289,7 +318,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                             "jsonrpc": "2.0",
                             "method": "tools/list",
                             "params": {},
-                            "id": 2
+                            "id": 2,
                         }
 
                         request_line = json.dumps(tools_request) + "\n"
@@ -303,7 +332,9 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                             )
 
                             if tools_response_line:
-                                tools_response = json.loads(tools_response_line.decode())
+                                tools_response = json.loads(
+                                    tools_response_line.decode()
+                                )
                                 if "result" in tools_response:
                                     tools = tools_response["result"].get("tools", [])
                                     result["tools_count"] = len(tools)
@@ -320,7 +351,9 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                             pass
 
                     elif "error" in response:
-                        result["error"] = f"MCP error: {response['error'].get('message', 'Unknown error')}"
+                        result["error"] = (
+                            f"MCP error: {response['error'].get('message', 'Unknown error')}"
+                        )
                     else:
                         result["error"] = "Invalid JSON-RPC response format"
 
@@ -333,12 +366,16 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                             process.stderr.read(1000), timeout=0.5
                         )
                         if stderr_data:
-                            stderr_output = stderr_data.decode('utf-8', errors='ignore')[:200]
+                            stderr_output = stderr_data.decode(
+                                "utf-8", errors="ignore"
+                            )[:200]
                     except:
                         pass
 
                 if stderr_output:
-                    result["error"] = f"Connection timeout (5s). Server output: {stderr_output}"
+                    result["error"] = (
+                        f"Connection timeout (5s). Server output: {stderr_output}"
+                    )
                 else:
                     result["error"] = "Connection timeout (5s)"
 
@@ -351,21 +388,25 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                             process.stderr.read(1000), timeout=0.5
                         )
                         if stderr_data:
-                            stderr_output = stderr_data.decode('utf-8', errors='ignore')[:200]
+                            stderr_output = stderr_data.decode(
+                                "utf-8", errors="ignore"
+                            )[:200]
                     except:
                         pass
 
                 if stderr_output:
-                    result["error"] = f"Invalid JSON response: {str(e)}. Server error: {stderr_output}"
+                    result["error"] = (
+                        f"Invalid JSON response: {e!s}. Server error: {stderr_output}"
+                    )
                 else:
-                    result["error"] = f"Invalid JSON response: {str(e)}"
+                    result["error"] = f"Invalid JSON response: {e!s}"
 
         except FileNotFoundError:
             result["error"] = f"Command not found: {command[0]}"
         except PermissionError:
             result["error"] = f"Permission denied: {command[0]}"
         except Exception as e:
-            result["error"] = f"Connection failed: {str(e)}"
+            result["error"] = f"Connection failed: {e!s}"
         finally:
             # Clean up process
             if process:
@@ -487,12 +528,12 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                         "response_time_ms": connection_result["response_time"],
                         "tools_discovered": connection_result["tools_count"],
                         "tools_sample": connection_result["tools"],
-                        "error": connection_result["error"]
+                        "error": connection_result["error"],
                     }
                 except Exception as e:
                     details["connection_test"] = {
                         "connected": False,
-                        "error": f"Test failed: {str(e)}"
+                        "error": f"Test failed: {e!s}",
                     }
 
         # Determine status
@@ -520,7 +561,11 @@ class MCPServicesCheck(BaseDiagnosticCheck):
 
                 return DiagnosticResult(
                     category=f"MCP Service: {service_name}",
-                    status=DiagnosticStatus.OK if connection_info.get("connected") else DiagnosticStatus.WARNING,
+                    status=(
+                        DiagnosticStatus.OK
+                        if connection_info.get("connected")
+                        else DiagnosticStatus.WARNING
+                    ),
                     message=message,
                     details=details,
                 )
@@ -772,13 +817,15 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 )
 
                 # Auto-fix the configuration
-                fixed = self._fix_kuzu_memory_args(claude_config_path, config, correct_args)
+                fixed = self._fix_kuzu_memory_args(
+                    claude_config_path, config, correct_args
+                )
 
                 if fixed:
                     return DiagnosticResult(
                         category="kuzu-memory Configuration Fix",
                         status=DiagnosticStatus.OK,
-                        message=f"Fixed kuzu-memory configuration to use correct args",
+                        message="Fixed kuzu-memory configuration to use correct args",
                         details={
                             "old_args": args,
                             "new_args": correct_args,
@@ -786,20 +833,19 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                             "auto_fixed": True,
                         },
                     )
-                else:
-                    return DiagnosticResult(
-                        category="kuzu-memory Configuration",
-                        status=DiagnosticStatus.WARNING,
-                        message="kuzu-memory has incorrect configuration",
-                        details={
-                            "current_args": args,
-                            "correct_args": correct_args,
-                            "reason": fix_reason,
-                            "auto_fix_failed": True,
-                        },
-                        fix_command="claude-mpm configure --mcp --fix-kuzu",
-                        fix_description="Fix kuzu-memory configuration manually",
-                    )
+                return DiagnosticResult(
+                    category="kuzu-memory Configuration",
+                    status=DiagnosticStatus.WARNING,
+                    message="kuzu-memory has incorrect configuration",
+                    details={
+                        "current_args": args,
+                        "correct_args": correct_args,
+                        "reason": fix_reason,
+                        "auto_fix_failed": True,
+                    },
+                    fix_command="claude-mpm configure --mcp --fix-kuzu",
+                    fix_description="Fix kuzu-memory configuration manually",
+                )
 
             # Configuration is correct - args match ["mcp", "serve"]
             return None
@@ -808,7 +854,9 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             self.logger.debug(f"Could not check kuzu-memory config: {e}")
             return None
 
-    def _fix_kuzu_memory_args(self, config_path: Path, config: Dict, new_args: List[str]) -> bool:
+    def _fix_kuzu_memory_args(
+        self, config_path: Path, config: Dict, new_args: List[str]
+    ) -> bool:
         """Fix kuzu-memory args in the configuration."""
         try:
             # Save old args before updating
@@ -842,7 +890,11 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             # Verify the file was written correctly
             with open(config_path) as f:
                 verify_config = json.load(f)
-                verify_args = verify_config.get("mcpServers", {}).get("kuzu-memory", {}).get("args", [])
+                verify_args = (
+                    verify_config.get("mcpServers", {})
+                    .get("kuzu-memory", {})
+                    .get("args", [])
+                )
 
                 if verify_args != new_args:
                     self.logger.error(
@@ -889,7 +941,6 @@ class MCPServicesCheck(BaseDiagnosticCheck):
 
             # Get the current project configuration
             from pathlib import Path
-            import os
 
             current_project = str(Path.cwd())
 
@@ -900,7 +951,10 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                     category="MCP Gateway Configuration",
                     status=DiagnosticStatus.WARNING,
                     message="Current project not configured in Claude",
-                    details={"config_path": str(config_file), "project": current_project},
+                    details={
+                        "config_path": str(config_file),
+                        "project": current_project,
+                    },
                     fix_command="claude-mpm configure --mcp",
                     fix_description="Configure MCP services for current project",
                 )
@@ -988,11 +1042,14 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 )
 
                 if inject_result.returncode == 0:
-                    self.logger.info("✅ Successfully injected gql dependency into mcp-ticketer")
+                    self.logger.info(
+                        "✅ Successfully injected gql dependency into mcp-ticketer"
+                    )
                     return True
-                else:
-                    self.logger.warning(f"Failed to inject gql dependency: {inject_result.stderr}")
-                    return False
+                self.logger.warning(
+                    f"Failed to inject gql dependency: {inject_result.stderr}"
+                )
+                return False
 
             # Dependency already present
             return False
