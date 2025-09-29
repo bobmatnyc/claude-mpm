@@ -471,9 +471,7 @@ class MCPExternalServicesSetup:
                 print(
                     f"\n✅ Successfully configured {success_count} external services in .mcp.json"
                 )
-                print(
-                    "\n📌 Note: Claude Code will automatically load these services"
-                )
+                print("\n📌 Note: Claude Code will automatically load these services")
                 print("   when you open this project directory in Claude Code.")
                 return True
             print("❌ Failed to save configuration")

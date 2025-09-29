@@ -11,8 +11,6 @@ import json
 import os
 import shutil
 import subprocess
-import sys
-import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -82,7 +80,11 @@ class MCPServiceVerifier:
             "test_args": ["--help"],  # kuzu-memory uses --help not --version
             "required_args": ["mcp", "serve"],  # Modern format
             "min_version": "1.1.0",  # Minimum version for MCP support
-            "version_check_pattern": ["mcp", "serve", "claude"],  # Pattern to check in help
+            "version_check_pattern": [
+                "mcp",
+                "serve",
+                "claude",
+            ],  # Pattern to check in help
         },
     }
 
@@ -93,7 +95,9 @@ class MCPServiceVerifier:
         self.claude_config_path = Path.home() / ".claude.json"
         self.diagnostics: Dict[str, ServiceDiagnostic] = {}
 
-    def verify_all_services(self, auto_fix: bool = False) -> Dict[str, ServiceDiagnostic]:
+    def verify_all_services(
+        self, auto_fix: bool = False
+    ) -> Dict[str, ServiceDiagnostic]:
         """
         Perform comprehensive verification of all MCP services.
 
@@ -110,7 +114,11 @@ class MCPServiceVerifier:
             self.diagnostics[service_name] = diagnostic
 
             # Attempt auto-fix if requested and fixable
-            if auto_fix and diagnostic.fix_command and diagnostic.status != ServiceStatus.WORKING:
+            if (
+                auto_fix
+                and diagnostic.fix_command
+                and diagnostic.status != ServiceStatus.WORKING
+            ):
                 self._attempt_auto_fix(service_name, diagnostic)
                 # Re-verify after fix
                 self.diagnostics[service_name] = self._verify_service(service_name)
@@ -137,7 +145,7 @@ class MCPServiceVerifier:
                 name=service_name,
                 status=ServiceStatus.NOT_INSTALLED,
                 message=f"{service_name} is not installed",
-                fix_command=f"pipx install {requirements['pipx_package']}"
+                fix_command=f"pipx install {requirements['pipx_package']}",
             )
 
         # Step 2: Check executable permissions
@@ -147,7 +155,7 @@ class MCPServiceVerifier:
                 status=ServiceStatus.PERMISSION_DENIED,
                 message=f"Permission denied for {service_name}",
                 installed_path=installed_path,
-                fix_command=f"chmod +x {installed_path}"
+                fix_command=f"chmod +x {installed_path}",
             )
 
         # Step 3: Test basic functionality
@@ -159,10 +167,10 @@ class MCPServiceVerifier:
                     return ServiceDiagnostic(
                         name=service_name,
                         status=ServiceStatus.VERSION_MISMATCH,
-                        message=f"kuzu-memory needs upgrade to v1.1.0+ for MCP support",
+                        message="kuzu-memory needs upgrade to v1.1.0+ for MCP support",
                         installed_path=installed_path,
                         fix_command="pipx upgrade kuzu-memory",
-                        details=version_info
+                        details=version_info,
                     )
 
             return ServiceDiagnostic(
@@ -170,7 +178,7 @@ class MCPServiceVerifier:
                 status=ServiceStatus.MISCONFIGURED,
                 message=f"{service_name} installed but not functioning",
                 installed_path=installed_path,
-                fix_command=f"pipx reinstall {requirements['pipx_package']}"
+                fix_command=f"pipx reinstall {requirements['pipx_package']}",
             )
 
         # Step 4: Verify configuration in ~/.claude.json
@@ -183,7 +191,7 @@ class MCPServiceVerifier:
                 message=f"{service_name} not configured in ~/.claude.json",
                 installed_path=installed_path,
                 configured_command=None,
-                fix_command="Run 'claude-mpm configure' to update configuration"
+                fix_command="Run 'claude-mpm configure' to update configuration",
             )
 
         if not config_status["correct"]:
@@ -194,11 +202,13 @@ class MCPServiceVerifier:
                 installed_path=installed_path,
                 configured_command=config_status.get("command"),
                 fix_command="Run 'claude-mpm configure' to fix configuration",
-                details={"config_issue": config_status.get("issue")}
+                details={"config_issue": config_status.get("issue")},
             )
 
         # Step 5: Test actual MCP command execution
-        if not self._test_mcp_command(service_name, config_status.get("command"), config_status.get("args", [])):
+        if not self._test_mcp_command(
+            service_name, config_status.get("command"), config_status.get("args", [])
+        ):
             return ServiceDiagnostic(
                 name=service_name,
                 status=ServiceStatus.MISCONFIGURED,
@@ -206,7 +216,10 @@ class MCPServiceVerifier:
                 installed_path=installed_path,
                 configured_command=config_status.get("command"),
                 fix_command="Run 'claude-mpm configure' to update command format",
-                details={"command": config_status.get("command"), "args": config_status.get("args")}
+                details={
+                    "command": config_status.get("command"),
+                    "args": config_status.get("args"),
+                },
             )
 
         # All checks passed!
@@ -215,7 +228,7 @@ class MCPServiceVerifier:
             status=ServiceStatus.WORKING,
             message=f"{service_name} is fully operational",
             installed_path=installed_path,
-            configured_command=config_status.get("command")
+            configured_command=config_status.get("command"),
         )
 
     def _find_service_installation(self, service_name: str) -> Optional[str]:
@@ -235,7 +248,15 @@ class MCPServiceVerifier:
             Path to the service executable or None
         """
         # Check pipx
-        pipx_path = Path.home() / ".local" / "pipx" / "venvs" / service_name / "bin" / service_name
+        pipx_path = (
+            Path.home()
+            / ".local"
+            / "pipx"
+            / "venvs"
+            / service_name
+            / "bin"
+            / service_name
+        )
         if pipx_path.exists():
             return str(pipx_path)
 
@@ -294,7 +315,7 @@ class MCPServiceVerifier:
                 capture_output=True,
                 text=True,
                 timeout=10,
-                check=False
+                check=False,
             )
 
             output = (result.stdout + result.stderr).lower()
@@ -304,9 +325,15 @@ class MCPServiceVerifier:
                 return True
 
             # Some tools return non-zero but still work
-            if any(word in output for word in ["version", "usage", "help", service_name.lower()]):
+            if any(
+                word in output
+                for word in ["version", "usage", "help", service_name.lower()]
+            ):
                 # Make sure it's not an error
-                if not any(error in output for error in ["error", "not found", "traceback", "no module"]):
+                if not any(
+                    error in output
+                    for error in ["error", "not found", "traceback", "no module"]
+                ):
                     return True
 
             # Try pipx run as fallback
@@ -316,13 +343,15 @@ class MCPServiceVerifier:
                     capture_output=True,
                     text=True,
                     timeout=10,
-                    check=False
+                    check=False,
                 )
                 if result.returncode == 0 or "version" in result.stdout.lower():
                     return True
 
         except subprocess.TimeoutExpired:
-            self.logger.warning(f"Service {service_name} timed out during functionality test")
+            self.logger.warning(
+                f"Service {service_name} timed out during functionality test"
+            )
         except Exception as e:
             self.logger.debug(f"Functionality test failed for {service_name}: {e}")
 
@@ -341,7 +370,7 @@ class MCPServiceVerifier:
         version_info = {
             "has_mcp_support": False,
             "version": "unknown",
-            "command_format": None
+            "command_format": None,
         }
 
         try:
@@ -351,13 +380,15 @@ class MCPServiceVerifier:
                 capture_output=True,
                 text=True,
                 timeout=10,
-                check=False
+                check=False,
             )
 
             help_text = (result.stdout + result.stderr).lower()
 
             # Check for modern "mcp serve" command
-            if "mcp serve" in help_text or ("mcp" in help_text and "serve" in help_text):
+            if "mcp serve" in help_text or (
+                "mcp" in help_text and "serve" in help_text
+            ):
                 version_info["has_mcp_support"] = True
                 version_info["command_format"] = "mcp serve"
             # Check for legacy "serve" only
@@ -371,7 +402,7 @@ class MCPServiceVerifier:
                 capture_output=True,
                 text=True,
                 timeout=5,
-                check=False
+                check=False,
             )
             if version_result.returncode == 0:
                 version_info["version"] = version_result.stdout.strip()
@@ -429,7 +460,7 @@ class MCPServiceVerifier:
                         "correct": False,
                         "command": command,
                         "args": args,
-                        "issue": "Service name missing in pipx run command"
+                        "issue": "Service name missing in pipx run command",
                     }
                 # Check required args are present
                 for req_arg in required_args:
@@ -439,7 +470,7 @@ class MCPServiceVerifier:
                             "correct": False,
                             "command": command,
                             "args": args,
-                            "issue": f"Missing required argument: {req_arg}"
+                            "issue": f"Missing required argument: {req_arg}",
                         }
             elif command == "uvx" and args and args[0] == service_name:
                 # uvx format - similar validation
@@ -450,7 +481,7 @@ class MCPServiceVerifier:
                             "correct": False,
                             "command": command,
                             "args": args,
-                            "issue": f"Missing required argument: {req_arg}"
+                            "issue": f"Missing required argument: {req_arg}",
                         }
             else:
                 # Direct execution - command should be a valid path
@@ -462,7 +493,7 @@ class MCPServiceVerifier:
                             "correct": False,
                             "command": command,
                             "args": args,
-                            "issue": f"Command path does not exist: {command}"
+                            "issue": f"Command path does not exist: {command}",
                         }
 
                 # Check required args
@@ -473,7 +504,7 @@ class MCPServiceVerifier:
                             "correct": False,
                             "command": command,
                             "args": args,
-                            "issue": f"Missing required argument: {req_arg}"
+                            "issue": f"Missing required argument: {req_arg}",
                         }
 
             # Special validation for kuzu-memory command format
@@ -485,21 +516,23 @@ class MCPServiceVerifier:
                         "correct": False,
                         "command": command,
                         "args": args,
-                        "issue": "Using legacy 'serve' format, should use 'mcp serve'"
+                        "issue": "Using legacy 'serve' format, should use 'mcp serve'",
                     }
 
             return {
                 "configured": True,
                 "correct": True,
                 "command": command,
-                "args": args
+                "args": args,
             }
 
         except Exception as e:
             self.logger.error(f"Failed to verify configuration: {e}")
             return {"configured": False, "correct": False, "error": str(e)}
 
-    def _test_mcp_command(self, service_name: str, command: str, args: List[str]) -> bool:
+    def _test_mcp_command(
+        self, service_name: str, command: str, args: List[str]
+    ) -> bool:
         """
         Test if the configured MCP command actually works.
 
@@ -525,7 +558,7 @@ class MCPServiceVerifier:
                 text=True,
                 timeout=10,
                 check=False,
-                cwd=str(self.project_root)  # Run in project context
+                cwd=str(self.project_root),  # Run in project context
             )
 
             # Check for success or expected output
@@ -537,7 +570,9 @@ class MCPServiceVerifier:
             if service_name == "kuzu-memory" and "mcp" in output and "serve" in output:
                 return True
             if service_name in output or "usage" in output or "help" in output:
-                if not any(error in output for error in ["error", "not found", "traceback"]):
+                if not any(
+                    error in output for error in ["error", "not found", "traceback"]
+                ):
                     return True
 
         except subprocess.TimeoutExpired:
@@ -547,7 +582,9 @@ class MCPServiceVerifier:
 
         return False
 
-    def _attempt_auto_fix(self, service_name: str, diagnostic: ServiceDiagnostic) -> bool:
+    def _attempt_auto_fix(
+        self, service_name: str, diagnostic: ServiceDiagnostic
+    ) -> bool:
         """
         Attempt to automatically fix a service issue.
 
@@ -561,7 +598,9 @@ class MCPServiceVerifier:
         if not diagnostic.fix_command:
             return False
 
-        self.logger.info(f"Attempting auto-fix for {service_name}: {diagnostic.fix_command}")
+        self.logger.info(
+            f"Attempting auto-fix for {service_name}: {diagnostic.fix_command}"
+        )
 
         try:
             # Handle different types of fix commands
@@ -569,23 +608,20 @@ class MCPServiceVerifier:
                 # Execute pipx command
                 cmd_parts = diagnostic.fix_command.split()
                 result = subprocess.run(
-                    cmd_parts,
-                    capture_output=True,
-                    text=True,
-                    timeout=120,
-                    check=False
+                    cmd_parts, capture_output=True, text=True, timeout=120, check=False
                 )
                 return result.returncode == 0
 
-            elif diagnostic.fix_command.startswith("chmod "):
+            if diagnostic.fix_command.startswith("chmod "):
                 # Fix permissions
                 path = diagnostic.fix_command.replace("chmod +x ", "")
                 os.chmod(path, 0o755)
                 return True
 
-            elif "claude-mpm configure" in diagnostic.fix_command:
+            if "claude-mpm configure" in diagnostic.fix_command:
                 # Trigger configuration update
                 from .mcp_config_manager import MCPConfigManager
+
                 manager = MCPConfigManager()
                 success, _ = manager.ensure_mcp_services_configured()
                 return success
@@ -595,7 +631,9 @@ class MCPServiceVerifier:
 
         return False
 
-    def print_diagnostics(self, diagnostics: Optional[Dict[str, ServiceDiagnostic]] = None) -> None:
+    def print_diagnostics(
+        self, diagnostics: Optional[Dict[str, ServiceDiagnostic]] = None
+    ) -> None:
         """
         Print formatted diagnostic results to console.
 
