@@ -2,11 +2,8 @@
 """Script to update agent tag format from YAML list to comma-separated string."""
 
 import re
-import sys
 from pathlib import Path
 from typing import List
-
-import yaml
 
 
 def extract_yaml_list_tags(content: str) -> tuple[List[str], str]:

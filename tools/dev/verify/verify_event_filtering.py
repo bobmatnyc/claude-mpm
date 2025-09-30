@@ -7,7 +7,6 @@ import time
 
 import requests
 import socketio
-from bs4 import BeautifulSoup
 
 
 class EventFilterVerifier:

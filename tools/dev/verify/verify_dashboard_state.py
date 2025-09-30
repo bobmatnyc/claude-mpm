@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # verify_dashboard_state.py
-import json
 import sys
 import time
-from datetime import datetime
 
 import socketio
 

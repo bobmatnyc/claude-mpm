@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Fix the dashboard metrics and connection status display issues."""
 
-import json
-import os
 import re
 from pathlib import Path
 

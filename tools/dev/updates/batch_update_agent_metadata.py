@@ -17,13 +17,12 @@ The script will:
 5. Verify the metadata was transferred correctly
 """
 
-import json
 import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Set
+from typing import Dict, List
 
 
 def run_command(cmd: List[str], check=True) -> subprocess.CompletedProcess:

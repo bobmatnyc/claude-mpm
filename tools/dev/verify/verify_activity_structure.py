@@ -3,7 +3,6 @@
 Verification script to check Activity view structure after fixes.
 """
 
-import json
 import time
 from datetime import datetime
 
