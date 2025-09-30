@@ -724,9 +724,7 @@ class MCPConfigManager:
                     "command"
                 ) or existing_config.get("args") != correct_config.get("args"):
                     needs_update = True
-                    fixed_services.append(
-                        f"{service_name} in {Path(project_key).name}"
-                    )
+                    fixed_services.append(f"{service_name} in {Path(project_key).name}")
 
                 # Update configuration if needed
                 if needs_update:
@@ -1049,9 +1047,7 @@ class MCPConfigManager:
         try:
             # First, check if gql is already installed to avoid unnecessary injection
             # This is more efficient than always trying to import
-            gql_check_cmd = [
-                "pipx", "runpip", "mcp-ticketer", "show", "gql"
-            ]
+            gql_check_cmd = ["pipx", "runpip", "mcp-ticketer", "show", "gql"]
 
             check_result = subprocess.run(
                 gql_check_cmd,
@@ -1169,11 +1165,11 @@ class MCPConfigManager:
                 # Currently only mcp-ticketer v0.1.8 has this issue (missing gql in metadata)
                 if service_name == "mcp-ticketer":
                     if self._check_and_fix_mcp_ticketer_dependencies():
-                        fixed_services.append(f"{service_name} (gql dependency injected)")
-                    else:
-                        failed_services.append(
-                            f"{service_name} (gql injection failed)"
+                        fixed_services.append(
+                            f"{service_name} (gql dependency injected)"
                         )
+                    else:
+                        failed_services.append(f"{service_name} (gql injection failed)")
                 else:
                     failed_services.append(f"{service_name} (unknown dependency issue)")
 

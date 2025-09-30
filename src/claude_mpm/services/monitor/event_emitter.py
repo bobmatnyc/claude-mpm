@@ -223,7 +223,9 @@ class AsyncEventEmitter:
             return False
         except aiohttp.ClientError as e:
             # Use DEBUG since the monitor service is optional and may not be running
-            self.logger.debug(f"HTTP emission client error (monitor may not be running): {e}")
+            self.logger.debug(
+                f"HTTP emission client error (monitor may not be running): {e}"
+            )
             return False
         except Exception as e:
             self.logger.error(f"HTTP emission unexpected error: {e}")
