@@ -137,10 +137,7 @@ def doctor_command(args):
         output_format = "markdown"
     elif output_file:
         # Force markdown format when writing to file (unless json specified)
-        if str(output_file).endswith(".json"):
-            output_format = "json"
-        else:
-            output_format = "markdown"
+        output_format = "json" if str(output_file).endswith(".json") else "markdown"
     else:
         output_format = "terminal"
 

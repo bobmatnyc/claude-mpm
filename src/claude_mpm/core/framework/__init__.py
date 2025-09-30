@@ -22,17 +22,17 @@ from .processors import (
 )
 
 __all__ = [
-    # Loaders
-    "FileLoader",
-    "PackagedLoader",
-    "InstructionLoader",
     "AgentLoader",
+    "CapabilityGenerator",
     # Formatters
     "ContentFormatter",
-    "CapabilityGenerator",
     "ContextGenerator",
+    # Loaders
+    "FileLoader",
+    "InstructionLoader",
+    "MemoryProcessor",
     # Processors
     "MetadataProcessor",
+    "PackagedLoader",
     "TemplateProcessor",
-    "MemoryProcessor",
 ]

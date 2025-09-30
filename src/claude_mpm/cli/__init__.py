@@ -318,7 +318,7 @@ def _verify_mcp_gateway_startup():
         def run_pre_warming():
             loop = None
             try:
-                start_time = time.time()
+                time.time()
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
 

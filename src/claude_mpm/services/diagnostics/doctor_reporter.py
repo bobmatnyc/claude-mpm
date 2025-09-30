@@ -508,8 +508,6 @@ class DoctorReporter:
         recommendations = []
 
         # Analyze results for recommendations
-        has_errors = summary.error_count > 0
-        has_warnings = summary.warning_count > 0
 
         # Check specific conditions
         for result in summary.results:

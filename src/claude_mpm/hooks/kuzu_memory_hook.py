@@ -230,7 +230,7 @@ Note: Use the memories above to provide more informed and contextual responses.
             # Extract memory content and metadata
             content = memory.get("content", "")
             tags = memory.get("tags", [])
-            timestamp = memory.get("timestamp", "")
+            memory.get("timestamp", "")
             relevance = memory.get("relevance", 0.0)
 
             # Format memory entry

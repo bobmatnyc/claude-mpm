@@ -231,9 +231,8 @@ class DocumentationManager:
         merged = self._reorganize_by_priority(merged)
 
         # Add metadata
-        merged = self._add_metadata(merged)
+        return self._add_metadata(merged)
 
-        return merged
 
     def _parse_into_sections(self, content: str) -> Dict[str, str]:
         """Parse markdown content into a dictionary of sections."""
@@ -337,7 +336,7 @@ class DocumentationManager:
 
             # Reconstruct section
             if all_items:
-                return "\n".join([""] + all_items + [""])
+                return "\n".join(["", *all_items, ""])
             return new
         # For other sections, use new as base and append existing
         if existing.strip() and existing.strip() != new.strip():

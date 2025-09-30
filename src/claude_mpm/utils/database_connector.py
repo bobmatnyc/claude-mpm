@@ -58,26 +58,23 @@ class DatabaseConnector:
         # Check MySQL drivers
         for package_name, import_name in self.MYSQL_DRIVERS:
             driver = self._try_import(import_name)
-            if driver:
-                if "mysql" not in self.available_drivers:
-                    self.available_drivers["mysql"] = (package_name, driver)
-                    logger.info(f"MySQL driver available: {package_name}")
+            if driver and "mysql" not in self.available_drivers:
+                self.available_drivers["mysql"] = (package_name, driver)
+                logger.info(f"MySQL driver available: {package_name}")
 
         # Check PostgreSQL drivers
         for package_name, import_name in self.POSTGRESQL_DRIVERS:
             driver = self._try_import(import_name)
-            if driver:
-                if "postgresql" not in self.available_drivers:
-                    self.available_drivers["postgresql"] = (package_name, driver)
-                    logger.info(f"PostgreSQL driver available: {package_name}")
+            if driver and "postgresql" not in self.available_drivers:
+                self.available_drivers["postgresql"] = (package_name, driver)
+                logger.info(f"PostgreSQL driver available: {package_name}")
 
         # Check Oracle drivers
         for package_name, import_name in self.ORACLE_DRIVERS:
             driver = self._try_import(import_name)
-            if driver:
-                if "oracle" not in self.available_drivers:
-                    self.available_drivers["oracle"] = (package_name, driver)
-                    logger.info(f"Oracle driver available: {package_name}")
+            if driver and "oracle" not in self.available_drivers:
+                self.available_drivers["oracle"] = (package_name, driver)
+                logger.info(f"Oracle driver available: {package_name}")
 
     def _try_import(self, module_name: str) -> Optional[Any]:
         """

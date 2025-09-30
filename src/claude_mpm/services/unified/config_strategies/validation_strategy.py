@@ -73,7 +73,7 @@ class BaseValidator(ABC):
         """Perform validation"""
 
     def _create_result(
-        self, valid: bool, message: str = None, severity: str = "error"
+        self, valid: bool, message: Optional[str] = None, severity: str = "error"
     ) -> ValidationResult:
         """Create validation result"""
         result = ValidationResult(valid=valid)

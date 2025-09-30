@@ -195,7 +195,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
 
             # Determine overall status
             errors = [r for r in sub_results if r.status == DiagnosticStatus.ERROR]
-            warnings = [r for r in sub_results if r.status == DiagnosticStatus.WARNING]
+            [r for r in sub_results if r.status == DiagnosticStatus.WARNING]
 
             if errors:
                 status = DiagnosticStatus.ERROR
@@ -508,7 +508,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                         # Special case for kuzu-memory with args
                         mcp_command = ["pipx", "run", base_cmd[0]] + base_cmd[1:]
                     else:
-                        mcp_command = ["pipx", "run"] + base_cmd
+                        mcp_command = ["pipx", "run", *base_cmd]
             else:
                 mcp_command = config["mcp_command"]
 

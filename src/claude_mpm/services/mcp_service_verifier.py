@@ -311,7 +311,7 @@ class MCPServiceVerifier:
         try:
             # First try direct execution
             result = subprocess.run(
-                [path] + test_args,
+                [path, *test_args],
                 capture_output=True,
                 text=True,
                 timeout=10,
@@ -339,7 +339,7 @@ class MCPServiceVerifier:
             # Try pipx run as fallback
             if shutil.which("pipx"):
                 result = subprocess.run(
-                    ["pipx", "run", service_name] + test_args,
+                    ["pipx", "run", service_name, *test_args],
                     capture_output=True,
                     text=True,
                     timeout=10,
@@ -655,7 +655,7 @@ class MCPServiceVerifier:
         working = []
         issues = []
 
-        for name, diag in diagnostics.items():
+        for _name, diag in diagnostics.items():
             if diag.status == ServiceStatus.WORKING:
                 working.append(diag)
             else:
@@ -710,7 +710,7 @@ def verify_mcp_services_on_startup() -> Tuple[bool, str]:
         Tuple of (all_working, summary_message)
     """
     verifier = MCPServiceVerifier()
-    logger = get_logger(__name__)
+    get_logger(__name__)
 
     # Do quick checks only (don't block startup)
     issues = []

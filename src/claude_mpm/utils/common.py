@@ -339,12 +339,9 @@ def run_command_safe(
         CompletedProcess result
     """
     try:
-        if isinstance(command, str):
-            shell = True
-        else:
-            shell = False
+        shell = bool(isinstance(command, str))
 
-        result = subprocess.run(
+        return subprocess.run(
             command,
             shell=shell,
             cwd=cwd,
@@ -354,7 +351,6 @@ def run_command_safe(
             timeout=timeout,
             env=env,
         )
-        return result
     except subprocess.TimeoutExpired:
         logger.error(f"Command timed out: {command}")
         raise
@@ -515,7 +511,7 @@ def import_from_string(import_path: str, fallback: Any = None) -> Any:
 # ==============================================================================
 
 
-def deprecated(replacement: str = None):
+def deprecated(replacement: Optional[str] = None):
     """
     Decorator to mark functions as deprecated.
 
