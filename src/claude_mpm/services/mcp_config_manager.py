@@ -998,111 +998,44 @@ class MCPConfigManager:
 
         return False, "none"
 
-    def _get_mcp_ticketer_version(self) -> Optional[str]:
-        """Get the installed version of mcp-ticketer.
+    # COMMENTED OUT: These functions are no longer used
+    # Package maintainers should fix dependency declarations in their packages
+    # Automatic dependency injection can cause conflicts and is not recommended
 
-        Returns:
-            Version string (e.g., "0.1.8") or None if not installed
-        """
-        try:
-            result = subprocess.run(
-                ["pipx", "runpip", "mcp-ticketer", "show", "mcp-ticketer"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-                check=False,
-            )
-
-            if result.returncode == 0:
-                # Parse version from output
-                for line in result.stdout.split("\n"):
-                    if line.startswith("Version:"):
-                        return line.split(":", 1)[1].strip()
-            return None
-        except Exception:
-            return None
-
-    def _check_and_fix_mcp_ticketer_dependencies(self) -> bool:
-        """Check and fix mcp-ticketer missing gql dependency.
-
-        WORKAROUND for mcp-ticketer v0.1.8 (current latest as of 2025-01):
-        - mcp-ticketer v0.1.8 requires 'gql' but doesn't declare it in package metadata
-        - This causes "ModuleNotFoundError: No module named 'gql'" when running
-        - We defensively inject the missing dependency into the pipx venv
-
-        TODO: Remove this workaround when mcp-ticketer > 0.1.8 is released with proper
-              dependency declaration for 'gql[httpx]>=3.0.0' in its package metadata.
-
-        Returns:
-            True if dependency was injected, False if already present or on error
-        """
-        # Check if this workaround is still needed for the installed version
-        version = self._get_mcp_ticketer_version()
-        if version and version > "0.1.8":
-            self.logger.debug(
-                f"mcp-ticketer {version} installed - gql dependency workaround may not be needed"
-            )
-            # Still check anyway in case the issue persists in newer versions
-
-        try:
-            # First, check if gql is already installed to avoid unnecessary injection
-            # This is more efficient than always trying to import
-            gql_check_cmd = ["pipx", "runpip", "mcp-ticketer", "show", "gql"]
-
-            check_result = subprocess.run(
-                gql_check_cmd,
-                capture_output=True,
-                text=True,
-                timeout=5,
-                check=False,
-            )
-
-            # If gql is already installed (exit code 0), nothing to do
-            if check_result.returncode == 0:
-                self.logger.debug(
-                    "gql dependency already present in mcp-ticketer environment"
-                )
-                return False
-
-            # gql is missing - explain WHY we need to inject it
-            self.logger.info(
-                "🔧 Fixing mcp-ticketer v0.1.8 issue: package requires 'gql' but "
-                "doesn't declare it in metadata (missing from install_requires)"
-            )
-
-            # Inject the missing dependency
-            inject_result = subprocess.run(
-                ["pipx", "inject", "mcp-ticketer", "gql[httpx]"],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
-            )
-
-            if inject_result.returncode == 0:
-                self.logger.info(
-                    "✅ Successfully injected missing 'gql' dependency into mcp-ticketer v0.1.8 "
-                    "(this workaround needed until package metadata is fixed)"
-                )
-                return True
-
-            # Log detailed error for debugging
-            self.logger.warning(
-                f"Failed to inject gql dependency for mcp-ticketer v0.1.8 workaround: "
-                f"{inject_result.stderr}"
-            )
-            return False
-
-        except subprocess.TimeoutExpired:
-            self.logger.warning(
-                "Timeout checking mcp-ticketer dependencies - pipx command took too long"
-            )
-            return False
-        except Exception as e:
-            self.logger.debug(
-                f"Could not check/fix mcp-ticketer v0.1.8 dependency issue: {e}"
-            )
-            return False
+    # def _get_mcp_ticketer_version(self) -> Optional[str]:
+    #     """Get the installed version of mcp-ticketer.
+    #
+    #     Returns:
+    #         Version string (e.g., "0.1.8") or None if not installed
+    #     """
+    #     try:
+    #         result = subprocess.run(
+    #             ["pipx", "runpip", "mcp-ticketer", "show", "mcp-ticketer"],
+    #             capture_output=True,
+    #             text=True,
+    #             timeout=5,
+    #             check=False,
+    #         )
+    #
+    #         if result.returncode == 0:
+    #             # Parse version from output
+    #             for line in result.stdout.split("\n"):
+    #                 if line.startswith("Version:"):
+    #                     return line.split(":", 1)[1].strip()
+    #         return None
+    #     except Exception:
+    #         return None
+    #
+    # def _check_and_fix_mcp_ticketer_dependencies(self) -> bool:
+    #     """Check and fix mcp-ticketer missing gql dependency.
+    #
+    #     DEPRECATED: This workaround is no longer used.
+    #     Package maintainers should fix dependency declarations.
+    #
+    #     Returns:
+    #         False (no longer performs injection)
+    #     """
+    #     return False
 
     def fix_mcp_service_issues(self) -> Tuple[bool, str]:
         """
@@ -1152,26 +1085,26 @@ class MCPConfigManager:
                 )
                 success = self._reinstall_service(service_name)
                 if success:
-                    # WORKAROUND: mcp-ticketer v0.1.8 has undeclared gql dependency
-                    # After reinstall, we need to inject it manually
-                    if service_name == "mcp-ticketer":
-                        self._check_and_fix_mcp_ticketer_dependencies()
+                    # NOTE: Removed automatic dependency injection workaround
+                    # Package maintainers should fix dependency declarations
                     fixed_services.append(f"{service_name} (reinstalled)")
                 else:
                     failed_services.append(f"{service_name} (reinstall failed)")
 
             elif issue_type == "missing_dependency":
-                # Fix missing dependencies
-                # Currently only mcp-ticketer v0.1.8 has this issue (missing gql in metadata)
-                if service_name == "mcp-ticketer":
-                    if self._check_and_fix_mcp_ticketer_dependencies():
-                        fixed_services.append(
-                            f"{service_name} (gql dependency injected)"
-                        )
-                    else:
-                        failed_services.append(f"{service_name} (gql injection failed)")
+                # Fix missing dependencies by automatically reinstalling
+                self.logger.info(
+                    f"  {service_name} has missing dependencies - auto-reinstalling..."
+                )
+                success = self._auto_reinstall_mcp_service(service_name)
+                if success:
+                    fixed_services.append(f"{service_name} (auto-reinstalled)")
                 else:
-                    failed_services.append(f"{service_name} (unknown dependency issue)")
+                    self.logger.warning(
+                        f"  Auto-reinstall failed for {service_name}. Manual fix: "
+                        f"pipx uninstall {service_name} && pipx install {service_name}"
+                    )
+                    failed_services.append(f"{service_name} (auto-reinstall failed)")
 
             elif issue_type == "path_issue":
                 # Path issues are handled by config updates
@@ -1323,6 +1256,79 @@ class MCPConfigManager:
 
         except Exception as e:
             self.logger.error(f"Error reinstalling {service_name}: {e}")
+            return False
+
+    def _auto_reinstall_mcp_service(self, service_name: str) -> bool:
+        """
+        Automatically reinstall an MCP service with missing dependencies.
+
+        This method:
+        1. Uninstalls the corrupted/incomplete service
+        2. Reinstalls it fresh from pipx
+        3. Verifies the reinstall was successful
+        4. Updates status after successful reinstall
+
+        Args:
+            service_name: Name of the MCP service to reinstall
+
+        Returns:
+            True if reinstall successful, False otherwise
+        """
+        try:
+            import shutil
+
+            # Verify pipx is available
+            if not shutil.which("pipx"):
+                self.logger.error("pipx not found - cannot auto-reinstall")
+                return False
+
+            self.logger.info(f"  → Uninstalling {service_name}...")
+            uninstall_result = subprocess.run(
+                ["pipx", "uninstall", service_name],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+
+            # Log result but don't fail if uninstall had issues
+            if uninstall_result.returncode != 0:
+                self.logger.debug(
+                    f"Uninstall had warnings (expected if corrupted): {uninstall_result.stderr}"
+                )
+
+            self.logger.info(f"  → Installing fresh {service_name}...")
+            install_result = subprocess.run(
+                ["pipx", "install", service_name],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+
+            if install_result.returncode != 0:
+                self.logger.error(
+                    f"Install failed for {service_name}: {install_result.stderr}"
+                )
+                return False
+
+            # Verify the reinstall worked
+            self.logger.info(f"  → Verifying {service_name} installation...")
+            issue = self._detect_service_issue(service_name)
+
+            if issue is None:
+                self.logger.info(f"  ✅ Successfully reinstalled {service_name}")
+                return True
+            self.logger.warning(
+                f"Reinstalled {service_name} but still has issue: {issue}"
+            )
+            return False
+
+        except subprocess.TimeoutExpired:
+            self.logger.error(f"Timeout while reinstalling {service_name}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Error auto-reinstalling {service_name}: {e}")
             return False
 
     def _verify_service_installed(self, service_name: str, method: str) -> bool:

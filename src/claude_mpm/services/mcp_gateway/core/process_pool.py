@@ -485,6 +485,21 @@ async def auto_initialize_vector_search():
 
         if vector_config.exists():
             logger.debug(f"Vector search already initialized for {current_dir}")
+
+            # Ensure .mcp-vector-search is in gitignore even if already initialized
+            try:
+                from ....services.project.project_organizer import ProjectOrganizer
+
+                if (current_dir / ".claude-mpm").exists() or (
+                    current_dir / ".git"
+                ).exists():
+                    organizer = ProjectOrganizer(current_dir)
+                    organizer.update_gitignore(
+                        additional_patterns=[".mcp-vector-search/"]
+                    )
+                    logger.debug("Ensured .mcp-vector-search is in gitignore")
+            except Exception as e:
+                logger.debug(f"Could not update gitignore for .mcp-vector-search: {e}")
             # Check if index needs rebuilding (corrupted database)
             chroma_db = current_dir / ".mcp-vector-search/chroma.sqlite3"
             if chroma_db.exists():
@@ -518,6 +533,23 @@ async def auto_initialize_vector_search():
 
         if proc.returncode == 0:
             logger.info("✅ Vector search initialization completed")
+
+            # Ensure .mcp-vector-search is in gitignore
+            try:
+                from ....services.project.project_organizer import ProjectOrganizer
+
+                # Check if we're in a git repository (parent of .claude-mpm)
+                if (current_dir / ".claude-mpm").exists() or (
+                    current_dir / ".git"
+                ).exists():
+                    organizer = ProjectOrganizer(current_dir)
+                    organizer.update_gitignore(
+                        additional_patterns=[".mcp-vector-search/"]
+                    )
+                    logger.debug("Ensured .mcp-vector-search is in gitignore")
+            except Exception as e:
+                logger.debug(f"Could not update gitignore for .mcp-vector-search: {e}")
+                # Non-critical, don't fail initialization
 
             # Start background indexing (non-blocking)
             def background_index():
@@ -675,6 +707,19 @@ async def auto_initialize_kuzu_memory():
             logger.debug(
                 f"Kuzu-memory database already initialized at {kuzu_memories_dir}"
             )
+
+            # Ensure kuzu-memories is in gitignore even if already initialized
+            try:
+                from ....services.project.project_organizer import ProjectOrganizer
+
+                if (current_dir / ".claude-mpm").exists() or (
+                    current_dir / ".git"
+                ).exists():
+                    organizer = ProjectOrganizer(current_dir)
+                    organizer.update_gitignore(additional_patterns=["kuzu-memories/"])
+                    logger.debug("Ensured kuzu-memories is in gitignore")
+            except Exception as e:
+                logger.debug(f"Could not update gitignore for kuzu-memories: {e}")
         else:
             logger.info(
                 f"🎯 Initializing kuzu-memory database for project: {current_dir}"
@@ -694,6 +739,22 @@ async def auto_initialize_kuzu_memory():
 
             if proc.returncode == 0:
                 logger.info("✅ Kuzu-memory database initialized successfully")
+
+                # Ensure kuzu-memories is in gitignore
+                try:
+                    from ....services.project.project_organizer import ProjectOrganizer
+
+                    if (current_dir / ".claude-mpm").exists() or (
+                        current_dir / ".git"
+                    ).exists():
+                        organizer = ProjectOrganizer(current_dir)
+                        organizer.update_gitignore(
+                            additional_patterns=["kuzu-memories/"]
+                        )
+                        logger.debug("Ensured kuzu-memories is in gitignore")
+                except Exception as e:
+                    logger.debug(f"Could not update gitignore for kuzu-memories: {e}")
+                    # Non-critical, don't fail initialization
             else:
                 logger.warning(f"⚠️ Kuzu-memory initialization failed: {proc.stderr}")
 
@@ -809,7 +870,8 @@ def _prompt_kuzu_update(current: str, latest: str) -> None:
                     ["pipx", "upgrade", "kuzu-memory"],
                     capture_output=True,
                     text=True,
-                    timeout=30, check=False,
+                    timeout=30,
+                    check=False,
                 )
                 if result.returncode == 0:
                     print("✅ Successfully updated kuzu-memory!")
@@ -840,46 +902,61 @@ def _prompt_kuzu_update(current: str, latest: str) -> None:
 
 
 async def pre_warm_mcp_servers():
-    """Pre-warm MCP servers from configuration."""
-    # Auto-initialize vector search for current project
-    await auto_initialize_vector_search()
+    """
+    Pre-warm MCP servers from configuration.
 
-    # Auto-initialize kuzu-memory for persistent knowledge
-    await auto_initialize_kuzu_memory()
+    DISABLED: This function is currently disabled to avoid conflicts with
+    Claude Code's native MCP server management. When enabled, this can
+    cause issues with MCP server initialization and stderr/stdout handling.
 
-    pool = get_process_pool()
+    TODO: Re-enable after ensuring compatibility with Claude Code's MCP handling.
+    """
+    logger = get_logger("MCPProcessPool")
+    logger.debug("MCP server pre-warming is currently disabled")
 
-    # Load MCP configurations
-    configs = {}
+    # COMMENTED OUT: Auto-initialization that can interfere with Claude Code
+    # # Auto-initialize vector search for current project
+    # await auto_initialize_vector_search()
+    #
+    # # Auto-initialize kuzu-memory for persistent knowledge
+    # await auto_initialize_kuzu_memory()
+    #
+    # pool = get_process_pool()
+    #
+    # # Load MCP configurations
+    # configs = {}
+    #
+    # # Check .claude.json for MCP server configs
+    # claude_config_path = Path.home() / ".claude.json"
+    # if not claude_config_path.exists():
+    #     # Try project-local config
+    #     claude_config_path = Path.cwd() / ".claude.json"
+    #
+    # if claude_config_path.exists():
+    #     try:
+    #         with open(claude_config_path) as f:
+    #             config_data = json.load(f)
+    #             mcp_servers = config_data.get("mcpServers", {})
+    #             configs.update(mcp_servers)
+    #     except Exception as e:
+    #         get_logger("MCPProcessPool").warning(f"Failed to load Claude config: {e}")
+    #
+    # # Check .mcp.json for additional configs
+    # mcp_config_path = Path.cwd() / ".mcp.json"
+    # if mcp_config_path.exists():
+    #     try:
+    #         with open(mcp_config_path) as f:
+    #             config_data = json.load(f)
+    #             mcp_servers = config_data.get("mcpServers", {})
+    #             configs.update(mcp_servers)
+    #     except Exception as e:
+    #         get_logger("MCPProcessPool").warning(f"Failed to load MCP config: {e}")
+    #
+    # if configs:
+    #     await pool.pre_warm_servers(configs)
+    #     await pool.start_health_monitoring()
+    #
+    # return pool
 
-    # Check .claude.json for MCP server configs
-    claude_config_path = Path.home() / ".claude.json"
-    if not claude_config_path.exists():
-        # Try project-local config
-        claude_config_path = Path.cwd() / ".claude.json"
-
-    if claude_config_path.exists():
-        try:
-            with open(claude_config_path) as f:
-                config_data = json.load(f)
-                mcp_servers = config_data.get("mcpServers", {})
-                configs.update(mcp_servers)
-        except Exception as e:
-            get_logger("MCPProcessPool").warning(f"Failed to load Claude config: {e}")
-
-    # Check .mcp.json for additional configs
-    mcp_config_path = Path.cwd() / ".mcp.json"
-    if mcp_config_path.exists():
-        try:
-            with open(mcp_config_path) as f:
-                config_data = json.load(f)
-                mcp_servers = config_data.get("mcpServers", {})
-                configs.update(mcp_servers)
-        except Exception as e:
-            get_logger("MCPProcessPool").warning(f"Failed to load MCP config: {e}")
-
-    if configs:
-        await pool.pre_warm_servers(configs)
-        await pool.start_health_monitoring()
-
-    return pool
+    # Return a basic pool instance without pre-warming
+    return get_process_pool()

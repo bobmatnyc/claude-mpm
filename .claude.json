@@ -9,6 +9,17 @@
         "/Users/masa/Projects/claude-mpm"
       ],
       "env": {}
+    },
+    "kuzu-memory": {
+      "type": "stdio",
+      "command": "/Users/masa/.local/pipx/venvs/kuzu-memory/bin/kuzu-memory",
+      "args": [
+        "mcp",
+        "serve"
+      ],
+      "env": {
+        "KUZU_MEMORY_PROJECT": "/Users/masa/Projects/claude-mpm"
+      }
     }
   }
 }
