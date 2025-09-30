@@ -41,6 +41,14 @@ class MCPConfigManager:
         "kuzu-memory",
     }
 
+    # Known missing dependencies for MCP services that pipx doesn't handle automatically
+    # Maps service names to list of missing dependencies that need injection
+    SERVICE_MISSING_DEPENDENCIES = {
+        "mcp-ticketer": ["gql"],  # mcp-ticketer v0.1.8+ needs gql but doesn't declare it
+        # Add more services here as needed, e.g.:
+        # "another-service": ["dep1", "dep2"],
+    }
+
     # Static known-good MCP service configurations
     # These are the correct, tested configurations that work reliably
     # Note: Commands will be resolved to full paths dynamically in get_static_service_config()
@@ -943,6 +951,11 @@ class MCPConfigManager:
                 )
 
                 if result.returncode == 0:
+                    # Inject any missing dependencies if needed
+                    if service_name in self.SERVICE_MISSING_DEPENDENCIES:
+                        self.logger.debug(f"Injecting missing dependencies for newly installed {service_name}...")
+                        self._inject_missing_dependencies(service_name)
+
                     # Verify installation worked
                     if self._verify_service_installed(service_name, "pipx"):
                         return True, "pipx"
@@ -1092,18 +1105,39 @@ class MCPConfigManager:
                     failed_services.append(f"{service_name} (reinstall failed)")
 
             elif issue_type == "missing_dependency":
-                # Fix missing dependencies by automatically reinstalling
+                # Fix missing dependencies - try injection first, then reinstall if needed
                 self.logger.info(
-                    f"  {service_name} has missing dependencies - auto-reinstalling..."
+                    f"  {service_name} has missing dependencies - attempting fix..."
                 )
+
+                # First try to inject dependencies without reinstalling
+                injection_success = self._inject_missing_dependencies(service_name)
+
+                if injection_success:
+                    # Verify the fix worked
+                    issue_after_injection = self._detect_service_issue(service_name)
+                    if issue_after_injection is None:
+                        fixed_services.append(f"{service_name} (dependencies injected)")
+                        self.logger.info(f"  ✅ Fixed {service_name} with dependency injection")
+                        continue  # Move to next service
+
+                # If injection alone didn't work, try full reinstall
+                self.logger.info(f"  Dependency injection insufficient, trying full reinstall...")
                 success = self._auto_reinstall_mcp_service(service_name)
                 if success:
-                    fixed_services.append(f"{service_name} (auto-reinstalled)")
+                    fixed_services.append(f"{service_name} (auto-reinstalled with dependencies)")
                 else:
-                    self.logger.warning(
-                        f"  Auto-reinstall failed for {service_name}. Manual fix: "
-                        f"pipx uninstall {service_name} && pipx install {service_name}"
-                    )
+                    # Provide specific manual fix for known services
+                    if service_name == "mcp-ticketer":
+                        self.logger.warning(
+                            f"  Auto-fix failed for {service_name}. Manual fix: "
+                            f"pipx uninstall {service_name} && pipx install {service_name} && pipx inject {service_name} gql"
+                        )
+                    else:
+                        self.logger.warning(
+                            f"  Auto-reinstall failed for {service_name}. Manual fix: "
+                            f"pipx uninstall {service_name} && pipx install {service_name}"
+                        )
                     failed_services.append(f"{service_name} (auto-reinstall failed)")
 
             elif issue_type == "path_issue":
@@ -1129,7 +1163,11 @@ class MCPConfigManager:
             message += "\n\n💡 Manual fix instructions:"
             for failed in failed_services:
                 service = failed.split(" ")[0]
-                message += f"\n  • {service}: pipx uninstall {service} && pipx install {service}"
+                if service in self.SERVICE_MISSING_DEPENDENCIES:
+                    deps = " ".join([f"&& pipx inject {service} {dep}" for dep in self.SERVICE_MISSING_DEPENDENCIES[service]])
+                    message += f"\n  • {service}: pipx uninstall {service} && pipx install {service} {deps}"
+                else:
+                    message += f"\n  • {service}: pipx uninstall {service} && pipx install {service}"
 
         return success, message
 
@@ -1148,52 +1186,104 @@ class MCPConfigManager:
 
         # Try to run the service with --help to detect issues
         try:
-            # Test with pipx run
-            result = subprocess.run(
-                ["pipx", "run", service_name, "--help"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-                check=False,
-            )
+            # First check if service is installed in pipx venv
+            pipx_venv_bin = self.pipx_base / service_name / "bin" / service_name
+            if pipx_venv_bin.exists():
+                # Test the installed version directly (has injected dependencies)
+                # This avoids using pipx run which downloads a fresh cache copy without dependencies
+                self.logger.debug(f"Testing {service_name} from installed pipx venv: {pipx_venv_bin}")
+                result = subprocess.run(
+                    [str(pipx_venv_bin), "--help"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    check=False,
+                )
 
-            # Check for specific error patterns
-            stderr_lower = result.stderr.lower()
-            stdout_lower = result.stdout.lower()
-            combined_output = stderr_lower + stdout_lower
+                # Check for specific error patterns in installed version
+                stderr_lower = result.stderr.lower()
+                stdout_lower = result.stdout.lower()
+                combined_output = stderr_lower + stdout_lower
 
-            # Not installed
-            if (
-                "no apps associated" in combined_output
-                or "not found" in combined_output
-            ):
-                return "not_installed"
+                # Import errors in installed version (should be rare if dependencies injected)
+                if (
+                    "modulenotfounderror" in combined_output
+                    or "importerror" in combined_output
+                ):
+                    # Check if it's specifically the gql dependency for mcp-ticketer
+                    if service_name == "mcp-ticketer" and "gql" in combined_output:
+                        return "missing_dependency"
+                    return "import_error"
 
-            # Import errors (like mcp-ticketer's corrupted state)
-            if (
-                "modulenotfounderror" in combined_output
-                or "importerror" in combined_output
-            ):
-                # Check if it's specifically the gql dependency for mcp-ticketer
-                if service_name == "mcp-ticketer" and "gql" in combined_output:
-                    return "missing_dependency"
-                return "import_error"
+                # Path issues
+                if "no such file or directory" in combined_output:
+                    return "path_issue"
 
-            # Path issues
-            if "no such file or directory" in combined_output:
-                return "path_issue"
+                # If help text appears, service is working
+                if (
+                    "usage:" in combined_output
+                    or "help" in combined_output
+                    or result.returncode in [0, 1]
+                ):
+                    self.logger.debug(f"{service_name} is working correctly")
+                    return None  # Service is working
 
-            # If help text appears, service is working
-            if (
-                "usage:" in combined_output
-                or "help" in combined_output
-                or result.returncode in [0, 1]
-            ):
-                return None  # Service is working
+                # Unknown issue
+                if result.returncode not in [0, 1]:
+                    self.logger.debug(f"{service_name} returned unexpected exit code: {result.returncode}")
+                    return "unknown_error"
 
-            # Unknown issue
-            if result.returncode not in [0, 1]:
-                return "unknown_error"
+                return None  # Default to working if no issues detected
+
+            else:
+                # Service not installed in pipx venv - use pipx run for detection
+                # Note: pipx run uses cache which may not have injected dependencies
+                self.logger.debug(f"Testing {service_name} via pipx run (not installed in venv)")
+                result = subprocess.run(
+                    ["pipx", "run", service_name, "--help"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    check=False,
+                )
+
+                # Check for specific error patterns
+                stderr_lower = result.stderr.lower()
+                stdout_lower = result.stdout.lower()
+                combined_output = stderr_lower + stdout_lower
+
+                # Not installed
+                if (
+                    "no apps associated" in combined_output
+                    or "not found" in combined_output
+                ):
+                    return "not_installed"
+
+                # Import errors when using pipx run (cache version)
+                if (
+                    "modulenotfounderror" in combined_output
+                    or "importerror" in combined_output
+                ):
+                    # Don't report missing_dependency for cache version - it may be missing injected deps
+                    # Just report that service needs to be installed properly
+                    self.logger.debug(f"{service_name} has import errors in pipx run cache - needs proper installation")
+                    return "not_installed"
+
+                # Path issues
+                if "no such file or directory" in combined_output:
+                    return "path_issue"
+
+                # If help text appears, service is working
+                if (
+                    "usage:" in combined_output
+                    or "help" in combined_output
+                    or result.returncode in [0, 1]
+                ):
+                    return None  # Service is working
+
+                # Unknown issue
+                if result.returncode not in [0, 1]:
+                    return "unknown_error"
 
         except subprocess.TimeoutExpired:
             # Timeout might mean service is actually working but waiting for input
@@ -1240,6 +1330,11 @@ class MCPConfigManager:
             )
 
             if install_result.returncode == 0:
+                # Inject any missing dependencies if needed
+                if service_name in self.SERVICE_MISSING_DEPENDENCIES:
+                    self.logger.debug(f"Injecting missing dependencies for {service_name}...")
+                    self._inject_missing_dependencies(service_name)
+
                 # Verify the reinstall worked
                 issue = self._detect_service_issue(service_name)
                 if issue is None:
@@ -1257,6 +1352,66 @@ class MCPConfigManager:
         except Exception as e:
             self.logger.error(f"Error reinstalling {service_name}: {e}")
             return False
+
+    def _inject_missing_dependencies(self, service_name: str) -> bool:
+        """
+        Inject missing dependencies into a pipx-installed MCP service.
+
+        Some MCP services don't properly declare all their dependencies in their
+        package metadata, which causes import errors when pipx creates isolated
+        virtual environments. This method injects the missing dependencies using
+        pipx inject.
+
+        Args:
+            service_name: Name of the MCP service to fix
+
+        Returns:
+            True if dependencies were injected successfully or no injection needed, False otherwise
+        """
+        # Check if this service has known missing dependencies
+        if service_name not in self.SERVICE_MISSING_DEPENDENCIES:
+            return True  # No dependencies to inject
+
+        missing_deps = self.SERVICE_MISSING_DEPENDENCIES[service_name]
+        if not missing_deps:
+            return True  # No dependencies to inject
+
+        self.logger.info(
+            f"  → Injecting missing dependencies for {service_name}: {', '.join(missing_deps)}"
+        )
+
+        all_successful = True
+        for dep in missing_deps:
+            try:
+                self.logger.debug(f"    Injecting {dep} into {service_name}...")
+                result = subprocess.run(
+                    ["pipx", "inject", service_name, dep],
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                    check=False,
+                )
+
+                if result.returncode == 0:
+                    self.logger.info(f"    ✅ Successfully injected {dep}")
+                else:
+                    # Check if already injected (pipx will complain if package already exists)
+                    if "already satisfied" in result.stderr.lower() or "already installed" in result.stderr.lower():
+                        self.logger.debug(f"    {dep} already present in {service_name}")
+                    else:
+                        self.logger.error(
+                            f"    Failed to inject {dep}: {result.stderr}"
+                        )
+                        all_successful = False
+
+            except subprocess.TimeoutExpired:
+                self.logger.error(f"    Timeout while injecting {dep}")
+                all_successful = False
+            except Exception as e:
+                self.logger.error(f"    Error injecting {dep}: {e}")
+                all_successful = False
+
+        return all_successful
 
     def _auto_reinstall_mcp_service(self, service_name: str) -> bool:
         """
@@ -1312,6 +1467,14 @@ class MCPConfigManager:
                 )
                 return False
 
+            # Inject any missing dependencies that pipx doesn't handle automatically
+            if service_name in self.SERVICE_MISSING_DEPENDENCIES:
+                self.logger.info(f"  → Fixing missing dependencies for {service_name}...")
+                if not self._inject_missing_dependencies(service_name):
+                    self.logger.warning(
+                        f"Failed to inject all dependencies for {service_name}, but continuing..."
+                    )
+
             # Verify the reinstall worked
             self.logger.info(f"  → Verifying {service_name} installation...")
             issue = self._detect_service_issue(service_name)
@@ -1319,9 +1482,17 @@ class MCPConfigManager:
             if issue is None:
                 self.logger.info(f"  ✅ Successfully reinstalled {service_name}")
                 return True
-            self.logger.warning(
-                f"Reinstalled {service_name} but still has issue: {issue}"
-            )
+
+            # If still has missing dependency issue after injection, log specific instructions
+            if issue == "missing_dependency" and service_name == "mcp-ticketer":
+                self.logger.error(
+                    f"  {service_name} still has missing dependencies after injection. "
+                    f"Manual fix: pipx inject {service_name} gql"
+                )
+            else:
+                self.logger.warning(
+                    f"Reinstalled {service_name} but still has issue: {issue}"
+                )
             return False
 
         except subprocess.TimeoutExpired:

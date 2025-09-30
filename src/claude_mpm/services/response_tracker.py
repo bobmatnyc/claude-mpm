@@ -19,6 +19,7 @@ DESIGN DECISIONS:
 """
 
 from datetime import datetime, timezone
+from threading import Lock
 from typing import Any, Dict, Optional
 
 from claude_mpm.core.config import Config
@@ -214,12 +215,15 @@ class ResponseTracker:
             logger.info(f"Response tracker session ID set to: {session_id}")
 
 
-# Singleton instance for consistency
+# Singleton instance with thread-safe initialization
 _tracker_instance = None
+_tracker_lock = Lock()
 
 
 def get_response_tracker(config: Optional[Config] = None) -> ResponseTracker:
-    """Get the singleton response tracker instance.
+    """Get the singleton response tracker instance with thread-safe initialization.
+
+    Uses double-checked locking pattern to ensure thread safety.
 
     Args:
         config: Optional configuration instance
@@ -228,9 +232,16 @@ def get_response_tracker(config: Optional[Config] = None) -> ResponseTracker:
         The shared ResponseTracker instance
     """
     global _tracker_instance
-    if _tracker_instance is None:
-        _tracker_instance = ResponseTracker(config=config)
-    return _tracker_instance
+
+    # Fast path - check without lock
+    if _tracker_instance is not None:
+        return _tracker_instance
+
+    # Slow path - acquire lock and double-check
+    with _tracker_lock:
+        if _tracker_instance is None:
+            _tracker_instance = ResponseTracker(config=config)
+        return _tracker_instance
 
 
 def track_response(
