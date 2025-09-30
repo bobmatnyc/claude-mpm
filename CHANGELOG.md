@@ -1,3 +1,19 @@
+## [4.5.6] - 2025-09-30
+
+### Fixed
+- **AsyncSessionLogger Lifecycle Management**: Resolved task cleanup and lifecycle issues
+  - Fixed proper task cleanup during AsyncSessionLogger shutdown
+  - Prevented duplicate session ID generation in ClaudeSessionLogger
+  - Added comprehensive service initialization logging for debugging
+  - Improved service state management during initialization phase
+  - Cleaned up import organization and removed unused imports
+
+### Technical Details
+- Enhanced AsyncSessionLogger with proper asyncio task lifecycle management
+- Added singleton pattern enforcement for ClaudeSessionLogger to prevent duplicates
+- Improved service initialization visibility with detailed logging
+- Removed unused imports across multiple service modules
+
 ## [4.5.5] - 2025-09-30
 
 ### Fixed

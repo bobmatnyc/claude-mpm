@@ -979,10 +979,7 @@ This directory is used for {description.lower()}.
         for file in root_files:
             if file.is_file() and (
                 ("test" in file.name.lower() and file.suffix == ".py")
-                or (
-                    file.suffix in [".sh", ".bash"]
-                    and file.name not in ["Makefile"]
-                )
+                or (file.suffix in [".sh", ".bash"] and file.name not in ["Makefile"])
                 or file.suffix in [".log", ".tmp", ".cache"]
             ):
                 misplaced_count += 1

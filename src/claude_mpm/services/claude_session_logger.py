@@ -101,8 +101,16 @@ class ClaudeSessionLogger:
 
         if self.use_async:
             try:
+                # Pass our session_id to async logger to avoid duplicate generation
                 self._async_logger = get_async_logger(config=config)
-                logger.info("Using async logger for improved performance")
+                # Synchronize session IDs - use the one we already generated
+                if self.session_id and hasattr(self._async_logger, "set_session_id"):
+                    self._async_logger.set_session_id(self.session_id)
+                    logger.info(
+                        f"Using async logger with session ID: {self.session_id}"
+                    )
+                else:
+                    logger.info("Using async logger for improved performance")
             except Exception as e:
                 logger.warning(
                     f"Failed to initialize async logger, falling back to sync: {e}"

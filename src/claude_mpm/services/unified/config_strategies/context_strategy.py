@@ -509,9 +509,7 @@ class CachingContextManager:
     def invalidate_context(self, context_id: str):
         """Invalidate all cached values for context"""
         with self._lock:
-            keys_to_remove = [
-                k for k in self.cache if k.startswith(f"{context_id}:")
-            ]
+            keys_to_remove = [k for k in self.cache if k.startswith(f"{context_id}:")]
 
             for key in keys_to_remove:
                 del self.cache[key]
