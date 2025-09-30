@@ -4,10 +4,10 @@ This file contains structured information about the project that helps KuzuMemor
 
 ## 🏗️ Project Overview
 
-**Project Name**: claude-mpm  
-**Type**: [Web App / API / Library / CLI Tool / etc.]  
-**Language**: [Python / JavaScript / Rust / etc.]  
-**Framework**: [FastAPI / React / Django / etc.]  
+**Project Name**: claude-mpm
+**Type**: [Web App / API / Library / CLI Tool / etc.]
+**Language**: [Python / JavaScript / Rust / etc.]
+**Framework**: [FastAPI / React / Django / etc.]
 
 ## 🎯 Project Purpose
 

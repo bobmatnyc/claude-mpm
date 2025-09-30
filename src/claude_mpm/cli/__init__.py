@@ -297,22 +297,30 @@ def _verify_mcp_gateway_startup():
         # Quick check first - if already configured, skip detailed verification
         gateway_configured = is_mcp_gateway_configured()
 
-        # Pre-warm MCP servers regardless of gateway config
-        # This eliminates the 11.9s delay on first agent invocation
+        # DISABLED: Pre-warming MCP servers can interfere with Claude Code's MCP management
+        # This was causing issues with MCP server initialization and stderr handling
+        # def run_pre_warming():
+        #     loop = None
+        #     try:
+        #         start_time = time.time()
+        #         loop = asyncio.new_event_loop()
+        #         asyncio.set_event_loop(loop)
+        #
+        #         # Pre-warm MCP servers (especially vector search)
+        #         logger.info("Pre-warming MCP servers to eliminate startup delay...")
+        #         loop.run_until_complete(pre_warm_mcp_servers())
+        #
+        #         pre_warm_time = time.time() - start_time
+        #         if pre_warm_time > 1.0:
+        #             logger.info(f"MCP servers pre-warmed in {pre_warm_time:.2f}s")
+
+        # Dummy function to maintain structure
         def run_pre_warming():
             loop = None
             try:
                 start_time = time.time()
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-
-                # Pre-warm MCP servers (especially vector search)
-                logger.info("Pre-warming MCP servers to eliminate startup delay...")
-                loop.run_until_complete(pre_warm_mcp_servers())
-
-                pre_warm_time = time.time() - start_time
-                if pre_warm_time > 1.0:
-                    logger.info(f"MCP servers pre-warmed in {pre_warm_time:.2f}s")
 
                 # Also run gateway verification if needed
                 if not gateway_configured:

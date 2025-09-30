@@ -298,3 +298,7 @@ site/
 temp/
 virtualenv/
 wheels/
+
+# Added by Claude MPM /mpm-init
+.kuzu-memory/
+kuzu-memories/
