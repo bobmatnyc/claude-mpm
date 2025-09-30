@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 """Test script to verify dashboard metrics and connection status."""
 
-import json
 import time
 
-import requests
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 
 
 def test_dashboard_metrics():

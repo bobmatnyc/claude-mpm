@@ -8,9 +8,6 @@ from pathlib import Path
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))

@@ -5,9 +5,7 @@ Verifies that Socket.IO connections are working properly.
 """
 
 import asyncio
-import json
 import time
-from typing import Dict, List
 
 import socketio
 

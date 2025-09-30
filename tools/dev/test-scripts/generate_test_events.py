@@ -5,7 +5,6 @@ This will create file operations, tool calls, and agent events
 """
 
 import asyncio
-import json
 from datetime import datetime
 
 import socketio

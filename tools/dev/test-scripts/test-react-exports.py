@@ -2,9 +2,7 @@
 """Test script to verify React component exports are working."""
 
 import asyncio
-import subprocess
 import sys
-import time
 from pathlib import Path
 
 # Add project root to path

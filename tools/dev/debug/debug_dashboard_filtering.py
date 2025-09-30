@@ -4,7 +4,6 @@ Debug Dashboard Filtering
 Sends various event types to test the filtering logic
 """
 
-import json
 import time
 from datetime import datetime
 

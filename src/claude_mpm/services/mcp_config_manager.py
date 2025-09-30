@@ -1122,7 +1122,7 @@ class MCPConfigManager:
                         continue  # Move to next service
 
                 # If injection alone didn't work, try full reinstall
-                self.logger.info(f"  Dependency injection insufficient, trying full reinstall...")
+                self.logger.info("  Dependency injection insufficient, trying full reinstall...")
                 success = self._auto_reinstall_mcp_service(service_name)
                 if success:
                     fixed_services.append(f"{service_name} (auto-reinstalled with dependencies)")
@@ -1235,55 +1235,54 @@ class MCPConfigManager:
 
                 return None  # Default to working if no issues detected
 
-            else:
-                # Service not installed in pipx venv - use pipx run for detection
-                # Note: pipx run uses cache which may not have injected dependencies
-                self.logger.debug(f"Testing {service_name} via pipx run (not installed in venv)")
-                result = subprocess.run(
-                    ["pipx", "run", service_name, "--help"],
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                    check=False,
-                )
+            # Service not installed in pipx venv - use pipx run for detection
+            # Note: pipx run uses cache which may not have injected dependencies
+            self.logger.debug(f"Testing {service_name} via pipx run (not installed in venv)")
+            result = subprocess.run(
+                ["pipx", "run", service_name, "--help"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
 
-                # Check for specific error patterns
-                stderr_lower = result.stderr.lower()
-                stdout_lower = result.stdout.lower()
-                combined_output = stderr_lower + stdout_lower
+            # Check for specific error patterns
+            stderr_lower = result.stderr.lower()
+            stdout_lower = result.stdout.lower()
+            combined_output = stderr_lower + stdout_lower
 
-                # Not installed
-                if (
-                    "no apps associated" in combined_output
-                    or "not found" in combined_output
-                ):
-                    return "not_installed"
+            # Not installed
+            if (
+                "no apps associated" in combined_output
+                or "not found" in combined_output
+            ):
+                return "not_installed"
 
-                # Import errors when using pipx run (cache version)
-                if (
-                    "modulenotfounderror" in combined_output
-                    or "importerror" in combined_output
-                ):
-                    # Don't report missing_dependency for cache version - it may be missing injected deps
-                    # Just report that service needs to be installed properly
-                    self.logger.debug(f"{service_name} has import errors in pipx run cache - needs proper installation")
-                    return "not_installed"
+            # Import errors when using pipx run (cache version)
+            if (
+                "modulenotfounderror" in combined_output
+                or "importerror" in combined_output
+            ):
+                # Don't report missing_dependency for cache version - it may be missing injected deps
+                # Just report that service needs to be installed properly
+                self.logger.debug(f"{service_name} has import errors in pipx run cache - needs proper installation")
+                return "not_installed"
 
-                # Path issues
-                if "no such file or directory" in combined_output:
-                    return "path_issue"
+            # Path issues
+            if "no such file or directory" in combined_output:
+                return "path_issue"
 
-                # If help text appears, service is working
-                if (
-                    "usage:" in combined_output
-                    or "help" in combined_output
-                    or result.returncode in [0, 1]
-                ):
-                    return None  # Service is working
+            # If help text appears, service is working
+            if (
+                "usage:" in combined_output
+                or "help" in combined_output
+                or result.returncode in [0, 1]
+            ):
+                return None  # Service is working
 
-                # Unknown issue
-                if result.returncode not in [0, 1]:
-                    return "unknown_error"
+            # Unknown issue
+            if result.returncode not in [0, 1]:
+                return "unknown_error"
 
         except subprocess.TimeoutExpired:
             # Timeout might mean service is actually working but waiting for input
@@ -1394,15 +1393,14 @@ class MCPConfigManager:
 
                 if result.returncode == 0:
                     self.logger.info(f"    ✅ Successfully injected {dep}")
+                # Check if already injected (pipx will complain if package already exists)
+                elif "already satisfied" in result.stderr.lower() or "already installed" in result.stderr.lower():
+                    self.logger.debug(f"    {dep} already present in {service_name}")
                 else:
-                    # Check if already injected (pipx will complain if package already exists)
-                    if "already satisfied" in result.stderr.lower() or "already installed" in result.stderr.lower():
-                        self.logger.debug(f"    {dep} already present in {service_name}")
-                    else:
-                        self.logger.error(
-                            f"    Failed to inject {dep}: {result.stderr}"
-                        )
-                        all_successful = False
+                    self.logger.error(
+                        f"    Failed to inject {dep}: {result.stderr}"
+                    )
+                    all_successful = False
 
             except subprocess.TimeoutExpired:
                 self.logger.error(f"    Timeout while injecting {dep}")

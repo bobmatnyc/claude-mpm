@@ -3,7 +3,6 @@
 Verify Activity Dashboard connection and send test events.
 """
 
-import json
 import time
 from datetime import datetime
 
