@@ -13,10 +13,14 @@ Configuration via .claude-mpm/configuration.yaml.
 import json
 import os
 from datetime import datetime, timezone
+from threading import Lock
 from typing import Any, Dict, Optional
 
 # Import configuration manager
 from claude_mpm.core.config import Config
+
+# Import centralized session manager
+from claude_mpm.services.session_manager import get_session_manager
 
 # Try to import async logger for performance optimization
 try:
@@ -38,6 +42,9 @@ logger = get_logger(__name__)
 class ClaudeSessionLogger:
     """Simplified response logger for Claude Code sessions."""
 
+    _initialization_lock = Lock()
+    _initialized = False
+
     def __init__(
         self,
         base_dir: Optional[Path] = None,
@@ -52,29 +59,41 @@ class ClaudeSessionLogger:
             use_async: Use async logging if available. Overrides config.
             config: Configuration instance to use (creates new if not provided)
         """
-        # Load configuration
-        if config is None:
-            config = Config()
-        self.config = config
+        # Use initialization flag to prevent duplicate setup
+        with self._initialization_lock:
+            if self._initialized and hasattr(self, "config"):
+                logger.debug("ClaudeSessionLogger already initialized, skipping setup")
+                return
 
-        # Get response logging configuration
-        response_config = self.config.get("response_logging", {})
+            # Load configuration
+            if config is None:
+                config = Config()
+            self.config = config
 
-        # Determine base directory
-        if base_dir is None:
-            # Check configuration first
-            base_dir = response_config.get("session_directory")
-            if not base_dir:
-                # Fall back to default response directory
-                base_dir = ".claude-mpm/responses"
-            base_dir = Path(base_dir)
+            # Get response logging configuration
+            response_config = self.config.get("response_logging", {})
 
-        self.base_dir = Path(base_dir)
-        self.base_dir.mkdir(parents=True, exist_ok=True)
+            # Determine base directory
+            if base_dir is None:
+                # Check configuration first
+                base_dir = response_config.get("session_directory")
+                if not base_dir:
+                    # Fall back to default response directory
+                    base_dir = ".claude-mpm/responses"
+                base_dir = Path(base_dir)
 
-        # Try to get session ID from environment
-        self.session_id = self._get_claude_session_id()
-        self.response_counter = {}  # Track response count per session
+            self.base_dir = Path(base_dir)
+            self.base_dir.mkdir(parents=True, exist_ok=True)
+
+            # Use centralized SessionManager for session ID
+            session_manager = get_session_manager()
+            self.session_id = session_manager.get_session_id()
+            logger.info(
+                f"ClaudeSessionLogger using session ID from SessionManager: {self.session_id}"
+            )
+
+            self.response_counter = {}  # Track response count per session
+            self._initialized = True
 
         # Determine if we should use async logging
         if use_async is None:
@@ -116,38 +135,6 @@ class ClaudeSessionLogger:
                     f"Failed to initialize async logger, falling back to sync: {e}"
                 )
                 self.use_async = False
-
-    def _get_claude_session_id(self) -> Optional[str]:
-        """
-        Get the Claude Code session ID from environment.
-
-        Returns:
-            Session ID if available, None otherwise
-        """
-        # Claude Code may set various environment variables
-        # Check common patterns
-        session_id = None
-
-        # Check for CLAUDE_SESSION_ID
-        session_id = os.environ.get("CLAUDE_SESSION_ID")
-
-        # Check for ANTHROPIC_SESSION_ID
-        if not session_id:
-            session_id = os.environ.get("ANTHROPIC_SESSION_ID")
-
-        # Check for generic SESSION_ID
-        if not session_id:
-            session_id = os.environ.get("SESSION_ID")
-
-        # Generate a default based on timestamp if nothing found
-        if not session_id:
-            # Use a timestamp-based session ID as fallback
-            session_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-            logger.info(f"Session ID: {session_id} (generated)")
-        else:
-            logger.info(f"Session ID: {session_id}")
-
-        return session_id
 
     def _generate_filename(self, agent: Optional[str] = None) -> str:
         """
@@ -251,10 +238,15 @@ class ClaudeSessionLogger:
         """
         Manually set the session ID.
 
+        Note: This updates both the local session ID and the SessionManager.
+
         Args:
             session_id: The session ID to use
         """
         self.session_id = session_id
+        # Also update SessionManager to keep consistency
+        session_manager = get_session_manager()
+        session_manager.set_session_id(session_id)
         logger.info(f"Session ID set to: {session_id}")
 
     def get_session_path(self) -> Optional[Path]:
@@ -280,13 +272,16 @@ class ClaudeSessionLogger:
         return self.session_id is not None
 
 
-# Singleton instance for easy access
+# Singleton instance with thread-safe initialization
 _logger_instance = None
+_logger_lock = Lock()
 
 
 def get_session_logger(config: Optional[Config] = None) -> ClaudeSessionLogger:
     """
-    Get the singleton session logger instance.
+    Get the singleton session logger instance with thread-safe initialization.
+
+    Uses double-checked locking pattern to ensure thread safety.
 
     Args:
         config: Optional configuration instance to use
@@ -295,9 +290,16 @@ def get_session_logger(config: Optional[Config] = None) -> ClaudeSessionLogger:
         The shared ClaudeSessionLogger instance
     """
     global _logger_instance
-    if _logger_instance is None:
-        _logger_instance = ClaudeSessionLogger(config=config)
-    return _logger_instance
+
+    # Fast path - check without lock
+    if _logger_instance is not None:
+        return _logger_instance
+
+    # Slow path - acquire lock and double-check
+    with _logger_lock:
+        if _logger_instance is None:
+            _logger_instance = ClaudeSessionLogger(config=config)
+        return _logger_instance
 
 
 def log_response(
