@@ -276,7 +276,6 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
             ".sql",
         }
 
-        files_with_issues = []
         total_score = 0
 
         # Analyze each file

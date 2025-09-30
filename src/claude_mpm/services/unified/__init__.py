@@ -42,24 +42,24 @@ from .unified_config import UnifiedConfigManager
 from .unified_deployment import UnifiedDeploymentService
 
 __all__ = [
-    # Interfaces
-    "IDeploymentService",
-    "IAnalyzerService",
-    "IConfigurationService",
-    "ServiceMetadata",
-    "ServiceCapability",
-    # Strategies
-    "DeploymentStrategy",
     "AnalyzerStrategy",
     "ConfigStrategy",
-    "StrategyRegistry",
+    # Strategies
+    "DeploymentStrategy",
+    "FeatureFlag",
+    "IAnalyzerService",
+    "IConfigurationService",
+    # Interfaces
+    "IDeploymentService",
+    "MigrationStatus",
+    "ServiceCapability",
     # Migration
     "ServiceMapper",
-    "MigrationStatus",
-    "FeatureFlag",
-    "create_compatibility_wrapper",
-    # Unified Services
-    "UnifiedDeploymentService",
+    "ServiceMetadata",
+    "StrategyRegistry",
     "UnifiedAnalyzer",
     "UnifiedConfigManager",
+    # Unified Services
+    "UnifiedDeploymentService",
+    "create_compatibility_wrapper",
 ]

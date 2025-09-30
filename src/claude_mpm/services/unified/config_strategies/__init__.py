@@ -97,55 +97,55 @@ ConfigLoader = UnifiedConfigService
 
 # Export all public APIs
 __all__ = [
-    # Main service
-    "UnifiedConfigService",
-    "unified_config",
-    # Strategies
-    "FileLoaderStrategy",
-    "ValidationStrategy",
-    "ErrorHandlingStrategy",
-    "ContextStrategy",
+    "CompositeFileLoader",
+    "ConfigContext",
     # Core types
     "ConfigFormat",
-    "ConfigContext",
+    "ConfigLoader",
+    "ConfigManager",
     "ConfigMetadata",
-    "IConfigStrategy",
-    # File loading
-    "LoaderType",
-    "FileLoadContext",
-    "StructuredFileLoader",
+    "ConfigMigration",
+    # Schema
+    "ConfigSchema",
+    # Backward compatibility
+    "ConfigService",
+    "ContextLifecycle",
+    # Context management
+    "ContextScope",
+    "ContextStrategy",
     "EnvironmentFileLoader",
-    "ProgrammaticFileLoader",
-    "LegacyFileLoader",
-    "CompositeFileLoader",
-    # Validation
-    "ValidationRule",
-    "ValidationResult",
-    "ValidationType",
+    "ErrorCategory",
     # Error handling
     "ErrorContext",
     "ErrorHandlingResult",
-    "ErrorCategory",
+    "ErrorHandlingStrategy",
     "ErrorSeverity",
-    # Context management
-    "ContextScope",
-    "ContextLifecycle",
+    "FileLoadContext",
+    # Strategies
+    "FileLoaderStrategy",
     "HierarchicalContextManager",
-    "ScopedConfigManager",
-    # Schema
-    "ConfigSchema",
-    "SchemaProperty",
+    "IConfigStrategy",
+    "LegacyFileLoader",
+    # File loading
+    "LoaderType",
+    "ProgrammaticFileLoader",
     "SchemaBuilder",
-    "SchemaValidator",
-    "SchemaRegistry",
-    "ConfigMigration",
-    "TypedConfig",
-    "SchemaType",
     "SchemaFormat",
-    # Backward compatibility
-    "ConfigService",
-    "ConfigManager",
-    "ConfigLoader",
+    "SchemaProperty",
+    "SchemaRegistry",
+    "SchemaType",
+    "SchemaValidator",
+    "ScopedConfigManager",
+    "StructuredFileLoader",
+    "TypedConfig",
+    # Main service
+    "UnifiedConfigService",
+    "ValidationResult",
+    # Validation
+    "ValidationRule",
+    "ValidationStrategy",
+    "ValidationType",
+    "unified_config",
 ]
 
 

@@ -136,12 +136,11 @@ class HierarchicalContextManager(BaseContextManager):
             self.contexts[context_id] = metadata
 
             # Update hierarchy
-            if parent_id:
-                if parent_id in self.contexts:
-                    self.contexts[parent_id].children.append(context_id)
-                    if parent_id not in self.context_hierarchy:
-                        self.context_hierarchy[parent_id] = []
-                    self.context_hierarchy[parent_id].append(context_id)
+            if parent_id and parent_id in self.contexts:
+                self.contexts[parent_id].children.append(context_id)
+                if parent_id not in self.context_hierarchy:
+                    self.context_hierarchy[parent_id] = []
+                self.context_hierarchy[parent_id].append(context_id)
 
             # Initialize context config
             self.configs[context_id] = ContextConfig(context_id=context_id, data={})
@@ -511,7 +510,7 @@ class CachingContextManager:
         """Invalidate all cached values for context"""
         with self._lock:
             keys_to_remove = [
-                k for k in self.cache.keys() if k.startswith(f"{context_id}:")
+                k for k in self.cache if k.startswith(f"{context_id}:")
             ]
 
             for key in keys_to_remove:

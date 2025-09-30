@@ -61,7 +61,7 @@ class EnhancedProjectAnalyzer:
         """Run a git command and return output."""
         try:
             result = subprocess.run(
-                ["git"] + args,
+                ["git", *args],
                 cwd=self.project_path,
                 capture_output=True,
                 text=True,

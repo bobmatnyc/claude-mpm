@@ -76,9 +76,8 @@ def validate_deployment_config(config: Dict[str, Any]) -> List[str]:
             errors.append(f"Source does not exist: {source_path}")
 
     # Version format validation
-    if "version" in config:
-        if not validate_version_format(config["version"]):
-            errors.append(f"Invalid version format: {config['version']}")
+    if "version" in config and not validate_version_format(config["version"]):
+        errors.append(f"Invalid version format: {config['version']}")
 
     # Environment variables validation
     if "env" in config:
@@ -267,24 +266,21 @@ def verify_deployment_health(
 
     try:
         # Existence check
-        if "existence" in checks:
-            if "deployed_path" in deployment_info:
-                path = Path(deployment_info["deployed_path"])
-                health["checks"]["exists"] = path.exists()
+        if "existence" in checks and "deployed_path" in deployment_info:
+            path = Path(deployment_info["deployed_path"])
+            health["checks"]["exists"] = path.exists()
 
         # Accessibility check
-        if "accessibility" in checks:
-            if "deployment_url" in deployment_info:
-                health["checks"]["accessible"] = check_url_accessibility(
-                    deployment_info["deployment_url"]
-                )
+        if "accessibility" in checks and "deployment_url" in deployment_info:
+            health["checks"]["accessible"] = check_url_accessibility(
+                deployment_info["deployment_url"]
+            )
 
         # Integrity check
-        if "integrity" in checks:
-            if "checksum" in deployment_info:
-                health["checks"]["integrity"] = verify_checksum(
-                    deployment_info.get("deployed_path"), deployment_info["checksum"]
-                )
+        if "integrity" in checks and "checksum" in deployment_info:
+            health["checks"]["integrity"] = verify_checksum(
+                deployment_info.get("deployed_path"), deployment_info["checksum"]
+            )
 
         # Service-specific checks
         if deployment_type == "docker":

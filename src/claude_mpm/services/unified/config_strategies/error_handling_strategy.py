@@ -86,7 +86,7 @@ class BaseErrorHandler(ABC):
     def handle(self, context: ErrorContext) -> ErrorHandlingResult:
         """Handle the error"""
 
-    def log_error(self, context: ErrorContext, message: str = None):
+    def log_error(self, context: ErrorContext, message: Optional[str] = None):
         """Log error with appropriate level"""
         log_message = message or str(context.error)
 
@@ -309,8 +309,7 @@ class ParsingErrorHandler(BaseErrorHandler):
         # Remove single-line comments
         content = re.sub(r"//.*?$", "", content, flags=re.MULTILINE)
         # Remove multi-line comments
-        content = re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)
-        return content
+        return re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)
 
     def _fix_json_quotes(self, content: str) -> str:
         """Fix quote issues in JSON"""
@@ -319,24 +318,21 @@ class ParsingErrorHandler(BaseErrorHandler):
         # Replace single quotes with double quotes (careful with values)
         # This is a simple approach - more sophisticated parsing might be needed
         content = re.sub(r"'([^']*)':", r'"\1":', content)  # Keys
-        content = re.sub(r":\s*'([^']*)'", r': "\1"', content)  # Values
-        return content
+        return re.sub(r":\s*'([^']*)'", r': "\1"', content)  # Values
 
     def _fix_json_trailing_commas(self, content: str) -> str:
         """Remove trailing commas"""
         import re
 
         content = re.sub(r",\s*}", "}", content)
-        content = re.sub(r",\s*]", "]", content)
-        return content
+        return re.sub(r",\s*]", "]", content)
 
     def _fix_json_unquoted_keys(self, content: str) -> str:
         """Add quotes to unquoted keys"""
         import re
 
         # Match unquoted keys (word characters followed by colon)
-        content = re.sub(r"(\w+):", r'"\1":', content)
-        return content
+        return re.sub(r"(\w+):", r'"\1":', content)
 
     def _parse_lenient_json(
         self, content: str, result: ErrorHandlingResult
@@ -875,7 +871,7 @@ class ErrorHandlingStrategy(IConfigStrategy):
 
     def _categorize_error(self, error: Exception) -> ErrorCategory:
         """Categorize the error type"""
-        error_type = type(error)
+        type(error)
 
         # File I/O errors
         if isinstance(error, (FileNotFoundError, PermissionError, IOError, OSError)):

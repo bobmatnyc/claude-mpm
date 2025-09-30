@@ -273,7 +273,7 @@ class UnifiedConfigService:
         """Get configuration value by key with context awareness"""
         # Check specific context first
         if context:
-            for cache_key, config in self._contexts[context].items():
+            for _cache_key, config in self._contexts[context].items():
                 if key in config:
                     return config[key]
 
@@ -579,9 +579,7 @@ class UnifiedConfigService:
             return False
         if not self._validate_pattern(config, schema):
             return False
-        if not self._validate_enum(config, schema):
-            return False
-        return True
+        return self._validate_enum(config, schema)
 
     def _validate_dependency(self, config: Dict[str, Any], schema: Dict) -> bool:
         """Validate field dependencies"""
