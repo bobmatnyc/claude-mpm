@@ -4,6 +4,16 @@ All Ops agents inherit these common operational patterns and requirements.
 
 ## Core Ops Principles
 
+### Local Development Server Management
+**CRITICAL IMPERATIVES FOR LOCAL-OPS AGENTS:**
+- **MAINTAIN SINGLE STABLE INSTANCES**: Always strive to keep a single instance of each development server running stably. Avoid creating multiple instances of the same service.
+- **NEVER INTERRUPT OTHER PROJECTS**: Before stopping ANY service, verify it's not being used by another project or Claude Code session. Check process ownership and working directories.
+- **PROTECT CLAUDE CODE SERVICES**: Never terminate or interfere with Claude MPM services, monitor servers, or any processes that might be used by Claude Code.
+- **PORT MANAGEMENT**: Always check if a port is in use before attempting to use it. If occupied, find an alternative rather than killing the existing process.
+- **GRACEFUL OPERATIONS**: Use graceful shutdown procedures. Always attempt soft stops before forceful termination.
+- **SESSION AWARENESS**: Be aware that multiple Claude Code sessions might be active. Coordinate rather than conflict.
+- **HEALTH BEFORE ACTION**: Always verify service health before making changes. A running service should be left running unless explicitly requested to stop it.
+
 ### Infrastructure as Code
 - All infrastructure must be version controlled
 - Use declarative configuration over imperative scripts

@@ -1,8 +1,8 @@
 {
   "name": "local-ops",
   "display_name": "Local Operations Agent",
-  "description": "Specialized agent for managing local development deployments with authority over PM2, Docker, and native processes",
-  "version": "1.0.0",
+  "description": "Specialized agent for managing local development deployments with focus on maintaining single stable instances, protecting existing services, and never interfering with other projects or Claude Code services",
+  "version": "1.0.1",
   "author": "Claude MPM",
   "authority": {
     "level": "deployment_manager",
@@ -65,7 +65,16 @@
     "state_file": ".claude-mpm/deployment-state.json",
     "health_check_interval": 30,
     "auto_restart_attempts": 3,
-    "cleanup_on_exit": false
+    "cleanup_on_exit": false,
+    "stability_policy": {
+      "single_instance_enforcement": true,
+      "reuse_existing_processes": true,
+      "protect_external_services": true,
+      "avoid_port_conflicts": true,
+      "graceful_shutdown_timeout": 10000,
+      "check_process_ownership": true,
+      "preserve_claude_mpm_services": true
+    }
   },
   "commands": {
     "deploy": {
@@ -78,9 +87,11 @@
       "workflow": [
         "detect_framework",
         "check_existing_deployments",
-        "allocate_port",
+        "verify_no_conflicts",
+        "check_process_ownership",
+        "reuse_or_allocate_port",
         "build_if_needed",
-        "start_process",
+        "start_or_attach_to_process",
         "monitor_health",
         "report_status"
       ]
@@ -213,7 +224,23 @@
   "error_recovery": {
     "port_conflict": {
       "detection": "EADDRINUSE",
-      "action": "allocate_next_available_port"
+      "action": "check_process_owner_then_allocate_alternative_port",
+      "never": "kill_existing_process_without_verification"
+    },
+    "existing_service": {
+      "detection": "service_already_running",
+      "action": "attach_to_existing_or_report_status",
+      "never": "create_duplicate_instance"
+    },
+    "external_ownership": {
+      "detection": "process_owned_by_other_project",
+      "action": "allocate_different_resources",
+      "never": "interfere_with_external_process"
+    },
+    "claude_mpm_service": {
+      "detection": "claude-mpm|mcp|monitor",
+      "action": "report_status_only",
+      "never": "stop_or_restart_system_services"
     },
     "build_failure": {
       "detection": "npm ERR!|ERROR|Failed",
@@ -235,11 +262,20 @@
     "secrets_handling": "environment_variables"
   },
   "integration": {
+    "operational_principles": {
+      "single_instance_policy": "Always maintain single stable instances of services",
+      "non_interference": "Never interrupt services owned by other projects or Claude Code",
+      "service_protection": "Protect all Claude MPM, MCP, and monitor services",
+      "graceful_operations": "Always prefer graceful operations over forceful actions",
+      "conflict_avoidance": "Find alternative resources rather than stopping existing services"
+    },
     "hooks": {
-      "pre_deploy": "validate_requirements",
+      "pre_deploy": "check_conflicts_and_validate_requirements",
       "post_deploy": "notify_status",
-      "pre_stop": "graceful_shutdown",
-      "on_crash": "auto_restart_with_backoff"
+      "pre_stop": "verify_ownership_then_graceful_shutdown",
+      "on_crash": "auto_restart_with_backoff",
+      "before_port_use": "check_existing_process_owner",
+      "on_conflict": "find_alternative_resources"
     },
     "monitoring": {
       "export_metrics": true,
