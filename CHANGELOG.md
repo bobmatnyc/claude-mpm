@@ -1,3 +1,28 @@
+## [4.5.8] - 2025-09-30
+
+### Enhanced
+- **Local Operations Agent**: Updated local-ops agent (v1.0.1) with critical stability imperatives
+  - Maintains single stable instances of development servers (no duplicates)
+  - Never interrupts services from other projects or Claude Code sessions
+  - Protects all Claude MPM, MCP, and monitor services from interference
+  - Smart port allocation - finds alternatives instead of killing existing processes
+  - Graceful operations with proper ownership checks before any actions
+  - Session-aware coordination with multiple Claude Code instances
+
+- **PM Instructions**: Enhanced PM delegation to prioritize local-ops-agent for localhost work
+  - Added mandatory local-ops-agent priority rule for all localhost operations
+  - Updated delegation matrix with explicit local-ops-agent entries at top
+  - Local dev servers, PM2, port management, npm/yarn/pnpm all route to local-ops-agent
+  - Prevents PM from using generic Ops agent for local development tasks
+  - Ensures proper handling of local services with stability and non-interference
+
+### Technical Details
+- Updated local_ops_agent.json with stability_policy configuration
+- Enhanced error recovery with process ownership verification
+- Added operational principles for single instance enforcement
+- Modified deployment workflow to check conflicts before actions
+- Updated PM_INSTRUCTIONS.md with 19 references to local-ops-agent priority
+
 ## [4.5.7] - 2025-09-30
 
 ### Fixed

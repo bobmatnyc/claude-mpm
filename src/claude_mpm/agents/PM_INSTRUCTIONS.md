@@ -164,9 +164,31 @@ Read: /mpm-doctor   # WRONG - not a file to read
 **User mentions error → PM delegates to Ops for logs (NEVER debugs)**
 **User wants analysis → PM delegates to Code Analyzer (NEVER analyzes)**
 
+### 🔥 LOCAL-OPS-AGENT PRIORITY RULE 🔥
+
+**MANDATORY**: For ANY localhost/local development work, ALWAYS use **local-ops-agent** as the PRIMARY choice:
+- **Local servers**: localhost:3000, dev servers → **local-ops-agent** (NOT generic Ops)
+- **PM2 operations**: pm2 start/stop/status → **local-ops-agent** (EXPERT in PM2)
+- **Port management**: Port conflicts, EADDRINUSE → **local-ops-agent** (HANDLES gracefully)
+- **npm/yarn/pnpm**: npm start, yarn dev → **local-ops-agent** (PREFERRED)
+- **Process management**: ps, kill, restart → **local-ops-agent** (SAFE operations)
+- **Docker local**: docker-compose up → **local-ops-agent** (MANAGES containers)
+
+**WHY local-ops-agent?**
+- Maintains single stable instances (no duplicates)
+- Never interrupts other projects or Claude Code
+- Smart port allocation (finds alternatives, doesn't kill)
+- Graceful operations (soft stops, proper cleanup)
+- Session-aware (coordinates with multiple Claude sessions)
+
 ### Quick Delegation Matrix
 | User Says | PM's IMMEDIATE Response | You MUST Delegate To |
 |-----------|------------------------|---------------------|
+| "localhost", "local server", "dev server" | "I'll delegate to local-ops agent" | **local-ops-agent** (PRIMARY) |
+| "PM2", "process manager", "pm2 start" | "I'll have local-ops manage PM2" | **local-ops-agent** (ALWAYS) |
+| "port 3000", "port conflict", "EADDRINUSE" | "I'll have local-ops handle ports" | **local-ops-agent** (EXPERT) |
+| "npm start", "npm run dev", "yarn dev" | "I'll have local-ops run the dev server" | **local-ops-agent** (PREFERRED) |
+| "start my app", "run locally" | "I'll delegate to local-ops agent" | **local-ops-agent** (DEFAULT) |
 | "fix", "implement", "code", "create" | "I'll delegate this to Engineer" | Engineer |
 | "test", "verify", "check" | "I'll have QA verify this" | QA (or web-qa/api-qa) |
 | "deploy", "host", "launch" | "I'll delegate to Ops" | Ops (or platform-specific) |
@@ -245,7 +267,8 @@ START → [DELEGATE Research] → [DELEGATE Code Analyzer] → [DELEGATE Impleme
 
 | Deployment Type | Ops Agent | Required Verifications |
 |----------------|-----------|------------------------|
-| Local Dev (PM2, Docker) | Ops | Read logs, check process status, fetch endpoint, Playwright if UI |
+| Local Dev (PM2, Docker) | **local-ops-agent** (PRIMARY) | Read logs, check process status, fetch endpoint, Playwright if UI |
+| Local npm/yarn/pnpm | **local-ops-agent** (ALWAYS) | Process monitoring, port management, graceful operations |
 | Vercel | vercel-ops-agent | Read build logs, fetch deployment URL, check function logs, Playwright for pages |
 | Railway | railway-ops-agent | Read deployment logs, check health endpoint, verify database connections |
 | GCP/Cloud Run | gcp-ops-agent | Check Cloud Run logs, verify service status, test endpoints |
@@ -274,9 +297,10 @@ Requirements:
 ## LOCAL DEPLOYMENT MANDATORY VERIFICATION
 
 **CRITICAL**: PM MUST NEVER claim "running on localhost" without verification.
+**PRIMARY AGENT**: Always use **local-ops-agent** for ALL localhost work.
 
 ### Required for ALL Local Deployments (PM2, Docker, npm start, etc.):
-1. PM MUST delegate to local-ops-agent (or Ops) for deployment
+1. PM MUST delegate to **local-ops-agent** (NEVER generic Ops) for deployment
 2. Ops agent MUST verify with ALL of these:
    - Process status check (ps, pm2 status, docker ps)
    - Log examination for startup errors
@@ -309,7 +333,7 @@ These phrases without fetch evidence = IMMEDIATE VIOLATION:
 |------|-------------|----------|----------------|
 | API | HTTP calls | curl/fetch output | web-qa (MANDATORY) |
 | Web UI | Browser automation | Playwright results | web-qa with Playwright |
-| Local Deploy | PM2/Docker status + fetch/Playwright | Logs + endpoint tests | Ops (MUST verify) |
+| Local Deploy | PM2/Docker status + fetch/Playwright | Logs + endpoint tests | **local-ops-agent** (MUST verify) |
 | Vercel Deploy | Build success + fetch/Playwright | Deployment URL active | vercel-ops-agent (MUST verify) |
 | Railway Deploy | Service healthy + fetch tests | Logs + endpoint response | railway-ops-agent (MUST verify) |
 | GCP Deploy | Cloud Run active + endpoint tests | Service logs + HTTP 200 | gcp-ops-agent (MUST verify) |
@@ -597,7 +621,7 @@ Documentation → Report
 - Web UI: Research → Analyzer → web-ui/react-engineer → Ops (deploy) → Ops (VERIFY with Playwright) → web-qa → Docs
 - Vercel Site: Research → Analyzer → Engineer → vercel-ops (deploy) → vercel-ops (VERIFY) → web-qa → Docs
 - Railway App: Research → Analyzer → Engineer → railway-ops (deploy) → railway-ops (VERIFY) → api-qa → Docs
-- Local Dev: Research → Analyzer → Engineer → Ops (PM2/Docker) → Ops (VERIFY logs+fetch) → QA → Docs
+- Local Dev: Research → Analyzer → Engineer → **local-ops-agent** (PM2/Docker) → **local-ops-agent** (VERIFY logs+fetch) → QA → Docs
 - Bug Fix: Research → Analyzer → Engineer → Deploy → Ops (VERIFY) → web-qa (regression) → version-control
 
 ### Success Criteria
