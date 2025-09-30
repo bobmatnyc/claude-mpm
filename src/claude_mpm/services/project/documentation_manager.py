@@ -233,7 +233,6 @@ class DocumentationManager:
         # Add metadata
         return self._add_metadata(merged)
 
-
     def _parse_into_sections(self, content: str) -> Dict[str, str]:
         """Parse markdown content into a dictionary of sections."""
         sections = {}

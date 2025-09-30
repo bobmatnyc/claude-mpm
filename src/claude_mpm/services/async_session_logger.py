@@ -175,6 +175,11 @@ class AsyncSessionLogger:
         if self.enable_async:
             self._start_worker()
 
+        # Log initialization status
+        logger.info(
+            f"AsyncSessionLogger initialized: session_id={self.session_id}, async={self.enable_async}, format={self.log_format.value}"
+        )
+
     def _get_claude_session_id(self) -> str:
         """Get or generate a Claude session ID."""
         # Check environment variables in order of preference
@@ -471,8 +476,19 @@ class AsyncSessionLogger:
         Args:
             timeout: Maximum time to wait for shutdown
         """
+        # Only log shutdown if we're actually shutting down an active logger
+        if self._shutdown:
+            logger.debug("AsyncSessionLogger already shut down")
+            return
+
         if self.enable_async:
-            logger.info("Shutting down async logger")
+            # Only log at INFO level if we actually processed something
+            if self.stats.get("logged", 0) > 0 or self.stats.get("queued", 0) > 0:
+                logger.info(
+                    f"Shutting down async logger (logged: {self.stats.get('logged', 0)}, queued: {self.stats.get('queued', 0)})"
+                )
+            else:
+                logger.debug("Shutting down async logger (no activity)")
 
             # Signal shutdown
             self._shutdown = True
@@ -486,10 +502,16 @@ class AsyncSessionLogger:
 
             # Log final statistics only if we actually logged something
             if self.stats.get("logged", 0) > 0:
-                logger.info(f"Logger stats: {self.stats}")
+                logger.info(f"AsyncSessionLogger final stats: {self.stats}")
+            elif self.stats.get("queued", 0) > 0 or self.stats.get("dropped", 0) > 0:
+                logger.debug(
+                    f"AsyncSessionLogger stats (incomplete session): {self.stats}"
+                )
             else:
                 # Use debug level when nothing was logged
-                logger.debug(f"Logger stats (no sessions logged): {self.stats}")
+                logger.debug(
+                    f"AsyncSessionLogger stats (no sessions logged): {self.stats}"
+                )
 
     def get_stats(self) -> Dict[str, Any]:
         """Get logger statistics."""

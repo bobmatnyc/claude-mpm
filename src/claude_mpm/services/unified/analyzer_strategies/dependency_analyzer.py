@@ -580,7 +580,6 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
         # In production, you would integrate with vulnerability databases
         # like npm audit, pip-audit, or safety
 
-
     def _calculate_statistics(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate dependency statistics."""
         all_deps = self._flatten_dependencies(results.get("dependencies", {}))
