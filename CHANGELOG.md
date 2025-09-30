@@ -1,3 +1,18 @@
+## [4.5.7] - 2025-09-30
+
+### Fixed
+- **Session Management**: Enhanced session lifecycle and initialization
+  - Introduced centralized SessionManager service for consistent session ID management
+  - Fixed duplicate session ID generation issues across services
+  - Improved async logger initialization and lifecycle management
+  - Added comprehensive logging for service startup sequence
+
+### Technical Details
+- Added new SessionManager service as single source of truth for session IDs
+- Refactored ClaudeSessionLogger and AsyncSessionLogger to use SessionManager
+- Enhanced service initialization order and dependency management
+- Improved error handling and logging throughout session management
+
 ## [4.5.6] - 2025-09-30
 
 ### Fixed

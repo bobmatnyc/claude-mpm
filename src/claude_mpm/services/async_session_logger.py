@@ -31,6 +31,9 @@ from typing import Any, Dict, Optional
 from claude_mpm.core.constants import PerformanceConfig, SystemLimits, TimeoutConfig
 from claude_mpm.core.logging_utils import get_logger
 
+# Import centralized session manager
+from claude_mpm.services.session_manager import get_session_manager
+
 # Import configuration manager
 from ..core.config import Config
 
@@ -68,7 +71,12 @@ class AsyncSessionLogger:
     - Configurable log formats (JSON, syslog, journald)
     - Fire-and-forget pattern for zero latency impact
     - Graceful degradation on errors
+    - Thread-safe singleton pattern with initialization flag
     """
+
+    _initialization_lock = Lock()
+    _initialized = False
+    _worker_started = False
 
     def __init__(
         self,
@@ -90,109 +98,108 @@ class AsyncSessionLogger:
             enable_compression: Enable gzip compression for JSON logs (overrides config)
             config: Configuration instance to use (creates new if not provided)
         """
-        # Load configuration from YAML file or use provided config
-        if config is None:
-            config = Config()
-        self.config = config
+        # Use initialization flag to prevent duplicate setup
+        with self._initialization_lock:
+            if self._initialized and hasattr(self, "config"):
+                logger.debug("AsyncSessionLogger already initialized, skipping setup")
+                return
 
-        # Get response logging configuration section
-        response_config = self.config.get("response_logging", {})
+            # Load configuration from YAML file or use provided config
+            if config is None:
+                config = Config()
+            self.config = config
 
-        # Apply configuration with parameter overrides
-        self.base_dir = Path(
-            base_dir
-            or response_config.get("session_directory", ".claude-mpm/responses")
-        )
+            # Get response logging configuration section
+            response_config = self.config.get("response_logging", {})
 
-        # Convert log format string to enum
-        format_str = response_config.get("format", "json").lower()
-        if log_format is not None:
-            self.log_format = log_format
-        elif format_str == "syslog":
-            self.log_format = LogFormat.SYSLOG
-        elif format_str == "journald":
-            self.log_format = LogFormat.JOURNALD
-        else:
-            self.log_format = LogFormat.JSON
+            # Apply configuration with parameter overrides
+            self.base_dir = Path(
+                base_dir
+                or response_config.get("session_directory", ".claude-mpm/responses")
+            )
 
-        self.max_queue_size = (
-            max_queue_size
-            if max_queue_size is not None
-            else response_config.get("max_queue_size", SystemLimits.MAX_QUEUE_SIZE)
-        )
+            # Convert log format string to enum
+            format_str = response_config.get("format", "json").lower()
+            if log_format is not None:
+                self.log_format = log_format
+            elif format_str == "syslog":
+                self.log_format = LogFormat.SYSLOG
+            elif format_str == "journald":
+                self.log_format = LogFormat.JOURNALD
+            else:
+                self.log_format = LogFormat.JSON
 
-        # Handle async configuration with backward compatibility
-        if enable_async is not None:
-            self.enable_async = enable_async
-        else:
-            # Check configuration first, then environment variables for backward compatibility
-            self.enable_async = response_config.get("use_async", True)
-            # Override with environment variable if set (backward compatibility)
-            if os.environ.get("CLAUDE_USE_ASYNC_LOG"):
-                self.enable_async = (
-                    os.environ.get("CLAUDE_USE_ASYNC_LOG", "true").lower() == "true"
-                )
+            self.max_queue_size = (
+                max_queue_size
+                if max_queue_size is not None
+                else response_config.get("max_queue_size", SystemLimits.MAX_QUEUE_SIZE)
+            )
 
-        # Check debug sync mode (forces synchronous for debugging)
-        if (
-            response_config.get("debug_sync", False)
-            or os.environ.get("CLAUDE_LOG_SYNC", "").lower() == "true"
-        ):
-            logger.info("Debug sync mode enabled - forcing synchronous logging")
-            self.enable_async = False
+            # Handle async configuration with backward compatibility
+            if enable_async is not None:
+                self.enable_async = enable_async
+            else:
+                # Check configuration first, then environment variables for backward compatibility
+                self.enable_async = response_config.get("use_async", True)
+                # Override with environment variable if set (backward compatibility)
+                if os.environ.get("CLAUDE_USE_ASYNC_LOG"):
+                    self.enable_async = (
+                        os.environ.get("CLAUDE_USE_ASYNC_LOG", "true").lower() == "true"
+                    )
 
-        self.enable_compression = (
-            enable_compression
-            if enable_compression is not None
-            else response_config.get("enable_compression", False)
-        )
+            # Check debug sync mode (forces synchronous for debugging)
+            if (
+                response_config.get("debug_sync", False)
+                or os.environ.get("CLAUDE_LOG_SYNC", "").lower() == "true"
+            ):
+                logger.info("Debug sync mode enabled - forcing synchronous logging")
+                self.enable_async = False
 
-        # Create base directory
-        self.base_dir.mkdir(parents=True, exist_ok=True)
+            self.enable_compression = (
+                enable_compression
+                if enable_compression is not None
+                else response_config.get("enable_compression", False)
+            )
 
-        # Session management
-        self.session_id = self._get_claude_session_id()
+            # Create base directory
+            self.base_dir.mkdir(parents=True, exist_ok=True)
 
-        # Async infrastructure
-        self._queue: Queue = Queue(maxsize=self.max_queue_size)
-        self._worker_thread: Optional[Thread] = None
-        self._shutdown = False
-        self._lock = Lock()
+            # Use centralized SessionManager for session ID
+            session_manager = get_session_manager()
+            self.session_id = session_manager.get_session_id()
 
-        # Statistics
-        self.stats = {
-            "logged": 0,
-            "queued": 0,
-            "dropped": 0,
-            "errors": 0,
-            "avg_write_time_ms": 0.0,
-        }
+            # Async infrastructure
+            self._queue: Queue = Queue(maxsize=self.max_queue_size)
+            self._worker_thread: Optional[Thread] = None
+            self._shutdown = False
+            self._lock = Lock()
 
-        # Initialize format-specific handlers
-        self._init_format_handler()
+            # Statistics
+            self.stats = {
+                "logged": 0,
+                "queued": 0,
+                "dropped": 0,
+                "errors": 0,
+                "avg_write_time_ms": 0.0,
+            }
 
-        # Start background worker if async enabled
-        if self.enable_async:
-            self._start_worker()
+            # Initialize format-specific handlers
+            self._init_format_handler()
 
-        # Log initialization status
-        logger.info(
-            f"AsyncSessionLogger initialized: session_id={self.session_id}, async={self.enable_async}, format={self.log_format.value}"
-        )
+            # Mark as initialized
+            self._initialized = True
 
-    def _get_claude_session_id(self) -> str:
-        """Get or generate a Claude session ID."""
-        # Check environment variables in order of preference
-        for env_var in ["CLAUDE_SESSION_ID", "ANTHROPIC_SESSION_ID", "SESSION_ID"]:
-            session_id = os.environ.get(env_var)
-            if session_id:
-                logger.info(f"Using session ID from {env_var}: {session_id}")
-                return session_id
+            # Log initialization status
+            logger.info(
+                f"AsyncSessionLogger initialized with SessionManager: session_id={self.session_id}, async={self.enable_async}, format={self.log_format.value}"
+            )
 
-        # Generate timestamp-based session ID
-        session_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        logger.info(f"Generated session ID: {session_id}")
-        return session_id
+        # Start background worker if async enabled (outside initialization lock)
+        if self.enable_async and not self._worker_started:
+            with self._initialization_lock:
+                if not self._worker_started:
+                    self._start_worker()
+                    self._worker_started = True
 
     def _init_format_handler(self):
         """Initialize format-specific logging handlers."""
@@ -519,8 +526,17 @@ class AsyncSessionLogger:
             return self.stats.copy()
 
     def set_session_id(self, session_id: str):
-        """Set a new session ID."""
+        """Set a new session ID.
+
+        Note: This updates both the local session ID and the SessionManager.
+
+        Args:
+            session_id: The new session ID to use
+        """
         self.session_id = session_id
+        # Also update SessionManager to keep consistency
+        session_manager = get_session_manager()
+        session_manager.set_session_id(session_id)
         logger.info(f"Session ID updated to: {session_id}")
 
     def is_enabled(self) -> bool:
