@@ -716,14 +716,13 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
                         }
 
         # Compare architecture
-        if "architecture" in baseline and "architecture" in current:
-            if (
-                baseline["architecture"]["pattern"]
-                != current["architecture"]["pattern"]
-            ):
-                comparison["architecture_change"] = {
-                    "baseline": baseline["architecture"]["pattern"],
-                    "current": current["architecture"]["pattern"],
-                }
+        if "architecture" in baseline and "architecture" in current and (
+            baseline["architecture"]["pattern"]
+            != current["architecture"]["pattern"]
+        ):
+            comparison["architecture_change"] = {
+                "baseline": baseline["architecture"]["pattern"],
+                "current": current["architecture"]["pattern"],
+            }
 
         return comparison

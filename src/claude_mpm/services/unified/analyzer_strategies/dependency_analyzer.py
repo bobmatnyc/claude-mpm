@@ -234,10 +234,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
             # Check for pyproject.toml variants
             if manifest_path.name == "pyproject.toml":
                 content = manifest_path.read_text()
-                if "[tool.poetry]" in content:
-                    manager = "poetry"
-                else:
-                    manager = "pip"
+                manager = "poetry" if "[tool.poetry]" in content else "pip"
 
         if not manager:
             return {
@@ -537,7 +534,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
         """Detect web frameworks from dependencies."""
         detected = []
 
-        for language, frameworks in self.FRAMEWORK_PACKAGES.items():
+        for _language, frameworks in self.FRAMEWORK_PACKAGES.items():
             for framework in frameworks:
                 if framework in dependencies:
                     detected.append(framework)
@@ -561,7 +558,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
         """Detect testing tools from dependencies."""
         detected = []
 
-        for language, tools in self.TESTING_PACKAGES.items():
+        for _language, tools in self.TESTING_PACKAGES.items():
             for tool in tools:
                 if tool in dependencies:
                     detected.append(tool)
@@ -570,7 +567,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
     def _check_vulnerabilities(self, project_path: Path) -> Dict[str, Any]:
         """Check for known security vulnerabilities in dependencies."""
-        vulnerabilities = {
+        return {
             "total": 0,
             "critical": 0,
             "high": 0,
@@ -583,7 +580,6 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
         # In production, you would integrate with vulnerability databases
         # like npm audit, pip-audit, or safety
 
-        return vulnerabilities
 
     def _calculate_statistics(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate dependency statistics."""

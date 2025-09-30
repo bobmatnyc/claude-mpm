@@ -165,9 +165,8 @@ class SchemaBuilder:
         prop = SchemaProperty(type=type, **kwargs)
         self.schema.properties[name] = prop
 
-        if kwargs.get("required", False):
-            if name not in self.schema.required:
-                self.schema.required.append(name)
+        if kwargs.get("required", False) and name not in self.schema.required:
+            self.schema.required.append(name)
 
         return self
 
@@ -387,9 +386,8 @@ class SchemaValidator:
             if not re.match(prop.pattern, value):
                 self.errors.append(f"{path}: does not match pattern {prop.pattern}")
 
-        if prop.format:
-            if not self._validate_format(value, prop.format):
-                self.errors.append(f"{path}: invalid format {prop.format.value}")
+        if prop.format and not self._validate_format(value, prop.format):
+            self.errors.append(f"{path}: invalid format {prop.format.value}")
 
     def _validate_array(self, value: List, prop: SchemaProperty, path: str):
         """Validate array constraints"""
@@ -432,24 +430,22 @@ class SchemaValidator:
                 if req not in value:
                     self.errors.append(f"{path}: required property '{req}' missing")
 
-        if not prop.additional_properties:
-            if prop.properties:
-                extra = set(value.keys()) - set(prop.properties.keys())
-                if extra:
-                    self.errors.append(
-                        f"{path}: additional properties not allowed: {extra}"
-                    )
+        if not prop.additional_properties and prop.properties:
+            extra = set(value.keys()) - set(prop.properties.keys())
+            if extra:
+                self.errors.append(
+                    f"{path}: additional properties not allowed: {extra}"
+                )
 
     def _validate_dependencies(self, config: Dict, dependencies: Dict):
         """Validate field dependencies"""
         for field, deps in dependencies.items():
-            if field in config:
-                if isinstance(deps, list):
-                    for dep in deps:
-                        if dep not in config:
-                            self.errors.append(
-                                f"Field '{field}' requires '{dep}' to be present"
-                            )
+            if field in config and isinstance(deps, list):
+                for dep in deps:
+                    if dep not in config:
+                        self.errors.append(
+                            f"Field '{field}' requires '{dep}' to be present"
+                        )
 
     def _validate_format(self, value: str, format: SchemaFormat) -> bool:
         """Validate string format"""
@@ -602,7 +598,7 @@ class ConfigMigration:
 
         # Build graph of migrations
         graph = {}
-        for from_v, to_v in self.migrations.keys():
+        for from_v, to_v in self.migrations:
             if from_v not in graph:
                 graph[from_v] = []
             graph[from_v].append(to_v)
@@ -620,7 +616,7 @@ class ConfigMigration:
             for next_v in graph.get(current, []):
                 if next_v not in visited:
                     visited.add(next_v)
-                    queue.append((next_v, path + [next_v]))
+                    queue.append((next_v, [*path, next_v]))
 
         return None
 

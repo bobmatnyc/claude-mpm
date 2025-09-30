@@ -1,3 +1,27 @@
+## [4.5.5] - 2025-09-30
+
+### Fixed
+- **MCP Service Management**: Improved MCP dependency handling and error recovery
+  - Automatic MCP dependency reinstallation on startup for corrupted installations
+  - Enhanced error handling and recovery mechanisms for MCP services
+  - Improved service reliability through proactive dependency checks
+
+- **MCP Gateway Optimization**: Disabled pre-warming to prevent conflicts
+  - Removed MCP gateway pre-warming that could interfere with Claude Code
+  - Prevents duplicate service initialization and resource conflicts
+  - Cleaner startup process with better service isolation
+
+- **kuzu-memory Integration**: Enhanced compatibility and configuration
+  - Updated configuration for kuzu-memory v1.1.7 compatibility
+  - Improved version checking with automatic update prompts
+  - Better integration with latest kuzu-memory features
+  - Removed unnecessary gql injection logic from MCP config manager
+
+### Improved
+- MCP service startup reliability and error recovery
+- Service dependency management and validation
+- kuzu-memory version detection and upgrade workflow
+
 ## [4.5.4] - 2025-09-29
 
 ### Added

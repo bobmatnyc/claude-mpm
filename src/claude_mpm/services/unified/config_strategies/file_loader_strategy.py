@@ -198,8 +198,7 @@ class StructuredFileLoader(BaseFileLoader):
         # Remove single-line comments
         content = re.sub(r"//.*?$", "", content, flags=re.MULTILINE)
         # Remove multi-line comments
-        content = re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)
-        return content
+        return re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)
 
     def _recover_json(self, content: str) -> Dict[str, Any]:
         """Attempt to recover from malformed JSON"""
@@ -409,7 +408,7 @@ class EnvironmentFileLoader(BaseFileLoader):
             pass
 
         # JSON array or object
-        if value.startswith("[") or value.startswith("{"):
+        if value.startswith(("[", "{")):
             try:
                 return json.loads(value)
             except:
@@ -492,10 +491,7 @@ class ProgrammaticFileLoader(BaseFileLoader):
             config = module.CONFIG
         elif hasattr(module, "config"):
             # config dict or function
-            if callable(module.config):
-                config = module.config()
-            else:
-                config = module.config
+            config = module.config() if callable(module.config) else module.config
         elif hasattr(module, "get_config"):
             # get_config function
             config = module.get_config()
@@ -594,7 +590,7 @@ class LegacyFileLoader(BaseFileLoader):
             line = line.strip()
 
             # Skip comments and empty lines
-            if not line or line.startswith("#") or line.startswith("!"):
+            if not line or line.startswith(("#", "!")):
                 continue
 
             # Handle line continuation
@@ -765,7 +761,7 @@ class CompositeFileLoader(BaseFileLoader):
     def _load_single(self, context: FileLoadContext) -> Dict[str, Any]:
         """Load single configuration file"""
         # Find appropriate loader
-        for loader_type, loader in self.loaders.items():
+        for _loader_type, loader in self.loaders.items():
             if loader.supports(context.format):
                 return loader.load(context)
 

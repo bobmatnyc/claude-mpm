@@ -466,10 +466,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
         deployed = []
 
         for artifact in artifacts:
-            if target_path.is_dir():
-                dest = target_path / artifact.name
-            else:
-                dest = target_path
+            dest = target_path / artifact.name if target_path.is_dir() else target_path
 
             shutil.copy2(artifact, dest)
             deployed.append(dest)
@@ -556,7 +553,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
     ) -> bool:
         """Verify template deployment."""
         # Check that template variables were replaced
-        variables = context.config.get("variables", {})
+        context.config.get("variables", {})
 
         if deployed_path.is_file():
             content = deployed_path.read_text()

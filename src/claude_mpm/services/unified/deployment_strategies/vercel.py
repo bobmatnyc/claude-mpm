@@ -88,9 +88,8 @@ class VercelDeploymentStrategy(DeploymentStrategy):
         config = context.config
 
         # Check project name
-        if not config.get("project_name"):
-            if not vercel_json.exists():
-                errors.append("Project name required when vercel.json is missing")
+        if not config.get("project_name") and not vercel_json.exists():
+            errors.append("Project name required when vercel.json is missing")
 
         # Validate environment variables
         env_vars = config.get("env", {})
@@ -275,7 +274,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
                 if context.config.get("token"):
                     cmd.extend(["--token", context.config["token"]])
 
-                result = subprocess.run(
+                subprocess.run(
                     cmd,
                     capture_output=True,
                     text=True,
@@ -359,7 +358,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
     def _check_vercel_cli(self) -> bool:
         """Check if Vercel CLI is installed."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["vercel", "--version"],
                 capture_output=True,
                 text=True,
@@ -372,7 +371,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
     def _check_vercel_auth(self) -> bool:
         """Check if authenticated with Vercel."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["vercel", "whoami"],
                 capture_output=True,
                 text=True,

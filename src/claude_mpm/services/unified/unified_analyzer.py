@@ -455,7 +455,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
             return options["type"]
 
         # Infer from target type
-        if isinstance(target, Path) or isinstance(target, str):
+        if isinstance(target, (Path, str)):
             path = Path(target)
             if path.is_file():
                 # Determine by file extension
