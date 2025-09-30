@@ -1,3 +1,23 @@
+## [4.5.4] - 2025-09-29
+
+### Added
+- **Automatic kuzu-memory Version Checking**: MCP Gateway now checks for kuzu-memory updates at startup
+  - Checks PyPI once per 24 hours to minimize network requests
+  - Interactive user prompts for available updates with one-click upgrade
+  - Non-blocking with 5-second timeout to avoid startup delays
+  - Configurable via user preferences file (~/.config/claude-mpm/update_preferences.json)
+  - Environment variable override (CLAUDE_MPM_CHECK_KUZU_UPDATES=false)
+  - Fully tested with 34 unit and integration tests (100% passing)
+  - Graceful degradation when PyPI is unavailable
+  - Respects user choices and remembers "skip version" preferences
+
+### Technical Details
+- New PackageVersionChecker utility for version comparison and PyPI queries
+- UpdatePreferencesManager for persistent user preferences
+- Cache system prevents excessive PyPI requests
+- Async subprocess execution for pipx upgrades
+- Clean integration with MCP process pool initialization
+
 ## [4.5.3] - 2025-09-29
 
 ### Enhanced
