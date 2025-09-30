@@ -54,6 +54,10 @@ class ProjectOrganizer:
         ".claude-mpm/cache/",
         ".claude-mpm/logs/",
         ".claude/cache/",
+        # MCP service directories for local data
+        ".mcp-vector-search/",
+        ".kuzu-memory/",
+        "kuzu-memories/",  # kuzu-memory database directory
         # Python artifacts
         "__pycache__/",
         "*.py[cod]",
