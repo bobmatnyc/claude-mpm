@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Test the consolidated dashboard hub"""
 
-import os
 import sys
 import time
 from pathlib import Path

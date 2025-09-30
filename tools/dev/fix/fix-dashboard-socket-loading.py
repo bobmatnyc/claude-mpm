@@ -4,7 +4,6 @@ Fix Socket.IO loading in all dashboard HTML files.
 Ensures proper Socket.IO initialization and connection handling.
 """
 
-import os
 import re
 from pathlib import Path
 

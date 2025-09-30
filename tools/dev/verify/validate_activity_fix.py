@@ -3,8 +3,6 @@
 Validation script for the Activity Tree session fix.
 """
 
-import json
-import os
 import re
 from pathlib import Path
 
