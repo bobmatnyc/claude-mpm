@@ -201,7 +201,7 @@ class Config:
                         # Set flag IMMEDIATELY before logging to prevent any possibility of duplicate
                         # messages. No lock needed here since we're already inside __init__ lock
                         Config._success_logged = True
-                        logger.info(
+                        logger.debug(
                             f"✓ Successfully loaded configuration from {file_path}"
                         )
                     else:

@@ -85,7 +85,7 @@ class AsyncEventEmitter:
                 },
             )
 
-            self.logger.info("AsyncEventEmitter initialized with connection pooling")
+            self.logger.debug("AsyncEventEmitter initialized with connection pooling")
 
         except Exception as e:
             self.logger.error(f"Error initializing AsyncEventEmitter: {e}")

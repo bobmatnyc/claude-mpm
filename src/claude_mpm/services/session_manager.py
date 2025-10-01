@@ -67,7 +67,7 @@ class SessionManager:
             # Mark as initialized
             self.__class__._initialized = True
 
-            logger.info(
+            logger.debug(
                 f"SessionManager initialized with session ID: {self._session_id}"
             )
 
@@ -86,12 +86,12 @@ class SessionManager:
         for env_var in env_vars:
             session_id = os.environ.get(env_var)
             if session_id:
-                logger.info(f"Using session ID from {env_var}: {session_id}")
+                logger.debug(f"Using session ID from {env_var}: {session_id}")
                 return session_id
 
         # Generate timestamp-based session ID
         session_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        logger.info(f"Generated new session ID: {session_id}")
+        logger.debug(f"Generated new session ID: {session_id}")
         return session_id
 
     def get_session_id(self) -> str:

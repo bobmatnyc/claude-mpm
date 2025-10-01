@@ -190,7 +190,7 @@ class AsyncSessionLogger:
             self._initialized = True
 
             # Log initialization status
-            logger.info(
+            logger.debug(
                 f"AsyncSessionLogger initialized with SessionManager: session_id={self.session_id}, async={self.enable_async}, format={self.log_format.value}"
             )
 
@@ -537,7 +537,7 @@ class AsyncSessionLogger:
         # Also update SessionManager to keep consistency
         session_manager = get_session_manager()
         session_manager.set_session_id(session_id)
-        logger.info(f"Session ID updated to: {session_id}")
+        logger.debug(f"Session ID updated to: {session_id}")
 
     def is_enabled(self) -> bool:
         """Check if logging is enabled."""
