@@ -15,6 +15,34 @@
     ]
   },
   "capabilities": {
+    "port_allocation": {
+      "description": "Deterministic hash-based port allocation for consistent project ports",
+      "features": [
+        "single_port_per_project",
+        "hash_based_allocation",
+        "automatic_conflict_resolution",
+        "persistent_state_tracking",
+        "environment_variable_override"
+      ],
+      "port_range": [3000, 3999],
+      "environment_override": "PROJECT_PORT"
+    },
+    "orphan_detection": {
+      "description": "Detect and cleanup orphaned deployment processes",
+      "capabilities": [
+        "dead_pid_detection",
+        "deleted_project_cleanup",
+        "untracked_process_scanning",
+        "pm2_orphan_detection",
+        "docker_orphan_detection"
+      ],
+      "safety_features": [
+        "process_age_verification",
+        "protected_service_preservation",
+        "severity_based_confirmation",
+        "multi_level_safety_checks"
+      ]
+    },
     "frameworks": {
       "javascript": [
         "next.js",
@@ -179,13 +207,54 @@
       "workflow": [
         "detect_framework",
         "check_existing_deployments",
+        "allocate_project_port",
         "verify_no_conflicts",
         "check_process_ownership",
-        "reuse_or_allocate_port",
+        "register_port_allocation",
         "build_if_needed",
         "start_or_attach_to_process",
         "monitor_health",
         "report_status"
+      ]
+    },
+    "detect_orphans": {
+      "description": "Scan for orphaned deployment processes",
+      "examples": [
+        "Check for orphaned processes",
+        "Scan for dead deployments",
+        "Find processes without state tracking"
+      ],
+      "workflow": [
+        "scan_dead_pids",
+        "scan_deleted_projects",
+        "scan_untracked_processes",
+        "scan_pm2_orphans",
+        "scan_docker_orphans",
+        "classify_by_severity",
+        "report_findings"
+      ]
+    },
+    "cleanup_orphans": {
+      "description": "Clean up orphaned processes safely",
+      "examples": [
+        "Clean up dead process entries",
+        "Remove orphaned PM2 processes",
+        "Stop untracked Docker containers"
+      ],
+      "safety_rules": [
+        "verify_process_age",
+        "check_protected_services",
+        "require_confirmation_for_high_severity",
+        "never_kill_claude_mpm_services",
+        "graceful_shutdown_first"
+      ],
+      "workflow": [
+        "verify_orphan_validity",
+        "check_safety_rules",
+        "request_confirmation_if_needed",
+        "execute_cleanup_action",
+        "update_state_files",
+        "report_results"
       ]
     },
     "status": {
@@ -433,8 +502,10 @@
       "response": "I'll deploy your Next.js application using PM2 for stability. Let me detect your configuration and set it up...",
       "actions": [
         "detect_framework",
+        "allocate_consistent_port",
         "build_production",
         "deploy_with_pm2",
+        "register_port_allocation",
         "monitor_health"
       ]
     },
@@ -444,7 +515,28 @@
       "actions": [
         "list_pm2_processes",
         "check_docker_containers",
+        "show_port_allocations",
         "aggregate_status"
+      ]
+    },
+    {
+      "user": "Check for orphaned processes",
+      "response": "I'll scan for orphaned deployment processes and categorize them by severity...",
+      "actions": [
+        "scan_all_orphans",
+        "classify_by_severity",
+        "report_findings_with_cleanup_recommendations"
+      ]
+    },
+    {
+      "user": "Clean up orphaned processes",
+      "response": "I'll safely clean up orphaned processes. High-severity orphans will require your confirmation...",
+      "actions": [
+        "scan_orphans",
+        "verify_safety_checks",
+        "cleanup_low_severity_orphans",
+        "request_confirmation_for_high_severity",
+        "report_results"
       ]
     },
     {
@@ -457,5 +549,39 @@
       ]
     }
   ],
+  "usage_guide": {
+    "port_allocation": {
+      "description": "Projects automatically get consistent ports based on their path hash",
+      "override": "Set PROJECT_PORT environment variable to override automatic allocation",
+      "example": "PROJECT_PORT=3500 npm run dev",
+      "benefits": [
+        "Same port across sessions",
+        "No manual port management",
+        "Automatic conflict resolution",
+        "Global registry prevents cross-project conflicts"
+      ]
+    },
+    "orphan_detection": {
+      "description": "Detect and cleanup orphaned processes from failed or abandoned deployments",
+      "severity_levels": {
+        "low": "Safe to auto-cleanup (e.g., dead PIDs in state files)",
+        "medium": "Needs awareness (e.g., untracked processes)",
+        "high": "Requires confirmation (e.g., running PM2/Docker services)"
+      },
+      "safety_guarantees": [
+        "Never touches processes < 1 minute old",
+        "Never kills Claude MPM/MCP services (ports 8765-8785)",
+        "Never interferes with other projects",
+        "Graceful shutdown before force kill",
+        "Multiple verification layers"
+      ]
+    },
+    "troubleshooting": {
+      "port_conflicts": "If port is in use, allocator will use linear probing to find next available port",
+      "environment_override": "Use PROJECT_PORT=XXXX to force specific port (bypasses hash allocation)",
+      "orphan_cleanup_failed": "High-severity orphans require explicit confirmation for safety",
+      "state_file_corruption": "Delete .claude-mpm/deployment-state.json to reset (will lose tracking)"
+    }
+  },
   "agent_version": "1.0.1"
 }
