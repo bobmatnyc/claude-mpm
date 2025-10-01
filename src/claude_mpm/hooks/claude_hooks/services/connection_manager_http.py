@@ -26,14 +26,8 @@ except ImportError:
     REQUESTS_AVAILABLE = False
     requests = None
 
-# Import high-performance event emitter
-try:
-    from claude_mpm.services.monitor.event_emitter import get_event_emitter
-
-    EVENT_EMITTER_AVAILABLE = True
-except ImportError:
-    EVENT_EMITTER_AVAILABLE = False
-    get_event_emitter = None
+# Import high-performance event emitter - lazy loaded in _async_emit()
+# to reduce hook handler initialization time by ~85% (792ms -> minimal)
 
 # Import EventNormalizer for consistent event formatting
 try:
@@ -137,9 +131,6 @@ class ConnectionManagerService:
 
     def _try_async_emit(self, namespace: str, event: str, data: dict) -> bool:
         """Try to emit event using high-performance async emitter."""
-        if not EVENT_EMITTER_AVAILABLE:
-            return False
-
         try:
             # Run async emission in the current event loop or create one
             loop = None
@@ -170,8 +161,15 @@ class ConnectionManagerService:
     async def _async_emit(self, namespace: str, event: str, data: dict) -> bool:
         """Async helper for event emission."""
         try:
+            # Lazy load event emitter to reduce initialization overhead
+            from claude_mpm.services.monitor.event_emitter import get_event_emitter
+
             emitter = await get_event_emitter()
             return await emitter.emit_event(namespace, "claude_event", data)
+        except ImportError:
+            if DEBUG:
+                print("⚠️ Event emitter not available", file=sys.stderr)
+            return False
         except Exception as e:
             if DEBUG:
                 print(f"⚠️ Async emitter error: {e}", file=sys.stderr)

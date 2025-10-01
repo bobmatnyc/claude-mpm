@@ -1482,7 +1482,10 @@ class ConfigureCommand(BaseCommand):
 
             # IMPORTANT: Also update agent_deployment.disabled_agents so the deployment
             # system actually uses the configured disabled agents list
-            config.set("agent_deployment.disabled_agents", startup_config.get("disabled_agents", []))
+            config.set(
+                "agent_deployment.disabled_agents",
+                startup_config.get("disabled_agents", []),
+            )
 
             # Determine config file path
             if self.current_scope == "project":
@@ -1495,6 +1498,7 @@ class ConfigureCommand(BaseCommand):
 
             # Temporarily suppress INFO logging to avoid duplicate save messages
             import logging
+
             root_logger = logging.getLogger("claude_mpm")
             original_level = root_logger.level
             root_logger.setLevel(logging.WARNING)

@@ -19,14 +19,18 @@ DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
 # NOTE: ResponseTracker import moved to _initialize_response_tracking() for lazy loading
 # This prevents unnecessary import of base_agent_loader and other heavy dependencies
 # when hooks don't need response tracking
-RESPONSE_TRACKING_AVAILABLE = True  # Assume available, will check on actual initialization
+RESPONSE_TRACKING_AVAILABLE = (
+    True  # Assume available, will check on actual initialization
+)
 
 
 class ResponseTrackingManager:
     """Manager for response tracking functionality."""
 
     def __init__(self):
-        self.response_tracker: Optional[Any] = None  # Type hint changed to Any for lazy import
+        self.response_tracker: Optional[Any] = (
+            None  # Type hint changed to Any for lazy import
+        )
         self.response_tracking_enabled = False
         self.track_all_interactions = (
             False  # Track all Claude interactions, not just delegations
