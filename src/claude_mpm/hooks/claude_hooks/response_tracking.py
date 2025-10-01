@@ -10,28 +10,23 @@ import os
 import re
 import sys
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 # Debug mode
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
 
 # Response tracking integration
-RESPONSE_TRACKING_AVAILABLE = False
-try:
-    from claude_mpm.services.response_tracker import ResponseTracker
-
-    RESPONSE_TRACKING_AVAILABLE = True
-except Exception as e:
-    if DEBUG:
-        print(f"Response tracking not available: {e}", file=sys.stderr)
-    RESPONSE_TRACKING_AVAILABLE = False
+# NOTE: ResponseTracker import moved to _initialize_response_tracking() for lazy loading
+# This prevents unnecessary import of base_agent_loader and other heavy dependencies
+# when hooks don't need response tracking
+RESPONSE_TRACKING_AVAILABLE = True  # Assume available, will check on actual initialization
 
 
 class ResponseTrackingManager:
     """Manager for response tracking functionality."""
 
     def __init__(self):
-        self.response_tracker: Optional[ResponseTracker] = None
+        self.response_tracker: Optional[Any] = None  # Type hint changed to Any for lazy import
         self.response_tracking_enabled = False
         self.track_all_interactions = (
             False  # Track all Claude interactions, not just delegations
@@ -49,8 +44,14 @@ class ResponseTrackingManager:
 
         DESIGN DECISION: Check configuration to allow enabling/disabling
         response tracking without code changes.
+
+        NOTE: ResponseTracker is imported lazily here to avoid loading
+        base_agent_loader and other heavy dependencies unless actually needed.
         """
         try:
+            # Lazy import of ResponseTracker to avoid unnecessary dependency loading
+            from claude_mpm.services.response_tracker import ResponseTracker
+
             # Create configuration with optional config file using ConfigLoader
             config_file = os.environ.get("CLAUDE_PM_CONFIG_FILE")
             from claude_mpm.core.shared.config_loader import ConfigLoader, ConfigPattern
