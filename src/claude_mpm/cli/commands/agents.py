@@ -938,7 +938,7 @@ class AgentsCommand(AgentCommand):
             self.logger.error(f"Error creating local agent: {e}", exc_info=True)
             return CommandResult.error_result(f"Error creating local agent: {e}")
 
-    def _edit_local_agent(self, args) -> CommandResult:  # noqa: PLR0911
+    def _edit_local_agent(self, args) -> CommandResult:
         """Edit a local agent template."""
         try:
             agent_id = getattr(args, "agent_id", None)
@@ -993,7 +993,7 @@ class AgentsCommand(AgentCommand):
             self.logger.error(f"Error editing local agent: {e}", exc_info=True)
             return CommandResult.error_result(f"Error editing local agent: {e}")
 
-    def _delete_local_agent(self, args) -> CommandResult:  # noqa: PLR0911
+    def _delete_local_agent(self, args) -> CommandResult:
         """Delete local agent templates."""
         try:
             agent_ids = getattr(args, "agent_ids", [])
@@ -1140,7 +1140,7 @@ class AgentsCommand(AgentCommand):
                 config_path.parent.mkdir(parents=True, exist_ok=True)
                 config_data = {}
             else:
-                with open(config_path) as f:
+                with config_path.open() as f:
                     config_data = yaml.safe_load(f) or {}
 
             # Ensure agent_deployment section exists
@@ -1204,7 +1204,7 @@ class AgentsCommand(AgentCommand):
 
             # Save configuration if modified
             if modified:
-                with open(config_path, "w") as f:
+                with config_path.open("w") as f:
                     yaml.dump(config_data, f, default_flow_style=False, sort_keys=False)
                 print(f"\n💾 Configuration saved to {config_path}")
                 return CommandResult.success_result("Deployment configuration updated")
@@ -1231,7 +1231,7 @@ class AgentsCommand(AgentCommand):
 
             # Load current configuration
             if config_path.exists():
-                with open(config_path) as f:
+                with config_path.open() as f:
                     config_data = yaml.safe_load(f) or {}
             else:
                 config_data = {}
@@ -1326,7 +1326,7 @@ class AgentsCommand(AgentCommand):
             # Ensure parent directory exists
             config_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(config_path, "w") as f:
+            with config_path.open("w") as f:
                 yaml.dump(config_data, f, default_flow_style=False, sort_keys=False)
 
             print(f"\n✅ Configuration saved to {config_path}")

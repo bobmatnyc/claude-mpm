@@ -34,7 +34,7 @@ def analyze_file(filepath):
     # ALWAYS use Python AST for Python files
     if ext == '.py':
         try:
-            with open(filepath, 'r') as f:
+            with filepath.open('r') as f:
                 source = f.read()
             tree = ast.parse(source)
             print(f"   ✅ Used Python AST")
@@ -87,7 +87,7 @@ def analyze_file(filepath):
             lang = Language(lang_function())
             parser = Parser(lang)
 
-            with open(filepath, 'rb') as f:
+            with filepath.open('rb') as f:
                 tree = parser.parse(f.read())
 
             print(f"   ✅ Used {module_name} with {language_func}()")
@@ -105,7 +105,7 @@ def analyze_file(filepath):
     # Fallback to text analysis for unsupported files
     print(f"   ⚠️  Unsupported extension {ext}, using text analysis")
     try:
-        with open(filepath, 'r') as f:
+        with filepath.open('r') as f:
             content = f.read()
         return content, 'text_analysis', len(content.split('\\n'))
     except Exception as e:
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     test_file = Path(__file__).parent / "temp_multilang_test.py"
 
     try:
-        with open(test_file, "w") as f:
+        with test_file.open("w") as f:
             f.write(test_script)
 
         print("Running multi-language parsing test...")
@@ -202,7 +202,7 @@ def analyze_python_features(filepath):
     """Test Python-specific AST analysis features."""
     print(f"\\n🐍 Python Analysis: {os.path.basename(filepath)}")
 
-    with open(filepath, 'r') as f:
+    with filepath.open('r') as f:
         source = f.read()
 
     tree = ast.parse(source)
@@ -249,7 +249,7 @@ def analyze_javascript_features(filepath):
         lang = Language(tsjs.language())
         parser = Parser(lang)
 
-        with open(filepath, 'rb') as f:
+        with filepath.open('rb') as f:
             tree = parser.parse(f.read())
 
         # Count different JavaScript constructs
@@ -297,7 +297,7 @@ def analyze_typescript_features(filepath):
         lang = Language(tsts.language_typescript())
         parser = Parser(lang)
 
-        with open(filepath, 'rb') as f:
+        with filepath.open('rb') as f:
             tree = parser.parse(f.read())
 
         # Count TypeScript-specific constructs
@@ -345,7 +345,7 @@ def analyze_go_features(filepath):
         lang = Language(tsgo.language())
         parser = Parser(lang)
 
-        with open(filepath, 'rb') as f:
+        with filepath.open('rb') as f:
             tree = parser.parse(f.read())
 
         # Count Go-specific constructs
@@ -421,7 +421,7 @@ if __name__ == "__main__":
     feature_file = Path(__file__).parent / "temp_features_test.py"
 
     try:
-        with open(feature_file, "w") as f:
+        with feature_file.open("w") as f:
             f.write(feature_script)
 
         print("Running language-specific features test...")

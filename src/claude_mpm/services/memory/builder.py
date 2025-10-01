@@ -458,7 +458,7 @@ class MemoryBuilder(LoggerMixin):
                         import tomllib
                     except ImportError:
                         import tomli as tomllib
-                    with open(file_path, "rb") as f:
+                    with file_path.open("rb") as f:
                         config_data = tomllib.load(f)
                     items = self._extract_from_toml_config(config_data, source)
                     extracted_items.extend(items)

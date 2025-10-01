@@ -58,7 +58,7 @@ class ConfigCommand(BaseCommand):
             f"Unknown config command: {args.config_command}"
         )
 
-    def _validate_config(self, args) -> CommandResult:  # noqa: PLR0911
+    def _validate_config(self, args) -> CommandResult:
         """Validate configuration file."""
         config_file = getattr(args, "config_file", None) or Path(
             ".claude-mpm/configuration.yaml"
@@ -168,7 +168,7 @@ class ConfigCommand(BaseCommand):
             console.print(f"[red]Failed to validate configuration: {e}[/red]")
             return CommandResult.error_result(f"Failed to validate configuration: {e}")
 
-    def _view_config(self, args) -> CommandResult:  # noqa: PLR0911
+    def _view_config(self, args) -> CommandResult:
         """View current configuration."""
         try:
             # Load configuration

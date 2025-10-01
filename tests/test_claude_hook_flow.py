@@ -10,7 +10,7 @@ CRITICAL: Claude sends events with `hook_event_name` field, NOT `event` or `type
 import asyncio
 import sys
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 try:
@@ -41,7 +41,7 @@ class ClaudeEventTester:
             "hook_event_name": event_name,  # THIS IS THE CRITICAL FIELD!
             "hook_event_type": event_name,  # Also included by Claude
             "sessionId": self.session_id,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "hook_run_id": f"run-{uuid.uuid4().hex[:8]}",
         }
 

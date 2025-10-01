@@ -163,7 +163,7 @@ class FreshInstallTester:
                 if config_file.exists():
                     logger.info("✓ .claude/config.yaml created")
                     try:
-                        with open(config_file) as f:
+                        with config_file.open() as f:
                             config_content = f.read()
                             logger.info(f"Config file contents:\n{config_content}")
                     except Exception as e:

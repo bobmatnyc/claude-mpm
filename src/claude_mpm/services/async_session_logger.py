@@ -336,7 +336,7 @@ class AsyncSessionLogger:
             with gzip.open(file_path, "wt", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         else:
-            with open(file_path, "w", encoding="utf-8") as f:
+            with file_path.open("w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
         logger.debug(f"Wrote log entry to {file_path}")

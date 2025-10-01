@@ -141,7 +141,7 @@ class FrameworkClaudeMdGenerator:
         current_content = None
 
         if target_file.exists():
-            with open(target_file) as f:
+            with target_file.open() as f:
                 current_content = f.read()
 
         # Generate new content

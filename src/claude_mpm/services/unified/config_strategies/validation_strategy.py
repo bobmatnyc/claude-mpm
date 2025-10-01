@@ -402,7 +402,7 @@ class FormatValidator(BaseValidator):
         try:
             result = urllib.parse.urlparse(value)
             return all([result.scheme, result.netloc])
-        except:
+        except (ValueError, AttributeError, TypeError):
             return False
 
     @staticmethod
@@ -410,7 +410,7 @@ class FormatValidator(BaseValidator):
         try:
             result = urllib.parse.urlparse(value)
             return bool(result.scheme)
-        except:
+        except (ValueError, AttributeError, TypeError):
             return False
 
     @staticmethod
@@ -420,7 +420,7 @@ class FormatValidator(BaseValidator):
         try:
             uuid.UUID(value)
             return True
-        except:
+        except (ValueError, AttributeError, TypeError):
             return False
 
     @staticmethod
@@ -428,7 +428,7 @@ class FormatValidator(BaseValidator):
         try:
             ipaddress.IPv4Address(value)
             return True
-        except:
+        except (ValueError, ipaddress.AddressValueError):
             return False
 
     @staticmethod
@@ -436,7 +436,7 @@ class FormatValidator(BaseValidator):
         try:
             ipaddress.IPv6Address(value)
             return True
-        except:
+        except (ValueError, ipaddress.AddressValueError):
             return False
 
     @staticmethod
@@ -444,7 +444,7 @@ class FormatValidator(BaseValidator):
         try:
             ipaddress.ip_address(value)
             return True
-        except:
+        except (ValueError, ipaddress.AddressValueError):
             return False
 
     @staticmethod
@@ -461,7 +461,7 @@ class FormatValidator(BaseValidator):
         try:
             datetime.strptime(value, "%Y-%m-%d")
             return True
-        except:
+        except (ValueError, TypeError):
             return False
 
     @staticmethod
@@ -469,11 +469,11 @@ class FormatValidator(BaseValidator):
         try:
             datetime.strptime(value, "%H:%M:%S")
             return True
-        except:
+        except (ValueError, TypeError):
             try:
                 datetime.strptime(value, "%H:%M")
                 return True
-            except:
+            except (ValueError, TypeError):
                 return False
 
     @staticmethod
@@ -488,7 +488,7 @@ class FormatValidator(BaseValidator):
             try:
                 datetime.strptime(value, fmt)
                 return True
-            except:
+            except (ValueError, TypeError):
                 continue
         return False
 
@@ -499,7 +499,7 @@ class FormatValidator(BaseValidator):
         try:
             json.loads(value)
             return True
-        except:
+        except (json.JSONDecodeError, ValueError, TypeError):
             return False
 
     @staticmethod
@@ -509,7 +509,7 @@ class FormatValidator(BaseValidator):
         try:
             base64.b64decode(value, validate=True)
             return True
-        except:
+        except (ValueError, base64.binascii.Error):
             return False
 
     @staticmethod
@@ -517,7 +517,7 @@ class FormatValidator(BaseValidator):
         try:
             Path(value)
             return True
-        except:
+        except (ValueError, TypeError, OSError):
             return False
 
     @staticmethod
@@ -709,7 +709,7 @@ class ConditionalValidator(BaseValidator):
 
         try:
             return comparator(actual, expected)
-        except:
+        except (TypeError, ValueError, AttributeError, KeyError):
             return False
 
     def _apply_rule(
@@ -910,7 +910,7 @@ class CrossFieldValidator(BaseValidator):
         if comparator:
             try:
                 return comparator(val1, val2)
-            except:
+            except (TypeError, ValueError, AttributeError, KeyError):
                 return False
 
         return False

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Unit test for event transformation logic to ensure protected fields are preserved."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def simulate_transform_event(event_data):
@@ -94,7 +94,7 @@ def test_protected_fields():
     # Test 1: Hook event with conflicting type in data
     test1 = {
         "type": "hook.pre_tool",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "data": {
             "type": "SHOULD_NOT_OVERWRITE",
             "subtype": "ALSO_SHOULD_NOT_OVERWRITE",
@@ -115,7 +115,7 @@ def test_protected_fields():
     # Test 2: Legacy event format
     test2 = {
         "event": "SubagentStart",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "data": {"agent_type": "Engineer"},
     }
 
@@ -139,7 +139,7 @@ def test_protected_fields():
     test3 = {
         "type": "session",
         "subtype": "started",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "data": {"subtype": "different_value", "session_id": "abc123"},
     }
 
@@ -175,7 +175,7 @@ def test_protected_fields():
     # Test 5: Dotted type format (session.started)
     test5 = {
         "type": "session.started",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "data": {"user_id": "user123"},
     }
 

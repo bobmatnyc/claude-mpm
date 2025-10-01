@@ -37,7 +37,7 @@ def is_running(pid_file: Path) -> bool:
         return False
 
     try:
-        with open(pid_file) as f:
+        with pid_file.open() as f:
             pid = int(f.read().strip())
 
         # Check if process exists
@@ -85,7 +85,7 @@ def start_server(port: int = DEFAULT_PORT, daemon: bool = True) -> bool:
         logger.info(f"Socket.IO daemon started on port {actual_port}")
         # Save the port for clients to discover
         port_file = pid_file.parent / "socketio-port"
-        with open(port_file, "w") as f:
+        with port_file.open("w") as f:
             f.write(str(actual_port))
     else:
         logger.error("Failed to start Socket.IO daemon")
@@ -102,7 +102,7 @@ def stop_server() -> bool:
         return False
 
     try:
-        with open(pid_file) as f:
+        with pid_file.open() as f:
             pid = int(f.read().strip())
 
         # Send SIGTERM for graceful shutdown
@@ -155,12 +155,12 @@ def status_server() -> bool:
 
     if is_running(pid_file):
         try:
-            with open(pid_file) as f:
+            with pid_file.open() as f:
                 pid = int(f.read().strip())
 
             port = DEFAULT_PORT
             if port_file.exists():
-                with open(port_file) as f:
+                with port_file.open() as f:
                     port = int(f.read().strip())
 
             print(f"Socket.IO daemon is running (PID: {pid}, Port: {port})")

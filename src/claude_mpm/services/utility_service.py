@@ -110,7 +110,7 @@ class UtilityService(BaseService, UtilityServiceInterface):
                 **event_data,
             }
 
-            with open(log_file, "a") as f:
+            with log_file.open("a") as f:
                 f.write(json.dumps(log_entry) + "\n")
 
         except OSError as e:

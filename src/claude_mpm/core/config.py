@@ -253,7 +253,7 @@ class Config:
                     "operation": "read",
                     "error_type": type(e).__name__,
                 },
-            )
+            ) from e
         except Exception as e:
             # Catch any remaining unexpected errors and wrap them as configuration errors
             raise ConfigurationError(
@@ -263,7 +263,7 @@ class Config:
                     "error_type": type(e).__name__,
                     "original_error": str(e),
                 },
-            )
+            ) from e
 
     def _load_env_vars(self) -> None:
         """Load configuration from environment variables."""
@@ -651,7 +651,7 @@ class Config:
                     "format": format,
                     "error_type": type(e).__name__,
                 },
-            )
+            ) from e
         except Exception as e:
             # Re-raise ConfigurationError as-is, wrap others
             if isinstance(e, ConfigurationError):
@@ -663,7 +663,7 @@ class Config:
                     "format": format,
                     "error_type": type(e).__name__,
                 },
-            )
+            ) from e
 
     def validate(self, schema: Dict[str, Any]) -> bool:
         """

@@ -468,7 +468,7 @@ def test_recovery_after_errors():
         valid_phase2_files = 0
         for json_file in Path(tmpdir).glob("**/recovery_test_phase2/*.json"):
             try:
-                with open(json_file) as f:
+                with json_file.open() as f:
                     import json
 
                     data = json.load(f)

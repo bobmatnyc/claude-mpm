@@ -144,7 +144,7 @@ for agent in agents:
             if agent_file.name == "agent_schema.json":
                 continue
 
-            with open(agent_file) as f:
+            with agent_file.open() as f:
                 agent = json.load(f)
 
             if "opus" in agent.get("model", "").lower():
@@ -162,7 +162,7 @@ for agent in agents:
             if agent_file.name == "agent_schema.json":
                 continue
 
-            with open(agent_file) as f:
+            with agent_file.open() as f:
                 agent = json.load(f)
 
             tier = agent.get("resource_tier")
@@ -182,7 +182,7 @@ for agent in agents:
             if agent_file.name == "agent_schema.json":
                 continue
 
-            with open(agent_file) as f:
+            with agent_file.open() as f:
                 agent = json.load(f)
 
             instructions = agent.get("instructions", "")
@@ -232,7 +232,7 @@ for agent in agents:
         }
 
         invalid_path = self / "invalid.json"
-        with open(invalid_path, "w") as f:
+        with invalid_path.open("w") as f:
             json.dump(invalid_agent, f)
 
         # Should handle error gracefully

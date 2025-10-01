@@ -430,7 +430,7 @@ class SocketIODebugger:
             return
 
         try:
-            with open(self.output_file, "a") as f:
+            with self.output_file.open("a") as f:
                 f.write(json.dumps(data) + "\n")
         except Exception as e:
             self._log("error", f"Failed to write to file: {e}")

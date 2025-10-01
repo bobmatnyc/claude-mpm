@@ -11,7 +11,7 @@ This test verifies:
 
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import requests
 import socketio as socketio_client
@@ -109,7 +109,7 @@ def simulate_claude_session():
 
     for event_info in events_sequence:
         event = event_info["event"]
-        event["timestamp"] = datetime.now().isoformat()
+        event["timestamp"] = datetime.now(timezone.utc).isoformat()
         event["session_id"] = session_id
 
         try:
@@ -144,7 +144,7 @@ def create_dashboard_client(client_id, events_collector):
                 "client": client_id,
                 "type": "claude_event",
                 "subtype": data.get("subtype", "unknown"),
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         )
 

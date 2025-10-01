@@ -526,7 +526,7 @@ class ProjectLogger:
             self.dirs["logs_system"]
             / f"{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
         )
-        with open(log_file, "a") as f:
+        with log_file.open("a") as f:
             f.write(json.dumps(log_entry) + "\n")
 
     def log_agent_invocation(
@@ -580,7 +580,7 @@ class ProjectLogger:
         daily_log = (
             agent_log_dir / f"{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
         )
-        with open(daily_log, "a") as f:
+        with daily_log.open("a") as f:
             f.write(json.dumps(log_entry) + "\n")
 
     def get_session_summary(self) -> Dict[str, Any]:

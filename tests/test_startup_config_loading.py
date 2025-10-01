@@ -139,7 +139,7 @@ if __name__ == "__main__":
 
     # Save logs for inspection
     log_file = Path("startup_config_logs.txt")
-    with open(log_file, "w") as f:
+    with log_file.open("w") as f:
         f.write(logs)
     print(f"\nFull logs saved to: {log_file}")
 

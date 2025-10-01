@@ -542,12 +542,12 @@ class LogManager:
 
                 if extension == ".json":
                     # JSON files also get structured metadata for consistency
-                    with open(file_path, "w", encoding="utf-8") as f:
+                    with file_path.open("w", encoding="utf-8") as f:
                         json.dump(data, f, indent=2, ensure_ascii=False)
                 # For markdown or text files
                 elif isinstance(data, dict):
                     # Write as formatted markdown with metadata
-                    with open(file_path, "w", encoding="utf-8") as f:
+                    with file_path.open("w", encoding="utf-8") as f:
                         f.write("---\n")
                         f.write(f"timestamp: {data.get('timestamp', 'unknown')}\n")
                         f.write(f"type: {data.get('type', 'unknown')}\n")
@@ -559,7 +559,7 @@ class LogManager:
                         f.write(data.get("content", ""))
                 else:
                     # Write content directly
-                    with open(file_path, "w", encoding="utf-8") as f:
+                    with file_path.open("w", encoding="utf-8") as f:
                         f.write(str(data))
             except Exception as e:
                 logger.error(f"Failed to write {file_path}: {e}")
@@ -588,7 +588,7 @@ class LogManager:
 
         def write_task():
             try:
-                with open(log_file, "a", encoding="utf-8") as f:
+                with log_file.open("a", encoding="utf-8") as f:
                     f.write(log_entry)
             except Exception as e:
                 logger.error(f"Failed to write log: {e}")

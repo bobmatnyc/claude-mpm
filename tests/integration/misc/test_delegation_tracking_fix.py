@@ -109,7 +109,7 @@ def test_delegation_with_response_tracking():
         for file in response_files[:3]:  # Show first 3
             print(f"  - {file.name}")
             # Read and show a snippet of the response
-            with open(file) as f:
+            with file.open() as f:
                 data = json.load(f)
                 agent_type = data.get("agent_type", "unknown")
                 request_preview = data.get("request", "")[:100]

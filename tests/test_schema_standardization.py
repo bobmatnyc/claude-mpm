@@ -39,7 +39,7 @@ class TestSchemaStandardization:
         """Test that the schema file exists and is valid JSON."""
         assert self.exists(), f"Schema file not found at {self}"
 
-        with open(self) as f:
+        with self.open() as f:
             schema = json.load(f)
 
         # Verify schema structure
@@ -50,7 +50,7 @@ class TestSchemaStandardization:
 
     def test_schema_required_fields(self):
         """Test that schema defines all required fields."""
-        with open(self) as f:
+        with self.open() as f:
             schema = json.load(f)
 
         required_fields = [
@@ -184,7 +184,7 @@ class TestSchemaStandardization:
             agent_path = agents_dir / agent_file
             assert agent_path.exists(), f"Agent file {agent_file} not found"
 
-            with open(agent_path) as f:
+            with agent_path.open() as f:
                 agent = json.load(f)
 
             # Verify clean ID (no _agent suffix)
@@ -238,7 +238,7 @@ class TestSchemaStandardization:
         }
 
         agent_path = self / "test_agent.json"
-        with open(agent_path, "w") as f:
+        with agent_path.open("w") as f:
             json.dump(test_agent, f)
 
         # Load agent
@@ -260,7 +260,7 @@ class TestSchemaStandardization:
         }
 
         agent_path = self / "test_agent.json"
-        with open(agent_path, "w") as f:
+        with agent_path.open("w") as f:
             json.dump(old_agent, f)
 
         # Should fail to load

@@ -27,7 +27,7 @@ def check_settings_file():
     # Check settings.local.json (the correct file)
     if settings_local.exists():
         print(f"✓ Found settings.local.json at: {settings_local}")
-        with open(settings_local) as f:
+        with settings_local.open() as f:
             config = json.load(f)
 
         if "hooks" in config:
@@ -51,7 +51,7 @@ def check_settings_file():
     # Check old settings.json
     print("\n" + "-" * 40)
     if settings_old.exists():
-        with open(settings_old) as f:
+        with settings_old.open() as f:
             old_config = json.load(f)
 
         if "hooks" in old_config:
@@ -75,7 +75,7 @@ def check_hook_script():
     script_path = None
 
     if settings_local.exists():
-        with open(settings_local) as f:
+        with settings_local.open() as f:
             config = json.load(f)
 
         # Extract script path from hooks configuration
@@ -101,7 +101,7 @@ def check_hook_script():
             print(f"  Fix with: chmod +x {script_path}")
 
         # Check script content
-        with open(script_path) as f:
+        with script_path.open() as f:
             content = f.read()
 
         if "claude_mpm.hooks.claude_hooks.hook_handler" in content:

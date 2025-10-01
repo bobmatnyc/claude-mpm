@@ -52,8 +52,8 @@ class SimpleMCPClient:
 
         try:
             return json.loads(response_line.decode().strip())
-        except json.JSONDecodeError:
-            raise Exception(f"Invalid JSON response: {response_line.decode()}")
+        except json.JSONDecodeError as e:
+            raise Exception(f"Invalid JSON response: {response_line.decode()}") from e
 
     async def initialize(self) -> Dict[str, Any]:
         """Initialize the MCP connection."""

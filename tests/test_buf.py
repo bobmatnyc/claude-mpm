@@ -52,7 +52,7 @@ class TestBuf(TestBase):
             assert buf.cursor().is_valid()
 
             # simple access
-            with open(fc.path, "rb") as fp:
+            with fc.path.open("rb") as fp:
                 data = fp.read()
             assert data[offset] == buf[0]
             assert data[offset : offset * 2] == buf[0:offset]

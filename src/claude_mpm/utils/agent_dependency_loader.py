@@ -111,7 +111,7 @@ class AgentDependencyLoader:
                 config_file = config_dir / f"{agent_id}.json"
                 if config_file.exists():
                     try:
-                        with open(config_file) as f:
+                        with config_file.open() as f:
                             config = json.load(f)
                             if "dependencies" in config:
                                 agent_dependencies[agent_id] = config["dependencies"]
@@ -835,7 +835,7 @@ class AgentDependencyLoader:
                 hash_obj.update(str(stat.st_size).encode("utf-8"))
 
                 # Include file content for comprehensive change detection
-                with open(agent_path, "rb") as f:
+                with agent_path.open("rb") as f:
                     hash_obj.update(f.read())
             except Exception as e:
                 logger.debug(f"Could not hash agent file {agent_path}: {e}")
@@ -855,7 +855,7 @@ class AgentDependencyLoader:
             return {}
 
         try:
-            with open(self.deployment_state_file) as f:
+            with self.deployment_state_file.open() as f:
                 return json.load(f)
         except Exception as e:
             logger.debug(f"Could not load deployment state: {e}")
@@ -872,7 +872,7 @@ class AgentDependencyLoader:
             # Ensure directory exists
             self.deployment_state_file.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(self.deployment_state_file, "w") as f:
+            with self.deployment_state_file.open("w") as f:
                 json.dump(state, f, indent=2)
         except Exception as e:
             logger.debug(f"Could not save deployment state: {e}")

@@ -13,7 +13,7 @@ Tests:
 
 import shutil
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -156,7 +156,7 @@ The implementation follows best practices.
                 hook_type=HookType.POST_DELEGATION,
                 data=context_data,
                 metadata={},
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
             )
 
             # Execute hook
@@ -488,7 +488,7 @@ Delegation was successful.
                     hook_type=HookType.PRE_DELEGATION,
                     data=context_data,
                     metadata={},
-                    timestamp=datetime.now(),
+                    timestamp=datetime.now(timezone.utc),
                 )
 
                 # Execute hook

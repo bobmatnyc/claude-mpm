@@ -78,7 +78,7 @@ class MCPAutoConfigurator:
             return False
 
         try:
-            with open(self.claude_config_path) as f:
+            with self.claude_config_path.open() as f:
                 config = json.load(f)
 
             # Check if claude-mpm-gateway is configured
@@ -131,7 +131,7 @@ class MCPAutoConfigurator:
             return False
 
         try:
-            with open(self.preference_file) as f:
+            with self.preference_file.open() as f:
                 prefs = json.load(f)
             return prefs.get("asked", False)
         except (OSError, json.JSONDecodeError):
@@ -148,7 +148,7 @@ class MCPAutoConfigurator:
         }
 
         try:
-            with open(self.preference_file, "w") as f:
+            with self.preference_file.open("w") as f:
                 json.dump(prefs, f, indent=2)
         except Exception as e:
             self.logger.debug(f"Could not save preference: {e}")
@@ -244,7 +244,7 @@ class MCPAutoConfigurator:
             }
 
             # Save configuration
-            with open(self.claude_config_path, "w") as f:
+            with self.claude_config_path.open("w") as f:
                 json.dump(config, f, indent=2)
 
             print(f"✅ Configuration saved to: {self.claude_config_path}")
@@ -284,7 +284,7 @@ class MCPAutoConfigurator:
         """Load existing config or create new one."""
         if self.claude_config_path.exists():
             try:
-                with open(self.claude_config_path) as f:
+                with self.claude_config_path.open() as f:
                     return json.load(f)
             except json.JSONDecodeError:
                 self.logger.warning("Existing config is invalid JSON, creating new")

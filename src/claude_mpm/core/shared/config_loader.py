@@ -228,7 +228,7 @@ class ConfigLoader:
         try:
             import yaml
 
-            with open(config_file) as f:
+            with config_file.open() as f:
                 if config_file.suffix.lower() in (".yaml", ".yml"):
                     return yaml.safe_load(f) or {}
                 # Try JSON as fallback

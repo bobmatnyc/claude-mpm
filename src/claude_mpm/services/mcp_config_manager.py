@@ -199,7 +199,7 @@ class MCPConfigManager:
                             f"Found kuzu-memory with MCP support at {path}"
                         )
                         return path
-                except:
+                except (subprocess.SubprocessError, subprocess.TimeoutExpired, OSError):
                     pass
 
             # If no MCP-capable version found, log warning but return None
@@ -571,7 +571,7 @@ class MCPConfigManager:
                 if result.returncode == 0 or "version" in result.stdout.lower():
                     use_pipx_run = True
                     self.logger.debug(f"Will use 'pipx run' for {service_name}")
-            except:
+            except (subprocess.SubprocessError, subprocess.TimeoutExpired, OSError):
                 pass
 
         # Try uvx if pipx run not available
@@ -587,7 +587,7 @@ class MCPConfigManager:
                 if result.returncode == 0 or "version" in result.stdout.lower():
                     use_uvx = True
                     self.logger.debug(f"Will use 'uvx' for {service_name}")
-            except:
+            except (subprocess.SubprocessError, subprocess.TimeoutExpired, OSError):
                 pass
 
         # If neither work, try to find direct path
@@ -719,7 +719,7 @@ class MCPConfigManager:
         claude_config = {}
         if self.claude_config_path.exists():
             try:
-                with open(self.claude_config_path) as f:
+                with self.claude_config_path.open() as f:
                     claude_config = json.load(f)
             except Exception as e:
                 self.logger.error(f"Error reading {self.claude_config_path}: {e}")
@@ -832,7 +832,7 @@ class MCPConfigManager:
                         self.logger.debug(f"Created backup: {backup_path}")
 
                 # Write updated config
-                with open(self.claude_config_path, "w") as f:
+                with self.claude_config_path.open("w") as f:
                     json.dump(claude_config, f, indent=2)
 
                 messages = []
@@ -884,7 +884,7 @@ class MCPConfigManager:
         existing_config = {}
         if mcp_config_path.exists():
             try:
-                with open(mcp_config_path) as f:
+                with mcp_config_path.open() as f:
                     existing_config = json.load(f)
             except Exception as e:
                 self.logger.error(f"Error reading existing config: {e}")
@@ -912,7 +912,7 @@ class MCPConfigManager:
 
         # Write the updated configuration
         try:
-            with open(mcp_config_path, "w") as f:
+            with mcp_config_path.open("w") as f:
                 json.dump(new_config, f, indent=2)
 
             if missing_services:
@@ -937,7 +937,7 @@ class MCPConfigManager:
             mcp_config_path = self.project_root / ConfigLocation.PROJECT_MCP.value
             if mcp_config_path.exists():
                 try:
-                    with open(mcp_config_path) as f:
+                    with mcp_config_path.open() as f:
                         config = json.load(f)
                         results = {}
                         for service_name, service_config in config.get(
@@ -951,7 +951,7 @@ class MCPConfigManager:
             return {}
 
         try:
-            with open(self.claude_config_path) as f:
+            with self.claude_config_path.open() as f:
                 claude_config = json.load(f)
 
             # Get project's MCP servers
@@ -1638,7 +1638,7 @@ class MCPConfigManager:
                     if result.returncode == 0 or "version" in result.stdout.lower():
                         self.logger.debug(f"{service_name} accessible via 'pipx run'")
                         return True
-                except:
+                except (subprocess.SubprocessError, subprocess.TimeoutExpired, OSError):
                     pass
             return False
 

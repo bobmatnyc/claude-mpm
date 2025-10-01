@@ -41,7 +41,7 @@ def test_pidfile_creation_and_validation():
             assert server.pidfile_path.exists(), "PID file was not created"
 
             # Verify content format
-            with open(server.pidfile_path) as f:
+            with server.pidfile_path.open() as f:
                 content = f.read()
 
             # Should be JSON format with metadata
@@ -109,7 +109,7 @@ def test_stale_process_detection():
 
         # Create a fake stale PID file with non-existent process
         fake_pid = 999998
-        with open(server.pidfile_path, "w") as f:
+        with server.pidfile_path.open("w") as f:
             f.write(str(fake_pid))
 
         # Test detection
@@ -119,7 +119,7 @@ def test_stale_process_detection():
         print("✓ Stale process detected and cleaned up")
 
         # Create stale PID file with invalid content
-        with open(server.pidfile_path, "w") as f:
+        with server.pidfile_path.open("w") as f:
             f.write("not_a_number")
 
         is_running = server.is_already_running()

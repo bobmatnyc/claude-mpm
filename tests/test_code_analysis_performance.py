@@ -909,7 +909,7 @@ def main():
     # Save results if requested
     if args.save_results:
         results_file = Path("test_results_performance.json")
-        with open(results_file, "w") as f:
+        with results_file.open("w") as f:
             json.dump(results, f, indent=2, default=str)
         print(f"\n📁 Performance test results saved to: {results_file}")
 

@@ -9,7 +9,7 @@ This script simulates the complete flow from hook system to dashboard:
 
 import asyncio
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -82,7 +82,7 @@ class HookEventSimulator:
             async with aiohttp.ClientSession() as session:
                 payload = {
                     "event": event_type,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     **data,
                 }
 
@@ -121,7 +121,7 @@ class HookEventSimulator:
                 {
                     "type": "hook",
                     "event": event_type,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     **data,
                 },
             )

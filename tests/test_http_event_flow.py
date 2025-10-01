@@ -11,7 +11,7 @@ import os
 import sys
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import requests
 import socketio
@@ -68,14 +68,14 @@ def test_http_event_flow():
             "event": "claude_event",
             "type": "hook",
             "subtype": "user_prompt",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": {"sessionId": "test-session-1", "prompt": "Test prompt from HTTP"},
         },
         {
             "event": "claude_event",
             "type": "hook",
             "subtype": "pre_tool",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": {
                 "sessionId": "test-session-1",
                 "tool_name": "Task",
@@ -86,7 +86,7 @@ def test_http_event_flow():
             "event": "claude_event",
             "type": "hook",
             "subtype": "subagent_stop",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": {
                 "sessionId": "test-session-1",
                 "agent_type": "engineer",
@@ -146,7 +146,7 @@ def test_http_event_flow():
                 "event": "claude_event",
                 "type": "hook",
                 "subtype": f"rapid_event_{event_num}",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {"event_num": event_num},
             }
             response = requests.post(

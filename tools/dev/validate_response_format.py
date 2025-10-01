@@ -186,7 +186,7 @@ def analyze_agent_distribution(responses_dir):
             if "metadata" in data and "event_type" in data["metadata"]:
                 event_type = data["metadata"]["event_type"]
                 event_types[event_type] = event_types.get(event_type, 0) + 1
-        except:
+        except Exception:
             continue
 
     print("\n📈 Agent Distribution:")

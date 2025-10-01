@@ -81,7 +81,7 @@ class GitignoreParser:
 
         if gitignore_path.exists():
             try:
-                with open(gitignore_path) as f:
+                with gitignore_path.open() as f:
                     for line in f:
                         line = line.strip()
                         # Skip comments and empty lines
@@ -481,7 +481,7 @@ class CodeTreeBuilder:
         hasher = hashlib.md5()
 
         try:
-            with open(path, "rb") as f:
+            with path.open("rb") as f:
                 # Read in chunks for large files
                 while chunk := f.read(8192):
                     hasher.update(chunk)
@@ -508,7 +508,7 @@ class CodeTreeBuilder:
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        with open(output_path, "w") as f:
+        with output_path.open("w") as f:
             json.dump(tree_dict, f, indent=2)
 
         self.logger.info(f"Saved tree to {output_path}")
@@ -522,7 +522,7 @@ class CodeTreeBuilder:
         Returns:
             Root tree node
         """
-        with open(input_path) as f:
+        with input_path.open() as f:
             tree_dict = json.load(f)
 
         # Remove stats if present

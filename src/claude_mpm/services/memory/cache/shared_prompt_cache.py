@@ -194,7 +194,8 @@ class SharedPromptCache(BaseService):
         with cls._lock:
             if cls._instance is not None:
                 if cls._instance.running:
-                    asyncio.create_task(cls._instance.stop())
+                    _task = asyncio.create_task(cls._instance.stop())  # noqa: RUF006
+                    # Fire-and-forget cleanup task during test reset
                 cls._instance = None
 
     async def _initialize(self) -> None:

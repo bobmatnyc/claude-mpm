@@ -89,15 +89,15 @@ class TestUnifiedConfigService:
 
         # Valid config
         valid_config = {"host": "localhost", "port": 8080}
-        assert self.service.validate(valid_config, schema) == True
+        assert self.service.validate(valid_config, schema)
 
         # Invalid config - missing required field
         invalid_config = {"host": "localhost"}
-        assert self.service.validate(invalid_config, schema) == False
+        assert not self.service.validate(invalid_config, schema)
 
         # Invalid config - wrong type
         invalid_config2 = {"host": "localhost", "port": "invalid"}
-        assert self.service.validate(invalid_config2, schema) == False
+        assert not self.service.validate(invalid_config2, schema)
 
     def test_merge_configs(self):
         """Test configuration merging"""
@@ -170,7 +170,7 @@ class TestUnifiedConfigService:
         assert schema.title == "Test Schema"
         assert "name" in schema.required
         assert schema.properties["age"].minimum == 0
-        assert schema.properties["active"].default == True
+        assert schema.properties["active"].default
 
     def test_performance_caching(self):
         """Test caching performance"""
@@ -223,10 +223,10 @@ class TestValidationStrategy:
         rule = ValidationRule(type=ValidationType.TYPE, params={"type": "string"})
 
         result = validator.validate("test", rule, {})
-        assert result.valid == True
+        assert result.valid
 
         result = validator.validate(123, rule, {})
-        assert result.valid == False
+        assert not result.valid
 
     def test_range_validation(self):
         """Test range validator"""
@@ -236,10 +236,10 @@ class TestValidationStrategy:
         rule = ValidationRule(type=ValidationType.RANGE, params={"min": 1, "max": 10})
 
         result = validator.validate(5, rule, {})
-        assert result.valid == True
+        assert result.valid
 
         result = validator.validate(15, rule, {})
-        assert result.valid == False
+        assert not result.valid
 
 
 class TestErrorHandlingStrategy:
@@ -257,10 +257,10 @@ class TestErrorHandlingStrategy:
             source="test.json",
         )
 
-        assert handler.can_handle(context) == True
+        assert handler.can_handle(context)
 
         result = handler.handle(context)
-        assert result.handled == True
+        assert result.handled
 
     def test_parsing_error_handling(self):
         """Test parsing error handling"""
@@ -273,7 +273,7 @@ class TestErrorHandlingStrategy:
             severity=ErrorSeverity.WARNING,
         )
 
-        assert handler.can_handle(context) == True
+        assert handler.can_handle(context)
 
 
 class TestContextStrategy:

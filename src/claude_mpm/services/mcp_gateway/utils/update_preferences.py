@@ -36,7 +36,7 @@ class UpdatePreferences:
         """
         if cls.PREFS_FILE.exists():
             try:
-                with open(cls.PREFS_FILE) as f:
+                with cls.PREFS_FILE.open() as f:
                     return json.load(f)
             except (OSError, json.JSONDecodeError):
                 # Return empty dict if file is corrupted or unreadable
@@ -53,7 +53,7 @@ class UpdatePreferences:
         """
         cls.PREFS_FILE.parent.mkdir(parents=True, exist_ok=True)
         try:
-            with open(cls.PREFS_FILE, "w") as f:
+            with cls.PREFS_FILE.open("w") as f:
                 json.dump(prefs, f, indent=2)
         except OSError:
             # Silently fail if we can't write preferences

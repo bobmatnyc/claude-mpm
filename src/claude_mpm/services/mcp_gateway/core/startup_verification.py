@@ -125,7 +125,7 @@ class MCPGatewayStartupVerifier:
         try:
             import json
 
-            with open(self.config_file, "w") as f:
+            with self.config_file.open("w") as f:
                 json.dump(default_config, f, indent=2)
 
             self.logger.info(

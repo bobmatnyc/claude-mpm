@@ -260,8 +260,8 @@ class FreeBSDSystemTestCase(PsutilTestCase):
         sensor = "dev.cpu.0.freq"
         try:
             sysctl_result = int(sysctl(sensor))
-        except RuntimeError:
-            raise pytest.skip("frequencies not supported by kernel")
+        except RuntimeError as e:
+            raise pytest.skip("frequencies not supported by kernel") from e
         assert psutil.cpu_freq().current == sysctl_result
 
         sensor = "dev.cpu.0.freq_levels"
@@ -447,8 +447,8 @@ class FreeBSDSystemTestCase(PsutilTestCase):
             # sysctl returns a string in the format 46.0C
             try:
                 sysctl_result = int(float(sysctl(sensor)[:-1]))
-            except RuntimeError:
-                raise pytest.skip("temperatures not supported by kernel")
+            except RuntimeError as e:
+                raise pytest.skip("temperatures not supported by kernel") from e
             assert (
                 abs(
                     psutil.sensors_temperatures()["coretemp"][cpu].current

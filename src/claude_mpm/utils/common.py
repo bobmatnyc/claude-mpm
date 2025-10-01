@@ -85,7 +85,7 @@ def save_json_safe(
         if create_parents:
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(file_path, "w", encoding=encoding) as f:
+        with file_path.open("w", encoding=encoding) as f:
             json.dump(data, f, indent=indent, ensure_ascii=False)
         return True
     except Exception as e:
@@ -149,7 +149,7 @@ def save_yaml_safe(
         if create_parents:
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(file_path, "w", encoding=encoding) as f:
+        with file_path.open("w", encoding=encoding) as f:
             yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True)
         return True
     except Exception as e:

@@ -303,7 +303,7 @@ class StartupStatusLogger:
 
             import json
 
-            with open(claude_json_path) as f:
+            with claude_json_path.open() as f:
                 config = json.load(f)
 
             result["found"] = True
@@ -716,9 +716,9 @@ def start_vector_search_indexing(project_root: Optional[Path] = None) -> None:
     try:
         # Try to get the current event loop
         loop = asyncio.get_running_loop()
-        # If we're in an event loop, create a task
-        # Store reference to avoid RUF006 warning
-        _ = loop.create_task(trigger_vector_search_indexing(project_root))
+        # If we're in an event loop, create a task (fire-and-forget)
+        _task = loop.create_task(trigger_vector_search_indexing(project_root))  # noqa: RUF006
+        # Fire-and-forget: task will complete in background
     except RuntimeError:
         # No event loop running - use subprocess directly to avoid event loop lifecycle issues
         # The async approach with asyncio.run() creates and closes a loop which causes

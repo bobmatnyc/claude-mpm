@@ -474,7 +474,7 @@ class PortManager:
         """Load registered instances from file."""
         try:
             if self.instances_file.exists():
-                with open(self.instances_file) as f:
+                with self.instances_file.open() as f:
                     return json.load(f)
         except Exception as e:
             self.logger.warning(f"Failed to load instances file: {e}")
@@ -484,7 +484,7 @@ class PortManager:
     def save_instances(self, instances: Dict) -> None:
         """Save registered instances to file."""
         try:
-            with open(self.instances_file, "w") as f:
+            with self.instances_file.open("w") as f:
                 json.dump(instances, f, indent=2)
         except Exception as e:
             self.logger.error(f"Failed to save instances file: {e}")

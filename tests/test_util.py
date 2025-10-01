@@ -20,14 +20,14 @@ class TestUtils(TestBase):
     def _cmp_contents(self, file_path, data):
         # raise if data from file at file_path
         # does not match data string
-        with open(file_path, "rb") as fp:
+        with file_path.open("rb") as fp:
             assert fp.read() == data.encode("ascii")
 
     def test_lockedfd(self):
         my_file = tempfile.mktemp()
         orig_data = "hello"
         new_data = "world"
-        with open(my_file, "wb") as my_file_fp:
+        with my_file.open("wb") as my_file_fp:
             my_file_fp.write(orig_data.encode("ascii"))
 
         try:

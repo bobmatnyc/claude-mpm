@@ -19,7 +19,7 @@ def test_python_ast_parsing():
     sample_file = Path(__file__).parent / "sample_python_file.py"
 
     try:
-        with open(sample_file) as f:
+        with sample_file.open() as f:
             source_code = f.read()
 
         # Parse with Python AST
@@ -43,7 +43,7 @@ def analyze_python_with_ast():
     sample_file = Path(__file__).parent / "sample_python_file.py"
 
     try:
-        with open(sample_file) as f:
+        with sample_file.open() as f:
             source_code = f.read()
 
         tree = ast.parse(source_code)
@@ -231,7 +231,7 @@ def analyze_file(filepath):
 
     # ALWAYS use Python AST for Python files
     if ext == '.py':
-        with open(filepath, 'r') as f:
+        with filepath.open('r') as f:
             tree = ast.parse(f.read())
         print("✅ Used Python AST (as expected)")
         return tree, 'python_ast'
@@ -254,7 +254,7 @@ if __name__ == "__main__":
     test_file = Path(__file__).parent / "temp_ast_priority_test.py"
 
     try:
-        with open(test_file, "w") as f:
+        with test_file.open("w") as f:
             f.write(test_script)
 
         # Execute the test script

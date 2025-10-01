@@ -83,16 +83,16 @@ class AnalyticalPMValidator:
         try:
             with open(self.instructions_path, encoding="utf-8") as f:
                 instructions_content = f.read()
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             raise FileNotFoundError(
                 f"Instructions file not found: {self.instructions_path}"
-            )
+            ) from e
 
         try:
             with open(self.base_pm_path, encoding="utf-8") as f:
                 base_pm_content = f.read()
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Base PM file not found: {self.base_pm_path}")
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Base PM file not found: {self.base_pm_path}") from e
 
         return instructions_content, base_pm_content
 
@@ -348,7 +348,7 @@ class AnalyticalPMValidator:
                 if isinstance(test, dict) and test.get("status") == "PASS"
             )
             total_tests = len(
-                [k for k in self.validation_results.keys() if k != "overall_score"]
+                [k for k in self.validation_results if k != "overall_score"]
             )
             self.validation_results["overall_score"] = (
                 passed_tests / total_tests
@@ -437,7 +437,7 @@ def main():
 
     # Save detailed results to file
     output_file = Path(__file__).parent.parent / "test_results_analytical_pm.json"
-    with open(output_file, "w") as f:
+    with output_file.open("w") as f:
         json.dump(results, f, indent=2)
 
     print(f"\nDetailed results saved to: {output_file}")

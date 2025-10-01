@@ -9,7 +9,7 @@ including the centralized configuration, ping/pong reliability, and reconnection
 import asyncio
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import socketio
 
@@ -65,7 +65,7 @@ class DashboardStabilityTester:
 
     async def log(self, message: str):
         """Log with timestamp and client name."""
-        timestamp = datetime.now().strftime("%H:%M:%S")
+        timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
         print(f"[{timestamp}] [{self.name}] {message}")
 
     async def connect_and_monitor(self, duration_minutes: int = 5):

@@ -57,7 +57,7 @@ def test_python_script(script_path):
     """Test if a Python script sets DISABLE_TELEMETRY."""
     try:
         # Check if the script contains the environment setting
-        with open(script_path) as f:
+        with script_path.open() as f:
             content = f.read()
         return (
             "os.environ['DISABLE_TELEMETRY'] = '1'" in content
@@ -136,7 +136,7 @@ def main():
     for script, description in node_scripts:
         script_path = project_root / script
         if script_path.exists():
-            with open(script_path) as f:
+            with script_path.open() as f:
                 content = f.read()
             if "process.env.DISABLE_TELEMETRY = '1'" in content:
                 print(f"  ✅ {description}: Sets DISABLE_TELEMETRY=1")

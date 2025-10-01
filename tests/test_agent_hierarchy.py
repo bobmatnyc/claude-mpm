@@ -7,14 +7,14 @@ visualization in the monitor dashboard.
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 
 def create_test_events():
     """Create test events that simulate PM delegating to subagents."""
     events = []
-    base_time = datetime.now().isoformat()
+    base_time = datetime.now(timezone.utc).isoformat()
 
     # PM starts
     events.append(
@@ -164,7 +164,7 @@ def save_test_events():
     events = create_test_events()
 
     output_file = Path("/tmp/test_agent_hierarchy_events.json")
-    with open(output_file, "w") as f:
+    with output_file.open("w") as f:
         json.dump(events, f, indent=2)
 
     print(f"Test events saved to: {output_file}")

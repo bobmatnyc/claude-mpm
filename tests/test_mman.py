@@ -76,7 +76,7 @@ class TestMMan(TestBase):
                         assert c.use_region(10, 10).is_valid()
                         assert c.ofs_begin() == 10
                         assert c.size() == 10
-                        with open(fc.path, "rb") as fp:
+                        with fc.path.open("rb") as fp:
                             assert c.buffer()[:] == fp.read(20)[10:]
 
                     if isinstance(item, int):
@@ -92,7 +92,7 @@ class TestMMan(TestBase):
     def test_memman_operation(self):
         # test more access, force it to actually unmap regions
         with FileCreator(self.k_window_test_size, "manager_operation_test") as fc:
-            with open(fc.path, "rb") as fp:
+            with fc.path.open("rb") as fp:
                 data = fp.read()
             fd = os.open(fc.path, os.O_RDONLY)
             try:

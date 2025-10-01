@@ -112,7 +112,7 @@ class TestMigrationDetection:
                 "project": {"name": "test"},
                 "response_tracking": {"enabled": True},
             }
-            with open(migrator.new_config_path, "w") as f:
+            with migrator.new_config_path.open("w") as f:
                 yaml.dump(config, f)
 
             assert not migrator.needs_migration()
@@ -129,7 +129,7 @@ class TestMigrationDetection:
             # Create incomplete new structure (missing sections)
             migrator.claude_mpm_dir.mkdir(parents=True)
             config = {"some_other_section": {}}
-            with open(migrator.new_config_path, "w") as f:
+            with migrator.new_config_path.open("w") as f:
                 yaml.dump(config, f)
 
             assert migrator.needs_migration()
@@ -165,7 +165,7 @@ class TestMigrationProcess:
                 "version": "1.0.0",
                 "description": "Test description",
             }
-            with open(migrator.project_json, "w") as f:
+            with migrator.project_json.open("w") as f:
                 json.dump(project_data, f)
 
             # Perform migration
@@ -173,7 +173,7 @@ class TestMigrationProcess:
             assert success
 
             # Verify migrated data
-            with open(migrator.new_config_path) as f:
+            with migrator.new_config_path.open() as f:
                 config = yaml.safe_load(f)
 
             assert config["project"] == project_data
@@ -190,7 +190,7 @@ class TestMigrationProcess:
                 "max_responses": 100,
                 "retention_days": 30,
             }
-            with open(migrator.response_tracking_json, "w") as f:
+            with migrator.response_tracking_json.open("w") as f:
                 json.dump(tracking_data, f)
 
             # Perform migration
@@ -198,7 +198,7 @@ class TestMigrationProcess:
             assert success
 
             # Verify migrated data
-            with open(migrator.new_config_path) as f:
+            with migrator.new_config_path.open() as f:
                 config = yaml.safe_load(f)
 
             assert config["response_tracking"] == tracking_data
@@ -212,11 +212,11 @@ class TestMigrationProcess:
             migrator.config_dir.mkdir(parents=True)
 
             project_data = {"name": "Project", "version": "1.0"}
-            with open(migrator.project_json, "w") as f:
+            with migrator.project_json.open("w") as f:
                 json.dump(project_data, f)
 
             tracking_data = {"enabled": True}
-            with open(migrator.response_tracking_json, "w") as f:
+            with migrator.response_tracking_json.open("w") as f:
                 json.dump(tracking_data, f)
 
             # Perform migration
@@ -224,7 +224,7 @@ class TestMigrationProcess:
             assert success
 
             # Verify both migrated
-            with open(migrator.new_config_path) as f:
+            with migrator.new_config_path.open() as f:
                 config = yaml.safe_load(f)
 
             assert config["project"] == project_data
@@ -243,7 +243,7 @@ class TestMigrationProcess:
                 "terminal_retry_without_preexec": True,
                 "other_setting": "value",
             }
-            with open(migrator.old_config_yaml, "w") as f:
+            with migrator.old_config_yaml.open("w") as f:
                 yaml.dump(old_config, f)
 
             # Perform migration
@@ -251,7 +251,7 @@ class TestMigrationProcess:
             assert success
 
             # Verify terminal settings are nested
-            with open(migrator.new_config_path) as f:
+            with migrator.new_config_path.open() as f:
                 config = yaml.safe_load(f)
 
             assert config["terminal"]["debug_logging"]
@@ -373,7 +373,7 @@ class TestBackupAndRestore:
             migrator.backup_dir.mkdir(parents=True)
             backup_data = {"name": "backup_version"}
             backup_file = migrator.backup_dir / "project_backup.json"
-            with open(backup_file, "w") as f:
+            with backup_file.open("w") as f:
                 json.dump(backup_data, f)
 
             # Restore from backup
@@ -382,7 +382,7 @@ class TestBackupAndRestore:
 
             # Verify restored content
             assert migrator.project_json.exists()
-            with open(migrator.project_json) as f:
+            with migrator.project_json.open() as f:
                 restored = json.load(f)
 
             assert restored == backup_data
@@ -407,7 +407,7 @@ class TestRollback:
             # Create old files
             migrator.config_dir.mkdir(parents=True)
             original_data = {"name": "original"}
-            with open(migrator.project_json, "w") as f:
+            with migrator.project_json.open("w") as f:
                 json.dump(original_data, f)
 
             # Make migration fail
@@ -420,7 +420,7 @@ class TestRollback:
 
             # Original files should still exist (rolled back)
             assert migrator.project_json.exists()
-            with open(migrator.project_json) as f:
+            with migrator.project_json.open() as f:
                 data = json.load(f)
             assert data == original_data
 
@@ -509,7 +509,7 @@ class TestErrorHandling:
             assert success
 
             # Should create config with empty project section
-            with open(migrator.new_config_path) as f:
+            with migrator.new_config_path.open() as f:
                 config = yaml.safe_load(f)
             assert config["project"] == {}
 
@@ -562,14 +562,14 @@ class TestDataPreservation:
                 "custom_field": {"nested": {"data": [1, 2, 3]}},
                 "unicode": "世界 🌍 مرحبا",
             }
-            with open(migrator.project_json, "w") as f:
+            with migrator.project_json.open("w") as f:
                 json.dump(project_data, f, ensure_ascii=False)
 
             # Perform migration
             migrator.migrate()
 
             # Verify all fields preserved
-            with open(migrator.new_config_path) as f:
+            with migrator.new_config_path.open() as f:
                 config = yaml.safe_load(f)
 
             assert config["project"] == project_data
@@ -586,7 +586,7 @@ class TestDataPreservation:
                 "existing_section": {"key": "value"},
                 "another_section": [1, 2, 3],
             }
-            with open(migrator.new_config_path, "w") as f:
+            with migrator.new_config_path.open("w") as f:
                 yaml.dump(existing_config, f)
 
             # Create old config to migrate
@@ -597,7 +597,7 @@ class TestDataPreservation:
             migrator.migrate()
 
             # Verify existing sections preserved
-            with open(migrator.new_config_path) as f:
+            with migrator.new_config_path.open() as f:
                 config = yaml.safe_load(f)
 
             assert config["existing_section"] == {"key": "value"}
@@ -659,7 +659,7 @@ class TestConvenienceFunction:
                 "project": {"name": "test"},
                 "response_tracking": {"enabled": True},
             }
-            with open(config_path, "w") as f:
+            with config_path.open("w") as f:
                 yaml.dump(config, f)
 
             # Should return success without doing anything
@@ -701,7 +701,7 @@ class TestEdgeCases:
             assert success
 
             # Result should have empty sections
-            with open(migrator.new_config_path) as f:
+            with migrator.new_config_path.open() as f:
                 config = yaml.safe_load(f)
 
             assert config["project"] == {}
@@ -715,7 +715,7 @@ class TestEdgeCases:
             # Create large config
             migrator.config_dir.mkdir(parents=True)
             large_data = {"data": ["item" * 100 for _ in range(10000)]}  # Large array
-            with open(migrator.project_json, "w") as f:
+            with migrator.project_json.open("w") as f:
                 json.dump(large_data, f)
 
             # Should handle large data
@@ -723,7 +723,7 @@ class TestEdgeCases:
             assert success
 
             # Verify data integrity
-            with open(migrator.new_config_path) as f:
+            with migrator.new_config_path.open() as f:
                 config = yaml.safe_load(f)
 
             assert len(config["project"]["data"]) == 10000
@@ -763,7 +763,7 @@ class TestEdgeCases:
             assert success
 
             # Verify content was migrated
-            with open(migrator.new_config_path) as f:
+            with migrator.new_config_path.open() as f:
                 config = yaml.safe_load(f)
 
             assert config["project"]["name"] == "symlinked"

@@ -4,7 +4,7 @@
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add src to path
@@ -84,20 +84,20 @@ def test_response_logging():
             print("   ✅ ResponseTracker initialized and enabled")
 
             # Test tracking a response
-            test_session_id = f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            test_session_id = f"test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
             test_file = tracker.track_response(
                 agent_name="test_agent",
                 request="Test request for response logging verification",
                 response="Test response successfully logged",
                 session_id=test_session_id,
-                metadata={"test": True, "timestamp": datetime.now().isoformat()},
+                metadata={"test": True, "timestamp": datetime.now(timezone.utc).isoformat()},
             )
 
             if test_file and test_file.exists():
                 print(f"   ✅ Test response logged to: {test_file.name}")
 
                 # Read and verify the content
-                with open(test_file) as f:
+                with test_file.open() as f:
                     content = json.load(f)
                     if (
                         content.get("request")
@@ -128,7 +128,7 @@ def test_response_logging():
         / "hook_handler.py"
     )
     if hook_handler_path.exists():
-        with open(hook_handler_path) as f:
+        with hook_handler_path.open() as f:
             content = f.read()
 
         has_stop_tracking = (

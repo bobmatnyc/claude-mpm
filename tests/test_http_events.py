@@ -7,8 +7,9 @@ Tests the HTTP event endpoint to verify event flow without Socket.IO complexity.
 """
 
 import json
+import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import requests
 
@@ -21,7 +22,7 @@ def test_http_event_endpoint():
     test_event = {
         "type": "hook",
         "subtype": "test_http",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "data": {"test_id": "http_test_001", "message": "Testing HTTP event endpoint"},
         "source": "test_script",
     }
@@ -78,7 +79,7 @@ if __name__ == "__main__":
     # Test server health first
     if not test_health_endpoint():
         print("❌ Server is not responding, cannot test events")
-        exit(1)
+        sys.exit(1)
 
     # Test HTTP event endpoint
     success = test_http_event_endpoint()
@@ -90,4 +91,4 @@ if __name__ == "__main__":
         )
     else:
         print("\n❌ HTTP event test failed")
-        exit(1)
+        sys.exit(1)

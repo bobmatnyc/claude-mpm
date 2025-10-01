@@ -10,7 +10,7 @@ import asyncio
 import json
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -63,7 +63,7 @@ class ConnectionMonitor:
 
     def start_monitoring(self):
         """Start monitoring console and network events"""
-        self.start_time = datetime.now()
+        self.start_time = datetime.now(timezone.utc)
 
         # Monitor console messages
         self.page.on("console", self._handle_console_message)
@@ -81,7 +81,7 @@ class ConnectionMonitor:
 
     def _handle_console_message(self, msg: ConsoleMessage):
         """Handle browser console messages"""
-        timestamp = datetime.now()
+        timestamp = datetime.now(timezone.utc)
         message_data = {
             "timestamp": timestamp.isoformat(),
             "type": msg.type,
@@ -125,7 +125,7 @@ class ConnectionMonitor:
 
     def _handle_websocket(self, ws):
         """Handle WebSocket connections"""
-        timestamp = datetime.now()
+        timestamp = datetime.now(timezone.utc)
 
         def on_close():
             self.websocket_events.append(
@@ -197,7 +197,7 @@ class ConnectionMonitor:
     def get_duration(self) -> timedelta:
         """Get the monitoring duration"""
         if self.start_time:
-            return datetime.now() - self.start_time
+            return datetime.now(timezone.utc) - self.start_time
         return timedelta(0)
 
     def get_stats(self) -> Dict[str, Any]:
@@ -240,11 +240,11 @@ async def test_single_tab_stability(
         await monitor.take_screenshot("after_connection")
 
         # Monitor for specified duration
-        end_time = datetime.now() + timedelta(minutes=duration_minutes)
+        end_time = datetime.now(timezone.utc) + timedelta(minutes=duration_minutes)
         check_interval = 30  # Check every 30 seconds
 
-        while datetime.now() < end_time:
-            remaining = end_time - datetime.now()
+        while datetime.now(timezone.utc) < end_time:
+            remaining = end_time - datetime.now(timezone.utc)
             logger.info(
                 f"[single_tab] Monitoring... {remaining.total_seconds():.0f} seconds remaining"
             )
@@ -300,11 +300,11 @@ async def test_multi_tab_stability(
             logger.info(f"[tab_{i+1}] Created and connected")
 
         # Monitor all tabs for specified duration
-        end_time = datetime.now() + timedelta(minutes=duration_minutes)
+        end_time = datetime.now(timezone.utc) + timedelta(minutes=duration_minutes)
         check_interval = 30
 
-        while datetime.now() < end_time:
-            remaining = end_time - datetime.now()
+        while datetime.now(timezone.utc) < end_time:
+            remaining = end_time - datetime.now(timezone.utc)
             logger.info(
                 f"[multi_tab] Monitoring {tab_count} tabs... {remaining.total_seconds():.0f} seconds remaining"
             )
@@ -345,7 +345,7 @@ async def generate_report(
     report = {
         "test_metadata": {
             "dashboard_url": DASHBOARD_URL,
-            "test_timestamp": datetime.now().isoformat(),
+            "test_timestamp": datetime.now(timezone.utc).isoformat(),
             "single_tab_duration_minutes": TEST_DURATION_MINUTES,
             "multi_tab_duration_minutes": MULTI_TAB_TEST_DURATION_MINUTES,
             "multi_tab_count": MULTI_TAB_COUNT,
@@ -380,18 +380,18 @@ async def generate_report(
 
     # Save detailed JSON report
     report_path = REPORT_DIR / f"dashboard_stability_report_{int(time.time())}.json"
-    with open(report_path, "w") as f:
+    with report_path.open("w") as f:
         json.dump(report, f, indent=2, default=str)
 
     logger.info(f"Detailed report saved to: {report_path}")
 
     # Generate summary report
     summary_path = REPORT_DIR / f"dashboard_stability_summary_{int(time.time())}.txt"
-    with open(summary_path, "w") as f:
+    with summary_path.open("w") as f:
         f.write("Claude MPM Dashboard Connection Stability Test Results\n")
         f.write("=" * 60 + "\n\n")
 
-        f.write(f"Test Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"Test Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"Dashboard URL: {DASHBOARD_URL}\n\n")
 
         # Single tab results
@@ -460,7 +460,7 @@ async def generate_report(
     print("\n" + "=" * 60)
     print("CLAUDE MPM DASHBOARD STABILITY TEST RESULTS")
     print("=" * 60)
-    print(f"Test completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Test completed at: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Dashboard URL: {DASHBOARD_URL}")
     print()
 

@@ -61,10 +61,10 @@ def manage_mcp(args):
 
             # Allow install command to proceed
             if args.mcp_command == MCPCommands.INSTALL.value:
-                MCPConfiguration = None  # noqa: N806
-                MCPServiceRegistry = None  # noqa: N806
-                ToolRegistry = None  # noqa: N806
-                MCPGateway = None  # noqa: N806
+                MCPConfiguration = None
+                MCPServiceRegistry = None
+                ToolRegistry = None
+                MCPGateway = None
             else:
                 print(
                     "\nError: MCP Gateway services not fully available",
@@ -120,7 +120,7 @@ def _show_status(
     MCPConfiguration,
     MCPServiceRegistry,
     ToolRegistry,
-    MCPGateway,  # noqa: N803
+    MCPGateway,
 ):
     """
     Show MCP Gateway status when no subcommand is provided.
@@ -151,7 +151,7 @@ def _show_status(
     if config_path.exists():
         print(f"   Config file: {config_path}")
         try:
-            with open(config_path) as f:
+            with config_path.open() as f:
                 config = json.load(f)
                 if "servers" in config:
                     print(f"   Configured servers: {len(config.get('servers', {}))}")
@@ -171,7 +171,7 @@ def _show_status(
     if claude_config.exists():
         print(f"\n🖥️  Claude Code Config: {claude_config}")
         try:
-            with open(claude_config) as f:
+            with claude_config.open() as f:
                 config = json.load(f)
                 mcp_servers = config.get("mcpServers", {})
                 if "claude-mpm" in mcp_servers:

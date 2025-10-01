@@ -227,7 +227,7 @@ class OptimizedStartup:
         """Parse configuration file."""
         import yaml
 
-        with open(path) as f:
+        with path.open() as f:
             return yaml.safe_load(f) or {}
 
     def _store_config(self, config: Dict[str, Any]):

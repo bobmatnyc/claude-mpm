@@ -6,7 +6,7 @@ Tests the new linear graph tree implementation for the Activity view.
 import contextlib
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import socketio
 
@@ -22,7 +22,7 @@ def main():
         sessions = [
             {
                 "id": "session-d3-001",
-                "time": datetime.now() - timedelta(hours=2),
+                "time": datetime.now(timezone.utc) - timedelta(hours=2),
                 "todos": [
                     {"content": "Analyze D3 tree layouts", "status": "completed"},
                     {"content": "Implement linear tree", "status": "in_progress"},
@@ -32,7 +32,7 @@ def main():
             },
             {
                 "id": "session-d3-002",
-                "time": datetime.now() - timedelta(hours=1),
+                "time": datetime.now(timezone.utc) - timedelta(hours=1),
                 "todos": [
                     {"content": "Test D3 transitions", "status": "in_progress"},
                     {"content": "Optimize performance", "status": "pending"},
@@ -41,7 +41,7 @@ def main():
             },
             {
                 "id": "session-d3-003",
-                "time": datetime.now(),
+                "time": datetime.now(timezone.utc),
                 "todos": [
                     {"content": "Document D3 implementation", "status": "pending"}
                 ],

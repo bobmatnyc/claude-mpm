@@ -448,7 +448,7 @@ class AgentSession:
         filepath = directory / filename
 
         # Save to file
-        with open(filepath, "w", encoding="utf-8") as f:
+        with filepath.open("w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
 
         return str(filepath)

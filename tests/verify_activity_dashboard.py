@@ -3,7 +3,7 @@
 
 import subprocess
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import requests
 import socketio
@@ -41,7 +41,7 @@ def send_test_events():
         events = [
             {
                 "type": "Start",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "request_id": "demo-001",
                 "session_id": "session-demo-001",
                 "event_id": f"evt-{int(time.time()*1000)}",
@@ -52,7 +52,7 @@ def send_test_events():
             },
             {
                 "type": "SubagentStart",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "request_id": "demo-001",
                 "session_id": "session-demo-001",
                 "agent_name": "Engineer",
@@ -61,7 +61,7 @@ def send_test_events():
             },
             {
                 "type": "ToolStart",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "request_id": "demo-001",
                 "session_id": "session-demo-001",
                 "agent_name": "Engineer",
@@ -71,7 +71,7 @@ def send_test_events():
             },
             {
                 "type": "ToolStop",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "request_id": "demo-001",
                 "session_id": "session-demo-001",
                 "agent_name": "Engineer",
@@ -81,7 +81,7 @@ def send_test_events():
             },
             {
                 "type": "TodoWrite",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "request_id": "demo-001",
                 "session_id": "session-demo-001",
                 "agent_name": "Engineer",

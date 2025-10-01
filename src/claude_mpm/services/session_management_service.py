@@ -187,7 +187,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
             event_data["timestamp"] = datetime.now(timezone.utc).isoformat()
 
             # Append to log file as JSONL
-            with open(log_file, "a") as f:
+            with log_file.open("a") as f:
                 f.write(json.dumps(event_data) + "\n")
 
         except Exception as e:

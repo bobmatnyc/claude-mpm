@@ -313,7 +313,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
     ) -> None:
         """Parse package.json for Node.js project details."""
         try:
-            with open(package_path) as f:
+            with package_path.open() as f:
                 package_data = json.load(f)
 
             # Extract dependencies
@@ -382,7 +382,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
                             f"TOML parsing not available for {deps_path}"
                         )
                         return
-                with open(deps_path, "rb") as f:
+                with deps_path.open("rb") as f:
                     data = tomllib.load(f)
                 deps = list(data.get("project", {}).get("dependencies", []))
                 deps.extend(
@@ -430,7 +430,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
                 except ImportError:
                     self.logger.warning(f"TOML parsing not available for {cargo_path}")
                     return
-            with open(cargo_path, "rb") as f:
+            with cargo_path.open("rb") as f:
                 cargo_data = tomllib.load(f)
 
             deps = cargo_data.get("dependencies", {})

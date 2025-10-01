@@ -41,6 +41,14 @@ class CodeAnalysisEventHandler(BaseEventHandler):
         self.logger = get_logger(__name__)
         self.analysis_runner = None
         self.code_analyzer = None  # For lazy loading operations
+        self._emit_tasks: set = set()  # Track emit tasks to prevent GC
+
+    def _create_emit_task(self, coro):
+        """Create a tracked emit task to prevent garbage collection."""
+        task = asyncio.get_event_loop().create_task(coro)
+        self._emit_tasks.add(task)
+        task.add_done_callback(self._emit_tasks.discard)
+        return task
 
     def initialize(self):
         """Initialize the analysis runner."""
@@ -246,16 +254,14 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                     # Special handling for 'info' events - they should be passed through directly
                     if event_type == "info":
                         # INFO events for granular tracking
-                        loop = asyncio.get_event_loop()
-                        loop.create_task(
+                        self._create_emit_task(
                             self.server.core.sio.emit(
                                 "info", {"request_id": request_id, **event_data}
                             )
                         )
                     else:
                         # Regular code analysis events
-                        loop = asyncio.get_event_loop()
-                        loop.create_task(
+                        self._create_emit_task(
                             self.server.core.sio.emit(
                                 event_type, {"request_id": request_id, **event_data}
                             )
@@ -437,16 +443,14 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                     # Special handling for 'info' events - they should be passed through directly
                     if event_type == "info":
                         # INFO events for granular tracking
-                        loop = asyncio.get_event_loop()
-                        loop.create_task(
+                        self._create_emit_task(
                             self.server.core.sio.emit(
                                 "info", {"request_id": request_id, **event_data}
                             )
                         )
                     else:
                         # Regular code analysis events
-                        loop = asyncio.get_event_loop()
-                        loop.create_task(
+                        self._create_emit_task(
                             self.server.core.sio.emit(
                                 event_type, {"request_id": request_id, **event_data}
                             )
@@ -609,16 +613,14 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                     # Special handling for 'info' events - they should be passed through directly
                     if event_type == "info":
                         # INFO events for granular tracking
-                        loop = asyncio.get_event_loop()
-                        loop.create_task(
+                        self._create_emit_task(
                             self.server.core.sio.emit(
                                 "info", {"request_id": request_id, **event_data}
                             )
                         )
                     else:
                         # Regular code analysis events
-                        loop = asyncio.get_event_loop()
-                        loop.create_task(
+                        self._create_emit_task(
                             self.server.core.sio.emit(
                                 event_type, {"request_id": request_id, **event_data}
                             )

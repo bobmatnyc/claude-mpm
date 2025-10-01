@@ -10,7 +10,7 @@ This script simulates hook events and verifies they:
 import asyncio
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add project to path
@@ -23,7 +23,7 @@ def simulate_hook_event(event_type: str, data: dict) -> dict:
     """Create a properly formatted hook event."""
     return {
         "type": f"hook.{event_type}",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "data": data,
     }
 

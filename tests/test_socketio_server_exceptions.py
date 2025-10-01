@@ -289,7 +289,7 @@ class TestSocketIOServerErrorIntegration(unittest.TestCase):
             "start_time": datetime.utcnow().isoformat() + "Z",
         }
 
-        with open(self.server.pidfile_path, "w") as f:
+        with self.server.pidfile_path.open("w") as f:
             json.dump(pidfile_content, f)
 
     def test_daemon_conflict_detection_with_enhanced_errors():

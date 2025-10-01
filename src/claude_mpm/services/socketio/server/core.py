@@ -428,7 +428,7 @@ class SocketIOServerCore:
         )
 
         # Add file reading endpoint for source viewer
-        async def file_read_handler(request):  # noqa: PLR0911
+        async def file_read_handler(request):
             """Handle GET /api/file/read for reading source files."""
             import os
 

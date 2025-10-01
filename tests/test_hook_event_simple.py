@@ -3,7 +3,7 @@
 
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add project root to path
@@ -33,7 +33,7 @@ for i in range(3):
         "hook_event_name": "TestEvent",  # CORRECT: Use hook_event_name
         "hook_event_type": "TestEvent",
         "subtype": f"test_{i}",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "hook_input_data": {
             "message": f"Test event {i} from connection pool",
             "index": i,

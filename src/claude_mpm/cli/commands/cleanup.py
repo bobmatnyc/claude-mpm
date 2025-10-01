@@ -154,12 +154,12 @@ def analyze_claude_json(file_path: Path) -> Tuple[Dict[str, Any], List[str]]:
     stats["file_size"] = file_stat.st_size
 
     # Count lines
-    with open(file_path) as f:
+    with file_path.open() as f:
         stats["line_count"] = sum(1 for _ in f)
 
     # Try to parse JSON structure
     try:
-        with open(file_path) as f:
+        with file_path.open() as f:
             data = json.load(f)
 
         # Analyze conversation structure
@@ -220,7 +220,7 @@ def create_archive(source_path: Path, archive_dir: Path) -> Path:
         import gzip
 
         compressed_path = archive_path.with_suffix(".json.gz")
-        with open(archive_path, "rb") as f_in:
+        with archive_path.open("rb") as f_in:
             with gzip.open(compressed_path, "wb") as f_out:
                 shutil.copyfileobj(f_in, f_out)
         archive_path.unlink()  # Remove uncompressed version

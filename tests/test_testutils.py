@@ -138,7 +138,7 @@ class TestSyncTestUtils(PsutilTestCase):
 
     def test_wait_for_file(self):
         testfn = self.get_testfn()
-        with open(testfn, "w") as f:
+        with testfn.open("w") as f:
             f.write("foo")
         wait_for_file(testfn)
         assert not os.path.exists(testfn)
@@ -158,7 +158,7 @@ class TestSyncTestUtils(PsutilTestCase):
 
     def test_wait_for_file_no_delete(self):
         testfn = self.get_testfn()
-        with open(testfn, "w") as f:
+        with testfn.open("w") as f:
             f.write("foo")
         wait_for_file(testfn, delete=False)
         assert os.path.exists(testfn)

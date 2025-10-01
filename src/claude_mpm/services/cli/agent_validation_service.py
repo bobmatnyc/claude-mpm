@@ -72,7 +72,7 @@ class AgentValidationService(IAgentValidationService):
                 self._registry = adapter.registry
             except Exception as e:
                 self.logger.error(f"Failed to initialize agent registry: {e}")
-                raise RuntimeError(f"Could not initialize agent registry: {e}")
+                raise RuntimeError(f"Could not initialize agent registry: {e}") from e
         return self._registry
 
     def validate_agent(self, agent_name: str) -> Dict[str, Any]:

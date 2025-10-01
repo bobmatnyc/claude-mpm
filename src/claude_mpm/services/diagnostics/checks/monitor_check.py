@@ -193,7 +193,7 @@ class MonitorCheck(BaseDiagnosticCheck):
         for config_path in config_paths:
             if config_path.exists():
                 try:
-                    with open(config_path) as f:
+                    with config_path.open() as f:
                         config = yaml.safe_load(f)
                         if config and isinstance(config, dict):
                             response_config = config.get("response_logging", {})

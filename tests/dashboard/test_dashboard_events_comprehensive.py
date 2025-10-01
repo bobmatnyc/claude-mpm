@@ -15,7 +15,7 @@ import asyncio
 import subprocess
 import sys
 import webbrowser
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add src to path
@@ -137,7 +137,7 @@ async def test_event_broadcasting(port="8765"):
             "type": "test_event",
             "data": {
                 "message": "Test event 1",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "test_id": "broadcast_test_1",
             },
         },
@@ -146,7 +146,7 @@ async def test_event_broadcasting(port="8765"):
             "data": {
                 "event": "TestStart",
                 "message": "Starting comprehensive test",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "test_id": "broadcast_test_2",
             },
         },
@@ -155,7 +155,7 @@ async def test_event_broadcasting(port="8765"):
             "data": {
                 "event": "heartbeat",
                 "status": "healthy",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "test_id": "broadcast_test_3",
             },
         },
@@ -214,7 +214,7 @@ async def test_event_reception(port="8765"):
         test_event = {
             "event": "TestEvent",
             "message": "Testing event reception",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "test_id": "reception_test",
         }
 
@@ -316,7 +316,7 @@ async def generate_test_events_batch(port="8765"):
 
     for i, template in enumerate(event_templates, 1):
         event_type = template.pop("type")
-        template["timestamp"] = datetime.now().isoformat()
+        template["timestamp"] = datetime.now(timezone.utc).isoformat()
         template["test_batch_id"] = f"batch_{i}"
 
         try:

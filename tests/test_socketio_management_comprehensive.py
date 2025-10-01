@@ -87,7 +87,7 @@ def test_stop_command_fix(results):
     test_proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
 
     try:
-        with open(daemon_pidfile, "w") as f:
+        with daemon_pidfile.open("w") as f:
             f.write(str(test_proc.pid))
 
         print(f"   Created mock daemon PID: {test_proc.pid}")
@@ -161,7 +161,7 @@ def test_script_coordination(results):
     test_pid = os.getpid()  # Use our own PID as it's guaranteed to exist
 
     try:
-        with open(daemon_pidfile, "w") as f:
+        with daemon_pidfile.open("w") as f:
             f.write(str(test_pid))
 
         daemon_info = manager._get_daemon_server_info()

@@ -15,7 +15,7 @@ DESIGN DECISIONS:
 """
 
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -101,7 +101,7 @@ class TestMemoryCRUDService:
         memory_file = MagicMock()
         memory_file.exists.return_value = True
         memory_file.stat.return_value = MagicMock(
-            st_size=1024, st_mtime=datetime.now().timestamp()
+            st_size=1024, st_mtime=datetime.now(timezone.utc).timestamp()
         )
 
         with patch.object(Path, "__truediv__", return_value=memory_file):
@@ -135,8 +135,8 @@ class TestMemoryCRUDService:
         file1.stem = "agent1_memories"
         file1.stat.return_value = MagicMock(
             st_size=1024,
-            st_mtime=datetime.now().timestamp(),
-            st_ctime=datetime.now().timestamp(),
+            st_mtime=datetime.now(timezone.utc).timestamp(),
+            st_ctime=datetime.now(timezone.utc).timestamp(),
         )
 
         file2 = MagicMock()
@@ -144,8 +144,8 @@ class TestMemoryCRUDService:
         file2.stem = "agent2_memories"
         file2.stat.return_value = MagicMock(
             st_size=2048,
-            st_mtime=datetime.now().timestamp(),
-            st_ctime=datetime.now().timestamp(),
+            st_mtime=datetime.now(timezone.utc).timestamp(),
+            st_ctime=datetime.now(timezone.utc).timestamp(),
         )
 
         mock_memory_manager.memories_dir = memory_dir
@@ -252,8 +252,8 @@ class TestMemoryCRUDService:
         file1.stem = "agent1_memories"
         file1.stat.return_value = MagicMock(
             st_size=1024,
-            st_mtime=datetime.now().timestamp(),
-            st_ctime=datetime.now().timestamp(),
+            st_mtime=datetime.now(timezone.utc).timestamp(),
+            st_ctime=datetime.now(timezone.utc).timestamp(),
         )
 
         with patch.object(service, "_get_memory_files", return_value=[file1]):
@@ -279,7 +279,7 @@ class TestMemoryCRUDService:
         old_file.stem = "old_agent_memories"
 
         # Mock old modification time (35 days ago)
-        old_timestamp = datetime.now().timestamp() - (35 * 24 * 60 * 60)
+        old_timestamp = datetime.now(timezone.utc).timestamp() - (35 * 24 * 60 * 60)
         old_file.stat.return_value = MagicMock(st_size=1024, st_mtime=old_timestamp)
 
         with patch.object(service, "_get_memory_files", return_value=[old_file]):
@@ -302,14 +302,14 @@ class TestMemoryCRUDService:
         file1.name = "agent1_memories.md"
         file1.stem = "agent1_memories"
         file1.stat.return_value = MagicMock(
-            st_size=1024, st_mtime=(datetime.now().timestamp() - (35 * 24 * 60 * 60))
+            st_size=1024, st_mtime=(datetime.now(timezone.utc).timestamp() - (35 * 24 * 60 * 60))
         )
 
         file2 = MagicMock()
         file2.name = "agent2_memories.md"
         file2.stem = "agent2_memories"
         file2.stat.return_value = MagicMock(
-            st_size=2048, st_mtime=(datetime.now().timestamp() - (35 * 24 * 60 * 60))
+            st_size=2048, st_mtime=(datetime.now(timezone.utc).timestamp() - (35 * 24 * 60 * 60))
         )
 
         with patch.object(service, "_get_memory_files", return_value=[file1, file2]):

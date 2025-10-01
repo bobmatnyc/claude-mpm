@@ -20,7 +20,7 @@ import tempfile
 import threading
 import time
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -86,7 +86,7 @@ class TestHookEventFlow(unittest.TestCase):
                 "hook_event_name": "Stop",
                 "session_id": "test-session-123",
                 "response": "Task completed successfully",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             # Simulate event processing
@@ -166,7 +166,7 @@ class TestHookToDashboard(unittest.TestCase):
         test_data = {
             "event_type": "Stop",
             "session_id": "test-123",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         conn_manager.emit_event("/hooks", "hook_event", test_data)
@@ -589,7 +589,7 @@ class TestEndToEndIntegration(unittest.TestCase):
                     self.assertTrue(settings_file.exists())
 
                     # Verify hooks configured
-                    with open(settings_file) as f:
+                    with settings_file.open() as f:
                         settings = json.load(f)
 
                     self.assertIn("hooks", settings)

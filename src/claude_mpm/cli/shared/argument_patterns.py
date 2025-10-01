@@ -7,14 +7,14 @@ across multiple CLI commands.
 
 import argparse
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 
 class CommonArguments:
     """Registry of common argument patterns used across CLI commands."""
 
     # Logging arguments
-    VERBOSE = {
+    VERBOSE: ClassVar[Dict[str, Any]] = {
         "flags": ["-v", "--verbose"],
         "action": "store_true",
         "help": "Enable verbose output",

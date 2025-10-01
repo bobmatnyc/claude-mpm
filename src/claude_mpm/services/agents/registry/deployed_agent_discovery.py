@@ -166,7 +166,7 @@ class DeployedAgentDiscovery(ConfigServiceBase):
         try:
             path = Path(agent_path)
             if path.exists() and path.suffix == ".json":
-                with open(path) as f:
+                with path.open() as f:
                     return json.load(f)
         except Exception as e:
             logger.warning(f"Failed to load full agent data from {agent_path}: {e}")

@@ -18,7 +18,7 @@ WHY this focused diagnostic:
 import json
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Optional
 
 try:
@@ -37,7 +37,7 @@ class ConnectionAuthDiagnostic:
 
     def __init__(self, server_url: str = "http://localhost:8765"):
         self.server_url = server_url
-        self.test_start = datetime.now()
+        self.test_start = datetime.now(timezone.utc)
         self.test_results = []
         self.errors = []
 
@@ -54,7 +54,7 @@ class ConnectionAuthDiagnostic:
             "test_name": test_name,
             "status": status,
             "details": details,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": data,
         }
         self.test_results.append(result)
@@ -626,8 +626,8 @@ class ConnectionAuthDiagnostic:
         if failed_namespaces:
             print(f"   ⚠️  {len(failed_namespaces)} namespace(s) have connection issues")
 
-        print(f"\n⏰ Diagnostic completed at: {datetime.now().isoformat()}")
-        test_duration = (datetime.now() - self.test_start).total_seconds()
+        print(f"\n⏰ Diagnostic completed at: {datetime.now(timezone.utc).isoformat()}")
+        test_duration = (datetime.now(timezone.utc) - self.test_start).total_seconds()
         print(f"🕒 Total diagnostic time: {test_duration:.2f} seconds")
 
     def run_all_tests(self):

@@ -183,7 +183,7 @@ class BaseCommand(ABC):
 
         if hasattr(args, "output") and args.output:
             # Write to file
-            with open(args.output, "w") as f:
+            with args.output.open("w") as f:
                 f.write(formatted_output)
             self.logger.info(f"Output written to {args.output}")
         else:

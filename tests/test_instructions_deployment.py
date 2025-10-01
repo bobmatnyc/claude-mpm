@@ -94,7 +94,7 @@ def test_deployment():
             import traceback
 
             traceback.print_exc()
-            raise AssertionError(f"Test failed with error: {e}")
+            raise AssertionError(f"Test failed with error: {e}") from e
 
 
 if __name__ == "__main__":

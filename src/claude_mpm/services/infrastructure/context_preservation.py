@@ -151,7 +151,7 @@ class ContextPreservationService(BaseService):
                 return None
 
             # Use streaming to find active conversation
-            with open(self.claude_json_path, "rb") as f:
+            with self.claude_json_path.open("rb") as f:
                 parser = ijson.parse(f)
 
                 active_conv_id = None
@@ -207,7 +207,7 @@ class ContextPreservationService(BaseService):
                 keep_recent_days * 86400
             )
 
-            with open(self.claude_json_path) as f:
+            with self.claude_json_path.open() as f:
                 data = json.load(f)
 
             original_count = len(data.get("conversations", []))
@@ -239,7 +239,7 @@ class ContextPreservationService(BaseService):
 
             # Write compressed version
             temp_path = self.claude_json_path.with_suffix(".tmp")
-            with open(temp_path, "w") as f:
+            with temp_path.open("w") as f:
                 json.dump(data, f, separators=(",", ":"))  # Compact format
 
             # Replace original
@@ -316,7 +316,7 @@ class ContextPreservationService(BaseService):
             # Use streaming to extract preferences
             preferences = {}
 
-            with open(self.claude_json_path, "rb") as f:
+            with self.claude_json_path.open("rb") as f:
                 parser = ijson.parse(f)
 
                 for prefix, event, value in parser:
@@ -339,7 +339,7 @@ class ContextPreservationService(BaseService):
     ) -> ConversationState:
         """Parse Claude JSON using standard JSON parser."""
         try:
-            with open(self.claude_json_path) as f:
+            with self.claude_json_path.open() as f:
                 data = json.load(f)
 
             return await self._extract_conversation_state(data, extract_full)
@@ -357,7 +357,7 @@ class ContextPreservationService(BaseService):
             preferences = {}
             open_files = []
 
-            with open(self.claude_json_path, "rb") as f:
+            with self.claude_json_path.open("rb") as f:
                 parser = ijson.parse(f)
 
                 conversation_count = 0
@@ -527,7 +527,7 @@ class ContextPreservationService(BaseService):
                 backup_name += ".gz"
                 backup_path = self.claude_backup_dir / backup_name
 
-                with open(self.claude_json_path, "rb") as f_in:
+                with self.claude_json_path.open("rb") as f_in:
                     with gzip.open(backup_path, "wb") as f_out:
                         shutil.copyfileobj(f_in, f_out)
             else:

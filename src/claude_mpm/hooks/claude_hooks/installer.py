@@ -428,7 +428,7 @@ main "$@"
             return
 
         try:
-            with open(self.old_settings_file) as f:
+            with self.old_settings_file.open() as f:
                 old_settings = json.load(f)
 
             # Remove hooks section if present
@@ -437,7 +437,7 @@ main "$@"
                 self.logger.info(f"Removing hooks from {self.old_settings_file}")
 
                 # Write back the cleaned settings
-                with open(self.old_settings_file, "w") as f:
+                with self.old_settings_file.open("w") as f:
                     json.dump(old_settings, f, indent=2)
 
                 self.logger.info(f"Cleaned up hooks from {self.old_settings_file}")
@@ -450,7 +450,7 @@ main "$@"
 
         # Load existing settings.json or create new
         if self.settings_file.exists():
-            with open(self.settings_file) as f:
+            with self.settings_file.open() as f:
                 settings = json.load(f)
             self.logger.info(f"Found existing Claude settings at {self.settings_file}")
         else:
@@ -490,7 +490,7 @@ main "$@"
             ]
 
         # Write settings to settings.json
-        with open(self.settings_file, "w") as f:
+        with self.settings_file.open("w") as f:
             json.dump(settings, f, indent=2)
 
         self.logger.info(f"Updated Claude settings at {self.settings_file}")
@@ -564,7 +564,7 @@ main "$@"
             issues.append(f"Claude settings file not found at {self.settings_file}")
         else:
             try:
-                with open(self.settings_file) as f:
+                with self.settings_file.open() as f:
                     settings = json.load(f)
 
                 if "hooks" not in settings:
@@ -615,7 +615,7 @@ main "$@"
             # Remove from Claude settings (both old and new locations)
             for settings_path in [self.settings_file, self.old_settings_file]:
                 if settings_path.exists():
-                    with open(settings_path) as f:
+                    with settings_path.open() as f:
                         settings = json.load(f)
 
                     if "hooks" in settings:
@@ -655,7 +655,7 @@ main "$@"
                             del settings["hooks"]
 
                         # Write back settings
-                        with open(settings_path, "w") as f:
+                        with settings_path.open("w") as f:
                             json.dump(settings, f, indent=2)
 
                         self.logger.info(f"Removed hooks from {settings_path}")
@@ -709,7 +709,7 @@ main "$@"
 
         if self.settings_file.exists():
             try:
-                with open(self.settings_file) as f:
+                with self.settings_file.open() as f:
                     settings = json.load(f)
                     if "hooks" in settings:
                         status["configured_events"] = list(settings["hooks"].keys())
@@ -720,7 +720,7 @@ main "$@"
         # Also check old settings file
         if self.old_settings_file.exists():
             try:
-                with open(self.old_settings_file) as f:
+                with self.old_settings_file.open() as f:
                     old_settings = json.load(f)
                     if "hooks" in old_settings:
                         status["old_file_has_hooks"] = True

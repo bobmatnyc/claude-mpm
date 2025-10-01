@@ -185,7 +185,7 @@ class FrontmatterValidator:
         errors = []
 
         try:
-            with open(file_path) as f:
+            with file_path.open() as f:
                 content = f.read()
 
             # Check for frontmatter markers

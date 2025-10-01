@@ -16,7 +16,7 @@ USAGE:
 import asyncio
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 try:
     import socketio
@@ -56,7 +56,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "pre_tool",
@@ -72,7 +72,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "post_tool",
@@ -92,7 +92,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "pre_tool",
@@ -111,7 +111,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "post_tool",
@@ -130,7 +130,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "pre_tool",
@@ -150,7 +150,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "post_tool",
@@ -169,7 +169,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "pre_tool",
@@ -185,7 +185,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "post_tool",
@@ -205,7 +205,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "pre_tool",
@@ -221,7 +221,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "post_tool",
@@ -241,7 +241,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "pre_tool",
@@ -257,7 +257,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "post_tool",
@@ -277,7 +277,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "pre_tool",
@@ -299,7 +299,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "post_tool",
@@ -318,7 +318,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "pre_tool",
@@ -334,7 +334,7 @@ async def test_file_operations():
             "claude_event",
             {
                 "type": "hook",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
                     "type": "hook",
                     "subtype": "post_tool",

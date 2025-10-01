@@ -149,7 +149,7 @@ class MCPGatewayManager:
             return None
 
         try:
-            with open(self.instance_file) as f:
+            with self.instance_file.open() as f:
                 instance_info = json.load(f)
 
             # Validate PID is still running
@@ -195,7 +195,7 @@ class MCPGatewayManager:
                 "lock_file": str(self.lock_file),
             }
 
-            with open(self.instance_file, "w") as f:
+            with self.instance_file.open("w") as f:
                 json.dump(instance_info, f, indent=2)
 
             self._current_instance = instance_info

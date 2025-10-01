@@ -93,7 +93,7 @@ class TestMCPInstallConfig(unittest.TestCase):
                 self.assertTrue(success)
 
                 # Verify configuration
-                with open(config_path) as f:
+                with config_path.open() as f:
                     config = json.load(f)
 
                 mcp_config = config["mcpServers"]["claude-mpm-gateway"]
@@ -120,7 +120,7 @@ class TestMCPInstallConfig(unittest.TestCase):
                 self.assertTrue(success)
 
                 # Verify configuration
-                with open(config_path) as f:
+                with config_path.open() as f:
                     config = json.load(f)
 
                 mcp_config = config["mcpServers"]["claude-mpm-gateway"]
@@ -156,7 +156,7 @@ class TestMCPInstallConfig(unittest.TestCase):
                     self.assertTrue(success)
 
                     # Verify configuration never contains script path
-                    with open(config_path) as f:
+                    with config_path.open() as f:
                         config_json = f.read()
 
                     self.assertNotIn("mcp_server.py", config_json)

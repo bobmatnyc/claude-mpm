@@ -136,7 +136,7 @@ class AnalyzeCodeCommand(BaseCommand):
             # Save to file if specified
             if args.save:
                 save_path = Path(args.save)
-                with open(save_path, "w") as f:
+                with save_path.open("w") as f:
                     json.dump(analysis_result, f, indent=2, default=str)
                 self.logger.info(f"Analysis saved to {save_path}")
 

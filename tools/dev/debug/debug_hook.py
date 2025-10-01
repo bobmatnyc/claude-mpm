@@ -30,7 +30,7 @@ def main():
                 for key in ["hook_event_name", "hook_event_type", "type", "event", "event_type"]:
                     if key in parsed:
                         f.write(f"  {key}: {parsed[key]}\n")
-            except:
+            except (json.JSONDecodeError, ValueError, KeyError):
                 f.write("\nCould not parse as JSON\n")
 
         # Always return continue

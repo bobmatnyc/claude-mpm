@@ -75,7 +75,7 @@ class BaseFileLoader(ABC):
                             f"Read {path} with fallback encoding: {enc}"
                         )
                         return f.read()
-                except:
+                except (UnicodeDecodeError, OSError):
                     continue
             raise
 
@@ -185,8 +185,8 @@ class StructuredFileLoader(BaseFileLoader):
                 import tomli
 
                 return tomli.loads(content)
-            except ImportError:
-                raise ImportError("Neither toml nor tomli package is installed")
+            except ImportError as e:
+                raise ImportError("Neither toml nor tomli package is installed") from e
         except Exception as e:
             if context.strict:
                 raise
@@ -209,7 +209,7 @@ class StructuredFileLoader(BaseFileLoader):
 
         try:
             return json.loads(content)
-        except:
+        except (json.JSONDecodeError, ValueError):
             return {}
 
     def _process_includes(
@@ -411,7 +411,7 @@ class EnvironmentFileLoader(BaseFileLoader):
         if value.startswith(("[", "{")):
             try:
                 return json.loads(value)
-            except:
+            except (json.JSONDecodeError, ValueError):
                 pass
 
         # Comma-separated list

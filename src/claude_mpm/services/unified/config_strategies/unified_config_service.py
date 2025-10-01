@@ -12,7 +12,7 @@ import threading
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
@@ -216,7 +216,7 @@ class UnifiedConfigService:
                     source=str(source),
                     format=format,
                     context=context,
-                    loaded_at=datetime.now(),
+                    loaded_at=datetime.now(timezone.utc),
                     checksum=self._calculate_checksum(config),
                     hot_reload=hot_reload,
                     ttl=ttl,
@@ -439,7 +439,7 @@ class UnifiedConfigService:
 
         path = Path(source)
         if path.exists():
-            with open(path) as f:
+            with path.open() as f:
                 return json.load(f)
 
         # Try to parse as JSON string
@@ -452,7 +452,7 @@ class UnifiedConfigService:
 
         path = Path(source)
         if path.exists():
-            with open(path) as f:
+            with path.open() as f:
                 return yaml.safe_load(f)
 
         # Try to parse as YAML string
@@ -476,7 +476,7 @@ class UnifiedConfigService:
             # Try to parse value
             try:
                 config[clean_key] = json.loads(value)
-            except:
+            except (json.JSONDecodeError, ValueError):
                 config[clean_key] = value
 
         return config
@@ -508,7 +508,7 @@ class UnifiedConfigService:
 
         path = Path(source)
         if path.exists():
-            with open(path) as f:
+            with path.open() as f:
                 return toml.load(f)
 
         return toml.loads(str(source))
@@ -706,7 +706,7 @@ class UnifiedConfigService:
         """Check if cached configuration is still valid"""
         if metadata.ttl:
             expiry = metadata.loaded_at + metadata.ttl
-            if datetime.now() > expiry:
+            if datetime.now(timezone.utc) > expiry:
                 return False
         return True
 
@@ -742,7 +742,7 @@ class UnifiedConfigService:
                 result = handler(error, source, context)
                 if result is not None:
                     return result
-            except:
+            except Exception:
                 continue
 
         self.logger.error(f"Failed to load config from {source}: {error}")

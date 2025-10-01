@@ -302,7 +302,7 @@ class DaemonManager:
             if not self.pid_file.exists():
                 return True
 
-            with open(self.pid_file) as f:
+            with self.pid_file.open() as f:
                 pid = int(f.read().strip())
 
             self.logger.info(f"Found PID {pid} in PID file")
@@ -397,7 +397,7 @@ class DaemonManager:
             # First check PID file
             if self.pid_file.exists():
                 try:
-                    with open(self.pid_file) as f:
+                    with self.pid_file.open() as f:
                         pid = int(f.read().strip())
 
                     # Verify process exists
@@ -604,7 +604,7 @@ class DaemonManager:
                     # Check if PID file was written
                     if self.pid_file.exists():
                         try:
-                            with open(self.pid_file) as f:
+                            with self.pid_file.open() as f:
                                 written_pid = int(f.read().strip())
                             if written_pid == pid:
                                 # PID file written correctly, check port
@@ -798,7 +798,7 @@ class DaemonManager:
             if not self.pid_file.exists():
                 return None
 
-            with open(self.pid_file) as f:
+            with self.pid_file.open() as f:
                 return int(f.read().strip())
 
         except Exception as e:
@@ -809,7 +809,7 @@ class DaemonManager:
         """Write current PID to PID file."""
         try:
             self.pid_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.pid_file, "w") as f:
+            with self.pid_file.open("w") as f:
                 f.write(str(os.getpid()))
             self.logger.debug(f"PID file written: {self.pid_file}")
         except Exception as e:
@@ -863,7 +863,7 @@ class DaemonManager:
 
             # Redirect stdout and stderr to log file
             self.log_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.log_file, "a") as log_out:
+            with self.log_file.open("a") as log_out:
                 os.dup2(log_out.fileno(), sys.stdout.fileno())
                 os.dup2(log_out.fileno(), sys.stderr.fileno())
 
@@ -903,7 +903,7 @@ class DaemonManager:
                     continue
 
                 try:
-                    with open(self.startup_status_file) as f:
+                    with self.startup_status_file.open() as f:
                         status = f.read().strip()
 
                     if status == "success":
@@ -935,7 +935,7 @@ class DaemonManager:
             try:
                 # Don't check if file exists - we need to write to it regardless
                 # The parent created it and is waiting for us to update it
-                with open(self.startup_status_file, "w") as f:
+                with self.startup_status_file.open("w") as f:
                     f.write("success")
                     f.flush()  # Ensure it's written immediately
                     os.fsync(f.fileno())  # Force write to disk
@@ -948,7 +948,7 @@ class DaemonManager:
         if self.startup_status_file:
             try:
                 # Don't check if file exists - we need to write to it regardless
-                with open(self.startup_status_file, "w") as f:
+                with self.startup_status_file.open("w") as f:
                     f.write(f"error:{error}")
                     f.flush()  # Ensure it's written immediately
                     os.fsync(f.fileno())  # Force write to disk

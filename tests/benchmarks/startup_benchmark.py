@@ -22,7 +22,7 @@ import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -350,10 +350,10 @@ class StartupBenchmark:
     def save_results(self, results: Dict, output_file: Optional[Path] = None) -> Path:
         """Save benchmark results to JSON file."""
         if output_file is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             output_file = Path(__file__).parent / f"startup_benchmark_{timestamp}.json"
 
-        with open(output_file, "w") as f:
+        with output_file.open("w") as f:
             json.dump(results, f, indent=2, default=str)
 
         self.logger.info(f"📁 Results saved to: {output_file}")
