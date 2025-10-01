@@ -31,6 +31,7 @@ except Exception:
 
 __author__ = "Claude MPM Team"
 
+
 # Lazy imports for main components to avoid loading heavy dependencies
 # when only importing from submodules (e.g., core.logging_utils)
 # This significantly improves hook handler performance
@@ -38,15 +39,19 @@ def __getattr__(name):
     """Lazy load main components only when accessed."""
     if name == "ClaudeRunner":
         from .core.claude_runner import ClaudeRunner
+
         return ClaudeRunner
-    elif name == "MPMOrchestrator":
+    if name == "MPMOrchestrator":
         # For backwards compatibility
         from .core.claude_runner import ClaudeRunner
+
         return ClaudeRunner
-    elif name == "TicketManager":
+    if name == "TicketManager":
         from .services.ticket_manager import TicketManager
+
         return TicketManager
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
 
 __all__ = [
     "ClaudeRunner",

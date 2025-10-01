@@ -26,100 +26,104 @@ __version__ = "0.1.0"
 
 
 # Lazy imports to prevent circular dependencies and improve startup performance
-def __getattr__(name):  # noqa: PLR0911
-    """Lazy import mechanism for MCP Gateway components."""
+def __getattr__(name):
+    """Lazy import mechanism for MCP Gateway components using dictionary-based mapping."""
+    from importlib import import_module
 
-    # Core interfaces and base classes
-    if name == "IMCPGateway":
-        from .core.interfaces import IMCPGateway
+    # Dictionary mapping: name -> (module_path, attribute_name)
+    _LAZY_IMPORTS = {
+        # Core interfaces and base classes
+        "IMCPGateway": (
+            "claude_mpm.services.mcp_gateway.core.interfaces",
+            "IMCPGateway",
+        ),
+        "IMCPToolRegistry": (
+            "claude_mpm.services.mcp_gateway.core.interfaces",
+            "IMCPToolRegistry",
+        ),
+        "IMCPConfiguration": (
+            "claude_mpm.services.mcp_gateway.core.interfaces",
+            "IMCPConfiguration",
+        ),
+        "IMCPToolAdapter": (
+            "claude_mpm.services.mcp_gateway.core.interfaces",
+            "IMCPToolAdapter",
+        ),
+        "BaseMCPService": (
+            "claude_mpm.services.mcp_gateway.core.base",
+            "BaseMCPService",
+        ),
+        # Gateway implementations
+        "MCPGateway": (
+            "claude_mpm.services.mcp_gateway.server.mcp_gateway",
+            "MCPGateway",
+        ),
+        "StdioHandler": (
+            "claude_mpm.services.mcp_gateway.server.stdio_handler",
+            "StdioHandler",
+        ),
+        "AlternativeStdioHandler": (
+            "claude_mpm.services.mcp_gateway.server.stdio_handler",
+            "AlternativeStdioHandler",
+        ),
+        # Tool registry and adapters
+        "ToolRegistry": (
+            "claude_mpm.services.mcp_gateway.registry.tool_registry",
+            "ToolRegistry",
+        ),
+        "BaseToolAdapter": (
+            "claude_mpm.services.mcp_gateway.tools.base_adapter",
+            "BaseToolAdapter",
+        ),
+        "EchoToolAdapter": (
+            "claude_mpm.services.mcp_gateway.tools.base_adapter",
+            "EchoToolAdapter",
+        ),
+        "CalculatorToolAdapter": (
+            "claude_mpm.services.mcp_gateway.tools.base_adapter",
+            "CalculatorToolAdapter",
+        ),
+        "SystemInfoToolAdapter": (
+            "claude_mpm.services.mcp_gateway.tools.base_adapter",
+            "SystemInfoToolAdapter",
+        ),
+        # Configuration management
+        "MCPConfiguration": (
+            "claude_mpm.services.mcp_gateway.config.configuration",
+            "MCPConfiguration",
+        ),
+        "MCPConfigLoader": (
+            "claude_mpm.services.mcp_gateway.config.config_loader",
+            "MCPConfigLoader",
+        ),
+        # Service registry
+        "MCPServiceRegistry": (
+            "claude_mpm.services.mcp_gateway.registry.service_registry",
+            "MCPServiceRegistry",
+        ),
+        # Exceptions
+        "MCPException": (
+            "claude_mpm.services.mcp_gateway.core.exceptions",
+            "MCPException",
+        ),
+        "MCPConfigurationError": (
+            "claude_mpm.services.mcp_gateway.core.exceptions",
+            "MCPConfigurationError",
+        ),
+        "MCPToolNotFoundError": (
+            "claude_mpm.services.mcp_gateway.core.exceptions",
+            "MCPToolNotFoundError",
+        ),
+        "MCPServerError": (
+            "claude_mpm.services.mcp_gateway.core.exceptions",
+            "MCPServerError",
+        ),
+    }
 
-        return IMCPGateway
-    if name == "IMCPToolRegistry":
-        from .core.interfaces import IMCPToolRegistry
-
-        return IMCPToolRegistry
-    if name == "IMCPConfiguration":
-        from .core.interfaces import IMCPConfiguration
-
-        return IMCPConfiguration
-    if name == "IMCPToolAdapter":
-        from .core.interfaces import IMCPToolAdapter
-
-        return IMCPToolAdapter
-    if name == "BaseMCPService":
-        from .core.base import BaseMCPService
-
-        return BaseMCPService
-
-    # Gateway implementations
-    if name == "MCPGateway":
-        from .server.mcp_gateway import MCPGateway
-
-        return MCPGateway
-    if name == "StdioHandler":
-        from .server.stdio_handler import StdioHandler
-
-        return StdioHandler
-    if name == "AlternativeStdioHandler":
-        from .server.stdio_handler import AlternativeStdioHandler
-
-        return AlternativeStdioHandler
-
-    # Tool registry and adapters
-    if name == "ToolRegistry":
-        from .registry.tool_registry import ToolRegistry
-
-        return ToolRegistry
-    if name == "BaseToolAdapter":
-        from .tools.base_adapter import BaseToolAdapter
-
-        return BaseToolAdapter
-    if name == "EchoToolAdapter":
-        from .tools.base_adapter import EchoToolAdapter
-
-        return EchoToolAdapter
-    if name == "CalculatorToolAdapter":
-        from .tools.base_adapter import CalculatorToolAdapter
-
-        return CalculatorToolAdapter
-    if name == "SystemInfoToolAdapter":
-        from .tools.base_adapter import SystemInfoToolAdapter
-
-        return SystemInfoToolAdapter
-
-    # Configuration management
-    if name == "MCPConfiguration":
-        from .config.configuration import MCPConfiguration
-
-        return MCPConfiguration
-    if name == "MCPConfigLoader":
-        from .config.config_loader import MCPConfigLoader
-
-        return MCPConfigLoader
-
-    # Service registry
-    if name == "MCPServiceRegistry":
-        from .registry.service_registry import MCPServiceRegistry
-
-        return MCPServiceRegistry
-
-    # Exceptions
-    if name == "MCPException":
-        from .core.exceptions import MCPException
-
-        return MCPException
-    if name == "MCPConfigurationError":
-        from .core.exceptions import MCPConfigurationError
-
-        return MCPConfigurationError
-    if name == "MCPToolNotFoundError":
-        from .core.exceptions import MCPToolNotFoundError
-
-        return MCPToolNotFoundError
-    if name == "MCPServerError":
-        from .core.exceptions import MCPServerError
-
-        return MCPServerError
+    if name in _LAZY_IMPORTS:
+        module_path, attr_name = _LAZY_IMPORTS[name]
+        module = import_module(module_path)
+        return getattr(module, attr_name)
 
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
