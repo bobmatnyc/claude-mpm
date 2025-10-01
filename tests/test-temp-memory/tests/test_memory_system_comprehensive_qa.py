@@ -237,7 +237,7 @@ class MemorySystemQATest:
 
         # Create a sample existing memory file
         existing_memory_file = os.path.join(memories_dir, "existing_memory.json")
-        with open(existing_memory_file, "w") as f:
+        with existing_memory_file.open("w") as f:
             json.dump(
                 {
                     "content": "Existing memory content",
@@ -471,7 +471,7 @@ def main():
 
     # Save detailed results
     results_file = os.path.join(os.getcwd(), "memory_system_qa_results.json")
-    with open(results_file, "w") as f:
+    with results_file.open("w") as f:
         json.dump(
             {
                 "overall_success": success,

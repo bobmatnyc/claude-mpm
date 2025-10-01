@@ -137,7 +137,7 @@ class ConfigurationValidator:
                             self.errors.append(
                                 f"Problem line: {lines[mark.line].rstrip()}"
                             )
-                except:
+                except Exception:
                     pass
 
             # Common YAML error patterns and suggestions

@@ -118,7 +118,7 @@ async def validate_agent_dependencies(profile_path: Path) -> ValidationResult:
     result = ValidationResult(is_valid=True)
 
     try:
-        with open(profile_path) as f:
+        with profile_path.open() as f:
             profile_data = yaml.safe_load(f)
 
         # Check for circular dependencies

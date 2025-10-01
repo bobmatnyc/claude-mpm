@@ -121,7 +121,7 @@ class UnifiedMonitorDaemon:
         """
         return self.daemon_manager.cleanup_port_conflicts()
 
-    def _start_daemon(self, force_restart: bool = False) -> bool:  # noqa: PLR0911
+    def _start_daemon(self, force_restart: bool = False) -> bool:
         """Start as background daemon process.
 
         Args:

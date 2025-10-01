@@ -94,7 +94,7 @@ def test_enhanced_config_editor():
             path=temp_path, config=test_config, name=temp_path.name
         )
 
-        with open(config_path, "w") as f:
+        with config_path.open("w") as f:
             yaml.dump(test_config, f)
 
         print(f"Created test installation at: {temp_path}")

@@ -12,7 +12,7 @@ class MCPExternalCommands:
         """Initialize the MCP external commands handler."""
         self.logger = logger
 
-    def manage_external(self, args):  # noqa: PLR0911
+    def manage_external(self, args):
         """Manage external MCP services.
 
         Args:
@@ -135,7 +135,7 @@ class MCPExternalCommands:
                 print(f"\n📄 Found config: {config_path}")
 
                 try:
-                    with open(config_path) as f:
+                    with config_path.open() as f:
                         config = json.load(f)
 
                     mcp_servers = config.get("mcpServers", {})

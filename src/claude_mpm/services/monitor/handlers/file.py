@@ -225,7 +225,7 @@ class FileHandler:
         be displayed as text.
         """
         try:
-            with open(real_path, "rb") as f:
+            with real_path.open("rb") as f:
                 binary_content = f.read()
 
             # Check if it's a text file by looking for common text patterns

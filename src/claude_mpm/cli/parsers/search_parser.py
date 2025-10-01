@@ -190,7 +190,7 @@ Examples:
     return search_parser
 
 
-def validate_search_args(args: argparse.Namespace) -> Optional[str]:  # noqa: PLR0911
+def validate_search_args(args: argparse.Namespace) -> Optional[str]:
     """
     Validate search command arguments.
 

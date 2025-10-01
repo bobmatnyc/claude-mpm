@@ -190,7 +190,7 @@ def test_yaml_metadata_parsing():
             for agent_file in agents_dir.glob("*.md"):
                 if not agent_file.name.startswith("."):
                     try:
-                        with open(agent_file) as f:
+                        with agent_file.open() as f:
                             content = f.read()
                         if content.startswith("---"):
                             metadata = loader._parse_agent_metadata(agent_file)

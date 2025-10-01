@@ -8,7 +8,7 @@ import json
 import sys
 import time
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import socketio
 
@@ -88,7 +88,7 @@ def main():
         print("✅ Connected to dashboard")
 
         # Generate base time for realistic timestamps
-        base_time = datetime.now() - timedelta(hours=2)
+        base_time = datetime.now(timezone.utc) - timedelta(hours=2)
 
         # Create multiple test sessions
         sessions = []

@@ -20,7 +20,7 @@ import socket
 import subprocess
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List
 
@@ -97,7 +97,7 @@ def get_daemon_pid() -> int:
     pid_file = deployment_root / ".claude-mpm" / "socketio-server.pid"
     if pid_file.exists():
         try:
-            with open(pid_file) as f:
+            with pid_file.open() as f:
                 return int(f.read().strip())
         except Exception:
             pass
@@ -110,7 +110,7 @@ def get_supervisor_pid() -> int:
     pid_file = deployment_root / ".claude-mpm" / "socketio-supervisor.pid"
     if pid_file.exists():
         try:
-            with open(pid_file) as f:
+            with pid_file.open() as f:
                 return int(f.read().strip())
         except Exception:
             pass
@@ -123,7 +123,7 @@ def get_daemon_port() -> int:
     port_file = deployment_root / ".claude-mpm" / "socketio-port"
     if port_file.exists():
         try:
-            with open(port_file) as f:
+            with port_file.open() as f:
                 return int(f.read().strip())
         except Exception:
             pass
@@ -136,7 +136,7 @@ def get_metrics() -> Dict:
     metrics_file = deployment_root / ".claude-mpm" / ".claude-mpm/socketio-metrics.json"
     if metrics_file.exists():
         try:
-            with open(metrics_file) as f:
+            with metrics_file.open() as f:
                 return json.load(f)
         except Exception:
             pass
@@ -985,7 +985,7 @@ def main():
     print("=" * 70)
     print("HARDENED SOCKET.IO DAEMON - COMPREHENSIVE QA TEST SUITE")
     print("=" * 70)
-    print(f"Test started: {datetime.now()}")
+    print(f"Test started: {datetime.now(timezone.utc)}")
     print(f"Testing: {DAEMON_SCRIPT}")
     print()
 
@@ -1027,7 +1027,7 @@ def main():
     # Final cleanup
     cleanup_daemon()
 
-    print(f"\nTest completed: {datetime.now()}")
+    print(f"\nTest completed: {datetime.now(timezone.utc)}")
     return 0 if production_ready else 1
 
 

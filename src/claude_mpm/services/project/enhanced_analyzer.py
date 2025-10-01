@@ -17,7 +17,7 @@ Created: 2025-01-26
 """
 
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -74,7 +74,7 @@ class EnhancedProjectAnalyzer:
 
     def _get_recent_commits(self, days: int) -> List[Dict]:
         """Get recent commits within specified days."""
-        since_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        since_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
 
         # Get commit log with structured format
         output = self._run_git_command(
@@ -107,7 +107,7 @@ class EnhancedProjectAnalyzer:
 
     def _get_changed_files(self, days: int) -> Dict:
         """Get files changed in recent commits."""
-        since_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        since_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
 
         output = self._run_git_command(
             [
@@ -138,7 +138,7 @@ class EnhancedProjectAnalyzer:
 
     def _get_recently_added_files(self, days: int) -> List[str]:
         """Get files added in recent commits."""
-        since_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        since_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
 
         output = self._run_git_command(
             [
@@ -162,7 +162,7 @@ class EnhancedProjectAnalyzer:
 
     def _get_author_stats(self, days: int) -> Dict:
         """Get author contribution statistics."""
-        since_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        since_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
 
         output = self._run_git_command(
             [
@@ -228,7 +228,7 @@ class EnhancedProjectAnalyzer:
 
     def _get_documentation_changes(self, days: int) -> Dict:
         """Track changes to documentation files."""
-        since_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        since_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
 
         # Get changes to documentation files
         doc_patterns = ["*.md", "*.rst", "*.txt", "docs/*", "README*", "CLAUDE*"]
@@ -448,7 +448,7 @@ class EnhancedProjectAnalyzer:
             )
             if first_commit:
                 age_days = (
-                    datetime.now() - datetime.fromtimestamp(int(first_commit))
+                    datetime.now(timezone.utc) - datetime.fromtimestamp(int(first_commit))
                 ).days
                 indicators.append(f"{age_days} days old")
 
@@ -470,7 +470,7 @@ class EnhancedProjectAnalyzer:
         """Generate comprehensive project analysis report."""
         report = {
             "project_path": str(self.project_path),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Basic project info

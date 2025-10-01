@@ -114,7 +114,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
             # Try to count conversations
             conversation_count = 0
             try:
-                with open(claude_json_path) as f:
+                with claude_json_path.open() as f:
                     data = json.load(f)
                     if isinstance(data, dict) and "conversations" in data:
                         conversation_count = len(data["conversations"])
@@ -283,10 +283,10 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
             try:
                 import yaml
 
-                with open(user_config) as f:
+                with user_config.open() as f:
                     user_data = yaml.safe_load(f) or {}
 
-                with open(project_config) as f:
+                with project_config.open() as f:
                     project_data = yaml.safe_load(f) or {}
 
                 # Check for conflicting keys

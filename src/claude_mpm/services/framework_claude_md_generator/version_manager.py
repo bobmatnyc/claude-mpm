@@ -38,7 +38,7 @@ class VersionManager:
             version_path = package_path.parent / "framework" / "VERSION"
 
         if version_path.exists():
-            with open(version_path) as f:
+            with version_path.open() as f:
                 version_content = f.read().strip()
                 # Framework VERSION file contains just the framework version number
                 try:

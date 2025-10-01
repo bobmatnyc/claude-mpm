@@ -102,7 +102,7 @@ class AgentValidator:
             if not self.schema_path.is_file():
                 raise ValueError(f"Schema path is not a file: {self.schema_path}")
 
-            with open(self.schema_path) as f:
+            with self.schema_path.open() as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Failed to load schema from {self.schema_path}: {e}")
@@ -392,7 +392,7 @@ class AgentValidator:
             max_size = SystemLimits.MAX_AGENT_CONFIG_SIZE
             if file_size > max_size:
                 raise ValueError(ErrorMessages.FILE_TOO_LARGE.format(limit=max_size))
-            with open(file_path) as f:
+            with file_path.open() as f:
                 agent_data = json.load(f)
 
             result = self.validate_agent(agent_data)

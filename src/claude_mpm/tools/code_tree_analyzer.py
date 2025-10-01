@@ -692,7 +692,7 @@ class MultiLanguageAnalyzer:
         nodes = []
 
         try:
-            with open(file_path, "rb") as f:
+            with file_path.open("rb") as f:
                 source = f.read()
 
             parser = self.parsers[language]
@@ -1099,7 +1099,7 @@ class CodeTreeAnalyzer:
     def _get_file_hash(self, file_path: Path) -> str:
         """Get hash of file contents for caching."""
         hasher = hashlib.md5()
-        with open(file_path, "rb") as f:
+        with file_path.open("rb") as f:
             hasher.update(f.read())
         return hasher.hexdigest()
 
@@ -1166,7 +1166,7 @@ class CodeTreeAnalyzer:
         cache_file = self.cache_dir / "code_tree_cache.json"
         if cache_file.exists():
             try:
-                with open(cache_file) as f:
+                with cache_file.open() as f:
                     cache_data = json.load(f)
                     # Reconstruct CodeNode objects
                     for key, nodes_data in cache_data.items():
@@ -1203,7 +1203,7 @@ class CodeTreeAnalyzer:
                     for n in nodes
                 ]
 
-            with open(cache_file, "w") as f:
+            with cache_file.open("w") as f:
                 json.dump(cache_data, f, indent=2)
 
             self.logger.info(f"Saved cache with {len(self.cache)} entries")
@@ -1726,7 +1726,7 @@ class CodeTreeAnalyzer:
             },
         }
 
-    def _is_internal_node(self, node: CodeNode) -> bool:  # noqa: PLR0911
+    def _is_internal_node(self, node: CodeNode) -> bool:
         """Check if node is an internal function that should be filtered."""
         # Don't filter classes - always show them
         if node.node_type == "class":

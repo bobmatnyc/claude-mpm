@@ -43,7 +43,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
 
     def test_agent_template_valid_json(self):
         """Test that the agent template is valid JSON."""
-        with open(self.template_path) as f:
+        with self.template_path.open() as f:
             try:
                 data = json.load(f)
                 self.assertIsInstance(data, dict)
@@ -52,7 +52,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
 
     def test_agent_template_required_fields(self):
         """Test that the agent template has all required fields."""
-        with open(self.template_path) as f:
+        with self.template_path.open() as f:
             data = json.load(f)
 
         # Check required top-level fields
@@ -75,7 +75,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
 
     def test_agent_metadata_complete(self):
         """Test that agent metadata is complete and correct."""
-        with open(self.template_path) as f:
+        with self.template_path.open() as f:
             data = json.load(f)
 
         metadata = data.get("metadata", {})
@@ -87,7 +87,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
 
     def test_agent_capabilities_configured(self):
         """Test that agent capabilities are properly configured."""
-        with open(self.template_path) as f:
+        with self.template_path.open() as f:
             data = json.load(f)
 
         capabilities = data.get("capabilities", {})
@@ -107,7 +107,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
 
     def test_agent_instructions_present(self):
         """Test that agent instructions are present and comprehensive."""
-        with open(self.template_path) as f:
+        with self.template_path.open() as f:
             data = json.load(f)
 
         instructions = data.get("instructions", "")
@@ -135,7 +135,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
         """Test that the agent can be loaded by the builder service."""
         try:
             # Test that the template file can be loaded directly
-            with open(self.template_path) as f:
+            with self.template_path.open() as f:
                 template = json.load(f)
             self.assertIsNotNone(template)
             self.assertEqual(template.get("agent_id"), "agentic-coder-optimizer")
@@ -147,7 +147,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
         # Test that the agent template can be deployed
         # We'll just verify the template is valid for deployment
         try:
-            with open(self.template_path) as f:
+            with self.template_path.open() as f:
                 template = json.load(f)
 
             # Verify deployment-critical fields
@@ -174,7 +174,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
 
     def test_agent_memory_routing_configured(self):
         """Test that memory routing is properly configured."""
-        with open(self.template_path) as f:
+        with self.template_path.open() as f:
             data = json.load(f)
 
         memory_routing = data.get("memory_routing", {})
@@ -190,7 +190,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
 
     def test_agent_testing_config_valid(self):
         """Test that the agent's testing configuration is valid."""
-        with open(self.template_path) as f:
+        with self.template_path.open() as f:
             data = json.load(f)
 
         testing = data.get("testing", {})
@@ -212,7 +212,7 @@ class TestAgenticCoderOptimizerAgent(unittest.TestCase):
 
     def test_agent_version_consistency(self):
         """Test that agent version is consistent across configurations."""
-        with open(self.template_path) as f:
+        with self.template_path.open() as f:
             data = json.load(f)
 
         # Check version consistency

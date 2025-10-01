@@ -144,8 +144,8 @@ def __getattr__(name):
         try:
             module = import_module("claude_mpm.services.recovery_manager")
             return module.RecoveryManager
-        except ImportError:
-            raise AttributeError(f"Recovery management not available: {name}")
+        except ImportError as e:
+            raise AttributeError(f"Recovery management not available: {name}") from e
 
     # Handle MCP interfaces (names starting with "IMCP")
     if name.startswith("IMCP"):

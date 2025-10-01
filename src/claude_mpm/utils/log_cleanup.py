@@ -357,7 +357,7 @@ class LogCleanupUtility:
                         space_saved += estimated_saved
                     else:
                         # Actually compress the file
-                        with open(log_file, "rb") as f_in:
+                        with log_file.open("rb") as f_in:
                             with gzip.open(
                                 compressed_path, "wb", compresslevel=9
                             ) as f_out:

@@ -116,7 +116,7 @@ def aggregate_command(args):
     return result.exit_code
 
 
-def aggregate_command_legacy(args):  # noqa: PLR0911
+def aggregate_command_legacy(args):
     """Legacy aggregate command dispatcher.
 
     WHY: This contains the original aggregate_command logic, preserved during migration
@@ -409,7 +409,7 @@ def export_command_legacy(args):
     # Export based on format
     if args.format == "json":
         # Full JSON export
-        with open(output_path, "w") as f:
+        with output_path.open("w") as f:
             json.dump(session.to_dict(), f, indent=2)
         print(f"✅ Exported session to {output_path}")
 
@@ -436,7 +436,7 @@ def export_command_legacy(args):
             ],
         }
 
-        with open(output_path, "w") as f:
+        with output_path.open("w") as f:
             json.dump(summary, f, indent=2)
         print(f"✅ Exported session summary to {output_path}")
 
@@ -444,7 +444,7 @@ def export_command_legacy(args):
         # Events-only export
         events_data = [e.to_dict() for e in session.events]
 
-        with open(output_path, "w") as f:
+        with output_path.open("w") as f:
             json.dump(events_data, f, indent=2)
         print(f"✅ Exported {len(events_data)} events to {output_path}")
 

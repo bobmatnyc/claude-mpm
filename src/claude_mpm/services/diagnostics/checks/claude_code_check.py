@@ -187,7 +187,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
 
         # Check if it's up to date
         try:
-            with open(style_path) as f:
+            with style_path.open() as f:
                 content = f.read()
                 if "Claude MPM Output Style" in content:
                     return DiagnosticResult(
@@ -232,7 +232,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
             )
 
         try:
-            with open(config_path) as f:
+            with config_path.open() as f:
                 config = json.load(f)
 
                 mcp_servers = config.get("mcpServers", {})

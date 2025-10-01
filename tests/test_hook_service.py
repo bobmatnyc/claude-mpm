@@ -4,7 +4,7 @@ WHY: We need to verify that the HookService correctly manages hooks,
 executes them in priority order, and handles errors gracefully.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from claude_mpm.hooks.base_hook import (
     HookContext,
@@ -99,7 +99,7 @@ def test_hook_priority_ordering():
         hook_type=HookType.PRE_DELEGATION,
         data={"agent": "test_agent", "prompt": "test"},
         metadata={},
-        timestamp=datetime.now(),
+        timestamp=datetime.now(timezone.utc),
     )
     result = service.execute_pre_delegation_hooks(context)
 
@@ -129,7 +129,7 @@ def test_hook_error_handling():
         hook_type=HookType.PRE_DELEGATION,
         data={"agent": "test_agent"},
         metadata={},
-        timestamp=datetime.now(),
+        timestamp=datetime.now(timezone.utc),
     )
     result = service.execute_pre_delegation_hooks(context)
 
@@ -183,7 +183,7 @@ def test_disabled_hooks():
         hook_type=HookType.PRE_DELEGATION,
         data={"agent": "test_agent"},
         metadata={},
-        timestamp=datetime.now(),
+        timestamp=datetime.now(timezone.utc),
     )
     result = service.execute_pre_delegation_hooks(context)
 
@@ -206,7 +206,7 @@ def test_config_based_disabling():
         hook_type=HookType.PRE_DELEGATION,
         data={"agent": "test_agent"},
         metadata={},
-        timestamp=datetime.now(),
+        timestamp=datetime.now(timezone.utc),
     )
     result = service.execute_pre_delegation_hooks(context)
 
@@ -239,7 +239,7 @@ def test_memory_hook_config_check():
         hook_type=HookType.PRE_DELEGATION,
         data={"agent": "test_agent"},
         metadata={},
-        timestamp=datetime.now(),
+        timestamp=datetime.now(timezone.utc),
     )
     service.execute_pre_delegation_hooks(context)
 
@@ -262,7 +262,7 @@ def test_post_delegation_hooks():
         hook_type=HookType.POST_DELEGATION,
         data={"result": "Agent execution complete", "agent": "test_agent"},
         metadata={},
-        timestamp=datetime.now(),
+        timestamp=datetime.now(timezone.utc),
     )
     result = service.execute_post_delegation_hooks(context)
 
@@ -292,13 +292,13 @@ def test_stats_tracking():
             hook_type=HookType.PRE_DELEGATION,
             data={"agent": "test"},
             metadata={},
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
         post_context = HookContext(
             hook_type=HookType.POST_DELEGATION,
             data={"result": "test"},
             metadata={},
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
         service.execute_pre_delegation_hooks(pre_context)
         service.execute_post_delegation_hooks(post_context)

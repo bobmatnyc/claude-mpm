@@ -209,7 +209,7 @@ class AgentSessionManager:
                 "agent_sessions": dict(self.agent_sessions),
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
-            with open(session_file, "w") as f:
+            with session_file.open("w") as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
             logger.error(f"Failed to save agent sessions: {e}")
@@ -219,7 +219,7 @@ class AgentSessionManager:
         session_file = self.session_dir / "agent_sessions.json"
         if session_file.exists():
             try:
-                with open(session_file) as f:
+                with session_file.open() as f:
                     data = json.load(f)
                     self.agent_sessions = defaultdict(
                         dict, data.get("agent_sessions", {})

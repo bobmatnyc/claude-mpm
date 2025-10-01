@@ -621,7 +621,7 @@ class MCPExternalServicesSetup:
         """
         try:
             if config_path.exists():
-                with open(config_path) as f:
+                with config_path.open() as f:
                     config = json.load(f)
                     # Ensure mcpServers key exists
                     if "mcpServers" not in config:
@@ -664,7 +664,7 @@ class MCPExternalServicesSetup:
                 print(f"   📁 Created backup: {backup_path}")
 
             # Write configuration with proper formatting
-            with open(config_path, "w") as f:
+            with config_path.open("w") as f:
                 json.dump(config, f, indent=2)
                 f.write("\n")  # Add newline at end of file
 
@@ -830,7 +830,7 @@ class MCPExternalServicesSetup:
 
         if mcp_config_path.exists():
             try:
-                with open(mcp_config_path) as f:
+                with mcp_config_path.open() as f:
                     mcp_config = json.load(f)
                 print(f"\n📁 Project MCP config: {mcp_config_path}")
             except Exception:

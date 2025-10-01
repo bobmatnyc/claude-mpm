@@ -42,7 +42,7 @@ class TestInteractiveResponseLogging(unittest.TestCase):
             }
         }
 
-        with open(self.config_path, "w") as f:
+        with self.config_path.open("w") as f:
             json.dump(self.config_data, f)
 
     def tearDown(self):
@@ -73,7 +73,7 @@ class TestInteractiveResponseLogging(unittest.TestCase):
         """Test that response tracker is not initialized when response logging is disabled."""
         # Update config to disable response logging
         self.config_data["response_logging"]["enabled"] = False
-        with open(self.config_path, "w") as f:
+        with self.config_path.open("w") as f:
             json.dump(self.config_data, f)
 
         # Create mock runner with config

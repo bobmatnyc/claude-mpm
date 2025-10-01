@@ -97,7 +97,7 @@ class MCPConfigLoader:
                 self.logger.error(f"Configuration file not found: {expanded_path}")
                 return None
 
-            with open(expanded_path) as f:
+            with expanded_path.open() as f:
                 config = yaml.safe_load(f)
 
             self.logger.info(f"Configuration loaded from {expanded_path}")
@@ -271,7 +271,7 @@ class MCPConfigLoader:
             expanded_path = path.expanduser()
             expanded_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(expanded_path, "w") as f:
+            with expanded_path.open("w") as f:
                 yaml.dump(
                     MCPConfiguration.DEFAULT_CONFIG,
                     f,

@@ -102,7 +102,7 @@ print("\\n✅ Agent invocation test completed")
     invocation_file = test_dir / "temp_invocation_test.py"
 
     try:
-        with open(invocation_file, "w") as f:
+        with invocation_file.open("w") as f:
             f.write(invocation_script)
 
         print("Running agent invocation test...")
@@ -229,7 +229,7 @@ def analyze_codebase():
         try:
             if ext == '.py':
                 # Python AST analysis
-                with open(filename, 'r') as f:
+                with filename.open('r') as f:
                     source = f.read()
 
                 tree = ast.parse(source)
@@ -306,7 +306,7 @@ def analyze_codebase():
                         lang = Language(lang_function())
                         parser = Parser(lang)
 
-                        with open(filename, 'rb') as f:
+                        with filename.open('rb') as f:
                             tree = parser.parse(f.read())
 
                         # Basic tree-sitter analysis
@@ -403,7 +403,7 @@ if __name__ == "__main__":
     workflow_file = Path(__file__).parent / "temp_workflow_test.py"
 
     try:
-        with open(workflow_file, "w") as f:
+        with workflow_file.open("w") as f:
             f.write(workflow_script)
 
         print("Running complete analysis workflow test...")

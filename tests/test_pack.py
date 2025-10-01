@@ -224,7 +224,7 @@ class TestPack(TestBase):
             # END rewind streams
             iteration += 1
 
-            with open(ppath, "wb") as pfile:
+            with ppath.open("wb") as pfile:
                 pack_sha, index_sha = PackEntity.write_pack(
                     pack_objs, pfile.write, iwrite, object_count=num_obj
                 )

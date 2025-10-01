@@ -1,6 +1,6 @@
 # test_tool_viewing_scrolling.py
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import socketio
 
@@ -21,7 +21,7 @@ def connect():
             "data": {
                 "prompt": f"Test session {session_num}: Implement feature {session_num}"
             },
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "session_id": session_id,
         }
         sio.emit("hook_event", user_event)
@@ -41,7 +41,7 @@ def connect():
                     for i in range(1, 4)
                 ]
             },
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "session_id": session_id,
         }
         sio.emit("hook_event", todo_event)
@@ -55,7 +55,7 @@ def connect():
                 "subtype": "started",
                 "agent_name": agent_name,
                 "session_id": session_id,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
             sio.emit("hook_event", agent_event)
 
@@ -101,7 +101,7 @@ def connect():
                     "tool_name": tool_name,
                     "tool_parameters": params,
                     "session_id": session_id,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
                 sio.emit("hook_event", tool_event)
                 print(f"  🔧 Sent {tool_name} for {agent_name}")

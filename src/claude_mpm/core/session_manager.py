@@ -187,7 +187,7 @@ class SessionManager:
         """Save sessions to disk."""
         session_file = self.session_dir / "active_sessions.json"
         try:
-            with open(session_file, "w") as f:
+            with session_file.open("w") as f:
                 json.dump(self.active_sessions, f, indent=2)
         except Exception as e:
             logger.error(f"Failed to save sessions: {e}")
@@ -197,7 +197,7 @@ class SessionManager:
         session_file = self.session_dir / "active_sessions.json"
         if session_file.exists():
             try:
-                with open(session_file) as f:
+                with session_file.open() as f:
                     self.active_sessions = json.load(f)
 
                 # Clean up old sessions on load (archive by default)
@@ -286,7 +286,7 @@ class SessionManager:
             backup_path = archive_dir / backup_name
 
             # Compress and backup current file
-            with open(claude_json_path, "rb") as f_in:
+            with claude_json_path.open("rb") as f_in:
                 with gzip.open(backup_path, "wb") as f_out:
                     shutil.copyfileobj(f_in, f_out)
 

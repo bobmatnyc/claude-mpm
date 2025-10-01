@@ -24,7 +24,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
@@ -131,7 +131,7 @@ class ResponseLoggingHealthChecker:
             try:
                 import yaml
 
-                with open(found_config) as f:
+                with found_config.open() as f:
                     yaml.safe_load(f)
 
                 self.results[check_name] = {
@@ -269,12 +269,12 @@ class ResponseLoggingHealthChecker:
             logger = ClaudeSessionLogger(base_dir=session_dir, config=config)
 
             # Check if we can create a session directory
-            test_session_id = f"health_check_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            test_session_id = f"health_check_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
             logger.set_session_id(test_session_id)
 
             # Try to log a test entry
             test_entry = {
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "type": "health_check",
                 "message": "Testing response logging health",
             }
@@ -392,7 +392,7 @@ class ResponseLoggingHealthChecker:
                     "task_completed": True,
                     "instructions": "Health check completed",
                     "results": {"status": "healthy"},
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             )
 
@@ -405,7 +405,7 @@ class ResponseLoggingHealthChecker:
 
             if log_path and log_path.exists():
                 # Verify content
-                with open(log_path) as f:
+                with log_path.open() as f:
                     logged_data = json.load(f)
 
                 if logged_data.get("agent") == test_agent:
@@ -551,7 +551,7 @@ response_logging:
             if config_path.exists():
                 import yaml
 
-                with open(config_path) as f:
+                with config_path.open() as f:
                     config = yaml.safe_load(f) or {}
 
                 if "response_logging" not in config:
@@ -564,7 +564,7 @@ response_logging:
                         "max_queue_size": 10000,
                     }
 
-                    with open(config_path, "w") as f:
+                    with config_path.open("w") as f:
                         yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
                 break

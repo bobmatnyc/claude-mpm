@@ -37,7 +37,7 @@ class MonitorCommand(BaseCommand):
 
         return None
 
-    def run(self, args) -> CommandResult:  # noqa: PLR0911
+    def run(self, args) -> CommandResult:
         """Execute the monitor command using unified monitoring daemon."""
         try:
             self.logger.info("Monitor command using unified monitoring daemon")

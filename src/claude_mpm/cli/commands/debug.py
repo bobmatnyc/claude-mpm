@@ -21,7 +21,7 @@ from typing import Any, Dict
 from ...core.logger import get_logger
 
 
-def manage_debug(args):  # noqa: PLR0911
+def manage_debug(args):
     """
     Main entry point for debug commands.
 
@@ -446,7 +446,7 @@ def debug_agents(args, logger):
 
                         # Try to load and analyze memory
                         try:
-                            with open(mem_file) as f:
+                            with mem_file.open() as f:
                                 memory_data = json.load(f)
 
                             entry_count = (
@@ -509,7 +509,7 @@ def debug_agents(args, logger):
                     print(f"   Size: {agent_file.stat().st_size:,} bytes")
 
                     # Read first few lines for type detection
-                    with open(agent_file) as f:
+                    with agent_file.open() as f:
                         lines = f.readlines()[:10]
                         for line in lines:
                             if "role:" in line.lower():

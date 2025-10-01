@@ -15,7 +15,7 @@ import asyncio
 import json
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add src to path for imports
@@ -26,7 +26,7 @@ import requests
 
 def generate_test_event(event_id: int, method: str) -> dict:
     """Generate a test event with unique data."""
-    timestamp = datetime.now().isoformat()
+    timestamp = datetime.now(timezone.utc).isoformat()
     return {
         "type": "hook",
         "subtype": "test_event",

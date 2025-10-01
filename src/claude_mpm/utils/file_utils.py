@@ -41,7 +41,7 @@ def ensure_directory(path: Union[str, Path]) -> Path:
                 "operation": "mkdir",
                 "error_type": type(e).__name__,
             },
-        )
+        ) from e
 
 
 def safe_read_file(path: Union[str, Path], encoding: str = "utf-8") -> str:
@@ -61,7 +61,7 @@ def safe_read_file(path: Union[str, Path], encoding: str = "utf-8") -> str:
     path = Path(path)
     try:
         return path.read_text(encoding=encoding)
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         raise FileOperationError(
             f"File not found: {path}",
             context={
@@ -70,7 +70,7 @@ def safe_read_file(path: Union[str, Path], encoding: str = "utf-8") -> str:
                 "encoding": encoding,
                 "error_type": "FileNotFoundError",
             },
-        )
+        ) from e
     except (OSError, PermissionError, UnicodeDecodeError) as e:
         raise FileOperationError(
             f"Failed to read file: {e}",
@@ -80,7 +80,7 @@ def safe_read_file(path: Union[str, Path], encoding: str = "utf-8") -> str:
                 "encoding": encoding,
                 "error_type": type(e).__name__,
             },
-        )
+        ) from e
 
 
 def safe_write_file(
@@ -107,7 +107,7 @@ def safe_write_file(
             ensure_directory(path.parent)
         path.write_text(content, encoding=encoding)
     except Exception as e:
-        raise FileOperationError(f"Failed to write file {path}: {e}")
+        raise FileOperationError(f"Failed to write file {path}: {e}") from e
 
 
 def atomic_write(
@@ -152,7 +152,7 @@ def atomic_write(
                 os.unlink(temp_path)
         except Exception:
             pass
-        raise FileOperationError(f"Failed to atomically write file {path}: {e}")
+        raise FileOperationError(f"Failed to atomically write file {path}: {e}") from e
 
 
 def get_file_info(path: Union[str, Path]) -> Optional[Dict[str, Any]]:
@@ -211,7 +211,7 @@ def safe_copy_file(
         shutil.copy2(src, dst)
 
     except Exception as e:
-        raise FileOperationError(f"Failed to copy {src} to {dst}: {e}")
+        raise FileOperationError(f"Failed to copy {src} to {dst}: {e}") from e
 
 
 def safe_remove_file(path: Union[str, Path]) -> bool:
@@ -234,7 +234,7 @@ def safe_remove_file(path: Union[str, Path]) -> bool:
         path.unlink()
         return True
     except Exception as e:
-        raise FileOperationError(f"Failed to remove file {path}: {e}")
+        raise FileOperationError(f"Failed to remove file {path}: {e}") from e
 
 
 def read_json_file(path: Union[str, Path]) -> Any:
@@ -254,7 +254,7 @@ def read_json_file(path: Union[str, Path]) -> Any:
         content = safe_read_file(path)
         return json.loads(content)
     except json.JSONDecodeError as e:
-        raise FileOperationError(f"Invalid JSON in file {path}: {e}")
+        raise FileOperationError(f"Invalid JSON in file {path}: {e}") from e
 
 
 def write_json_file(
@@ -279,7 +279,7 @@ def write_json_file(
         else:
             safe_write_file(path, content)
     except Exception as e:
-        raise FileOperationError(f"Failed to write JSON file {path}: {e}")
+        raise FileOperationError(f"Failed to write JSON file {path}: {e}") from e
 
 
 def backup_file(path: Union[str, Path], backup_suffix: str = ".backup") -> Path:
@@ -303,4 +303,4 @@ def backup_file(path: Union[str, Path], backup_suffix: str = ".backup") -> Path:
         safe_copy_file(path, backup_path)
         return backup_path
     except Exception as e:
-        raise FileOperationError(f"Failed to create backup of {path}: {e}")
+        raise FileOperationError(f"Failed to create backup of {path}: {e}") from e

@@ -118,7 +118,7 @@ def read_file(filename: str) -> str:
     full_path = f"/var/app/data/{filename}"
 
     try:
-        with open(full_path) as f:
+        with full_path.open() as f:
             return f.read()
     except FileNotFoundError:
         return ""

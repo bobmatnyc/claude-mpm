@@ -55,7 +55,7 @@ class MetadataProcessor:
             Dictionary with agent metadata or None
         """
         try:
-            with open(agent_file) as f:
+            with agent_file.open() as f:
                 content = f.read()
 
             # Default values

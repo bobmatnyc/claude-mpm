@@ -15,7 +15,7 @@ This module provides:
 
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -255,7 +255,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
         result = DeploymentResult(
             success=False,
             status=DeploymentStatus.PENDING,
-            started_at=datetime.now(),
+            started_at=datetime.now(timezone.utc),
         )
 
         try:
@@ -334,7 +334,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
                     result.errors.append(f"Rollback failed: {rollback_error!s}")
 
         finally:
-            result.completed_at = datetime.now()
+            result.completed_at = datetime.now(timezone.utc)
             if result.started_at:
                 result.duration_seconds = (
                     result.completed_at - result.started_at
@@ -532,7 +532,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
         return {
             "deployment_id": deployment_info.get("deployment_id"),
             "deployed_path": str(deployment_info.get("deployed_path")),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "artifacts": deployment_info.get("artifacts", []),
         }
 

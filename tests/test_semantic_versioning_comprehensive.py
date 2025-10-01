@@ -14,7 +14,7 @@ functionality including:
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -516,7 +516,7 @@ class TestVersionMetadata:
     def test_version_metadata_creation():
         """Test creating VersionMetadata instances."""
         version = SemanticVersion(1, 2, 3)
-        release_date = datetime.now()
+        release_date = datetime.now(timezone.utc)
 
         metadata = VersionMetadata(
             version=version,

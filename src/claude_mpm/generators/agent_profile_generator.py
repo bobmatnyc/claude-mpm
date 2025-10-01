@@ -29,7 +29,7 @@ class AgentProfileGenerator:
         if not self.template_path.exists():
             raise FileNotFoundError(f"Template not found: {self.template_path}")
 
-        with open(self.template_path) as f:
+        with self.template_path.open() as f:
             return yaml.safe_load(f)
 
     def generate_profile(self, config: Dict[str, Any]) -> str:

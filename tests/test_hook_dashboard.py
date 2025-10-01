@@ -7,7 +7,7 @@ to the Socket.IO server and appear in the dashboard.
 
 import asyncio
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import socketio
 
@@ -36,7 +36,7 @@ async def simulate_hook_service():
                     "session_id": session_id,
                     "prompt_text": "Fix the authentication bug in the login module",
                     "working_directory": "/Users/test/project",
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             },
             # PM delegates to Engineer
@@ -47,7 +47,7 @@ async def simulate_hook_service():
                     "session_id": session_id,
                     "agent_type": "engineer",
                     "prompt": "Fix the authentication bug",
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             },
             # Engineer reads file
@@ -58,7 +58,7 @@ async def simulate_hook_service():
                     "session_id": session_id,
                     "tool_name": "Read",
                     "parameters": {"file_path": "/src/auth.py"},
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             },
             # Engineer edits file
@@ -73,7 +73,7 @@ async def simulate_hook_service():
                         "old_string": "if password == stored_password:",
                         "new_string": "if bcrypt.checkpw(password, stored_password):",
                     },
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             },
             # Engineer tests the fix
@@ -84,7 +84,7 @@ async def simulate_hook_service():
                     "session_id": session_id,
                     "tool_name": "Bash",
                     "parameters": {"command": "python -m pytest tests/test_auth.py"},
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             },
             # Engineer completes
@@ -96,7 +96,7 @@ async def simulate_hook_service():
                     "agent_type": "engineer",
                     "status": "completed",
                     "result": "Fixed authentication bug by using bcrypt for password comparison",
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             },
             # PM delegates to QA
@@ -107,7 +107,7 @@ async def simulate_hook_service():
                     "session_id": session_id,
                     "agent_type": "qa",
                     "prompt": "Test the authentication fix",
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             },
             # QA runs tests
@@ -118,7 +118,7 @@ async def simulate_hook_service():
                     "session_id": session_id,
                     "tool_name": "Bash",
                     "parameters": {"command": "python -m pytest tests/ -v"},
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             },
             # QA completes
@@ -130,7 +130,7 @@ async def simulate_hook_service():
                     "agent_type": "qa",
                     "status": "completed",
                     "result": "All tests pass. Authentication fix verified.",
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             },
         ]

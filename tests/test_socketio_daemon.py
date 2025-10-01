@@ -560,7 +560,7 @@ class TestErrorHandling:
         ), patch("subprocess.check_call") as mock_install:
             # This would normally be at module level, but we test the pattern
             try:
-                import psutil
+                import psutil  # noqa: F401
             except ImportError:
                 subprocess.check_call(
                     [sys.executable, "-m", "pip", "install", "psutil"]

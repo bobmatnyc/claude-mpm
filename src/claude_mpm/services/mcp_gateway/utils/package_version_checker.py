@@ -8,7 +8,7 @@ Provides non-blocking version checking for MCP tools like kuzu-memory.
 
 import asyncio
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -83,7 +83,7 @@ class PackageVersionChecker:
                     "latest": latest,
                     "update_available": version.parse(latest)
                     > version.parse(current_version),
-                    "checked_at": datetime.now().isoformat(),
+                    "checked_at": datetime.now(timezone.utc).isoformat(),
                 }
                 self._write_cache(cache_file, result)
                 return result
@@ -133,12 +133,12 @@ class PackageVersionChecker:
             return None
 
         try:
-            with open(cache_file) as f:
+            with cache_file.open() as f:
                 data = json.load(f)
 
             # Check TTL
             checked_at = datetime.fromisoformat(data["checked_at"])
-            if datetime.now() - checked_at < timedelta(seconds=ttl):
+            if datetime.now(timezone.utc) - checked_at < timedelta(seconds=ttl):
                 return data
         except Exception as e:
             self.logger.debug(f"Cache read error: {e}")
@@ -154,7 +154,7 @@ class PackageVersionChecker:
             data: Data to cache
         """
         try:
-            with open(cache_file, "w") as f:
+            with cache_file.open("w") as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
             self.logger.debug(f"Cache write failed: {e}")

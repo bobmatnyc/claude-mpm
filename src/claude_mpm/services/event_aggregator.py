@@ -491,7 +491,7 @@ class EventAggregator:
         for filepath in session_files:
             try:
                 # Load just the metadata, not the full session
-                with open(filepath) as f:
+                with filepath.open() as f:
                     data = json.load(f)
 
                 sessions.append(

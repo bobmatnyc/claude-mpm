@@ -13,7 +13,7 @@ import socket
 import subprocess
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add parent directory to path for imports
@@ -64,7 +64,7 @@ def get_daemon_pid() -> int:
 
     if pid_file.exists():
         try:
-            with open(pid_file) as f:
+            with pid_file.open() as f:
                 return int(f.read().strip())
         except:
             pass
@@ -78,7 +78,7 @@ def get_supervisor_pid() -> int:
 
     if pid_file.exists():
         try:
-            with open(pid_file) as f:
+            with pid_file.open() as f:
                 return int(f.read().strip())
         except:
             pass
@@ -92,7 +92,7 @@ def get_daemon_port() -> int:
 
     if port_file.exists():
         try:
-            with open(port_file) as f:
+            with port_file.open() as f:
                 return int(f.read().strip())
         except:
             pass
@@ -106,7 +106,7 @@ def get_metrics() -> dict:
 
     if metrics_file.exists():
         try:
-            with open(metrics_file) as f:
+            with metrics_file.open() as f:
                 return json.load(f)
         except:
             pass
@@ -433,7 +433,7 @@ def main():
     print("HARDENED SOCKET.IO DAEMON TEST SUITE")
     print("=" * 70)
     print(f"Testing daemon script: {DAEMON_SCRIPT}")
-    print(f"Test started: {datetime.now()}")
+    print(f"Test started: {datetime.now(timezone.utc)}")
 
     # Ensure clean state
     cleanup_daemon()

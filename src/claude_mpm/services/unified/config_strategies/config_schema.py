@@ -471,7 +471,7 @@ class SchemaValidator:
         try:
             datetime.strptime(value, format)
             return True
-        except:
+        except (ValueError, TypeError):
             return False
 
     def _validate_uuid(self, value: str) -> bool:
@@ -481,7 +481,7 @@ class SchemaValidator:
         try:
             uuid.UUID(value)
             return True
-        except:
+        except (ValueError, TypeError, AttributeError):
             return False
 
     def _validate_ipv4(self, value: str) -> bool:
@@ -491,7 +491,7 @@ class SchemaValidator:
         try:
             ipaddress.IPv4Address(value)
             return True
-        except:
+        except (ValueError, TypeError, ipaddress.AddressValueError):
             return False
 
     def _validate_ipv6(self, value: str) -> bool:
@@ -501,7 +501,7 @@ class SchemaValidator:
         try:
             ipaddress.IPv6Address(value)
             return True
-        except:
+        except (ValueError, TypeError, ipaddress.AddressValueError):
             return False
 
     def _validate_semver(self, value: str) -> bool:

@@ -76,6 +76,9 @@ class ConnectionManagerService:
         # For backward compatibility with tests
         self.connection_pool = None  # No longer used
 
+        # Track async emit tasks to prevent garbage collection
+        self._emit_tasks: set = set()
+
         if DEBUG:
             print(
                 f"✅ HTTP connection manager initialized - endpoint: {self.http_endpoint}",
@@ -141,8 +144,10 @@ class ConnectionManagerService:
                 pass
 
             if loop:
-                # We're in an async context, create a task
-                loop.create_task(self._async_emit(namespace, event, data))
+                # We're in an async context, create a task with tracking
+                task = loop.create_task(self._async_emit(namespace, event, data))
+                self._emit_tasks.add(task)
+                task.add_done_callback(self._emit_tasks.discard)
                 # Don't wait for completion to maintain low latency
                 if DEBUG:
                     print(f"✅ Async emit scheduled: {event}", file=sys.stderr)

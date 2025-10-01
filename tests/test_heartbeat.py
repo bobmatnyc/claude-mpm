@@ -5,7 +5,7 @@ Test script to verify Socket.IO heartbeat functionality
 
 import asyncio
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import socketio
 
@@ -21,7 +21,7 @@ async def test_heartbeat():
 
     @sio.on("connect")
     async def on_connect():
-        print(f"[{datetime.now().isoformat()}] Connected to server")
+        print(f"[{datetime.now(timezone.utc).isoformat()}] Connected to server")
         print("Waiting for heartbeat events (every 3 minutes)...")
         print(
             "Note: For testing, you may want to temporarily reduce the interval in server.py"
@@ -29,14 +29,14 @@ async def test_heartbeat():
 
     @sio.on("disconnect")
     async def on_disconnect():
-        print(f"[{datetime.now().isoformat()}] Disconnected from server")
+        print(f"[{datetime.now(timezone.utc).isoformat()}] Disconnected from server")
 
     @sio.on("heartbeat")
     async def on_heartbeat(data):
         nonlocal heartbeat_received, heartbeat_data
         heartbeat_received = True
         heartbeat_data = data
-        print(f"\n🫀 HEARTBEAT RECEIVED at {datetime.now().isoformat()}")
+        print(f"\n🫀 HEARTBEAT RECEIVED at {datetime.now(timezone.utc).isoformat()}")
         print(f"  - Heartbeat #{data.get('heartbeat_number', 'unknown')}")
         print(f"  - Server uptime: {data.get('server_uptime_formatted', 'unknown')}")
         print(f"  - Connected clients: {data.get('connected_clients', 'unknown')}")
@@ -47,13 +47,13 @@ async def test_heartbeat():
     # Connect to the server
     try:
         print(
-            f"[{datetime.now().isoformat()}] Connecting to Socket.IO server at http://localhost:8765..."
+            f"[{datetime.now(timezone.utc).isoformat()}] Connecting to Socket.IO server at http://localhost:8765..."
         )
         await sio.connect("http://localhost:8765")
 
         # Wait for heartbeat (3 minutes = 180 seconds, plus some buffer)
         print(
-            f"[{datetime.now().isoformat()}] Connected! Waiting up to 200 seconds for heartbeat..."
+            f"[{datetime.now(timezone.utc).isoformat()}] Connected! Waiting up to 200 seconds for heartbeat..."
         )
 
         # Check every second for up to 200 seconds
@@ -64,7 +64,7 @@ async def test_heartbeat():
             await asyncio.sleep(1)
             if i % 30 == 0 and i > 0:
                 print(
-                    f"[{datetime.now().isoformat()}] Still waiting... ({i} seconds elapsed)"
+                    f"[{datetime.now(timezone.utc).isoformat()}] Still waiting... ({i} seconds elapsed)"
                 )
 
         if not heartbeat_received:

@@ -1,3 +1,27 @@
+## [4.5.12] - 2025-10-01
+
+### Fixed
+- **Critical Linting Issues**: Comprehensive cleanup of 657 critical and medium priority issues
+  - Fixed all 58 bare except clauses (E722) with specific exception types
+  - Added exception chaining to 56 raise statements (B904) for better debugging
+  - Fixed 23 asyncio dangling task references (RUF006) with proper tracking
+  - Added timezone awareness to 120 datetime operations (DTZ005)
+  - Migrated 281 operations to pathlib Path.open() (PTH123) - 87% complete
+  - Overall reduction: 1,184 → 734 issues (38% improvement)
+
+### Impact
+- 368 files modified with 1,871+ code improvements
+- Improved error handling with complete stack traces
+- Production-safe async task management
+- Eliminated timezone ambiguity bugs
+- Modern Python best practices throughout
+- All critical linting categories verified at 0 in src/ and tests/
+
+### Technical Details
+- Remaining 734 issues are low-priority (style, complexity) for future PRs
+- Test suite passing (44 tests)
+- No regressions introduced
+
 ## [4.5.11] - 2025-10-01
 
 ### Added

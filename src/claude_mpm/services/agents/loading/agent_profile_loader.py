@@ -457,7 +457,7 @@ class AgentProfileLoader(BaseService):
 
         if prompt_file.exists():
             try:
-                with open(prompt_file) as f:
+                with prompt_file.open() as f:
                     data = json.load(f)
                     for prompt_data in data:
                         prompt = ImprovedPrompt(
@@ -500,7 +500,7 @@ class AgentProfileLoader(BaseService):
 
             # Save to file
             prompt_file = self.improved_prompts_path / f"{agent_name}_prompts.json"
-            with open(prompt_file, "w") as f:
+            with prompt_file.open("w") as f:
                 json.dump(
                     [
                         {

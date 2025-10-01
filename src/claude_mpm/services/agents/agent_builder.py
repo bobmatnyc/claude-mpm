@@ -287,7 +287,7 @@ class AgentBuilderService:
 
         for template_file in self.templates_dir.glob("*.json"):
             try:
-                with open(template_file) as f:
+                with template_file.open() as f:
                     config = json.load(f)
 
                 # Use filename stem as ID if not specified in config
@@ -377,12 +377,12 @@ class AgentBuilderService:
             raise AgentDeploymentError(f"Template '{template_id}' not found")
 
         try:
-            with open(template_file) as f:
+            with template_file.open() as f:
                 config = json.load(f)
                 self._template_cache[template_id] = config
                 return config.copy()
         except Exception as e:
-            raise AgentDeploymentError(f"Failed to load template '{template_id}': {e}")
+            raise AgentDeploymentError(f"Failed to load template '{template_id}': {e}") from e
 
     def _load_instructions(self, agent_id: str) -> str:
         """Load agent instructions.
@@ -406,7 +406,7 @@ class AgentBuilderService:
         for instructions_file in possible_files:
             if instructions_file.exists():
                 try:
-                    with open(instructions_file) as f:
+                    with instructions_file.open() as f:
                         return f.read()
                 except Exception as e:
                     self.logger.warning(

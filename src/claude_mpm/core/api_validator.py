@@ -84,7 +84,7 @@ class APIKeyValidator:
 
         return not bool(self.errors), self.errors, self.warnings
 
-    def _validate_openai_key(self, api_key: str) -> bool:  # noqa: PLR0911
+    def _validate_openai_key(self, api_key: str) -> bool:
         """Validate OpenAI API key.
 
         Args:
@@ -133,7 +133,7 @@ class APIKeyValidator:
             self.errors.append(f"❌ OpenAI API validation failed with error: {e}")
             return False
 
-    def _validate_anthropic_key(self, api_key: str) -> bool:  # noqa: PLR0911
+    def _validate_anthropic_key(self, api_key: str) -> bool:
         """Validate Anthropic API key.
 
         Args:
@@ -196,7 +196,7 @@ class APIKeyValidator:
             self.errors.append(f"❌ Anthropic API validation failed with error: {e}")
             return False
 
-    def _validate_github_token(self, token: str) -> bool:  # noqa: PLR0911
+    def _validate_github_token(self, token: str) -> bool:
         """Validate GitHub personal access token.
 
         Args:

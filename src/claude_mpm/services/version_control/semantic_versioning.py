@@ -100,7 +100,7 @@ class SemanticVersion:
             version += f"+{self.build}"
         return version
 
-    def __lt__(self, other: "SemanticVersion") -> bool:  # noqa: PLR0911
+    def __lt__(self, other: "SemanticVersion") -> bool:
         """Compare versions for sorting according to semver precedence.
 
         Comparison Rules:
@@ -416,7 +416,7 @@ class SemanticVersionManager:
                 return self._parse_toml_version_regex(file_path)
 
         try:
-            with open(file_path, "rb") as f:
+            with file_path.open("rb") as f:
                 data = tomllib.load(f)
 
             # Try different locations for version
@@ -437,7 +437,7 @@ class SemanticVersionManager:
     def _parse_toml_version_regex(self, file_path: Path) -> Optional[str]:
         """Parse version from TOML file using regex."""
         try:
-            with open(file_path) as f:
+            with file_path.open() as f:
                 content = f.read()
 
             # Look for version = "x.y.z" pattern
@@ -463,7 +463,7 @@ class SemanticVersionManager:
     def _parse_version_file(self, file_path: Path) -> Optional[str]:
         """Parse version from simple version file."""
         try:
-            with open(file_path) as f:
+            with file_path.open() as f:
                 return f.read().strip()
         except Exception:
             return None
@@ -471,7 +471,7 @@ class SemanticVersionManager:
     def _parse_pom_xml_version(self, file_path: Path) -> Optional[str]:
         """Parse version from Maven pom.xml."""
         try:
-            with open(file_path) as f:
+            with file_path.open() as f:
                 content = f.read()
 
             # Simple regex to find version in pom.xml
@@ -673,7 +673,7 @@ class SemanticVersionManager:
     def _update_toml_version(self, file_path: Path, new_version: str) -> bool:
         """Update version in TOML file."""
         try:
-            with open(file_path) as f:
+            with file_path.open() as f:
                 content = f.read()
 
             # Replace version field
@@ -691,7 +691,7 @@ class SemanticVersionManager:
                     break
 
             if updated:
-                with open(file_path, "w") as f:
+                with file_path.open("w") as f:
                     f.write(content)
                 return True
 
@@ -703,7 +703,7 @@ class SemanticVersionManager:
     def _update_simple_version_file(self, file_path: Path, new_version: str) -> bool:
         """Update version in simple version file."""
         try:
-            with open(file_path, "w") as f:
+            with file_path.open("w") as f:
                 f.write(new_version + "\n")
             return True
         except Exception:
@@ -712,7 +712,7 @@ class SemanticVersionManager:
     def _update_pom_xml_version(self, file_path: Path, new_version: str) -> bool:
         """Update version in Maven pom.xml."""
         try:
-            with open(file_path) as f:
+            with file_path.open() as f:
                 content = f.read()
 
             # Replace first version tag (project version)
@@ -722,7 +722,7 @@ class SemanticVersionManager:
             new_content = re.sub(pattern, replacement, content, count=1)
 
             if new_content != content:
-                with open(file_path, "w") as f:
+                with file_path.open("w") as f:
                     f.write(new_content)
                 return True
 
@@ -841,7 +841,7 @@ class SemanticVersionManager:
 
             # Read existing changelog or create new one
             if changelog_path.exists():
-                with open(changelog_path) as f:
+                with changelog_path.open() as f:
                     existing_content = f.read()
 
                 # Insert new entry after title
@@ -864,7 +864,7 @@ class SemanticVersionManager:
                 content = f"# Changelog\n\n{new_entry}\n"
 
             # Write updated changelog
-            with open(changelog_path, "w") as f:
+            with changelog_path.open("w") as f:
                 f.write(content)
 
             self.logger.info(f"Updated {changelog_file} with version {version}")
@@ -945,7 +945,7 @@ class SemanticVersionManager:
         versions = []
 
         try:
-            with open(changelog_path) as f:
+            with changelog_path.open() as f:
                 content = f.read()
 
             # Find version entries

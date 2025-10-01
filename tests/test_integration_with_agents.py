@@ -104,10 +104,10 @@ def test_backward_compatibility():
         original_file = next(session_dir.glob("*.json"))
         async_file = next(async_session_dir.glob("*.json"))
 
-        with open(original_file) as f:
+        with original_file.open() as f:
             original_data = json.load(f)
 
-        with open(async_file) as f:
+        with async_file.open() as f:
             async_data = json.load(f)
 
         # Check that the same essential fields exist
@@ -344,7 +344,7 @@ def test_metadata_handling():
 
         for json_file in created_files:
             try:
-                with open(json_file) as f:
+                with json_file.open() as f:
                     data = json.load(f)
 
                 # Check essential fields

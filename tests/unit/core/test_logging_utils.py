@@ -105,7 +105,7 @@ class TestLoggerFactory:
     def test_get_logger_with_level(self):
         """Test logger creation with specific level."""
         logger = LoggerFactory.get_logger("test", level="DEBUG")
-        assert logger.level == logging.DEBUG or logger.level == logging.NOTSET
+        assert logger.level in (logging.DEBUG, logging.NOTSET)
 
     def test_set_level(self):
         """Test dynamic log level changes."""

@@ -134,7 +134,7 @@ class AgentLoader:
 
             for json_file in template_dir.glob("*.json"):
                 try:
-                    with open(json_file) as f:
+                    with json_file.open() as f:
                         template_data = json.load(f)
 
                     # Extract agent metadata

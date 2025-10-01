@@ -3,7 +3,7 @@
 
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import socketio
 
@@ -18,7 +18,7 @@ def connect():
     # Send a test event
     test_event = {
         "type": "SubagentStart",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "request_id": "test-123",
         "session_id": "session-test-456",
         "agent_name": "TestAgent",
@@ -37,7 +37,7 @@ def connect():
 
     test_event2 = {
         "type": "ToolStart",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "request_id": "test-123",
         "session_id": "session-test-456",
         "agent_name": "TestAgent",
@@ -54,7 +54,7 @@ def connect():
     # Send completion event
     test_event3 = {
         "type": "SubagentStop",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "request_id": "test-123",
         "session_id": "session-test-456",
         "agent_name": "TestAgent",

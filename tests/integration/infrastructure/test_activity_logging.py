@@ -3,7 +3,7 @@
 
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add src to path
@@ -76,7 +76,7 @@ def test_session_saving():
 
     # Create a test session
     session = AgentSession(
-        session_id="test_activity_session", start_time=datetime.now()
+        session_id="test_activity_session", start_time=datetime.now(timezone.utc)
     )
     session.working_directory = "/test/dir"
     session.initial_prompt = "Test activity logging"
@@ -85,7 +85,7 @@ def test_session_saving():
     session.add_event(
         event_type="UserPromptSubmit",
         data={"prompt": "Test activity logging"},
-        timestamp=datetime.now().isoformat(),
+        timestamp=datetime.now(timezone.utc).isoformat(),
     )
 
     # Save to activity directory
@@ -93,13 +93,13 @@ def test_session_saving():
     activity_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate filename
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     filename = f"{timestamp}_test_activity_session.json"
     filepath = activity_dir / filename
 
     # Save session
     session_data = session.to_dict()
-    with open(filepath, "w") as f:
+    with filepath.open("w") as f:
         json.dump(session_data, f, indent=2, default=str)
 
     # Verify file exists

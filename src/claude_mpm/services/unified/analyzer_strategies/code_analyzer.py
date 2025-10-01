@@ -305,7 +305,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
                 tree = ast.parse(content)
                 complexity["cyclomatic"] = self._calculate_cyclomatic_complexity(tree)
                 complexity["cognitive"] = self._calculate_cognitive_complexity(tree)
-            except:
+            except (SyntaxError, ValueError):
                 pass
 
         return complexity

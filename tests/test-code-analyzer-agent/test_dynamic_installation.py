@@ -126,7 +126,7 @@ if __name__ == "__main__":
     test_file = Path(__file__).parent / "temp_dynamic_install_test.py"
 
     try:
-        with open(test_file, "w") as f:
+        with test_file.open("w") as f:
             f.write(test_script)
 
         print("Running dynamic installation test script...")
@@ -179,7 +179,7 @@ def analyze_file_with_fallback(filepath):
     if ext == '.py':
         import ast
         try:
-            with open(filepath, 'r') as f:
+            with filepath.open('r') as f:
                 tree = ast.parse(f.read())
             print("✅ Used Python AST (no tree-sitter needed)")
             return tree, 'python_ast'
@@ -235,7 +235,7 @@ if __name__ == "__main__":
         filepath = os.path.join(temp_dir, filename)
         content = f"# {description}\\nprint('hello')" if filename.endswith('.py') else f"// {description}\\nconsole.log('hello');"
 
-        with open(filepath, 'w') as f:
+        with filepath.open('w') as f:
             f.write(content)
 
         print(f"\\n🔍 Testing {description}:")
@@ -257,7 +257,7 @@ if __name__ == "__main__":
     fallback_file = Path(__file__).parent / "temp_fallback_test.py"
 
     try:
-        with open(fallback_file, "w") as f:
+        with fallback_file.open("w") as f:
             f.write(fallback_script)
 
         print("Running graceful fallback test...")

@@ -143,7 +143,7 @@ class MCPServiceMonitor:
                 )
                 if result.returncode == 0 and result.stdout.strip():
                     return int(result.stdout.strip().split("\n")[0])
-            except:
+            except (subprocess.SubprocessError, ValueError, OSError):
                 pass
         return None
 
@@ -163,7 +163,7 @@ class MCPServiceMonitor:
                 try:
                     process.kill()
                     return True
-                except:
+                except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
                     return False
         return False
 

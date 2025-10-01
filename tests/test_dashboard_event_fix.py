@@ -12,7 +12,7 @@ pytestmark = pytest.mark.skip(
 import asyncio
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add the src directory to the path
@@ -48,7 +48,7 @@ async def test_event_parsing():
         # Event 1: Hook event with type in data (should preserve hook.pre_tool)
         {
             "type": "hook.pre_tool",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": {
                 "type": "should_not_overwrite",  # This should NOT overwrite the main type
                 "tool_name": "Edit",
@@ -58,14 +58,14 @@ async def test_event_parsing():
         # Event 2: Legacy event format
         {
             "event": "SubagentStart",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": {"agent_type": "Engineer", "task": "Fix bug in authentication"},
         },
         # Event 3: Standard event with subtype in data
         {
             "type": "session",
             "subtype": "started",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": {
                 "subtype": "different_subtype",  # Should NOT overwrite
                 "session_id": "test-123",
@@ -75,7 +75,7 @@ async def test_event_parsing():
         # Event 4: Tool event with complex data
         {
             "type": "hook.post_tool",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": {
                 "type": "conflicting_type",
                 "subtype": "conflicting_subtype",

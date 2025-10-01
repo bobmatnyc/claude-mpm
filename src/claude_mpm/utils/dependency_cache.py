@@ -66,7 +66,7 @@ class DependencyCache:
             return self._cache_data
 
         try:
-            with open(self.cache_file) as f:
+            with self.cache_file.open() as f:
                 self._cache_data = json.load(f)
                 return self._cache_data
         except Exception as e:
@@ -85,7 +85,7 @@ class DependencyCache:
             # Ensure directory exists
             self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-            with open(self.cache_file, "w") as f:
+            with self.cache_file.open("w") as f:
                 json.dump(cache_data, f, indent=2)
 
             self._cache_data = cache_data

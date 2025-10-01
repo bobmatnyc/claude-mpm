@@ -436,7 +436,7 @@ class ConfigurationService:
                 if config_path.exists():
                     import yaml
 
-                    with open(config_path) as f:
+                    with config_path.open() as f:
                         file_config = yaml.safe_load(f) or {}
                     config_data.update(file_config)
                     break
@@ -448,7 +448,7 @@ class ConfigurationService:
             raise ConfigurationError(
                 f"Failed to load configuration: {e}",
                 context={"error_type": type(e).__name__},
-            )
+            ) from e
 
     @property
     def config(self) -> UnifiedConfig:
@@ -515,7 +515,7 @@ class ConfigurationService:
                 return True
             raise ConfigurationError("Invalid SocketIO port range")
         except Exception as e:
-            raise ConfigurationError(f"Configuration validation failed: {e}")
+            raise ConfigurationError(f"Configuration validation failed: {e}") from e
 
     def export_to_file(self, file_path: Union[str, Path], format: str = "yaml") -> None:
         """
@@ -531,12 +531,12 @@ class ConfigurationService:
             if format.lower() == "yaml":
                 import yaml
 
-                with open(file_path, "w") as f:
+                with file_path.open("w") as f:
                     yaml.dump(self._config.dict(), f, default_flow_style=False)
             elif format.lower() == "json":
                 import json
 
-                with open(file_path, "w") as f:
+                with file_path.open("w") as f:
                     json.dump(self._config.dict(), f, indent=2)
             else:
                 raise ConfigurationError(f"Unsupported export format: {format}")
@@ -545,4 +545,4 @@ class ConfigurationService:
             raise ConfigurationError(
                 f"Failed to export configuration: {e}",
                 context={"file_path": str(file_path), "format": format},
-            )
+            ) from e

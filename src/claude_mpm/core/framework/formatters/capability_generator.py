@@ -154,7 +154,7 @@ class CapabilityGenerator:
             Dictionary with agent metadata or None
         """
         try:
-            with open(agent_file) as f:
+            with agent_file.open() as f:
                 content = f.read()
 
             # Default values
@@ -244,7 +244,7 @@ class CapabilityGenerator:
             template_file = templates_dir / f"{agent_name}.json"
 
             if template_file.exists():
-                with open(template_file) as f:
+                with template_file.open() as f:
                     template_data = json.load(f)
                     return template_data.get("routing")
 
@@ -262,7 +262,7 @@ class CapabilityGenerator:
                 if alt_name != agent_name:
                     alt_file = templates_dir / f"{alt_name}.json"
                     if alt_file.exists():
-                        with open(alt_file) as f:
+                        with alt_file.open() as f:
                             template_data = json.load(f)
                             return template_data.get("routing")
 
@@ -310,7 +310,7 @@ class CapabilityGenerator:
             template_file = templates_dir / f"{agent_name}.json"
 
             if template_file.exists():
-                with open(template_file) as f:
+                with template_file.open() as f:
                     template_data = json.load(f)
                     return template_data.get("memory_routing")
 
@@ -330,7 +330,7 @@ class CapabilityGenerator:
                 if alt_name != agent_name:
                     alt_file = templates_dir / f"{alt_name}.json"
                     if alt_file.exists():
-                        with open(alt_file) as f:
+                        with alt_file.open() as f:
                             template_data = json.load(f)
                             return template_data.get("memory_routing")
 

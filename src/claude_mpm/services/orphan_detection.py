@@ -199,10 +199,7 @@ class OrphanDetectionService(SyncBaseService):
         Returns:
             True if port is protected
         """
-        for start, end in self.PROTECTED_PORT_RANGES:
-            if start <= port <= end:
-                return True
-        return False
+        return any(start <= port <= end for start, end in self.PROTECTED_PORT_RANGES)
 
     def _get_process_age(self, pid: int) -> Optional[float]:
         """
@@ -262,7 +259,7 @@ class OrphanDetectionService(SyncBaseService):
             if not self.state_file.exists():
                 return orphans
 
-            with open(self.state_file) as f:
+            with self.state_file.open() as f:
                 state = json.load(f)
 
             deployments = state.get("deployments", {})
@@ -308,7 +305,7 @@ class OrphanDetectionService(SyncBaseService):
             if not self.global_registry_file.exists():
                 return orphans
 
-            with open(self.global_registry_file) as f:
+            with self.global_registry_file.open() as f:
                 registry = json.load(f)
 
             allocations = registry.get("allocations", {})
@@ -350,11 +347,11 @@ class OrphanDetectionService(SyncBaseService):
             # Load global registry to know which ports are managed
             managed_ports = set()
             if self.global_registry_file.exists():
-                with open(self.global_registry_file) as f:
+                with self.global_registry_file.open() as f:
                     registry = json.load(f)
-                    managed_ports = set(
-                        int(p) for p in registry.get("allocations", {}).keys()
-                    )
+                    managed_ports = {
+                        int(p) for p in registry.get("allocations", {})
+                    }
 
             # Scan all network connections
             for conn in psutil.net_connections(kind="inet"):
@@ -557,7 +554,7 @@ class OrphanDetectionService(SyncBaseService):
         # Check project state
         if self.state_file.exists():
             try:
-                with open(self.state_file) as f:
+                with self.state_file.open() as f:
                     state = json.load(f)
 
                 for deployment in state.get("deployments", {}).values():
@@ -585,7 +582,7 @@ class OrphanDetectionService(SyncBaseService):
         # Check project state
         if self.state_file.exists():
             try:
-                with open(self.state_file) as f:
+                with self.state_file.open() as f:
                     state = json.load(f)
 
                 for deployment in state.get("deployments", {}).values():
@@ -667,14 +664,14 @@ class OrphanDetectionService(SyncBaseService):
     def _cleanup_dead_pid(self, orphan: OrphanInfo) -> Tuple[bool, str]:
         """Clean up dead PID entry from state file."""
         try:
-            with open(self.state_file) as f:
+            with self.state_file.open() as f:
                 state = json.load(f)
 
             service_name = orphan.details.get("service_name")
             if service_name in state.get("deployments", {}):
                 del state["deployments"][service_name]
 
-                with open(self.state_file, "w") as f:
+                with self.state_file.open("w") as f:
                     json.dump(state, f, indent=2)
 
                 return True, f"Removed dead PID entry for {service_name}"
@@ -687,14 +684,14 @@ class OrphanDetectionService(SyncBaseService):
     def _cleanup_deleted_project(self, orphan: OrphanInfo) -> Tuple[bool, str]:
         """Clean up deleted project entry from global registry."""
         try:
-            with open(self.global_registry_file) as f:
+            with self.global_registry_file.open() as f:
                 registry = json.load(f)
 
             port = str(orphan.details.get("port"))
             if port in registry.get("allocations", {}):
                 del registry["allocations"][port]
 
-                with open(self.global_registry_file, "w") as f:
+                with self.global_registry_file.open("w") as f:
                     json.dump(registry, f, indent=2)
 
                 return True, f"Removed deleted project entry for port {port}"

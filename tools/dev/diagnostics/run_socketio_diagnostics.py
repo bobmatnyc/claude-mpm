@@ -137,7 +137,7 @@ class SocketIODiagnosticRunner:
             for line in iter(self.server_process.stdout.readline, ""):
                 if line.strip():
                     print(f"[SERVER] {line.strip()}")
-        except:
+        except Exception:
             pass
 
     def stop_diagnostic_server(self):

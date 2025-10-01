@@ -206,7 +206,7 @@ class FileIOErrorHandler(BaseErrorHandler):
                 result.fallback_value = str(alt_path)
                 result.actions_taken.append(f"Using alternative location: {alt_path}")
 
-            except:
+            except (OSError, PermissionError):
                 result.should_escalate = True
 
         # Use read-only mode if applicable
@@ -293,7 +293,7 @@ class ParsingErrorHandler(BaseErrorHandler):
                 result.actions_taken.append(f"Fixed JSON with {fix_func.__name__}")
                 self.logger.info(f"Recovered from JSON error using {fix_func.__name__}")
                 return result
-            except:
+            except (json.JSONDecodeError, ValueError, TypeError):
                 continue
 
         # Use lenient parser if available
@@ -346,7 +346,7 @@ class ParsingErrorHandler(BaseErrorHandler):
             result.recovered = True
             result.fallback_value = parsed
             result.actions_taken.append("Parsed as Python literal")
-        except:
+        except (ValueError, SyntaxError, TypeError):
             # Return empty dict as last resort
             result.recovered = True
             result.fallback_value = {}
@@ -370,7 +370,7 @@ class ParsingErrorHandler(BaseErrorHandler):
             result.fallback_value = parsed
             result.actions_taken.append("Parsed with safe YAML loader")
 
-        except:
+        except (yaml.YAMLError, ValueError, AttributeError):
             # Try to fix tabs
             content = content.replace("\t", "    ")
             try:
@@ -378,7 +378,7 @@ class ParsingErrorHandler(BaseErrorHandler):
                 result.recovered = True
                 result.fallback_value = parsed
                 result.actions_taken.append("Fixed YAML tabs")
-            except:
+            except (yaml.YAMLError, ValueError, AttributeError):
                 result.fallback_value = {}
                 result.actions_taken.append("Used empty configuration as fallback")
 
@@ -406,7 +406,7 @@ class ParsingErrorHandler(BaseErrorHandler):
                     result.fallback_value = parsed
                     result.actions_taken.append(f"Parsed as {format_name}")
                     return result
-            except:
+            except (ValueError, TypeError, AttributeError, ImportError):
                 continue
 
         # Use default/empty config
@@ -533,7 +533,7 @@ class ValidationErrorHandler(BaseErrorHandler):
                 if isinstance(value, str):
                     return json.loads(value)
                 return dict(value)
-        except:
+        except (ValueError, TypeError, json.JSONDecodeError):
             return None
 
     def _handle_generic_validation(
@@ -661,7 +661,7 @@ class TypeConversionErrorHandler(BaseErrorHandler):
         if converter:
             try:
                 return converter(value)
-            except:
+            except (ValueError, TypeError, AttributeError):
                 pass
 
         return None
@@ -706,7 +706,7 @@ class TypeConversionErrorHandler(BaseErrorHandler):
             if value.startswith("["):
                 try:
                     return json.loads(value)
-                except:
+                except (json.JSONDecodeError, ValueError):
                     pass
             # Try comma-separated
             return [v.strip() for v in value.split(",")]
@@ -720,7 +720,7 @@ class TypeConversionErrorHandler(BaseErrorHandler):
             # Try JSON object
             try:
                 return json.loads(value)
-            except:
+            except (json.JSONDecodeError, ValueError):
                 pass
             # Try key=value pairs
             result = {}

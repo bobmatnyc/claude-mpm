@@ -382,7 +382,7 @@ class TestPerformanceComparison(unittest.TestCase):
             start = time.time()
             for _ in range(100):
                 try:
-                    with open(test_file) as f:
+                    with test_file.open() as f:
                         data = json.load(f)
                 except FileNotFoundError:
                     data = {}

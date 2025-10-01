@@ -65,6 +65,9 @@ class EventBus:
         self._event_history: List[Dict[str, Any]] = []
         self._max_history_size = 100
 
+        # Track async handler tasks to prevent garbage collection
+        self._handler_tasks: Set[asyncio.Task] = set()
+
         logger.info("EventBus initialized")
 
     @classmethod
@@ -190,13 +193,15 @@ class EventBus:
                             try:
                                 # Call with event_type and data for wildcard handlers
                                 if asyncio.iscoroutinefunction(handler):
-                                    # Schedule async handlers
+                                    # Schedule async handlers with tracking
                                     try:
                                         loop = asyncio.get_event_loop()
                                         if loop.is_running():
-                                            asyncio.create_task(
+                                            task = asyncio.create_task(
                                                 handler(event_type, data)
                                             )
+                                            self._handler_tasks.add(task)
+                                            task.add_done_callback(self._handler_tasks.discard)
                                         else:
                                             loop.run_until_complete(
                                                 handler(event_type, data)

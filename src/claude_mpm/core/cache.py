@@ -391,7 +391,7 @@ class FileSystemCache:
 
         try:
             self.persist_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.persist_path, "wb") as f:
+            with self.persist_path.open("wb") as f:
                 pickle.dump(self._cache, f)
             self._logger.debug(f"Cache persisted to {self.persist_path}")
         except Exception as e:
@@ -403,7 +403,7 @@ class FileSystemCache:
             return
 
         try:
-            with open(self.persist_path, "rb") as f:
+            with self.persist_path.open("rb") as f:
                 loaded_cache = pickle.load(f)
 
             # Rebuild cache with validation

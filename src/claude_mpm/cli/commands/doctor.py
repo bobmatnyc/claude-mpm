@@ -181,7 +181,7 @@ def doctor_command(args):
             import sys
 
             original_stdout = sys.stdout
-            with open(output_file, "w") as f:
+            with output_file.open("w") as f:
                 sys.stdout = f
                 reporter.report(summary, format=output_format)
             sys.stdout = original_stdout

@@ -20,7 +20,7 @@ def test_json_validity(config_path: Path) -> bool:
         True if valid JSON, False otherwise
     """
     try:
-        with open(config_path) as f:
+        with config_path.open() as f:
             json.load(f)
         return True
     except (OSError, json.JSONDecodeError) as e:
@@ -82,7 +82,7 @@ def test_registration_script():
             return False
 
         # Verify the gateway was added
-        with open(tmp_path) as f:
+        with tmp_path.open() as f:
             config = json.load(f)
             if "claude-mpm-gateway" not in config.get("mcpServers", {}):
                 print("❌ Gateway not added to config")

@@ -155,7 +155,7 @@ class MCPConfiguration(BaseMCPService, IMCPConfiguration):
                 self.log_warning(f"Configuration file not found: {config_path}")
                 return True  # Not an error, use defaults
 
-            with open(config_path) as f:
+            with config_path.open() as f:
                 if config_path.suffix in [".yaml", ".yml"]:
                     loaded_config = yaml.safe_load(f) or {}
                 else:
@@ -171,7 +171,7 @@ class MCPConfiguration(BaseMCPService, IMCPConfiguration):
             return True
 
         except yaml.YAMLError as e:
-            raise MCPConfigurationError(f"Failed to parse YAML configuration: {e}")
+            raise MCPConfigurationError(f"Failed to parse YAML configuration: {e}") from e
         except Exception as e:
             self.log_error(f"Failed to load configuration: {e}")
             return False
@@ -364,7 +364,7 @@ class MCPConfiguration(BaseMCPService, IMCPConfiguration):
             save_path = Path(save_path).expanduser()
             save_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(save_path, "w") as f:
+            with save_path.open("w") as f:
                 yaml.dump(
                     self._config_data, f, default_flow_style=False, sort_keys=True
                 )

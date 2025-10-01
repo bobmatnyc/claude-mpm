@@ -2,7 +2,7 @@
 """Test script to verify search viewer functionality in the dashboard."""
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def create_test_search_event():
@@ -11,7 +11,7 @@ def create_test_search_event():
     # Sample search operation event data
     search_event = {
         "event_type": "pre_tool",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "session_id": "test-session-123",
         "agent_type": "Research",
         "tool_name": "Grep",
@@ -28,7 +28,7 @@ def create_test_search_event():
     # Sample search result
     search_result = {
         "event_type": "post_tool",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "session_id": "test-session-123",
         "agent_type": "Research",
         "tool_name": "Grep",

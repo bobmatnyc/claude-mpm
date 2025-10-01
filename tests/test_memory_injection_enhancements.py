@@ -179,7 +179,7 @@ def test_memory_injection_with_deployment_check():
             print(f"  • {agent_name}: {size:,} bytes")
     else:
         print(
-            "ℹ️  No agent memories in framework_content (all agents might be non-deployed)"
+            "ℹ️  No agent memories in framework_content (all agents might be non-deployed)"  # noqa: RUF001
         )
 
     # Also verify memories are in the actual instructions

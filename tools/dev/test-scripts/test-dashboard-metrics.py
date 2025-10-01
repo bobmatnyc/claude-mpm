@@ -56,7 +56,7 @@ def test_dashboard_metrics():
             stat_labels = driver.find_elements(By.CLASS_NAME, "stat-label")
             for i in range(min(len(stat_values), len(stat_labels))):
                 print(f"  {stat_labels[i].text}: {stat_values[i].text}")
-        except:
+        except Exception:
             print("  Could not find sidebar stats")
 
         # Execute JavaScript to check internal state

@@ -21,7 +21,7 @@ DESIGN DECISIONS:
 import asyncio
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -66,7 +66,7 @@ class DataEngineerEventTest:
         return {
             "test_id": f"data_engineer_test_{self.test_number}",
             "agent": self.agent_type,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "message": f"{self.agent_type} - Event test #{self.test_number}: Event streaming operational. JSON parsing active. Data transformation pipelines ready. Schema validation enabled.",
             "pipeline_status": {
                 "event_streaming": "operational",

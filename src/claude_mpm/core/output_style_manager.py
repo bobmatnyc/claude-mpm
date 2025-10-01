@@ -42,7 +42,7 @@ class OutputStyleManager:
             Path(__file__).parent.parent / "agents" / "OUTPUT_STYLE.md"
         )
 
-    def _detect_claude_version(self) -> Optional[str]:  # noqa: PLR0911
+    def _detect_claude_version(self) -> Optional[str]:
         """
         Detect Claude Code version by running 'claude --version'.
         Uses global cache to avoid duplicate detection and logging.

@@ -24,7 +24,7 @@ class HookInstallerService:
         self.claude_dir = Path.home() / ".claude"
         self.settings_file = self.claude_dir / "settings.json"
 
-    def is_hooks_configured(self) -> bool:  # noqa: PLR0911
+    def is_hooks_configured(self) -> bool:
         """Check if hooks are configured in Claude settings.
 
         Returns:
@@ -35,7 +35,7 @@ class HookInstallerService:
                 self.logger.debug("Claude settings file does not exist")
                 return False
 
-            with open(self.settings_file) as f:
+            with self.settings_file.open() as f:
                 settings = json.load(f)
 
             # Check if hooks section exists
@@ -292,7 +292,7 @@ class HookInstallerService:
 
             # Load existing settings or create new
             if self.settings_file.exists():
-                with open(self.settings_file) as f:
+                with self.settings_file.open() as f:
                     settings = json.load(f)
                 self.logger.debug("Found existing Claude settings")
             else:
@@ -320,7 +320,7 @@ class HookInstallerService:
                 settings["hooks"][event_type] = [hook_config]
 
             # Write settings
-            with open(self.settings_file, "w") as f:
+            with self.settings_file.open("w") as f:
                 json.dump(settings, f, indent=2)
 
             self.logger.info(f"Updated Claude settings at: {self.settings_file}")
@@ -380,7 +380,7 @@ class HookInstallerService:
 
             self.logger.info("Removing Claude Code hooks...")
 
-            with open(self.settings_file) as f:
+            with self.settings_file.open() as f:
                 settings = json.load(f)
 
             hooks_removed = 0
@@ -422,7 +422,7 @@ class HookInstallerService:
                     del settings["hooks"]
 
             # Write updated settings
-            with open(self.settings_file, "w") as f:
+            with self.settings_file.open("w") as f:
                 json.dump(settings, f, indent=2)
 
             if hooks_removed > 0:
@@ -469,7 +469,7 @@ class HookInstallerService:
 
         try:
             if self.settings_file.exists():
-                with open(self.settings_file) as f:
+                with self.settings_file.open() as f:
                     settings = json.load(f)
 
                 if "hooks" in settings:

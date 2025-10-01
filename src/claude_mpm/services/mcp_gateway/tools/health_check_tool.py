@@ -383,7 +383,7 @@ class HealthCheckTool(BaseToolAdapter):
                 # Try to load configuration
                 import json
 
-                with open(config_file) as f:
+                with config_file.open() as f:
                     config_data = json.load(f)
 
                 check_result["checks"]["config_valid"] = True

@@ -9,7 +9,7 @@ import socket
 import subprocess
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add project root to path
@@ -71,7 +71,7 @@ def get_daemon_info():
     pid_file = deployment_root / ".claude-mpm" / "socketio-server.pid"
     if pid_file.exists():
         try:
-            with open(pid_file) as f:
+            with pid_file.open() as f:
                 server_pid = int(f.read().strip())
         except Exception:
             pass
@@ -80,7 +80,7 @@ def get_daemon_info():
     supervisor_pid_file = deployment_root / ".claude-mpm" / "socketio-supervisor.pid"
     if supervisor_pid_file.exists():
         try:
-            with open(supervisor_pid_file) as f:
+            with supervisor_pid_file.open() as f:
                 supervisor_pid = int(f.read().strip())
         except Exception:
             pass
@@ -89,7 +89,7 @@ def get_daemon_info():
     port_file = deployment_root / ".claude-mpm" / "socketio-port"
     if port_file.exists():
         try:
-            with open(port_file) as f:
+            with port_file.open() as f:
                 port = int(f.read().strip())
         except Exception:
             pass
@@ -325,7 +325,7 @@ def main():
     """Run focused QA tests."""
     print("HARDENED SOCKET.IO DAEMON - FOCUSED QA TESTS")
     print("=" * 50)
-    print(f"Test started: {datetime.now()}")
+    print(f"Test started: {datetime.now(timezone.utc)}")
 
     cleanup_daemon()
 

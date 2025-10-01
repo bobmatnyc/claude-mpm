@@ -109,7 +109,7 @@ class DeadLetterConsumer(IEventConsumer):
                 self._rotate_file()
 
             # Write to file
-            with open(self._current_file, "a") as f:
+            with self._current_file.open("a") as f:
                 f.write(event_json)
 
             # Update metrics
@@ -165,7 +165,7 @@ class DeadLetterConsumer(IEventConsumer):
         # Find files in time range
         for file_path in sorted(self.output_dir.glob("dead-letter-*.jsonl")):
             try:
-                with open(file_path) as f:
+                with file_path.open() as f:
                     for line in f:
                         event_data = json.loads(line)
 

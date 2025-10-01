@@ -16,12 +16,12 @@ def check_server():
     try:
         response = requests.get("http://localhost:8765/health", timeout=2)
         return response.status_code == 200
-    except:
+    except requests.RequestException:
         # Try socket.io endpoint
         try:
             response = requests.get("http://localhost:8765/socket.io/", timeout=2)
             return True
-        except:
+        except requests.RequestException:
             return False
 
 
@@ -64,7 +64,7 @@ def test_websocket():
         result = connected
         sio.disconnect()
         return result
-    except:
+    except (socketio.exceptions.ConnectionError, OSError, TimeoutError):
         return False
 
 

@@ -289,7 +289,7 @@ class AgentCheck(BaseDiagnosticCheck):
 
                 # Basic validation
                 try:
-                    with open(agent_file) as f:
+                    with agent_file.open() as f:
                         content = f.read()
 
                         # Check for required sections

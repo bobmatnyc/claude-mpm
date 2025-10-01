@@ -248,7 +248,7 @@ class DoctorReporter:
         # Header with timestamp
         print("# Claude MPM Doctor Report")
         print(
-            f"\n**Generated:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            f"\n**Generated:** {datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}"
         )
         print(f"**Version:** {self._get_version()}\n")
         print("---\n")

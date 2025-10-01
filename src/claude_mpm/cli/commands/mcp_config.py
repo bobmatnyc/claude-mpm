@@ -62,7 +62,7 @@ class MCPConfigCommand(BaseCommand):
             # Show the updated configuration
             config_path = Path.cwd() / ".mcp.json"
             if config_path.exists():
-                with open(config_path) as f:
+                with config_path.open() as f:
                     config = json.load(f)
                 return CommandResult(
                     success=True,
@@ -120,7 +120,7 @@ class MCPConfigCommand(BaseCommand):
         current_config = {}
         if config_path.exists():
             try:
-                with open(config_path) as f:
+                with config_path.open() as f:
                     current_config = json.load(f)
             except Exception:
                 pass

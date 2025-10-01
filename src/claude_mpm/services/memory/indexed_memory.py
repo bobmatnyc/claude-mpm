@@ -213,7 +213,7 @@ class InvertedIndex:
             "doc_freqs": dict(self.doc_freqs),
             "doc_count": self.doc_count,
         }
-        with open(path, "wb") as f:
+        with path.open("wb") as f:
             pickle.dump(data, f)
 
     def load(self, path: Path):
@@ -221,7 +221,7 @@ class InvertedIndex:
         if not path.exists():
             return
 
-        with open(path, "rb") as f:
+        with path.open("rb") as f:
             data = pickle.load(f)
 
         self.index = defaultdict(set, {k: set(v) for k, v in data["index"].items()})
@@ -597,7 +597,7 @@ class IndexedMemoryService:
         # Load other indexes
         indexes_path = self.data_dir / "indexes.pkl"
         if indexes_path.exists():
-            with open(indexes_path, "rb") as f:
+            with indexes_path.open("rb") as f:
                 data = pickle.load(f)
 
             self.memories = data.get("memories", {})

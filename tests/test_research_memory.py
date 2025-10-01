@@ -35,7 +35,7 @@ def test_research_agent_thresholds():
         print(f"❌ Research agent config not found at {research_config_path}")
         return False
 
-    with open(research_config_path) as f:
+    with research_config_path.open() as f:
         config = json.load(f)
 
     # Test 1: Check MCP tool configuration

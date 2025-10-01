@@ -54,7 +54,7 @@ def test_file_operations():
 
     file_tools = ["Read", "Write", "Edit", "Grep", "MultiEdit"]
 
-    for i, file_path in enumerate(test_files):
+    for _i, file_path in enumerate(test_files):
         tool = random.choice(file_tools)
 
         # Emit pre_tool event

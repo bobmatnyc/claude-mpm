@@ -230,7 +230,7 @@ if __name__ == "__main__":
     test_file = Path(__file__).parent / "temp_python313_test.py"
 
     try:
-        with open(test_file, "w") as f:
+        with test_file.open("w") as f:
             f.write(test_script)
 
         result = subprocess.run(

@@ -14,7 +14,7 @@ pytestmark = pytest.mark.skip(
 
 import asyncio
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add parent directory to path
@@ -46,7 +46,7 @@ async def test_hook_service():
                 "session_id": "test-session-001",
                 "prompt_text": "Fix the authentication bug in the login module",
                 "working_directory": "/Users/test/project",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         },
         {
@@ -55,7 +55,7 @@ async def test_hook_service():
                 "session_id": "test-session-001",
                 "agent_type": "engineer",
                 "prompt": "Fix the authentication bug",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         },
         {
@@ -64,7 +64,7 @@ async def test_hook_service():
                 "session_id": "test-session-001",
                 "tool_name": "Read",
                 "parameters": {"file_path": "/src/auth.py"},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         },
         {
@@ -77,7 +77,7 @@ async def test_hook_service():
                     "old_string": "bug",
                     "new_string": "fix",
                 },
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         },
         {
@@ -86,7 +86,7 @@ async def test_hook_service():
                 "session_id": "test-session-001",
                 "agent_type": "engineer",
                 "status": "completed",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         },
     ]

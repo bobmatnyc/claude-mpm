@@ -12,7 +12,7 @@ Tests:
 
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import socketio
 
@@ -37,7 +37,7 @@ def connect():
         "data": {
             "prompt": "Build a secure authentication system with JWT tokens, refresh tokens, and proper session management"
         },
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "session_id": session1,
     }
     sio.emit("hook_event", user_event1)
@@ -82,7 +82,7 @@ def connect():
                 },
             ]
         },
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "session_id": session1,
     }
     sio.emit("hook_event", todo_event1)
@@ -170,7 +170,7 @@ def connect():
             "subtype": "started",
             "agent_name": agent_name,
             "session_id": session1,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         sio.emit("hook_event", agent_event)
         print(f"🤖 Sent {agent_name} agent")
@@ -182,7 +182,7 @@ def connect():
                 "tool_name": tool_name,
                 "tool_parameters": params,
                 "session_id": session1,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
             sio.emit("hook_event", tool_event)
             print(f"  🔧 Sent {tool_name} tool with params: {list(params.keys())}")
@@ -203,7 +203,7 @@ def connect():
         "data": {
             "prompt": "Add rate limiting to prevent API abuse and implement DDoS protection with Redis"
         },
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "session_id": session2,
     }
     sio.emit("hook_event", user_event2)
@@ -232,7 +232,7 @@ def connect():
                 },
             ]
         },
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "session_id": session2,
     }
     sio.emit("hook_event", todo_event2)
@@ -244,7 +244,7 @@ def connect():
         "subtype": "started",
         "agent_name": "ops",
         "session_id": session2,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     sio.emit("hook_event", agent_event2)
     print("🤖 Sent ops agent")
@@ -273,7 +273,7 @@ def connect():
             "tool_name": tool_name,
             "tool_parameters": params,
             "session_id": session2,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         sio.emit("hook_event", tool_event)
         print(f"  🔧 Sent {tool_name} tool")
@@ -290,7 +290,7 @@ def connect():
     user_event3 = {
         "type": "user_prompt",
         "data": {"prompt": "Fix the memory leak in user session cleanup"},
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "session_id": session3,
     }
     sio.emit("hook_event", user_event3)
@@ -314,7 +314,7 @@ def connect():
                 },
             ]
         },
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "session_id": session3,
     }
     sio.emit("hook_event", todo_event3)

@@ -3,7 +3,7 @@
 WHY: Ensure the memory hooks work together properly in a realistic scenario.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -57,7 +57,7 @@ def test_memory_hooks_integration():
                     "context": {"prompt": "Build authentication endpoint"},
                 },
                 metadata={},
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
             )
 
             pre_result = pre_hook.execute(pre_context)
@@ -97,7 +97,7 @@ The implementation follows our REST API standards.
                     },
                 },
                 metadata={},
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
             )
 
             post_result = post_hook.execute(post_context)
@@ -128,7 +128,7 @@ The implementation follows our REST API standards.
                     "context": {"prompt": "Build password reset"},
                 },
                 metadata={},
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
             )
 
             pre_result2 = pre_hook.execute(pre_context2)
@@ -172,7 +172,7 @@ def test_memory_hooks_with_disabled_learning():
                 hook_type=HookType.PRE_DELEGATION,
                 data={"agent": "QA", "context": {}},
                 metadata={},
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
             )
 
             pre_result = pre_hook.execute(pre_context)
@@ -187,7 +187,7 @@ def test_memory_hooks_with_disabled_learning():
                     "result": {"content": "Discovered pattern: Important finding"},
                 },
                 metadata={},
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
             )
 
             post_result = post_hook.execute(post_context)

@@ -218,7 +218,7 @@ class ErrorHandler:
                 return handler(error, error_context)
             except Exception as recovery_error:
                 self.logger.error(f"Recovery failed: {recovery_error}")
-                raise error
+                raise error from recovery_error
 
         # No recovery handler available
         self.logger.warning(f"No recovery handler for {error_type.__name__}")

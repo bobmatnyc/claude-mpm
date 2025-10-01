@@ -8,14 +8,14 @@ with the old correlation method.
 """
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 def create_test_events():
     """Create test events that simulate the duplicate tool issue."""
 
     # Base timestamp
-    base_time = datetime.now()
+    base_time = datetime.now(timezone.utc)
 
     # Create events with timing that would cause duplicates in old system
     events = []

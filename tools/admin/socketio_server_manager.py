@@ -547,7 +547,7 @@ class ServerManager:
                             "process_name": process.name(),
                         }
                     )
-                except:
+                except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
                     pass
 
             return info
@@ -630,7 +630,7 @@ class ServerManager:
                     data = response.json()
                     if "pid" in data:
                         http_server = data
-        except:
+        except (requests.RequestException, ValueError, KeyError):
             pass
 
         # Check daemon-managed server
@@ -709,7 +709,7 @@ class ServerManager:
                             )
                 else:
                     print("🌐 Port Status: AVAILABLE")
-        except:
+        except (OSError, ValueError):
             print("🌐 Port Status: UNKNOWN")
 
         print()

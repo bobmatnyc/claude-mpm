@@ -279,7 +279,7 @@ class DependencyAnalyzerService:
             package_json_path = self.working_directory / "package.json"
             if package_json_path.exists():
                 try:
-                    with open(package_json_path) as f:
+                    with package_json_path.open() as f:
                         package_data = json.load(f)
                 except Exception as e:
                     self.logger.warning(f"Error reading package.json: {e}")
@@ -324,7 +324,7 @@ class DependencyAnalyzerService:
     ) -> None:
         """Parse package.json for dependencies."""
         try:
-            with open(path) as f:
+            with path.open() as f:
                 data = json.load(f)
 
             # Production dependencies
@@ -382,7 +382,7 @@ class DependencyAnalyzerService:
                     except ImportError:
                         return
 
-                with open(path, "rb") as f:
+                with path.open("rb") as f:
                     data = tomllib.load(f)
 
                 # PEP 621 dependencies
@@ -433,7 +433,7 @@ class DependencyAnalyzerService:
                 except ImportError:
                     return
 
-            with open(path, "rb") as f:
+            with path.open("rb") as f:
                 data = tomllib.load(f)
 
             # Production dependencies

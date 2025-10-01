@@ -270,11 +270,11 @@ class ProjectInitializer:
         """
         try:
             # Read existing JSON configuration
-            with open(old_file) as f:
+            with old_file.open() as f:
                 config = json.load(f)
 
             # Write as YAML
-            with open(new_file, "w") as f:
+            with new_file.open("w") as f:
                 yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
             self.logger.info(
@@ -310,7 +310,7 @@ class ProjectInitializer:
             },
         }
 
-        with open(config_file, "w") as f:
+        with config_file.open("w") as f:
             yaml.dump(default_config, f, default_flow_style=False, sort_keys=False)
 
     def _create_project_config(self, config_file: Path):
@@ -322,7 +322,7 @@ class ProjectInitializer:
             "tickets": {"auto_create": True, "prefix": "TSK"},
         }
 
-        with open(config_file, "w") as f:
+        with config_file.open("w") as f:
             json.dump(project_config, f, indent=2)
 
     def _copy_agent_templates(self):

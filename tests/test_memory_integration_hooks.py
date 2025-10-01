@@ -4,7 +4,7 @@ WHY: Ensure memory hooks properly inject memory before delegation and
 extract learnings after delegation.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 from claude_mpm.hooks.base_hook import HookContext, HookType
@@ -40,7 +40,7 @@ class TestMemoryPreDelegationHook:
                 "context": {"prompt": "Build a new feature"},
             },
             metadata={},
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         # Execute
@@ -67,7 +67,7 @@ class TestMemoryPreDelegationHook:
             hook_type=HookType.PRE_DELEGATION,
             data={"agent": "QA", "context": "Run the tests"},  # String context
             metadata={},
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         # Execute
@@ -103,7 +103,7 @@ class TestMemoryPreDelegationHook:
                 hook_type=HookType.PRE_DELEGATION,
                 data={"agent": agent_name, "context": {}},
                 metadata={},
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
             )
 
             hook.execute(context)
@@ -120,7 +120,7 @@ class TestMemoryPreDelegationHook:
             hook_type=HookType.PRE_DELEGATION,
             data={"context": {}},  # No agent
             metadata={},
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         result = hook.execute(context)
@@ -141,7 +141,7 @@ class TestMemoryPreDelegationHook:
             hook_type=HookType.PRE_DELEGATION,
             data={"agent": "Engineer", "context": {}},
             metadata={},
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         # Execute
@@ -191,7 +191,7 @@ class TestMemoryPostDelegationHook:
                 },
             },
             metadata={},
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         # Execute
@@ -256,7 +256,7 @@ class TestMemoryPostDelegationHook:
                 },
             },
             metadata={},
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         # Execute
@@ -313,7 +313,7 @@ class TestMemoryPostDelegationHook:
                 },
             },
             metadata={},
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         # Execute
@@ -346,7 +346,7 @@ class TestMemoryPostDelegationHook:
                 "result": {"content": "Discovered pattern: Important finding"},
             },
             metadata={},
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         # Execute
@@ -382,7 +382,7 @@ class TestMemoryPostDelegationHook:
                 "result": {"content": "Best practice: Important guideline"},
             },
             metadata={},
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         # Execute
@@ -422,7 +422,7 @@ class TestMemoryPostDelegationHook:
                 },
             },
             metadata={},
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         # Execute
@@ -450,7 +450,7 @@ class TestMemoryPostDelegationHook:
                 "result": {"content": "Best practice: Test everything"},
             },
             metadata={},
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         # Execute

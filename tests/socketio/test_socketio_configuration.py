@@ -405,7 +405,7 @@ class TestSocketIOConfiguration:
             assert config_path.exists()
 
             # Verify saved content
-            with open(config_path) as f:
+            with config_path.open() as f:
                 saved_data = json.load(f)
 
             assert saved_data["host"] == "save-test"
