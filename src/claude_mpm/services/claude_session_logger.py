@@ -88,7 +88,7 @@ class ClaudeSessionLogger:
             # Use centralized SessionManager for session ID
             session_manager = get_session_manager()
             self.session_id = session_manager.get_session_id()
-            logger.info(
+            logger.debug(
                 f"ClaudeSessionLogger using session ID from SessionManager: {self.session_id}"
             )
 
@@ -125,11 +125,11 @@ class ClaudeSessionLogger:
                 # Synchronize session IDs - use the one we already generated
                 if self.session_id and hasattr(self._async_logger, "set_session_id"):
                     self._async_logger.set_session_id(self.session_id)
-                    logger.info(
+                    logger.debug(
                         f"Using async logger with session ID: {self.session_id}"
                     )
                 else:
-                    logger.info("Using async logger for improved performance")
+                    logger.debug("Using async logger for improved performance")
             except Exception as e:
                 logger.warning(
                     f"Failed to initialize async logger, falling back to sync: {e}"

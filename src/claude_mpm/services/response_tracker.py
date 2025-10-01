@@ -80,7 +80,7 @@ class ResponseTracker:
                 from claude_mpm.services.claude_session_logger import get_session_logger
 
                 self.session_logger = get_session_logger(config)
-                logger.info(
+                logger.debug(
                     f"Response tracker initialized with base directory: {base_dir}"
                 )
             except Exception as e:
