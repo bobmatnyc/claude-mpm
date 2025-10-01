@@ -26,6 +26,7 @@ logger = get_logger(__name__)
 def _get_clear_base_agent_cache():
     """Lazy loader for clear_base_agent_cache function."""
     from claude_mpm.agents.base_agent_loader import clear_base_agent_cache
+
     return clear_base_agent_cache
 
 

@@ -1,3 +1,39 @@
+## [4.5.11] - 2025-10-01
+
+### Added
+- **Local-Ops Port Allocation**: New ProjectPortAllocator service with hash-based port assignment (3000-3999 range)
+  - Deterministic port assignment based on project path hash
+  - Global port registry for multi-project coordination
+  - Collision detection and automatic port reassignment
+  - Comprehensive test coverage (28 tests)
+
+- **Orphan Process Detection**: New OrphanDetectionService for automated cleanup
+  - PM2 process cleanup with owner verification
+  - Docker container cleanup with project verification
+  - Native process cleanup with safety checks
+  - Integration with port allocation system
+  - Comprehensive test coverage (23 tests)
+
+- **Dart Engineer Agent**: New specialized agent for Flutter/cross-platform development
+  - Support for mobile, web, desktop, and backend Dart projects
+  - State management patterns (BLoC, Riverpod, Provider, GetX)
+  - Comprehensive code generation and testing patterns
+  - Platform-specific optimizations and best practices
+
+### Enhanced
+- **Configuration UI**: Added version display to configurator header for better visibility
+
+### Fixed
+- **Agent Loading**: Fixed lazy import handling for agent templates in agent_loader.py
+- **Agent Inheritance**: Improved base agent manager inheritance resolution
+
+### Technical Details
+- New services: ProjectPortAllocator (601 lines), OrphanDetectionService (791 lines)
+- New tests: test_project_port_allocator.py (454 lines), test_orphan_detection.py (598 lines)
+- New agent: dart_engineer.json (294 lines)
+- Total test coverage: 51 new tests, all passing
+- Updated local_ops_agent.json with new service capabilities
+
 ## [4.5.10] - 2025-10-01
 
 ### Performance

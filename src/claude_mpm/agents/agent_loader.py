@@ -66,6 +66,7 @@ def _get_prepend_base_instructions():
     reducing hook handler initialization time by ~500ms.
     """
     from .base_agent_loader import prepend_base_instructions
+
     return prepend_base_instructions
 
 
