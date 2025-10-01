@@ -489,7 +489,7 @@ class TestCpuAPIs(PsutilTestCase):
         except AssertionError as err:
             raise AssertionError(
                 f"\n{err}\nlast={pprint.pformat(last_ret)}\nnew={pprint.pformat(new_ret)}"
-            )
+            ) from err
 
     def test_cpu_percent(self):
         last = psutil.cpu_percent(interval=0.001)

@@ -31,7 +31,7 @@ import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -128,7 +128,7 @@ class PerformanceBenchmarks:
                 logging.StreamHandler(),
                 logging.FileHandler(
                     Path(__file__).parent
-                    / f"benchmark_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+                    / f"benchmark_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.log"
                 ),
             ],
         )
@@ -645,7 +645,7 @@ class PerformanceBenchmarks:
     ) -> Path:
         """Save benchmark results to JSON file."""
         if output_file is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             output_file = (
                 Path(__file__).parent / f"performance_validation_{timestamp}.json"
             )
@@ -653,7 +653,7 @@ class PerformanceBenchmarks:
         # Convert to dict for JSON serialization
         suite_dict = asdict(suite)
 
-        with open(output_file, "w") as f:
+        with output_file.open("w") as f:
             json.dump(suite_dict, f, indent=2, default=str)
 
         self.logger.info(f"📊 Results saved to: {output_file}")

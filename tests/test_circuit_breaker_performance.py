@@ -12,7 +12,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 # Add the src directory to Python path
@@ -117,7 +117,7 @@ class CircuitBreakerPerformanceTest:
                 circuit.record_failure()
 
             # Record time when circuit opened
-            open_time = datetime.now()
+            open_time = datetime.now(timezone.utc)
             open_state = circuit.state.value
             open_can_execute = circuit.can_execute()
 
@@ -134,7 +134,7 @@ class CircuitBreakerPerformanceTest:
             after_timeout_can_execute = circuit.can_execute()
 
             # Record elapsed time
-            elapsed_time = (datetime.now() - open_time).total_seconds()
+            elapsed_time = (datetime.now(timezone.utc) - open_time).total_seconds()
 
             return {
                 "status": "completed",
@@ -416,7 +416,7 @@ class CircuitBreakerPerformanceTest:
             "status": "completed",
             "test_results": self.results,
             "summary": summary,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     def generate_summary(self) -> Dict[str, Any]:
@@ -554,7 +554,7 @@ def main():
     # Save detailed results
     results_file = "/tmp/circuit_breaker_test_results.json"
     try:
-        with open(results_file, "w") as f:
+        with results_file.open("w") as f:
             json.dump(results, f, indent=2, default=str)
         print(f"📄 Detailed results saved to: {results_file}")
     except Exception as e:

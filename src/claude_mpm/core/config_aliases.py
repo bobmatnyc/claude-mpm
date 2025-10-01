@@ -88,7 +88,7 @@ class ConfigAliasManager:
             self.config_mgr.save_json(aliases, self.aliases_file, sort_keys=True)
         except Exception as e:
             logger.error(f"Failed to save aliases: {e}")
-            raise ConfigAliasError(f"Failed to save aliases: {e}")
+            raise ConfigAliasError(f"Failed to save aliases: {e}") from e
 
     def create_alias(self, alias_name: str, directory_path: str) -> None:
         """
@@ -211,7 +211,7 @@ class ConfigAliasManager:
                 except Exception as e:
                     raise InvalidDirectoryError(
                         f"Cannot create directory '{directory_path}': {e}"
-                    )
+                    ) from e
 
             # Verify we can write to the directory
             test_file = directory_path / ".claude_pm_test"
@@ -221,14 +221,14 @@ class ConfigAliasManager:
             except Exception as e:
                 raise InvalidDirectoryError(
                     f"Directory '{directory_path}' is not writable: {e}"
-                )
+                ) from e
 
             return directory_path
 
         except InvalidDirectoryError:
             raise
         except Exception as e:
-            raise InvalidDirectoryError(f"Invalid directory path '{path}': {e}")
+            raise InvalidDirectoryError(f"Invalid directory path '{path}': {e}") from e
 
     def get_alias(self, alias_name: str) -> Optional[str]:
         """

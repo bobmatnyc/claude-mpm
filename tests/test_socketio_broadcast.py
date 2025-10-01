@@ -12,7 +12,7 @@ This script:
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import requests
 import socketio as socketio_client
@@ -75,7 +75,7 @@ def test_socketio_broadcast():
     test_event = {
         "hook_event_name": "UserPromptSubmit",
         "hook_input_data": {"query": "Test query from broadcast test"},
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "session_id": "test-session-123",
     }
 

@@ -272,7 +272,7 @@ class AgentLifecycleManager(BaseService):
             # First convert to JSON string with custom encoder, then save
             json_str = json.dumps(data, indent=2, default=str)
             records_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(records_file, "w", encoding="utf-8") as f:
+            with records_file.open("w", encoding="utf-8") as f:
                 f.write(json_str)
 
             self.logger.debug(f"Saved {len(self.agent_records)} agent records")

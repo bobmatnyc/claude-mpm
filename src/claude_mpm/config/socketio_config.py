@@ -249,7 +249,7 @@ class ConfigManager:
         for config_path in self.config_search_paths:
             if config_path.exists():
                 try:
-                    with open(config_path) as f:
+                    with config_path.open() as f:
                         return json.load(f)
                 except Exception as e:
                     print(f"Warning: Failed to load config from {config_path}: {e}")
@@ -267,7 +267,7 @@ class ConfigManager:
             path = config_dir / self.config_file_name
 
         try:
-            with open(path, "w") as f:
+            with path.open("w") as f:
                 json.dump(config.to_dict(), f, indent=2)
             return True
         except Exception as e:

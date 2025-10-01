@@ -143,9 +143,8 @@ class ProjectPortAllocator(SyncBaseService):
 
         # Map to port range
         port_range = self.port_range_end - self.port_range_start + 1
-        port = self.port_range_start + (hash_int % port_range)
+        return self.port_range_start + (hash_int % port_range)
 
-        return port
 
     def _is_port_available(self, port: int) -> bool:
         """
@@ -177,10 +176,7 @@ class ProjectPortAllocator(SyncBaseService):
         Returns:
             True if port is protected
         """
-        for start, end in self.PROTECTED_PORT_RANGES:
-            if start <= port <= end:
-                return True
-        return False
+        return any(start <= port <= end for start, end in self.PROTECTED_PORT_RANGES)
 
     def _load_project_state(self) -> Dict[str, Any]:
         """
@@ -191,7 +187,7 @@ class ProjectPortAllocator(SyncBaseService):
         """
         try:
             if self.state_file.exists():
-                with open(self.state_file) as f:
+                with self.state_file.open() as f:
                     return json.load(f)
         except Exception as e:
             self.log_warning(f"Failed to load project state: {e}")
@@ -208,7 +204,7 @@ class ProjectPortAllocator(SyncBaseService):
         try:
             # Write to temporary file first
             temp_file = self.state_file.with_suffix(".tmp")
-            with open(temp_file, "w") as f:
+            with temp_file.open("w") as f:
                 json.dump(state, f, indent=2)
 
             # Atomic rename
@@ -227,7 +223,7 @@ class ProjectPortAllocator(SyncBaseService):
         """
         try:
             if self.global_registry_file.exists():
-                with open(self.global_registry_file) as f:
+                with self.global_registry_file.open() as f:
                     return json.load(f)
         except Exception as e:
             self.log_warning(f"Failed to load global registry: {e}")
@@ -247,7 +243,7 @@ class ProjectPortAllocator(SyncBaseService):
 
             # Write to temporary file first
             temp_file = self.global_registry_file.with_suffix(".tmp")
-            with open(temp_file, "w") as f:
+            with temp_file.open("w") as f:
                 json.dump(registry, f, indent=2)
 
             # Atomic rename
@@ -507,7 +503,7 @@ class ProjectPortAllocator(SyncBaseService):
             state_file = project_path / ".claude-mpm" / self.STATE_FILE_NAME
             if state_file.exists():
                 try:
-                    with open(state_file) as f:
+                    with state_file.open() as f:
                         project_state = json.load(f)
 
                     # Check if service still registered

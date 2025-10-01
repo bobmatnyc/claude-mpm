@@ -10,7 +10,7 @@ import socket
 import subprocess
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add project root to path
@@ -98,7 +98,7 @@ class DaemonTestManager:
         pid_file = self.deployment_root / ".claude-mpm" / "socketio-server.pid"
         if pid_file.exists():
             try:
-                with open(pid_file) as f:
+                with pid_file.open() as f:
                     server_pid = int(f.read().strip())
             except Exception:
                 pass
@@ -109,7 +109,7 @@ class DaemonTestManager:
         )
         if supervisor_pid_file.exists():
             try:
-                with open(supervisor_pid_file) as f:
+                with supervisor_pid_file.open() as f:
                     supervisor_pid = int(f.read().strip())
             except Exception:
                 pass
@@ -118,7 +118,7 @@ class DaemonTestManager:
         port_file = self.deployment_root / ".claude-mpm" / "socketio-port"
         if port_file.exists():
             try:
-                with open(port_file) as f:
+                with port_file.open() as f:
                     port = int(f.read().strip())
             except Exception:
                 pass
@@ -180,7 +180,7 @@ class DaemonTestManager:
         )
         if metrics_file.exists():
             try:
-                with open(metrics_file) as f:
+                with metrics_file.open() as f:
                     return json.load(f)
             except Exception:
                 pass
@@ -422,7 +422,7 @@ def main():
     """Run manual QA tests."""
     print("HARDENED SOCKET.IO DAEMON - MANUAL QA TESTS")
     print("=" * 50)
-    print(f"Test started: {datetime.now()}")
+    print(f"Test started: {datetime.now(timezone.utc)}")
 
     manager = DaemonTestManager()
     manager.cleanup()  # Clean start

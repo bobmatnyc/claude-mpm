@@ -27,7 +27,7 @@ def get_git_stats():
             "changed_files": len(changed_files),
             "file_list": changed_files[:10],
         }
-    except:
+    except Exception:
         return {"commits": 0, "recent_commits": [], "changed_files": 0, "file_list": []}
 
 

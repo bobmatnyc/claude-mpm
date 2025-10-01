@@ -22,7 +22,7 @@ import os
 import sys
 import time
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 from io import StringIO
 from unittest.mock import Mock, patch
 
@@ -259,7 +259,7 @@ class TestClaudeHookHandler(unittest.TestCase):
 
         event1 = {
             "hook_event_name": "Stop",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": "test",
         }
 
@@ -490,7 +490,7 @@ class TestEventProcessing(unittest.TestCase):
         event = {
             "hook_event_name": "UserPromptSubmit",
             "prompt": "Create a test file",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         self.handler.event_handlers.handle_user_prompt_fast = Mock()
@@ -659,7 +659,7 @@ class TestIntegration(unittest.TestCase):
             {
                 "hook_event_name": "Stop",
                 "response": "Task completed successfully",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         )
 

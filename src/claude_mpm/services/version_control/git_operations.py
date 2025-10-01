@@ -147,10 +147,10 @@ class GitOperationsManager:
 
             return result
 
-        except FileNotFoundError:
-            raise GitOperationError("Git is not installed or not in PATH")
+        except FileNotFoundError as e:
+            raise GitOperationError("Git is not installed or not in PATH") from e
         except Exception as e:
-            raise GitOperationError(f"Error running Git command: {e}")
+            raise GitOperationError(f"Error running Git command: {e}") from e
 
     def get_current_branch(self) -> str:
         """Get the current Git branch name."""

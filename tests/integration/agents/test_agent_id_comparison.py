@@ -30,7 +30,7 @@ def show_agent_id_mapping():
 
         # Read YAML frontmatter to get actual name
         try:
-            with open(agent_file) as f:
+            with agent_file.open() as f:
                 content = f.read()
                 if content.startswith("---"):
                     end_marker = content.find("---", 3)

@@ -365,7 +365,7 @@ class EnhancedVersionParser:
         package_file = self.project_root / "package.json"
         if package_file.exists():
             try:
-                with open(package_file) as f:
+                with package_file.open() as f:
                     data = json.load(f)
                     version = data.get("version")
                     if version and self._version_pattern.match(version):

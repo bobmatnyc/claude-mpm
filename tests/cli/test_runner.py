@@ -9,7 +9,7 @@ for the comprehensive test suite created for TSK-0142.
 import json
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -70,7 +70,7 @@ def generate_test_report():
     cli_test_dir / "test-results.xml"
 
     report = {
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "test_suite": "CLI Commands - BaseCommand Pattern",
         "description": "Comprehensive test suite for migrated CLI commands (TSK-0142)",
         "test_files": [
@@ -89,7 +89,7 @@ def generate_test_report():
     # Load coverage data if available
     if coverage_file.exists():
         try:
-            with open(coverage_file) as f:
+            with coverage_file.open() as f:
                 coverage_data = json.load(f)
                 report["coverage"] = {
                     "total_coverage": coverage_data.get("totals", {}).get(
@@ -108,7 +108,7 @@ def generate_test_report():
 
     # Save report
     report_file = cli_test_dir / "test_report.json"
-    with open(report_file, "w") as f:
+    with report_file.open("w") as f:
         json.dump(report, f, indent=2)
 
     print(f"\nTest report saved to: {report_file}")

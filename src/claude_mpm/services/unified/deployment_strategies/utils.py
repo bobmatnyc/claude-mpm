@@ -19,7 +19,7 @@ import json
 import shutil
 import subprocess
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -162,7 +162,7 @@ def prepare_deployment_artifact(
     metadata = {
         "source": str(source_path),
         "type": artifact_type,
-        "created_at": datetime.now().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
     # Auto-detect type
@@ -257,7 +257,7 @@ def verify_deployment_health(
     """
     health = {
         "status": "unknown",
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "checks": {},
         "errors": [],
     }
@@ -464,7 +464,7 @@ def get_version_info(path: Union[str, Path]) -> Dict[str, Any]:
 
         if file_path.exists():
             if version_file == "package.json":
-                with open(file_path) as f:
+                with file_path.open() as f:
                     data = json.load(f)
                     version_info["version"] = data.get("version")
                     version_info["source"] = "package.json"
@@ -512,7 +512,7 @@ def update_version(
             shutil.copy2(version_file, backup_file)
 
         # Write new version
-        version_file.write_text(f"{new_version}\n{datetime.now().isoformat()}\n")
+        version_file.write_text(f"{new_version}\n{datetime.now(timezone.utc).isoformat()}\n")
         return True
 
     except Exception as e:
@@ -539,7 +539,7 @@ def calculate_checksum(path: Union[str, Path], algorithm: str = "sha256") -> str
     hasher = hashlib.new(algorithm)
 
     if path.is_file():
-        with open(path, "rb") as f:
+        with path.open("rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hasher.update(chunk)
     elif path.is_dir():
@@ -547,7 +547,7 @@ def calculate_checksum(path: Union[str, Path], algorithm: str = "sha256") -> str
         for file_path in sorted(path.rglob("*")):
             if file_path.is_file():
                 hasher.update(str(file_path.relative_to(path)).encode())
-                with open(file_path, "rb") as f:
+                with file_path.open("rb") as f:
                     for chunk in iter(lambda: f.read(4096), b""):
                         hasher.update(chunk)
 
@@ -616,7 +616,7 @@ def load_env_file(env_file: Union[str, Path]) -> Dict[str, str]:
     env_path = Path(env_file)
 
     if env_path.exists():
-        with open(env_path) as f:
+        with env_path.open() as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith("#") and "=" in line:
@@ -656,7 +656,7 @@ def export_env_to_file(env_vars: Dict[str, str], output_file: Union[str, Path]) 
     output_path = Path(output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path, "w") as f:
+    with output_path.open("w") as f:
         for key, value in env_vars.items():
             # Escape special characters in value
             if " " in value or '"' in value:

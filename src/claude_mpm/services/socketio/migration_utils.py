@@ -223,7 +223,7 @@ class EventTypeMapper:
     }
 
     @classmethod
-    def map_event_type(cls, old_type: str) -> Tuple[str, str]:  # noqa: PLR0911
+    def map_event_type(cls, old_type: str) -> Tuple[str, str]:
         """Map an old event type to new type/subtype.
 
         WHY: Provides consistent categorization for all events.

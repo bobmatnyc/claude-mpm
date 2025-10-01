@@ -8,7 +8,7 @@ import gzip
 import json
 import tempfile
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -197,7 +197,7 @@ class TestSessionManager(unittest.TestCase):
         session = self.manager.create_session()
 
         # Modify created_at to be 40 days ago
-        old_date = (datetime.now() - timedelta(days=40)).isoformat()
+        old_date = (datetime.now(timezone.utc) - timedelta(days=40)).isoformat()
         session.created_at = old_date
         self.manager.save_session(session)
 
@@ -276,7 +276,7 @@ class TestSessionManager(unittest.TestCase):
         """Test cleaning up old sessions."""
         # Create old session
         old_session = self.manager.create_session()
-        old_date = (datetime.now() - timedelta(hours=48)).isoformat()
+        old_date = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
         old_session.created_at = old_date
         self.manager.save_session(old_session)
 
@@ -322,7 +322,7 @@ class TestSessionManager(unittest.TestCase):
         """Test cleanup with archiving enabled."""
         # Create old session
         old_session = self.manager.create_session()
-        old_date = (datetime.now() - timedelta(hours=48)).isoformat()
+        old_date = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
         old_session.created_at = old_date
         self.manager.save_session(old_session)
 
@@ -358,7 +358,7 @@ class TestSessionManager(unittest.TestCase):
 
         # Corrupt the session file
         session_file = self.session_dir / "active_sessions.json"
-        with open(session_file, "w") as f:
+        with session_file.open("w") as f:
             f.write("invalid json{")
 
         # Create new manager (should handle corruption)

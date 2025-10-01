@@ -128,7 +128,7 @@ class DependencyStrategy:
             # Try to load YAML config
             import yaml
 
-            with open(self.config_path) as f:
+            with self.config_path.open() as f:
                 config = yaml.safe_load(f)
                 mode_str = config.get("dependency_mode")
                 if mode_str:
@@ -155,7 +155,7 @@ class DependencyStrategy:
             return True
 
         try:
-            with open(self.cache_path) as f:
+            with self.cache_path.open() as f:
                 cache = json.load(f)
                 last_check = datetime.fromisoformat(cache.get("timestamp", ""))
 
@@ -186,7 +186,7 @@ class DependencyStrategy:
                 "results": results,
             }
 
-            with open(self.cache_path, "w") as f:
+            with self.cache_path.open("w") as f:
                 json.dump(cache_data, f, indent=2)
 
             logger.debug(f"Cached dependency results to {self.cache_path}")
@@ -205,7 +205,7 @@ class DependencyStrategy:
             return None
 
         try:
-            with open(self.cache_path) as f:
+            with self.cache_path.open() as f:
                 cache = json.load(f)
                 return cache.get("results")
         except Exception:
@@ -285,7 +285,7 @@ class DependencyStrategy:
             if self.config_path.exists():
                 import yaml
 
-                with open(self.config_path) as f:
+                with self.config_path.open() as f:
                     config = yaml.safe_load(f) or {}
 
             # Update dependency mode
@@ -294,7 +294,7 @@ class DependencyStrategy:
             # Save config
             import yaml
 
-            with open(self.config_path, "w") as f:
+            with self.config_path.open("w") as f:
                 yaml.dump(config, f, default_flow_style=False)
 
             print(f"✓ Saved preference: {mode.value}")

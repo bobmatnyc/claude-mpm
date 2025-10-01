@@ -292,7 +292,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
                     # Get file info
                     try:
                         size = item.stat().st_size
-                    except:
+                    except (OSError, PermissionError):
                         size = 0
 
                     child_node = {

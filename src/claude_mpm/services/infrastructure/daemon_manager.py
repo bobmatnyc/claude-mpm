@@ -80,7 +80,7 @@ class SocketIODaemonManager:
             return False
 
         try:
-            with open(self.pid_file) as f:
+            with self.pid_file.open() as f:
                 pid = int(f.read().strip())
 
             # Check if process exists and is running
@@ -135,7 +135,7 @@ class SocketIODaemonManager:
             pid = os.fork()
             if pid > 0:
                 # Parent process - save PID and exit
-                with open(self.pid_file, "w") as f:
+                with self.pid_file.open("w") as f:
                     f.write(str(pid))
                 logger.info(f"Socket.IO server started as daemon (PID: {pid})")
                 return True
@@ -155,7 +155,7 @@ class SocketIODaemonManager:
         os.umask(0)
 
         # Redirect stdout/stderr to log file
-        with open(self.log_file, "a") as log:
+        with self.log_file.open("a") as log:
             os.dup2(log.fileno(), sys.stdout.fileno())
             os.dup2(log.fileno(), sys.stderr.fileno())
 
@@ -199,7 +199,7 @@ class SocketIODaemonManager:
             return False
 
         try:
-            with open(self.pid_file) as f:
+            with self.pid_file.open() as f:
                 pid = int(f.read().strip())
 
             logger.info(f"Stopping Socket.IO server (PID: {pid})")
@@ -254,7 +254,7 @@ class SocketIODaemonManager:
         }
 
         if status_info["running"]:
-            with open(self.pid_file) as f:
+            with self.pid_file.open() as f:
                 status_info["pid"] = int(f.read().strip())
 
             # Check port accessibility

@@ -15,7 +15,7 @@ Tests critical functionality including:
 import json
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import mock_open, patch
 
@@ -53,7 +53,7 @@ class TestResponseTrackerBasics:
             assert "test_agent" in file_path.name
 
             # Verify content
-            with open(file_path) as f:
+            with file_path.open() as f:
                 data = json.load(f)
 
             assert data["agent"] == "test_agent"
@@ -89,7 +89,7 @@ class TestResponseTrackerBasics:
                 metadata=metadata,
             )
 
-            with open(file_path) as f:
+            with file_path.open() as f:
                 data = json.load(f)
 
             assert data["metadata"] == metadata
@@ -282,7 +282,7 @@ class TestErrorHandling:
             # Create a corrupted JSON file
             session_dir = Path(tmpdir) / "test_session"
             corrupted_file = session_dir / "corrupted.json"
-            with open(corrupted_file, "w") as f:
+            with corrupted_file.open("w") as f:
                 f.write("{invalid json}")
 
             # Should handle corrupted file gracefully
@@ -458,10 +458,10 @@ class TestDataPersistence:
 
             # Write a complete JSON file
             complete_file = session_dir / "complete.json"
-            with open(complete_file, "w") as f:
+            with complete_file.open("w") as f:
                 json.dump(
                     {
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                         "agent": "complete_agent",
                         "request": "test",
                         "response": "test",
@@ -498,7 +498,7 @@ class TestLargeResponses:
             )
 
             # Verify it was saved correctly
-            with open(file_path) as f:
+            with file_path.open() as f:
                 data = json.load(f)
 
             assert len(data["response"]) == len(large_response)
@@ -574,7 +574,7 @@ class TestCleanup:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Create sessions with different timestamps
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
 
             # Create old session (mock old timestamp)
             old_session_id = "old_session"
@@ -588,14 +588,14 @@ class TestCleanup:
             # Manually modify the timestamp in the file
             session_dir = Path(tmpdir) / old_session_id
             for file_path in session_dir.glob("*.json"):
-                with open(file_path) as f:
+                with file_path.open() as f:
                     data = json.load(f)
 
                 # Set timestamp to 10 days ago
                 old_time = now - timedelta(days=10)
                 data["timestamp"] = old_time.isoformat()
 
-                with open(file_path, "w") as f:
+                with file_path.open("w") as f:
                     json.dump(data, f)
 
             # Create recent session
@@ -675,7 +675,7 @@ class TestEdgeCases:
                 session_id="empty_session",
             )
 
-            with open(file_path) as f:
+            with file_path.open() as f:
                 data = json.load(f)
 
             assert data["request"] == ""
@@ -733,7 +733,7 @@ class TestEdgeCases:
                 session_id="special_session",
             )
 
-            with open(file_path) as f:
+            with file_path.open() as f:
                 data = json.load(f)
 
             assert data["request"] == special_content

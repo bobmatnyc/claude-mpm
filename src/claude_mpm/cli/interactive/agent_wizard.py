@@ -769,7 +769,7 @@ class AgentWizard:
 
         output_file = output_dir / f"{template.agent_id}.json"
 
-        with open(output_file, "w") as f:
+        with output_file.open("w") as f:
             json.dump(template.to_json(), f, indent=2)
 
         return True, f"Agent exported to {output_file}"

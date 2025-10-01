@@ -306,9 +306,9 @@ class TestProcess(PsutilTestCase):
         if terminal is not None:
             try:
                 tty = os.path.realpath(sh("tty"))
-            except RuntimeError:
+            except RuntimeError as e:
                 # Note: happens if pytest is run without the `-s` opt.
-                raise pytest.skip("can't rely on `tty` CLI")
+                raise pytest.skip("can't rely on `tty` CLI") from e
             else:
                 assert terminal == tty
 
@@ -318,7 +318,7 @@ class TestProcess(PsutilTestCase):
         p = psutil.Process()
         # test reads
         io1 = p.io_counters()
-        with open(PYTHON_EXE, "rb") as f:
+        with PYTHON_EXE.open("rb") as f:
             f.read()
         io2 = p.io_counters()
         if not BSD and not AIX:
@@ -463,7 +463,7 @@ class TestProcess(PsutilTestCase):
         soft, hard = p.rlimit(psutil.RLIMIT_FSIZE)
         try:
             p.rlimit(psutil.RLIMIT_FSIZE, (1024, hard))
-            with open(testfn, "wb") as f:
+            with testfn.open("wb") as f:
                 f.write(b"X" * 1024)
             # write() or flush() doesn't always cause the exception
             # but close() will.
@@ -509,8 +509,8 @@ class TestProcess(PsutilTestCase):
         if OPENBSD:
             try:
                 step1 = p.num_threads()
-            except psutil.AccessDenied:
-                raise pytest.skip("on OpenBSD this requires root access")
+            except psutil.AccessDenied as e:
+                raise pytest.skip("on OpenBSD this requires root access") from e
         else:
             step1 = p.num_threads()
 
@@ -530,8 +530,8 @@ class TestProcess(PsutilTestCase):
         if OPENBSD:
             try:
                 step1 = p.threads()
-            except psutil.AccessDenied:
-                raise pytest.skip("on OpenBSD this requires root access")
+            except psutil.AccessDenied as e:
+                raise pytest.skip("on OpenBSD this requires root access") from e
         else:
             step1 = p.threads()
 
@@ -552,8 +552,8 @@ class TestProcess(PsutilTestCase):
         if OPENBSD:
             try:
                 p.threads()
-            except psutil.AccessDenied:
-                raise pytest.skip("on OpenBSD this requires root access")
+            except psutil.AccessDenied as e:
+                raise pytest.skip("on OpenBSD this requires root access") from e
         assert abs(p.cpu_times().user - sum(x.user_time for x in p.threads())) < 0.1
         assert abs(p.cpu_times().system - sum(x.system_time for x in p.threads())) < 0.1
 
@@ -745,8 +745,8 @@ class TestProcess(PsutilTestCase):
             # zombie (don't know why).
             try:
                 assert p.cmdline() == cmdline
-            except psutil.ZombieProcess:
-                raise pytest.skip("OPENBSD: process turned into zombie")
+            except psutil.ZombieProcess as e:
+                raise pytest.skip("OPENBSD: process turned into zombie") from e
         else:
             ret = p.cmdline()
             if NETBSD and ret == []:
@@ -1006,7 +1006,7 @@ class TestProcess(PsutilTestCase):
         testfn = self.get_testfn()
         files = p.open_files()
         assert testfn not in files
-        with open(testfn, "wb") as f:
+        with testfn.open("wb") as f:
             f.write(b"x" * 1024)
             f.flush()
             # give the kernel some time to see the new file
@@ -1045,7 +1045,7 @@ class TestProcess(PsutilTestCase):
         p = psutil.Process()
         normcase = os.path.normcase
         testfn = self.get_testfn()
-        with open(testfn, "w") as fileobj:
+        with testfn.open("w") as fileobj:
             for file in p.open_files():
                 if (
                     normcase(file.path) == normcase(fileobj.name)

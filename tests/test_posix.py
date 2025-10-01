@@ -127,7 +127,7 @@ def df(device):
         out = sh(f"df -k {device}").strip()
     except RuntimeError as err:
         if "device busy" in str(err).lower():
-            raise pytest.skip("df returned EBUSY")
+            raise pytest.skip("df returned EBUSY") from err
         raise
     line = out.split("\n")[1]
     fields = line.split()

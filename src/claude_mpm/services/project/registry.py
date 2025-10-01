@@ -69,7 +69,7 @@ class ProjectRegistry:
             self.registry_dir.mkdir(parents=True, exist_ok=True)
         except Exception as e:
             self.logger.error(f"Failed to create registry directory: {e}")
-            raise ProjectRegistryError(f"Cannot create registry directory: {e}")
+            raise ProjectRegistryError(f"Cannot create registry directory: {e}") from e
 
     def get_or_create_project_entry(self) -> Dict[str, Any]:
         """
@@ -104,7 +104,7 @@ class ProjectRegistry:
 
         except Exception as e:
             self.logger.error(f"Failed to get or create project entry: {e}")
-            raise ProjectRegistryError(f"Registry operation failed: {e}")
+            raise ProjectRegistryError(f"Registry operation failed: {e}") from e
 
     def _find_existing_entry(self) -> Optional[Dict[str, Any]]:
         """
@@ -491,7 +491,7 @@ class ProjectRegistry:
             # Remove internal fields before saving
             save_data = {k: v for k, v in data.items() if not k.startswith("_")}
 
-            with open(registry_file, "w", encoding="utf-8") as f:
+            with registry_file.open("w", encoding="utf-8") as f:
                 yaml.dump(
                     save_data, f, default_flow_style=False, sort_keys=False, indent=2
                 )
@@ -500,7 +500,7 @@ class ProjectRegistry:
 
         except Exception as e:
             self.logger.error(f"Failed to save registry data: {e}")
-            raise ProjectRegistryError(f"Failed to save registry: {e}")
+            raise ProjectRegistryError(f"Failed to save registry: {e}") from e
 
     def list_projects(self) -> List[Dict[str, Any]]:
         """

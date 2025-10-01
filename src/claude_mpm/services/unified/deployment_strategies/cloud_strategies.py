@@ -8,7 +8,7 @@ Reduces duplication by sharing common cloud deployment patterns.
 
 import json
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -48,7 +48,7 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
         # Check Railway CLI
         try:
             subprocess.run(["railway", "--version"], capture_output=True, check=True)
-        except:
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
             errors.append(
                 "Railway CLI not installed. Install with: npm i -g @railway/cli"
             )
@@ -56,7 +56,7 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
         # Check authentication
         try:
             subprocess.run(["railway", "whoami"], capture_output=True, check=True)
-        except:
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
             errors.append("Not authenticated with Railway. Run: railway login")
 
         return errors
@@ -97,13 +97,13 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
                         break
 
             return {
-                "deployment_id": f"railway_{datetime.now().timestamp()}",
+                "deployment_id": f"railway_{datetime.now(timezone.utc).timestamp()}",
                 "deployment_url": deployment_url,
                 "deployed_path": deploy_dir,
                 "stdout": result.stdout,
             }
         except subprocess.CalledProcessError as e:
-            raise Exception(f"Railway deployment failed: {e.stderr}")
+            raise Exception(f"Railway deployment failed: {e.stderr}") from e
 
     def verify(
         self, context: DeploymentContext, deployment_info: Dict[str, Any]
@@ -150,7 +150,7 @@ class AWSDeploymentStrategy(DeploymentStrategy):
         # Check AWS CLI
         try:
             subprocess.run(["aws", "--version"], capture_output=True, check=True)
-        except:
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
             errors.append("AWS CLI not installed")
 
         # Check credentials
@@ -158,7 +158,7 @@ class AWSDeploymentStrategy(DeploymentStrategy):
             subprocess.run(
                 ["aws", "sts", "get-caller-identity"], capture_output=True, check=True
             )
-        except:
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
             errors.append("AWS credentials not configured")
 
         # Validate service type
@@ -218,7 +218,7 @@ class AWSDeploymentStrategy(DeploymentStrategy):
                 "--zip-file",
                 f"fileb://{artifact}",
             ]
-        except:
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
             # Create new function
             cmd = [
                 "aws",
@@ -277,7 +277,7 @@ class AWSDeploymentStrategy(DeploymentStrategy):
                 ]
                 subprocess.run(cmd, capture_output=True, check=True)
                 return True
-            except:
+            except (subprocess.CalledProcessError, FileNotFoundError, OSError):
                 return False
 
         return True
@@ -301,7 +301,7 @@ class AWSDeploymentStrategy(DeploymentStrategy):
             try:
                 subprocess.run(cmd, check=True)
                 return True
-            except:
+            except (subprocess.CalledProcessError, FileNotFoundError, OSError):
                 pass
         return False
 
@@ -334,7 +334,7 @@ class DockerDeploymentStrategy(DeploymentStrategy):
         # Check Docker
         try:
             subprocess.run(["docker", "--version"], capture_output=True, check=True)
-        except:
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
             errors.append("Docker not installed or not running")
 
         # Check Dockerfile exists
@@ -356,7 +356,7 @@ class DockerDeploymentStrategy(DeploymentStrategy):
         """Execute Docker deployment."""
         source_dir = artifacts[0] if artifacts[0].is_dir() else artifacts[0].parent
         image_name = context.config.get(
-            "image_name", f"app_{datetime.now().timestamp()}"
+            "image_name", f"app_{datetime.now(timezone.utc).timestamp()}"
         )
         container_name = context.config.get("container_name", image_name)
 
@@ -444,7 +444,7 @@ class GitDeploymentStrategy(DeploymentStrategy):
         # Check Git
         try:
             subprocess.run(["git", "--version"], capture_output=True, check=True)
-        except:
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
             errors.append("Git not installed")
 
         # Check remote URL
@@ -529,7 +529,7 @@ class GitDeploymentStrategy(DeploymentStrategy):
                 check=True,
             )
             return True
-        except:
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
             return False
 
     def rollback(self, context: DeploymentContext, result: DeploymentResult) -> bool:
@@ -553,7 +553,7 @@ class GitDeploymentStrategy(DeploymentStrategy):
                     check=True,
                 )
                 return True
-            except:
+            except (subprocess.CalledProcessError, FileNotFoundError, OSError):
                 pass
         return False
 

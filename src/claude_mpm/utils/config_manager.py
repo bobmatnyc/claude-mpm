@@ -242,7 +242,7 @@ class ConfigurationManager:
             # Create parent directories if needed
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(file_path, "w", encoding="utf-8") as f:
+            with file_path.open("w", encoding="utf-8") as f:
                 json.dump(config, f, indent=indent, sort_keys=sort_keys)
             logger.info(f"Configuration saved to {file_path}")
         except Exception as e:
@@ -279,7 +279,7 @@ class ConfigurationManager:
             # Create parent directories if needed
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(file_path, "w", encoding="utf-8") as f:
+            with file_path.open("w", encoding="utf-8") as f:
                 yaml.dump(
                     config,
                     f,
@@ -313,7 +313,7 @@ class ConfigurationManager:
             # Create parent directories if needed
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(file_path, "w", encoding="utf-8") as f:
+            with file_path.open("w", encoding="utf-8") as f:
                 toml.dump(config, f)
             logger.info(f"Configuration saved to {file_path}")
         except Exception as e:

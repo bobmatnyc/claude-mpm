@@ -7,7 +7,7 @@ creates timestamped files, and can be analyzed by the doctor command.
 
 import logging
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -72,7 +72,7 @@ class TestStartupLogging:
             log_dir.mkdir(parents=True)
 
             # Create old and new log files
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
             old_file = log_dir / "startup-2023-01-01-00-00-00.log"
             old_file.touch()
             # Set modification time to old date

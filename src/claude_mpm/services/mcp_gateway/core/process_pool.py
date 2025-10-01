@@ -190,7 +190,7 @@ class MCPProcessPool:
 
             # Write process info to file for debugging
             info_file = self.pool_dir / f"{server_name}_{process.pid}.json"
-            with open(info_file, "w") as f:
+            with info_file.open("w") as f:
                 json.dump(self._process_info[server_name], f, indent=2)
 
             return process
@@ -934,7 +934,7 @@ async def pre_warm_mcp_servers():
     #
     # if claude_config_path.exists():
     #     try:
-    #         with open(claude_config_path) as f:
+    #         with claude_config_path.open() as f:
     #             config_data = json.load(f)
     #             mcp_servers = config_data.get("mcpServers", {})
     #             configs.update(mcp_servers)
@@ -945,7 +945,7 @@ async def pre_warm_mcp_servers():
     # mcp_config_path = Path.cwd() / ".mcp.json"
     # if mcp_config_path.exists():
     #     try:
-    #         with open(mcp_config_path) as f:
+    #         with mcp_config_path.open() as f:
     #             config_data = json.load(f)
     #             mcp_servers = config_data.get("mcpServers", {})
     #             configs.update(mcp_servers)

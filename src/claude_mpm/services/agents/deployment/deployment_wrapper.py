@@ -91,7 +91,7 @@ class DeploymentServiceWrapper:
 
                     # Read agent content if file exists
                     if agent_path.exists():
-                        with open(agent_path) as f:
+                        with agent_path.open() as f:
                             content = f.read()
 
                         # Parse metadata from content

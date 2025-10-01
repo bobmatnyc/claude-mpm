@@ -169,8 +169,8 @@ class AgentListingService(IAgentListingService):
 
                 base_service = AgentDeploymentService()
                 self._deployment_service = DeploymentServiceWrapper(base_service)
-            except ImportError:
-                raise ImportError("Agent deployment service not available")
+            except ImportError as e:
+                raise ImportError("Agent deployment service not available") from e
         return self._deployment_service
 
     @property
@@ -364,7 +364,7 @@ class AgentListingService(IAgentListingService):
             if not agent_path.exists():
                 return None
 
-            with open(agent_path) as f:
+            with agent_path.open() as f:
                 content = f.read()
 
             details = {

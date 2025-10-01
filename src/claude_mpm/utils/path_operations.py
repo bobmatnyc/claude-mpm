@@ -187,7 +187,7 @@ class PathOperations:
                 shutil.move(tmp_path, str(path_obj))
             else:
                 # Direct write
-                with open(path_obj, "w", encoding=encoding) as f:
+                with path_obj.open("w", encoding=encoding) as f:
                     f.write(content)
 
             logger.info(f"Successfully wrote to {path}")

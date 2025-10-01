@@ -20,7 +20,7 @@ import contextlib
 import sys
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 try:
     import socketio
@@ -41,7 +41,7 @@ class EndToEndDiagnosticTest:
         self.host = host
         self.port = port
         self.server_url = f"http://{host}:{port}"
-        self.start_time = datetime.now()
+        self.start_time = datetime.now(timezone.utc)
 
         # Test state
         self.server_running = False
@@ -107,7 +107,7 @@ class EndToEndDiagnosticTest:
                     "connections": len(self.server_connections),
                     "events_received": len(self.server_events),
                     "uptime_seconds": (
-                        datetime.now() - self.start_time
+                        datetime.now(timezone.utc) - self.start_time
                     ).total_seconds(),
                 }
             )
@@ -123,7 +123,7 @@ class EndToEndDiagnosticTest:
         async def connect(sid, environ, auth):
             self.server_connections[sid] = {
                 "namespace": namespace,
-                "connect_time": datetime.now(),
+                "connect_time": datetime.now(timezone.utc),
                 "auth": auth,
             }
 
@@ -132,7 +132,7 @@ class EndToEndDiagnosticTest:
                 "namespace": namespace,
                 "sid": sid,
                 "auth": auth,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
             self.server_events.append(event_data)
 
@@ -153,7 +153,7 @@ class EndToEndDiagnosticTest:
                 "type": "disconnection",
                 "namespace": namespace,
                 "sid": sid,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
             self.server_events.append(event_data)
 
@@ -168,7 +168,7 @@ class EndToEndDiagnosticTest:
                 "event": event,
                 "sid": sid,
                 "data": data,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
             self.server_events.append(event_data)
 
@@ -180,7 +180,7 @@ class EndToEndDiagnosticTest:
                 f"echo_{event}",
                 {
                     **data,
-                    "echoed_at": datetime.now().isoformat(),
+                    "echoed_at": datetime.now(timezone.utc).isoformat(),
                     "original_sender": sid,
                 },
                 room=room_name,
@@ -326,7 +326,7 @@ class EndToEndDiagnosticTest:
                             "namespace": ns,
                             "event": event,
                             "data": data,
-                            "received_at": datetime.now().isoformat(),
+                            "received_at": datetime.now(timezone.utc).isoformat(),
                         }
                         self.events_received[ns].append(event_info)
                         print(f"📥 DASHBOARD CLIENT: Received {ns}/{event}")
@@ -406,7 +406,7 @@ class EndToEndDiagnosticTest:
                     for key, value in data.items():
                         if isinstance(value, str) and "#{i}" in value:
                             data[key] = value.replace("#{i}", str(i + 1))
-                    data["timestamp"] = datetime.now().isoformat()
+                    data["timestamp"] = datetime.now(timezone.utc).isoformat()
 
                     # Record timing
                     send_time = time.time()
@@ -517,8 +517,8 @@ class EndToEndDiagnosticTest:
         else:
             print("   ❌ Dashboard connectivity: FAIL")
 
-        print(f"\n⏰ Test completed at: {datetime.now().isoformat()}")
-        test_duration = (datetime.now() - self.start_time).total_seconds()
+        print(f"\n⏰ Test completed at: {datetime.now(timezone.utc).isoformat()}")
+        test_duration = (datetime.now(timezone.utc) - self.start_time).total_seconds()
         print(f"🕒 Total test duration: {test_duration:.2f} seconds")
 
     def cleanup(self):

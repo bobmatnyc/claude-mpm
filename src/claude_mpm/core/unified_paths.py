@@ -167,7 +167,7 @@ class PathContext:
 
     @staticmethod
     @lru_cache(maxsize=1)
-    def detect_deployment_context() -> DeploymentContext:  # noqa: PLR0911
+    def detect_deployment_context() -> DeploymentContext:
         """Detect the current deployment context.
 
         Priority order:
@@ -396,7 +396,7 @@ class UnifiedPathManager:
                     return current
                 current = current.parent
 
-            raise FileNotFoundError("Could not determine framework root")
+            raise FileNotFoundError("Could not determine framework root") from None
 
     @property
     @lru_cache(maxsize=1)

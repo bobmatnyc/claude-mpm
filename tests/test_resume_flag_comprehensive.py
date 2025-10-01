@@ -565,7 +565,7 @@ class ResumeTestRunner:
         # Save detailed results to file
         results_file = self.project_root / "test_results_resume_flag_comprehensive.json"
         try:
-            with open(results_file, "w") as f:
+            with results_file.open("w") as f:
                 json.dump(
                     {
                         "summary": summary,

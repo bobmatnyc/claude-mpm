@@ -429,7 +429,7 @@ class MCPServiceVerifier:
             return {"configured": False, "correct": False}
 
         try:
-            with open(self.claude_config_path) as f:
+            with self.claude_config_path.open() as f:
                 config = json.load(f)
 
             # Check if project is configured

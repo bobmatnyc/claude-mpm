@@ -18,7 +18,7 @@ import argparse
 import asyncio
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add src to path
@@ -291,9 +291,9 @@ async def benchmark_hello_world_tool():
         for _ in range(100):
             invocation = MCPToolInvocation(tool_name="hello_world", parameters=params)
 
-            start = datetime.now()
+            start = datetime.now(timezone.utc)
             result = await registry.invoke_tool(invocation)
-            duration = (datetime.now() - start).total_seconds()
+            duration = (datetime.now(timezone.utc) - start).total_seconds()
 
             if result.success:
                 times.append(duration)

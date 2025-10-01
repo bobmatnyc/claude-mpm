@@ -49,7 +49,7 @@ def simulate_command_building(resume=False, extra_args=None, launch_method="exec
             raw_claude_args = ["--resume", *raw_claude_args]
             print("   ✅ Added --resume to beginning")
         else:
-            print("   ℹ️ --resume already present")
+            print("   ℹ️ --resume already present")  # noqa: RUF001
         print(f"   Updated args: {raw_claude_args}")
 
     # Step 3: Filter MPM-specific args (from run.py)

@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Union
@@ -124,11 +124,11 @@ class HierarchicalContextManager(BaseContextManager):
                 id=context_id,
                 scope=scope,
                 lifecycle=ContextLifecycle.CREATED,
-                created_at=datetime.now(),
-                updated_at=datetime.now(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
                 parent_id=parent_id,
                 ttl=ttl,
-                expires_at=datetime.now() + ttl if ttl else None,
+                expires_at=datetime.now(timezone.utc) + ttl if ttl else None,
                 attributes=kwargs,
             )
 
@@ -158,7 +158,7 @@ class HierarchicalContextManager(BaseContextManager):
 
             # Check expiration
             if context and context.expires_at:
-                if datetime.now() > context.expires_at:
+                if datetime.now(timezone.utc) > context.expires_at:
                     self.close_context(context_id)
                     return None
 
@@ -299,7 +299,7 @@ class ScopedConfigManager:
 
             # Update context metadata
             if context_id in self.context_manager.contexts:
-                self.context_manager.contexts[context_id].updated_at = datetime.now()
+                self.context_manager.contexts[context_id].updated_at = datetime.now(timezone.utc)
 
     def _get_inherited_config(self, context_id: str) -> Dict[str, Any]:
         """Get merged configuration from context hierarchy"""

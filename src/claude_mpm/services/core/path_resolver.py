@@ -166,7 +166,7 @@ class PathResolver(IPathResolver):
         self.logger.debug(f"No project root found from {start_path}")
         return None
 
-    def detect_framework_path(self) -> Optional[Path]:  # noqa: PLR0911
+    def detect_framework_path(self) -> Optional[Path]:
         """
         Auto-detect claude-mpm framework using unified path management.
 

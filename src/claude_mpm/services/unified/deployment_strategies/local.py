@@ -13,7 +13,7 @@ Consolidates functionality from:
 import json
 import shutil
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -183,7 +183,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
             "deployed_path": target_path,
             "deployed_files": deployed_files,
             "artifacts": [str(a) for a in artifacts],
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     def verify(
@@ -300,7 +300,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
     def _check_write_permission(self, path: Path) -> bool:
         """Check if we have write permission to path."""
         try:
-            test_file = path / f".write_test_{datetime.now().timestamp()}"
+            test_file = path / f".write_test_{datetime.now(timezone.utc).timestamp()}"
             test_file.touch()
             test_file.unlink()
             return True
@@ -310,7 +310,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
     def _generate_deployment_id(self) -> str:
         """Generate unique deployment ID."""
         return (
-            f"local_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"
+            f"local_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"
         )
 
     def _create_backup(self, context: DeploymentContext) -> Optional[Path]:
@@ -324,7 +324,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
             backup_dir = Path(tempfile.gettempdir()) / "claude_mpm_backups"
             backup_dir.mkdir(parents=True, exist_ok=True)
 
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             backup_name = f"{target_path.name}.backup_{timestamp}"
             backup_path = backup_dir / backup_name
 
@@ -343,7 +343,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
     def _write_version_file(self, target_path: Path, version: str) -> None:
         """Write version file to deployment."""
         version_file = target_path / ".version"
-        version_file.write_text(f"{version}\n{datetime.now().isoformat()}\n")
+        version_file.write_text(f"{version}\n{datetime.now(timezone.utc).isoformat()}\n")
 
     # Agent deployment methods (consolidating agent_deployment.py patterns)
 
@@ -409,7 +409,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
         for yaml_file in yaml_files:
             try:
-                with open(yaml_file) as f:
+                with yaml_file.open() as f:
                     data = yaml.safe_load(f)
                     # Basic agent structure validation
                     if not isinstance(data, dict):
@@ -425,11 +425,11 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
     def _convert_json_to_yaml(self, json_path: Path) -> Path:
         """Convert JSON agent to YAML format."""
-        with open(json_path) as f:
+        with json_path.open() as f:
             data = json.load(f)
 
         yaml_path = Path(tempfile.gettempdir()) / f"{json_path.stem}.yaml"
-        with open(yaml_path, "w") as f:
+        with yaml_path.open("w") as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 
         return yaml_path

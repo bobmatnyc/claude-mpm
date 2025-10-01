@@ -313,7 +313,7 @@ class UnifiedMonitorServer:
             async def dashboard_index(request):
                 template_path = dashboard_dir / "templates" / "index.html"
                 if template_path.exists():
-                    with open(template_path) as f:
+                    with template_path.open() as f:
                         content = f.read()
                     return web.Response(text=content, content_type="text/html")
                 return web.Response(text="Dashboard not found", status=404)
@@ -365,7 +365,7 @@ class UnifiedMonitorServer:
                     return web.Response(text=f"Error: {e!s}", status=500)
 
             # File content endpoint for file viewer
-            async def api_file_handler(request):  # noqa: PLR0911
+            async def api_file_handler(request):
                 """Handle file content requests."""
                 import json
                 import os

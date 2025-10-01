@@ -48,10 +48,10 @@ class TargetDirectorySetupStep(BaseDeploymentStep):
             try:
                 test_file.write_text("test")
                 test_file.unlink()
-            except Exception:
+            except Exception as e:
                 raise PermissionError(
                     f"Target directory is not writable: {context.actual_target_dir}"
-                )
+                ) from e
 
             self.logger.info(f"Target directory set up: {context.actual_target_dir}")
 

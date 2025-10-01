@@ -177,7 +177,7 @@ if __name__ == "__main__":
     compat_file = Path(__file__).parent / "temp_python313_compat.py"
 
     try:
-        with open(compat_file, "w") as f:
+        with compat_file.open("w") as f:
             f.write(test_script)
 
         print("Running Python 3.13 compatibility test...")

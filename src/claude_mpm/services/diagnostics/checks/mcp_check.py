@@ -154,7 +154,7 @@ class MCPCheck(BaseDiagnosticCheck):
             )
 
         try:
-            with open(config_path) as f:
+            with config_path.open() as f:
                 config = json.load(f)
 
                 mcp_servers = config.get("mcpServers", {})

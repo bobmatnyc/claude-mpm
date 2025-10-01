@@ -38,7 +38,7 @@ def test_interactive_response_logging_integration():
             }
         }
 
-        with open(config_file, "w") as f:
+        with config_file.open("w") as f:
             json.dump(config_data, f)
 
         # Initialize components
@@ -105,7 +105,7 @@ def test_interactive_response_logging_integration():
                     ), f"Response file not created at {file_path}"
 
                     # Verify content
-                    with open(file_path) as f:
+                    with file_path.open() as f:
                         content = json.load(f)
                         assert content["request"] == "Test request"
                         assert content["response"] == "Test response"
@@ -139,7 +139,7 @@ def test_response_logging_disabled():
         config_file = Path(temp_dir) / "config.json"
         config_data = {"response_logging": {"enabled": False}}
 
-        with open(config_file, "w") as f:
+        with config_file.open("w") as f:
             json.dump(config_data, f)
 
         # Initialize components

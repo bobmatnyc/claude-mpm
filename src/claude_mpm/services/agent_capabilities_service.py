@@ -215,7 +215,7 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
                 self.logger.debug(f"Could not parse agent {agent_file}: {e}")
                 continue
 
-    def _categorize_agent(self, agent_id: str, content: str) -> str:  # noqa: PLR0911
+    def _categorize_agent(self, agent_id: str, content: str) -> str:
         """Categorize an agent based on its ID and content."""
         agent_id_lower = agent_id.lower()
         content_lower = content.lower()

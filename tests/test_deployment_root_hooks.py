@@ -89,7 +89,7 @@ class TestDeploymentRootHooks:
 
         # Check settings were updated
         assert installer.settings_file.exists()
-        with open(installer.settings_file) as f:
+        with installer.settings_file.open() as f:
             settings = json.load(f)
 
         assert "hooks" in settings

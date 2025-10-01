@@ -80,7 +80,7 @@ class PerformanceValidationSuite:
 
                 if json_results:
                     test_result["parsed_results"] = json_results
-            except:
+            except Exception:
                 pass  # No JSON results available
 
             return test_result

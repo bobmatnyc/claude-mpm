@@ -64,14 +64,14 @@ class SimpleAgentManager:
     def _load_states(self):
         """Load agent states from file."""
         if self.config_file.exists():
-            with open(self.config_file) as f:
+            with self.config_file.open() as f:
                 self.states = json.load(f)
         else:
             self.states = {}
 
     def _save_states(self):
         """Save agent states to file."""
-        with open(self.config_file, "w") as f:
+        with self.config_file.open("w") as f:
             json.dump(self.states, f, indent=2)
 
     def is_agent_enabled(self, agent_name: str) -> bool:
@@ -105,7 +105,7 @@ class SimpleAgentManager:
                     continue
 
                 try:
-                    with open(template_file) as f:
+                    with template_file.open() as f:
                         template_data = json.load(f)
 
                     # Extract agent information from template
@@ -205,7 +205,7 @@ class ConfigureCommand(BaseCommand):
 
         return None
 
-    def run(self, args) -> CommandResult:  # noqa: PLR0911
+    def run(self, args) -> CommandResult:
         """Execute the configure command."""
         # Set configuration scope
         self.current_scope = getattr(args, "scope", "project")
@@ -447,7 +447,7 @@ class ConfigureCommand(BaseCommand):
                 try:
                     template_path = self._get_agent_template_path(agent.name)
                     if template_path.exists():
-                        with open(template_path) as f:
+                        with template_path.open() as f:
                             template = json.load(f)
                         model = template.get("capabilities", {}).get("model", "default")
                         tools_display = f"Model: {model}"
@@ -542,7 +542,7 @@ class ConfigureCommand(BaseCommand):
         template_path = self._get_agent_template_path(agent.name)
 
         if template_path.exists():
-            with open(template_path) as f:
+            with template_path.open() as f:
                 template = json.load(f)
             is_system = str(template_path).startswith(
                 str(self.agent_manager.templates_dir)
@@ -693,11 +693,11 @@ class ConfigureCommand(BaseCommand):
             subprocess.call([editor, temp_path])
 
             # Read back the edited content
-            with open(temp_path) as f:
+            with temp_path.open() as f:
                 new_template = json.load(f)
 
             # Save to actual template path
-            with open(template_path, "w") as f:
+            with template_path.open("w") as f:
                 json.dump(new_template, f, indent=2)
 
             self.console.print("[green]Template updated successfully![/green]")
@@ -732,7 +732,7 @@ class ConfigureCommand(BaseCommand):
             current[parts[-1]] = value
 
             # Save the template
-            with open(template_path, "w") as f:
+            with template_path.open("w") as f:
                 json.dump(template, f, indent=2)
 
             self.console.print(
@@ -765,7 +765,7 @@ class ConfigureCommand(BaseCommand):
                 del current[parts[-1]]
 
                 # Save the template
-                with open(template_path, "w") as f:
+                with template_path.open("w") as f:
                     json.dump(template, f, indent=2)
 
                 self.console.print(
@@ -802,7 +802,7 @@ class ConfigureCommand(BaseCommand):
             return
 
         # Save the template copy
-        with open(custom_path, "w") as f:
+        with custom_path.open("w") as f:
             json.dump(template, f, indent=2)
 
         self.console.print(f"[green]Created custom template at: {custom_path}[/green]")
@@ -839,7 +839,7 @@ class ConfigureCommand(BaseCommand):
 
                 if template_path.exists():
                     try:
-                        with open(template_path) as f:
+                        with template_path.open() as f:
                             template = json.load(f)
 
                         # Extract additional information
@@ -1675,7 +1675,7 @@ Directory: {self.project_dir}
 
             # Write to file
             output_path = Path(file_path)
-            with open(output_path, "w") as f:
+            with output_path.open("w") as f:
                 json.dump(config_data, f, indent=2)
 
             return CommandResult.success_result(
@@ -1692,7 +1692,7 @@ Directory: {self.project_dir}
             if not input_path.exists():
                 return CommandResult.error_result(f"File not found: {file_path}")
 
-            with open(input_path) as f:
+            with input_path.open() as f:
                 config_data = json.load(f)
 
             # Apply agent states

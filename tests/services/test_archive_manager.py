@@ -9,7 +9,7 @@ archival features of the ArchiveManager service.
 import json
 import tempfile
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -287,7 +287,7 @@ Workaround for problem
         archive_path = self.manager.archive_path / original_archive
         self.assertTrue(archive_path.exists())
 
-        old_time = datetime.now() - timedelta(days=10)
+        old_time = datetime.now(timezone.utc) - timedelta(days=10)
         import os
 
         os.utime(archive_path, (old_time.timestamp(), old_time.timestamp()))

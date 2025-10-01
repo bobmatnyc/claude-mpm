@@ -66,7 +66,7 @@ try:
     for file in memory_dir.iterdir():
         print(f"  {file}")
         if file.suffix == ".md":
-            with open(file) as f:
+            with file.open() as f:
                 content = f.read()
                 print(f"    Content preview: {content[:200]}...")
 

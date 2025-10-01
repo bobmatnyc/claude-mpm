@@ -12,7 +12,7 @@ Tests cover:
 import asyncio
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -80,7 +80,7 @@ class TestEndToEndEventFlow:
             "source": "hook",
             "type": "file_change",
             "subtype": "modified",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": {"file": "/test/file.py", "action": "modified"},
         }
 
@@ -125,7 +125,7 @@ class TestEndToEndEventFlow:
                 "source": "eventbus",
                 "type": "agent_status",
                 "subtype": "started",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {"agent": "test_agent", "status": "active"},
             }
 
@@ -247,7 +247,7 @@ class TestMultipleClientConnections:
         # Broadcast event
         test_event = {
             "type": "test",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": {"message": "broadcast to all"},
         }
 
@@ -725,7 +725,7 @@ def integration_server():
         "events_sent": 0,
         "events_buffered": 0,
         "connections_total": 0,
-        "start_time": datetime.now().isoformat(),
+        "start_time": datetime.now(timezone.utc).isoformat(),
     }
 
     return server

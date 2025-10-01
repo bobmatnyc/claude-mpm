@@ -5,7 +5,7 @@ import pytest
 
 import asyncio
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 import socketio
 
@@ -84,7 +84,7 @@ async def test_event_flow():
         test_event = {
             "type": "hook",
             "event": "user_prompt",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": {
                 "session_id": "test-session-123",
                 "prompt_text": "Test prompt from event flow test",
@@ -103,7 +103,7 @@ async def test_event_flow():
         test_event2 = {
             "type": "hook",
             "event": "subagent_stop",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": {
                 "session_id": "test-session-123",
                 "agent_type": "research",

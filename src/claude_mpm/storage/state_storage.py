@@ -24,6 +24,10 @@ import time
 from contextlib import contextmanager, suppress
 from typing import Any, Dict, Optional, Tuple, Union
 
+from claude_mpm.core.logging_utils import get_logger
+
+logger = get_logger(__name__)
+
 
 class StateStorage:
     """Reliable state storage with atomic operations."""
@@ -36,11 +40,6 @@ class StateStorage:
         """
         self.storage_dir = storage_dir or Path.home() / ".claude-mpm" / "storage"
         self.storage_dir.mkdir(parents=True, exist_ok=True)
-
-        # Logging
-from claude_mpm.core.logging_utils import get_logger
-
-logger = get_logger(__name__)
 
         # File locking support (Unix-like systems)
         self.supports_locking = platform.system() != "Windows"
@@ -80,7 +79,7 @@ logger = get_logger(__name__)
                 with gzip.open(file_path, "wt", encoding="utf-8") as f:
                     json.dump(data, f, indent=2, default=str)
             else:
-                with open(file_path, "w") as f:
+                with file_path.open("w") as f:
                     json.dump(data, f, indent=2, default=str)
 
             self.write_count += 1
@@ -119,7 +118,7 @@ logger = get_logger(__name__)
                     with gzip.open(file_path, "rt", encoding="utf-8") as f:
                         data = json.load(f)
                 else:
-                    with open(file_path) as f:
+                    with file_path.open() as f:
                         data = json.load(f)
 
             self.read_count += 1
@@ -160,7 +159,7 @@ logger = get_logger(__name__)
                 with gzip.open(file_path, "wb") as f:
                     pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
             else:
-                with open(file_path, "wb") as f:
+                with file_path.open("wb") as f:
                     pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
             self.write_count += 1
@@ -199,7 +198,7 @@ logger = get_logger(__name__)
                     with gzip.open(file_path, "rb") as f:
                         data = pickle.load(f)
                 else:
-                    with open(file_path, "rb") as f:
+                    with file_path.open("rb") as f:
                         data = pickle.load(f)
 
             self.read_count += 1
@@ -328,7 +327,7 @@ logger = get_logger(__name__)
 
             # Calculate checksum
             hasher = hashlib.sha256()
-            with open(file_path, "rb") as f:
+            with file_path.open("rb") as f:
                 for chunk in iter(lambda: f.read(4096), b""):
                     hasher.update(chunk)
 
@@ -336,7 +335,7 @@ logger = get_logger(__name__)
 
             # Write checksum file
             checksum_path = file_path.with_suffix(file_path.suffix + ".sha256")
-            with open(checksum_path, "w") as f:
+            with checksum_path.open("w") as f:
                 f.write(checksum)
 
         except Exception as e:
@@ -359,12 +358,12 @@ logger = get_logger(__name__)
                 return True  # No checksum to verify
 
             # Read expected checksum
-            with open(checksum_path) as f:
+            with checksum_path.open() as f:
                 expected = f.read().strip()
 
             # Calculate actual checksum
             hasher = hashlib.sha256()
-            with open(file_path, "rb") as f:
+            with file_path.open("rb") as f:
                 for chunk in iter(lambda: f.read(4096), b""):
                     hasher.update(chunk)
 

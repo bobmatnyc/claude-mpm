@@ -110,7 +110,7 @@ def configure_mcp_for_pipx(args) -> int:
     existing_config = {}
     if config_path.exists():
         try:
-            with open(config_path) as f:
+            with config_path.open() as f:
                 existing_config = json.load(f)
             print("✅ Existing config loaded")
         except json.JSONDecodeError:
@@ -145,7 +145,7 @@ def configure_mcp_for_pipx(args) -> int:
     # Write config
     if not args.dry_run:
         try:
-            with open(config_path, "w") as f:
+            with config_path.open("w") as f:
                 json.dump(existing_config, f, indent=2)
             print(f"\n✅ Configuration written to: {config_path}")
         except Exception as e:

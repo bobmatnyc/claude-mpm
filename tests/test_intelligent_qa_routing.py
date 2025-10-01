@@ -154,7 +154,7 @@ def test_api_qa_agent_configuration():
         return False
 
     try:
-        with open(api_qa_path) as f:
+        with api_qa_path.open() as f:
             config = json.load(f)
 
         # Validate required fields
@@ -213,7 +213,7 @@ def test_workflow_configuration():
         return False
 
     try:
-        with open(workflow_path) as f:
+        with workflow_path.open() as f:
             content = f.read()
 
         # Check for key sections
@@ -260,7 +260,7 @@ def test_instructions_update():
         return False
 
     try:
-        with open(instructions_path) as f:
+        with instructions_path.open() as f:
             content = f.read()
 
         # Check for key sections

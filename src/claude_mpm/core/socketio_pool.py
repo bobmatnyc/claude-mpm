@@ -594,9 +594,9 @@ class SocketIOConnectionPool:
                 timeout=2.0,
             )
 
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as e:
             self.logger.debug("Socket.IO connection timeout")
-            raise TimeoutError("Socket.IO connection timeout")
+            raise TimeoutError("Socket.IO connection timeout") from e
         except Exception as e:
             self.logger.debug(f"Client connection failed: {e}")
             raise

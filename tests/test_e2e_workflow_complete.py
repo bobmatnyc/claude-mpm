@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0, "/Users/masa/Projects/managed/ai-trackdown-pytools/src")
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ai_trackdown_pytools.core.models import (
     BugModel,
@@ -28,8 +28,8 @@ def test_task_workflow():
         id="TSK-100",
         title="Implement user authentication",
         status="open",
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     print(f"Created task: {task.id} - Status: {task.status}")
 
@@ -40,7 +40,7 @@ def test_task_workflow():
         parent_type="task",
         author="developer",
         content="Starting work on authentication module",
-        created_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
     )
     print(f"Added comment when task is {task.status}")
 
@@ -65,7 +65,7 @@ def test_task_workflow():
                 parent_type="task",
                 author="developer",
                 content=comment_text,
-                created_at=datetime.now(),
+                created_at=datetime.now(timezone.utc),
             )
             print(f"✓ Transitioned to {new_status} - Comment: {comment_text}")
         else:
@@ -84,8 +84,8 @@ def test_issue_workflow():
         id="ISS-200",
         title="Database connection timeout",
         status="open",
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     print(f"Created issue: {issue.id} - Status: {issue.status}")
 
@@ -119,7 +119,7 @@ def test_issue_workflow():
                 parent_type="issue",
                 author="developer",
                 content=comment_text,
-                created_at=datetime.now(),
+                created_at=datetime.now(timezone.utc),
             )
             print(f"✓ Transitioned to {new_status} - Comment: {comment_text}")
         else:
@@ -140,8 +140,8 @@ def test_bug_workflow_with_reopen():
         id="BUG-300",
         title="Login button not responding",
         status="open",
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     print(f"Created bug: {bug.id} - Status: {bug.status}")
 
@@ -188,7 +188,7 @@ def test_bug_workflow_with_reopen():
                     "qa_tester" if new_status == UnifiedStatus.REOPENED else "developer"
                 ),
                 content=comment_text,
-                created_at=datetime.now(),
+                created_at=datetime.now(timezone.utc),
             )
             print(
                 f"✓ Transitioned from {old_status} to {new_status} - Comment: {comment_text}"
@@ -211,8 +211,8 @@ def test_epic_workflow():
         id="EP-400",
         title="Implement OAuth2 Authentication",
         status="open",
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     print(f"Created epic: {epic.id} - Status: {epic.status}")
 
@@ -237,7 +237,7 @@ def test_epic_workflow():
                     parent_type="epic",
                     author="product_owner",
                     content="Starting implementation",
-                    created_at=datetime.now(),
+                    created_at=datetime.now(timezone.utc),
                 )
                 print(
                     "✓ Transitioned to in_progress (planning not available from open)"
@@ -255,7 +255,7 @@ def test_epic_workflow():
                 parent_type="epic",
                 author="product_owner",
                 content=comment_text,
-                created_at=datetime.now(),
+                created_at=datetime.now(timezone.utc),
             )
             print(f"✓ Transitioned to {new_status} - Comment: {comment_text}")
         else:
@@ -276,8 +276,8 @@ def test_pr_workflow():
         status="draft",
         source_branch="feature/oauth2",
         target_branch="main",
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     print(f"Created PR: {pr.id} - Status: {pr.status}")
 
@@ -301,7 +301,7 @@ def test_pr_workflow():
                 parent_type="pr",
                 author="reviewer" if "review" in new_status else "developer",
                 content=comment_text,
-                created_at=datetime.now(),
+                created_at=datetime.now(timezone.utc),
             )
             print(f"✓ Transitioned to {new_status} - Comment: {comment_text}")
         else:
@@ -320,8 +320,8 @@ def test_comment_inheritance_across_statuses():
         id="BUG-600",
         title="Performance regression in search",
         status="open",
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
 
     comments = []
@@ -333,7 +333,7 @@ def test_comment_inheritance_across_statuses():
         parent_type="bug",
         author="reporter",
         content="Search takes 5+ seconds to return results",
-        created_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
     )
     comments.append(("open", comment1))
     print(f"Comment added when bug status: {bug.status}")
@@ -346,7 +346,7 @@ def test_comment_inheritance_across_statuses():
         parent_type="bug",
         author="developer",
         content="Found inefficient database query",
-        created_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
     )
     comments.append(("in_progress", comment2))
     print(f"Comment added when bug status: {bug.status}")
@@ -361,7 +361,7 @@ def test_comment_inheritance_across_statuses():
         parent_type="bug",
         author="developer",
         content="Query optimized, please verify",
-        created_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
     )
     comments.append(("resolved", comment3))
     print(f"Comment added when bug status: {bug.status}")
@@ -393,8 +393,8 @@ def test_invalid_transitions():
         id="TSK-700",
         title="Test task",
         status="open",
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     can_merge, error = task.can_transition_to(UnifiedStatus.MERGED)
     tests_passed.append(not can_merge)
@@ -405,8 +405,8 @@ def test_invalid_transitions():
         id="ISS-700",
         title="Test issue",
         status=UnifiedStatus.CANCELLED,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     can_reopen_to_progress, error = issue.can_transition_to(UnifiedStatus.IN_PROGRESS)
     tests_passed.append(not can_reopen_to_progress)
@@ -419,8 +419,8 @@ def test_invalid_transitions():
         id="BUG-700",
         title="Test bug",
         status=UnifiedStatus.IN_PROGRESS,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     # Try to close without resolution (should fail)
     try:

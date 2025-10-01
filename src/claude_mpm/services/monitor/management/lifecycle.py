@@ -127,14 +127,14 @@ class DaemonLifecycle:
             # Redirect stdout and stderr
             if self.log_file:
                 # Redirect to log file
-                with open(self.log_file, "a") as log_out:
+                with self.log_file.open("a") as log_out:
                     os.dup2(log_out.fileno(), sys.stdout.fileno())
                     os.dup2(log_out.fileno(), sys.stderr.fileno())
             else:
                 # Default to a daemon log file instead of /dev/null for errors
                 default_log = Path.home() / ".claude-mpm" / "monitor-daemon.log"
                 default_log.parent.mkdir(parents=True, exist_ok=True)
-                with open(default_log, "a") as log_out:
+                with default_log.open("a") as log_out:
                     os.dup2(log_out.fileno(), sys.stdout.fileno())
                     os.dup2(log_out.fileno(), sys.stderr.fileno())
 
@@ -149,7 +149,7 @@ class DaemonLifecycle:
             self.pid_file.parent.mkdir(parents=True, exist_ok=True)
 
             # Write PID
-            with open(self.pid_file, "w") as f:
+            with self.pid_file.open("w") as f:
                 f.write(str(os.getpid()))
 
             self.logger.debug(f"PID file written: {self.pid_file}")
@@ -199,7 +199,7 @@ class DaemonLifecycle:
             if not self.pid_file.exists():
                 return None
 
-            with open(self.pid_file) as f:
+            with self.pid_file.open() as f:
                 pid_str = f.read().strip()
                 return int(pid_str) if pid_str else None
 
@@ -385,7 +385,7 @@ class DaemonLifecycle:
             try:
                 # Check if status file exists and read it
                 if self.startup_status_file and Path(self.startup_status_file).exists():
-                    with open(self.startup_status_file) as f:
+                    with self.startup_status_file.open() as f:
                         status = f.read().strip()
 
                     if status == "success":
@@ -437,7 +437,7 @@ class DaemonLifecycle:
         """Report successful startup to parent process."""
         if self.startup_status_file:
             try:
-                with open(self.startup_status_file, "w") as f:
+                with self.startup_status_file.open("w") as f:
                     f.write("success")
             except Exception as e:
                 self.logger.error(f"Failed to report startup success: {e}")
@@ -450,7 +450,7 @@ class DaemonLifecycle:
         """
         if self.startup_status_file:
             try:
-                with open(self.startup_status_file, "w") as f:
+                with self.startup_status_file.open("w") as f:
                     f.write(f"error:{error_msg}")
             except Exception:
                 pass  # Can't report if file write fails

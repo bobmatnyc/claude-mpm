@@ -19,7 +19,7 @@ import os
 import sys
 import time
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
 # Add project root to path for imports
@@ -231,7 +231,7 @@ class TestStateManagerService(unittest.TestCase):
     def test_cleanup_old_entries(self):
         """Test cleanup of old state entries."""
         # Add some old entries (>1 hour old)
-        old_time = datetime.now() - timedelta(hours=2)
+        old_time = datetime.now(timezone.utc) - timedelta(hours=2)
 
         # Add old delegation
         self.state_manager.active_delegations["old-session"] = {
@@ -242,7 +242,7 @@ class TestStateManagerService(unittest.TestCase):
         # Add recent delegation
         self.state_manager.active_delegations["recent-session"] = {
             "agent_type": "test",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Add old prompt
@@ -432,7 +432,7 @@ class TestEventTransformation(unittest.TestCase):
         enriched_event = base_event.copy()
         enriched_event.update(
             {
-                "processed_at": datetime.now().isoformat(),
+                "processed_at": datetime.now(timezone.utc).isoformat(),
                 "session_id": "test-session",
                 "git_branch": "main",
                 "working_directory": "/test/project",
@@ -470,7 +470,7 @@ class TestEventTransformation(unittest.TestCase):
         # Valid event
         valid_event = {
             "hook_event_name": "Stop",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Invalid events

@@ -16,7 +16,7 @@ def check_hook_service_running():
 
         response = requests.get("http://localhost:5001/health", timeout=1)
         return response.status_code == 200
-    except:
+    except Exception:
         return False
 
 

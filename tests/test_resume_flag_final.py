@@ -25,7 +25,7 @@ def test_bash_wrapper_recognition():
     script_path = project_root / "scripts" / "claude-mpm"
 
     # Read the script
-    with open(script_path) as f:
+    with script_path.open() as f:
         content = f.read()
 
     # Check if --resume is in MPM_FLAGS

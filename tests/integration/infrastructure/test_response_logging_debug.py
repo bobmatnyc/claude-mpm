@@ -6,7 +6,7 @@ import os
 import shutil
 import sys
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Set debug environment variable
@@ -48,7 +48,7 @@ def test_delegation_tracking():
         handler.response_tracker = ResponseTracker(config=test_config)
 
         # Test session ID
-        session_id = f"test_session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        session_id = f"test_session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
 
         print(f"\nSession ID: {session_id}")
         print(f"Responses directory: {responses_dir}")
@@ -65,7 +65,7 @@ def test_delegation_tracking():
             },
             "session_id": session_id,
             "cwd": os.getcwd(),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Process the pre-tool event
@@ -93,7 +93,7 @@ I've analyzed the codebase structure and found the following key components:
 
 The architecture follows a clean separation of concerns with services, utils, and core modules.""",
             "cwd": os.getcwd(),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Process the SubagentStop event
@@ -106,7 +106,7 @@ The architecture follows a clean separation of concerns with services, utils, an
 
         for file_path in response_files:
             print(f"\nResponse file: {file_path.name}")
-            with open(file_path) as f:
+            with file_path.open() as f:
                 data = json.load(f)
                 print(f"  Agent: {data.get('agent_name')}")
                 print(f"  Session: {data.get('session_id', '')[:20]}...")
@@ -121,7 +121,7 @@ The architecture follows a clean separation of concerns with services, utils, an
         # First, store a pending prompt
         handler.pending_prompts[session_id] = {
             "prompt": "What is the project structure?",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         stop_event = {
@@ -142,7 +142,7 @@ The architecture follows a clean separation of concerns with services, utils, an
 - scripts/ - Utility scripts
 - docs/ - Documentation""",
             "cwd": os.getcwd(),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Process the Stop event
@@ -180,7 +180,7 @@ def test_configuration_loading():
 
         import yaml
 
-        with open(config_path) as f:
+        with config_path.open() as f:
             config = yaml.safe_load(f)
 
         response_config = config.get("response_logging", {})

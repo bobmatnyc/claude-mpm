@@ -77,7 +77,7 @@ def main():
     # Optionally save results
     if len(sys.argv) > 2 and sys.argv[2] == "--save":
         output_file = Path("code_analysis.json")
-        with open(output_file, "w") as f:
+        with output_file.open("w") as f:
             # Convert nodes to dicts for JSON serialization
             result_dict = {
                 "stats": stats,

@@ -35,7 +35,7 @@ def validate_code_analyzer_template():
 
     # Load and parse the JSON
     try:
-        with open(template_path) as f:
+        with template_path.open() as f:
             template = json.load(f)
         print("✓ Valid JSON structure")
     except json.JSONDecodeError as e:

@@ -17,7 +17,7 @@ import sys
 import threading
 import time
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # Add src to path for imports
@@ -121,7 +121,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
         config_file = self.test_dir / "test_config.json"
         config_data = {"response_tracking": {"enabled": True}}
 
-        with open(config_file, "w") as f:
+        with config_file.open("w") as f:
             json.dump(config_data, f)
 
         os.environ["CLAUDE_PM_CONFIG_FILE"] = str(config_file)
@@ -166,7 +166,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
         self.assertTrue(response_path.exists(), "Response file should exist")
 
         # Verify response content
-        with open(response_path) as f:
+        with response_path.open() as f:
             response_data = json.load(f)
 
         self.assertEqual(response_data["agent"], "test_agent")
@@ -372,7 +372,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
         tracker = ResponseTracker(base_dir=self.responses_dir)
 
         # Create responses with different timestamps
-        current_time = datetime.now()
+        current_time = datetime.now(timezone.utc)
 
         # Recent response (should not be cleaned)
         tracker.track_response(
@@ -400,7 +400,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
             old_session_dir
             / f"old_agent-{old_timestamp.strftime('%Y%m%d_%H%M%S_000')}.json"
         )
-        with open(old_file, "w") as f:
+        with old_file.open("w") as f:
             json.dump(old_response_data, f)
 
         # Verify both sessions exist

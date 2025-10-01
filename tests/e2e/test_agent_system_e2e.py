@@ -163,7 +163,7 @@ class TestAgentSystemE2E:
 
         # Write to templates directory
         template_path = self.templates_dir / f"{agent_id}.json"
-        with open(template_path, "w") as f:
+        with template_path.open("w") as f:
             json.dump(agent_data, f, indent=2)
 
         return agent_data
@@ -205,7 +205,7 @@ class TestAgentSystemE2E:
                         continue
 
                     try:
-                        with open(json_file) as f:
+                        with json_file.open() as f:
                             agent_data = json.load(f)
 
                         # Validate against schema to ensure consistency
@@ -383,7 +383,7 @@ class TestAgentSystemE2E:
             assert md_path.exists(), f"Agent {agent_id} Markdown should exist"
 
             # Validate Markdown structure
-            with open(md_path) as f:
+            with md_path.open() as f:
                 yaml_data = yaml.safe_load(f)
                 assert "name" in yaml_data
                 assert "instructions" in yaml_data
@@ -518,7 +518,7 @@ class TestAgentSystemE2E:
         #
         # # Verify version update
         # yaml_path = self.claude_agents_dir / "lifecycle_agent.yaml"
-        # with open(yaml_path, 'r') as f:
+        # with yaml_path.open('r') as f:
         #     yaml_data = yaml.safe_load(f)
         #     assert "v1.1.0" in yaml_data.get('instructions', '')
 
@@ -581,7 +581,7 @@ class TestAgentSystemE2E:
         """
         # Create corrupted agent file
         corrupted_path = self.templates_dir / "corrupted.json"
-        with open(corrupted_path, "w") as f:
+        with corrupted_path.open("w") as f:
             f.write("{ invalid json")
 
         # Create agent with missing required fields

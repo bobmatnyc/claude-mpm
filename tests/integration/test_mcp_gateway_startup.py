@@ -162,7 +162,7 @@ class TestMCPGatewayStartupVerification:
             assert verifier.config_file.exists()
 
             # Verify configuration content
-            with open(verifier.config_file) as f:
+            with verifier.config_file.open() as f:
                 config_data = json.load(f)
 
             assert "mcp" in config_data

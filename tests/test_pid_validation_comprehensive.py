@@ -39,7 +39,7 @@ def test_comprehensive_validation_scenarios():
             "port": 19001,
         }
 
-        with open(server.pidfile_path, "w") as f:
+        with server.pidfile_path.open("w") as f:
             json.dump(pidfile_data, f)
 
         # Test validation
@@ -59,7 +59,7 @@ def test_comprehensive_validation_scenarios():
 
         # Create PID file with non-existent process
         fake_pid = 999999
-        with open(server.pidfile_path, "w") as f:
+        with server.pidfile_path.open("w") as f:
             json.dump({"pid": fake_pid, "server_id": "dead-server"}, f)
 
         is_running = server.is_already_running()
@@ -77,7 +77,7 @@ def test_comprehensive_validation_scenarios():
         server.pidfile_path = Path(temp_dir) / "test3.pid"
 
         # Create corrupted PID file
-        with open(server.pidfile_path, "w") as f:
+        with server.pidfile_path.open("w") as f:
             f.write("corrupted{invalid:json")
 
         is_running = server.is_already_running()

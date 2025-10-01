@@ -204,7 +204,7 @@ class HelloWorldTool(BaseToolAdapter):
         self.greeting_history: List[Dict[str, Any]] = []
         self.max_history_size = 100
 
-    def validate_parameters(self, parameters: Dict[str, Any]) -> bool:  # noqa: PLR0911
+    def validate_parameters(self, parameters: Dict[str, Any]) -> bool:
         """
         Enhanced parameter validation with detailed error messages.
 

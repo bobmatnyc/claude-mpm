@@ -306,7 +306,7 @@ class DocumentSummarizerTool(BaseToolAdapter):
                 continue
 
         # If all fail, read as binary and decode with errors='ignore'
-        with open(file_path, "rb") as f:
+        with file_path.open("rb") as f:
             content = f.read()
             return content.decode("utf-8", errors="ignore")
 

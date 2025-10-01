@@ -8,7 +8,7 @@ import os
 import shutil
 import sys
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -46,7 +46,7 @@ def test_disabled_tracking():
         handler.response_tracking_enabled = False  # Explicitly disable
         handler.response_tracker = None  # No tracker
 
-        session_id = f"disabled_test_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        session_id = f"disabled_test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
 
         print(f"Session ID: {session_id}")
         print(f"Responses directory: {responses_dir}")
@@ -62,7 +62,7 @@ def test_disabled_tracking():
                 "prompt": "Test with disabled tracking",
             },
             "session_id": session_id,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         subagent_stop_event = {
@@ -71,7 +71,7 @@ def test_disabled_tracking():
             "session_id": session_id,
             "reason": "completed",
             "output": "Test output with tracking disabled",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Process events
@@ -148,7 +148,7 @@ def test_missing_session_id():
                     "prompt": f"Test case: {desc}",
                 },
                 "session_id": session_id,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             subagent_stop_event = {
@@ -157,7 +157,7 @@ def test_missing_session_id():
                 "session_id": session_id,
                 "reason": "completed",
                 "output": f"Response for test case: {desc}",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             try:
@@ -219,7 +219,7 @@ def test_large_responses():
         handler.response_tracking_enabled = True
         handler.response_tracker = ResponseTracker(config=test_config)
 
-        session_id = f"large_test_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        session_id = f"large_test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
 
         print(f"Session ID: {session_id}")
         print(f"Responses directory: {responses_dir}")
@@ -237,7 +237,7 @@ def test_large_responses():
                 "prompt": "Generate large content for testing",
             },
             "session_id": session_id,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Process pre-tool event
@@ -250,12 +250,12 @@ def test_large_responses():
             "session_id": session_id,
             "reason": "completed",
             "output": large_content,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
         handler._handle_subagent_stop_fast(subagent_stop_event)
-        end_time = datetime.now()
+        end_time = datetime.now(timezone.utc)
 
         processing_time = (end_time - start_time).total_seconds()
         print(f"Processing time: {processing_time:.3f} seconds")
@@ -310,7 +310,7 @@ def test_configuration_override():
     if config_path.exists():
         print(f"✅ Found configuration file: {config_path}")
 
-        with open(config_path) as f:
+        with config_path.open() as f:
             config = yaml.safe_load(f)
 
         response_config = config.get("response_logging", {})

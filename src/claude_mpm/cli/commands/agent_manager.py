@@ -620,7 +620,7 @@ class AgentManagerCommand(AgentCommand):
 
             # Save JSON configuration
             json_file = template_dir / f"{agent_id}.json"
-            with open(json_file, "w") as f:
+            with json_file.open("w") as f:
                 json.dump(config, f, indent=2)
 
             # Save instructions
@@ -1074,7 +1074,7 @@ class AgentManagerCommand(AgentCommand):
         except Exception as e:
             return CommandResult.error_result(f"Interactive edit failed: {e}")
 
-    def _test_local_agent(self, args) -> CommandResult:  # noqa: PLR0911
+    def _test_local_agent(self, args) -> CommandResult:
         """Test a local agent with sample task."""
         try:
             from ...services.agents.local_template_manager import (
@@ -1144,7 +1144,7 @@ class AgentManagerCommand(AgentCommand):
         except Exception as e:
             return CommandResult.error_result(f"Local agent test failed: {e}")
 
-    def _delete_local_agents(self, args) -> CommandResult:  # noqa: PLR0911
+    def _delete_local_agents(self, args) -> CommandResult:
         """Delete local agent templates with comprehensive options."""
         try:
             from ...services.agents.local_template_manager import (

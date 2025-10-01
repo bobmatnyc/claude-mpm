@@ -586,7 +586,7 @@ def main():
     # Save results if requested
     if args.save_results:
         results_file = Path("test_results_event_format.json")
-        with open(results_file, "w") as f:
+        with results_file.open("w") as f:
             json.dump(results, f, indent=2, default=str)
         print(f"\n📁 Validation results saved to: {results_file}")
 

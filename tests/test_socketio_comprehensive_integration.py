@@ -84,7 +84,7 @@ class IntegrationTestSuite:
             assert server.pidfile_path.exists(), "PID file not created"
 
             # Verify PID file content
-            with open(server.pidfile_path) as f:
+            with server.pidfile_path.open() as f:
                 content = f.read().strip()
                 try:
                     pidfile_data = json.loads(content)
@@ -107,7 +107,7 @@ class IntegrationTestSuite:
             }
 
             stale_server = self.create_test_server(port=18002)
-            with open(stale_server.pidfile_path, "w") as f:
+            with stale_server.pidfile_path.open("w") as f:
                 json.dump(fake_pidfile_data, f)
 
             # Should detect and clean up stale process
@@ -152,7 +152,7 @@ class IntegrationTestSuite:
             server1.remove_pidfile()
 
             # Create stale PID file
-            with open(server2.pidfile_path, "w") as f:
+            with server2.pidfile_path.open("w") as f:
                 json.dump({"pid": 999992, "server_id": "stale"}, f)
 
             # Mock process validation to simulate stale process
@@ -315,7 +315,7 @@ class IntegrationTestSuite:
             server = self.create_test_server(port=18007)
 
             # Test 6a: Legacy PID file format (plain text)
-            with open(server.pidfile_path, "w") as f:
+            with server.pidfile_path.open("w") as f:
                 f.write(str(os.getpid()))  # Write just the PID
 
             is_running = server.is_already_running()
@@ -328,7 +328,7 @@ class IntegrationTestSuite:
             server.create_pidfile()
 
             # Verify it can read it back
-            with open(server.pidfile_path) as f:
+            with server.pidfile_path.open() as f:
                 content = json.loads(f.read())
                 assert "pid" in content, "New format missing PID"
                 assert "server_id" in content, "New format missing server_id"

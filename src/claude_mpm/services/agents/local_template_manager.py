@@ -195,7 +195,7 @@ class LocalAgentTemplateManager:
         """
         for template_file in directory.glob("*.json"):
             try:
-                with open(template_file) as f:
+                with template_file.open() as f:
                     data = json.load(f)
 
                 # Create LocalAgentTemplate
@@ -307,7 +307,7 @@ class LocalAgentTemplateManager:
 
         # Save to JSON file
         template_file = target_dir / f"{template.agent_id}.json"
-        with open(template_file, "w") as f:
+        with template_file.open("w") as f:
             json.dump(template.to_json(), f, indent=2)
 
         # Invalidate cache
@@ -628,7 +628,7 @@ class LocalAgentTemplateManager:
 
         # Save current version
         old_version_file = versions_dir / f"{template.agent_version}.json"
-        with open(old_version_file, "w") as f:
+        with old_version_file.open("w") as f:
             json.dump(template.to_json(), f, indent=2)
 
         # Update template version
@@ -691,7 +691,7 @@ class LocalAgentTemplateManager:
         count = 0
         for agent_id, template in templates.items():
             output_file = output_dir / f"{agent_id}.json"
-            with open(output_file, "w") as f:
+            with output_file.open("w") as f:
                 json.dump(template.to_json(), f, indent=2)
             count += 1
 
@@ -715,7 +715,7 @@ class LocalAgentTemplateManager:
         count = 0
         for template_file in input_dir.glob("*.json"):
             try:
-                with open(template_file) as f:
+                with template_file.open() as f:
                     data = json.load(f)
 
                 template = LocalAgentTemplate.from_json(data)

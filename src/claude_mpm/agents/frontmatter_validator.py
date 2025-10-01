@@ -140,7 +140,7 @@ class FrontmatterValidator:
         )
         if schema_path.exists():
             try:
-                with open(schema_path) as f:
+                with schema_path.open() as f:
                     return json.load(f)
             except Exception as e:
                 logger.warning(f"Failed to load frontmatter schema: {e}")
@@ -519,7 +519,7 @@ class FrontmatterValidator:
             ValidationResult with validation status
         """
         try:
-            with open(file_path) as f:
+            with file_path.open() as f:
                 content = f.read()
 
             # Extract frontmatter
@@ -583,7 +583,7 @@ class FrontmatterValidator:
 
         if result.field_corrections and not dry_run:
             try:
-                with open(file_path) as f:
+                with file_path.open() as f:
                     content = f.read()
 
                 # Find frontmatter boundaries
@@ -602,7 +602,7 @@ class FrontmatterValidator:
                         if corrected_content != frontmatter_content:
                             new_content = f"---\n{corrected_content}\n---\n{content[end_marker + 5:]}"
 
-                            with open(file_path, "w") as f:
+                            with file_path.open("w") as f:
                                 f.write(new_content)
 
                             logger.info(f"Corrected frontmatter in {file_path}")

@@ -11,7 +11,7 @@ import sys
 import threading
 import time
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timezone
 from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -31,7 +31,7 @@ class TestEventReadingAndParsing:
         valid_event = {
             "hook_event_name": "Start",
             "session_id": "test-session-123",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         with patch("sys.stdin") as mock_stdin:
@@ -295,7 +295,7 @@ class TestStateManagement:
 
         # Add an old delegation
         old_session = "old-session"
-        old_timestamp = datetime.now().timestamp() - 400  # More than 5 minutes old
+        old_timestamp = datetime.now(timezone.utc).timestamp() - 400  # More than 5 minutes old
         handler.active_delegations[old_session] = "engineer"
         handler.delegation_history.append(
             (f"{old_session}:{old_timestamp}", "engineer")
@@ -328,7 +328,7 @@ class TestStateManagement:
         handler = ClaudeHookHandler()
 
         session_id = "test-session-456"
-        timestamp = datetime.now().timestamp()
+        timestamp = datetime.now(timezone.utc).timestamp()
         handler.delegation_history.append((f"{session_id}:{timestamp}", "engineer"))
 
         result = handler._get_delegation_agent_type(session_id)
@@ -371,7 +371,7 @@ class TestStateManagement:
         assert mock_run.call_count == 1  # Still 1, not called again
 
         # Expire the cache
-        handler._git_branch_cache_time["/test/path"] = datetime.now().timestamp() - 40
+        handler._git_branch_cache_time["/test/path"] = datetime.now(timezone.utc).timestamp() - 40
 
         # Third call should execute git command again
         branch3 = handler._get_git_branch("/test/path")
@@ -393,7 +393,7 @@ class TestStateManagement:
             handler.pending_prompts[f"prompt-{i}"] = {"prompt": f"test-{i}"}
 
         # Add old git branch cache entries
-        old_time = datetime.now().timestamp() - 400
+        old_time = datetime.now(timezone.utc).timestamp() - 400
         handler._git_branch_cache["old-path"] = "old-branch"
         handler._git_branch_cache_time["old-path"] = old_time
 
@@ -513,7 +513,7 @@ class TestSubagentStopProcessing:
         handler.delegation_requests[session_id] = {
             "agent_type": "research",
             "request": {"prompt": "Research AI trends"},
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Create event with structured response

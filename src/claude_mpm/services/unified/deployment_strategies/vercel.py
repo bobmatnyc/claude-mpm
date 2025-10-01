@@ -9,7 +9,7 @@ Consolidates Vercel deployment patterns from multiple services.
 import json
 import subprocess
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -203,13 +203,13 @@ class VercelDeploymentStrategy(DeploymentStrategy):
                     "deployed_path": deploy_dir,
                     "production": context.config.get("production", False),
                     "stdout": result.stdout,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             raise Exception("Could not parse deployment URL from Vercel output")
 
         except subprocess.CalledProcessError as e:
             self._logger.error(f"Vercel deployment failed: {e.stderr}")
-            raise Exception(f"Deployment failed: {e.stderr}")
+            raise Exception(f"Deployment failed: {e.stderr}") from e
 
     def verify(
         self, context: DeploymentContext, deployment_info: Dict[str, Any]
@@ -336,7 +336,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
                             health["checks"][f"function_{func_name}"] = (
                                 response.status < 500
                             )
-                    except:
+                    except (urllib.error.URLError, OSError, TimeoutError):
                         health["checks"][f"function_{func_name}"] = False
 
             # Determine overall status
@@ -416,7 +416,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
 
         if vercel_config:
             config_path = deploy_dir / "vercel.json"
-            with open(config_path, "w") as f:
+            with config_path.open("w") as f:
                 json.dump(vercel_config, f, indent=2)
             return config_path
 
@@ -430,7 +430,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
 
         if env_vars:
             env_file = deploy_dir / ".env"
-            with open(env_file, "w") as f:
+            with env_file.open("w") as f:
                 for key, value in env_vars.items():
                     f.write(f"{key}={value}\n")
             return env_file
@@ -472,5 +472,5 @@ class VercelDeploymentStrategy(DeploymentStrategy):
     def _generate_deployment_id(self) -> str:
         """Generate unique deployment ID."""
         return (
-            f"vercel_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"
+            f"vercel_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"
         )

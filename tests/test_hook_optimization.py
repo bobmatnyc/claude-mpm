@@ -195,13 +195,13 @@ def test_hook_registration_and_execution():
     print(f"  ✓ Registered 3 hooks in {registration_time*1000:.3f} ms")
 
     # Test pre-delegation hooks execution
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     context = HookContext(
         hook_type=HookType.PRE_DELEGATION,
         data={"initial_data": "test"},
         metadata={"test": True},
-        timestamp=datetime.now(),
+        timestamp=datetime.now(timezone.utc),
         session_id="test_session",
         user_id="test_user",
     )
@@ -240,7 +240,7 @@ def test_hook_registration_and_execution():
         hook_type=HookType.POST_DELEGATION,
         data=result.data,
         metadata={"test": True},
-        timestamp=datetime.now(),
+        timestamp=datetime.now(timezone.utc),
         session_id="test_session",
         user_id="test_user",
     )
@@ -286,7 +286,7 @@ def test_hook_metrics():
         hook_type=HookType.PRE_DELEGATION,
         data={"test": "data"},
         metadata={},
-        timestamp=datetime.now(),
+        timestamp=datetime.now(timezone.utc),
         session_id="test_session",
         user_id="test_user",
     )
@@ -395,7 +395,7 @@ def benchmark_hook_performance():
         hook_type=HookType.PRE_DELEGATION,
         data={"benchmark": "test"},
         metadata={},
-        timestamp=datetime.now(),
+        timestamp=datetime.now(timezone.utc),
         session_id="benchmark_session",
         user_id="benchmark_user",
     )

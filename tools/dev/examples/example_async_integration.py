@@ -233,7 +233,7 @@ def demonstrate_configuration():
         logger2 = AsyncSessionLogger(log_format=LogFormat.SYSLOG)
         print("   Format: Syslog (OS-native)")
         print("   Ultra-fast kernel-level logging")
-    except:
+    except Exception:
         print("   Syslog not available on this system")
 
     # Example 3: Synchronous for debugging

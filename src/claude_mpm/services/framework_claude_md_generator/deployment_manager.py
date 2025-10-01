@@ -95,7 +95,7 @@ class DeploymentManager:
 
         # Check if file exists and compare versions
         if target_file.exists() and not force:
-            with open(target_file) as f:
+            with target_file.open() as f:
                 existing_content = f.read()
                 existing_fw_ver = self.version_manager.parse_current_version(
                     existing_content
@@ -110,7 +110,7 @@ class DeploymentManager:
             parent_path.mkdir(parents=True, exist_ok=True)
 
             # Write content
-            with open(target_file, "w") as f:
+            with target_file.open("w") as f:
                 f.write(content)
 
             # Get version info for success message
@@ -137,7 +137,7 @@ class DeploymentManager:
             return True, f"{self.target_filename} does not exist"
 
         try:
-            with open(target_file) as f:
+            with target_file.open() as f:
                 existing_content = f.read()
                 existing_fw_ver = self.version_manager.parse_current_version(
                     existing_content

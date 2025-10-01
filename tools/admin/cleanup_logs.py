@@ -109,7 +109,7 @@ def archive_old_logs(logs_dir: Path, days: int = 7, dry_run: bool = True) -> int
 
             if file_date < cutoff_date:
                 files_to_archive.append(log_file)
-        except:
+        except (ValueError, OSError):
             continue
 
     if not files_to_archive:

@@ -224,7 +224,8 @@ class MCPServiceRegistry(ManagerBase):
                     try:
                         import asyncio
 
-                        asyncio.create_task(instance.stop())
+                        _task = asyncio.create_task(instance.stop())  # noqa: RUF006
+                        # Fire-and-forget shutdown during unregister
                     except Exception as e:
                         self.logger.warning(
                             f"Error stopping service {interface.__name__}: {e}"
@@ -335,7 +336,8 @@ class MCPServiceRegistry(ManagerBase):
                     try:
                         import asyncio
 
-                        asyncio.create_task(instance.stop())
+                        _task = asyncio.create_task(instance.stop())  # noqa: RUF006
+                        # Fire-and-forget shutdown during clear
                     except Exception as e:
                         self.logger.warning(f"Error stopping service: {e}")
 

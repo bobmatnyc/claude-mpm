@@ -80,8 +80,8 @@ def safe_path_join(*parts: Union[str, Path]) -> Path:
     # Ensure the resolved path is under the base path
     try:
         resolved.relative_to(base)
-    except ValueError:
-        raise ValueError(f"Path traversal detected: {path}")
+    except ValueError as e:
+        raise ValueError(f"Path traversal detected: {path}") from e
 
     return resolved
 
@@ -142,7 +142,7 @@ def safe_read(
     """Safely read a file with error handling.
 
     Replaces the common pattern:
-        with open(file, 'r') as f:
+        with file.open('r') as f:
             content = f.read()
 
     Args:
@@ -641,7 +641,7 @@ def file_lock(filepath: Union[str, Path], timeout: float = 5.0):
                 if e.errno != errno.EAGAIN:
                     raise
                 if time.time() - start_time > timeout:
-                    raise TimeoutError(f"Could not acquire lock for {filepath}")
+                    raise TimeoutError(f"Could not acquire lock for {filepath}") from e
                 time.sleep(0.1)
 
         yield lock_handle
@@ -724,7 +724,7 @@ def get_file_hash(
 
     try:
         hasher = hashlib.new(algorithm)
-        with open(filepath, "rb") as f:
+        with filepath.open("rb") as f:
             for chunk in iter(lambda: f.read(8192), b""):
                 hasher.update(chunk)
         return hasher.hexdigest()

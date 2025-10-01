@@ -728,7 +728,7 @@ class UnifiedAgentRegistry:
             },
         }
 
-        with open(output_path, "w") as f:
+        with output_path.open("w") as f:
             json.dump(export_data, f, indent=2)
 
         logger.info(f"Exported {len(self.registry)} agents to {output_path}")
@@ -737,7 +737,7 @@ class UnifiedAgentRegistry:
         """Import registry from JSON file."""
         input_path = Path(input_path)
 
-        with open(input_path) as f:
+        with input_path.open() as f:
             data = json.load(f)
 
         # Clear current registry

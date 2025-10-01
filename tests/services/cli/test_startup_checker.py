@@ -232,7 +232,7 @@ class TestStartupCheckerService:
 
         assert "❌ Error message" in captured.out
         assert "⚠️  Warning message" in captured.out
-        assert "ℹ️  Info message" in captured.out
+        assert "ℹ️  Info message" in captured.out  # noqa: RUF001
         assert "💡 Consider this" in captured.out
 
     def test_display_warnings_empty_list(self, capsys):
@@ -335,7 +335,7 @@ class TestStartupCheckerService:
             # Find positions of each severity marker
             error_pos = output.find("❌")
             warning_pos = output.find("⚠️")
-            info_pos = output.find("ℹ️")
+            info_pos = output.find("ℹ️")  # noqa: RUF001
 
             # Errors should come first, then warnings, then info
             assert error_pos < warning_pos < info_pos

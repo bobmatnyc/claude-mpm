@@ -16,7 +16,7 @@ class MCPCommandRouter:
         """Initialize the command router."""
         self.logger = logger
 
-    def route_command(self, args) -> int:  # noqa: PLR0911
+    def route_command(self, args) -> int:
         """Route command to appropriate handler."""
         if args.mcp_command == MCPCommands.START.value:
             return asyncio.run(self._start_server(args))

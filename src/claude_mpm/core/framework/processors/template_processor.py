@@ -89,7 +89,7 @@ class TemplateProcessor:
         # Try exact match first
         template_file = templates_dir / f"{agent_name}.json"
         if template_file.exists():
-            with open(template_file) as f:
+            with template_file.open() as f:
                 return json.load(f)
 
         # Try alternative naming variations
@@ -97,7 +97,7 @@ class TemplateProcessor:
         for alt_name in alternative_names:
             alt_file = templates_dir / f"{alt_name}.json"
             if alt_file.exists():
-                with open(alt_file) as f:
+                with alt_file.open() as f:
                     return json.load(f)
 
         return None
@@ -218,7 +218,7 @@ class TemplateProcessor:
 
             for json_file in template_dir.glob("*.json"):
                 try:
-                    with open(json_file) as f:
+                    with json_file.open() as f:
                         template_data = json.load(f)
 
                     agent_metadata = self.extract_metadata(template_data)

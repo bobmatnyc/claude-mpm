@@ -575,7 +575,8 @@ class CompleteEventFlowTest:
         # Cleanup testers
         if self.socketio_tester:
             with contextlib.suppress(Exception):
-                asyncio.create_task(self.socketio_tester.disconnect_client())
+                asyncio.create_task(self.socketio_tester.disconnect_client())  # noqa: RUF006
+                # Fire-and-forget cleanup during test teardown
 
         if self.browser_tester and self.browser_tester.driver:
             with contextlib.suppress(Exception):
@@ -615,7 +616,7 @@ async def main():
 
         # Save results to file
         results_file = Path("test_results_complete_flow.json")
-        with open(results_file, "w") as f:
+        with results_file.open("w") as f:
             json.dump(results, f, indent=2, default=str)
         print(f"\n📁 Test results saved to: {results_file}")
 

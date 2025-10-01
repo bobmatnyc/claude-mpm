@@ -18,7 +18,7 @@ import asyncio
 import os
 import sys
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -81,27 +81,27 @@ class TestHookRoutingRegression(unittest.TestCase):
             {
                 "type": "hook.user_prompt",
                 "data": {"prompt": "What is the weather?"},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
             {
                 "type": "hook.pre_tool",
                 "data": {"tool": "weather_api", "args": {"location": "NYC"}},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
             {
                 "type": "hook.post_tool",
                 "data": {"tool": "weather_api", "result": "Sunny, 75°F"},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
             {
                 "type": "hook.subagent_start",
                 "data": {"agent_type": "Research", "session_id": "sub-123"},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
             {
                 "type": "hook.subagent_stop",
                 "data": {"agent_type": "Research", "session_id": "sub-123"},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         ]
 
@@ -134,7 +134,7 @@ class TestHookRoutingRegression(unittest.TestCase):
         exact_hook_event = {
             "type": "hook",
             "data": {"test": "data"},
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         async def run_test():
@@ -154,22 +154,22 @@ class TestHookRoutingRegression(unittest.TestCase):
             {
                 "type": "test",
                 "data": {"message": "test event"},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
             {
                 "type": "status",
                 "data": {"status": "active"},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
             {
                 "type": "error",
                 "data": {"error": "something went wrong"},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
             {
                 "type": "subagent",  # Similar prefix but not "hook."
                 "data": {"agent": "test"},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         ]
 
@@ -197,27 +197,27 @@ class TestHookRoutingRegression(unittest.TestCase):
             {
                 "type": "",
                 "data": {"test": "data"},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
             # Non-string type
             {
                 "type": 123,
                 "data": {"test": "data"},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
             # Missing type
-            {"data": {"test": "data"}, "timestamp": datetime.now().isoformat()},
+            {"data": {"test": "data"}, "timestamp": datetime.now(timezone.utc).isoformat()},
             # Malformed hook prefix
             {
                 "type": "hook",  # Exactly "hook", not a prefix
                 "data": {"test": "data"},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
             # Case sensitivity test
             {
                 "type": "Hook.user_prompt",  # Capital H
                 "data": {"prompt": "test"},
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
             # Empty event data
             {},
@@ -290,7 +290,7 @@ class TestHookRoutingRegression(unittest.TestCase):
         hook_event = {
             "type": "hook.user_prompt",
             "data": {"prompt": "test"},
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         async def run_test():
@@ -313,7 +313,7 @@ class TestHookRoutingRegression(unittest.TestCase):
         hook_event = {
             "type": "hook.user_prompt",
             "data": {"prompt": "test"},
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         async def run_test():
@@ -435,7 +435,7 @@ class TestHookRoutingIntegration(unittest.TestCase):
         hook_event = {
             "type": "hook.user_prompt",
             "data": {"prompt": "What is machine learning?"},
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         async def run_test():
@@ -469,7 +469,7 @@ class TestHookRoutingIntegration(unittest.TestCase):
                 hook_event = {
                     "type": hook_type,
                     "data": {"test": "data"},
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
 
                 async def run_test():

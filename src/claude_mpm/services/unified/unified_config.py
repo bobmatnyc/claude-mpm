@@ -335,14 +335,14 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
 
             # Save based on file extension
             if target_path.suffix == ".json":
-                with open(target_path, "w") as f:
+                with target_path.open("w") as f:
                     json.dump(transformed_config, f, indent=2)
             elif target_path.suffix in [".yaml", ".yml"]:
                 # Would use yaml library here
-                with open(target_path, "w") as f:
+                with target_path.open("w") as f:
                     f.write(str(transformed_config))
             else:
-                with open(target_path, "w") as f:
+                with target_path.open("w") as f:
                     f.write(str(transformed_config))
 
             return ConfigurationResult(
@@ -685,6 +685,6 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
 
     def _get_timestamp(self) -> str:
         """Get current timestamp."""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        return datetime.now().isoformat()
+        return datetime.now(timezone.utc).isoformat()

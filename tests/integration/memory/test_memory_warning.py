@@ -9,7 +9,7 @@ import logging
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -56,7 +56,7 @@ class MemoryMonitor:
         log_dir.mkdir(exist_ok=True)
 
         file_handler = logging.FileHandler(
-            log_dir / f"memory_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+            log_dir / f"memory_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.log"
         )
         file_handler.setFormatter(
             logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -101,7 +101,7 @@ class MemoryMonitor:
         """
         current_memory = self.get_memory_usage()
         self.peak_memory = max(self.peak_memory, current_memory)
-        self.measurements.append((datetime.now(), current_memory))
+        self.measurements.append((datetime.now(timezone.utc), current_memory))
 
         # Check thresholds
         threshold_crossed = self.check_thresholds(current_memory)
@@ -118,7 +118,7 @@ class MemoryMonitor:
             "start": self.start_memory,
             "peak": self.peak_memory,
             "delta": current_memory - self.start_memory,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         if label:
@@ -148,7 +148,7 @@ class MemoryMonitor:
             "\n" + "=" * 60,
             "MEMORY USAGE REPORT",
             "=" * 60,
-            f"Timestamp: {datetime.now().isoformat()}",
+            f"Timestamp: {datetime.now(timezone.utc).isoformat()}",
             "",
             "PROCESS MEMORY:",
             f"  Current:  {current:>10.2f} MB",

@@ -8,7 +8,7 @@ events every minute as expected, separate from hook events.
 import signal
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 try:
     import socketio
@@ -48,7 +48,7 @@ class HeartbeatMonitor:
         """Handle system events."""
         if data.get("type") == "system" and data.get("event") == "heartbeat":
             self.heartbeats_received += 1
-            self.last_heartbeat = datetime.now()
+            self.last_heartbeat = datetime.now(timezone.utc)
 
             heartbeat_data = data.get("data", {})
 
@@ -100,7 +100,7 @@ class HeartbeatMonitor:
                 # Print status every 30 seconds
                 if self.heartbeats_received > 0 and int(time.time()) % 30 == 0:
                     if self.last_heartbeat:
-                        elapsed = (datetime.now() - self.last_heartbeat).total_seconds()
+                        elapsed = (datetime.now(timezone.utc) - self.last_heartbeat).total_seconds()
                         print(f"⏱️  {elapsed:.0f} seconds since last heartbeat")
 
         except KeyboardInterrupt:

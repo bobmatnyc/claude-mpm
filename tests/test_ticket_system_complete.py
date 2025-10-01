@@ -76,7 +76,7 @@ def test_ticketing_agent_template():
     )
 
     try:
-        with open(template_path) as f:
+        with template_path.open() as f:
             template = json.load(f)
 
         instructions = template.get("instructions", "")

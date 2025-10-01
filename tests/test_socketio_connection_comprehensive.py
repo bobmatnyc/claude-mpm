@@ -6,9 +6,10 @@ Comprehensive Socket.IO connection test with detailed diagnostics.
 """
 
 import asyncio
+import contextlib
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import aiohttp
@@ -64,7 +65,7 @@ class SocketIOConnectionTester:
         # Handle custom events
         @self.sio.on("*")
         async def catch_all(event, *args):
-            timestamp = datetime.now().isoformat()
+            timestamp = datetime.now(timezone.utc).isoformat()
             self.events_received.append(
                 {"timestamp": timestamp, "event": event, "data": args}
             )
@@ -100,7 +101,7 @@ class SocketIOConnectionTester:
         print("\n🔍 Testing event emission")
         test_data = {
             "test": True,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "message": "Test event from connection tester",
         }
 
@@ -253,8 +254,8 @@ async def main():
 
         server = SocketIOServer(host="localhost", port=8765)
 
-        # Start server in background task
-        asyncio.create_task(asyncio.to_thread(server.start))
+        # Start server in background task (stored to prevent GC)
+        server_task = asyncio.create_task(asyncio.to_thread(server.start))
         await asyncio.sleep(2)  # Give server time to start
 
         print("✅ Server started, running tests...")
@@ -266,6 +267,11 @@ async def main():
     if args.start_server:
         print("\n🛑 Stopping server...")
         server.stop()
+        # Cancel server task to clean up properly
+        if 'server_task' in locals():
+            server_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await server_task
 
     sys.exit(0 if success else 1)
 

@@ -428,7 +428,16 @@ class BaseService(LoggerMixin, ABC):
             self.logger.info(
                 f"Received signal {signum}, initiating graceful shutdown..."
             )
-            asyncio.create_task(self.stop())
+            # Get the event loop and create a tracked shutdown task
+            try:
+                loop = asyncio.get_event_loop()
+                task = loop.create_task(self.stop())
+                # Store reference to prevent GC during shutdown
+                if not hasattr(self, '_shutdown_task'):
+                    self._shutdown_task = task
+            except RuntimeError:
+                # No event loop, call stop synchronously
+                self.logger.warning("No event loop available for graceful shutdown")
 
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)

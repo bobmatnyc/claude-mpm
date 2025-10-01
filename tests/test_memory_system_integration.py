@@ -24,7 +24,7 @@ Test Requirements:
 import json
 import tempfile
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -93,7 +93,7 @@ class TestMemorySystemIntegration:
         # Verify timestamp is recent (within last minute)
         timestamp_match = content.split("<!-- Last Updated: ")[1].split(" -->")[0]
         timestamp = datetime.fromisoformat(timestamp_match.replace("Z", "+00:00"))
-        time_diff = datetime.now().astimezone() - timestamp.astimezone()
+        time_diff = datetime.now(timezone.utc).astimezone() - timestamp.astimezone()
         assert time_diff.total_seconds() < 60, "Timestamp should be recent"
 
         print(f"✓ Timestamp is recent: {timestamp}")

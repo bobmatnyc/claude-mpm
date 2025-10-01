@@ -20,7 +20,7 @@ import contextlib
 import json
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -109,7 +109,7 @@ class CodeAnalysisBrowserTest:
         if not self.driver:
             return None
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         filename = f"{timestamp}_{self.current_browser}_{name}.png"
         filepath = self.screenshots_dir / filename
 
@@ -885,7 +885,7 @@ async def main():
 
     # Save results to file
     results_file = Path("test_results_browser.json")
-    with open(results_file, "w") as f:
+    with results_file.open("w") as f:
         json.dump(results, f, indent=2, default=str)
     print(f"\n📁 Test results saved to: {results_file}")
 

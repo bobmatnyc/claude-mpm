@@ -342,7 +342,7 @@ class EventNormalizer:
 
         return "unknown"
 
-    def _map_event_name(self, event_name: str) -> Tuple[str, str]:  # noqa: PLR0911
+    def _map_event_name(self, event_name: str) -> Tuple[str, str]:
         """Map event name to (type, subtype) tuple.
 
         WHY: Consistent categorization helps clients filter and handle events.

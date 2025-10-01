@@ -449,7 +449,7 @@ class SessionManager(ISessionManager):
             sessions_dict = {
                 sid: session.to_dict() for sid, session in self._sessions_cache.items()
             }
-            with open(session_file, "w") as f:
+            with session_file.open("w") as f:
                 json.dump(sessions_dict, f, indent=2)
         except Exception as e:
             self.logger.error(f"Failed to save sessions: {e}")
@@ -464,7 +464,7 @@ class SessionManager(ISessionManager):
             return
 
         try:
-            with open(session_file) as f:
+            with session_file.open() as f:
                 sessions_dict = json.load(f)
 
             self._sessions_cache = {

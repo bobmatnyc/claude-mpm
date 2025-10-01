@@ -63,7 +63,7 @@ except ImportError:
 try:
     from claude_mpm.services.mcp_gateway.server.mcp_gateway import MCPGateway
 except ImportError as e:
-    raise ImportError(f"Critical: Cannot import MCPGateway server: {e}")
+    raise ImportError(f"Critical: Cannot import MCPGateway server: {e}") from e
 
 try:
     from claude_mpm.services.mcp_gateway.server.stdio_handler import StdioHandler

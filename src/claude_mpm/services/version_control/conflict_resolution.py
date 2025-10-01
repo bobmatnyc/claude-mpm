@@ -321,7 +321,7 @@ class ConflictResolutionManager:
 
         # Check content (simple heuristic)
         try:
-            with open(file_path, "rb") as f:
+            with file_path.open("rb") as f:
                 chunk = f.read(1024)
                 if b"\0" in chunk:
                     return True
@@ -596,7 +596,7 @@ class ConflictResolutionManager:
             )
 
             # Write resolved content
-            with open(file_path, "w", encoding="utf-8") as f:
+            with file_path.open("w", encoding="utf-8") as f:
                 f.write(resolved_content)
 
             return ConflictResolution(

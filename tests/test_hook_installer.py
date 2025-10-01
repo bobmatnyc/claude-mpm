@@ -213,7 +213,7 @@ class TestHookInstaller(unittest.TestCase):
             self.assertTrue(self.installer.settings_file.exists())
 
             # Verify settings content
-            with open(self.installer.settings_file) as f:
+            with self.installer.settings_file.open() as f:
                 settings = json.load(f)
 
             # Check hook configuration
@@ -264,7 +264,7 @@ class TestHookInstaller(unittest.TestCase):
         # Check settings file was created
         self.assertTrue(self.installer.settings_file.exists())
 
-        with open(self.installer.settings_file) as f:
+        with self.installer.settings_file.open() as f:
             settings = json.load(f)
 
         # Check default settings
@@ -286,13 +286,13 @@ class TestHookInstaller(unittest.TestCase):
             "other": "value",
         }
 
-        with open(self.installer.settings_file, "w") as f:
+        with self.installer.settings_file.open("w") as f:
             json.dump(existing_settings, f)
 
         script_path = Path("/path/to/hook.sh")
         self.installer._update_claude_settings(script_path)
 
-        with open(self.installer.settings_file) as f:
+        with self.installer.settings_file.open() as f:
             settings = json.load(f)
 
         # Check existing settings preserved
@@ -322,12 +322,12 @@ class TestHookInstaller(unittest.TestCase):
         # Create old settings with hooks
         old_settings = {"hooks": {"Stop": []}, "other": "value"}
 
-        with open(self.installer.old_settings_file, "w") as f:
+        with self.installer.old_settings_file.open("w") as f:
             json.dump(old_settings, f)
 
         self.installer._cleanup_old_settings()
 
-        with open(self.installer.old_settings_file) as f:
+        with self.installer.old_settings_file.open() as f:
             settings = json.load(f)
 
         # Hooks should be removed
@@ -357,14 +357,14 @@ class TestHookInstaller(unittest.TestCase):
             "other": "value",
         }
 
-        with open(self.installer.settings_file, "w") as f:
+        with self.installer.settings_file.open("w") as f:
             json.dump(settings, f)
 
         result = self.installer.uninstall_hooks()
 
         self.assertTrue(result)
 
-        with open(self.installer.settings_file) as f:
+        with self.installer.settings_file.open() as f:
             updated_settings = json.load(f)
 
         # Claude MPM hooks removed
@@ -396,7 +396,7 @@ class TestHookInstaller(unittest.TestCase):
             }
         }
 
-        with open(self.installer.settings_file, "w") as f:
+        with self.installer.settings_file.open("w") as f:
             json.dump(settings, f)
 
         # Mock version check
@@ -467,7 +467,7 @@ class TestHookInstaller(unittest.TestCase):
             }
         }
 
-        with open(self.installer.settings_file, "w") as f:
+        with self.installer.settings_file.open("w") as f:
             json.dump(settings, f)
 
         with patch.object(
@@ -500,7 +500,7 @@ class TestHookInstaller(unittest.TestCase):
 
         # Create settings file
         settings = {"hooks": {"Stop": [], "SubagentStop": []}}
-        with open(self.installer.settings_file, "w") as f:
+        with self.installer.settings_file.open("w") as f:
             json.dump(settings, f)
 
         with patch.object(mock_script_path, "exists", return_value=True):
@@ -582,7 +582,7 @@ class TestHookInstaller(unittest.TestCase):
         # Create initial settings
         initial_settings = {"existing": "data", "permissions": {"allow": ["test"]}}
 
-        with open(self.installer.settings_file, "w") as f:
+        with self.installer.settings_file.open("w") as f:
             json.dump(initial_settings, f, indent=2)
 
         # Get initial content for comparison
@@ -593,7 +593,7 @@ class TestHookInstaller(unittest.TestCase):
         self.installer._update_claude_settings(script_path)
 
         # Verify settings were modified
-        with open(self.installer.settings_file) as f:
+        with self.installer.settings_file.open() as f:
             updated_settings = json.load(f)
 
         self.assertIn("hooks", updated_settings)
@@ -623,7 +623,7 @@ class TestMatcherPatternValidation(unittest.TestCase):
         script_path = Path("/path/to/hook.sh")
         self.installer._update_claude_settings(script_path)
 
-        with open(self.installer.settings_file) as f:
+        with self.installer.settings_file.open() as f:
             settings = json.load(f)
 
         # Tool events should have matcher field
@@ -639,7 +639,7 @@ class TestMatcherPatternValidation(unittest.TestCase):
         script_path = Path("/path/to/hook.sh")
         self.installer._update_claude_settings(script_path)
 
-        with open(self.installer.settings_file) as f:
+        with self.installer.settings_file.open() as f:
             settings = json.load(f)
 
         # Non-tool events should not have matcher field

@@ -227,7 +227,7 @@ class AgentMetricsCollector:
             return "validation_error"
         return "other_error"
 
-    def _extract_agent_type(self, agent_name: str) -> str:  # noqa: PLR0911
+    def _extract_agent_type(self, agent_name: str) -> str:
         """
         Extract agent type from agent name for categorization.
 

@@ -117,7 +117,7 @@ Custom memory instructions from .claude-mpm/MEMORY.md
                 elif "SHOULD NOT BE LOADED" in content["workflow_instructions"]:
                     print("   ❌ WRONG! Loaded from .claude/ directory")
                 else:
-                    print("   ℹ️  Loaded from system defaults")
+                    print("   ℹ️  Loaded from system defaults")  # noqa: RUF001
             else:
                 print("❌ WORKFLOW.md NOT loaded")
 
@@ -132,7 +132,7 @@ Custom memory instructions from .claude-mpm/MEMORY.md
                 elif "SHOULD NOT BE LOADED" in content["memory_instructions"]:
                     print("   ❌ WRONG! Loaded from .claude/ directory")
                 else:
-                    print("   ℹ️  Loaded from system defaults")
+                    print("   ℹ️  Loaded from system defaults")  # noqa: RUF001
             else:
                 print("❌ MEMORY.md NOT loaded")
 
@@ -144,7 +144,7 @@ Custom memory instructions from .claude-mpm/MEMORY.md
                 else:
                     print("   ❌ Wrong memory content")
             else:
-                print("ℹ️  No PM memories loaded (expected if no deployed agents)")
+                print("ℹ️  No PM memories loaded (expected if no deployed agents)")  # noqa: RUF001
 
             # Verify .claude/ directory was NOT read
             instructions_text = loader.get_framework_instructions()
@@ -169,7 +169,7 @@ Custom memory instructions from .claude-mpm/MEMORY.md
                     if file_path.exists():
                         print(f"   ✅ {file} exists")
                     else:
-                        print(f"   ℹ️  {file} not found")
+                        print(f"   ℹ️  {file} not found")  # noqa: RUF001
 
                 # Check memories directory
                 memories_dir = user_claude_mpm / "memories"
@@ -179,7 +179,7 @@ Custom memory instructions from .claude-mpm/MEMORY.md
                     if pm_memories.exists():
                         print("      ✅ PM_memories.md exists")
             else:
-                print(f"ℹ️  No user .claude-mpm directory at: {user_claude_mpm}")
+                print(f"ℹ️  No user .claude-mpm directory at: {user_claude_mpm}")  # noqa: RUF001
 
         finally:
             os.chdir(original_cwd)

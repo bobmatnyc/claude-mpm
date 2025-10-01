@@ -270,7 +270,7 @@ class MCPInstallCommands:
             if not force:
                 # Check if claude-mpm-gateway already exists
                 try:
-                    with open(config_path) as f:
+                    with config_path.open() as f:
                         existing_config = json.load(f)
 
                     if (
@@ -305,7 +305,7 @@ class MCPInstallCommands:
             else:
                 # Force mode - create backup but proceed
                 try:
-                    with open(config_path) as f:
+                    with config_path.open() as f:
                         existing_config = json.load(f)
                     config = existing_config
                     print("   Force mode: Overwriting existing configuration")
@@ -335,7 +335,7 @@ class MCPInstallCommands:
             config_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Write configuration with nice formatting
-            with open(config_path, "w") as f:
+            with config_path.open("w") as f:
                 json.dump(config, f, indent=2)
 
             print(f"\n✅ Configuration saved to {config_path}")

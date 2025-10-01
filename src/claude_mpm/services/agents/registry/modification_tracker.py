@@ -156,12 +156,19 @@ class AgentFileSystemHandler(FileSystemEventHandler):
     def __init__(self, tracker: "AgentModificationTracker"):
         self.tracker = tracker
 
+    def _create_tracked_task(self, coro):
+        """Create a task with automatic tracking and cleanup."""
+        task = asyncio.create_task(coro)
+        self.tracker._file_event_tasks.add(task)
+        task.add_done_callback(self.tracker._file_event_tasks.discard)
+        return task
+
     def on_created(self, event: FileSystemEvent) -> None:
         """Handle file creation events."""
         if not event.is_directory and event.src_path.endswith(
             (".md", ".json", ".yaml")
         ):
-            asyncio.create_task(
+            self._create_tracked_task(
                 self.tracker._handle_file_modification(
                     event.src_path, ModificationType.CREATE
                 )
@@ -172,7 +179,7 @@ class AgentFileSystemHandler(FileSystemEventHandler):
         if not event.is_directory and event.src_path.endswith(
             (".md", ".json", ".yaml")
         ):
-            asyncio.create_task(
+            self._create_tracked_task(
                 self.tracker._handle_file_modification(
                     event.src_path, ModificationType.MODIFY
                 )
@@ -183,7 +190,7 @@ class AgentFileSystemHandler(FileSystemEventHandler):
         if not event.is_directory and event.src_path.endswith(
             (".md", ".json", ".yaml")
         ):
-            asyncio.create_task(
+            self._create_tracked_task(
                 self.tracker._handle_file_modification(
                     event.src_path, ModificationType.DELETE
                 )
@@ -194,7 +201,7 @@ class AgentFileSystemHandler(FileSystemEventHandler):
         if not event.is_directory and event.src_path.endswith(
             (".md", ".json", ".yaml")
         ):
-            asyncio.create_task(
+            self._create_tracked_task(
                 self.tracker._handle_file_move(event.src_path, event.dest_path)
             )
 
@@ -248,6 +255,7 @@ class AgentModificationTracker(BaseService):
         # Background tasks
         self._persistence_task: Optional[asyncio.Task] = None
         self._cleanup_task: Optional[asyncio.Task] = None
+        self._file_event_tasks: Set[asyncio.Task] = set()  # Track file event tasks
 
         # Callbacks
         self.modification_callbacks: List[Callable[[AgentModification], None]] = []
@@ -473,7 +481,7 @@ class AgentModificationTracker(BaseService):
                 metadata["file_size_after"] = path.stat().st_size
 
                 # File hash
-                with open(path, "rb") as f:
+                with path.open("rb") as f:
                     metadata["file_hash_after"] = hashlib.sha256(f.read()).hexdigest()
 
                 # File type
@@ -512,7 +520,7 @@ class AgentModificationTracker(BaseService):
             }
 
             metadata_path = backup_dir / "metadata.json"
-            with open(metadata_path, "w") as f:
+            with metadata_path.open("w") as f:
                 json.dump(metadata, f, indent=2)
 
             return str(backup_path)
@@ -661,7 +669,7 @@ class AgentModificationTracker(BaseService):
             # Load active modifications
             active_path = self.persistence_root / "active_modifications.json"
             if active_path.exists():
-                with open(active_path) as f:
+                with active_path.open() as f:
                     data = json.load(f)
                     self.active_modifications = {
                         k: AgentModification.from_dict(v) for k, v in data.items()
@@ -669,7 +677,7 @@ class AgentModificationTracker(BaseService):
 
             # Load modification history
             for history_file in self.history_root.glob("*.json"):
-                with open(history_file) as f:
+                with history_file.open() as f:
                     data = json.load(f)
                     agent_name = data["agent_name"]
                     history = ModificationHistory(agent_name=agent_name)
@@ -699,7 +707,7 @@ class AgentModificationTracker(BaseService):
             active_data = {k: v.to_dict() for k, v in self.active_modifications.items()}
             active_path = self.persistence_root / "active_modifications.json"
 
-            with open(active_path, "w") as f:
+            with active_path.open("w") as f:
                 json.dump(active_data, f, indent=2)
 
             # Save modification history
@@ -714,7 +722,7 @@ class AgentModificationTracker(BaseService):
                 }
 
                 history_path = self.history_root / f"{agent_name}_history.json"
-                with open(history_path, "w") as f:
+                with history_path.open("w") as f:
                     json.dump(history_data, f, indent=2)
 
             self.logger.debug("Saved modification history to disk")
@@ -767,7 +775,7 @@ class AgentModificationTracker(BaseService):
                 if backup_dir.is_dir():
                     metadata_path = backup_dir / "metadata.json"
                     if metadata_path.exists():
-                        with open(metadata_path) as f:
+                        with metadata_path.open() as f:
                             metadata = json.load(f)
                             if metadata.get("backup_time", 0) < cutoff_time:
                                 shutil.rmtree(backup_dir)

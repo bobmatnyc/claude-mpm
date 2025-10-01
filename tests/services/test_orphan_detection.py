@@ -194,7 +194,7 @@ class TestOrphanDetectionService(unittest.TestCase):
             }
         }
 
-        with open(self.state_file, "w") as f:
+        with self.state_file.open("w") as f:
             json.dump(state, f)
 
         # Mock that first PID is dead, second is alive
@@ -238,7 +238,7 @@ class TestOrphanDetectionService(unittest.TestCase):
         global_registry_file = self.service.global_registry_file
         global_registry_file.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(global_registry_file, "w") as f:
+        with global_registry_file.open("w") as f:
             json.dump(registry, f)
 
         # Scan for deleted projects
@@ -272,7 +272,7 @@ class TestOrphanDetectionService(unittest.TestCase):
         global_registry_file = self.service.global_registry_file
         global_registry_file.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(global_registry_file, "w") as f:
+        with global_registry_file.open("w") as f:
             json.dump({"allocations": {}}, f)
 
         # Scan for untracked processes
@@ -312,7 +312,7 @@ class TestOrphanDetectionService(unittest.TestCase):
             }
         }
 
-        with open(self.state_file, "w") as f:
+        with self.state_file.open("w") as f:
             json.dump(state, f)
 
         # Scan for PM2 orphans
@@ -358,7 +358,7 @@ class TestOrphanDetectionService(unittest.TestCase):
             }
         }
 
-        with open(self.state_file, "w") as f:
+        with self.state_file.open("w") as f:
             json.dump(state, f)
 
         # Scan for Docker orphans
@@ -390,7 +390,7 @@ class TestOrphanDetectionService(unittest.TestCase):
 
         # Create state file with dead PID
         state = {"deployments": {"main": {"pid": 12345, "port": 3000}}}
-        with open(self.state_file, "w") as f:
+        with self.state_file.open("w") as f:
             json.dump(state, f)
 
         # Mock PM2 not available
@@ -416,7 +416,7 @@ class TestOrphanDetectionService(unittest.TestCase):
         """Test cleaning up dead PID entry."""
         # Create state file
         state = {"deployments": {"main": {"pid": 12345, "port": 3000}}}
-        with open(self.state_file, "w") as f:
+        with self.state_file.open("w") as f:
             json.dump(state, f)
 
         # Create orphan
@@ -434,7 +434,7 @@ class TestOrphanDetectionService(unittest.TestCase):
         self.assertIn("Removed", message)
 
         # Verify removal
-        with open(self.state_file) as f:
+        with self.state_file.open() as f:
             updated_state = json.load(f)
 
         self.assertNotIn("main", updated_state.get("deployments", {}))
@@ -454,7 +454,7 @@ class TestOrphanDetectionService(unittest.TestCase):
         global_registry_file = self.service.global_registry_file
         global_registry_file.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(global_registry_file, "w") as f:
+        with global_registry_file.open("w") as f:
             json.dump(registry, f)
 
         # Create orphan
@@ -472,7 +472,7 @@ class TestOrphanDetectionService(unittest.TestCase):
         self.assertIn("Removed", message)
 
         # Verify removal
-        with open(global_registry_file) as f:
+        with global_registry_file.open() as f:
             updated_registry = json.load(f)
 
         self.assertNotIn("3000", updated_registry.get("allocations", {}))
@@ -575,7 +575,7 @@ class TestOrphanDetectionIntegration(unittest.TestCase):
             }
         }
 
-        with open(self.state_file, "w") as f:
+        with self.state_file.open("w") as f:
             json.dump(state, f)
 
         # Mock PID as dead

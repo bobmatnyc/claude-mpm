@@ -19,7 +19,7 @@ Created: 2025-01-26
 import difflib
 import hashlib
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -384,7 +384,7 @@ class DocumentationManager:
 
     def _add_metadata(self, content: str) -> str:
         """Add metadata to the document."""
-        timestamp = datetime.now().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
 
         # Check if meta section exists
         if "## 📝 Meta:" not in content and "## Meta:" not in content:
@@ -417,7 +417,7 @@ class DocumentationManager:
     def generate_update_report(self, old_content: str, new_content: str) -> Dict:
         """Generate a report of changes between old and new content."""
         report = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "changes": [],
             "additions": [],
             "deletions": [],
@@ -547,7 +547,7 @@ class DocumentationManager:
 
 ## 📝 Meta: Maintaining This Document
 
-- **Last Updated**: {datetime.now().isoformat()}
+- **Last Updated**: {datetime.now(timezone.utc).isoformat()}
 - **Created By**: Claude MPM /mpm-init
 - **Update Frequency**: As needed when requirements change
 """

@@ -372,7 +372,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
     def _parse_package_json(self, path: Path) -> Dict[str, Any]:
         """Parse package.json file."""
         try:
-            with open(path) as f:
+            with path.open() as f:
                 data = json.load(f)
 
             return {
@@ -417,7 +417,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
                 return {}
 
         try:
-            with open(path, "rb") as f:
+            with path.open("rb") as f:
                 data = tomllib.load(f)
 
             dependencies = {}
@@ -459,7 +459,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
                 return {}
 
         try:
-            with open(path, "rb") as f:
+            with path.open("rb") as f:
                 data = tomllib.load(f)
 
             return {
@@ -481,7 +481,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
                 return {}
 
         try:
-            with open(path, "rb") as f:
+            with path.open("rb") as f:
                 data = tomllib.load(f)
 
             return {

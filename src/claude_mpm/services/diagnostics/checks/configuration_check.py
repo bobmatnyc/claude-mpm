@@ -91,7 +91,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
             )
 
         try:
-            with open(config_path) as f:
+            with config_path.open() as f:
                 config = yaml.safe_load(f)
 
             issues = self._validate_config_structure(config)
@@ -143,7 +143,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
             )
 
         try:
-            with open(config_path) as f:
+            with config_path.open() as f:
                 config = yaml.safe_load(f)
 
             issues = self._validate_config_structure(config)

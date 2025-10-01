@@ -11,7 +11,7 @@ Part of ISS-0036: Hello World Tool - Testing and Validation Tool
 import asyncio
 import platform
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -250,9 +250,9 @@ class TestHelloWorldTool:
         """Test async greeting with default delay."""
         invocation = mock_invocation(mode="async_test")
 
-        start = datetime.now()
+        start = datetime.now(timezone.utc)
         result = await self.invoke(invocation)
-        duration = (datetime.now() - start).total_seconds()
+        duration = (datetime.now(timezone.utc) - start).total_seconds()
 
         assert result.success is True
         assert "1000ms" in result.data["greeting"]
@@ -263,9 +263,9 @@ class TestHelloWorldTool:
         """Test async greeting with custom delay."""
         invocation = mock_invocation(mode="async_test", delay_ms=500)
 
-        start = datetime.now()
+        start = datetime.now(timezone.utc)
         result = await self.invoke(invocation)
-        duration = (datetime.now() - start).total_seconds()
+        duration = (datetime.now(timezone.utc) - start).total_seconds()
 
         assert result.success is True
         assert "500ms" in result.data["greeting"]
@@ -522,9 +522,9 @@ class TestHelloWorldToolAsync:
             inv = Mock(spec=MCPToolInvocation)
             inv.parameters = {"mode": "async_test", "delay_ms": delay_ms}
 
-            start = datetime.now()
+            start = datetime.now(timezone.utc)
             result = await tool.invoke(inv)
-            duration_ms = (datetime.now() - start).total_seconds() * 1000
+            duration_ms = (datetime.now(timezone.utc) - start).total_seconds() * 1000
 
             assert result.success is True
             # Allow 50ms tolerance

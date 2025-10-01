@@ -369,7 +369,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                             stderr_output = stderr_data.decode(
                                 "utf-8", errors="ignore"
                             )[:200]
-                    except:
+                    except (asyncio.TimeoutError, OSError):
                         pass
 
                 if stderr_output:
@@ -391,7 +391,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                             stderr_output = stderr_data.decode(
                                 "utf-8", errors="ignore"
                             )[:200]
-                    except:
+                    except (asyncio.TimeoutError, OSError):
                         pass
 
                 if stderr_output:
@@ -778,7 +778,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             return None
 
         try:
-            with open(claude_config_path) as f:
+            with claude_config_path.open() as f:
                 config = json.load(f)
 
             mcp_servers = config.get("mcpServers", {})
@@ -869,7 +869,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
 
             # Create backup
             backup_path = config_path.with_suffix(".json.backup")
-            with open(backup_path, "w") as f:
+            with backup_path.open("w") as f:
                 json.dump(config, f, indent=2)
 
             # Update the configuration - ensure we're setting the exact new_args
@@ -884,11 +884,11 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 return False
 
             # Write updated configuration
-            with open(config_path, "w") as f:
+            with config_path.open("w") as f:
                 json.dump(config, f, indent=2)
 
             # Verify the file was written correctly
-            with open(config_path) as f:
+            with config_path.open() as f:
                 verify_config = json.load(f)
                 verify_args = (
                     verify_config.get("mcpServers", {})
@@ -902,9 +902,9 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                         f"Expected {new_args}, got {verify_args}"
                     )
                     # Restore backup
-                    with open(backup_path) as bf:
+                    with backup_path.open() as bf:
                         backup_config = json.load(bf)
-                    with open(config_path, "w") as f:
+                    with config_path.open("w") as f:
                         json.dump(backup_config, f, indent=2)
                     return False
 
@@ -936,7 +936,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                     fix_description="Initialize Claude configuration",
                 )
 
-            with open(config_file) as f:
+            with config_file.open() as f:
                 config = json.load(f)
 
             # Get the current project configuration

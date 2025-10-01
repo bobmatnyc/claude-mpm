@@ -14,7 +14,7 @@ import asyncio
 import contextlib
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -139,7 +139,7 @@ class TestServerLifecycle:
             server.core.sio = MagicMock()
             server.core.loop = asyncio.new_event_loop()
             server.core.running = True
-            server.core.stats = {"start_time": datetime.now().isoformat()}
+            server.core.stats = {"start_time": datetime.now(timezone.utc).isoformat()}
 
             # Start server
             server.start_sync()

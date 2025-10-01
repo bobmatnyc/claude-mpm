@@ -29,7 +29,7 @@ def main():
     # 1. Check event definitions in code_tree_events.py
     print("1. Checking event definitions...")
     events_file = project_root / "src/claude_mpm/tools/code_tree_events.py"
-    with open(events_file) as f:
+    with events_file.open() as f:
         content = f.read()
 
     defined_events = set()
@@ -48,7 +48,7 @@ def main():
     handler_file = (
         project_root / "src/claude_mpm/services/socketio/handlers/code_analysis.py"
     )
-    with open(handler_file) as f:
+    with handler_file.open() as f:
         content = f.read()
 
     emitted_events = set()
@@ -75,7 +75,7 @@ def main():
     frontend_file = (
         project_root / "src/claude_mpm/dashboard/static/js/components/code-tree.js"
     )
-    with open(frontend_file) as f:
+    with frontend_file.open() as f:
         content = f.read()
 
     listened_events = set()
@@ -98,7 +98,7 @@ def main():
     incorrect_found = False
 
     for file_path in [events_file, handler_file, frontend_file]:
-        with open(file_path) as f:
+        with file_path.open() as f:
             if "code:discovery:error" in f.read():
                 print(f"   ❌ Found 'code:discovery:error' in {file_path.name}")
                 incorrect_found = True

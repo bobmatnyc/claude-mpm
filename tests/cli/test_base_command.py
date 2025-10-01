@@ -275,7 +275,7 @@ class TestBaseCommand:
                 self.command.print_result(result, args)
 
                 # Verify file was written
-                with open(tmp.name) as f:
+                with tmp.name.open() as f:
                     content = f.read()
                     assert content == '{"success": true}'
 

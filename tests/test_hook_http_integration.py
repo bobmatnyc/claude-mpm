@@ -10,7 +10,7 @@ import os
 import subprocess
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import socketio
 
@@ -66,20 +66,20 @@ def test_hook_http_integration():
             "hook_event_name": "UserPromptSubmit",
             "sessionId": "test-integration-session",
             "prompt": "Test prompt for integration",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         },
         {
             "hook_event_name": "PreToolUse",
             "sessionId": "test-integration-session",
             "tool_name": "Task",
             "params": {"agent": "engineer", "task": "Fix the bug"},
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         },
         {
             "hook_event_name": "SubagentStop",
             "sessionId": "test-integration-session",
             "response": {"result": "Task completed successfully"},
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         },
     ]
 

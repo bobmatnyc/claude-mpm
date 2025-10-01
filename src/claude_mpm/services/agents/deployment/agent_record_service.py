@@ -80,7 +80,7 @@ class AgentRecordService(BaseService):
             json_str = json.dumps(data, indent=2, default=str)
             self.records_file.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(self.records_file, "w", encoding="utf-8") as f:
+            with self.records_file.open("w", encoding="utf-8") as f:
                 f.write(json_str)
 
             self.logger.debug(f"Saved {len(records)} agent records")
@@ -149,7 +149,7 @@ class AgentRecordService(BaseService):
             json_str = json.dumps(data, indent=2, default=str)
             self.history_file.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(self.history_file, "w", encoding="utf-8") as f:
+            with self.history_file.open("w", encoding="utf-8") as f:
                 f.write(json_str)
 
             self.logger.debug(f"Saved {len(history)} operation history entries")
@@ -255,7 +255,7 @@ class AgentRecordService(BaseService):
 
                 # Write to output path
                 json_str = json.dumps(data, indent=2, default=str)
-                with open(output_path, "w", encoding="utf-8") as f:
+                with output_path.open("w", encoding="utf-8") as f:
                     f.write(json_str)
 
             elif format == "csv":

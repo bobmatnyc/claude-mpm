@@ -22,7 +22,7 @@ import importlib
 import json
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
@@ -512,7 +512,7 @@ class ComprehensiveTestRunner:
 
         # Fill in the template
         html_content = html_template.format(
-            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
             overall_status=overall_status,
             overall_status_class=overall_status_class,
             modules_tested=total_modules,
@@ -605,7 +605,7 @@ class ComprehensiveTestRunner:
             "test_results": test_results,
             "configuration": self.config,
             "dependencies": dependencies,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Print final summary
@@ -724,9 +724,9 @@ def main():
         if args.save_json:
             json_file = (
                 output_dir
-                / f"comprehensive_test_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                / f"comprehensive_test_results_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
             )
-            with open(json_file, "w") as f:
+            with json_file.open("w") as f:
                 json.dump(results, f, indent=2, default=str)
             print(f"\n📁 JSON results saved to: {json_file}")
 
@@ -734,9 +734,9 @@ def main():
             html_content = runner.generate_html_report(results)
             html_file = (
                 output_dir
-                / f"test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+                / f"test_report_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.html"
             )
-            with open(html_file, "w") as f:
+            with html_file.open("w") as f:
                 f.write(html_content)
             print(f"📄 HTML report saved to: {html_file}")
 
