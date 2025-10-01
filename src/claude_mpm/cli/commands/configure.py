@@ -317,10 +317,14 @@ class ConfigureCommand(BaseCommand):
         """Display the TUI header."""
         self.console.clear()
 
+        # Get version for display
+        from claude_mpm import __version__
+
         # Create header panel
         header_text = Text()
         header_text.append("Claude MPM ", style="bold cyan")
         header_text.append("Configuration Interface", style="bold white")
+        header_text.append(f"\nv{__version__}", style="dim cyan")
 
         scope_text = Text(f"Scope: {self.current_scope.upper()}", style="yellow")
         dir_text = Text(f"Directory: {self.project_dir}", style="dim")
