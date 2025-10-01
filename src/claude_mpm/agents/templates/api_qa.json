@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "api-qa-agent",
-  "agent_version": "1.2.1",
+  "agent_version": "1.2.2",
   "agent_type": "qa",
   "metadata": {
     "name": "API QA Agent",

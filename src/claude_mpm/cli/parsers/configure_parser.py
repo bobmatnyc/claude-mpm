@@ -59,6 +59,11 @@ def add_configure_subparser(subparsers) -> argparse.ArgumentParser:
         help="Jump directly to behavior file management",
     )
     nav_group.add_argument(
+        "--startup",
+        action="store_true",
+        help="Configure startup services and agents",
+    )
+    nav_group.add_argument(
         "--version-info",
         action="store_true",
         help="Display version information and exit",

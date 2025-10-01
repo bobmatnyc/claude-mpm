@@ -44,7 +44,9 @@ class MCPConfigManager:
     # Known missing dependencies for MCP services that pipx doesn't handle automatically
     # Maps service names to list of missing dependencies that need injection
     SERVICE_MISSING_DEPENDENCIES = {
-        "mcp-ticketer": ["gql"],  # mcp-ticketer v0.1.8+ needs gql but doesn't declare it
+        "mcp-ticketer": [
+            "gql"
+        ],  # mcp-ticketer v0.1.8+ needs gql but doesn't declare it
         # Add more services here as needed, e.g.:
         # "another-service": ["dep1", "dep2"],
     }
@@ -80,14 +82,74 @@ class MCPConfigManager:
         },
     }
 
-    def __init__(self):
-        """Initialize the MCP configuration manager."""
+    def __init__(self, config=None):
+        """Initialize the MCP configuration manager.
+
+        Args:
+            config: Optional Config object for filtering services
+        """
         self.logger = get_logger(__name__)
         self.pipx_base = Path.home() / ".local" / "pipx" / "venvs"
         self.project_root = Path.cwd()
 
+        # Validate config type if provided
+        if config is not None:
+            from ..core.config import Config
+
+            if not isinstance(config, Config):
+                self.logger.warning(
+                    f"Invalid config type provided to MCPConfigManager: "
+                    f"{type(config).__name__}. Expected Config. "
+                    f"Proceeding with config=None (all services enabled)."
+                )
+                config = None
+
+        self.config = config
+
         # Use the proper Claude config file location
         self.claude_config_path = ConfigLocation.CLAUDE_JSON.value
+
+    def should_enable_service(self, service_name: str) -> bool:
+        """
+        Check if an MCP service should be enabled based on startup configuration.
+
+        Args:
+            service_name: Name of the MCP service
+
+        Returns:
+            True if the service should be enabled, False otherwise
+        """
+        # If no config provided, enable all services by default
+        if self.config is None:
+            return True
+
+        # Import Config here to avoid circular import at module level
+        from ..core.config import Config
+
+        # Validate config type
+        if not isinstance(self.config, Config):
+            self.logger.warning(
+                f"Invalid config type: {type(self.config).__name__}, "
+                f"expected Config. Enabling all services by default."
+            )
+            return True
+
+        # Get startup configuration
+        enabled_services = self.config.get("startup.enabled_mcp_services", None)
+
+        # If no startup preferences configured, enable all services
+        if enabled_services is None:
+            return True
+
+        # Check if this service is in the enabled list
+        is_enabled = service_name in enabled_services
+
+        if not is_enabled:
+            self.logger.debug(
+                f"MCP service '{service_name}' disabled by startup configuration"
+            )
+
+        return is_enabled
 
     def detect_service_path(self, service_name: str) -> Optional[str]:
         """
@@ -668,10 +730,8 @@ class MCPConfigManager:
             claude_config["projects"] = {}
             updated = True
 
-        # Fix any corrupted MCP service installations first
-        fix_success, fix_message = self.fix_mcp_service_issues()
-        if not fix_success:
-            self.logger.warning(f"Some MCP services could not be fixed: {fix_message}")
+        # Note: fix_mcp_service_issues() is already called during CLI initialization
+        # Calling it here would duplicate the service health checks
 
         # Process ALL projects in the config, not just current one
         projects_to_update = list(claude_config.get("projects", {}).keys())
@@ -704,19 +764,10 @@ class MCPConfigManager:
                 project_config["mcpServers"] = {}
                 updated = True
 
-            # Check and fix each service configuration
-            for service_name in self.PIPX_SERVICES:
-                # Get the correct static configuration with project-specific paths
-                correct_config = self.get_static_service_config(
-                    service_name, project_key
-                )
+            # Check and fix each service configuration - now filtered by startup config
+            services_to_configure = self.get_filtered_services()
 
-                if not correct_config:
-                    self.logger.warning(
-                        f"No static config available for {service_name}"
-                    )
-                    continue
-
+            for service_name, correct_config in services_to_configure.items():
                 # Check if service exists and has correct configuration
                 existing_config = project_config["mcpServers"].get(service_name)
 
@@ -741,6 +792,29 @@ class MCPConfigManager:
                     self.logger.debug(
                         f"Updated MCP service config for {service_name} in project {Path(project_key).name}"
                     )
+
+            # Remove disabled services from configuration
+            if self.config is not None:
+                # Import Config here to avoid circular import
+                from ..core.config import Config
+
+                if isinstance(self.config, Config):
+                    enabled_services = self.config.get(
+                        "startup.enabled_mcp_services", None
+                    )
+                    if enabled_services is not None:
+                        # Remove services that are not in the enabled list
+                        services_to_remove = []
+                        for service_name in project_config["mcpServers"]:
+                            if service_name not in enabled_services:
+                                services_to_remove.append(service_name)
+
+                        for service_name in services_to_remove:
+                            del project_config["mcpServers"][service_name]
+                            updated = True
+                            self.logger.debug(
+                                f"Removed disabled service {service_name} from project {Path(project_key).name}"
+                            )
 
         # Write updated config if changes were made
         if updated:
@@ -953,7 +1027,9 @@ class MCPConfigManager:
                 if result.returncode == 0:
                     # Inject any missing dependencies if needed
                     if service_name in self.SERVICE_MISSING_DEPENDENCIES:
-                        self.logger.debug(f"Injecting missing dependencies for newly installed {service_name}...")
+                        self.logger.debug(
+                            f"Injecting missing dependencies for newly installed {service_name}..."
+                        )
                         self._inject_missing_dependencies(service_name)
 
                     # Verify installation worked
@@ -1063,18 +1139,19 @@ class MCPConfigManager:
         Returns:
             Tuple of (success, message)
         """
-        self.logger.info("🔍 Checking MCP services for issues...")
-
         services_to_fix = []
         fixed_services = []
         failed_services = []
 
         # Check each service for issues
         for service_name in self.PIPX_SERVICES:
+            self.logger.info(f"🔍 Checking {service_name} for issues...")
             issue_type = self._detect_service_issue(service_name)
             if issue_type:
                 services_to_fix.append((service_name, issue_type))
-                self.logger.debug(f"Found issue with {service_name}: {issue_type}")
+                self.logger.info(f"  ⚠️  Found issue with {service_name}: {issue_type}")
+            else:
+                self.logger.debug(f"  ✅ {service_name} is functioning correctly")
 
         if not services_to_fix:
             return True, "All MCP services are functioning correctly"
@@ -1118,14 +1195,20 @@ class MCPConfigManager:
                     issue_after_injection = self._detect_service_issue(service_name)
                     if issue_after_injection is None:
                         fixed_services.append(f"{service_name} (dependencies injected)")
-                        self.logger.info(f"  ✅ Fixed {service_name} with dependency injection")
+                        self.logger.info(
+                            f"  ✅ Fixed {service_name} with dependency injection"
+                        )
                         continue  # Move to next service
 
                 # If injection alone didn't work, try full reinstall
-                self.logger.info("  Dependency injection insufficient, trying full reinstall...")
+                self.logger.info(
+                    "  Dependency injection insufficient, trying full reinstall..."
+                )
                 success = self._auto_reinstall_mcp_service(service_name)
                 if success:
-                    fixed_services.append(f"{service_name} (auto-reinstalled with dependencies)")
+                    fixed_services.append(
+                        f"{service_name} (auto-reinstalled with dependencies)"
+                    )
                 else:
                     # Provide specific manual fix for known services
                     if service_name == "mcp-ticketer":
@@ -1164,7 +1247,12 @@ class MCPConfigManager:
             for failed in failed_services:
                 service = failed.split(" ")[0]
                 if service in self.SERVICE_MISSING_DEPENDENCIES:
-                    deps = " ".join([f"&& pipx inject {service} {dep}" for dep in self.SERVICE_MISSING_DEPENDENCIES[service]])
+                    deps = " ".join(
+                        [
+                            f"&& pipx inject {service} {dep}"
+                            for dep in self.SERVICE_MISSING_DEPENDENCIES[service]
+                        ]
+                    )
                     message += f"\n  • {service}: pipx uninstall {service} && pipx install {service} {deps}"
                 else:
                     message += f"\n  • {service}: pipx uninstall {service} && pipx install {service}"
@@ -1191,7 +1279,9 @@ class MCPConfigManager:
             if pipx_venv_bin.exists():
                 # Test the installed version directly (has injected dependencies)
                 # This avoids using pipx run which downloads a fresh cache copy without dependencies
-                self.logger.debug(f"Testing {service_name} from installed pipx venv: {pipx_venv_bin}")
+                self.logger.debug(
+                    f"    Testing {service_name} from installed pipx venv: {pipx_venv_bin}"
+                )
                 result = subprocess.run(
                     [str(pipx_venv_bin), "--help"],
                     capture_output=True,
@@ -1225,19 +1315,25 @@ class MCPConfigManager:
                     or "help" in combined_output
                     or result.returncode in [0, 1]
                 ):
-                    self.logger.debug(f"{service_name} is working correctly")
+                    self.logger.debug(
+                        f"    {service_name} is working correctly (installed in venv)"
+                    )
                     return None  # Service is working
 
                 # Unknown issue
                 if result.returncode not in [0, 1]:
-                    self.logger.debug(f"{service_name} returned unexpected exit code: {result.returncode}")
+                    self.logger.debug(
+                        f"{service_name} returned unexpected exit code: {result.returncode}"
+                    )
                     return "unknown_error"
 
                 return None  # Default to working if no issues detected
 
             # Service not installed in pipx venv - use pipx run for detection
             # Note: pipx run uses cache which may not have injected dependencies
-            self.logger.debug(f"Testing {service_name} via pipx run (not installed in venv)")
+            self.logger.debug(
+                f"    Testing {service_name} via pipx run (not installed in venv)"
+            )
             result = subprocess.run(
                 ["pipx", "run", service_name, "--help"],
                 capture_output=True,
@@ -1265,7 +1361,9 @@ class MCPConfigManager:
             ):
                 # Don't report missing_dependency for cache version - it may be missing injected deps
                 # Just report that service needs to be installed properly
-                self.logger.debug(f"{service_name} has import errors in pipx run cache - needs proper installation")
+                self.logger.debug(
+                    f"{service_name} has import errors in pipx run cache - needs proper installation"
+                )
                 return "not_installed"
 
             # Path issues
@@ -1331,7 +1429,9 @@ class MCPConfigManager:
             if install_result.returncode == 0:
                 # Inject any missing dependencies if needed
                 if service_name in self.SERVICE_MISSING_DEPENDENCIES:
-                    self.logger.debug(f"Injecting missing dependencies for {service_name}...")
+                    self.logger.debug(
+                        f"Injecting missing dependencies for {service_name}..."
+                    )
                     self._inject_missing_dependencies(service_name)
 
                 # Verify the reinstall worked
@@ -1394,12 +1494,13 @@ class MCPConfigManager:
                 if result.returncode == 0:
                     self.logger.info(f"    ✅ Successfully injected {dep}")
                 # Check if already injected (pipx will complain if package already exists)
-                elif "already satisfied" in result.stderr.lower() or "already installed" in result.stderr.lower():
+                elif (
+                    "already satisfied" in result.stderr.lower()
+                    or "already installed" in result.stderr.lower()
+                ):
                     self.logger.debug(f"    {dep} already present in {service_name}")
                 else:
-                    self.logger.error(
-                        f"    Failed to inject {dep}: {result.stderr}"
-                    )
+                    self.logger.error(f"    Failed to inject {dep}: {result.stderr}")
                     all_successful = False
 
             except subprocess.TimeoutExpired:
@@ -1467,7 +1568,9 @@ class MCPConfigManager:
 
             # Inject any missing dependencies that pipx doesn't handle automatically
             if service_name in self.SERVICE_MISSING_DEPENDENCIES:
-                self.logger.info(f"  → Fixing missing dependencies for {service_name}...")
+                self.logger.info(
+                    f"  → Fixing missing dependencies for {service_name}..."
+                )
                 if not self._inject_missing_dependencies(service_name):
                     self.logger.warning(
                         f"Failed to inject all dependencies for {service_name}, but continuing..."
@@ -1608,3 +1711,21 @@ class MCPConfigManager:
 
         # For other services, try pipx run
         return None
+
+    def get_filtered_services(self) -> Dict[str, Dict]:
+        """Get all MCP service configurations filtered by startup configuration.
+
+        Returns:
+            Dictionary of service configurations, filtered based on startup settings
+        """
+        filtered_services = {}
+
+        for service_name in self.STATIC_MCP_CONFIGS:
+            if self.should_enable_service(service_name):
+                # Get the actual service configuration with proper paths
+                service_config = self.get_static_service_config(service_name)
+                if service_config:
+                    filtered_services[service_name] = service_config
+                    # Removed noisy debug logging that was called multiple times per startup
+
+        return filtered_services

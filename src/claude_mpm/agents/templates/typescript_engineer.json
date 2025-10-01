@@ -3,7 +3,7 @@
   "description": "Modern TypeScript development specialist focused on type-safe, performant, and expressive code using the latest stable TypeScript features and ecosystem tools",
   "schema_version": "1.3.0",
   "agent_id": "typescript-engineer",
-  "agent_version": "1.0.0",
+  "agent_version": "1.0.1",
   "template_version": "1.0.0",
   "template_changelog": [
     {

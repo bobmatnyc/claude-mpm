@@ -81,34 +81,63 @@ def main(argv: Optional[list] = None):
 
     os.environ.setdefault("DISABLE_TELEMETRY", "1")
 
-    # Ensure directories are initialized on first run
-    ensure_directories()
+    # Set environment variable BEFORE parsing args to prevent cleanup noise during configure
+    # This will be checked later after we know the command
+    os.environ.setdefault("CLAUDE_MPM_SKIP_CLEANUP", "0")
 
-    # Initialize or update project registry
-    _initialize_project_registry()
+    # EARLY CHECK: If 'configure' is in argv, suppress logging IMMEDIATELY
+    # This must happen BEFORE any imports that trigger logging
+    if argv is None:
+        argv = sys.argv[1:]
+    if "configure" in argv or (len(argv) > 0 and argv[0] == "configure"):
+        import logging
 
-    # Parse args early to check if we should skip auto-configuration
-    # (for commands like --version, --help, etc.)
+        logging.getLogger("claude_mpm").setLevel(logging.WARNING)
+        os.environ["CLAUDE_MPM_SKIP_CLEANUP"] = "1"
+
+    # Parse args early to check if we should skip background services
+    # (for commands like --version, --help, configure, etc.)
     parser = create_parser(version=__version__)
     processed_argv = preprocess_args(argv)
     args = parser.parse_args(processed_argv)
 
-    # Skip auto-configuration for certain commands
-    skip_auto_config_commands = ["--version", "-v", "--help", "-h"]
-    # sys is already imported at module level (line 16), use it directly
-    should_skip_auto_config = any(
-        cmd in (processed_argv or sys.argv[1:]) for cmd in skip_auto_config_commands
+    # Skip background services for configure command - it needs clean state
+    # Also skip for help/version/diagnostic commands
+    skip_background_services_commands = ["--version", "-v", "--help", "-h"]
+    should_skip_background = any(
+        cmd in (processed_argv or sys.argv[1:])
+        for cmd in skip_background_services_commands
     ) or (
-        hasattr(args, "command") and args.command in ["info", "doctor", "config", "mcp"]
-    )  # Info, diagnostic, and MCP commands
+        hasattr(args, "command")
+        and args.command in ["info", "doctor", "config", "mcp", "configure"]
+    )
 
-    if not should_skip_auto_config:
+    # Set environment variable to skip cleanup for configure command
+    # Also suppress INFO logging to prevent noise during configure
+    if hasattr(args, "command") and args.command == "configure":
+        os.environ["CLAUDE_MPM_SKIP_CLEANUP"] = "1"
+        # Suppress INFO logs for configure command
+        import logging
+
+        logging.getLogger("claude_mpm").setLevel(logging.WARNING)
+
+    # Only initialize background services if not skipping
+    if not should_skip_background:
+        # Ensure directories are initialized on first run
+        ensure_directories()
+
+        # Initialize or update project registry
+        _initialize_project_registry()
+
         # Check for MCP auto-configuration (pipx installations)
         _check_mcp_auto_configuration()
 
-    # Re-enabled: MCP pre-warming is safe with subprocess daemon (v4.2.40)
-    # The subprocess approach avoids fork() issues entirely
-    _verify_mcp_gateway_startup()
+        # Re-enabled: MCP pre-warming is safe with subprocess daemon (v4.2.40)
+        # The subprocess approach avoids fork() issues entirely
+        _verify_mcp_gateway_startup()
+    else:
+        # Still need directories for configure command to work
+        ensure_directories()
 
     # Set up logging
     # Special case: For MCP start command, we need minimal logging to avoid stdout interference
@@ -222,12 +251,13 @@ def _check_mcp_auto_configuration():
         logger = get_logger("cli")
         logger.debug(f"MCP auto-configuration check failed: {e}")
 
-    # Skip MCP service fixes for the doctor command
+    # Skip MCP service fixes for the doctor and configure commands
     # The doctor command performs its own comprehensive MCP service check
+    # The configure command allows users to configure which services to enable
     # Running both would cause duplicate checks and log messages (9 seconds apart)
     import sys
 
-    if len(sys.argv) > 1 and sys.argv[1] == "doctor":
+    if len(sys.argv) > 1 and sys.argv[1] in ("doctor", "configure"):
         return
 
     # Also ensure MCP services are properly configured in ~/.claude.json
