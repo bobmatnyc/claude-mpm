@@ -3,7 +3,7 @@
   "description": "TypeScript and Next.js specialist for modern web development (2025 best practices)",
   "schema_version": "1.3.0",
   "agent_id": "nextjs_engineer",
-  "agent_version": "1.0.0",
+  "agent_version": "1.0.1",
   "template_version": "1.0.0",
   "template_changelog": [
     {

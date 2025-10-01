@@ -130,7 +130,9 @@ class SessionManager:
                 self._session_id = session_id
                 logger.warning(f"Session ID changed from {old_id} to {session_id}")
             else:
-                logger.debug(f"Session ID already set to {session_id}, no change needed")
+                logger.debug(
+                    f"Session ID already set to {session_id}, no change needed"
+                )
 
     @classmethod
     def reset(cls) -> None:

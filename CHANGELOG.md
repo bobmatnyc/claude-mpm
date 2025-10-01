@@ -1,3 +1,33 @@
+## [4.5.9] - 2025-10-01
+
+### Enhanced
+- **Startup Configurator**: Complete overhaul with improved UX and functionality
+  - Fixed agent state persistence across menu navigation
+  - Implemented auto-launch of claude-mpm after configuration save
+  - Syncs startup.disabled_agents → agent_deployment.disabled_agents for proper deployment
+  - Updated menu text for clarity ("Save configuration and start claude-mpm")
+  - Changed default option from 'b' (back) to 's' (save) for better workflow
+  - Removed obsolete websocket service from hook services list
+
+- **Agent Standardization**: All 29 agents updated to Sonnet model
+  - 7 agents upgraded from Opus to Sonnet (code-analyzer, data-engineer, engineer, prompt-engineer, refactoring-engineer, research, web-ui)
+  - Patch version bump for all 29 agent templates
+  - Improved consistency and cost efficiency across agent fleet
+
+### Fixed
+- **Logging Noise**: Eliminated duplicate MCP service logging (40+ repetitive lines removed)
+  - Removed noisy debug logging from get_filtered_services() method
+  - Clean startup logs with only relevant information
+- **Configuration Sync**: Fixed startup configuration not being applied to agent deployment
+  - Disabled agents are now properly removed from .claude/agents/ directory
+  - Configuration changes take immediate effect on startup
+
+### Technical Details
+- Updated configurator to use os.execvp("claude-mpm", ["claude-mpm", "run"]) for proper startup
+- Added agent_deployment.disabled_agents sync in save configuration
+- Removed redundant DEBUG logging that was called 10× per startup
+- All agent versions verified: 29/29 using Sonnet model
+
 ## [4.5.8] - 2025-09-30
 
 ### Enhanced

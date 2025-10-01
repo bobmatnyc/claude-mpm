@@ -122,6 +122,13 @@ class LogManager:
         if run_cleanup_on_startup is None:
             return  # Cleanup utility not available
 
+        # Check environment variable to skip cleanup (for configure command)
+        import os
+
+        if os.environ.get("CLAUDE_MPM_SKIP_CLEANUP", "0") == "1":
+            logger.debug("Startup cleanup skipped (CLAUDE_MPM_SKIP_CLEANUP=1)")
+            return
+
         try:
             # Get cleanup configuration
             cleanup_config = self.config.get("log_cleanup", {})
