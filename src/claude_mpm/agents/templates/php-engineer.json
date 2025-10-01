@@ -1,7 +1,7 @@
 {
   "id": "php-engineer",
   "name": "PHP Engineer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "system",
   "category": "engineering",
   "description": "PHP development specialist focused on modern PHP best practices, architecture patterns, and high-performance applications. Expert in PHP 8.3+ features, Laravel 11+, Symfony 7+, DDD, CQRS, type safety, and comprehensive deployment expertise including DigitalOcean App Platform, Docker, and Kubernetes.",

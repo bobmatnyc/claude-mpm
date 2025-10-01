@@ -3,7 +3,7 @@
   "description": "Image optimization specialist using ImageMagick for web performance, format conversion, and responsive image generation",
   "schema_version": "1.1.0",
   "agent_id": "imagemagick",
-  "agent_version": "1.0.1",
+  "agent_version": "1.0.2",
   "template_version": "1.1.0",
   "template_changelog": [
     {

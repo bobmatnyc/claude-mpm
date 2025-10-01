@@ -16,50 +16,142 @@
   },
   "capabilities": {
     "frameworks": {
-      "javascript": ["next.js", "react", "vue", "angular", "svelte", "nuxt", "gatsby", "vite"],
-      "python": ["django", "flask", "fastapi", "streamlit", "gradio"],
-      "ruby": ["rails", "sinatra"],
-      "php": ["laravel", "symfony"],
-      "static": ["hugo", "jekyll", "eleventy"]
+      "javascript": [
+        "next.js",
+        "react",
+        "vue",
+        "angular",
+        "svelte",
+        "nuxt",
+        "gatsby",
+        "vite"
+      ],
+      "python": [
+        "django",
+        "flask",
+        "fastapi",
+        "streamlit",
+        "gradio"
+      ],
+      "ruby": [
+        "rails",
+        "sinatra"
+      ],
+      "php": [
+        "laravel",
+        "symfony"
+      ],
+      "static": [
+        "hugo",
+        "jekyll",
+        "eleventy"
+      ]
     },
     "deployment_methods": {
       "pm2": {
         "description": "Node.js process manager for production deployments",
-        "commands": ["start", "stop", "restart", "status", "logs", "monit"],
-        "features": ["auto-restart", "clustering", "log-rotation", "monitoring"]
+        "commands": [
+          "start",
+          "stop",
+          "restart",
+          "status",
+          "logs",
+          "monit"
+        ],
+        "features": [
+          "auto-restart",
+          "clustering",
+          "log-rotation",
+          "monitoring"
+        ]
       },
       "docker": {
         "description": "Container-based deployment for isolation",
-        "commands": ["build", "run", "stop", "logs", "exec"],
-        "features": ["isolation", "reproducibility", "multi-service"]
+        "commands": [
+          "build",
+          "run",
+          "stop",
+          "logs",
+          "exec"
+        ],
+        "features": [
+          "isolation",
+          "reproducibility",
+          "multi-service"
+        ]
       },
       "native": {
         "description": "Direct process management for simple cases",
-        "commands": ["start", "stop", "status"],
-        "features": ["lightweight", "direct-control"]
+        "commands": [
+          "start",
+          "stop",
+          "status"
+        ],
+        "features": [
+          "lightweight",
+          "direct-control"
+        ]
       },
       "systemd": {
         "description": "Linux system service management",
-        "commands": ["start", "stop", "enable", "status"],
-        "features": ["boot-persistence", "system-integration"]
+        "commands": [
+          "start",
+          "stop",
+          "enable",
+          "status"
+        ],
+        "features": [
+          "boot-persistence",
+          "system-integration"
+        ]
       }
     },
     "monitoring": {
-      "health_checks": ["http", "tcp", "process"],
-      "metrics": ["cpu", "memory", "response_time", "error_rate"],
-      "alerts": ["crash", "high_memory", "port_conflict", "unhealthy"]
-    }
+      "health_checks": [
+        "http",
+        "tcp",
+        "process"
+      ],
+      "metrics": [
+        "cpu",
+        "memory",
+        "response_time",
+        "error_rate"
+      ],
+      "alerts": [
+        "crash",
+        "high_memory",
+        "port_conflict",
+        "unhealthy"
+      ]
+    },
+    "model": "sonnet"
   },
   "metadata": {
     "category": "operations",
-    "tags": ["deployment", "devops", "local", "process-management", "monitoring"],
+    "tags": [
+      "deployment",
+      "devops",
+      "local",
+      "process-management",
+      "monitoring"
+    ],
     "requirements": {
-      "optional": ["pm2", "docker", "nginx"],
-      "auto_install": ["pm2"]
+      "optional": [
+        "pm2",
+        "docker",
+        "nginx"
+      ],
+      "auto_install": [
+        "pm2"
+      ]
     }
   },
   "configuration": {
-    "default_port_range": [3000, 9999],
+    "default_port_range": [
+      3000,
+      9999
+    ],
     "deployment_directory": ".claude-mpm/deployments",
     "log_directory": ".claude-mpm/logs",
     "state_file": ".claude-mpm/deployment-state.json",
@@ -98,25 +190,48 @@
     },
     "status": {
       "description": "Check deployment status",
-      "provides": ["process_info", "port_mapping", "health_status", "resource_usage"]
+      "provides": [
+        "process_info",
+        "port_mapping",
+        "health_status",
+        "resource_usage"
+      ]
     },
     "logs": {
       "description": "Stream or fetch deployment logs",
-      "options": ["tail", "follow", "filter", "since"]
+      "options": [
+        "tail",
+        "follow",
+        "filter",
+        "since"
+      ]
     },
     "stop": {
       "description": "Gracefully stop deployments",
-      "options": ["force", "timeout", "cleanup"]
+      "options": [
+        "force",
+        "timeout",
+        "cleanup"
+      ]
     },
     "scale": {
       "description": "Scale deployments (PM2 cluster mode)",
-      "options": ["instances", "auto"]
+      "options": [
+        "instances",
+        "auto"
+      ]
     }
   },
   "detection_patterns": {
     "nextjs": {
-      "files": ["next.config.js", "next.config.mjs", "next.config.ts"],
-      "package_json": ["next"],
+      "files": [
+        "next.config.js",
+        "next.config.mjs",
+        "next.config.ts"
+      ],
+      "package_json": [
+        "next"
+      ],
       "commands": {
         "dev": "next dev",
         "build": "next build",
@@ -125,8 +240,15 @@
       }
     },
     "react": {
-      "files": ["react-scripts", "vite.config.js", "webpack.config.js"],
-      "package_json": ["react", "react-dom"],
+      "files": [
+        "react-scripts",
+        "vite.config.js",
+        "webpack.config.js"
+      ],
+      "package_json": [
+        "react",
+        "react-dom"
+      ],
       "commands": {
         "dev": "npm start",
         "build": "npm run build",
@@ -134,8 +256,14 @@
       }
     },
     "vue": {
-      "files": ["vue.config.js", "vite.config.js"],
-      "package_json": ["vue", "@vue/cli-service"],
+      "files": [
+        "vue.config.js",
+        "vite.config.js"
+      ],
+      "package_json": [
+        "vue",
+        "@vue/cli-service"
+      ],
       "commands": {
         "dev": "npm run serve",
         "build": "npm run build",
@@ -143,16 +271,26 @@
       }
     },
     "python_django": {
-      "files": ["manage.py", "wsgi.py"],
-      "requirements": ["django"],
+      "files": [
+        "manage.py",
+        "wsgi.py"
+      ],
+      "requirements": [
+        "django"
+      ],
       "commands": {
         "dev": "python manage.py runserver",
         "prod": "gunicorn wsgi:application"
       }
     },
     "python_flask": {
-      "files": ["app.py", "wsgi.py"],
-      "requirements": ["flask"],
+      "files": [
+        "app.py",
+        "wsgi.py"
+      ],
+      "requirements": [
+        "flask"
+      ],
       "commands": {
         "dev": "flask run",
         "prod": "gunicorn app:app"
@@ -293,17 +431,31 @@
     {
       "user": "Deploy my Next.js app",
       "response": "I'll deploy your Next.js application using PM2 for stability. Let me detect your configuration and set it up...",
-      "actions": ["detect_framework", "build_production", "deploy_with_pm2", "monitor_health"]
+      "actions": [
+        "detect_framework",
+        "build_production",
+        "deploy_with_pm2",
+        "monitor_health"
+      ]
     },
     {
       "user": "Show me the status of all deployments",
       "response": "Here's the status of all active deployments...",
-      "actions": ["list_pm2_processes", "check_docker_containers", "aggregate_status"]
+      "actions": [
+        "list_pm2_processes",
+        "check_docker_containers",
+        "aggregate_status"
+      ]
     },
     {
       "user": "The app keeps crashing, help me debug",
       "response": "Let me check the logs and identify the issue...",
-      "actions": ["fetch_error_logs", "analyze_crash_pattern", "suggest_fixes"]
+      "actions": [
+        "fetch_error_logs",
+        "analyze_crash_pattern",
+        "suggest_fixes"
+      ]
     }
-  ]
+  ],
+  "agent_version": "1.0.1"
 }

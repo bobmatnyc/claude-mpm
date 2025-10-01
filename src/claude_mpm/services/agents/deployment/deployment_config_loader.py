@@ -112,7 +112,28 @@ class DeploymentConfigLoader:
         Returns:
             True if the agent should be deployed, False otherwise
         """
+        if config is None:
+            config = Config()
+
         settings = self.get_deployment_settings(config)
+
+        # Check startup configuration for system agents
+        if agent_source == "system":
+            # Check startup configuration first
+            startup_enabled = config.get("startup.enabled_agents", [])
+            if startup_enabled:
+                # Normalize for comparison
+                check_id = agent_id if settings["case_sensitive"] else agent_id.lower()
+                startup_list = (
+                    startup_enabled
+                    if settings["case_sensitive"]
+                    else [a.lower() for a in startup_enabled]
+                )
+                if check_id not in startup_list:
+                    self.logger.debug(
+                        f"Skipping system agent {agent_id} - not in startup enabled list"
+                    )
+                    return False
 
         # Check if the source type is enabled
         if agent_source == "system" and not settings["deploy_system_agents"]:
