@@ -52,7 +52,7 @@ def _get_base_agent_file() -> Path:
     if env_path:
         env_base_agent = Path(env_path)
         if env_base_agent.exists():
-            logger.info(f"Using environment variable base_agent: {env_base_agent}")
+            logger.debug(f"Using environment variable base_agent: {env_base_agent}")
             return env_base_agent
         logger.warning(
             f"CLAUDE_MPM_BASE_AGENT_PATH set but file doesn't exist: {env_base_agent}"
@@ -62,7 +62,7 @@ def _get_base_agent_file() -> Path:
     cwd = Path.cwd()
     cwd_base_agent = cwd / "src" / "claude_mpm" / "agents" / "base_agent.json"
     if cwd_base_agent.exists():
-        logger.info(f"Using local development base_agent from cwd: {cwd_base_agent}")
+        logger.debug(f"Using local development base_agent from cwd: {cwd_base_agent}")
         return cwd_base_agent
 
     # Priority 2: Check known development locations
@@ -86,13 +86,13 @@ def _get_base_agent_file() -> Path:
 
     for dev_path in known_dev_paths:
         if dev_path.exists():
-            logger.info(f"Using development base_agent: {dev_path}")
+            logger.debug(f"Using development base_agent: {dev_path}")
             return dev_path
 
     # Priority 3: Check user override location
     user_base_agent = Path.home() / ".claude" / "agents" / "base_agent.json"
     if user_base_agent.exists():
-        logger.info(f"Using user override base_agent: {user_base_agent}")
+        logger.debug(f"Using user override base_agent: {user_base_agent}")
         return user_base_agent
 
     # Priority 4: Check if we're running from a wheel installation
@@ -111,7 +111,7 @@ def _get_base_agent_file() -> Path:
             # For wheel installations, check data directory
             data_base_agent = package_path / "data" / "agents" / "base_agent.json"
             if data_base_agent.exists():
-                logger.info(f"Using wheel installation base_agent: {data_base_agent}")
+                logger.debug(f"Using wheel installation base_agent: {data_base_agent}")
                 return data_base_agent
 
             # Also check direct agents directory in package
