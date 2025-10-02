@@ -1,3 +1,17 @@
+## [4.5.15] - 2025-10-02
+
+### Added
+- **Local-Ops Agent v1.0.2**: Enhanced verification and deployment policies
+  - Mandatory auto-updating mode for development deployments
+  - Verification policy requiring endpoint checks before success claims
+  - Prevents "should work" claims without actual evidence
+
+### Changed
+- **PM Instructions**: Strengthened universal verification requirements
+  - All subagents must verify endpoints/services before claiming success
+  - Explicit prohibition of unverified success claims
+  - Enhanced quality standards for agent coordination
+
 ## [4.5.14] - 2025-10-02
 
 ### Fixed
