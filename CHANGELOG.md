@@ -1,3 +1,22 @@
+## [4.5.16] - 2025-10-02
+
+### Added
+- **/mpm-organize Slash Command**: New intelligent project file organization command
+  - Analyzes project structure and suggests/executes file reorganization
+  - Supports multiple strategies: convention-based, type-based, domain-based
+  - Includes dry-run mode for safe preview of changes
+  - Comprehensive documentation with examples and use cases
+
+### Fixed
+- **PM Instructions**: Allow verification commands for quality assurance
+  - PM can now run `make quality`, `make lint-fix` for verification
+  - Clarified PM cannot write code but can verify quality gates
+- **Slash Command Documentation**: Fixed to match actual CLI implementation
+  - Updated mpm-config.md with correct subcommands (list, get, set, etc.)
+  - Updated mpm-help.md with proper delegation pattern
+  - Updated mpm-status.md with correct usage and examples
+  - All commands now accurately reflect claude-mpm CLI behavior
+
 ## [4.5.15] - 2025-10-02
 
 ### Added
