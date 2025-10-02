@@ -295,7 +295,9 @@ class TestStateManagement:
 
         # Add an old delegation
         old_session = "old-session"
-        old_timestamp = datetime.now(timezone.utc).timestamp() - 400  # More than 5 minutes old
+        old_timestamp = (
+            datetime.now(timezone.utc).timestamp() - 400
+        )  # More than 5 minutes old
         handler.active_delegations[old_session] = "engineer"
         handler.delegation_history.append(
             (f"{old_session}:{old_timestamp}", "engineer")
@@ -371,7 +373,9 @@ class TestStateManagement:
         assert mock_run.call_count == 1  # Still 1, not called again
 
         # Expire the cache
-        handler._git_branch_cache_time["/test/path"] = datetime.now(timezone.utc).timestamp() - 40
+        handler._git_branch_cache_time["/test/path"] = (
+            datetime.now(timezone.utc).timestamp() - 40
+        )
 
         # Third call should execute git command again
         branch3 = handler._get_git_branch("/test/path")

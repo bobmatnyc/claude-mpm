@@ -268,7 +268,7 @@ async def main():
         print("\n🛑 Stopping server...")
         server.stop()
         # Cancel server task to clean up properly
-        if 'server_task' in locals():
+        if "server_task" in locals():
             server_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await server_task

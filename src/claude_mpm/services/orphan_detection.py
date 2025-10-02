@@ -349,9 +349,7 @@ class OrphanDetectionService(SyncBaseService):
             if self.global_registry_file.exists():
                 with self.global_registry_file.open() as f:
                     registry = json.load(f)
-                    managed_ports = {
-                        int(p) for p in registry.get("allocations", {})
-                    }
+                    managed_ports = {int(p) for p in registry.get("allocations", {})}
 
             # Scan all network connections
             for conn in psutil.net_connections(kind="inet"):

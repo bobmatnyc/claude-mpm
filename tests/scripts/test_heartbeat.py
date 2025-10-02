@@ -100,7 +100,9 @@ class HeartbeatMonitor:
                 # Print status every 30 seconds
                 if self.heartbeats_received > 0 and int(time.time()) % 30 == 0:
                     if self.last_heartbeat:
-                        elapsed = (datetime.now(timezone.utc) - self.last_heartbeat).total_seconds()
+                        elapsed = (
+                            datetime.now(timezone.utc) - self.last_heartbeat
+                        ).total_seconds()
                         print(f"⏱️  {elapsed:.0f} seconds since last heartbeat")
 
         except KeyboardInterrupt:

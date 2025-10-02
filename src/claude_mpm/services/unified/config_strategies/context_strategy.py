@@ -299,7 +299,9 @@ class ScopedConfigManager:
 
             # Update context metadata
             if context_id in self.context_manager.contexts:
-                self.context_manager.contexts[context_id].updated_at = datetime.now(timezone.utc)
+                self.context_manager.contexts[context_id].updated_at = datetime.now(
+                    timezone.utc
+                )
 
     def _get_inherited_config(self, context_id: str) -> Dict[str, Any]:
         """Get merged configuration from context hierarchy"""

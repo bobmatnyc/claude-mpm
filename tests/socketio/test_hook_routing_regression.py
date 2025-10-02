@@ -206,7 +206,10 @@ class TestHookRoutingRegression(unittest.TestCase):
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             },
             # Missing type
-            {"data": {"test": "data"}, "timestamp": datetime.now(timezone.utc).isoformat()},
+            {
+                "data": {"test": "data"},
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
             # Malformed hook prefix
             {
                 "type": "hook",  # Exactly "hook", not a prefix

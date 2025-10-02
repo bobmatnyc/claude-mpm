@@ -575,7 +575,9 @@ class CompleteEventFlowTest:
         # Cleanup testers
         if self.socketio_tester:
             with contextlib.suppress(Exception):
-                asyncio.create_task(self.socketio_tester.disconnect_client())  # noqa: RUF006
+                asyncio.create_task(
+                    self.socketio_tester.disconnect_client()
+                )  # noqa: RUF006
                 # Fire-and-forget cleanup during test teardown
 
         if self.browser_tester and self.browser_tester.driver:
