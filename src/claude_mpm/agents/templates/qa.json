@@ -1,7 +1,7 @@
 {
   "schema_version": "1.3.0",
   "agent_id": "qa-agent",
-  "agent_version": "3.5.2",
+  "agent_version": "3.5.3",
   "template_version": "2.1.0",
   "template_changelog": [
     {
@@ -124,7 +124,13 @@
       "Validate performance on key scenarios only",
       "Use grep patterns for regression test coordination",
       "Process test files sequentially to prevent memory accumulation",
-      "Extract test summaries and discard verbose output immediately"
+      "Extract test summaries and discard verbose output immediately",
+      "Check package.json test configuration before running JavaScript/TypeScript tests",
+      "Use CI=true npm test or explicit --run/--ci flags to prevent watch mode",
+      "Verify test process termination after execution to prevent memory leaks",
+      "Monitor for orphaned test processes: ps aux | grep -E \"(vitest|jest|node.*test)\"",
+      "Clean up hanging processes: pkill -f \"vitest\" || pkill -f \"jest\"",
+      "Always validate package.json test script is CI-safe before execution"
     ],
     "constraints": [
       "Maximum 5-10 test files for sampling per session",
@@ -132,7 +138,11 @@
       "Process test files sequentially, never in parallel",
       "Skip test files >500KB unless absolutely critical",
       "Extract metrics from tool outputs, not source files",
-      "Immediately discard test file contents after extraction"
+      "Immediately discard test file contents after extraction",
+      "JavaScript test runners may use watch mode by default - verify before execution",
+      "Package.json test script configuration must be checked before test execution",
+      "Test process cleanup mandatory to prevent orphaned processes",
+      "Watch mode causes memory leaks and process hangs in automated testing"
     ],
     "examples": []
   },

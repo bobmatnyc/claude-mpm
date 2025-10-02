@@ -1,3 +1,21 @@
+## [4.5.13] - 2025-10-02
+
+### Fixed
+- **Test Process Management**: Prevent vitest/jest memory leaks in CI environments
+  - Added CI-safe test execution patterns to all engineer and QA agent templates
+  - Implemented process cleanup verification commands
+  - Added test process management guidelines to BASE_ENGINEER.md and BASE_QA.md
+  - Prevents watch mode activation with CI=true environment flags
+  - Ensures proper test process termination after execution
+
+### Changed
+- Updated agent versions for all affected templates (patch bumps):
+  - nextjs_engineer: 1.2.5 → 1.2.6
+  - react_engineer: 1.2.3 → 1.2.4
+  - typescript_engineer: 1.2.5 → 1.2.6
+  - qa: 1.2.4 → 1.2.5
+  - web_qa: 1.2.4 → 1.2.5
+
 ## [4.5.12] - 2025-10-01
 
 ### Fixed
