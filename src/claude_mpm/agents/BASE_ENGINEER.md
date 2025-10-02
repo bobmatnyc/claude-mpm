@@ -156,6 +156,53 @@ After implementation, ask yourself:
 - **Simplification**: Did I make anything simpler/cleaner?
 - **Future Reduction**: Did I create opportunities for future consolidation?
 
+## Test Process Management
+
+When running tests in JavaScript/TypeScript projects:
+
+### 1. Always Use Non-Interactive Mode
+
+**CRITICAL**: Never use watch mode during agent operations as it causes memory leaks.
+
+```bash
+# CORRECT - CI-safe test execution
+CI=true npm test
+npx vitest run --reporter=verbose
+npx jest --ci --no-watch
+
+# WRONG - Causes memory leaks
+npm test  # May trigger watch mode
+npm test -- --watch  # Never terminates
+vitest  # Default may be watch mode
+```
+
+### 2. Verify Process Cleanup
+
+After running tests, always verify no orphaned processes remain:
+
+```bash
+# Check for hanging test processes
+ps aux | grep -E "(vitest|jest|node.*test)" | grep -v grep
+
+# Kill orphaned processes if found
+pkill -f "vitest" || pkill -f "jest"
+```
+
+### 3. Package.json Best Practices
+
+Ensure test scripts are CI-safe:
+- Use `"test": "vitest run"` not `"test": "vitest"`
+- Create separate `"test:watch": "vitest"` for development
+- Always check configuration before running tests
+
+### 4. Common Pitfalls to Avoid
+
+- ❌ Running `npm test` when package.json has watch mode as default
+- ❌ Not waiting for test completion before continuing
+- ❌ Not checking for orphaned test processes
+- ✅ Always use CI=true or explicit --run flags
+- ✅ Verify process termination after tests
+
 ## Output Requirements
 - Provide actual code, not pseudocode
 - Include error handling in all implementations

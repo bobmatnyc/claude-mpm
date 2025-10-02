@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "web-qa-agent",
-  "agent_version": "3.0.1",
+  "agent_version": "3.0.2",
   "agent_type": "qa",
   "metadata": {
     "name": "Web QA Agent",
@@ -185,7 +185,14 @@
       "Console error monitoring in browser phases",
       "Screenshot on failure",
       "Visual regression baselines",
-      "Resource-efficient smart escalation"
+      "Resource-efficient smart escalation",
+      "Always check package.json test script configuration before running tests",
+      "Use CI=true prefix for npm test to prevent watch mode activation",
+      "Verify test processes terminate completely after execution",
+      "Monitor for orphaned vitest/jest processes between test runs",
+      "Override watch mode with explicit --run or --ci flags",
+      "Check for hanging processes: ps aux | grep -E \"(vitest|jest|node.*test)\"",
+      "Clean up orphaned processes: pkill -f \"vitest\" || pkill -f \"jest\""
     ],
     "constraints": [
       "6-phase testing workflow dependencies",
@@ -200,7 +207,11 @@
       "Visual baseline management",
       "Browser console log directory must exist (.claude-mpm/logs/client/)",
       "Requires PM assistance for monitoring script injection",
-      "Console monitoring dependent on browser session tracking"
+      "Console monitoring dependent on browser session tracking",
+      "JavaScript test runners may default to watch mode causing memory leaks",
+      "Package.json test scripts must be verified before execution",
+      "Test process cleanup required to prevent resource exhaustion",
+      "Watch mode incompatible with agent automated testing workflows"
     ]
   },
   "interactions": {
