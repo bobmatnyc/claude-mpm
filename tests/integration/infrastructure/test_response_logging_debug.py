@@ -48,7 +48,9 @@ def test_delegation_tracking():
         handler.response_tracker = ResponseTracker(config=test_config)
 
         # Test session ID
-        session_id = f"test_session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        session_id = (
+            f"test_session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        )
 
         print(f"\nSession ID: {session_id}")
         print(f"Responses directory: {responses_dir}")

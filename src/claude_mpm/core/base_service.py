@@ -433,7 +433,7 @@ class BaseService(LoggerMixin, ABC):
                 loop = asyncio.get_event_loop()
                 task = loop.create_task(self.stop())
                 # Store reference to prevent GC during shutdown
-                if not hasattr(self, '_shutdown_task'):
+                if not hasattr(self, "_shutdown_task"):
                     self._shutdown_task = task
             except RuntimeError:
                 # No event loop, call stop synchronously

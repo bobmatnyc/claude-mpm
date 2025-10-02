@@ -92,7 +92,9 @@ class AnalyticalPMValidator:
             with open(self.base_pm_path, encoding="utf-8") as f:
                 base_pm_content = f.read()
         except FileNotFoundError as e:
-            raise FileNotFoundError(f"Base PM file not found: {self.base_pm_path}") from e
+            raise FileNotFoundError(
+                f"Base PM file not found: {self.base_pm_path}"
+            ) from e
 
         return instructions_content, base_pm_content
 

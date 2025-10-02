@@ -56,7 +56,8 @@ class MemoryMonitor:
         log_dir.mkdir(exist_ok=True)
 
         file_handler = logging.FileHandler(
-            log_dir / f"memory_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.log"
+            log_dir
+            / f"memory_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.log"
         )
         file_handler.setFormatter(
             logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")

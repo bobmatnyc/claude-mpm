@@ -84,13 +84,18 @@ def test_response_logging():
             print("   ✅ ResponseTracker initialized and enabled")
 
             # Test tracking a response
-            test_session_id = f"test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+            test_session_id = (
+                f"test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+            )
             test_file = tracker.track_response(
                 agent_name="test_agent",
                 request="Test request for response logging verification",
                 response="Test response successfully logged",
                 session_id=test_session_id,
-                metadata={"test": True, "timestamp": datetime.now(timezone.utc).isoformat()},
+                metadata={
+                    "test": True,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
             )
 
             if test_file and test_file.exists():

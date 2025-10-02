@@ -471,6 +471,4 @@ class VercelDeploymentStrategy(DeploymentStrategy):
 
     def _generate_deployment_id(self) -> str:
         """Generate unique deployment ID."""
-        return (
-            f"vercel_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"
-        )
+        return f"vercel_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"

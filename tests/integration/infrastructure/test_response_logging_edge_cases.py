@@ -46,7 +46,9 @@ def test_disabled_tracking():
         handler.response_tracking_enabled = False  # Explicitly disable
         handler.response_tracker = None  # No tracker
 
-        session_id = f"disabled_test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        session_id = (
+            f"disabled_test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        )
 
         print(f"Session ID: {session_id}")
         print(f"Responses directory: {responses_dir}")
@@ -219,7 +221,9 @@ def test_large_responses():
         handler.response_tracking_enabled = True
         handler.response_tracker = ResponseTracker(config=test_config)
 
-        session_id = f"large_test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        session_id = (
+            f"large_test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        )
 
         print(f"Session ID: {session_id}")
         print(f"Responses directory: {responses_dir}")

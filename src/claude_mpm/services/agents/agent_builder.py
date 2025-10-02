@@ -382,7 +382,9 @@ class AgentBuilderService:
                 self._template_cache[template_id] = config
                 return config.copy()
         except Exception as e:
-            raise AgentDeploymentError(f"Failed to load template '{template_id}': {e}") from e
+            raise AgentDeploymentError(
+                f"Failed to load template '{template_id}': {e}"
+            ) from e
 
     def _load_instructions(self, agent_id: str) -> str:
         """Load agent instructions.

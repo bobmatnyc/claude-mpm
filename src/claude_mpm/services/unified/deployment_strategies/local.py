@@ -309,9 +309,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
     def _generate_deployment_id(self) -> str:
         """Generate unique deployment ID."""
-        return (
-            f"local_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"
-        )
+        return f"local_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"
 
     def _create_backup(self, context: DeploymentContext) -> Optional[Path]:
         """Create backup of target before deployment."""
@@ -343,7 +341,9 @@ class LocalDeploymentStrategy(DeploymentStrategy):
     def _write_version_file(self, target_path: Path, version: str) -> None:
         """Write version file to deployment."""
         version_file = target_path / ".version"
-        version_file.write_text(f"{version}\n{datetime.now(timezone.utc).isoformat()}\n")
+        version_file.write_text(
+            f"{version}\n{datetime.now(timezone.utc).isoformat()}\n"
+        )
 
     # Agent deployment methods (consolidating agent_deployment.py patterns)
 

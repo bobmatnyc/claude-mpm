@@ -145,7 +145,6 @@ class ProjectPortAllocator(SyncBaseService):
         port_range = self.port_range_end - self.port_range_start + 1
         return self.port_range_start + (hash_int % port_range)
 
-
     def _is_port_available(self, port: int) -> bool:
         """
         Check if a port is available for binding.

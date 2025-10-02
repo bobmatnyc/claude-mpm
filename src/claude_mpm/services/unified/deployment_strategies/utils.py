@@ -512,7 +512,9 @@ def update_version(
             shutil.copy2(version_file, backup_file)
 
         # Write new version
-        version_file.write_text(f"{new_version}\n{datetime.now(timezone.utc).isoformat()}\n")
+        version_file.write_text(
+            f"{new_version}\n{datetime.now(timezone.utc).isoformat()}\n"
+        )
         return True
 
     except Exception as e:
