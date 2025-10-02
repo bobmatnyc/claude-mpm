@@ -260,7 +260,7 @@ class OneshotSession:
 
     def _build_command(self) -> list:
         """Build the base Claude command."""
-        cmd = ["claude", "--model", "opus", "--dangerously-skip-permissions"]
+        cmd = ["claude", "--dangerously-skip-permissions"]
 
         # Add custom arguments
         if self.runner.claude_args:

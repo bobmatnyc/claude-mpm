@@ -369,7 +369,7 @@ class InteractiveSession:
 
             return cmd
         # Normal mode - full command with all claude-mpm enhancements
-        cmd = ["claude", "--model", "opus", "--dangerously-skip-permissions"]
+        cmd = ["claude", "--dangerously-skip-permissions"]
 
         # Add custom arguments
         if self.runner.claude_args:
