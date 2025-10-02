@@ -1,3 +1,15 @@
+## [4.5.17] - 2025-10-02
+
+### Fixed
+- **Claude Code Startup**: Remove hardcoded model specification from startup commands
+  - Removed hardcoded "--model opus" flags from interactive and oneshot sessions
+  - Now uses Claude Code's default model selection instead of forcing Opus
+  - Users can still override model with --model flag when launching claude-mpm
+  - Affects: interactive_session.py, oneshot_session.py
+
+### Changed
+- **Code Formatting**: Minor formatting improvements in startup_logging.py
+
 ## [4.5.16] - 2025-10-02
 
 ### Added
