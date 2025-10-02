@@ -269,7 +269,9 @@ class ResponseLoggingHealthChecker:
             logger = ClaudeSessionLogger(base_dir=session_dir, config=config)
 
             # Check if we can create a session directory
-            test_session_id = f"health_check_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+            test_session_id = (
+                f"health_check_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+            )
             logger.set_session_id(test_session_id)
 
             # Try to log a test entry

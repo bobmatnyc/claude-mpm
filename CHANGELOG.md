@@ -1,3 +1,15 @@
+## [4.5.14] - 2025-10-02
+
+### Fixed
+- **PyPI Deployment**: Corrected VERSION metadata issue from v4.5.13
+  - Previous 4.5.13 release had mismatched internal VERSION file
+  - Created 4.5.14 with synchronized VERSION across all package files
+  - Includes all vitest/jest memory leak fixes from 4.5.13
+  - Proper version reporting via `claude-mpm --version`
+
+### Note
+This release is functionally identical to 4.5.13 but with corrected version metadata.
+
 ## [4.5.13] - 2025-10-02
 
 ### Fixed

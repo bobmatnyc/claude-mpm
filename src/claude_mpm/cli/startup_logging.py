@@ -717,7 +717,9 @@ def start_vector_search_indexing(project_root: Optional[Path] = None) -> None:
         # Try to get the current event loop
         loop = asyncio.get_running_loop()
         # If we're in an event loop, create a task (fire-and-forget)
-        _task = loop.create_task(trigger_vector_search_indexing(project_root))  # noqa: RUF006
+        _task = loop.create_task(
+            trigger_vector_search_indexing(project_root)
+        )
         # Fire-and-forget: task will complete in background
     except RuntimeError:
         # No event loop running - use subprocess directly to avoid event loop lifecycle issues

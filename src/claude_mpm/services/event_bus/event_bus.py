@@ -201,7 +201,9 @@ class EventBus:
                                                 handler(event_type, data)
                                             )
                                             self._handler_tasks.add(task)
-                                            task.add_done_callback(self._handler_tasks.discard)
+                                            task.add_done_callback(
+                                                self._handler_tasks.discard
+                                            )
                                         else:
                                             loop.run_until_complete(
                                                 handler(event_type, data)

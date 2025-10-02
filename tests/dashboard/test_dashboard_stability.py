@@ -391,7 +391,9 @@ async def generate_report(
         f.write("Claude MPM Dashboard Connection Stability Test Results\n")
         f.write("=" * 60 + "\n\n")
 
-        f.write(f"Test Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(
+            f"Test Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}\n"
+        )
         f.write(f"Dashboard URL: {DASHBOARD_URL}\n\n")
 
         # Single tab results
@@ -460,7 +462,9 @@ async def generate_report(
     print("\n" + "=" * 60)
     print("CLAUDE MPM DASHBOARD STABILITY TEST RESULTS")
     print("=" * 60)
-    print(f"Test completed at: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}")
+    print(
+        f"Test completed at: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}"
+    )
     print(f"Dashboard URL: {DASHBOARD_URL}")
     print()
 

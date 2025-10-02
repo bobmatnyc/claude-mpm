@@ -302,14 +302,16 @@ class TestMemoryCRUDService:
         file1.name = "agent1_memories.md"
         file1.stem = "agent1_memories"
         file1.stat.return_value = MagicMock(
-            st_size=1024, st_mtime=(datetime.now(timezone.utc).timestamp() - (35 * 24 * 60 * 60))
+            st_size=1024,
+            st_mtime=(datetime.now(timezone.utc).timestamp() - (35 * 24 * 60 * 60)),
         )
 
         file2 = MagicMock()
         file2.name = "agent2_memories.md"
         file2.stem = "agent2_memories"
         file2.stat.return_value = MagicMock(
-            st_size=2048, st_mtime=(datetime.now(timezone.utc).timestamp() - (35 * 24 * 60 * 60))
+            st_size=2048,
+            st_mtime=(datetime.now(timezone.utc).timestamp() - (35 * 24 * 60 * 60)),
         )
 
         with patch.object(service, "_get_memory_files", return_value=[file1, file2]):

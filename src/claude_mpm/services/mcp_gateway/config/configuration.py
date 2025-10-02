@@ -171,7 +171,9 @@ class MCPConfiguration(BaseMCPService, IMCPConfiguration):
             return True
 
         except yaml.YAMLError as e:
-            raise MCPConfigurationError(f"Failed to parse YAML configuration: {e}") from e
+            raise MCPConfigurationError(
+                f"Failed to parse YAML configuration: {e}"
+            ) from e
         except Exception as e:
             self.log_error(f"Failed to load configuration: {e}")
             return False
