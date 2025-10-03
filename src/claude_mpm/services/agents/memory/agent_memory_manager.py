@@ -386,29 +386,32 @@ class AgentMemoryManager(MemoryServiceInterface):
                         memory_items = data["Remember"]
 
                     # Process memory items if found and not null
-                    if memory_items is not None and memory_items != "null" and isinstance(memory_items, list) and len(memory_items) > 0:
-                            # Filter out empty strings and None values
-                            valid_items = []
-                            for item in memory_items:
-                                if item and isinstance(item, str) and item.strip():
-                                    valid_items.append(item.strip())
+                    if (
+                        memory_items is not None
+                        and memory_items != "null"
+                        and isinstance(memory_items, list)
+                        and len(memory_items) > 0
+                    ):
+                        # Filter out empty strings and None values
+                        valid_items = []
+                        for item in memory_items:
+                            if item and isinstance(item, str) and item.strip():
+                                valid_items.append(item.strip())
 
-                            # Only proceed if we have valid items
-                            if valid_items:
+                        # Only proceed if we have valid items
+                        if valid_items:
+                            self.logger.info(
+                                f"Found {len(valid_items)} memory items for {agent_id}: {valid_items[:2]}..."
+                            )
+                            success = self._add_learnings_to_memory(
+                                agent_id, valid_items
+                            )
+                            if success:
                                 self.logger.info(
-                                    f"Found {len(valid_items)} memory items for {agent_id}: {valid_items[:2]}..."
+                                    f"Successfully saved {len(valid_items)} memories for {agent_id} to project directory"
                                 )
-                                success = self._add_learnings_to_memory(
-                                    agent_id, valid_items
-                                )
-                                if success:
-                                    self.logger.info(
-                                        f"Successfully saved {len(valid_items)} memories for {agent_id} to project directory"
-                                    )
-                                    return True
-                                self.logger.error(
-                                    f"Failed to save memories for {agent_id}"
-                                )
+                                return True
+                            self.logger.error(f"Failed to save memories for {agent_id}")
 
                 except json.JSONDecodeError as je:
                     # Not valid JSON, continue to next match

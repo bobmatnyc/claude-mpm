@@ -458,7 +458,9 @@ class SocketIOServerCore:
 
                 for encoding in encodings:
                     try:
-                        with Path(abs_path).open(encoding=encoding, ) as f:
+                        with Path(abs_path).open(
+                            encoding=encoding,
+                        ) as f:
                             content = f.read()
                         break
                     except UnicodeDecodeError:

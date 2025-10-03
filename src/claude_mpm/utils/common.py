@@ -46,7 +46,9 @@ def load_json_safe(
     file_path = Path(file_path)
 
     try:
-        with Path(file_path).open(encoding=encoding, ) as f:
+        with Path(file_path).open(
+            encoding=encoding,
+        ) as f:
             return json.load(f)
     except FileNotFoundError:
         logger.debug(f"JSON file not found: {file_path}")
@@ -112,7 +114,9 @@ def load_yaml_safe(
     file_path = Path(file_path)
 
     try:
-        with Path(file_path).open(encoding=encoding, ) as f:
+        with Path(file_path).open(
+            encoding=encoding,
+        ) as f:
             return yaml.safe_load(f) or default or {}
     except FileNotFoundError:
         logger.debug(f"YAML file not found: {file_path}")

@@ -22,7 +22,7 @@ users understand why content was assigned to specific agents.
 
 import re
 from datetime import datetime, timezone
-from typing import ClassVar, Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.framework_loader import FrameworkLoader

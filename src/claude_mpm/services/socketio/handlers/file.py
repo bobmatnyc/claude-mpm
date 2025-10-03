@@ -190,7 +190,9 @@ class FileEventHandler(BaseEventHandler):
 
             # Read file content
             try:
-                with Path(real_path).open(encoding="utf-8", ) as f:
+                with Path(real_path).open(
+                    encoding="utf-8",
+                ) as f:
                     content = f.read()
 
                 # Get file extension for syntax highlighting hint

@@ -274,7 +274,9 @@ class ConflictResolutionManager:
             )
 
         try:
-            with Path(full_path).open(encoding="utf-8", ) as f:
+            with Path(full_path).open(
+                encoding="utf-8",
+            ) as f:
                 content = f.read()
 
             # Parse conflict markers
@@ -587,7 +589,9 @@ class ConflictResolutionManager:
 
         try:
             # Read current content
-            with Path(file_path).open(encoding="utf-8", ) as f:
+            with Path(file_path).open(
+                encoding="utf-8",
+            ) as f:
                 content = f.read()
 
             # Apply resolution strategy

@@ -330,7 +330,11 @@ class LocalTemplateDeploymentService:
         for agent_id, template in templates.items():
             if agent_id in deployed:
                 # Check if needs update
-                if deployed[agent_id]["version"] != template.agent_version and self.deploy_single_local_template(agent_id, force_rebuild=True):
+                if deployed[agent_id][
+                    "version"
+                ] != template.agent_version and self.deploy_single_local_template(
+                    agent_id, force_rebuild=True
+                ):
                     results["updated"].append(agent_id)
             # New agent to deploy
             elif self.deploy_single_local_template(agent_id):

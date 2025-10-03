@@ -15,7 +15,7 @@ DESIGN DECISIONS:
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import ClassVar, Any, Dict, Optional
+from typing import Any, ClassVar, Dict, Optional
 
 from ..models import DiagnosticResult, DiagnosticStatus
 from .base_check import BaseDiagnosticCheck
@@ -186,7 +186,9 @@ class StartupLogCheck(BaseDiagnosticCheck):
         }
 
         try:
-            with Path(log_file).open(encoding="utf-8", ) as f:
+            with Path(log_file).open(
+                encoding="utf-8",
+            ) as f:
                 lines = f.readlines()
 
             # Extract timestamp from filename or first line

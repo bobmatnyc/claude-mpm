@@ -14,7 +14,7 @@ import subprocess
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import ClassVar, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from ..core.logger import get_logger
 
@@ -325,7 +325,13 @@ class MCPServiceVerifier:
                 return True
 
             # Some tools return non-zero but still work
-            if any(word in output for word in ["version", "usage", "help", service_name.lower()]) and not any(error in output for error in ["error", "not found", "traceback", "no module"]):
+            if any(
+                word in output
+                for word in ["version", "usage", "help", service_name.lower()]
+            ) and not any(
+                error in output
+                for error in ["error", "not found", "traceback", "no module"]
+            ):
                 return True
 
             # Try pipx run as fallback
@@ -477,15 +483,19 @@ class MCPServiceVerifier:
                         }
             else:
                 # Direct execution - command should be a valid path
-                if not Path(command).exists() and command != installed_path and not shutil.which(command):
+                if (
+                    not Path(command).exists()
+                    and command != installed_path
+                    and not shutil.which(command)
+                ):
                     # Command path does not exist and cannot be found
                     return {
-                            "configured": True,
-                            "correct": False,
-                            "command": command,
-                            "args": args,
-                            "issue": f"Command path does not exist: {command}",
-                        }
+                        "configured": True,
+                        "correct": False,
+                        "command": command,
+                        "args": args,
+                        "issue": f"Command path does not exist: {command}",
+                    }
 
                 # Check required args
                 for req_arg in required_args:
