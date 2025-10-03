@@ -12,7 +12,7 @@ Created: 2025-01-26
 import ast
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -39,7 +39,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
     """
 
     # Common security vulnerability patterns
-    VULNERABILITY_PATTERNS = {
+    VULNERABILITY_PATTERNS: ClassVar[dict] = {
         "sql_injection": {
             "patterns": [
                 r'(execute|query)\s*\(\s*["\'].*%[s|d].*["\'].*%',
@@ -97,7 +97,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
     }
 
     # Insecure configuration patterns
-    CONFIG_ISSUES = {
+    CONFIG_ISSUES: ClassVar[dict] = {
         "debug_enabled": {
             "patterns": [
                 r"DEBUG\s*=\s*True",
@@ -128,7 +128,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
     }
 
     # Security headers to check
-    SECURITY_HEADERS = [
+    SECURITY_HEADERS: ClassVar[list] = [
         "Content-Security-Policy",
         "X-Content-Type-Options",
         "X-Frame-Options",

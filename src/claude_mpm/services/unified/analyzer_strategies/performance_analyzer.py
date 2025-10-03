@@ -12,7 +12,7 @@ Created: 2025-01-26
 import ast
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -39,7 +39,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
     """
 
     # Performance anti-patterns
-    PERFORMANCE_PATTERNS = {
+    PERFORMANCE_PATTERNS: ClassVar[dict] = {
         "n_plus_one_query": {
             "patterns": [
                 r"for .* in .*:\s*\n.*\.(get|filter|select|find)",
@@ -89,7 +89,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
     }
 
     # Algorithm complexity indicators
-    COMPLEXITY_INDICATORS = {
+    COMPLEXITY_INDICATORS: ClassVar[dict] = {
         "quadratic": ["nested_loops", "bubble_sort", "selection_sort"],
         "exponential": ["recursive_fibonacci", "recursive_factorial"],
         "linear": ["single_loop", "map", "filter"],
@@ -98,7 +98,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
     }
 
     # Memory usage patterns
-    MEMORY_PATTERNS = {
+    MEMORY_PATTERNS: ClassVar[dict] = {
         "memory_leak": {
             "patterns": [
                 r"global\s+\w+\s*=",
