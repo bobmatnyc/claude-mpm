@@ -368,7 +368,6 @@ class UnifiedMonitorServer:
             async def api_file_handler(request):
                 """Handle file content requests."""
                 import json
-                import os
 
                 try:
                     data = await request.json()
@@ -475,7 +474,6 @@ class UnifiedMonitorServer:
             # Configuration endpoint for dashboard initialization
             async def config_handler(request):
                 """Return configuration for dashboard initialization."""
-                import os
                 import subprocess
 
                 config = {

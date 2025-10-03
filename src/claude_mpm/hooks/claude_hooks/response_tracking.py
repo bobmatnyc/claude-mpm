@@ -10,8 +10,8 @@ import os
 import re
 import sys
 from datetime import datetime, timezone
-from typing import Any, Optional
 from pathlib import Path
+from typing import Any, Optional
 
 # Debug mode
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"

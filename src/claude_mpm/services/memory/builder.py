@@ -22,7 +22,6 @@ documentation verbatim. Creates concise learnings that fit memory constraints
 while preserving essential information.
 """
 
-import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path

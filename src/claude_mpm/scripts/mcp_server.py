@@ -6,7 +6,6 @@ It handles proper Python path setup and error reporting to stderr.
 """
 
 import logging
-import os
 import sys
 from pathlib import Path
 

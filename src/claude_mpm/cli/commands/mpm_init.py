@@ -912,7 +912,6 @@ preserving valuable project-specific information while refreshing standard secti
                     )
             finally:
                 # Clean up temporary file
-                import os
 
                 with contextlib.suppress(Exception):
                     Path(prompt_file).unlink()

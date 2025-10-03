@@ -8,10 +8,10 @@ import contextlib
 import os
 import subprocess
 import uuid
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 from claude_mpm.core.logger import get_logger
-from pathlib import Path
 
 
 class InteractiveSession:

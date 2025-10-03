@@ -396,7 +396,6 @@ class SocketIOServerCore:
         # Add working directory endpoint
         async def working_directory_handler(request):
             """Handle GET /api/working-directory to provide current working directory."""
-            import os
             from pathlib import Path
 
             try:
@@ -430,7 +429,6 @@ class SocketIOServerCore:
         # Add file reading endpoint for source viewer
         async def file_read_handler(request):
             """Handle GET /api/file/read for reading source files."""
-            import os
 
             file_path = request.query.get("path", "")
 
