@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Type, Union
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -105,7 +105,7 @@ class BaseErrorHandler(ABC):
 class FileIOErrorHandler(BaseErrorHandler):
     """Handles file I/O errors - consolidates 18 file error patterns"""
 
-    ERROR_MAPPING = {
+    ERROR_MAPPING: ClassVar[dict] = {
         FileNotFoundError: "File not found",
         PermissionError: "Permission denied",
         IsADirectoryError: "Path is a directory",
@@ -241,7 +241,7 @@ class FileIOErrorHandler(BaseErrorHandler):
 class ParsingErrorHandler(BaseErrorHandler):
     """Handles parsing errors - consolidates 22 parsing error patterns"""
 
-    PARSER_ERRORS = {
+    PARSER_ERRORS: ClassVar[dict] = {
         json.JSONDecodeError: ErrorCategory.PARSING,
         ValueError: ErrorCategory.PARSING,  # Common for parsing
         SyntaxError: ErrorCategory.PARSING,
@@ -559,7 +559,7 @@ class ValidationErrorHandler(BaseErrorHandler):
 class NetworkErrorHandler(BaseErrorHandler):
     """Handles network-related errors - consolidates 12 network error patterns"""
 
-    NETWORK_ERRORS = [
+    NETWORK_ERRORS: ClassVar[list] = [
         ConnectionError,
         TimeoutError,
         ConnectionRefusedError,
