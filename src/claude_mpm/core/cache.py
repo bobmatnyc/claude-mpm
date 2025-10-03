@@ -288,10 +288,10 @@ class FileSystemCache:
             """Read file from disk."""
             try:
                 if "b" in mode:
-                    with open(file_path, mode) as f:
+                    with Path(file_path).open(mode) as f:
                         return f.read()
                 else:
-                    with open(file_path, mode, encoding=encoding) as f:
+                    with Path(file_path).open(mode, encoding=encoding) as f:
                         return f.read()
             except Exception as e:
                 self._logger.error(f"Failed to read file {file_path}: {e}")

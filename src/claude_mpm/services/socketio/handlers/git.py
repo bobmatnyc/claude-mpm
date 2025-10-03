@@ -106,7 +106,7 @@ class GitEventHandler(BaseEventHandler):
             """
             try:
                 file_path = data.get("file_path")
-                working_dir = data.get("working_dir", os.getcwd())
+                working_dir = data.get("working_dir", Path.cwd())
 
                 if not file_path:
                     await self.emit_to_client(
@@ -162,7 +162,7 @@ class GitEventHandler(BaseEventHandler):
             """
             try:
                 file_path = data.get("file_path")
-                working_dir = data.get("working_dir", os.getcwd())
+                working_dir = data.get("working_dir", Path.cwd())
 
                 # Debug: check_git_status called
 
@@ -287,7 +287,7 @@ class GitEventHandler(BaseEventHandler):
             """
             try:
                 file_path = data.get("file_path")
-                working_dir = data.get("working_dir", os.getcwd())
+                working_dir = data.get("working_dir", Path.cwd())
 
                 # Debug: git_add_file called
 
@@ -389,7 +389,7 @@ class GitEventHandler(BaseEventHandler):
         if working_dir in invalid_states or (
             isinstance(working_dir, str) and working_dir.strip() == ""
         ):
-            working_dir = os.getcwd()
+            working_dir = Path.cwd()
             self.logger.info(
                 f"[{operation}] working_dir was invalid ({original_working_dir!r}), using cwd: {working_dir}"
             )
@@ -404,7 +404,7 @@ class GitEventHandler(BaseEventHandler):
                 self.logger.warning(
                     f"[{operation}] working_dir contains null bytes, using cwd instead"
                 )
-                working_dir = os.getcwd()
+                working_dir = Path.cwd()
 
         return working_dir
 
@@ -640,7 +640,7 @@ class GitEventHandler(BaseEventHandler):
 
             # Handle case where working_dir is None, empty string, or 'Unknown'
             if not working_dir or working_dir == "Unknown" or working_dir.strip() == "":
-                working_dir = os.getcwd()
+                working_dir = Path.cwd()
                 # Debug: working_dir was invalid, using cwd
             else:
                 # Debug: Using provided working_dir
@@ -648,7 +648,7 @@ class GitEventHandler(BaseEventHandler):
 
             # For read-only git operations, we can work from any directory
             # by passing the -C flag to git commands instead of changing directories
-            original_cwd = os.getcwd()
+            original_cwd = Path.cwd()
             try:
                 # We'll use git -C <working_dir> for all commands instead of chdir
 

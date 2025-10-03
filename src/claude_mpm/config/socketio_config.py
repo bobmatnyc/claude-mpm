@@ -186,7 +186,7 @@ class ConfigManager:
     def detect_environment(self) -> str:
         """Detect the current deployment environment."""
         # Check for Docker
-        if os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER"):
+        if Path("/.dockerenv").exists() or os.getenv("DOCKER_CONTAINER"):
             return "docker"
 
         # Check for production indicators

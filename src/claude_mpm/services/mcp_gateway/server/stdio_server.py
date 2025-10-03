@@ -28,6 +28,7 @@ from mcp.types import TextContent, Tool
 
 # Import pydantic for model patching
 from claude_mpm.core.logger import get_logger
+from pathlib import Path
 
 # Ticket tools removed - using mcp-ticketer instead
 TICKET_TOOLS_AVAILABLE = False
@@ -543,7 +544,7 @@ class SimpleMCPServer:
                     elif info_type == "cwd":
                         import os
 
-                        result = f"Working Directory: {os.getcwd()}"
+                        result = f"Working Directory: {Path.cwd()}"
                     elif info_type == "all":
                         import datetime
                         import os
@@ -554,7 +555,7 @@ class SimpleMCPServer:
                             f"=== System Status ===\n"
                             f"Platform: {platform.system()} {platform.release()}\n"
                             f"Python: {sys.version.split()[0]}\n"
-                            f"Working Directory: {os.getcwd()}\n"
+                            f"Working Directory: {Path.cwd()}\n"
                             f"Server: {self.name} v{self.version}\n"
                             f"Timestamp: {datetime.datetime.now(timezone.utc).isoformat()}\n"
                             f"Tools Available: status, document_summarizer{', ticket' if self.unified_ticket_tool else ''}"

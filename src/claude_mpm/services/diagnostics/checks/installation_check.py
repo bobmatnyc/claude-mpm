@@ -445,7 +445,7 @@ class InstallationCheck(BaseDiagnosticCheck):
 
         # Check cgroup for container indicators
         try:
-            with open("/proc/1/cgroup") as f:
+            with Path("/proc/1/cgroup").open() as f:
                 cgroup = f.read()
                 if "docker" in cgroup:
                     return "Docker"

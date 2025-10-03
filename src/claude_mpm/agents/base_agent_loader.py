@@ -257,7 +257,7 @@ def load_base_agent_instructions(force_reload: bool = False) -> Optional[str]:
         logger.debug(f"Loading base agent instructions from: {base_agent_file}")
 
         # Load JSON and extract instructions
-        with open(base_agent_file, encoding="utf-8") as f:
+        with Path(base_agent_file).open(encoding="utf-8", ) as f:
             base_agent_data = json.load(f)
 
         # Extract instructions from the JSON structure

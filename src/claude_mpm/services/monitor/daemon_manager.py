@@ -858,7 +858,7 @@ class DaemonManager:
             sys.stderr.flush()
 
             # Redirect stdin to /dev/null
-            with open("/dev/null") as null_in:
+            with Path("/dev/null").open() as null_in:
                 os.dup2(null_in.fileno(), sys.stdin.fileno())
 
             # Redirect stdout and stderr to log file
@@ -955,7 +955,7 @@ class DaemonManager:
             except Exception as e:
                 # Try to write error to a debug file since logging might not work
                 try:
-                    with open("/tmp/daemon_debug_error.txt", "a") as debug:
+                    with Path("/tmp/daemon_debug_error.txt").open("a") as debug:
                         debug.write(f"Error reporting error: {e}\n")
                         debug.write(f"Status file: {self.startup_status_file}\n")
                 except Exception:

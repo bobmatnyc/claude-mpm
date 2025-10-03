@@ -106,7 +106,7 @@ class DependencyStrategy:
     def _is_docker(self) -> bool:
         """Check if running inside Docker container."""
         return (
-            os.path.exists("/.dockerenv")
+            Path("/.dockerenv").exists()
             or os.environ.get("KUBERNETES_SERVICE_HOST") is not None
         )
 

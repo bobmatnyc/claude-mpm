@@ -915,7 +915,7 @@ preserving valuable project-specific information while refreshing standard secti
                 import os
 
                 with contextlib.suppress(Exception):
-                    os.unlink(prompt_file)
+                    Path(prompt_file).unlink()
 
             # Display output if verbose
             if verbose and result.stdout:

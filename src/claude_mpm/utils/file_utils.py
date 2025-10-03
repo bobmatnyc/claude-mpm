@@ -149,7 +149,7 @@ def atomic_write(
         # Clean up temporary file if it exists
         try:
             if "temp_path" in locals():
-                os.unlink(temp_path)
+                Path(temp_path).unlink()
         except Exception:
             pass
         raise FileOperationError(f"Failed to atomically write file {path}: {e}") from e
