@@ -17,7 +17,7 @@ Created: 2025-01-26
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import ClassVar, Dict, List, Optional, Tuple
 
 from rich.console import Console
 
@@ -31,7 +31,7 @@ class ProjectOrganizer:
     """Manages project directory structure and organization."""
 
     # Standard directory structure for Claude MPM projects
-    STANDARD_DIRECTORIES = {
+    STANDARD_DIRECTORIES: ClassVar[dict] = {
         "tmp": "Temporary files, test outputs, and experiments",
         "scripts": "Project scripts and automation tools",
         "docs": "Project documentation",
@@ -44,7 +44,7 @@ class ProjectOrganizer:
     }
 
     # Comprehensive gitignore patterns for Claude MPM projects
-    GITIGNORE_DIRS = {
+    GITIGNORE_DIRS: ClassVar[dict] = {
         # Temporary and cache directories
         "tmp/",
         "temp/",
@@ -160,7 +160,7 @@ class ProjectOrganizer:
     }
 
     # Project type specific structures
-    PROJECT_STRUCTURES = {
+    PROJECT_STRUCTURES: ClassVar[dict] = {
         "web": ["public", "src/components", "src/pages", "src/styles"],
         "api": ["src/routes", "src/models", "src/middleware", "src/services"],
         "cli": ["src/commands", "src/utils", "src/config"],

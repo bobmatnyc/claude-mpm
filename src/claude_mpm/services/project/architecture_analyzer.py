@@ -15,7 +15,7 @@ import logging
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import ClassVar, Dict, List
 
 
 @dataclass
@@ -44,7 +44,7 @@ class ArchitectureAnalyzerService:
     """
 
     # Common architectural directories
-    ARCHITECTURE_INDICATORS = {
+    ARCHITECTURE_INDICATORS: ClassVar[dict] = {
         "mvc": ["models", "views", "controllers"],
         "mvvm": ["models", "views", "viewmodels"],
         "layered": ["presentation", "business", "data", "domain"],
@@ -58,7 +58,7 @@ class ArchitectureAnalyzerService:
     }
 
     # Entry point patterns by language/framework
-    ENTRY_POINT_PATTERNS = {
+    ENTRY_POINT_PATTERNS: ClassVar[dict] = {
         "python": [
             "main.py",
             "app.py",
@@ -77,7 +77,7 @@ class ArchitectureAnalyzerService:
     }
 
     # API pattern indicators
-    API_INDICATORS = {
+    API_INDICATORS: ClassVar[dict] = {
         "rest": ["routes", "endpoints", "resources", "api/v", "/api/"],
         "graphql": ["schema.graphql", "resolvers", "typeDefs", "graphql"],
         "grpc": [".proto", "grpc", "protobuf", "rpc"],
@@ -86,7 +86,7 @@ class ArchitectureAnalyzerService:
     }
 
     # Configuration file patterns
-    CONFIG_PATTERNS = {
+    CONFIG_PATTERNS: ClassVar[dict] = {
         "yaml": [".yaml", ".yml"],
         "json": [".json", "config.json", "settings.json"],
         "toml": [".toml", "pyproject.toml", "Cargo.toml"],

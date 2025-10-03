@@ -11,17 +11,17 @@ DESIGN DECISIONS:
 - Provides sanitization for user inputs
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
 
 class TicketValidationService:
     """Service for validating ticket inputs."""
 
     # Valid ticket types
-    VALID_TYPES = ["task", "issue", "epic", "bug", "feature", "story"]
+    VALID_TYPES: ClassVar[list] = ["task", "issue", "epic", "bug", "feature", "story"]
 
     # Valid ticket statuses
-    VALID_STATUSES = [
+    VALID_STATUSES: ClassVar[list] = [
         "open",
         "in_progress",
         "ready",
@@ -34,10 +34,10 @@ class TicketValidationService:
     ]
 
     # Valid priorities
-    VALID_PRIORITIES = ["low", "medium", "high", "critical"]
+    VALID_PRIORITIES: ClassVar[list] = ["low", "medium", "high", "critical"]
 
     # Valid workflow states
-    VALID_WORKFLOW_STATES = [
+    VALID_WORKFLOW_STATES: ClassVar[list] = [
         "todo",
         "in_progress",
         "ready",

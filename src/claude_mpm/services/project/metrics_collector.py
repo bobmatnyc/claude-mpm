@@ -15,7 +15,7 @@ import logging
 from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import ClassVar, Dict, List, Tuple
 
 
 @dataclass
@@ -68,7 +68,7 @@ class MetricsCollectorService:
     """
 
     # File extensions to analyze
-    CODE_EXTENSIONS = {
+    CODE_EXTENSIONS: ClassVar[set] = {
         ".py",
         ".js",
         ".ts",
@@ -90,7 +90,7 @@ class MetricsCollectorService:
     }
 
     # Test file patterns
-    TEST_PATTERNS = [
+    TEST_PATTERNS: ClassVar[list] = [
         "test_",
         "_test.",
         ".test.",
@@ -103,7 +103,7 @@ class MetricsCollectorService:
     ]
 
     # Directories to exclude from analysis
-    EXCLUDE_DIRS = {
+    EXCLUDE_DIRS: ClassVar[set] = {
         ".git",
         "node_modules",
         "vendor",
