@@ -333,7 +333,7 @@ class GitOperationsManager:
         """
         try:
             # Convert to relative path if absolute
-            if os.path.isabs(file_path):
+            if Path(file_path).is_absolute():
                 try:
                     file_path = os.path.relpath(file_path, self.project_root)
                 except ValueError:

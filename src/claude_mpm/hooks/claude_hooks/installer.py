@@ -37,7 +37,7 @@ find_claude_mpm() {
             cmd_path=$(readlink -f "$cmd_path")
         fi
         # Extract the base directory (usually site-packages or venv)
-        local base_dir=$(python3 -c "import claude_mpm; import os; print(os.path.dirname(os.path.dirname(claude_mpm.__file__)))" 2>/dev/null)
+        local base_dir=$(python3 -c "import claude_mpm; import os; print(Path(os.path.dirname(claude_mpm.__file__).parent))" 2>/dev/null)
         if [ -n "$base_dir" ]; then
             echo "$base_dir"
             return 0
@@ -71,7 +71,7 @@ try:
     import claude_mpm
     import os
     # Get the package directory
-    pkg_dir = os.path.dirname(claude_mpm.__file__)
+    pkg_dir = Path(claude_mpm.__file__).parent
     # Check if we're in a development install (src directory)
     if 'src' in pkg_dir:
         # Go up to find the project root
@@ -81,10 +81,10 @@ try:
             project_root = os.sep.join(parts[:src_idx])
             print(project_root)
         else:
-            print(os.path.dirname(os.path.dirname(pkg_dir)))
+            print(Path(os.path.dirname(pkg_dir).parent))
     else:
         # Installed package - just return the package location
-        print(os.path.dirname(pkg_dir))
+        print(Path(pkg_dir).parent)
 except Exception:
     pass
 " 2>/dev/null)
@@ -99,7 +99,7 @@ except Exception:
     for path_dir in $PATH; do
         if [ -f "$path_dir/claude-mpm" ]; then
             # Found claude-mpm executable, try to find its package
-            local pkg_dir=$(cd "$path_dir" && python3 -c "import claude_mpm; import os; print(os.path.dirname(os.path.dirname(claude_mpm.__file__)))" 2>/dev/null)
+            local pkg_dir=$(cd "$path_dir" && python3 -c "import claude_mpm; import os; print(Path(os.path.dirname(claude_mpm.__file__).parent))" 2>/dev/null)
             if [ -n "$pkg_dir" ]; then
                 echo "$pkg_dir"
                 return 0
@@ -339,8 +339,8 @@ main "$@"
 
         # Make sure it's executable
         if script_path.exists():
-            st = os.stat(script_path)
-            os.chmod(script_path, st.st_mode | stat.S_IEXEC)
+            st = Path(script_path).stat()
+            Path(script_path).chmod(st.st_mode | stat.S_IEXEC)
             self._hook_script_path = script_path
             return script_path
 
