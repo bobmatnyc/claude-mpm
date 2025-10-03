@@ -19,22 +19,18 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 # Import from the unified agent registry system
-from .unified_agent_registry import AgentMetadata as UnifiedAgentMetadata
 from .unified_agent_registry import (
+    AgentMetadata as UnifiedAgentMetadata,
     AgentTier,
     AgentType,
-)
-from .unified_agent_registry import discover_agents as unified_discover_agents
-from .unified_agent_registry import get_agent as unified_get_agent
-from .unified_agent_registry import (
+    discover_agents as unified_discover_agents,
+    get_agent as unified_get_agent,
     get_agent_registry,
-)
-from .unified_agent_registry import get_core_agents as unified_get_core_agents
-from .unified_agent_registry import get_registry_stats as unified_get_registry_stats
-from .unified_agent_registry import (
+    get_core_agents as unified_get_core_agents,
+    get_registry_stats as unified_get_registry_stats,
     get_specialized_agents as unified_get_specialized_agents,
+    list_agents as unified_list_agents,
 )
-from .unified_agent_registry import list_agents as unified_list_agents
 
 try:
     from ..core.logger import get_logger
