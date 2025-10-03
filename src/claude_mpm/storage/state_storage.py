@@ -295,7 +295,7 @@ class StateStorage:
         # Unix-like systems with fcntl
         f = None
         try:
-            f = open(file_path, mode)
+            f = Path(file_path).open(mode)
 
             # Try to acquire lock (non-blocking)
             max_attempts = 50

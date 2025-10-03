@@ -240,7 +240,7 @@ class DocumentSummarizerTool(BaseToolAdapter):
 
     def _get_file_hash(self, file_path: str) -> str:
         """Generate hash for file caching."""
-        stat = os.stat(file_path)
+        stat = Path(file_path).stat()
         hash_input = f"{file_path}:{stat.st_size}:{stat.st_mtime}"
         return hashlib.md5(hash_input.encode()).hexdigest()
 

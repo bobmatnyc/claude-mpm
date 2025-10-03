@@ -104,19 +104,19 @@ def has_code_files(directory_path, max_depth=5, current_depth=0):
         return False
 
     try:
-        for item in os.listdir(directory_path):
+        for item in list(Path(directory_path).iterdir()):
             # Skip hidden files/dirs unless in exceptions
             if item.startswith(".") and item not in DOTFILE_EXCEPTIONS:
                 continue
 
-            item_path = os.path.join(directory_path, item)
+            item_path = Path(directory_path) / item
 
-            if os.path.isfile(item_path):
+            if Path(item_path).is_file():
                 # Check if it's a code file
-                ext = os.path.splitext(item)[1].lower()
+                ext = Path(item).suffix.lower()
                 if ext in CODE_EXTENSIONS:
                     return True
-            elif os.path.isdir(item_path):
+            elif Path(item_path).is_dir():
                 # Skip certain directories
                 if item in SKIP_DIRS or item.endswith(".egg-info"):
                     continue
@@ -153,9 +153,9 @@ def should_show_item(item_name, item_path, is_directory):
         if not has_code_files(item_path, max_depth=3):
             # Check if it has any visible subdirectories
             try:
-                for subitem in os.listdir(item_path):
-                    subitem_path = os.path.join(item_path, subitem)
-                    if os.path.isdir(subitem_path):
+                for subitem in list(Path(item_path).iterdir()):
+                    subitem_path = Path(item_path) / subitem
+                    if Path(subitem_path).is_dir():
                         if not subitem.startswith(".") and subitem not in SKIP_DIRS:
                             return True
                 return False
@@ -163,7 +163,7 @@ def should_show_item(item_name, item_path, is_directory):
                 return False
     else:
         # For files, check if it's a code file or documentation
-        ext = os.path.splitext(item_name)[1].lower()
+        ext = Path(item_name).suffix.lower()
         if ext in CODE_EXTENSIONS:
             return True
 
@@ -189,12 +189,12 @@ async def list_directory(request):
     path = request.query.get("path", ".")
 
     # Convert to absolute path
-    abs_path = os.path.abspath(Path(path).expanduser())
+    abs_path = Path(Path(path).resolve().expanduser())
 
     result = {
         "path": abs_path,
         "exists": Path(abs_path).exists(),
-        "is_directory": os.path.isdir(abs_path),
+        "is_directory": Path(abs_path).is_dir(),
         "contents": [],
         "filtered": True,  # Indicate that filtering is applied
         "filter_info": "Showing only code files and directories with code",
@@ -206,11 +206,11 @@ async def list_directory(request):
             gitignore_mgr = GitignoreManager()
 
             # List all items
-            items = os.listdir(abs_path)
+            items = list(Path(abs_path).iterdir())
 
             for item in items:
-                item_path = os.path.join(abs_path, item)
-                is_directory = os.path.isdir(item_path)
+                item_path = Path(abs_path) / item
+                is_directory = Path(item_path).is_dir()
 
                 # Check if item should be ignored by gitignore
                 if gitignore_mgr.should_ignore(Path(item_path), Path(abs_path)):
@@ -226,7 +226,7 @@ async def list_directory(request):
                         "name": item,
                         "path": item_path,
                         "is_directory": is_directory,
-                        "is_file": os.path.isfile(item_path),
+                        "is_file": Path(item_path).is_file(),
                         "is_code_file": not is_directory
                         and any(item.endswith(ext) for ext in CODE_EXTENSIONS),
                     }

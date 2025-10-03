@@ -561,7 +561,7 @@ class DaemonManager:
             # Open log file for output redirection
             log_file_handle = None
             if self.log_file:
-                log_file_handle = open(self.log_file, "a")
+                log_file_handle = Path(self.log_file).open("a")
                 log_file = log_file_handle
             else:
                 log_file = subprocess.DEVNULL

@@ -375,7 +375,7 @@ class UnifiedMonitorServer:
                     file_path = data.get("path", "")
 
                     # Security check: ensure path is absolute and exists
-                    if not file_path or not os.path.isabs(file_path):
+                    if not file_path or not Path(file_path).is_absolute():
                         return web.json_response(
                             {"success": False, "error": "Invalid file path"}, status=400
                         )
@@ -386,7 +386,7 @@ class UnifiedMonitorServer:
                             {"success": False, "error": "File not found"}, status=404
                         )
 
-                    if not os.path.isfile(file_path):
+                    if not Path(file_path).is_file():
                         return web.json_response(
                             {"success": False, "error": "Path is not a file"},
                             status=400,
@@ -394,7 +394,7 @@ class UnifiedMonitorServer:
 
                     # Read file content (with size limit for safety)
                     max_size = 10 * 1024 * 1024  # 10MB limit
-                    file_size = os.path.getsize(file_path)
+                    file_size = Path(file_path).stat().st_size
 
                     if file_size > max_size:
                         return web.json_response(
@@ -417,7 +417,7 @@ class UnifiedMonitorServer:
                         )
 
                     # Get file extension for type detection
-                    file_ext = os.path.splitext(file_path)[1].lstrip(".")
+                    file_ext = Path(file_path).suffix.lstrip(".")
 
                     return web.json_response(
                         {

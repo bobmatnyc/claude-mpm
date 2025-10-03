@@ -118,7 +118,7 @@ def main():
     output_file = None
     if args.output_file:
         try:
-            output_file = open(args.output_file, "w")
+            output_file = Path(args.output_file).open("w")
         except Exception as e:
             emit_json_event(
                 "code:analysis:error", {"message": f"Failed to open output file: {e}"}

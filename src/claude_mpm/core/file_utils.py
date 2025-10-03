@@ -634,7 +634,7 @@ def file_lock(filepath: Union[str, Path], timeout: float = 5.0):
 
         while True:
             try:
-                lock_handle = open(lock_file, "w")
+                lock_handle = Path(lock_file).open("w")
                 fcntl.flock(lock_handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 break
             except OSError as e:
