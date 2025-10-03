@@ -12,7 +12,7 @@ Created: 2025-01-26
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -39,7 +39,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
     """
 
     # Package manager configurations
-    PACKAGE_MANAGERS = {
+    PACKAGE_MANAGERS: ClassVar[dict] = {
         "package.json": "npm",
         "yarn.lock": "yarn",
         "pnpm-lock.yaml": "pnpm",
@@ -59,7 +59,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
     }
 
     # Database-related dependencies
-    DATABASE_PACKAGES = {
+    DATABASE_PACKAGES: ClassVar[dict] = {
         "postgresql": ["psycopg2", "pg", "postgres", "postgresql", "node-postgres"],
         "mysql": ["mysql", "mysql2", "mysqlclient", "mysql-connector"],
         "sqlite": ["sqlite3", "better-sqlite3"],
@@ -71,7 +71,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
     }
 
     # Testing framework packages
-    TESTING_PACKAGES = {
+    TESTING_PACKAGES: ClassVar[dict] = {
         "python": ["pytest", "unittest", "nose", "nose2", "tox", "coverage"],
         "javascript": [
             "jest",
@@ -89,7 +89,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
     }
 
     # Web framework packages
-    FRAMEWORK_PACKAGES = {
+    FRAMEWORK_PACKAGES: ClassVar[dict] = {
         "python": ["django", "flask", "fastapi", "pyramid", "tornado", "aiohttp"],
         "javascript": [
             "express",

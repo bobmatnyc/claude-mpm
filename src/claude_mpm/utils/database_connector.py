@@ -10,7 +10,7 @@ DESIGN DECISION: We prioritize pure Python implementations over native ones
 for better cross-platform compatibility, even if they might be slightly slower.
 """
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, ClassVar, Dict, Optional, Tuple
 
 from ..core.logger import get_logger
 
@@ -26,19 +26,19 @@ class DatabaseConnector:
     """
 
     # Database drivers in order of preference (first is preferred)
-    MYSQL_DRIVERS = [
+    MYSQL_DRIVERS: ClassVar[list] = [
         ("pymysql", "pymysql"),  # Pure Python, no compilation required
         ("mysqlclient", "MySQLdb"),  # Faster but requires MySQL dev headers
         ("mysql-connector-python", "mysql.connector"),  # Oracle's pure Python driver
     ]
 
-    POSTGRESQL_DRIVERS = [
+    POSTGRESQL_DRIVERS: ClassVar[list] = [
         ("psycopg2-binary", "psycopg2"),  # Binary wheel, no compilation
         ("psycopg2", "psycopg2"),  # Requires PostgreSQL dev headers
         ("pg8000", "pg8000"),  # Pure Python alternative
     ]
 
-    ORACLE_DRIVERS = [
+    ORACLE_DRIVERS: ClassVar[list] = [
         ("cx_Oracle", "cx_Oracle"),  # Requires Oracle client libraries
         ("oracledb", "oracledb"),  # Pure Python Oracle driver (newer)
     ]
