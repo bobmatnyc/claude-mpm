@@ -9,7 +9,7 @@ import hashlib
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import ClassVar, Dict
+from typing import Dict
 
 from ..models import DiagnosticResult, DiagnosticStatus
 from .base_check import BaseDiagnosticCheck

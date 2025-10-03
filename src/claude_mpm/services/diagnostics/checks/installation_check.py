@@ -176,7 +176,9 @@ class InstallationCheck(BaseDiagnosticCheck):
 
         # 5. Check if running from source (development mode)
         claude_mpm_path = Path(__file__).parent.parent.parent.parent.parent
-        if (claude_mpm_path / "pyproject.toml").exists() and (claude_mpm_path / ".git").exists():
+        if (claude_mpm_path / "pyproject.toml").exists() and (
+            claude_mpm_path / ".git"
+        ).exists():
             methods_found.append("development")
             details["source_path"] = str(claude_mpm_path)
 
@@ -190,7 +192,11 @@ class InstallationCheck(BaseDiagnosticCheck):
             details["homebrew_python"] = exe_path
 
         # 7. Check for system Python
-        if not in_venv and not methods_found and ("/usr/bin/python" in exe_path or "/usr/local/bin/python" in exe_path):
+        if (
+            not in_venv
+            and not methods_found
+            and ("/usr/bin/python" in exe_path or "/usr/local/bin/python" in exe_path)
+        ):
             methods_found.append("system")
             details["system_python"] = exe_path
 
@@ -198,11 +204,11 @@ class InstallationCheck(BaseDiagnosticCheck):
         if "pipx" not in methods_found:
             pipx_check = self._check_pipx_installation_status()
             if pipx_check and not is_pipx_venv:
-                    # Pipx is installed but we're not running from it
-                    details["pipx_installed"] = True
-                    details["pipx_not_active"] = (
-                        "claude-mpm is installed via pipx but not currently running from pipx environment"
-                    )
+                # Pipx is installed but we're not running from it
+                details["pipx_installed"] = True
+                details["pipx_not_active"] = (
+                    "claude-mpm is installed via pipx but not currently running from pipx environment"
+                )
 
         # 9. Check pip installation status
         try:

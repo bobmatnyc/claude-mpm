@@ -182,12 +182,17 @@ class InjectableService(BaseService, ABC):
                 continue
 
             attr = getattr(self, attr_name, None)
-            if attr and hasattr(attr, "start") and hasattr(attr, "running") and not attr.running:
-                    try:
-                        await attr.start()
-                        logger.debug(f"Started dependency {attr_name}")
-                    except Exception as e:
-                        logger.warning(f"Failed to start dependency {attr_name}: {e}")
+            if (
+                attr
+                and hasattr(attr, "start")
+                and hasattr(attr, "running")
+                and not attr.running
+            ):
+                try:
+                    await attr.start()
+                    logger.debug(f"Started dependency {attr_name}")
+                except Exception as e:
+                    logger.warning(f"Failed to start dependency {attr_name}: {e}")
 
     def __repr__(self) -> str:
         """Enhanced string representation showing dependencies."""

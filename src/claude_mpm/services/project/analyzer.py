@@ -35,7 +35,7 @@ import re
 from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import ClassVar, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.interfaces import ProjectAnalyzerInterface

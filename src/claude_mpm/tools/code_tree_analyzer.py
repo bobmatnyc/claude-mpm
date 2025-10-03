@@ -259,7 +259,9 @@ class GitignoreManager:
 
         patterns = []
         try:
-            with Path(gitignore_path).open(encoding="utf-8", ) as f:
+            with Path(gitignore_path).open(
+                encoding="utf-8",
+            ) as f:
                 for line in f:
                     line = line.strip()
                     # Skip empty lines and comments
@@ -382,7 +384,9 @@ class PythonAnalyzer:
         nodes = []
 
         try:
-            with Path(file_path).open(encoding="utf-8", ) as f:
+            with Path(file_path).open(
+                encoding="utf-8",
+            ) as f:
                 source = f.read()
 
             tree = ast.parse(source, filename=str(file_path))

@@ -99,7 +99,9 @@ class ConfigurationManager:
 
         logger.debug(f"Loading JSON configuration from {file_path}")
         try:
-            with Path(file_path).open(encoding="utf-8", ) as f:
+            with Path(file_path).open(
+                encoding="utf-8",
+            ) as f:
                 config = json.load(f)
             self._update_cache(file_path, config)
             return config
@@ -142,7 +144,9 @@ class ConfigurationManager:
 
         logger.debug(f"Loading YAML configuration from {file_path}")
         try:
-            with Path(file_path).open(encoding="utf-8", ) as f:
+            with Path(file_path).open(
+                encoding="utf-8",
+            ) as f:
                 config = yaml.safe_load(f) or {}
             self._update_cache(file_path, config)
             return config
@@ -185,7 +189,9 @@ class ConfigurationManager:
 
         logger.debug(f"Loading TOML configuration from {file_path}")
         try:
-            with Path(file_path).open(encoding="utf-8", ) as f:
+            with Path(file_path).open(
+                encoding="utf-8",
+            ) as f:
                 config = toml.load(f)
             self._update_cache(file_path, config)
             return config

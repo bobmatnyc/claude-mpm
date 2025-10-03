@@ -254,7 +254,9 @@ class UnifiedConfigService:
             # Apply specified validators or use schema-defined ones
             if validators:
                 for validator_name in validators:
-                    if validator_name in self._validators and not self._validators[validator_name](config, schema):
+                    if validator_name in self._validators and not self._validators[
+                        validator_name
+                    ](config, schema):
                         return False
             else:
                 # Use schema to determine validators
@@ -562,7 +564,11 @@ class UnifiedConfigService:
         """Validate enum values"""
         properties = schema.get("properties", {})
         for key, value in config.items():
-            if key in properties and "enum" in properties[key] and value not in properties[key]["enum"]:
+            if (
+                key in properties
+                and "enum" in properties[key]
+                and value not in properties[key]["enum"]
+            ):
                 return False
         return True
 
@@ -594,8 +600,12 @@ class UnifiedConfigService:
         """Validate unique values in arrays"""
         properties = schema.get("properties", {})
         for key, value in config.items():
-            if (key in properties and properties[key].get("uniqueItems")
-                and isinstance(value, list) and len(value) != len(set(map(str, value)))):
+            if (
+                key in properties
+                and properties[key].get("uniqueItems")
+                and isinstance(value, list)
+                and len(value) != len(set(map(str, value)))
+            ):
                 return False
         return True
 
@@ -639,9 +649,12 @@ class UnifiedConfigService:
         """Recursively validate nested structures"""
         properties = schema.get("properties", {})
         for key, value in config.items():
-            if (key in properties and isinstance(value, dict)
+            if (
+                key in properties
+                and isinstance(value, dict)
                 and "properties" in properties[key]
-                and not self._validate_schema(value, properties[key])):
+                and not self._validate_schema(value, properties[key])
+            ):
                 return False
         return True
 
