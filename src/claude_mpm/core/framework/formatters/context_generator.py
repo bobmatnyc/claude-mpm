@@ -6,9 +6,9 @@ import os
 import platform
 import time as time_module
 from datetime import datetime, timezone
+from pathlib import Path
 
 from claude_mpm.core.logging_utils import get_logger
-from pathlib import Path
 
 
 class ContextGenerator:

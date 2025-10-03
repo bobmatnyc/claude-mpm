@@ -21,7 +21,6 @@ multi-file implementation for better maintainability.
 
 import asyncio
 import json
-import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum

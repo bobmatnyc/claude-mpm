@@ -7,10 +7,10 @@ prompting is appropriate for dependency installation.
 
 import os
 import sys
+from pathlib import Path
 from typing import Dict, Tuple
 
 from ..core.logger import get_logger
-from pathlib import Path
 
 logger = get_logger(__name__)
 

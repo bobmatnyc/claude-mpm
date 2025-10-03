@@ -10,7 +10,6 @@ Part of ISS-0037: Document Summarizer Tool - Intelligent Document Processing
 
 import hashlib
 import mimetypes
-import os
 import re
 from collections import OrderedDict
 from datetime import datetime, timezone

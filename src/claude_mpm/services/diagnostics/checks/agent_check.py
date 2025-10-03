@@ -111,7 +111,6 @@ class AgentCheck(BaseDiagnosticCheck):
 
     def _check_deployed_agents(self) -> DiagnosticResult:
         """Check deployed agents in both project and user directories."""
-        import os
 
         # Check project-level agents first (preferred in development)
         project_agents_dir = Path(Path.cwd()) / ".claude" / "agents"
@@ -188,7 +187,6 @@ class AgentCheck(BaseDiagnosticCheck):
     def _check_agent_versions(self) -> DiagnosticResult:
         """Check if deployed agents are up-to-date."""
         try:
-            import os
 
             from ....services.agents.deployment.agent_version_manager import (
                 AgentVersionManager,
@@ -259,7 +257,6 @@ class AgentCheck(BaseDiagnosticCheck):
     def _validate_agents(self) -> DiagnosticResult:
         """Validate agent configurations."""
         try:
-            import os
 
             from ....services.agents.deployment.agent_validator import AgentValidator
 
