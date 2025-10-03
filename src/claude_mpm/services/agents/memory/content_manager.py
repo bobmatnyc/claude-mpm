@@ -363,10 +363,9 @@ class MemoryContentManager:
 
         # Additional check: if one string contains the other (substring match)
         # This catches cases where one item is a more detailed version of another
-        if len(str1_normalized) > 20 and len(str2_normalized) > 20:
-            if str1_normalized in str2_normalized or str2_normalized in str1_normalized:
-                # Boost similarity for substring matches
-                similarity = max(similarity, 0.85)
+        if len(str1_normalized) > 20 and len(str2_normalized) > 20 and (str1_normalized in str2_normalized or str2_normalized in str1_normalized):
+            # Boost similarity for substring matches
+            similarity = max(similarity, 0.85)
 
         return similarity
 

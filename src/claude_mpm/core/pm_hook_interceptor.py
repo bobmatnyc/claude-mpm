@@ -139,10 +139,8 @@ class PMHookInterceptor:
 
         # Look for todos in positional args
         for arg in args:
-            if isinstance(arg, list) and arg and isinstance(arg[0], dict):
-                # Check if this looks like a todos list
-                if "content" in arg[0] or "id" in arg[0]:
-                    return arg
+            if isinstance(arg, list) and arg and isinstance(arg[0], dict) and ("content" in arg[0] or "id" in arg[0]):
+                return arg
 
         return []
 
@@ -168,11 +166,9 @@ class PMHookInterceptor:
         # Update positional args if todos was passed positionally
         args_list = list(args)
         for i, arg in enumerate(args_list):
-            if isinstance(arg, list) and arg and isinstance(arg[0], dict):
-                # Check if this looks like a todos list
-                if "content" in arg[0] or "id" in arg[0]:
-                    args_list[i] = modified_todos
-                    return tuple(args_list), kwargs
+            if isinstance(arg, list) and arg and isinstance(arg[0], dict) and ("content" in arg[0] or "id" in arg[0]):
+                args_list[i] = modified_todos
+                return tuple(args_list), kwargs
 
         # If we can't find where todos was passed, add as keyword argument
         kwargs = kwargs.copy()

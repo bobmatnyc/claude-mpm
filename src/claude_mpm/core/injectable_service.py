@@ -182,9 +182,7 @@ class InjectableService(BaseService, ABC):
                 continue
 
             attr = getattr(self, attr_name, None)
-            if attr and hasattr(attr, "start") and hasattr(attr, "running"):
-                # It's a service that needs to be started
-                if not attr.running:
+            if attr and hasattr(attr, "start") and hasattr(attr, "running") and not attr.running:
                     try:
                         await attr.start()
                         logger.debug(f"Started dependency {attr_name}")

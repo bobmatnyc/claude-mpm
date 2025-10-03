@@ -209,10 +209,9 @@ class MultiSourceAgentDeploymentService:
                                     f"User agent '{agent_name}' v{other_agent['version']} "
                                     f"overridden by higher {highest_version_agent['source']} version v{highest_version_agent['version']}"
                                 )
-                        elif version_comparison == 0:
+                        elif version_comparison == 0 and other_agent["source"] != highest_version_agent["source"]:
                             # Log info when versions are equal but different sources
-                            if other_agent["source"] != highest_version_agent["source"]:
-                                self.logger.info(
+                            self.logger.info(
                                     f"Using {highest_version_agent['source']} source for '{agent_name}' "
                                     f"(same version v{highest_version_agent['version']} as {other_agent['source']} source)"
                                 )
@@ -850,11 +849,9 @@ class MultiSourceAgentDeploymentService:
                 ):
                     # In development mode, unknown agents are likely system agents being tested
                     return "system"
-                if deployment_context == DeploymentContext.PIPX_INSTALL:
-                    # In pipx mode, unknown agents could be system agents
-                    # Check if agent follows system naming patterns
-                    if agent_name.count("-") <= 2 and len(agent_name) <= 20:
-                        return "system"
+                if deployment_context == DeploymentContext.PIPX_INSTALL and agent_name.count("-") <= 2 and len(agent_name) <= 20:
+                    # In pipx mode, check if agent follows system naming patterns
+                    return "system"
             except Exception:
                 pass
 

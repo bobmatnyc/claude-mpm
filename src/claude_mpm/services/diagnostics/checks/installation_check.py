@@ -176,10 +176,9 @@ class InstallationCheck(BaseDiagnosticCheck):
 
         # 5. Check if running from source (development mode)
         claude_mpm_path = Path(__file__).parent.parent.parent.parent.parent
-        if (claude_mpm_path / "pyproject.toml").exists():
-            if (claude_mpm_path / ".git").exists():
-                methods_found.append("development")
-                details["source_path"] = str(claude_mpm_path)
+        if (claude_mpm_path / "pyproject.toml").exists() and (claude_mpm_path / ".git").exists():
+            methods_found.append("development")
+            details["source_path"] = str(claude_mpm_path)
 
         # 6. Check Homebrew Python
         if not in_venv and "/opt/homebrew" in exe_path:
@@ -191,16 +190,14 @@ class InstallationCheck(BaseDiagnosticCheck):
             details["homebrew_python"] = exe_path
 
         # 7. Check for system Python
-        if not in_venv and not methods_found:
-            if "/usr/bin/python" in exe_path or "/usr/local/bin/python" in exe_path:
-                methods_found.append("system")
-                details["system_python"] = exe_path
+        if not in_venv and not methods_found and ("/usr/bin/python" in exe_path or "/usr/local/bin/python" in exe_path):
+            methods_found.append("system")
+            details["system_python"] = exe_path
 
         # 8. Additional check for pipx if not detected via venv
         if "pipx" not in methods_found:
             pipx_check = self._check_pipx_installation_status()
-            if pipx_check:
-                if not is_pipx_venv:
+            if pipx_check and not is_pipx_venv:
                     # Pipx is installed but we're not running from it
                     details["pipx_installed"] = True
                     details["pipx_not_active"] = (

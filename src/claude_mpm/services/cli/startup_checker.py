@@ -314,9 +314,8 @@ class StartupCheckerService(IStartupChecker):
         try:
             # Try to get config file path from config service
             config_file = getattr(self.config_service, "config_file", None)
-            if config_file and Path(config_file).exists():
-                if not os.access(config_file, os.R_OK):
-                    warnings.append(
+            if config_file and Path(config_file).exists() and not os.access(config_file, os.R_OK):
+                warnings.append(
                         StartupWarning(
                             category="config",
                             message=f"Configuration file is not readable: {config_file}",
