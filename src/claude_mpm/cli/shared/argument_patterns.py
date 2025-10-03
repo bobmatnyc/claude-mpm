@@ -20,65 +20,65 @@ class CommonArguments:
         "help": "Enable verbose output",
     }
 
-    QUIET = {
+    QUIET: ClassVar[Dict[str, Any]] = {
         "flags": ["-q", "--quiet"],
         "action": "store_true",
         "help": "Suppress non-error output",
     }
 
-    DEBUG = {
+    DEBUG: ClassVar[Dict[str, Any]] = {
         "flags": ["--debug"],
         "action": "store_true",
         "help": "Enable debug logging",
     }
 
     # Configuration arguments
-    CONFIG_FILE = {
+    CONFIG_FILE: ClassVar[Dict[str, Any]] = {
         "flags": ["-c", "--config"],
         "type": Path,
         "help": "Path to configuration file",
     }
 
-    CONFIG_DIR = {
+    CONFIG_DIR: ClassVar[Dict[str, Any]] = {
         "flags": ["--config-dir"],
         "type": Path,
         "help": "Configuration directory path",
     }
 
     # Output arguments
-    OUTPUT_FORMAT = {
+    OUTPUT_FORMAT: ClassVar[Dict[str, Any]] = {
         "flags": ["-f", "--format"],
         "choices": ["json", "yaml", "table", "text"],
         "default": "text",
         "help": "Output format",
     }
 
-    OUTPUT_FILE = {
+    OUTPUT_FILE: ClassVar[Dict[str, Any]] = {
         "flags": ["-o", "--output"],
         "type": Path,
         "help": "Output file path",
     }
 
     # Common flags
-    FORCE = {
+    FORCE: ClassVar[Dict[str, Any]] = {
         "flags": ["--force"],
         "action": "store_true",
         "help": "Force operation without confirmation",
     }
 
-    DRY_RUN = {
+    DRY_RUN: ClassVar[Dict[str, Any]] = {
         "flags": ["--dry-run"],
         "action": "store_true",
         "help": "Show what would be done without executing",
     }
 
     # Agent-related arguments
-    AGENT_NAME = {"flags": ["--agent"], "help": "Agent name or pattern"}
+    AGENT_NAME: ClassVar[Dict[str, Any]] = {"flags": ["--agent"], "help": "Agent name or pattern"}
 
-    AGENT_DIR = {"flags": ["--agent-dir"], "type": Path, "help": "Agent directory path"}
+    AGENT_DIR: ClassVar[Dict[str, Any]] = {"flags": ["--agent-dir"], "type": Path, "help": "Agent directory path"}
 
     # Memory-related arguments
-    MEMORY_DIR = {
+    MEMORY_DIR: ClassVar[Dict[str, Any]] = {
         "flags": ["--memory-dir"],
         "type": Path,
         "help": "Memory directory path",
