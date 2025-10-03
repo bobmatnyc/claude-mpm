@@ -8,7 +8,7 @@ Critical for ensuring agents work correctly with Claude Code.
 """
 
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import ClassVar, Dict, List, Optional, Tuple
 
 import yaml
 
@@ -21,7 +21,7 @@ class FrontmatterValidator:
     NAME_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
     # Valid tool names (from Claude Code spec)
-    VALID_TOOLS = {
+    VALID_TOOLS: ClassVar[set] = {
         "Read",
         "Write",
         "Edit",
@@ -41,10 +41,10 @@ class FrontmatterValidator:
     }
 
     # Valid model tiers
-    VALID_MODELS = {"opus", "sonnet", "haiku"}
+    VALID_MODELS: ClassVar[set] = {"opus", "sonnet", "haiku"}
 
     # Required fields in frontmatter
-    REQUIRED_FIELDS = {"name", "description", "tools"}
+    REQUIRED_FIELDS: ClassVar[set] = {"name", "description", "tools"}
 
     @classmethod
     def validate_name(cls, name: str) -> Tuple[bool, Optional[str]]:

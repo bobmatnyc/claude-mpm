@@ -21,7 +21,7 @@ import time
 from dataclasses import dataclass
 from datetime import timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 try:
     import pathspec
@@ -53,7 +53,7 @@ class GitignoreManager:
     """
 
     # Default patterns that should always be ignored
-    DEFAULT_PATTERNS = [
+    DEFAULT_PATTERNS: ClassVar[list] = [
         ".git/",
         "__pycache__/",
         "*.pyc",
@@ -87,13 +87,13 @@ class GitignoreManager:
     ]
 
     # Additional patterns to hide dotfiles (when enabled)
-    DOTFILE_PATTERNS = [
+    DOTFILE_PATTERNS: ClassVar[list] = [
         ".*",  # All dotfiles
         ".*/",  # All dot directories
     ]
 
     # Important files/directories to always show
-    DOTFILE_EXCEPTIONS = {
+    DOTFILE_EXCEPTIONS: ClassVar[set] = {
         # Removed .gitignore from exceptions - it should be hidden by default
         ".env.example",
         ".env.sample",
@@ -634,7 +634,7 @@ class MultiLanguageAnalyzer:
     allowing us to support JavaScript, TypeScript, and other languages.
     """
 
-    LANGUAGE_PARSERS = {
+    LANGUAGE_PARSERS: ClassVar[dict] = {
         "python": "tree_sitter_python",
         "javascript": "tree_sitter_javascript",
         "typescript": "tree_sitter_typescript",
@@ -836,7 +836,7 @@ class CodeTreeAnalyzer:
     """
 
     # Define code file extensions at class level for directory filtering
-    CODE_EXTENSIONS = {
+    CODE_EXTENSIONS: ClassVar[set] = {
         ".py",
         ".js",
         ".jsx",
@@ -887,7 +887,7 @@ class CodeTreeAnalyzer:
     }
 
     # File extensions to language mapping
-    LANGUAGE_MAP = {
+    LANGUAGE_MAP: ClassVar[dict] = {
         ".py": "python",
         ".js": "javascript",
         ".jsx": "javascript",
