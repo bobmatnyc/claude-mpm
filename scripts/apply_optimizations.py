@@ -8,7 +8,7 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -51,7 +51,7 @@ class OptimizationApplicator:
                 new_lines = []
                 import_added = False
 
-                for i, line in enumerate(lines):
+                for _i, line in enumerate(lines):
                     # Skip the old import logging line
                     if line.strip() == "import logging":
                         # Check if logging is used for other purposes
@@ -172,7 +172,7 @@ class OptimizationApplicator:
             if len(self.modified_files) > 10:
                 print(f"  ... and {len(self.modified_files) - 10} more")
 
-    def run(self, target_dirs: List[str] = None) -> None:
+    def run(self, target_dirs: Optional[List[str]] = None) -> None:
         """Run the optimization process."""
         print("Applying Phase 1 Optimizations")
         print("=" * 60)

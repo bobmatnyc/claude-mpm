@@ -50,12 +50,12 @@ def _should_enable_watchdog(self) -> bool:
     if os.environ.get('CLAUDE_MPM_NO_WATCH', '').lower() in ('1', 'true', 'yes'):
         self.logger.info("Watchdog monitoring disabled by CLAUDE_MPM_NO_WATCH environment variable")
         return False
-    
+
     # Check if running in monitor mode (passed via service initialization)
     if hasattr(self, '_monitor_mode') and self._monitor_mode:
         self.logger.info("Watchdog monitoring disabled in monitor mode")
         return False
-    
+
     return True
 '''
 
@@ -89,7 +89,7 @@ def _should_enable_watchdog(self) -> bool:
                     indent_str = content[line_start:line_start + indent]
 
                     # Replace the observer.start() with conditional check
-                    old_line = content[line_start:content.find("\n", observer_start_idx)]
+                    content[line_start:content.find("\n", observer_start_idx)]
                     new_lines = f'''{indent_str}# Check if watchdog should be enabled
 {indent_str}if self._should_enable_watchdog():
 {indent_str}    self.observer.start()
@@ -113,9 +113,8 @@ def _should_enable_watchdog(self) -> bool:
     # Save backup
     backup_file = tracker_file.with_suffix('.py.backup')
     print(f"\n📦 Creating backup at: {backup_file}")
-    with open(backup_file, 'w') as f:
-        with open(tracker_file) as orig:
-            f.write(orig.read())
+    with open(backup_file, 'w') as f, open(tracker_file) as orig:
+        f.write(orig.read())
 
     # Write patched file
     print(f"💾 Writing patched file to: {tracker_file}")

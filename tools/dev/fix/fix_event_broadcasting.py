@@ -37,13 +37,13 @@ def fix_server_broadcasting():
                 # Log receipt if debugging
                 event_type = event_data.get("subtype") or event_data.get("hook_event_name") or "unknown"
                 self.logger.debug(f"Received HTTP event: {event_type}")
-                
+
                 # Transform hook event format to claude_event format if needed
                 if "hook_event_name" in event_data and "event" not in event_data:
                     # This is a raw hook event, transform it
                     from claude_mpm.services.socketio.event_normalizer import EventNormalizer
                     normalizer = EventNormalizer()
-                    
+
                     # Create the format expected by normalizer
                     raw_event = {
                         "type": "hook",
@@ -53,7 +53,7 @@ def fix_server_broadcasting():
                         "source": "claude_hooks",
                         "session_id": event_data.get("session_id"),
                     }
-                    
+
                     # Map hook event names to dashboard subtypes
                     subtype_map = {
                         "UserPromptSubmit": "user_prompt",
@@ -64,7 +64,7 @@ def fix_server_broadcasting():
                         "AssistantResponse": "assistant_response"
                     }
                     raw_event["subtype"] = subtype_map.get(event_data.get("hook_event_name"), "unknown")
-                    
+
                     normalized = normalizer.normalize(raw_event, source="hook")
                     event_data = normalized.to_dict()
 
@@ -99,7 +99,7 @@ def add_debug_logging():
                     # Debug: Log what we're broadcasting
                     self.logger.info(f"Broadcasting claude_event to {len(self.connected_clients)} clients")
                     self.logger.debug(f"Event data keys: {list(event_data.keys())}")
-                    
+
                     # The event is already in claude_event format from the hook handler
                     await self.sio.emit("claude_event", event_data)
                     self.logger.info(f"✅ Broadcast complete")'''
