@@ -11,7 +11,7 @@ Created: 2025-01-26
 
 import fnmatch
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -38,7 +38,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
     """
 
     # Common project patterns
-    PROJECT_PATTERNS = {
+    PROJECT_PATTERNS: ClassVar[dict] = {
         "mvc": {
             "dirs": ["models", "views", "controllers"],
             "confidence": 0.8,
@@ -62,7 +62,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
     }
 
     # Language-specific structure patterns
-    LANGUAGE_STRUCTURES = {
+    LANGUAGE_STRUCTURES: ClassVar[dict] = {
         "python": {
             "src_patterns": ["src", "lib", "app"],
             "test_patterns": ["tests", "test", "spec"],
@@ -90,7 +90,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
     }
 
     # Common ignore patterns
-    IGNORE_PATTERNS = [
+    IGNORE_PATTERNS: ClassVar[list] = [
         "*.pyc",
         "__pycache__",
         ".git",
