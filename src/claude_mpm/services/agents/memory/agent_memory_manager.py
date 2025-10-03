@@ -22,7 +22,7 @@ following the naming convention: {agent_id}_memories.md
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.interfaces import MemoryServiceInterface
@@ -53,7 +53,7 @@ class AgentMemoryManager(MemoryServiceInterface):
 
     # Default limits - will be overridden by configuration
     # Updated to support 20k tokens (~80KB) for enhanced memory capacity
-    DEFAULT_MEMORY_LIMITS = {
+    DEFAULT_MEMORY_LIMITS: ClassVar[dict[str, int]] = {
         "max_file_size_kb": 80,  # Increased from 8KB to 80KB (20k tokens)
         "max_items": 100,  # Maximum total memory items
         "max_line_length": 120,
