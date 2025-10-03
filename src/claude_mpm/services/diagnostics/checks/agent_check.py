@@ -114,7 +114,7 @@ class AgentCheck(BaseDiagnosticCheck):
         import os
 
         # Check project-level agents first (preferred in development)
-        project_agents_dir = Path(os.getcwd()) / ".claude" / "agents"
+        project_agents_dir = Path(Path.cwd()) / ".claude" / "agents"
         user_agents_dir = Path.home() / ".claude" / "agents"
 
         # Determine which directory to check
@@ -197,7 +197,7 @@ class AgentCheck(BaseDiagnosticCheck):
             version_manager = AgentVersionManager()
 
             # Check both project and user directories
-            project_agents_dir = Path(os.getcwd()) / ".claude" / "agents"
+            project_agents_dir = Path(Path.cwd()) / ".claude" / "agents"
             user_agents_dir = Path.home() / ".claude" / "agents"
 
             if project_agents_dir.exists():
@@ -266,7 +266,7 @@ class AgentCheck(BaseDiagnosticCheck):
             AgentValidator()
 
             # Check both project and user directories
-            project_agents_dir = Path(os.getcwd()) / ".claude" / "agents"
+            project_agents_dir = Path(Path.cwd()) / ".claude" / "agents"
             user_agents_dir = Path.home() / ".claude" / "agents"
 
             if project_agents_dir.exists():
@@ -331,7 +331,7 @@ class AgentCheck(BaseDiagnosticCheck):
         issues = []
 
         # Check both project and user directories
-        project_agents_dir = Path(os.getcwd()) / ".claude" / "agents"
+        project_agents_dir = Path(Path.cwd()) / ".claude" / "agents"
         user_agents_dir = Path.home() / ".claude" / "agents"
 
         if project_agents_dir.exists():

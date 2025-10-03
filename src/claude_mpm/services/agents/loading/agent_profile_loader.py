@@ -113,7 +113,7 @@ class AgentProfileLoader(BaseService):
         super().__init__(name="agent_profile_loader", config=config)
 
         # Core configuration
-        self.working_directory = Path(os.getcwd())
+        self.working_directory = Path(Path.cwd())
         self.framework_path = self._detect_framework_path()
         self.user_home = Path.home()
 

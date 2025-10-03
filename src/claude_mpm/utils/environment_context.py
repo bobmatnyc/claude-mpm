@@ -10,6 +10,7 @@ import sys
 from typing import Dict, Tuple
 
 from ..core.logger import get_logger
+from pathlib import Path
 
 logger = get_logger(__name__)
 
@@ -139,7 +140,7 @@ class EnvironmentContext:
         """
         # Check for Docker-specific files
         for indicator_file in cls.CONTAINER_INDICATORS:
-            if os.path.exists(indicator_file):
+            if Path(indicator_file).exists():
                 logger.debug(f"Container detected via {indicator_file}")
                 return True
 
@@ -149,7 +150,7 @@ class EnvironmentContext:
 
         # Check cgroup for docker/containerd references
         try:
-            with open("/proc/1/cgroup") as f:
+            with Path("/proc/1/cgroup").open() as f:
                 cgroup_content = f.read()
                 if "docker" in cgroup_content or "containerd" in cgroup_content:
                     return True

@@ -8,6 +8,7 @@ import time as time_module
 from datetime import datetime, timezone
 
 from claude_mpm.core.logging_utils import get_logger
+from pathlib import Path
 
 
 class ContextGenerator:
@@ -117,7 +118,7 @@ class ContextGenerator:
 
                 # Add home directory if available
                 try:
-                    home_dir = os.path.expanduser("~")
+                    home_dir = Path("~").expanduser()
                     if home_dir and home_dir != "~":
                         context_lines.append(f"**Home Directory**: {home_dir}\n")
                 except Exception:
@@ -168,7 +169,7 @@ class ContextGenerator:
         """
         try:
             # Add current working directory
-            cwd = os.getcwd()
+            cwd = Path.cwd()
             if cwd:
                 context_lines.append(f"**Working Directory**: {cwd}\n")
         except Exception:

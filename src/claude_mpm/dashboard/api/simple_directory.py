@@ -189,11 +189,11 @@ async def list_directory(request):
     path = request.query.get("path", ".")
 
     # Convert to absolute path
-    abs_path = os.path.abspath(os.path.expanduser(path))
+    abs_path = os.path.abspath(Path(path).expanduser())
 
     result = {
         "path": abs_path,
-        "exists": os.path.exists(abs_path),
+        "exists": Path(abs_path).exists(),
         "is_directory": os.path.isdir(abs_path),
         "contents": [],
         "filtered": True,  # Indicate that filtering is applied

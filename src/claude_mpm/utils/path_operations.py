@@ -136,7 +136,7 @@ class PathOperations:
                 logger.warning(f"File not readable: {path}")
                 return default
 
-            with open(path_obj, encoding=encoding) as f:
+            with Path(path_obj).open(encoding=encoding, ) as f:
                 return f.read()
         except Exception as e:
             logger.error(f"Error reading file {path}: {e}")

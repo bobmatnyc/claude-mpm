@@ -39,7 +39,7 @@ class MemoryManagementCommand(MemoryCommand):
             config_loader = ConfigLoader()
             config = config_loader.load_main_config()
             # Use CLAUDE_MPM_USER_PWD if available, otherwise use current working directory
-            user_pwd = os.environ.get("CLAUDE_MPM_USER_PWD", os.getcwd())
+            user_pwd = os.environ.get("CLAUDE_MPM_USER_PWD", Path.cwd())
             current_dir = Path(user_pwd)
             self._memory_manager = AgentMemoryManager(config, current_dir)
         return self._memory_manager

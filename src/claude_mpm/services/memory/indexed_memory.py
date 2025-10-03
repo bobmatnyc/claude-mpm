@@ -573,7 +573,7 @@ class IndexedMemoryService:
         self.text_index.save(self.data_dir / "text_index.pkl")
 
         # Save other indexes
-        with open(self.data_dir / "indexes.pkl", "wb") as f:
+        with Path(self.data_dir / "indexes.pkl").open("wb") as f:
             pickle.dump(
                 {
                     "memories": self.memories,

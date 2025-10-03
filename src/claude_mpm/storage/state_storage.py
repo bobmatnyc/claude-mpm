@@ -268,7 +268,7 @@ class StateStorage:
             finally:
                 # Clean up temp file if it still exists
                 if Path(temp_path).exists():
-                    os.unlink(temp_path)
+                    Path(temp_path).unlink()
 
         except Exception as e:
             self.logger.error(f"Atomic write failed for {file_path}: {e}")
@@ -288,7 +288,7 @@ class StateStorage:
         """
         if not self.supports_locking:
             # No locking on Windows
-            with open(file_path, mode) as f:
+            with Path(file_path).open(mode) as f:
                 yield f
             return
 

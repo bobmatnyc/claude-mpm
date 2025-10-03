@@ -121,7 +121,7 @@ class DaemonLifecycle:
             sys.stderr.flush()
 
             # Redirect stdin to /dev/null
-            with open("/dev/null") as null_in:
+            with Path("/dev/null").open() as null_in:
                 os.dup2(null_in.fileno(), sys.stdin.fileno())
 
             # Redirect stdout and stderr

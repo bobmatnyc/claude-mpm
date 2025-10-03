@@ -400,7 +400,7 @@ class SocketIOServerCore:
             from pathlib import Path
 
             try:
-                working_dir = os.getcwd()
+                working_dir = Path.cwd()
                 home_dir = str(Path.home())
 
                 return web.json_response(
@@ -437,17 +437,17 @@ class SocketIOServerCore:
             if not file_path:
                 return web.json_response({"error": "No path provided"}, status=400)
 
-            abs_path = os.path.abspath(os.path.expanduser(file_path))
+            abs_path = os.path.abspath(Path(file_path).expanduser())
 
             # Security check - ensure file is within the project
             try:
-                project_root = os.getcwd()
+                project_root = Path.cwd()
                 if not abs_path.startswith(project_root):
                     return web.json_response({"error": "Access denied"}, status=403)
             except Exception:
                 pass
 
-            if not os.path.exists(abs_path):
+            if not Path(abs_path).exists():
                 return web.json_response({"error": "File not found"}, status=404)
 
             if not os.path.isfile(abs_path):
@@ -460,7 +460,7 @@ class SocketIOServerCore:
 
                 for encoding in encodings:
                     try:
-                        with open(abs_path, encoding=encoding) as f:
+                        with Path(abs_path).open(encoding=encoding, ) as f:
                             content = f.read()
                         break
                     except UnicodeDecodeError:

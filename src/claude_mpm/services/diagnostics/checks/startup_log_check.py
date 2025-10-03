@@ -186,7 +186,7 @@ class StartupLogCheck(BaseDiagnosticCheck):
         }
 
         try:
-            with open(log_file, encoding="utf-8") as f:
+            with Path(log_file).open(encoding="utf-8", ) as f:
                 lines = f.readlines()
 
             # Extract timestamp from filename or first line
