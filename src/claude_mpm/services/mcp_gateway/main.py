@@ -179,10 +179,9 @@ class MCPGatewayOrchestrator:
 
             # Load configuration
             self.configuration = MCPConfiguration()
-            if self.config_path and self.config_path.exists():
-                if not self.configuration.load_config(self.config_path):
-                    self.logger.error("Failed to load configuration")
-                    return False
+            if self.config_path and self.config_path.exists() and not self.configuration.load_config(self.config_path):
+                self.logger.error("Failed to load configuration")
+                return False
 
             # Initialize tool registry with error handling
             try:

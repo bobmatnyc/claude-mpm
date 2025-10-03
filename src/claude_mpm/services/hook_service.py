@@ -278,12 +278,11 @@ class HookService(HookServiceInterface):
         if hook_type in ["pre_delegation", "post_delegation"]:
             # If any registered hooks are memory-related, check memory.enabled
             for hook in getattr(self, f"{hook_type}_hooks", []):
-                if "memory" in hook.name.lower():
-                    if not self.config.get("memory.enabled", True):
-                        self.logger.debug(
-                            "Memory hooks disabled via memory.enabled config"
-                        )
-                        return False
+                if "memory" in hook.name.lower() and not self.config.get("memory.enabled", True):
+                    self.logger.debug(
+                        "Memory hooks disabled via memory.enabled config"
+                    )
+                    return False
 
         return True
 
