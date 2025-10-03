@@ -12,7 +12,6 @@ DESIGN DECISIONS:
 - Compatible with UnifiedMonitorServer architecture
 """
 
-import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 

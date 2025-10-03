@@ -5,7 +5,6 @@ safely with security checks. Separating file operations improves security
 auditing and makes it easier to add file-related features.
 """
 
-import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 

@@ -5,7 +5,6 @@ to enable monitor event forwarding via Socket.IO.
 """
 
 import json
-import os
 import shutil
 import stat
 import sys

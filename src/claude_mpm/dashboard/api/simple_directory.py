@@ -1,6 +1,5 @@
 """Simple directory listing API with proper filtering to match main code explorer"""
 
-import os
 from pathlib import Path
 
 from aiohttp import web

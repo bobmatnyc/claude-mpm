@@ -18,6 +18,7 @@ import os
 import sys
 import time
 from datetime import timezone
+from pathlib import Path
 from typing import Any, Dict
 
 # Import MCP SDK components
@@ -28,7 +29,6 @@ from mcp.types import TextContent, Tool
 
 # Import pydantic for model patching
 from claude_mpm.core.logger import get_logger
-from pathlib import Path
 
 # Ticket tools removed - using mcp-ticketer instead
 TICKET_TOOLS_AVAILABLE = False
@@ -542,12 +542,10 @@ class SimpleMCPServer:
 
                         result = f"Python: {sys.version}"
                     elif info_type == "cwd":
-                        import os
 
                         result = f"Working Directory: {Path.cwd()}"
                     elif info_type == "all":
                         import datetime
-                        import os
                         import platform
                         import sys
 

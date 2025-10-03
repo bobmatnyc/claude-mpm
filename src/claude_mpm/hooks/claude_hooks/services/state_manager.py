@@ -12,8 +12,8 @@ import subprocess
 import time
 from collections import deque
 from datetime import datetime, timezone
-from typing import Optional
 from pathlib import Path
+from typing import Optional
 
 # Import constants for configuration
 try:

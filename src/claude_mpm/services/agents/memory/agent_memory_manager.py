@@ -22,7 +22,6 @@ following the naming convention: {agent_id}_memories.md
 """
 
 import logging
-import os
 from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.config import Config
