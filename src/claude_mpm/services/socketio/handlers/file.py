@@ -44,7 +44,7 @@ class FileEventHandler(BaseEventHandler):
             )
             try:
                 file_path = data.get("file_path")
-                working_dir = data.get("working_dir", os.getcwd())
+                working_dir = data.get("working_dir", Path.cwd())
                 max_size = data.get("max_size", 1024 * 1024)  # 1MB default limit
 
                 if not file_path:
@@ -125,7 +125,7 @@ class FileEventHandler(BaseEventHandler):
         """
         try:
             if working_dir is None:
-                working_dir = os.getcwd()
+                working_dir = Path.cwd()
 
             # Resolve absolute path based on working directory
             file_path_obj = Path(file_path)
@@ -191,7 +191,7 @@ class FileEventHandler(BaseEventHandler):
 
             # Read file content
             try:
-                with open(real_path, encoding="utf-8") as f:
+                with Path(real_path).open(encoding="utf-8", ) as f:
                     content = f.read()
 
                 # Get file extension for syntax highlighting hint

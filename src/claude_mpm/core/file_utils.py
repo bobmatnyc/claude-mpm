@@ -173,10 +173,10 @@ def safe_read(
 
     try:
         if "b" in mode:
-            with open(filepath, mode) as f:
+            with Path(filepath).open(mode) as f:
                 return f.read()
         else:
-            with open(filepath, mode, encoding=encoding) as f:
+            with Path(filepath).open(mode, encoding=encoding) as f:
                 return f.read()
     except (OSError, UnicodeDecodeError) as e:
         logger.error(f"Error reading file {filepath}: {e}")
@@ -206,7 +206,7 @@ def safe_read_lines(
         return []
 
     try:
-        with open(filepath, encoding=encoding) as f:
+        with Path(filepath).open(encoding=encoding, ) as f:
             lines = []
             for i, line in enumerate(f):
                 if max_lines is not None and i >= max_lines:
@@ -320,10 +320,10 @@ def safe_write(
 
     try:
         if "b" in mode:
-            with open(filepath, mode) as f:
+            with Path(filepath).open(mode) as f:
                 f.write(content)
         else:
-            with open(filepath, mode, encoding=encoding) as f:
+            with Path(filepath).open(mode, encoding=encoding) as f:
                 f.write(content)
         return True
     except OSError as e:
@@ -368,14 +368,14 @@ def atomic_write(
                 f.write(content)
 
         # Atomic rename
-        os.replace(temp_path, filepath)
+        Path(temp_path).replace(filepath)
         return True
 
     except OSError as e:
         logger.error(f"Error in atomic write to {filepath}: {e}")
         # Clean up temporary file
         with suppress(Exception):
-            os.unlink(temp_path)
+            Path(temp_path).unlink()
         return False
 
 

@@ -381,7 +381,7 @@ class UnifiedMonitorServer:
                         )
 
                     # Check if file exists and is readable
-                    if not os.path.exists(file_path):
+                    if not Path(file_path).exists():
                         return web.json_response(
                             {"success": False, "error": "File not found"}, status=404
                         )
@@ -406,7 +406,7 @@ class UnifiedMonitorServer:
                         )
 
                     try:
-                        with open(file_path, encoding="utf-8") as f:
+                        with Path(file_path).open(encoding="utf-8", ) as f:
                             content = f.read()
                             lines = content.count("\n") + 1
                     except UnicodeDecodeError:
@@ -479,7 +479,7 @@ class UnifiedMonitorServer:
                 import subprocess
 
                 config = {
-                    "workingDirectory": os.getcwd(),
+                    "workingDirectory": Path.cwd(),
                     "gitBranch": "Unknown",
                     "serverTime": datetime.now(timezone.utc).isoformat() + "Z",
                     "service": "unified-monitor",
@@ -492,7 +492,7 @@ class UnifiedMonitorServer:
                         capture_output=True,
                         text=True,
                         timeout=2,
-                        cwd=os.getcwd(),
+                        cwd=Path.cwd(),
                         check=False,
                     )
                     if result.returncode == 0 and result.stdout.strip():
@@ -506,7 +506,7 @@ class UnifiedMonitorServer:
             async def working_directory_handler(request):
                 """Return the current working directory."""
                 return web.json_response(
-                    {"working_directory": os.getcwd(), "success": True}
+                    {"working_directory": Path.cwd(), "success": True}
                 )
 
             # Monitor page routes
@@ -517,7 +517,7 @@ class UnifiedMonitorServer:
                 file_path = static_dir / f"{page_name}.html"
 
                 if file_path.exists() and file_path.is_file():
-                    with open(file_path, encoding="utf-8") as f:
+                    with Path(file_path).open(encoding="utf-8", ) as f:
                         content = f.read()
                     return web.Response(text=content, content_type="text/html")
                 return web.Response(text="Page not found", status=404)

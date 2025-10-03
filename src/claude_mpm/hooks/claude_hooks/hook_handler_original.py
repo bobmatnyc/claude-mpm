@@ -313,7 +313,7 @@ class ClaudeHookHandler:
         """
         # Use current working directory if not specified
         if not working_dir:
-            working_dir = os.getcwd()
+            working_dir = Path.cwd()
 
         # Check cache first (cache for 30 seconds)
         current_time = datetime.now(timezone.utc).timestamp()
@@ -329,7 +329,7 @@ class ClaudeHookHandler:
         # Try to get git branch
         try:
             # Change to the working directory temporarily
-            original_cwd = os.getcwd()
+            original_cwd = Path.cwd()
             os.chdir(working_dir)
 
             # Run git command to get current branch

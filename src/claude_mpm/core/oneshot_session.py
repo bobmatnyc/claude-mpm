@@ -12,6 +12,7 @@ import uuid
 from typing import Any, Dict, Optional, Tuple
 
 from claude_mpm.core.logger import get_logger
+from pathlib import Path
 
 
 class OneshotSession:
@@ -97,7 +98,7 @@ class OneshotSession:
             infrastructure["env"]["CLAUDE_WORKSPACE"] = user_pwd
 
             try:
-                self.original_cwd = os.getcwd()
+                self.original_cwd = Path.cwd()
                 os.chdir(user_pwd)
                 infrastructure["working_dir_changed"] = True
                 self.logger.info(f"Changed working directory to: {user_pwd}")
@@ -242,7 +243,7 @@ class OneshotSession:
             self.runner.websocket_server.session_started(
                 session_id=self.session_id,
                 launch_method="oneshot",
-                working_dir=os.getcwd(),
+                working_dir=Path.cwd(),
             )
         except (ImportError, ConnectionError, Exception) as e:
             self.logger.warning(f"Socket.IO connection failed: {e}")

@@ -64,13 +64,13 @@ class BaseFileLoader(ABC):
     def _read_file(self, path: Path, encoding: str = "utf-8") -> str:
         """Read file with proper error handling"""
         try:
-            with open(path, encoding=encoding) as f:
+            with Path(path).open(encoding=encoding, ) as f:
                 return f.read()
         except UnicodeDecodeError:
             # Try with different encodings
             for enc in ["latin-1", "cp1252", "utf-16"]:
                 try:
-                    with open(path, encoding=enc) as f:
+                    with Path(path).open(encoding=enc, ) as f:
                         self.logger.warning(
                             f"Read {path} with fallback encoding: {enc}"
                         )

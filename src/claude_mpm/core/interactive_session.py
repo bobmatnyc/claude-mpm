@@ -11,6 +11,7 @@ import uuid
 from typing import Any, Dict, Optional, Tuple
 
 from claude_mpm.core.logger import get_logger
+from pathlib import Path
 
 
 class InteractiveSession:
@@ -35,7 +36,7 @@ class InteractiveSession:
         self.runner = runner
         self.logger = get_logger("interactive_session")
         self.session_id = None
-        self.original_cwd = os.getcwd()
+        self.original_cwd = Path.cwd()
 
         # Initialize response tracking for interactive sessions
         # WHY: Interactive sessions need response logging just like oneshot sessions.
@@ -225,7 +226,7 @@ class InteractiveSession:
         """
         try:
             # Restore original directory
-            if self.original_cwd and os.path.exists(self.original_cwd):
+            if self.original_cwd and Path(self.original_cwd).exists():
                 with contextlib.suppress(OSError):
                     os.chdir(self.original_cwd)
 
@@ -278,7 +279,7 @@ class InteractiveSession:
             self.runner.websocket_server.session_started(
                 session_id=self.session_id,
                 launch_method=self.runner.launch_method,
-                working_dir=os.getcwd(),
+                working_dir=Path.cwd(),
             )
             return True, None
 

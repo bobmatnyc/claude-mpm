@@ -11,6 +11,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from typing import Optional
+from pathlib import Path
 
 # Import tool analysis with fallback for direct execution
 try:
@@ -309,7 +310,7 @@ class EventHandlers:
         """Get git branch for the given directory with caching."""
         # Use current working directory if not specified
         if not working_dir:
-            working_dir = os.getcwd()
+            working_dir = Path.cwd()
 
         # Check cache first (cache for 30 seconds)
         current_time = datetime.now(timezone.utc).timestamp()
@@ -325,7 +326,7 @@ class EventHandlers:
         # Try to get git branch
         try:
             # Change to the working directory temporarily
-            original_cwd = os.getcwd()
+            original_cwd = Path.cwd()
             os.chdir(working_dir)
 
             # Run git command to get current branch

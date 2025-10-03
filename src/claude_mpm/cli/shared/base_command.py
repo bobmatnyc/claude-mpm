@@ -73,7 +73,7 @@ class BaseCommand(ABC):
         """Get working directory (respects CLAUDE_MPM_USER_PWD)."""
         if self._working_dir is None:
             # Use CLAUDE_MPM_USER_PWD if available (when called via shell script)
-            user_pwd = os.environ.get("CLAUDE_MPM_USER_PWD", os.getcwd())
+            user_pwd = os.environ.get("CLAUDE_MPM_USER_PWD", Path.cwd())
             self._working_dir = Path(user_pwd)
         return self._working_dir
 

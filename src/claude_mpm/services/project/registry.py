@@ -124,7 +124,7 @@ class ProjectRegistry:
             # Search all registry files
             for registry_file in self.registry_dir.glob("*.yaml"):
                 try:
-                    with open(registry_file, encoding="utf-8") as f:
+                    with Path(registry_file).open(encoding="utf-8", ) as f:
                         data = yaml.safe_load(f) or {}
 
                     # Check if project_path matches
@@ -517,7 +517,7 @@ class ProjectRegistry:
         try:
             for registry_file in self.registry_dir.glob("*.yaml"):
                 try:
-                    with open(registry_file, encoding="utf-8") as f:
+                    with Path(registry_file).open(encoding="utf-8", ) as f:
                         data = yaml.safe_load(f) or {}
                     projects.append(data)
                 except Exception as e:
@@ -553,7 +553,7 @@ class ProjectRegistry:
         try:
             for registry_file in self.registry_dir.glob("*.yaml"):
                 try:
-                    with open(registry_file, encoding="utf-8") as f:
+                    with Path(registry_file).open(encoding="utf-8", ) as f:
                         data = yaml.safe_load(f) or {}
 
                     # Check last accessed time
