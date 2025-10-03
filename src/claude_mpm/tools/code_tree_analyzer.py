@@ -32,6 +32,7 @@ except ImportError:
     pathspec = None
 
 import importlib.util
+
 if importlib.util.find_spec("tree_sitter"):
     import tree_sitter
 

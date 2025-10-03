@@ -8,6 +8,9 @@ for developers working on the claude-mpm dashboard.
 
 import argparse
 import asyncio
+
+# Try to import Rich for enhanced output
+import importlib.util
 import json
 import signal
 import sys
@@ -20,8 +23,6 @@ from typing import Any, Dict, List, Optional, Set
 
 import socketio
 
-# Try to import Rich for enhanced output
-import importlib.util
 if importlib.util.find_spec("rich"):
     from rich.console import Console
     from rich.panel import Panel

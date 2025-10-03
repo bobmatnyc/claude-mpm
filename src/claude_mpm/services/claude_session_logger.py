@@ -10,6 +10,8 @@ Now with optional async logging support for improved performance.
 Configuration via .claude-mpm/configuration.yaml.
 """
 
+# Try to import async logger for performance optimization
+import importlib.util
 import json
 import os
 from datetime import datetime, timezone
@@ -22,8 +24,6 @@ from claude_mpm.core.config import Config
 # Import centralized session manager
 from claude_mpm.services.session_manager import get_session_manager
 
-# Try to import async logger for performance optimization
-import importlib.util
 if importlib.util.find_spec("claude_mpm.services.async_session_logger"):
     from claude_mpm.services.async_session_logger import get_async_logger
 
