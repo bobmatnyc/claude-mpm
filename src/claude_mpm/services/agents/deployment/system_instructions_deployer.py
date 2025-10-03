@@ -70,12 +70,11 @@ class SystemInstructionsDeployer:
                 target_file = claude_dir / target_name
 
                 # Check if update needed
-                if not force_rebuild and target_file.exists():
-                    # Compare modification times
-                    if target_file.stat().st_mtime >= source_path.stat().st_mtime:
-                        results["skipped"].append(target_name)
-                        self.logger.debug(f"Framework file {target_name} up to date")
-                        continue
+                if not force_rebuild and target_file.exists() and target_file.stat().st_mtime >= source_path.stat().st_mtime:
+                    # File is up to date based on modification time
+                    results["skipped"].append(target_name)
+                    self.logger.debug(f"Framework file {target_name} up to date")
+                    continue
 
                 # Read and deploy framework file
                 file_content = source_path.read_text()

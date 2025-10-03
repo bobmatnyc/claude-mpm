@@ -431,11 +431,10 @@ class PathResolver(IPathResolver):
         ]
 
         for candidate in candidates:
-            if candidate and candidate.exists():
-                # Check for claude-mpm agents directory
-                if (candidate / "src" / "claude_mpm" / "agents").exists():
-                    self.logger.info(f"Found claude-mpm at: {candidate}")
-                    return candidate
+            if candidate and candidate.exists() and (candidate / "src" / "claude_mpm" / "agents").exists():
+                # Found claude-mpm agents directory
+                self.logger.info(f"Found claude-mpm at: {candidate}")
+                return candidate
 
         return None
 
