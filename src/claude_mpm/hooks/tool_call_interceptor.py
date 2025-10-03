@@ -125,10 +125,9 @@ class ToolCallInterceptor:
                         f"[{result.get('hook_name', 'Unknown')}] {result.get('error')}"
                     )
 
-            if result.get("modified") and result.get("data"):
+            if result.get("modified") and result.get("data") and "parameters" in result.get("data", {}):
                 # Update parameters if modified
-                if "parameters" in result.get("data", {}):
-                    modified_params = result["data"]["parameters"]
+                modified_params = result["data"]["parameters"]
 
             if result.get("metadata"):
                 hook_metadata.update(result["metadata"])

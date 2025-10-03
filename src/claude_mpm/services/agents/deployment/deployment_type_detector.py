@@ -63,13 +63,11 @@ class DeploymentTypeDetector:
         """
         # Check if we're in a project directory with .claude-mpm/agents
         project_agents_dir = working_directory / ".claude-mpm" / "agents"
-        if project_agents_dir.exists():
-            # Check if templates_dir points to project agents
-            if templates_dir and templates_dir.exists():
-                try:
-                    return project_agents_dir.resolve() == templates_dir.resolve()
-                except Exception:
-                    pass
+        if project_agents_dir.exists() and templates_dir and templates_dir.exists():
+            try:
+                return project_agents_dir.resolve() == templates_dir.resolve()
+            except Exception:
+                pass
         return False
 
     @staticmethod
@@ -86,13 +84,11 @@ class DeploymentTypeDetector:
             True if deploying user custom agents, False otherwise
         """
         user_agents_dir = Path.home() / ".claude-mpm" / "agents"
-        if user_agents_dir.exists():
-            # Check if templates_dir points to user agents
-            if templates_dir and templates_dir.exists():
-                try:
-                    return user_agents_dir.resolve() == templates_dir.resolve()
-                except Exception:
-                    pass
+        if user_agents_dir.exists() and templates_dir and templates_dir.exists():
+            try:
+                return user_agents_dir.resolve() == templates_dir.resolve()
+            except Exception:
+                pass
         return False
 
     @staticmethod

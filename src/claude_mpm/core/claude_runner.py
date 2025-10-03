@@ -459,12 +459,7 @@ class ClaudeRunner:
                     if target_file.exists():
                         # Check if it's a project agent (has project marker)
                         existing_content = target_file.read_text()
-                        if (
-                            "author: claude-mpm-project" in existing_content
-                            or "source: project" in existing_content
-                        ):
-                            # Compare modification times
-                            if target_file.stat().st_mtime >= json_file.stat().st_mtime:
+                        if ("author: claude-mpm-project" in existing_content or "source: project" in existing_content) and target_file.stat().st_mtime >= json_file.stat().st_mtime:
                                 needs_update = False
                                 self.logger.debug(
                                     f"Project agent {agent_name} is up to date"

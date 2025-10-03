@@ -538,10 +538,8 @@ class DIContainer(IServiceContainer):
 
             elif registration.lifetime == ServiceLifetime.SCOPED:
                 # Check current scope
-                if self._current_scope:
-                    instance = self._current_scope.get_scoped_instance(service_type)
-                    if instance is not None:
-                        return instance
+                if self._current_scope and (instance := self._current_scope.get_scoped_instance(service_type)) is not None:
+                    return instance
 
             # Mark as resolving
             self._resolving.add(service_type)

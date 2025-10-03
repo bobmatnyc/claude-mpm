@@ -84,9 +84,7 @@ class CommandDeploymentService(BaseService):
 
                 try:
                     # Check if file exists and if we should overwrite
-                    if target_file.exists() and not force:
-                        # Check if source is newer
-                        if source_file.stat().st_mtime <= target_file.stat().st_mtime:
+                    if target_file.exists() and not force and source_file.stat().st_mtime <= target_file.stat().st_mtime:
                             self.logger.debug(
                                 f"Skipping {source_file.name} - target is up to date"
                             )

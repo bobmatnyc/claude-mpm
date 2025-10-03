@@ -386,9 +386,7 @@ class AgentMemoryManager(MemoryServiceInterface):
                         memory_items = data["Remember"]
 
                     # Process memory items if found and not null
-                    if memory_items is not None and memory_items != "null":
-                        # Skip if explicitly null or empty list
-                        if isinstance(memory_items, list) and len(memory_items) > 0:
+                    if memory_items is not None and memory_items != "null" and isinstance(memory_items, list) and len(memory_items) > 0:
                             # Filter out empty strings and None values
                             valid_items = []
                             for item in memory_items:
