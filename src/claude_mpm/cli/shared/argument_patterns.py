@@ -73,9 +73,16 @@ class CommonArguments:
     }
 
     # Agent-related arguments
-    AGENT_NAME: ClassVar[Dict[str, Any]] = {"flags": ["--agent"], "help": "Agent name or pattern"}
+    AGENT_NAME: ClassVar[Dict[str, Any]] = {
+        "flags": ["--agent"],
+        "help": "Agent name or pattern",
+    }
 
-    AGENT_DIR: ClassVar[Dict[str, Any]] = {"flags": ["--agent-dir"], "type": Path, "help": "Agent directory path"}
+    AGENT_DIR: ClassVar[Dict[str, Any]] = {
+        "flags": ["--agent-dir"],
+        "type": Path,
+        "help": "Agent directory path",
+    }
 
     # Memory-related arguments
     MEMORY_DIR: ClassVar[Dict[str, Any]] = {
