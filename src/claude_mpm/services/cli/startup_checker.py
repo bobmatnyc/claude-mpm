@@ -246,7 +246,7 @@ class StartupCheckerService(IStartupChecker):
 
         # Display info last
         for warning in info:
-            print(f"ℹ️  {warning.message}")
+            print(f"[INFO]️  {warning.message}")
             if warning.suggestion:
                 print(f"   {warning.suggestion}")
 

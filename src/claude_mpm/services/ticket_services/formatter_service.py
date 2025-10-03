@@ -278,7 +278,7 @@ class TicketFormatterService:
         Returns:
             Formatted info message
         """
-        return f"ℹ️ {info}"
+        return f"[INFO]️ {info}"
 
     def format_warning(self, warning: str) -> str:
         """

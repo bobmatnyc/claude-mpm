@@ -326,7 +326,7 @@ class RunCommand(BaseCommand):
                         self.logger.warning(f"Session {resume_session_id} not found")
                 else:
                     self.logger.info("No recent interactive sessions found")
-                    print("ℹ️  No recent interactive sessions found to resume")
+                    print("[INFO]️  No recent interactive sessions found to resume")
             else:
                 # Resume specific session by ID
                 resume_session_id = args.mpm_resume
@@ -654,7 +654,7 @@ def _handle_reload_agents(logger):
                 print(f"🔄 Cleaned {removed_count} claude-mpm system agents")
             else:
                 logger.info("No system agents found to clean")
-                print("ℹ️  No system agents found - already clean")
+                print("[INFO]️  No system agents found - already clean")
 
             if preserved_agents:
                 logger.info(f"Preserved {len(preserved_agents)} user-created agents")
@@ -774,7 +774,7 @@ def run_session_legacy(args):
                     logger.warning(f"Session {resume_session_id} not found")
             else:
                 logger.info("No recent interactive sessions found")
-                print("ℹ️  No recent interactive sessions found to resume")
+                print("[INFO]️  No recent interactive sessions found to resume")
         else:
             # Resume specific session by ID
             resume_session_id = args.mpm_resume
@@ -947,7 +947,7 @@ def run_session_legacy(args):
             raw_claude_args = ["--resume", *raw_claude_args]
             logger.info("✅ Added --resume to claude_args")
         else:
-            logger.info("ℹ️ --resume already in claude_args")
+            logger.info("[INFO]️ --resume already in claude_args")
 
     # Filter out claude-mpm specific flags before passing to Claude CLI
     logger.debug(f"Pre-filter claude_args: {raw_claude_args}")
