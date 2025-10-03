@@ -31,14 +31,12 @@ except ImportError:
     PATHSPEC_AVAILABLE = False
     pathspec = None
 
-try:
+import importlib.util
+if importlib.util.find_spec("tree_sitter"):
     import tree_sitter
-    import tree_sitter_javascript
-    import tree_sitter_python
-    import tree_sitter_typescript
 
     TREE_SITTER_AVAILABLE = True
-except ImportError:
+else:
     TREE_SITTER_AVAILABLE = False
     tree_sitter = None
 
