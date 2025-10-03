@@ -10,7 +10,7 @@ Part of ISS-0034: Infrastructure Setup - MCP Gateway Project Foundation
 """
 
 import os
-from typing import Any, Dict, Optional
+from typing import ClassVar, Any, Dict, Optional
 
 import yaml
 

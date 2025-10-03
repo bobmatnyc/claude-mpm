@@ -36,7 +36,7 @@ import time
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import ClassVar, Any, Dict, List, Optional, Set, Tuple
 
 import psutil
 
