@@ -17,6 +17,18 @@
   - Enforcement guidelines: code reviews must flag mock data, fallbacks require justification
   - 84-line comprehensive guide with wrong vs. correct code patterns
 
+- **Prompt Engineer Agent v2.0.0**: Comprehensive Claude 4.5 optimization with 23+ best practices
+  - Extended thinking configuration (16k-64k token budgets, cache-aware activation)
+  - Multi-model routing: Sonnet 4.5 for coding/analysis, Opus for strategic planning
+  - Sonnet 4.5 beats Opus on coding (77.2% vs 74.5% SWE-bench) at 1/5th cost
+  - Tool orchestration patterns (parallel execution, think tool, error handling)
+  - Structured output methods (tool-based JSON schemas, response prefilling)
+  - Context management (200K tokens, prompt caching: 90% cost + 85% latency reduction)
+  - Anti-pattern detection (over-specification, wrong model selection, extended thinking misuse)
+  - Performance benchmarks integrated (SWE-bench, OSWorld, cost analysis)
+  - 787-line BASE_PROMPT_ENGINEER.md with comprehensive implementation guide
+  - Template expanded from 296 to 726 lines (+145% with Claude 4.5 capabilities)
+
 ### Enhanced
 - **Engineer Code Minimization**: Refined with concrete, falsifiable criteria
   - Measurable consolidation thresholds: >80% similarity, Levenshtein distance <20%, shared logic >50 lines
