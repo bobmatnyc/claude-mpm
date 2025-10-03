@@ -176,10 +176,10 @@ class MCPAutoConfigurator:
         print(f"(Auto-declining in {timeout} seconds)")
 
         # Use threading for cross-platform timeout support
-        import threading
-
         # Python 3.7+ has queue built-in - no need to check, we require 3.10+
         import importlib.util
+        import threading
+
         if importlib.util.find_spec("queue") is None:
             # Extremely unlikely in Python 3.10+, but for completeness
             pass
