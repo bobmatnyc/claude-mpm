@@ -1,3 +1,8 @@
+## [4.5.18] - 2025-10-02
+
+### Changed
+- **Version Bump**: Patch version increment for maintenance release
+
 ## [4.5.17] - 2025-10-02
 
 ### Fixed
