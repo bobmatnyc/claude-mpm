@@ -100,10 +100,9 @@ class RobustPackageInstaller:
             Tuple of (success, error_message)
         """
         # Check success cache first
-        if package_spec in self.success_cache:
-            if self.success_cache[package_spec]:
-                logger.debug(f"Package {package_spec} already successfully installed")
-                return True, None
+        if package_spec in self.success_cache and self.success_cache[package_spec]:
+            logger.debug(f"Package {package_spec} already successfully installed")
+            return True, None
 
         # Default strategy order
         if strategies is None:

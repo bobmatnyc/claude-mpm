@@ -325,16 +325,8 @@ class MCPServiceVerifier:
                 return True
 
             # Some tools return non-zero but still work
-            if any(
-                word in output
-                for word in ["version", "usage", "help", service_name.lower()]
-            ):
-                # Make sure it's not an error
-                if not any(
-                    error in output
-                    for error in ["error", "not found", "traceback", "no module"]
-                ):
-                    return True
+            if any(word in output for word in ["version", "usage", "help", service_name.lower()]) and not any(error in output for error in ["error", "not found", "traceback", "no module"]):
+                return True
 
             # Try pipx run as fallback
             if shutil.which("pipx"):
@@ -485,10 +477,9 @@ class MCPServiceVerifier:
                         }
             else:
                 # Direct execution - command should be a valid path
-                if not Path(command).exists() and command != installed_path:
-                    # Allow for relative paths that might resolve differently
-                    if not shutil.which(command):
-                        return {
+                if not Path(command).exists() and command != installed_path and not shutil.which(command):
+                    # Command path does not exist and cannot be found
+                    return {
                             "configured": True,
                             "correct": False,
                             "command": command,

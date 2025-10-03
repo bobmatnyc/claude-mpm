@@ -412,9 +412,8 @@ class EventBus(IEventBus):
         """
         try:
             # Apply filter if configured
-            if consumer.config.filter_func:
-                if not consumer.config.filter_func(event):
-                    return
+            if consumer.config.filter_func and not consumer.config.filter_func(event):
+                return
 
             # Apply transformation if configured
             if consumer.config.transform_func:
