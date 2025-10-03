@@ -99,9 +99,8 @@ class ConfigServiceBase(LoggerMixin, ABC):
             raise ValueError(f"Required configuration value missing: {full_key}")
 
         # Type validation
-        if config_type is not None and value is not None:
-            if not isinstance(value, config_type):
-                try:
+        if config_type is not None and value is not None and not isinstance(value, config_type):
+            try:
                     # Try to convert
                     if config_type == bool and isinstance(value, str):
                         value = value.lower() in ("true", "1", "yes", "on")
