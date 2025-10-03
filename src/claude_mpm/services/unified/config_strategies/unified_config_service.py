@@ -254,9 +254,8 @@ class UnifiedConfigService:
             # Apply specified validators or use schema-defined ones
             if validators:
                 for validator_name in validators:
-                    if validator_name in self._validators:
-                        if not self._validators[validator_name](config, schema):
-                            return False
+                    if validator_name in self._validators and not self._validators[validator_name](config, schema):
+                        return False
             else:
                 # Use schema to determine validators
                 return self._validate_schema(config, schema)
@@ -563,9 +562,8 @@ class UnifiedConfigService:
         """Validate enum values"""
         properties = schema.get("properties", {})
         for key, value in config.items():
-            if key in properties and "enum" in properties[key]:
-                if value not in properties[key]["enum"]:
-                    return False
+            if key in properties and "enum" in properties[key] and value not in properties[key]["enum"]:
+                return False
         return True
 
     def _validate_schema(self, config: Dict[str, Any], schema: Dict) -> bool:
@@ -596,9 +594,9 @@ class UnifiedConfigService:
         """Validate unique values in arrays"""
         properties = schema.get("properties", {})
         for key, value in config.items():
-            if key in properties and properties[key].get("uniqueItems"):
-                if isinstance(value, list) and len(value) != len(set(map(str, value))):
-                    return False
+            if (key in properties and properties[key].get("uniqueItems")
+                and isinstance(value, list) and len(value) != len(set(map(str, value)))):
+                return False
         return True
 
     def _validate_format(self, config: Dict[str, Any], schema: Dict) -> bool:
@@ -641,10 +639,10 @@ class UnifiedConfigService:
         """Recursively validate nested structures"""
         properties = schema.get("properties", {})
         for key, value in config.items():
-            if key in properties and isinstance(value, dict):
-                if "properties" in properties[key]:
-                    if not self._validate_schema(value, properties[key]):
-                        return False
+            if (key in properties and isinstance(value, dict)
+                and "properties" in properties[key]
+                and not self._validate_schema(value, properties[key])):
+                return False
         return True
 
     def _validate_cross_field(self, config: Dict[str, Any], schema: Dict) -> bool:
