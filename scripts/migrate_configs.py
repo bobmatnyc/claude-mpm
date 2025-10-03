@@ -14,7 +14,7 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import ClassVar, Dict, List, Optional, Set, Tuple
 
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -51,7 +51,7 @@ class ConfigServiceMapper:
     """Maps old configuration services to unified service"""
 
     # Mapping of old services/classes to unified service
-    OLD_TO_NEW_MAPPINGS = {
+    OLD_TO_NEW_MAPPINGS: ClassVar[Dict[str, str]] = {
         # Configuration services
         "ConfigLoader": "UnifiedConfigService",
         "ConfigManager": "UnifiedConfigService",
@@ -87,7 +87,7 @@ class ConfigServiceMapper:
     }
 
     # Import mappings
-    IMPORT_MAPPINGS = {
+    IMPORT_MAPPINGS: ClassVar[Dict[str, str]] = {
         "from claude_mpm.core.config import": "from claude_mpm.services.unified.config_strategies.unified_config_service import UnifiedConfigService",
         "from claude_mpm.core.config_loader import": "from claude_mpm.services.unified.config_strategies.unified_config_service import UnifiedConfigService",
         "from claude_mpm.config.": "from claude_mpm.services.unified.config_strategies.unified_config_service import UnifiedConfigService",

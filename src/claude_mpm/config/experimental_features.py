@@ -12,7 +12,7 @@ gradual rollout of experimental features while maintaining stability in producti
 
 import json
 import os
-from typing import Dict, Optional
+from typing import ClassVar, Dict, Optional
 
 
 class ExperimentalFeatures:
@@ -26,7 +26,7 @@ class ExperimentalFeatures:
     """
 
     # Default feature flags
-    DEFAULTS = {
+    DEFAULTS: ClassVar[Dict[str, bool]] = {
         "enable_mcp_gateway": False,  # MCP Gateway is experimental
         "enable_advanced_aggregation": False,  # Advanced aggregation features
         "show_experimental_warnings": True,  # Show warnings for experimental features
@@ -34,7 +34,7 @@ class ExperimentalFeatures:
     }
 
     # Warning messages for experimental features
-    WARNINGS = {
+    WARNINGS: ClassVar[Dict[str, str]] = {
         "mcp_gateway": (
             "⚠️  EXPERIMENTAL FEATURE: MCP Gateway is in early access.\n"
             "   Tool integration may be unstable. Not recommended for production use."
