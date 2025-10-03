@@ -90,7 +90,7 @@ class MemoryOutputFormatter(IMemoryOutputFormatter):
             "success": "✅" if not quiet else "[OK]",
             "error": "❌" if not quiet else "[ERROR]",
             "warning": "⚠️" if not quiet else "[WARN]",
-            "info": "ℹ️" if not quiet else "[INFO]",
+            "info": "[INFO]️" if not quiet else "[INFO]",
             "memory": "🧠" if not quiet else "[MEMORY]",
             "file": "📁" if not quiet else "[FILE]",
             "agent": "🤖" if not quiet else "[AGENT]",

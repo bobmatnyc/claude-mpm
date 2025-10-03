@@ -527,11 +527,11 @@ class MCPExternalServicesSetup:
         module_name = service_info.get("module_name", service_name.replace("-", "_"))
         if not self._check_python_package(module_name):
             print(f"   ⚠️ Python package {service_info['package_name']} not installed")
-            print(f"   ℹ️ Installing {service_info['package_name']}...")
+            print(f"   [INFO]️ Installing {service_info['package_name']}...")
             if not self._install_python_package(service_info["package_name"]):
                 print(f"   ❌ Failed to install {service_info['package_name']}")
                 print(
-                    f"   ℹ️ Install manually with: pip install {service_info['package_name']}"
+                    f"   [INFO]️ Install manually with: pip install {service_info['package_name']}"
                 )
                 return False
 

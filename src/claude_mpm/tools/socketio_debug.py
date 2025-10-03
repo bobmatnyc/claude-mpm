@@ -266,7 +266,7 @@ class SocketIODebugger:
             "PostToolUse": "✅",
             "Error": "❌",
             "Warning": "⚠️",
-            "Info": "ℹ️",
+            "Info": "[INFO]️",
             "MemoryUpdate": "🧠",
             "ConfigChange": "⚙️",
         }
@@ -463,7 +463,7 @@ class SocketIODebugger:
             console.print(f"[{timestamp}] {message}", style=style)
         else:
             prefixes = {
-                "info": "ℹ️",
+                "info": "[INFO]️",
                 "success": "✅",
                 "warning": "⚠️",
                 "error": "❌",

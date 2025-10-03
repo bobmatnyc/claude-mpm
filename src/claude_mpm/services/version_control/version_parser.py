@@ -113,7 +113,7 @@ class EnhancedVersionParser:
             r"(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9\-\.]+))?(?:\+([a-zA-Z0-9\-\.]+))?"
         )
         self._changelog_version_pattern = re.compile(
-            r"##\s*\[?([0-9]+\.[0-9]+\.[0-9]+[^\]]*)\]?\s*[-–]\s*(\d{4}-\d{2}-\d{2})?"
+            r"##\s*\[?([0-9]+\.[0-9]+\.[0-9]+[^\]]*)\]?\s*[--]\s*(\d{4}-\d{2}-\d{2})?"
         )
 
     def _get_cached(self, key: str) -> Optional[any]:
