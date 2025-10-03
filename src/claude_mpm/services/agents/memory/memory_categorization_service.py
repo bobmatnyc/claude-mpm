@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Memory Categorization Service - Categorizes learnings into appropriate sections."""
 
-from typing import List
+from typing import ClassVar, List
 
 from claude_mpm.core.logging_utils import get_logger
 

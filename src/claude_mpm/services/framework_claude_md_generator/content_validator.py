@@ -5,14 +5,14 @@ Validates generated content structure and completeness.
 """
 
 import re
-from typing import List, Tuple
+from typing import ClassVar, List, Tuple
 
 
 class ContentValidator:
     """Validates framework CLAUDE.md content for completeness and correctness."""
 
     # Required sections that must be present
-    REQUIRED_SECTIONS = [
+    REQUIRED_SECTIONS: ClassVar[list[str]] = [
         (r"CLAUDE_MD_VERSION:", "Version metadata"),
         (r"## 🤖 AI ASSISTANT ROLE DESIGNATION", "Role designation section"),
         (r"## A\) AGENTS", "Agents section"),

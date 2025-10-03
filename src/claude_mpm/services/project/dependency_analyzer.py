@@ -14,7 +14,7 @@ handle multiple package managers and provide detailed dependency insights.
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import ClassVar, Any, Dict, List, Optional
 
 
 class DependencyAnalyzerService:

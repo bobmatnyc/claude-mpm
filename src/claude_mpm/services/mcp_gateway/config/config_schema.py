@@ -8,7 +8,7 @@ Part of ISS-0034: Infrastructure Setup - MCP Gateway Project Foundation
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import ClassVar, Any, Dict, List, Optional
 
 
 @dataclass

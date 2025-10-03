@@ -12,7 +12,7 @@ import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
 from claude_mpm.core.exceptions import AgentDeploymentError
 from claude_mpm.core.logging_config import get_logger
@@ -22,13 +22,13 @@ class AgentBuilderService:
     """Service for building and managing agent configurations."""
 
     # Valid agent models
-    VALID_MODELS = ["sonnet", "opus", "haiku"]
+    VALID_MODELS: ClassVar[list[str]] = ["sonnet", "opus", "haiku"]
 
     # Valid tool choices
-    VALID_TOOL_CHOICES = ["auto", "required", "any", "none"]
+    VALID_TOOL_CHOICES: ClassVar[list[str]] = ["auto", "required", "any", "none"]
 
     # Agent categories
-    AGENT_CATEGORIES = [
+    AGENT_CATEGORIES: ClassVar[list[str]] = [
         "engineering",
         "qa",
         "documentation",

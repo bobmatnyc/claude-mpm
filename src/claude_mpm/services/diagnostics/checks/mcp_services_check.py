@@ -10,7 +10,7 @@ import json
 import subprocess
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import ClassVar, Dict, List, Optional, Tuple
 
 from claude_mpm.core.logger import get_logger
 

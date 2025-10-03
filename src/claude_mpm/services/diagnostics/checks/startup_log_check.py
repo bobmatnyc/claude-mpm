@@ -15,7 +15,7 @@ DESIGN DECISIONS:
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import ClassVar, Any, Dict, Optional
 
 from ..models import DiagnosticResult, DiagnosticStatus
 from .base_check import BaseDiagnosticCheck
@@ -25,7 +25,7 @@ class StartupLogCheck(BaseDiagnosticCheck):
     """Analyze startup logs for errors and issues."""
 
     # Common error patterns and their fixes
-    ERROR_PATTERNS = {
+    ERROR_PATTERNS: ClassVar[dict[str, dict[str, Any]]] = {
         r"Agent deployment.*failed": (
             "Agent deployment failure",
             "Check agent configuration in .claude/agents/ and run 'claude-mpm deploy'",
