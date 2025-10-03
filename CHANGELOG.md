@@ -1,4 +1,14 @@
-## [4.7.0] - 2025-10-03
+## [4.7.1] - 2025-10-03
+
+### Fixed
+- **Critical**: IndentationError in config_service_base.py that prevented package from being imported
+  - Fixed incorrect indentation in try-except block (lines 103-111)
+  - Package is now fully functional and importable
+  - Hotfix release to address broken v4.7.0
+
+## [4.7.0] - 2025-10-03 [YANKED]
+
+**Note**: This version was yanked due to a critical IndentationError. Use v4.7.1 instead.
 
 ### Added
 - **🔴 Engineer Duplicate Elimination Protocol**: Mandatory protocol for detecting and eliminating duplicate code

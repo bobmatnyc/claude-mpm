@@ -101,14 +101,14 @@ class ConfigServiceBase(LoggerMixin, ABC):
         # Type validation
         if config_type is not None and value is not None and not isinstance(value, config_type):
             try:
-                    # Try to convert
-                    if config_type == bool and isinstance(value, str):
-                        value = value.lower() in ("true", "1", "yes", "on")
-                    elif config_type == Path:
-                        value = Path(value).expanduser()
-                    else:
-                        value = config_type(value)
-                except (ValueError, TypeError) as e:
+                # Try to convert
+                if config_type == bool and isinstance(value, str):
+                    value = value.lower() in ("true", "1", "yes", "on")
+                elif config_type == Path:
+                    value = Path(value).expanduser()
+                else:
+                    value = config_type(value)
+            except (ValueError, TypeError) as e:
                     raise ValueError(
                         f"Invalid type for {full_key}: expected {config_type.__name__}, got {type(value).__name__}"
                     ) from e
