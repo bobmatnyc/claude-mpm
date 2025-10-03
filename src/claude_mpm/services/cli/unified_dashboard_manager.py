@@ -335,6 +335,7 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
             Tuple of (dependencies_ok, error_message)
         """
         import importlib.util
+
         missing = []
         if importlib.util.find_spec("aiohttp") is None:
             missing.append("aiohttp")

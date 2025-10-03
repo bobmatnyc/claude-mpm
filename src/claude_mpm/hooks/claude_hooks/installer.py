@@ -589,6 +589,7 @@ main "$@"
 
         # Check if claude-mpm is accessible
         import importlib.util
+
         if importlib.util.find_spec("claude_mpm") is None:
             issues.append("claude-mpm package not found in Python environment")
 
