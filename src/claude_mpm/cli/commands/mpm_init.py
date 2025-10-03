@@ -436,7 +436,7 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
                 console.print(f"  • {pattern}")
 
         if analysis.get("custom_sections"):
-            console.print("\n[blue]ℹ️  Custom sections found:[/blue]")
+            console.print("\n[blue][INFO]️  Custom sections found:[/blue]")
             for section in analysis["custom_sections"][:5]:
                 console.print(f"  • {section}")
 

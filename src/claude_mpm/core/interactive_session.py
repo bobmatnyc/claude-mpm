@@ -393,7 +393,7 @@ class InteractiveSession:
             self.logger.info("✅ VERIFIED: --resume flag IS included in final command")
             self.logger.debug(f"--resume position in command: {cmd.index('--resume')}")
         else:
-            self.logger.debug("ℹ️ --resume flag NOT included in final command")
+            self.logger.debug("[INFO]️ --resume flag NOT included in final command")
 
         return cmd
 

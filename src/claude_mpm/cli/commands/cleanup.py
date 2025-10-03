@@ -538,7 +538,7 @@ def _cleanup_memory_original(args):
             )
             print(f"💾 Saved: {format_size(original_size - new_size)}")
         else:
-            print("ℹ️  No conversations were old enough to clean up")
+            print("[INFO]️  No conversations were old enough to clean up")
             print("💡 Try using --days with a smaller value to clean more aggressively")
 
     except Exception as e:
