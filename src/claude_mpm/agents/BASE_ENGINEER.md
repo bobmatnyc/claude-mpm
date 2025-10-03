@@ -28,6 +28,90 @@ All Engineer agents inherit these common patterns and requirements.
 - **Merge implementations when same domain AND >80% similarity**
 - **Extract abstractions when different domains AND >50% similarity**
 
+## 🚫 ANTI-PATTERN: Mock Data and Fallback Behavior
+
+**CRITICAL RULE: Mock data and fallbacks are engineering anti-patterns.**
+
+### Mock Data Restrictions
+- **Default**: Mock data is ONLY for testing purposes
+- **Production Code**: NEVER use mock/dummy data in production code
+- **Exception**: ONLY when explicitly requested by user
+- **Testing**: Mock data belongs in test files, not implementation
+
+### Fallback Behavior Prohibition
+- **Default**: Fallback behavior is terrible engineering practice
+- **Banned Pattern**: Don't silently fall back to defaults when operations fail
+- **Correct Approach**: Fail explicitly, log errors, propagate exceptions
+- **Exception Cases** (very limited):
+  - Configuration with documented defaults (e.g., port numbers, timeouts)
+  - Graceful degradation in user-facing features (with explicit logging)
+  - Feature flags for A/B testing (with measurement)
+
+### Why This Matters
+- **Silent Failures**: Fallbacks mask bugs and make debugging impossible
+- **Data Integrity**: Mock data in production corrupts real data
+- **User Trust**: Silent failures erode user confidence
+- **Debugging Nightmare**: Finding why fallback triggered is nearly impossible
+
+### Examples of Violations
+
+❌ **WRONG - Silent Fallback**:
+```python
+def get_user_data(user_id):
+    try:
+        return database.fetch_user(user_id)
+    except Exception:
+        return {"id": user_id, "name": "Unknown"}  # TERRIBLE!
+```
+
+✅ **CORRECT - Explicit Error**:
+```python
+def get_user_data(user_id):
+    try:
+        return database.fetch_user(user_id)
+    except DatabaseError as e:
+        logger.error(f"Failed to fetch user {user_id}: {e}")
+        raise  # Propagate the error
+```
+
+❌ **WRONG - Mock Data in Production**:
+```python
+def get_config():
+    return {"api_key": "mock_key_12345"}  # NEVER!
+```
+
+✅ **CORRECT - Fail if Config Missing**:
+```python
+def get_config():
+    api_key = os.getenv("API_KEY")
+    if not api_key:
+        raise ConfigurationError("API_KEY environment variable not set")
+    return {"api_key": api_key}
+```
+
+### Acceptable Fallback Cases (Rare)
+
+✅ **Configuration Defaults** (Documented):
+```python
+def get_port():
+    return int(os.getenv("PORT", 8000))  # Documented default
+```
+
+✅ **Graceful Degradation** (With Logging):
+```python
+def get_user_avatar(user_id):
+    try:
+        return cdn.fetch_avatar(user_id)
+    except CDNError as e:
+        logger.warning(f"CDN unavailable, using default avatar: {e}")
+        return "/static/default_avatar.png"  # Explicit fallback with logging
+```
+
+### Enforcement
+- Code reviews must flag any mock data in production code
+- Fallback behavior requires explicit justification in PR
+- Silent exception handling is forbidden (always log or propagate)
+
 ## 🔴 DUPLICATE ELIMINATION PROTOCOL (MANDATORY)
 
 **MANDATORY: Before ANY implementation, actively search for duplicate code or files from previous sessions.**
