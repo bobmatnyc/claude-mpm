@@ -588,9 +588,8 @@ main "$@"
                 issues.append(f"Invalid Claude settings JSON: {e}")
 
         # Check if claude-mpm is accessible
-        try:
-            import claude_mpm
-        except ImportError:
+        import importlib.util
+        if importlib.util.find_spec("claude_mpm") is None:
             issues.append("claude-mpm package not found in Python environment")
 
         is_valid = len(issues) == 0

@@ -334,14 +334,17 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
         Returns:
             Tuple of (dependencies_ok, error_message)
         """
-        try:
-            import aiohttp
-            import socketio
+        import importlib.util
+        missing = []
+        if importlib.util.find_spec("aiohttp") is None:
+            missing.append("aiohttp")
+        if importlib.util.find_spec("socketio") is None:
+            missing.append("socketio")
 
-            return True, None
-        except ImportError as e:
-            error_msg = f"Required dependencies missing: {e}"
+        if missing:
+            error_msg = f"Required dependencies missing: {', '.join(missing)}"
             return False, error_msg
+        return True, None
 
     def find_available_port(self, preferred_port: int = 8765) -> int:
         """

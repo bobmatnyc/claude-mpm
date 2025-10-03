@@ -178,11 +178,10 @@ class MCPAutoConfigurator:
         # Use threading for cross-platform timeout support
         import threading
 
-        try:
-            # Python 3.7+ has queue built-in
-            import queue
-        except ImportError:
-            # Python 2.x fallback
+        # Python 3.7+ has queue built-in - no need to check, we require 3.10+
+        import importlib.util
+        if importlib.util.find_spec("queue") is None:
+            # Extremely unlikely in Python 3.10+, but for completeness
             pass
 
         user_input = None

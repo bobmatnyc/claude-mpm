@@ -268,16 +268,10 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
         Returns:
             True if subprocess mode with PTY is available
         """
-        try:
-            # Check if we can import required modules
-            import pty
-            import select
-            import termios
-            import tty
-
-            return True
-        except ImportError:
-            return False
+        import importlib.util
+        # Check if we can import required modules
+        required = ["pty", "select", "termios", "tty"]
+        return all(importlib.util.find_spec(mod) is not None for mod in required)
 
     def create_subprocess_command(
         self, base_cmd: List[str], additional_args: Optional[List[str]] = None

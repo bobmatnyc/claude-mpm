@@ -21,17 +21,16 @@ from typing import Any, Dict, List, Optional, Set
 import socketio
 
 # Try to import Rich for enhanced output
-try:
+import importlib.util
+if importlib.util.find_spec("rich"):
     from rich.console import Console
-    from rich.layout import Layout
-    from rich.live import Live
     from rich.panel import Panel
     from rich.table import Table
     from rich.text import Text
 
     RICH_AVAILABLE = True
     console = Console()
-except ImportError:
+else:
     RICH_AVAILABLE = False
     console = None
 
