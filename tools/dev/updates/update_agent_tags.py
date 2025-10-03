@@ -12,14 +12,12 @@ def extract_yaml_list_tags(content: str) -> tuple[List[str], str]:
     tags = []
     in_tags_section = False
     in_frontmatter = False
-    frontmatter_end = 0
 
-    for i, line in enumerate(lines):
+    for _i, line in enumerate(lines):
         if line.strip() == "---":
             if not in_frontmatter:
                 in_frontmatter = True
                 continue
-            frontmatter_end = i
             break
 
         if in_frontmatter and line.startswith("tags:"):

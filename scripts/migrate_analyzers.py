@@ -19,6 +19,7 @@ import argparse
 import ast
 import os
 import re
+import sys
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
@@ -432,4 +433,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

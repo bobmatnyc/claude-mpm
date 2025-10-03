@@ -56,6 +56,52 @@ else:
         __version__ = "0.0.0"
 
 
+def _has_configuration_file() -> bool:
+    """Check if any configuration file exists in standard locations."""
+    config_paths = [
+        Path.cwd() / ".claude-mpm" / "configuration.yaml",
+        Path.cwd() / ".claude-mpm" / "configuration.yml",
+        Path.home() / ".claude-mpm" / "configuration.yaml",
+        Path.home() / ".claude-mpm" / "configuration.yml",
+    ]
+    return any(path.exists() for path in config_paths)
+
+
+def _is_interactive_session() -> bool:
+    """Check if running in an interactive terminal."""
+    return sys.stdin.isatty() and sys.stdout.isatty()
+
+
+def _should_skip_config_check(command: Optional[str]) -> bool:
+    """Check if command should skip configuration check."""
+    skip_commands = ["configure", "doctor", "info", "mcp", "config"]
+    return command in skip_commands if command else False
+
+
+def _prompt_for_configuration() -> bool:
+    """Prompt user to run configuration wizard.
+
+    Returns:
+        bool: True if user wants to configure, False otherwise
+    """
+    from rich.console import Console as RichConsole
+    from rich.prompt import Confirm
+
+    console = RichConsole()
+
+    console.print()
+    console.print("[yellow]⚙️  Configuration Recommended[/yellow]")
+    console.print()
+    console.print("Claude MPM works best with proper configuration.")
+    console.print("The configurator helps you:")
+    console.print("  • Enable/disable MCP services (ticketer, browser, vector-search)")
+    console.print("  • Configure hook services (monitor, dashboard)")
+    console.print("  • Select system agents to use")
+    console.print()
+
+    return Confirm.ask("Would you like to run the configurator now?", default=True)
+
+
 def main(argv: Optional[list] = None):
     """
     Main CLI entry point.
@@ -100,6 +146,57 @@ def main(argv: Optional[list] = None):
     parser = create_parser(version=__version__)
     processed_argv = preprocess_args(argv)
     args = parser.parse_args(processed_argv)
+
+    # Check for configuration file on startup
+    # Skip for help/version flags or specific commands
+    help_version_flags = ["--version", "-v", "--help", "-h"]
+    is_help_or_version = any(
+        flag in (processed_argv or sys.argv[1:]) for flag in help_version_flags
+    )
+
+    if not _has_configuration_file() and not is_help_or_version:
+        # Skip check for certain commands
+        if not _should_skip_config_check(getattr(args, "command", None)):
+            if _is_interactive_session():
+                # Interactive: Offer to run configurator
+                if _prompt_for_configuration():
+                    # User wants to configure - run configure command
+                    from rich.console import Console as RichConsole
+
+                    from .commands.configure import ConfigureCommand
+
+                    console = RichConsole()
+                    config_cmd = ConfigureCommand()
+                    try:
+                        config_cmd.execute({})
+                        console.print(
+                            "\n[green]✓[/green] Configuration complete! "
+                            "Continuing with command...\n"
+                        )
+                    except Exception as e:
+                        console.print(f"\n[yellow]⚠[/yellow] Configuration error: {e}")
+                        console.print(
+                            "[yellow]Continuing with default "
+                            "configuration...\n[/yellow]"
+                        )
+                else:
+                    from rich.console import Console as RichConsole
+
+                    console = RichConsole()
+                    console.print("\n[dim]Using default configuration.[/dim]")
+                    console.print(
+                        "[dim]Run 'claude-mpm configure' anytime to set up your "
+                        "preferences.\n[/dim]"
+                    )
+            else:
+                # Non-interactive: Log message only
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.info(
+                    "Configuration file not found, using defaults. "
+                    "Run 'claude-mpm configure' to customize."
+                )
 
     # Skip background services for configure command - it needs clean state
     # Also skip for help/version/diagnostic commands

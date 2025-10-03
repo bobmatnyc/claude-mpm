@@ -42,14 +42,14 @@ def patch_hook_handler():
         """
         # Try multiple field names for compatibility
         hook_type = (
-            event.get("hook_event_name") or 
-            event.get("event") or 
-            event.get("type") or 
-            event.get("event_type") or 
+            event.get("hook_event_name") or
+            event.get("event") or
+            event.get("type") or
+            event.get("event_type") or
             event.get("hook_event_type") or
             "unknown"
         )
-        
+
         # Log the actual event structure for debugging
         if DEBUG and hook_type == "unknown":
             print(f"Unknown event format, keys: {list(event.keys())}", file=sys.stderr)
@@ -68,10 +68,10 @@ def patch_hook_handler():
         if 'hook_type = event.get("hook_event_name", "unknown")' in line:
             lines[i] = '''        # Try multiple field names for compatibility
         hook_type = (
-            event.get("hook_event_name") or 
-            event.get("event") or 
-            event.get("type") or 
-            event.get("event_type") or 
+            event.get("hook_event_name") or
+            event.get("event") or
+            event.get("type") or
+            event.get("event_type") or
             event.get("hook_event_type") or
             "unknown"
         )'''
