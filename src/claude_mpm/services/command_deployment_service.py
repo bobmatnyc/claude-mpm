@@ -84,11 +84,15 @@ class CommandDeploymentService(BaseService):
 
                 try:
                     # Check if file exists and if we should overwrite
-                    if target_file.exists() and not force and source_file.stat().st_mtime <= target_file.stat().st_mtime:
-                            self.logger.debug(
-                                f"Skipping {source_file.name} - target is up to date"
-                            )
-                            continue
+                    if (
+                        target_file.exists()
+                        and not force
+                        and source_file.stat().st_mtime <= target_file.stat().st_mtime
+                    ):
+                        self.logger.debug(
+                            f"Skipping {source_file.name} - target is up to date"
+                        )
+                        continue
 
                     # Copy the file
                     shutil.copy2(source_file, target_file)

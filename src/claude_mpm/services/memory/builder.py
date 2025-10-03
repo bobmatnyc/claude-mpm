@@ -25,7 +25,7 @@ while preserving essential information.
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import ClassVar, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.mixins import LoggerMixin

@@ -26,7 +26,7 @@ import re
 from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import ClassVar, Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.mixins import LoggerMixin

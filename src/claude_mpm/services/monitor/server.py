@@ -405,7 +405,9 @@ class UnifiedMonitorServer:
                         )
 
                     try:
-                        with Path(file_path).open(encoding="utf-8", ) as f:
+                        with Path(file_path).open(
+                            encoding="utf-8",
+                        ) as f:
                             content = f.read()
                             lines = content.count("\n") + 1
                     except UnicodeDecodeError:
@@ -515,7 +517,9 @@ class UnifiedMonitorServer:
                 file_path = static_dir / f"{page_name}.html"
 
                 if file_path.exists() and file_path.is_file():
-                    with Path(file_path).open(encoding="utf-8", ) as f:
+                    with Path(file_path).open(
+                        encoding="utf-8",
+                    ) as f:
                         content = f.read()
                     return web.Response(text=content, content_type="text/html")
                 return web.Response(text="Page not found", status=404)

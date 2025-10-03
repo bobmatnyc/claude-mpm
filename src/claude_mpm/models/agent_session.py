@@ -531,6 +531,8 @@ class AgentSession:
 
         WHY: Enables analysis of historical sessions.
         """
-        with Path(filepath).open(encoding="utf-8", ) as f:
+        with Path(filepath).open(
+            encoding="utf-8",
+        ) as f:
             data = json.load(f)
         return cls.from_dict(data)

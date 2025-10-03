@@ -100,12 +100,17 @@ class AgentLoader:
                 agents[agent_name] = agent_content
 
         # If we used templates dir, also check main dir for base_agent.md
-        if agents_dir == templates_dir and main_dir and main_dir.exists() and "base_agent" not in agents:
+        if (
+            agents_dir == templates_dir
+            and main_dir
+            and main_dir.exists()
+            and "base_agent" not in agents
+        ):
             base_agent_file = main_dir / "base_agent.md"
             if base_agent_file.exists():
-                    agent_name, agent_content = self.load_single_agent(base_agent_file)
-                    if agent_name and agent_content:
-                        agents[agent_name] = agent_content
+                agent_name, agent_content = self.load_single_agent(base_agent_file)
+                if agent_name and agent_content:
+                    agents[agent_name] = agent_content
 
         return agents
 

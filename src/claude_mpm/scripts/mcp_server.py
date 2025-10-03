@@ -11,9 +11,7 @@ from pathlib import Path
 
 # Since we're now in src/claude_mpm/scripts/, we need to go up 3 levels to reach the project root
 # Then down into src to add it to the path
-project_root = Path(
-    Path(Path(__file__).parent.resolve().joinpath(), "..", "..", "..")
-)
+project_root = Path(Path(Path(__file__).parent.resolve().joinpath(), "..", "..", ".."))
 sys.path.insert(0, Path(project_root) / "src")
 
 

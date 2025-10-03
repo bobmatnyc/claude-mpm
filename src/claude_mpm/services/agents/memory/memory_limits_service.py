@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Memory Limits Service - Manages memory size limits and configuration."""
 
-from typing import ClassVar, Any, Dict, Optional
+from typing import Any, Dict, Optional
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.logging_utils import get_logger

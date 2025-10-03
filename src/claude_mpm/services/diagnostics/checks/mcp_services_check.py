@@ -10,7 +10,7 @@ import json
 import subprocess
 import time
 from pathlib import Path
-from typing import ClassVar, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from claude_mpm.core.logger import get_logger
 
@@ -444,7 +444,11 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             details["command_path"] = command_path
 
         # If not directly accessible, try pipx run command
-        if not accessible and "pipx_run_command" in config and self._verify_command_works(config["pipx_run_command"]):
+        if (
+            not accessible
+            and "pipx_run_command" in config
+            and self._verify_command_works(config["pipx_run_command"])
+        ):
             accessible = True
             details["accessible_via_pipx_run"] = True
             details["pipx_run_available"] = True
@@ -686,32 +690,37 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 # Look for actual version information
                 output = (result.stdout + result.stderr).lower()
                 # Check for version indicators
-                if any(keyword in output for keyword in ["version", "v1.", "v0.", "1.", "0."]) and not any(
-                        error in output
-                        for error in [
-                            "error",
-                            "not found",
-                            "no such",
-                            "command not found",
-                        ]
-                    ):
-                        return True
+                if any(
+                    keyword in output
+                    for keyword in ["version", "v1.", "v0.", "1.", "0."]
+                ) and not any(
+                    error in output
+                    for error in [
+                        "error",
+                        "not found",
+                        "no such",
+                        "command not found",
+                    ]
+                ):
+                    return True
 
             # For some tools, non-zero return code is OK if version is shown
             elif "--version" in command or "--help" in command:
                 output = (result.stdout + result.stderr).lower()
                 # Must have version info and no error indicators
-                if ("version" in output or "v1." in output or "v0." in output) and not any(
-                        error in output
-                        for error in [
-                            "error",
-                            "not found",
-                            "no such",
-                            "command not found",
-                            "traceback",
-                        ]
-                    ):
-                        return True
+                if (
+                    "version" in output or "v1." in output or "v0." in output
+                ) and not any(
+                    error in output
+                    for error in [
+                        "error",
+                        "not found",
+                        "no such",
+                        "command not found",
+                        "traceback",
+                    ]
+                ):
+                    return True
 
         except (subprocess.SubprocessError, FileNotFoundError, OSError):
             pass

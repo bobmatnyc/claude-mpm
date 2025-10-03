@@ -206,7 +206,9 @@ def safe_read_lines(
         return []
 
     try:
-        with Path(filepath).open(encoding=encoding, ) as f:
+        with Path(filepath).open(
+            encoding=encoding,
+        ) as f:
             lines = []
             for i, line in enumerate(f):
                 if max_lines is not None and i >= max_lines:

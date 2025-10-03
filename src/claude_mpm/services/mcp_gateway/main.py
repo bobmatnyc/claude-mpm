@@ -179,7 +179,11 @@ class MCPGatewayOrchestrator:
 
             # Load configuration
             self.configuration = MCPConfiguration()
-            if self.config_path and self.config_path.exists() and not self.configuration.load_config(self.config_path):
+            if (
+                self.config_path
+                and self.config_path.exists()
+                and not self.configuration.load_config(self.config_path)
+            ):
                 self.logger.error("Failed to load configuration")
                 return False
 

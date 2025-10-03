@@ -83,7 +83,9 @@ class PathContext:
             # Check if we're in a src/ directory structure with pyproject.toml
             current = module_path
             for _ in range(5):  # Check up to 5 levels up
-                if (current / "pyproject.toml").exists() and (current / "src" / "claude_mpm").exists():
+                if (current / "pyproject.toml").exists() and (
+                    current / "src" / "claude_mpm"
+                ).exists():
                     # Found pyproject.toml with development setup
                     logger.debug(f"Found development installation at {current}")
                     return True

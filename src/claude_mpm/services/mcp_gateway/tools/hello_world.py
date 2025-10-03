@@ -28,7 +28,7 @@ import platform
 import re
 import sys
 from datetime import datetime, timezone
-from typing import ClassVar, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     MCPToolDefinition,

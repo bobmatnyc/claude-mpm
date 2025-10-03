@@ -15,7 +15,7 @@ This module provides:
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import ClassVar, Any, Dict
+from typing import Any, Dict
 
 from claude_mpm.core.config import Config
 
