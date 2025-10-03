@@ -437,7 +437,7 @@ class SocketIOServerCore:
             if not file_path:
                 return web.json_response({"error": "No path provided"}, status=400)
 
-            abs_path = os.path.abspath(Path(file_path).expanduser())
+            abs_path = Path(Path(file_path).resolve().expanduser())
 
             # Security check - ensure file is within the project
             try:
@@ -450,7 +450,7 @@ class SocketIOServerCore:
             if not Path(abs_path).exists():
                 return web.json_response({"error": "File not found"}, status=404)
 
-            if not os.path.isfile(abs_path):
+            if not Path(abs_path).is_file():
                 return web.json_response({"error": "Not a file"}, status=400)
 
             try:
@@ -474,10 +474,10 @@ class SocketIOServerCore:
                 return web.json_response(
                     {
                         "path": abs_path,
-                        "name": os.path.basename(abs_path),
+                        "name": Path(abs_path).name,
                         "content": content,
                         "lines": len(content.splitlines()),
-                        "size": os.path.getsize(abs_path),
+                        "size": Path(abs_path).stat().st_size,
                     }
                 )
 

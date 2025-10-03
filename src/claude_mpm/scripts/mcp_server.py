@@ -8,13 +8,14 @@ It handles proper Python path setup and error reporting to stderr.
 import logging
 import os
 import sys
+from pathlib import Path
 
 # Since we're now in src/claude_mpm/scripts/, we need to go up 3 levels to reach the project root
 # Then down into src to add it to the path
-project_root = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "..")
+project_root = Path(
+    Path(Path(__file__).parent.resolve().joinpath(), "..", "..", "..")
 )
-sys.path.insert(0, os.path.join(project_root, "src"))
+sys.path.insert(0, Path(project_root) / "src")
 
 
 def setup_logging():

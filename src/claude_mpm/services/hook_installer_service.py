@@ -280,8 +280,8 @@ class HookInstallerService:
                 return False
 
             # Make sure the script is executable
-            st = os.stat(hook_script)
-            os.chmod(hook_script, st.st_mode | stat.S_IEXEC)
+            st = Path(hook_script).stat()
+            Path(hook_script).chmod(st.st_mode | stat.S_IEXEC)
             self.logger.debug(f"Made hook script executable: {hook_script}")
 
             hook_script_path = str(hook_script.absolute())

@@ -615,7 +615,7 @@ class MCPServiceVerifier:
             if diagnostic.fix_command.startswith("chmod "):
                 # Fix permissions
                 path = diagnostic.fix_command.replace("chmod +x ", "")
-                os.chmod(path, 0o755)
+                Path(path).chmod(0o755)
                 return True
 
             if "claude-mpm configure" in diagnostic.fix_command:

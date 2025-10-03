@@ -11,6 +11,7 @@ import re
 import sys
 from datetime import datetime, timezone
 from typing import Any, Optional
+from pathlib import Path
 
 # Debug mode
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
@@ -64,8 +65,8 @@ class ResponseTrackingManager:
             if config_file:
                 # Use specific config file with ConfigLoader
                 pattern = ConfigPattern(
-                    filenames=[os.path.basename(config_file)],
-                    search_paths=[os.path.dirname(config_file)],
+                    filenames=[Path(config_file).name],
+                    search_paths=[Path(config_file).parent],
                     env_prefix="CLAUDE_MPM_",
                 )
                 config = config_loader.load_config(
