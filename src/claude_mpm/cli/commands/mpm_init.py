@@ -964,7 +964,7 @@ preserving valuable project-specific information while refreshing standard secti
             if "libmamba" in error_msg:
                 lines = error_msg.split("\n")
                 error_lines = [
-                    l for l in lines if not l.startswith("warning") and l.strip()
+                    line for line in lines if not line.startswith("warning") and line.strip()
                 ]
                 error_msg = "\n".join(error_lines) if error_lines else error_msg
 
