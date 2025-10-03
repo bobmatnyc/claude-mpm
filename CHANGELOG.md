@@ -1,3 +1,29 @@
+## [4.7.0] - 2025-10-03
+
+### Added
+- **🔴 Engineer Duplicate Elimination Protocol**: Mandatory protocol for detecting and eliminating duplicate code
+  - Pre-implementation detection using vector search (`mcp__mcp-vector-search__search_similar`) and grep
+  - Consolidation decision tree with measurable thresholds (>80% similarity = consolidate, >50% = extract common)
+  - Single-path enforcement with documented A/B test exceptions only
+  - Detection commands and red flag indicators for duplicate code patterns
+  - Success criteria with measurable outcomes (zero duplicates, single canonical source)
+  - Comprehensive consolidation protocol: analyze, merge, update references, remove obsolete, test
+
+### Enhanced
+- **Engineer Code Minimization**: Refined with concrete, falsifiable criteria
+  - Measurable consolidation thresholds: >80% similarity, Levenshtein distance <20%, shared logic >50 lines
+  - Maturity-based LOC thresholds with specific targets (early/growing/mature/legacy projects)
+  - Post-implementation scorecard with mandatory metrics: Net LOC (+X/-Y), Reuse Rate (X%), Functions Consolidated
+  - Streamlined from philosophical guidance to actionable rules with quantifiable success metrics
+  - 287-line BASE_ENGINEER.md with clear priority hierarchy
+
+### Changed
+- **Engineer Template Configuration**: Simplified instructions to reference BASE_ENGINEER.md as single source of truth
+  - Added `base_instructions_file` and `instruction_precedence` fields to engineer.json
+  - Reordered knowledge priorities: code minimization → duplicate detection → clean architecture
+  - Reordered best practices: vector search first → zero net lines → consolidation → LOC reporting
+  - Maintains backward compatibility with enhanced clarity
+
 ## [4.6.1] - 2025-10-03
 
 ### Changed
