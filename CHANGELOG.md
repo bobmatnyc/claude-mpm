@@ -9,6 +9,14 @@
   - Success criteria with measurable outcomes (zero duplicates, single canonical source)
   - Comprehensive consolidation protocol: analyze, merge, update references, remove obsolete, test
 
+- **🚫 Anti-Pattern: Mock Data and Fallback Behavior**: Critical restrictions on engineering anti-patterns
+  - Mock data ONLY for testing (never in production unless explicitly requested)
+  - Fallback behavior is terrible engineering practice (explicit failures required)
+  - Comprehensive examples of violations with correct alternatives
+  - Rare acceptable cases documented (config defaults, graceful degradation with logging)
+  - Enforcement guidelines: code reviews must flag mock data, fallbacks require justification
+  - 84-line comprehensive guide with wrong vs. correct code patterns
+
 ### Enhanced
 - **Engineer Code Minimization**: Refined with concrete, falsifiable criteria
   - Measurable consolidation thresholds: >80% similarity, Levenshtein distance <20%, shared logic >50 lines
