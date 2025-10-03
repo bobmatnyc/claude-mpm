@@ -1,3 +1,11 @@
+## [4.6.1] - 2025-10-03
+
+### Changed
+- **Code Quality**: Consolidated imports and applied automated linting fixes
+  - Consolidated duplicate imports across multiple files
+  - Applied Black, isort, and Ruff auto-fixes for code formatting
+  - Improved code consistency and maintainability
+
 ## [4.6.0] - 2025-10-03
 
 ### Added
