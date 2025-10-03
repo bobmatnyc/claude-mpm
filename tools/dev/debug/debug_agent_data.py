@@ -41,7 +41,6 @@ def debug_agent_data():
 
     # We need to look at what's actually in all_agents
     # Let's monkey-patch the method to debug it
-    original_method = framework_loader._generate_agent_capabilities_section
 
     def debug_capabilities():
         # Call the original method but intercept
@@ -93,7 +92,7 @@ def debug_agent_data():
         return "Debug complete"
 
     # Run the debug version
-    result = debug_capabilities()
+    debug_capabilities()
 
     print("\n" + "=" * 50)
     print("Debug complete!")

@@ -1,3 +1,47 @@
+## [4.6.0] - 2025-10-03
+
+### Added
+- **Ruby Engineer Agent v1.0.0**: Comprehensive Ruby 3.3+ and Rails 7+ development specialist
+  - Modern Ruby features: YJIT optimization, Fiber Scheduler, pattern matching, endless methods
+  - Rails 7+ expertise: Hotwire (Turbo/Stimulus), ViewComponent, Active Storage, Action Mailbox
+  - Testing frameworks: RSpec, Minitest, FactoryBot, Capybara, VCR
+  - Background processing: Sidekiq, Good Job, Solid Queue
+  - API development: Rails API, GraphQL (with graphql-ruby), Grape
+  - Deployment: Docker, Kubernetes, Heroku, Kamal
+  - Performance monitoring: Rack Mini Profiler, Bullet, New Relic
+  - 344-line comprehensive template with modern Ruby/Rails best practices
+
+- **5-Phase Publish & Release Workflow**: Comprehensive agent orchestration system for releases
+  - Phase 1: Research agent analyzes requirements and constraints
+  - Phase 2: Code Analyzer (Opus) reviews with APPROVED/NEEDS_IMPROVEMENT/BLOCKED
+  - Phase 3: Implementation with specialized agent routing
+  - Phase 4: Mandatory QA testing (api-qa, web-qa, or qa based on context)
+  - Phase 5: Documentation updates for all code changes
+  - Git security review before push with credential scanning
+  - 195-line WORKFLOW.md with templates and decision trees
+
+- **Startup Configuration Detection**: Interactive configuration setup on first run
+  - Detects missing configuration files at startup
+  - Interactive prompts for running configurator
+  - Graceful fallback to defaults for non-interactive/CI environments
+  - Smart skip logic for help/version/configure commands
+  - 97-line enhancement to CLI startup flow
+
+### Fixed
+- **Linting Quality**: Auto-fixed 39 linting issues across 18 files
+  - apply_optimizations.py, migrate_analyzers.py, migrate_configs.py, migrate_deployments.py
+  - agent_registry.py, logging_config.py, registry/__init__.py, path_resolver.py
+  - deployment_strategies/base.py, debug_agent_data.py, fix_event_broadcasting.py
+  - fix_hook_event_format.py, fix_watchdog_disconnections.py
+  - test-dashboard-hub.py, update_agent_tags.py
+  - Improved code quality and consistency throughout
+
+### Changed
+- **PM Instructions**: Updated with publish workflow references
+  - Integrated 5-phase workflow into PM decision-making
+  - Enhanced agent routing for publish/release tasks
+  - Improved quality gate enforcement
+
 ## [4.5.18] - 2025-10-02
 
 ### Changed

@@ -74,7 +74,7 @@ def test_dashboard_hub():
         from claude_mpm.services.monitor.server import MonitorServer
 
         server = MonitorServer(port=8765)
-        server_thread = server.start_async()
+        server.start_async()
         print("✅ Monitor server started on port 8765")
 
         # Give server time to start

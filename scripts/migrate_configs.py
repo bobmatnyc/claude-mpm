@@ -144,7 +144,7 @@ class CodeAnalyzer:
 
     def _find_config_patterns(self, content: str) -> Dict[str, int]:
         """Find configuration-related patterns in code"""
-        patterns = {
+        return {
             "file_loading": len(
                 re.findall(r"(open\(|\.read\(|\.load\(|\.loads\()", content)
             ),
@@ -160,7 +160,6 @@ class CodeAnalyzer:
                 re.findall(r"(config\[|\.config\.|get_config|set_config)", content)
             ),
         }
-        return patterns
 
 
 class ConfigMigrator:
@@ -255,7 +254,7 @@ class ConfigMigrator:
         """Check if file needs migration"""
         # Check imports
         for imp in analysis.get("imports", []):
-            for old_pattern in self.mapper.IMPORT_MAPPINGS.keys():
+            for old_pattern in self.mapper.IMPORT_MAPPINGS:
                 if old_pattern in imp:
                     return True
 
@@ -273,10 +272,7 @@ class ConfigMigrator:
         patterns = analysis.get("config_patterns", {})
         if patterns.get("file_loading", 0) > 5:
             return True
-        if patterns.get("validation", 0) > 10:
-            return True
-
-        return False
+        return patterns.get("validation", 0) > 10
 
     def _apply_migrations(self, content: str, analysis: Dict) -> Tuple[str, int]:
         """Apply migrations to file content"""

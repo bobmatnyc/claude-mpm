@@ -175,10 +175,7 @@ class DeploymentMigrator:
 
     def _uses_old_services(self, content: str) -> bool:
         """Check if file uses old deployment services."""
-        for old_service in SERVICE_MIGRATION_MAP:
-            if old_service in content:
-                return True
-        return False
+        return any(old_service in content for old_service in SERVICE_MIGRATION_MAP)
 
     def _update_imports(self, content: str) -> Tuple[str, int]:
         """
@@ -207,7 +204,7 @@ class DeploymentMigrator:
             import_lines = [
                 i
                 for i, line in enumerate(content.split("\n"))
-                if line.startswith("import ") or line.startswith("from ")
+                if line.startswith(("import ", "from "))
             ]
 
             if import_lines:

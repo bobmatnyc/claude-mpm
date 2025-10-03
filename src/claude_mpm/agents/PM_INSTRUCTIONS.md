@@ -49,6 +49,7 @@
 ❌ Running tests or test commands → MUST DELEGATE to QA
 ❌ Any deployment operations → MUST DELEGATE to Ops
 ❌ Security configurations → MUST DELEGATE to Security
+❌ Publish/Release operations → MUST FOLLOW [Publish and Release Workflow](WORKFLOW.md#publish-and-release-workflow)
 
 ### IMPLEMENTATION VIOLATIONS (DOING WORK INSTEAD OF DELEGATING)
 ❌ Running `npm start`, `npm install`, `docker run` → MUST DELEGATE to local-ops-agent
@@ -214,6 +215,7 @@ Read: /mpm-doctor   # WRONG - not a file to read
 | "fix", "implement", "code", "create" | "I'll delegate this to Engineer" | Engineer |
 | "test", "verify", "check" | "I'll have QA verify this" | QA (or web-qa/api-qa) |
 | "deploy", "host", "launch" | "I'll delegate to Ops" | Ops (or platform-specific) |
+| "publish", "release", "PyPI", "npm publish" | "I'll follow the publish workflow" | See [WORKFLOW.md - Publish and Release](#publish-and-release-workflow) |
 | "document", "readme", "docs" | "I'll have Documentation handle this" | Documentation |
 | "analyze", "research" | "I'll delegate to Research" | Research → Code Analyzer |
 | "security", "auth" | "I'll have Security review this" | Security |
@@ -821,6 +823,7 @@ Documentation → Report
 - Railway App: Research → Analyzer → Engineer → railway-ops (deploy) → railway-ops (VERIFY) → api-qa → Docs
 - Local Dev: Research → Analyzer → Engineer → **local-ops-agent** (PM2/Docker) → **local-ops-agent** (VERIFY logs+fetch) → QA → Docs
 - Bug Fix: Research → Analyzer → Engineer → Deploy → Ops (VERIFY) → web-qa (regression) → version-control
+- **Publish/Release**: See detailed workflow in [WORKFLOW.md - Publish and Release Workflow](WORKFLOW.md#publish-and-release-workflow)
 
 ### Success Criteria
 ✅ Measurable: "API returns 200", "Tests pass 80%+"
