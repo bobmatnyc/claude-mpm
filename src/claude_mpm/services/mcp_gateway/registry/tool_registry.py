@@ -216,7 +216,7 @@ class ToolRegistry(BaseMCPService, IMCPToolRegistry):
 
             # Shutdown adapter (outside lock to avoid deadlock)
             try:
-                _task = asyncio.create_task(adapter.shutdown())  # noqa: RUF006
+                _task = asyncio.create_task(adapter.shutdown())
                 # Fire-and-forget shutdown during tool unregister
             except Exception as e:
                 self.log_warning(f"Error shutting down tool adapter {tool_name}: {e}")

@@ -504,7 +504,7 @@ class FrameworkLoader:
             metadata["instructions_length"] = len(instructions)
 
             if loop.is_running():
-                _task = asyncio.create_task(  # noqa: RUF006
+                _task = asyncio.create_task(
                     log_manager.log_prompt("system_prompt", instructions, metadata)
                 )  # Fire-and-forget logging
             else:
