@@ -99,7 +99,11 @@ class ConfigServiceBase(LoggerMixin, ABC):
             raise ValueError(f"Required configuration value missing: {full_key}")
 
         # Type validation
-        if config_type is not None and value is not None and not isinstance(value, config_type):
+        if (
+            config_type is not None
+            and value is not None
+            and not isinstance(value, config_type)
+        ):
             try:
                 # Try to convert
                 if config_type == bool and isinstance(value, str):
@@ -109,9 +113,9 @@ class ConfigServiceBase(LoggerMixin, ABC):
                 else:
                     value = config_type(value)
             except (ValueError, TypeError) as e:
-                    raise ValueError(
-                        f"Invalid type for {full_key}: expected {config_type.__name__}, got {type(value).__name__}"
-                    ) from e
+                raise ValueError(
+                    f"Invalid type for {full_key}: expected {config_type.__name__}, got {type(value).__name__}"
+                ) from e
 
         # Cache the processed value
         self._config_cache[full_key] = value
