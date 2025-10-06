@@ -387,7 +387,7 @@ lint-isort: ## Check import sorting with isort
 lint-flake8: ## Run flake8 linter
 	@echo "$(YELLOW)🔍 Running flake8...$(NC)"
 	@if command -v flake8 &> /dev/null; then \
-		flake8 src/ --max-line-length=88 --extend-ignore=E203,W503 || exit 1; \
+		flake8 src/ tests/ scripts/ || exit 1; \
 		echo "$(GREEN)✓ Flake8 check passed$(NC)"; \
 	else \
 		echo "$(YELLOW)⚠ flake8 not found. Install with: pip install flake8$(NC)"; \
