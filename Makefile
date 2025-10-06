@@ -280,7 +280,7 @@ format: ## Format code with black and isort
 		echo "$(RED)✗ black not found. Install with: pip install black$(NC)"; \
 	fi
 	@if command -v isort &> /dev/null; then \
-		isort src/ tests/ scripts/ --profile=black --line-length=88; \
+		isort --skip-glob="*/test_env/*" --skip-glob="*/.venv/*" --skip-glob="*/venv/*" src/ tests/ scripts/ --profile=black --line-length=88; \
 		echo "$(GREEN)✓ Imports sorted with isort$(NC)"; \
 	else \
 		echo "$(RED)✗ isort not found. Install with: pip install isort$(NC)"; \
@@ -377,7 +377,7 @@ lint-black: ## Check code formatting with black
 lint-isort: ## Check import sorting with isort
 	@echo "$(YELLOW)📦 Checking import sorting...$(NC)"
 	@if command -v isort &> /dev/null; then \
-		isort --check-only --profile=black src/ tests/ scripts/ || exit 1; \
+		isort --check-only --profile=black --skip-glob='*/test_env/*' --skip-glob='*/.venv/*' --skip-glob='*/venv/*' src/ tests/ scripts/ || exit 1; \
 		echo "$(GREEN)✓ Import sorting check passed$(NC)"; \
 	else \
 		echo "$(RED)✗ isort not found. Install with: pip install isort$(NC)"; \
