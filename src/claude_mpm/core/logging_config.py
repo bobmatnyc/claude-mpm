@@ -27,13 +27,11 @@ from typing import Any, Dict, Optional, Union
 from claude_mpm.core.logger import (
     JsonFormatter,
     finalize_streaming_logs,
-)
-from claude_mpm.core.logger import get_logger as _get_logger
-from claude_mpm.core.logger import (
+    get_logger as _get_logger,
     log_async_performance,
     log_performance,
+    setup_logging as _setup_logging,
 )
-from claude_mpm.core.logger import setup_logging as _setup_logging
 
 # Standard log format for consistency
 STANDARD_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
