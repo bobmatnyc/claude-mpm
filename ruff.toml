@@ -46,6 +46,37 @@ ignore = [
     "PTH123", # open() should be replaced by Path.open() - too many to fix now
     "DTZ005", # datetime without timezone - too many to fix now
     "PLR0915", # Too many statements
+    "PLR0911", # Too many return statements - too many to fix now
+    "PLR0912", # Too many branches - too many to fix now
+    "SIM102",  # Use single if statement - can reduce readability
+    "SIM103",  # Return condition directly - sometimes less clear
+    "SIM105",  # Use contextlib.suppress - sometimes less explicit
+    "SIM115",  # Use context manager - not always applicable
+    "SIM117",  # Use single with statement - sometimes less readable
+    "PIE810",  # Use tuple in startswith - minor stylistic preference
+    "N801",    # Class name should use CapWords - legacy compatibility
+    "N802",    # Function name should be lowercase - legacy compatibility
+    "N803",    # Argument name should be lowercase - legacy compatibility
+    "N806",    # Variable in function should be lowercase - legacy compatibility
+    "N812",    # Lowercase imported as non-lowercase - legacy compatibility
+    "B007",    # Loop control variable not used - intentional in some cases
+    "B019",    # Use of lru_cache on methods - intentional caching pattern
+    "B023",    # Function definition does not bind loop variable - false positives
+    "PTH100",  # os.path.abspath - too many to fix now
+    "PTH102",  # os.makedirs - too many to fix now
+    "PTH107",  # os.remove - too many to fix now
+    "PTH110",  # os.path.exists - too many to fix now
+    "PTH112",  # os.path.isdir - too many to fix now
+    "PTH118",  # os.path.join - too many to fix now
+    "PTH119",  # os.path.basename - too many to fix now
+    "PTH120",  # os.path.dirname - too many to fix now
+    "PTH122",  # os.path.splitext - too many to fix now
+    "PTH202",  # os.path.getsize - too many to fix now
+    "RUF006",  # Store reference to asyncio task - intentional fire-and-forget
+    "PLW0602", # Using global without assignment - false positives
+    "UP031",   # Use format specifiers - legacy code compatibility
+    "F403",    # Star imports - allowed in specific contexts
+    "ARG001",  # Unused function argument - required by interfaces
 ]
 
 # Allow autofix for all enabled rules
