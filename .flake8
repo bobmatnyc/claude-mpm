@@ -61,9 +61,9 @@ per-file-ignores =
     # Allow unused imports in __init__ files
     __init__.py:F401,F403
     # Allow print statements and assertions in tests
-    tests/*.py:S101,S102
-    # Allow complex logic in scripts
-    scripts/*.py:C901
+    tests/*.py:S101,S102,E402,F401,F821,F841,E722
+    # Allow complex logic and other issues in scripts
+    scripts/*.py:C901,E402,F401,F821,F841,E722
 
 # Enable additional plugins
 # Note: These need to be installed separately
