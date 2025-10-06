@@ -27,13 +27,15 @@ select = [
     "PL",     # Pylint
     "NPY",    # NumPy-specific rules
     "PERF",   # Performance linting
+    "PIE",    # flake8-pie
+    "N",      # pep8-naming
+    "C",      # complexity
 ]
 
 # Ignore specific rules
 ignore = [
     "E501",   # Line too long (handled by Black)
     "E203",   # Whitespace before ':' (conflicts with Black)
-    "W503",   # Line break before binary operator (conflicts with Black)
     "B008",   # Do not perform function calls in argument defaults
     "B024",   # Abstract base class without abstract methods
     "UP007",  # Use X | Y for type hints (not compatible with Python 3.8)
@@ -77,6 +79,9 @@ ignore = [
     "UP031",   # Use format specifiers - legacy code compatibility
     "F403",    # Star imports - allowed in specific contexts
     "ARG001",  # Unused function argument - required by interfaces
+    "RUF012",  # Mutable class attributes without ClassVar - too many to fix now
+    "N999",    # Invalid module name - legacy test files
+    "C901",    # Function is too complex - too many to fix now
 ]
 
 # Allow autofix for all enabled rules

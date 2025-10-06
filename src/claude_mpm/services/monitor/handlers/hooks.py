@@ -237,7 +237,7 @@ class HookHandler:
                 )
 
                 # Remove from active sessions after a delay (5 minutes)
-                _task = asyncio.create_task(  # noqa: RUF006
+                _task = asyncio.create_task(
                     self._cleanup_session(session_id, delay=300)
                 )  # Fire-and-forget cleanup task
 
