@@ -285,7 +285,7 @@ class EventHandlers:
                 # Log the agent prompt asynchronously
                 try:
                     loop = asyncio.get_running_loop()
-                    _task = asyncio.create_task(  # noqa: RUF006
+                    _task = asyncio.create_task(
                         log_manager.log_prompt(
                             f"agent_{agent_type}", prompt_content, metadata
                         )
