@@ -1,3 +1,20 @@
+## [4.7.2] - 2025-10-06
+
+### Fixed
+- Resolved remaining indentation and formatting issues in config_service_base.py
+  - Additional cleanup to ensure consistent code formatting
+  - Improved code readability and maintainability
+
+### Changed
+- Added .kuzu-memory-backups/ directory to .gitignore
+  - Prevents accidental commits of Kuzu memory backup files
+  - Keeps repository clean from local database backups
+
+### Documentation
+- Enhanced BASE_QA.md with JavaScript test process management warnings
+  - Added vitest warnings regarding process cleanup and lifecycle management
+  - Improved guidance for handling test processes in JavaScript environments
+
 ## [4.7.1] - 2025-10-03
 
 ### Fixed
