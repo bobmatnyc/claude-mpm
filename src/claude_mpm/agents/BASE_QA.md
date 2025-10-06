@@ -29,65 +29,117 @@ grep -r "describe\|it\(" --include="*.js" tests/
 3. Finally comprehensive test suite
 4. Stop on critical failures
 
-## Test Process Management
+## ⚠️ CRITICAL: JavaScript Test Process Management
 
-When running tests in JavaScript/TypeScript projects:
+**WARNING: Vitest and Jest watch modes cause persistent processes and memory leaks in agent operations.**
 
-### 1. Always Use Non-Interactive Mode
+### Primary Directive: AVOID VITEST/JEST WATCH MODE AT ALL COSTS
 
-**CRITICAL**: Never use watch mode during agent operations as it causes memory leaks.
+**Before running ANY JavaScript/TypeScript test:**
 
+1. **ALWAYS inspect package.json test configuration FIRST**
+2. **NEVER run tests without explicit CI flags or run commands**
+3. **MANDATORY process verification after EVERY test run**
+
+### Safe Test Execution Protocol
+
+#### Step 1: Pre-Flight Check (MANDATORY)
 ```bash
-# CORRECT - CI-safe test execution
-CI=true npm test
-npx vitest run --reporter=verbose
-npx jest --ci --no-watch
+# ALWAYS check package.json test script configuration FIRST
+cat package.json | grep -A 3 '"test"'
 
-# WRONG - Causes memory leaks
-npm test  # May trigger watch mode
-npm test -- --watch  # Never terminates
-vitest  # Default may be watch mode
+# Look for dangerous configurations:
+# ❌ "test": "vitest"           # DANGER: Watch mode by default
+# ❌ "test": "jest"              # DANGER: May trigger watch
+# ✅ "test": "vitest run"        # SAFE: Explicit run mode
+# ✅ "test": "jest --ci"         # SAFE: CI mode
 ```
 
-### 2. Verify Process Cleanup
-
-After running tests, always verify no orphaned processes remain:
-
+#### Step 2: Safe Test Execution (USE THESE COMMANDS ONLY)
 ```bash
-# Check for hanging test processes
+# PRIMARY RECOMMENDED COMMANDS (use these by default):
+CI=true npm test                    # Forces CI mode, prevents watch
+npx vitest run --reporter=verbose  # Explicit run mode with output
+npx jest --ci --no-watch           # Explicit CI mode, no watch
+
+# NEVER USE THESE COMMANDS:
+npm test                            # ❌ May trigger watch mode
+vitest                              # ❌ Defaults to watch mode
+npm test -- --watch                 # ❌ Explicitly starts watch mode
+jest                                # ❌ May trigger watch mode
+```
+
+#### Step 3: Post-Execution Verification (MANDATORY)
+```bash
+# ALWAYS verify process cleanup after tests
 ps aux | grep -E "(vitest|jest|node.*test)" | grep -v grep
 
-# Kill orphaned processes if found
-pkill -f "vitest" || pkill -f "jest"
+# If ANY processes found, kill them immediately:
+pkill -f "vitest" || true
+pkill -f "jest" || true
+
+# Verify cleanup succeeded:
+ps aux | grep -E "(vitest|jest|node.*test)" | grep -v grep
+# Should return NOTHING
 ```
 
-### 3. Package.json Best Practices
+### Why This Matters
 
-Before running any test command:
-- **Always check package.json** test script configuration
-- Verify if test script uses watch mode by default
-- Use explicit `--run` or `--ci` flags when uncertain
+**Vitest/Jest watch mode creates persistent processes that:**
+- Consume memory indefinitely (memory leak)
+- Prevent agent completion (hanging processes)
+- Cause resource exhaustion in multi-test scenarios
+- Require manual intervention to terminate
+- Make automated testing workflows impossible
 
+### Alternative Testing Strategies
+
+**When testing is needed, prefer these approaches (in order):**
+
+1. **Static Analysis First**: Use grep/glob to discover test patterns
+2. **Selective Testing**: Run specific test files, not entire suites
+3. **API Testing**: Test backend endpoints directly with curl/fetch
+4. **Manual Review**: Review test code without executing
+5. **If Tests Must Run**: Use CI=true prefix and mandatory verification
+
+### Package.json Configuration Recommendations
+
+**ALWAYS verify test scripts are agent-safe:**
+```json
+{
+  "scripts": {
+    "test": "vitest run",           // ✅ SAFE: Explicit run mode
+    "test:ci": "CI=true vitest run", // ✅ SAFE: CI mode
+    "test:watch": "vitest",          // ✅ OK: Separate watch command
+    "test": "vitest"                 // ❌ DANGEROUS: Watch by default
+  }
+}
+```
+
+### Emergency Process Cleanup
+
+**If you suspect orphaned processes:**
 ```bash
-# Check test configuration first
-cat package.json | grep -A 2 '"test"'
+# List all node/test processes
+ps aux | grep -E "(node|vitest|jest)" | grep -v grep
 
-# If watch mode detected, override with:
-CI=true npm test
-# OR use run flag explicitly:
-npx vitest run
+# Nuclear option - kill all node processes (USE WITH CAUTION)
+pkill -9 node
+
+# Verify cleanup
+ps aux | grep -E "(vitest|jest|node.*test)" | grep -v grep
 ```
 
-### 4. Common Pitfalls to Avoid
+### Testing Workflow Checklist
 
-- ❌ Running `npm test` when package.json has watch mode as default
-- ❌ Not waiting for test completion before continuing
-- ❌ Not checking for orphaned test processes
-- ❌ Assuming test commands are CI-safe without verification
-- ✅ Always check package.json configuration first
-- ✅ Use CI=true or explicit --run/--ci flags
-- ✅ Verify process termination after tests
-- ✅ Monitor for hanging processes between test runs
+- [ ] Inspected package.json test configuration
+- [ ] Identified watch mode risks
+- [ ] Used CI=true or explicit --run flags
+- [ ] Test command completed (not hanging)
+- [ ] Verified no orphaned processes remain
+- [ ] Cleaned up any detected processes
+- [ ] Documented test results
+- [ ] Ready to proceed to next task
 
 ### Error Reporting
 - Group similar failures together
