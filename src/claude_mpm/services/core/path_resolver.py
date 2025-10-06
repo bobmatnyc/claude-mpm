@@ -325,8 +325,8 @@ class PathResolver(IPathResolver):
         """Detect framework path using unified path management."""
         try:
             # Import here to avoid circular dependencies
-            from ...core.unified_paths import DeploymentContext as UnifiedContext
             from ...core.unified_paths import (
+                DeploymentContext as UnifiedContext,
                 get_path_manager,
             )
 
