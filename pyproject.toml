@@ -56,6 +56,9 @@ target-version = [ "py38",]
 [tool.isort]
 profile = "black"
 line_length = 88
+force_single_line = false
+combine_as_imports = true
+force_sort_within_sections = false
 
 [tool.mypy]
 python_version = "3.8"
