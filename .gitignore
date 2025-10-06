@@ -301,4 +301,5 @@ wheels/
 
 # Added by Claude MPM /mpm-init
 .kuzu-memory/
+.kuzu-memory-backups/
 kuzu-memories/
