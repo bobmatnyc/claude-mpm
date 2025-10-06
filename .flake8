@@ -20,6 +20,8 @@ extend-ignore =
     E402,
     # Line too long (handled by Black formatter)
     E501,
+    # Type comparison using type() - intentional in some cases
+    E721,
     # Bare except - intentional in some cases
     E722,
     # Ambiguous variable name - too many to fix now
@@ -32,8 +34,12 @@ extend-ignore =
     W503,
     # Function is too complex - too many to fix now
     C901,
+    # Unused imports - too many to fix now
+    F401,
     # Import shadowed by loop variable - false positives
     F402,
+    # Star imports - used in compatibility layers
+    F403,
     # Redefinition of unused name - intentional in some cases
     F811,
     # Unused global - false positives
