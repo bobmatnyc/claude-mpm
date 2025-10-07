@@ -1,3 +1,10 @@
+## [4.7.3] - 2025-10-07
+
+### Fixed
+- Fixed `/mpm-doctor` slash command to properly execute diagnostic checks
+  - Added missing bash code block to invoke `claude-mpm doctor "$@"`
+  - Command now correctly runs when invoked via `/mpm-doctor`
+
 ## [4.7.2] - 2025-10-06
 
 ### Fixed
