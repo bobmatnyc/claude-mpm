@@ -44,30 +44,30 @@ class TestInteractiveSession:
         with patch("os.getcwd", return_value="/test/cwd"):
             return InteractiveSession(mock_runner)
 
-    def test_init(self):
+    def test_init(self, mock_runner):
         """Test InteractiveSession initialization."""
         with patch("os.getcwd", return_value="/test/dir"):
-            session = InteractiveSession(self)
+            session = InteractiveSession(mock_runner)
 
-        assert session.runner == self
+        assert session.runner == mock_runner
         assert session.logger is not None
         assert session.session_id is None
-        assert session.original_cwd == "/test/dir"
+        assert str(session.original_cwd) == "/test/dir"
 
-    def test_initialize_interactive_session_success(self):
+    def test_initialize_interactive_session_success(self, interactive_session):
         """Test successful interactive session initialization."""
         with patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid:
             mock_uuid.return_value.__str__ = Mock(return_value="test-session-id")
 
-            success, error = self.initialize_interactive_session()
+            success, error = interactive_session.initialize_interactive_session()
 
             assert success is True
             assert error is None
-            assert self.session_id == "test-session-id"
+            assert interactive_session.session_id == "test-session-id"
 
-    def test_initialize_interactive_session_with_websocket(self):
+    def test_initialize_interactive_session_with_websocket(self, interactive_session):
         """Test initialization with WebSocket enabled."""
-        self.runner.enable_websocket = True
+        interactive_session.runner.enable_websocket = True
 
         mock_proxy = Mock()
 
@@ -77,15 +77,15 @@ class TestInteractiveSession:
         ), patch("os.getcwd", return_value="/test/cwd"):
             mock_uuid.return_value.__str__ = Mock(return_value="ws-session-id")
 
-            success, error = self.initialize_interactive_session()
+            success, error = interactive_session.initialize_interactive_session()
 
             assert success is True
             mock_proxy.start.assert_called_once()
-            mock_proxy.session_started.assert_called_once_with(
-                session_id="ws-session-id",
-                launch_method="exec",
-                working_dir="/test/cwd",
-            )
+            # Note: working_dir is now a PosixPath, not a string
+            call_args = mock_proxy.session_started.call_args
+            assert call_args[1]["session_id"] == "ws-session-id"
+            assert call_args[1]["launch_method"] == "exec"
+            assert str(call_args[1]["working_dir"]) == "/test/cwd"
 
     def test_initialize_interactive_session_websocket_import_error(
         self, interactive_session, capsys
@@ -142,29 +142,29 @@ class TestInteractiveSession:
                 "Starting interactive session", level="INFO", component="session"
             )
 
-    def test_initialize_interactive_session_exception(self):
+    def test_initialize_interactive_session_exception(self, interactive_session):
         """Test initialization with exception."""
         with patch("uuid.uuid4", side_effect=Exception("UUID generation failed")):
-            success, error = self.initialize_interactive_session()
+            success, error = interactive_session.initialize_interactive_session()
 
             assert success is False
             assert "Failed to initialize session" in error
             assert "UUID generation failed" in error
 
-    def test_setup_interactive_environment_success(self):
+    def test_setup_interactive_environment_success(self, interactive_session):
         """Test successful environment setup."""
-        self.session_id = "test-session"
+        interactive_session.session_id = "test-session"
 
         with patch.object(
-            self,
+            interactive_session,
             "_build_claude_command",
             return_value=["claude", "--test"],
         ), patch.object(
-            self, "_prepare_environment", return_value={"ENV": "test"}
+            interactive_session, "_prepare_environment", return_value={"ENV": "test"}
         ), patch.object(
-            self, "_change_to_user_directory"
+            interactive_session, "_change_to_user_directory"
         ):
-            success, env = self.setup_interactive_environment()
+            success, env = interactive_session.setup_interactive_environment()
 
             assert success is True
             assert env["command"] == ["claude", "--test"]
@@ -172,8 +172,8 @@ class TestInteractiveSession:
             assert env["session_id"] == "test-session"
 
             # Verify agents were set up
-            self.runner.setup_agents.assert_called_once()
-            self.runner.deploy_project_agents_to_claude.assert_called_once()
+            interactive_session.runner.setup_agents.assert_called_once()
+            interactive_session.runner.deploy_project_agents_to_claude.assert_called_once()
 
     def test_setup_interactive_environment_agents_fail(
         self, interactive_session, capsys
@@ -194,16 +194,16 @@ class TestInteractiveSession:
             captured = capsys.readouterr()
             assert "Continuing without native agents..." in captured.out
 
-    def test_setup_interactive_environment_exception(self):
+    def test_setup_interactive_environment_exception(self, interactive_session):
         """Test environment setup with exception."""
-        self.runner.setup_agents.side_effect = Exception("Setup failed")
+        interactive_session.runner.setup_agents.side_effect = Exception("Setup failed")
 
-        success, env = self.setup_interactive_environment()
+        success, env = interactive_session.setup_interactive_environment()
 
         assert success is False
         assert env == {}
 
-    def test_handle_interactive_input_exec_mode(self):
+    def test_handle_interactive_input_exec_mode(self, interactive_session):
         """Test interactive input handling with exec mode."""
         environment = {
             "command": ["claude", "--test"],
@@ -211,61 +211,61 @@ class TestInteractiveSession:
             "session_id": "test-session",
         }
 
-        with patch.object(self, "_log_launch_attempt"), patch.object(
-            self, "_launch_exec_mode", return_value=True
+        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
+            interactive_session, "_launch_exec_mode", return_value=True
         ) as mock_exec:
-            result = self.handle_interactive_input(environment)
+            result = interactive_session.handle_interactive_input(environment)
 
             assert result is True
             mock_exec.assert_called_once_with(["claude", "--test"], {"TEST": "value"})
 
-    def test_handle_interactive_input_subprocess_mode(self):
+    def test_handle_interactive_input_subprocess_mode(self, interactive_session):
         """Test interactive input handling with subprocess mode."""
-        self.runner.launch_method = "subprocess"
+        interactive_session.runner.launch_method = "subprocess"
         environment = {
             "command": ["claude", "--test"],
             "environment": {"TEST": "value"},
             "session_id": "test-session",
         }
 
-        with patch.object(self, "_log_launch_attempt"), patch.object(
-            self, "_launch_subprocess_mode", return_value=True
+        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
+            interactive_session, "_launch_subprocess_mode", return_value=True
         ) as mock_subprocess:
-            result = self.handle_interactive_input(environment)
+            result = interactive_session.handle_interactive_input(environment)
 
             assert result is True
             mock_subprocess.assert_called_once_with(
                 ["claude", "--test"], {"TEST": "value"}
             )
 
-    def test_handle_interactive_input_with_websocket(self):
+    def test_handle_interactive_input_with_websocket(self, interactive_session):
         """Test interactive input handling with WebSocket notifications."""
-        self.runner.websocket_server = Mock()
+        interactive_session.runner.websocket_server = Mock()
         environment = {
             "command": ["claude"],
             "environment": {},
             "session_id": "test-session",
         }
 
-        with patch.object(self, "_log_launch_attempt"), patch.object(
-            self, "_launch_exec_mode", return_value=True
+        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
+            interactive_session, "_launch_exec_mode", return_value=True
         ):
-            self.handle_interactive_input(environment)
+            interactive_session.handle_interactive_input(environment)
 
-            self.runner.websocket_server.claude_status_changed.assert_called_once_with(
+            interactive_session.runner.websocket_server.claude_status_changed.assert_called_once_with(
                 status="starting", message="Launching Claude interactive session"
             )
 
-    def test_handle_interactive_input_file_not_found(self):
+    def test_handle_interactive_input_file_not_found(self, interactive_session):
         """Test handling of FileNotFoundError during launch."""
         environment = {"command": ["claude"], "environment": {}}
 
-        with patch.object(self, "_log_launch_attempt"), patch.object(
-            self,
+        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
+            interactive_session,
             "_launch_exec_mode",
             side_effect=FileNotFoundError("claude not found"),
-        ), patch.object(self, "_handle_launch_error") as mock_handle:
-            result = self.handle_interactive_input(environment)
+        ), patch.object(interactive_session, "_handle_launch_error") as mock_handle:
+            result = interactive_session.handle_interactive_input(environment)
 
             assert result is False
             # Check that _handle_launch_error was called with correct error type
@@ -275,16 +275,16 @@ class TestInteractiveSession:
             assert isinstance(call_args[1], FileNotFoundError)
             assert str(call_args[1]) == "claude not found"
 
-    def test_handle_interactive_input_permission_error(self):
+    def test_handle_interactive_input_permission_error(self, interactive_session):
         """Test handling of PermissionError during launch."""
         environment = {"command": ["claude"], "environment": {}}
 
-        with patch.object(self, "_log_launch_attempt"), patch.object(
-            self,
+        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
+            interactive_session,
             "_launch_exec_mode",
             side_effect=PermissionError("Permission denied"),
-        ), patch.object(self, "_handle_launch_error") as mock_handle:
-            result = self.handle_interactive_input(environment)
+        ), patch.object(interactive_session, "_handle_launch_error") as mock_handle:
+            result = interactive_session.handle_interactive_input(environment)
 
             assert result is False
             # Check that _handle_launch_error was called with correct error type
@@ -294,28 +294,30 @@ class TestInteractiveSession:
             assert isinstance(call_args[1], PermissionError)
             assert str(call_args[1]) == "Permission denied"
 
-    def test_handle_interactive_input_os_error_with_fallback(self):
+    def test_handle_interactive_input_os_error_with_fallback(self, interactive_session):
         """Test handling of OSError with successful fallback."""
         environment = {"command": ["claude"], "environment": {}}
 
-        with patch.object(self, "_log_launch_attempt"), patch.object(
-            self, "_launch_exec_mode", side_effect=OSError("OS error")
-        ), patch.object(self, "_handle_launch_error"), patch.object(
-            self, "_attempt_fallback_launch", return_value=True
+        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
+            interactive_session, "_launch_exec_mode", side_effect=OSError("OS error")
+        ), patch.object(interactive_session, "_handle_launch_error"), patch.object(
+            interactive_session, "_attempt_fallback_launch", return_value=True
         ) as mock_fallback:
-            result = self.handle_interactive_input(environment)
+            result = interactive_session.handle_interactive_input(environment)
 
             assert result is True
             mock_fallback.assert_called_once_with(environment)
 
-    def test_handle_interactive_input_keyboard_interrupt(self):
+    def test_handle_interactive_input_keyboard_interrupt(self, interactive_session):
         """Test handling of KeyboardInterrupt during launch."""
         environment = {"command": ["claude"], "environment": {}}
 
-        with patch.object(self, "_log_launch_attempt"), patch.object(
-            self, "_launch_exec_mode", side_effect=KeyboardInterrupt()
-        ), patch.object(self, "_handle_keyboard_interrupt") as mock_handle:
-            result = self.handle_interactive_input(environment)
+        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
+            interactive_session, "_launch_exec_mode", side_effect=KeyboardInterrupt()
+        ), patch.object(
+            interactive_session, "_handle_keyboard_interrupt"
+        ) as mock_handle:
+            result = interactive_session.handle_interactive_input(environment)
 
             assert result is True  # Clean exit
             mock_handle.assert_called_once()
@@ -338,67 +340,47 @@ class TestInteractiveSession:
             assert result is False
             mock_fallback.assert_called_once_with(environment)
 
-    def test_process_interactive_command_agents(self):
-        """Test processing of /agents command."""
-        with patch(
-            "claude_mpm.cli.utils.get_agent_versions_display", return_value="agent list"
-        ) as mock_get_agents, patch("builtins.print") as mock_print:
-            result = self.process_interactive_command("/agents")
+    def test_process_interactive_command_agents(self, interactive_session):
+        """Test processing of /agents command - now handled by Claude Code."""
+        # As of v4.1.2, all MPM commands are handled by Claude Code
+        result = interactive_session.process_interactive_command("/agents")
+        assert result is None  # Not intercepted, returns None
 
-            assert result is True
-            mock_get_agents.assert_called_once()
-            mock_print.assert_called_once_with("agent list")
+    def test_process_interactive_command_agents_no_agents(self, interactive_session):
+        """Test processing of /agents command - now handled by Claude Code."""
+        # As of v4.1.2, all MPM commands are handled by Claude Code
+        result = interactive_session.process_interactive_command("/agents")
+        assert result is None  # Not intercepted, returns None
 
-    def test_process_interactive_command_agents_no_agents(self):
-        """Test processing of /agents command with no agents."""
-        with patch(
-            "claude_mpm.cli.utils.get_agent_versions_display", return_value=None
-        ), patch("builtins.print") as mock_print:
-            result = self.process_interactive_command("/agents")
+    def test_process_interactive_command_agents_import_error(self, interactive_session):
+        """Test processing of /agents command - now handled by Claude Code."""
+        # As of v4.1.2, all MPM commands are handled by Claude Code
+        result = interactive_session.process_interactive_command("/agents")
+        assert result is None  # Not intercepted, returns None
 
-            assert result is True
-            mock_print.assert_any_call("No deployed agents found")
-            mock_print.assert_any_call(
-                "\nTo deploy agents, run: claude-mpm --mpm:agents deploy"
-            )
+    def test_process_interactive_command_agents_exception(self, interactive_session):
+        """Test processing of /agents command - now handled by Claude Code."""
+        # As of v4.1.2, all MPM commands are handled by Claude Code
+        result = interactive_session.process_interactive_command("/agents")
+        assert result is None  # Not intercepted, returns None
 
-    def test_process_interactive_command_agents_import_error(self):
-        """Test processing of /agents command with import error."""
-        with patch(
-            "claude_mpm.cli.utils.get_agent_versions_display",
-            side_effect=ImportError("No module"),
-        ), patch("builtins.print") as mock_print:
-            result = self.process_interactive_command("/agents")
-
-            assert result is False
-            mock_print.assert_called_once_with("Error: CLI module not available")
-
-    def test_process_interactive_command_agents_exception(self):
-        """Test processing of /agents command with exception."""
-        with patch(
-            "claude_mpm.cli.utils.get_agent_versions_display",
-            side_effect=Exception("Error"),
-        ), patch("builtins.print") as mock_print:
-            result = self.process_interactive_command("/agents")
-
-            assert result is False
-            mock_print.assert_called_once_with("Error getting agent versions: Error")
-
-    def test_process_interactive_command_not_special(self):
+    def test_process_interactive_command_not_special(self, interactive_session):
         """Test processing of non-special command."""
-        result = self.process_interactive_command("regular command")
+        result = interactive_session.process_interactive_command("regular command")
         assert result is None
 
-    def test_cleanup_interactive_session_basic(self):
+    def test_cleanup_interactive_session_basic(self, interactive_session):
         """Test basic session cleanup."""
-        self.original_cwd = "/test/dir"
+        from pathlib import Path
 
-        with patch("os.path.exists", return_value=True), patch(
+        interactive_session.original_cwd = Path("/test/dir")
+
+        with patch.object(Path, "exists", return_value=True), patch(
             "os.chdir"
         ) as mock_chdir:
-            self.cleanup_interactive_session()
+            interactive_session.cleanup_interactive_session()
 
-            mock_chdir.assert_called_once_with("/test/dir")
+            mock_chdir.assert_called_once_with(Path("/test/dir"))
 
     def test_cleanup_interactive_session_directory_not_exists(
         self, interactive_session
@@ -413,87 +395,89 @@ class TestInteractiveSession:
 
             mock_chdir.assert_not_called()
 
-    def test_cleanup_interactive_session_chdir_error(self):
+    def test_cleanup_interactive_session_chdir_error(self, interactive_session):
         """Test cleanup with chdir error."""
-        self.original_cwd = "/test/dir"
+        from pathlib import Path
+
+        interactive_session.original_cwd = Path("/test/dir")
 
         with patch("os.path.exists", return_value=True), patch(
             "os.chdir", side_effect=OSError("Permission denied")
         ):
             # Should not raise exception
-            self.cleanup_interactive_session()
+            interactive_session.cleanup_interactive_session()
 
-    def test_cleanup_interactive_session_with_websocket(self):
+    def test_cleanup_interactive_session_with_websocket(self, interactive_session):
         """Test cleanup with WebSocket server."""
         mock_websocket = Mock()
-        self.runner.websocket_server = mock_websocket
+        interactive_session.runner.websocket_server = mock_websocket
 
-        self.cleanup_interactive_session()
+        interactive_session.cleanup_interactive_session()
 
         mock_websocket.session_ended.assert_called_once()
-        assert self.runner.websocket_server is None
+        assert interactive_session.runner.websocket_server is None
 
-    def test_cleanup_interactive_session_with_project_logger(self):
+    def test_cleanup_interactive_session_with_project_logger(self, interactive_session):
         """Test cleanup with project logger."""
-        self.runner.project_logger = Mock()
+        interactive_session.runner.project_logger = Mock()
 
-        self.cleanup_interactive_session()
+        interactive_session.cleanup_interactive_session()
 
-        self.runner.project_logger.log_system.assert_called_once_with(
+        interactive_session.runner.project_logger.log_system.assert_called_once_with(
             "Interactive session ended", level="INFO", component="session"
         )
 
-    def test_cleanup_interactive_session_with_session_log(self):
+    def test_cleanup_interactive_session_with_session_log(self, interactive_session):
         """Test cleanup with session logging."""
-        self.session_id = "test-session"
-        self.runner.session_log_file = "test.log"
+        interactive_session.session_id = "test-session"
+        interactive_session.runner.session_log_file = "test.log"
 
-        self.cleanup_interactive_session()
+        interactive_session.cleanup_interactive_session()
 
-        self.runner._log_session_event.assert_called_once_with(
+        interactive_session.runner._log_session_event.assert_called_once_with(
             {"event": "session_end", "session_id": "test-session"}
         )
 
-    def test_cleanup_interactive_session_with_exception(self):
+    def test_cleanup_interactive_session_with_exception(self, interactive_session):
         """Test cleanup with exception during cleanup."""
-        self.runner.project_logger = Mock()
-        self.runner.project_logger.log_system.side_effect = Exception("Cleanup error")
+        interactive_session.runner.project_logger = Mock()
+        interactive_session.runner.project_logger.log_system.side_effect = Exception(
+            "Cleanup error"
+        )
 
         # Should not raise exception
-        self.cleanup_interactive_session()
+        interactive_session.cleanup_interactive_session()
 
-    def test_build_claude_command_basic(self):
+    def test_build_claude_command_basic(self, interactive_session):
         """Test basic Claude command building."""
         with patch(
             "claude_mpm.core.claude_runner.create_simple_context",
             return_value="simple context",
         ):
-            result = self._build_claude_command()
+            result = interactive_session._build_claude_command()
 
+            # Updated expectations: no --model opus anymore
             expected = [
                 "claude",
-                "--model",
-                "opus",
                 "--dangerously-skip-permissions",
                 "--append-system-prompt",
                 "system prompt",
             ]
             assert result == expected
 
-    def test_build_claude_command_with_args(self):
+    def test_build_claude_command_with_args(self, interactive_session):
         """Test Claude command building with additional arguments."""
-        self.runner.claude_args = ["--verbose", "--timeout", "30"]
+        interactive_session.runner.claude_args = ["--verbose", "--timeout", "30"]
 
         with patch(
             "claude_mpm.core.claude_runner.create_simple_context",
             return_value="simple context",
         ):
-            result = self._build_claude_command()
+            result = interactive_session._build_claude_command()
 
+            # Updated expectations: no --model opus anymore
             expected = [
                 "claude",
-                "--model",
-                "opus",
                 "--dangerously-skip-permissions",
                 "--verbose",
                 "--timeout",
@@ -503,27 +487,28 @@ class TestInteractiveSession:
             ]
             assert result == expected
 
-    def test_build_claude_command_with_system_prompt(self):
+    def test_build_claude_command_with_system_prompt(self, interactive_session):
         """Test Claude command building with system prompt."""
-        self.runner._create_system_prompt.return_value = "custom system prompt"
+        interactive_session.runner._create_system_prompt.return_value = (
+            "custom system prompt"
+        )
 
         with patch(
             "claude_mpm.core.claude_runner.create_simple_context",
             return_value="simple context",
         ):
-            result = self._build_claude_command()
+            result = interactive_session._build_claude_command()
 
+            # Updated expectations: no --model opus anymore
             expected = [
                 "claude",
-                "--model",
-                "opus",
                 "--dangerously-skip-permissions",
                 "--append-system-prompt",
                 "custom system prompt",
             ]
             assert result == expected
 
-    def test_prepare_environment(self):
+    def test_prepare_environment(self, interactive_session):
         """Test environment preparation."""
         mock_env = {
             "PATH": "/usr/bin",
@@ -536,7 +521,7 @@ class TestInteractiveSession:
         }
 
         with patch("os.environ.copy", return_value=mock_env):
-            result = self._prepare_environment()
+            result = interactive_session._prepare_environment()
 
             # Should remove Claude-specific variables
             assert "CLAUDE_CODE_ENTRYPOINT" not in result
@@ -549,7 +534,7 @@ class TestInteractiveSession:
             assert result["PATH"] == "/usr/bin"
             assert result["OTHER_VAR"] == "keep"
 
-    def test_change_to_user_directory_success(self, tmp_path):
+    def test_change_to_user_directory_success(self, interactive_session, tmp_path):
         """Test changing to user directory successfully."""
         test_dir = tmp_path / "user_workspace"
         test_dir.mkdir()
@@ -557,54 +542,54 @@ class TestInteractiveSession:
         env = {"CLAUDE_MPM_USER_PWD": str(test_dir)}
 
         with patch("os.chdir") as mock_chdir:
-            self._change_to_user_directory(env)
+            interactive_session._change_to_user_directory(env)
 
             assert env["CLAUDE_WORKSPACE"] == str(test_dir)
             mock_chdir.assert_called_once_with(str(test_dir))
 
-    def test_change_to_user_directory_no_pwd(self):
+    def test_change_to_user_directory_no_pwd(self, interactive_session):
         """Test changing to user directory without PWD set."""
         env = {"OTHER_VAR": "value"}
 
         with patch("os.chdir") as mock_chdir:
-            self._change_to_user_directory(env)
+            interactive_session._change_to_user_directory(env)
 
             mock_chdir.assert_not_called()
             assert "CLAUDE_WORKSPACE" not in env
 
-    def test_change_to_user_directory_permission_error(self):
+    def test_change_to_user_directory_permission_error(self, interactive_session):
         """Test changing to user directory with permission error."""
         env = {"CLAUDE_MPM_USER_PWD": "/forbidden/path"}
 
         with patch("os.chdir", side_effect=PermissionError("Permission denied")):
             # Should not raise exception
-            self._change_to_user_directory(env)
+            interactive_session._change_to_user_directory(env)
 
             assert env["CLAUDE_WORKSPACE"] == "/forbidden/path"
 
-    def test_change_to_user_directory_not_found(self):
+    def test_change_to_user_directory_not_found(self, interactive_session):
         """Test changing to user directory with FileNotFoundError."""
         env = {"CLAUDE_MPM_USER_PWD": "/nonexistent/path"}
 
         with patch("os.chdir", side_effect=FileNotFoundError("Not found")):
             # Should not raise exception
-            self._change_to_user_directory(env)
+            interactive_session._change_to_user_directory(env)
 
             assert env["CLAUDE_WORKSPACE"] == "/nonexistent/path"
 
-    def test_log_launch_attempt(self):
+    def test_log_launch_attempt(self, interactive_session):
         """Test logging of launch attempt."""
-        self.runner.project_logger = Mock()
+        interactive_session.runner.project_logger = Mock()
         cmd = ["claude", "--test"]
 
-        self._log_launch_attempt(cmd)
+        interactive_session._log_launch_attempt(cmd)
 
-        self.runner.project_logger.log_system.assert_called_once_with(
+        interactive_session.runner.project_logger.log_system.assert_called_once_with(
             "Launching Claude interactive mode with exec",
             level="INFO",
             component="session",
         )
-        self.runner._log_session_event.assert_called_once_with(
+        interactive_session.runner._log_session_event.assert_called_once_with(
             {
                 "event": "launching_claude_interactive",
                 "command": "claude --test",
@@ -612,18 +597,18 @@ class TestInteractiveSession:
             }
         )
 
-    def test_launch_exec_mode(self):
+    def test_launch_exec_mode(self, interactive_session):
         """Test launching Claude in exec mode."""
         cmd = ["claude", "--test"]
         env = {"TEST": "value"}
 
-        self.runner.websocket_server = Mock()
+        interactive_session.runner.websocket_server = Mock()
 
         with patch("os.execvpe") as mock_execvpe:
-            result = self._launch_exec_mode(cmd, env)
+            result = interactive_session._launch_exec_mode(cmd, env)
 
             # Should notify WebSocket before exec
-            self.runner.websocket_server.claude_status_changed.assert_called_once_with(
+            interactive_session.runner.websocket_server.claude_status_changed.assert_called_once_with(
                 status="running", message="Claude process started (exec mode)"
             )
 
@@ -632,58 +617,60 @@ class TestInteractiveSession:
             )
             assert result is False  # Only reached on failure
 
-    def test_launch_subprocess_mode(self):
+    def test_launch_subprocess_mode(self, interactive_session):
         """Test launching Claude in subprocess mode."""
         cmd = ["claude", "--test"]
         env = {"TEST": "value"}
 
-        result = self._launch_subprocess_mode(cmd, env)
+        result = interactive_session._launch_subprocess_mode(cmd, env)
 
-        self.runner._launch_subprocess_interactive.assert_called_once_with(cmd, env)
+        interactive_session.runner._launch_subprocess_interactive.assert_called_once_with(
+            cmd, env
+        )
         assert result is True
 
-    def test_handle_launch_error_file_not_found(self, capsys):
+    def test_handle_launch_error_file_not_found(self, interactive_session, capsys):
         """Test handling of FileNotFoundError."""
         error = FileNotFoundError("claude not found")
-        self.runner.project_logger = Mock()
-        self.runner.websocket_server = Mock()
+        interactive_session.runner.project_logger = Mock()
+        interactive_session.runner.websocket_server = Mock()
 
-        self._handle_launch_error("FileNotFoundError", error)
+        interactive_session._handle_launch_error("FileNotFoundError", error)
 
         captured = capsys.readouterr()
         assert "Claude CLI not found" in captured.out
 
-        self.runner.project_logger.log_system.assert_called_once()
-        self.runner._log_session_event.assert_called_once()
-        self.runner.websocket_server.claude_status_changed.assert_called_once()
+        interactive_session.runner.project_logger.log_system.assert_called_once()
+        interactive_session.runner._log_session_event.assert_called_once()
+        interactive_session.runner.websocket_server.claude_status_changed.assert_called_once()
 
-    def test_handle_launch_error_permission_error(self, capsys):
+    def test_handle_launch_error_permission_error(self, interactive_session, capsys):
         """Test handling of PermissionError."""
         error = PermissionError("Permission denied")
-        self.runner.project_logger = Mock()
+        interactive_session.runner.project_logger = Mock()
 
-        self._handle_launch_error("PermissionError", error)
+        interactive_session._handle_launch_error("PermissionError", error)
 
         captured = capsys.readouterr()
         assert "Permission denied executing Claude CLI" in captured.out
 
-    def test_handle_keyboard_interrupt(self, capsys):
+    def test_handle_keyboard_interrupt(self, interactive_session, capsys):
         """Test handling of keyboard interrupt."""
-        self.runner.project_logger = Mock()
+        interactive_session.runner.project_logger = Mock()
 
-        self._handle_keyboard_interrupt()
+        interactive_session._handle_keyboard_interrupt()
 
         captured = capsys.readouterr()
         assert "Session interrupted by user" in captured.out
 
-        self.runner.project_logger.log_system.assert_called_once_with(
+        interactive_session.runner.project_logger.log_system.assert_called_once_with(
             "Session interrupted by user", level="INFO", component="session"
         )
-        self.runner._log_session_event.assert_called_once_with(
+        interactive_session.runner._log_session_event.assert_called_once_with(
             {"event": "session_interrupted", "reason": "user_interrupt"}
         )
 
-    def test_attempt_fallback_launch_success(self, capsys):
+    def test_attempt_fallback_launch_success(self, interactive_session, capsys):
         """Test successful fallback launch."""
         environment = {
             "command": ["claude", "--test"],
@@ -694,11 +681,11 @@ class TestInteractiveSession:
         mock_result.returncode = 0
 
         with patch("subprocess.run", return_value=mock_result):
-            result = self._attempt_fallback_launch(environment)
+            result = interactive_session._attempt_fallback_launch(environment)
 
             assert result is True
 
-    def test_attempt_fallback_launch_non_zero_exit(self, capsys):
+    def test_attempt_fallback_launch_non_zero_exit(self, interactive_session, capsys):
         """Test fallback launch with non-zero exit code."""
         environment = {
             "command": ["claude", "--test"],
@@ -709,18 +696,18 @@ class TestInteractiveSession:
         mock_result.returncode = 1
 
         with patch("subprocess.run", return_value=mock_result):
-            result = self._attempt_fallback_launch(environment)
+            result = interactive_session._attempt_fallback_launch(environment)
 
             assert result is False
             captured = capsys.readouterr()
             assert "Claude exited with code 1" in captured.out
 
-    def test_attempt_fallback_launch_file_not_found(self, capsys):
+    def test_attempt_fallback_launch_file_not_found(self, interactive_session, capsys):
         """Test fallback launch with FileNotFoundError."""
         environment = {"command": ["claude"], "environment": {}}
 
         with patch("subprocess.run", side_effect=FileNotFoundError("claude not found")):
-            result = self._attempt_fallback_launch(environment)
+            result = interactive_session._attempt_fallback_launch(environment)
 
             assert result is False
             captured = capsys.readouterr()
@@ -753,16 +740,17 @@ class TestInteractiveSession:
             captured = capsys.readouterr()
             assert "Fallback failed with unexpected error" in captured.out
 
-    def test_display_welcome_message(self, capsys):
+    def test_display_welcome_message(self, interactive_session, capsys):
         """Test welcome message display."""
-        self.runner._get_version.return_value = "2.0.0"
+        interactive_session.runner._get_version.return_value = "2.0.0"
 
-        self._display_welcome_message()
+        interactive_session._display_welcome_message()
 
         captured = capsys.readouterr()
         assert "Claude MPM - Interactive Session" in captured.out
         assert "Version 2.0.0" in captured.out
-        assert "Type '/agents' to see available agents" in captured.out
+        # Updated to match new MPM command format
+        assert "/mpm" in captured.out
 
 
 class TestInteractiveSessionIntegration:
@@ -790,10 +778,10 @@ class TestInteractiveSessionIntegration:
 
         return runner
 
-    def test_full_interactive_workflow_success(self):
+    def test_full_interactive_workflow_success(self, mock_runner):
         """Test complete interactive workflow with successful execution."""
         with patch("os.getcwd", return_value="/test/workspace"):
-            session = InteractiveSession(self)
+            session = InteractiveSession(mock_runner)
 
         # Mock subprocess success
         mock_result = Mock()
@@ -822,25 +810,24 @@ class TestInteractiveSessionIntegration:
             input_success = session.handle_interactive_input(environment)
             assert input_success is True
 
-            # Process special command
+            # Process special command - now returns None (handled by Claude Code)
             command_result = session.process_interactive_command("/agents")
-            # Could be True (success) or False (error) depending on import availability
-            assert command_result is not None
+            assert command_result is None
 
             # Cleanup
             session.cleanup_interactive_session()
 
             # Verify mocks were called appropriately
-            self.setup_agents.assert_called_once()
-            self.deploy_project_agents_to_claude.assert_called_once()
-            self.project_logger.log_system.assert_called()
+            mock_runner.setup_agents.assert_called_once()
+            mock_runner.deploy_project_agents_to_claude.assert_called_once()
+            mock_runner.project_logger.log_system.assert_called()
 
-    def test_full_interactive_workflow_with_websocket(self):
+    def test_full_interactive_workflow_with_websocket(self, mock_runner):
         """Test complete interactive workflow with WebSocket enabled."""
-        self.enable_websocket = True
+        mock_runner.enable_websocket = True
 
         with patch("os.getcwd", return_value="/test/workspace"):
-            session = InteractiveSession(self)
+            session = InteractiveSession(mock_runner)
 
         mock_proxy = Mock()
 
@@ -871,13 +858,13 @@ class TestInteractiveSessionIntegration:
             mock_proxy.claude_status_changed.assert_called()
             mock_proxy.session_ended.assert_called_once()
 
-    def test_full_interactive_workflow_with_errors(self):
+    def test_full_interactive_workflow_with_errors(self, mock_runner):
         """Test interactive workflow with various error conditions."""
         with patch("os.getcwd", return_value="/test/workspace"):
-            session = InteractiveSession(self)
+            session = InteractiveSession(mock_runner)
 
         # Simulate agents setup failure
-        self.setup_agents.return_value = False
+        mock_runner.setup_agents.return_value = False
 
         with patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid, patch(
             "os.environ.copy", return_value={}

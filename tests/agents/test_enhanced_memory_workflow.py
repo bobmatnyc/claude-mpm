@@ -273,7 +273,9 @@ INSTRUCTIONS: Review your project memory above before proceeding. Apply learned 
     print("• Automatic re-deployment when memories change")
     print("• Preservation of other agent content during memory updates")
 
-    return agent_data
+    # Test passes if we reach here without exceptions
+    assert agent_data is not None
+    assert agent_data["capabilities"]["has_project_memory"] is True
 
 
 if __name__ == "__main__":
