@@ -49,7 +49,7 @@ class TestInstructionReinforcementHookReal:
         assert hook.test_mode is True
         assert hook.injection_interval == 5
         assert len(hook.test_messages) == 4  # Default test messages
-        assert len(hook.production_messages) == 4  # Default production messages
+        assert len(hook.production_messages) == 5  # Default production messages
 
     def test_basic_injection_behavior(self):
         """Test basic injection at configured intervals."""
@@ -277,8 +277,11 @@ class TestInstructionReinforcementHookReal:
 
         # Should be different message sets
         assert test_message != prod_message
+        # Test messages use TEST-REMINDER or PM-INSTRUCTION prefixes
         assert "[TEST-REMINDER]" in test_message or "[PM-INSTRUCTION]" in test_message
-        assert "[PM-REMINDER]" in prod_message or "[PM-INSTRUCTION]" in prod_message
+        # Production messages use STOP, DELEGATE, REMINDER, CHECK, or WARNING prefixes
+        prod_prefixes = ["[STOP]", "[DELEGATE]", "[REMINDER]", "[CHECK]", "[WARNING]"]
+        assert any(prefix in prod_message for prefix in prod_prefixes)
 
 
 class TestInstructionReinforcementHookSingleton:

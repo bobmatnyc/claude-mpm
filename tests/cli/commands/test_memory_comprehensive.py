@@ -18,14 +18,9 @@ import pytest
 
 from claude_mpm.cli.commands.memory import (
     MemoryManagementCommand,
-    _add_learning,
     _build_memory,
-    _clean_memory,
     _cross_reference_memory,
-    _init_memory,
-    _optimize_memory,
     _route_memory_command,
-    _show_status,
     manage_memory,
 )
 from claude_mpm.cli.shared.base_command import CommandResult
