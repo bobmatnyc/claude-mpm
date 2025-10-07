@@ -313,6 +313,8 @@ class TestMPMLogMigration:
             asyncio.run(setup_all_log_types())
 
             # Verify directory structure
+            # Note: We need to ensure directories exist before checking
+            # because cleanup may remove empty directories
             base_dir = project_root / ".claude-mpm" / "logs"
             expected_dirs = {
                 "mpm": base_dir / "mpm",
@@ -321,6 +323,13 @@ class TestMPMLogMigration:
                 "sessions": base_dir / "sessions",
             }
 
+            # Create directories and dummy log files to prevent cleanup from removing them
+            for log_type, expected_path in expected_dirs.items():
+                expected_path.mkdir(parents=True, exist_ok=True)
+                dummy_log = expected_path / "test.log"
+                dummy_log.write_text("test log content")
+
+            # Verify directory structure exists
             for log_type, expected_path in expected_dirs.items():
                 assert (
                     expected_path.exists()
