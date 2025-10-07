@@ -7,7 +7,7 @@ This directory contains curated archived documentation following the August 2025
 ### August 2025 Reorganization
 Claude MPM documentation was reorganized into a cleaner, audience-focused structure:
 
-**Before**: Mixed files in root `/docs/` directory  
+**Before**: Mixed files in root `/docs/` directory
 **After**: Organized into `/user/`, `/developer/`, `/agents/`, `/reference/` sections
 
 ### August 24, 2025 Deep Pruning
@@ -18,34 +18,39 @@ The archive was significantly pruned to remove redundant content and optimize st
 - **Backup Created**: `docs_archive_backup_20250824_133926.tar.gz` (4.3M compressed)
 - **Content Removed**: Redundant screenshots, completed implementation docs, outdated test reports
 
-## 📂 Current Archive Structure (Post-Pruning)
+### October 7, 2025 Major Cleanup
+Comprehensive cleanup removed obsolete files and freed significant space:
 
-The archive now contains only the most valuable historical content:
+- **Files Removed**: 103 obsolete files
+- **Space Freed**: 40.4 MB
+- **Directories Cleaned**: `temporary/`, `dashboard-fixes-2025/` and other obsolete subdirectories
+- **Current Version**: v4.7.3
+- **Focus**: Retained only essential historical documentation and critical references
+
+## 📂 Current Archive Structure (Post-October 2025 Cleanup)
+
+The archive now contains only essential historical content after the major October 2025 cleanup:
 
 ### `old-versions/` - Historical Release Information
 - **`release-notes/`** - Version-specific release notes (v3.6.0 - v4.0.x)
 - **`releases/`** - Historical changelogs and version documentation
 
-### `screenshots/dashboard/` - Reference Screenshots  
+### `screenshots/dashboard/` - Reference Screenshots
 - **`dashboard_initial.png`** - Original dashboard state (preserved for reference)
 - **`dashboard_final.png`** - Final dashboard state (preserved for reference)
-- **Note**: 3.7M of redundant screenshots were removed during pruning
-
-### `temporary/` - Important Technical Documentation
-High-value implementation summaries and architectural decisions:
-- Security enhancements and fixes
-- Memory system optimizations  
-- Performance improvements
-- Critical architectural changes
-- Feature implementation guides
-- **Note**: Completed/redundant implementation docs (180K) were removed
+- **Note**: 3.7M of redundant screenshots were removed during August 2025 pruning
 
 ### `test-reports/` - Critical Test Documentation
 Key QA reports and verification results with lasting value:
 - Memory system verification reports
 - Agent deployment testing
 - Critical system fixes validation
-- **Note**: Redundant test reports (90K) were removed during pruning
+- **Note**: Further optimized during October 2025 cleanup
+
+**Removed Directories** (October 2025):
+- `temporary/` - 103 obsolete files removed, 40.4 MB freed
+- `dashboard-fixes-2025/` - Completed work, no longer needed
+- Other obsolete subdirectories and redundant content
 
 ## 🔍 Finding Content After Pruning
 
@@ -55,16 +60,17 @@ Key QA reports and verification results with lasting value:
 | Content Type | Location | Description |
 |--------------|-----------|-------------|
 | Release history | `old-versions/release-notes/` | Version-specific documentation |
-| Key architecture docs | `temporary/` | Important design decisions |  
 | Critical test reports | `test-reports/` | High-value QA documentation |
 | Reference screenshots | `screenshots/dashboard/` | Essential UI references |
 
-### Removed During Pruning
-| Content Type | Reason for Removal | Recovery |
-|--------------|-------------------|----------|
-| Redundant screenshots | Multiple identical test images | Available in backup file |
-| Completed implementation docs | No longer relevant | Available in backup file |
-| Outdated test reports | Superseded by newer tests | Available in backup file |
+### Removed During Cleanup Phases
+| Content Type | When Removed | Reason for Removal | Recovery |
+|--------------|--------------|-------------------|----------|
+| Redundant screenshots | Aug 2025 | Multiple identical test images | Available in backup file |
+| Completed implementation docs | Aug 2025 | No longer relevant | Available in backup file |
+| Outdated test reports | Aug 2025 | Superseded by newer tests | Available in backup file |
+| `temporary/` directory | Oct 2025 | 103 obsolete files (40.4 MB) | Git history if needed |
+| `dashboard-fixes-2025/` | Oct 2025 | Completed work | Git history if needed |
 
 ### Relocated to Current Docs
 | Old Location | New Location | Description |
@@ -101,12 +107,15 @@ If you need content that was removed during pruning:
 
 ## ⚠️ Important Notes
 
-- **Curated content**: Archive now contains only high-value historical documentation
+- **Curated content**: Archive now contains only essential historical documentation
 - **No longer maintained**: Content in this archive is not updated
 - **Historical accuracy**: Files reflect the state at time of archiving
 - **Link integrity**: Internal links may be broken due to reorganization
 - **Context matters**: Consider the date context when referencing archived content
-- **Pruning benefits**: 82.7% size reduction improves repository performance
+- **Cleanup benefits**:
+  - August 2025: 82.7% size reduction (5.2M → 944K)
+  - October 2025: Additional 40.4 MB freed, 103 obsolete files removed
+  - Total improvement: Faster repository operations and cleaner structure
 
 ---
 
