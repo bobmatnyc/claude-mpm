@@ -1,9 +1,9 @@
 # Claude MPM Architecture Overview
 
-This document provides a comprehensive overview of the Claude MPM (Multi-Agent Project Manager) architecture, highlighting the service-oriented design, dependency injection system, and interface-based contracts introduced in v3.8.2.
+This document provides a comprehensive overview of the Claude MPM (Multi-Agent Project Manager) architecture, highlighting the service-oriented design, dependency injection system, and interface-based contracts introduced in v3.8.2 and continuously improved through v4.7.3.
 
-**Last Updated**: 2025-08-22  
-**Architecture Version**: 4.1.0  
+**Last Updated**: 2025-10-07
+**Architecture Version**: 4.7.3  
 **Recent Improvements**: Socket.IO stability, script organization, documentation consolidation
 
 ## Table of Contents
