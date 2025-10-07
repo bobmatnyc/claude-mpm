@@ -126,7 +126,7 @@ claude-mpm agent-manager deploy --id my-agent  # tier parameter is optional
 
 **Example Cleanup Messages:**
 ```
-INFO: Removing outdated user agent: engineer v1.8.0 (superseded by project v2.5.0)
+INFO: Removing outdated user agent: engineer v1.8.0 (superseded by project v4.7.3)
 INFO: Cleanup complete: removed 2 outdated user agents
 ```
 

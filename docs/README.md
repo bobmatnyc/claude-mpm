@@ -1,7 +1,7 @@
 # 📚 Claude MPM Documentation Hub
 
-**Version 4.3.3** | Claude Multi-Agent Project Manager
-**Last Updated**: September 19, 2025
+**Version 4.7.3** | Claude Multi-Agent Project Manager
+**Last Updated**: October 7, 2025
 
 Welcome to the complete documentation for Claude MPM (Multi-Agent Project Manager) - a powerful orchestration framework that extends Claude Code with multi-agent workflows, session management, and real-time monitoring.
 
@@ -9,7 +9,7 @@ Welcome to the complete documentation for Claude MPM (Multi-Agent Project Manage
 
 ### 👥 For Users
 - [🚀 **Quick Start**](user/quickstart.md) - Get running in 5 minutes
-- [📦 **Installation**](user/installation.md) - All installation methods
+- [📦 **Installation**](user/INSTALL.md) - All installation methods
 - [📖 **User Guide**](user/README.md) - Complete user documentation
 - [🧠 **Memory System**](user/03-features/memory-system.md) - Agent learning & persistence
 - [❓ **FAQ**](user/faq.md) - Common questions answered
@@ -56,7 +56,7 @@ claude-mpm agents create my-agent         # Interactive creation
 
 | User Type | Start Here | Key Documents |
 |-----------|------------|---------------|
-| **New Users** | [Quick Start](user/quickstart.md) | [Installation](user/installation.md), [Basic Usage](user/02-guides/basic-usage.md) |
+| **New Users** | [Quick Start](user/quickstart.md) | [Installation](user/INSTALL.md), [Basic Usage](user/02-guides/basic-usage.md) |
 | **Developers** | [Architecture](developer/ARCHITECTURE.md) | [Development Setup](developer/03-development/setup.md), [API Reference](API.md) |
 | **Agent Creators** | [Agent System](AGENTS.md) | [Creation Guide](developer/07-agent-system/creation-guide.md), [Schema](developer/10-schemas/agent_schema_documentation.md) |
 | **DevOps/Ops** | [Deployment](DEPLOYMENT.md) | [Monitoring](MONITOR.md), [Troubleshooting](TROUBLESHOOTING.md) |
@@ -64,7 +64,7 @@ claude-mpm agents create my-agent         # Interactive creation
 ### 🗂️ By Topic
 
 #### 🚀 Getting Started
-- [Installation Guide](user/installation.md) - All installation methods (pip, pipx, development)
+- [Installation Guide](user/INSTALL.md) - All installation methods (pip, pipx, development)
 - [Quick Start](user/quickstart.md) - 5-minute setup and first run
 - [Basic Usage](user/02-guides/basic-usage.md) - Essential commands and workflows
 - [Migration Guide](user/MIGRATION.md) - Upgrading from previous versions
@@ -156,7 +156,7 @@ docs/
 ## 🎯 Common Workflows
 
 ### 🆕 First Time User
-1. [Install Claude MPM](user/installation.md) → Choose installation method
+1. [Install Claude MPM](user/INSTALL.md) → Choose installation method
 2. [Quick Start](user/quickstart.md) → Get running in 5 minutes
 3. [Basic Usage](user/02-guides/basic-usage.md) → Learn essential commands
 4. [Agent System](AGENTS.md) → Understand the agent framework
@@ -206,7 +206,7 @@ This documentation follows these principles:
 - **Clear User Paths**: Distinct navigation for users, developers, and operations
 - **Scannable Format**: Headers, tables, and quick reference sections
 - **Cross-Referenced**: Links between related sections and topics
-- **Up-to-Date**: Version 4.3.3 with current build information
+- **Up-to-Date**: Version 4.7.3 with current build information
 
 ---
 

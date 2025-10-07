@@ -496,7 +496,7 @@ All agents deploy to project-level `.claude/agents/` directory:
 Outdated user agents are automatically removed during deployment:
 
 ```bash
-INFO: Removing outdated user agent: engineer v1.8.0 (superseded by project v2.5.0)
+INFO: Removing outdated user agent: engineer v1.8.0 (superseded by project v4.7.3)
 INFO: Cleanup complete: removed 2 outdated user agents
 ```
 
