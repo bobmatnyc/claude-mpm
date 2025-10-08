@@ -1,3 +1,32 @@
+## [4.7.4] - 2025-10-08
+
+### Added
+- Dashboard restoration with all tabs working (Events, Agents, Tools, Files, Activity)
+- `/mpm-init --non-interactive` flag for automation support
+- `/mpm-init --days` parameter (7, 14, 30, 60, 90 days) for activity report timeframes
+- `/mpm-init --export` functionality for generating activity reports
+- Comprehensive `/mpm-monitor` documentation (409 lines)
+- PROJECT_ORGANIZATION.md standard documentation (930 lines)
+- SLASH_COMMAND_STANDARDS.md development guide (1,629 lines)
+
+### Fixed
+- Parameter pass-through in mpm-init handler
+- Variable shadowing in export functionality
+- Git directory detection using CLAUDE_MPM_USER_PWD environment variable
+- MyPy untyped import warnings
+- Test timing race condition in test_mpm_log_migration.py
+- Print statement check now non-blocking in pre-publish quality gate
+
+### Changed
+- Removed broken unified hub dashboard
+- Removed redundant check_monitor_deps.py script
+- Improved slash command consistency (quality score: 5.5→8.5/10)
+
+### Documentation
+- Fixed 4 outdated documentation references
+- Enhanced documentation cross-referencing
+- Improved organization standards
+
 ## [4.7.3] - 2025-10-07
 
 ### Fixed

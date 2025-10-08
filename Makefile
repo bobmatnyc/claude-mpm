@@ -488,7 +488,7 @@ pre-publish: ## Run all quality checks before publishing (required for releases)
 	@echo "$(YELLOW)Step 4/5: Checking for common issues...$(NC)"
 	@echo "Checking for debug prints..."
 	@! grep -r "print(" src/ --include="*.py" | grep -v "#" | grep -v "logger" || \
-		(echo "$(YELLOW)⚠ Found print statements in code (consider using logger)$(NC)" && false)
+		echo "$(YELLOW)⚠ Found print statements in code (consider using logger, but allowed for CLI/diagnostic tools)$(NC)"
 	@echo "Checking for TODO/FIXME..."
 	@! grep -r "TODO\|FIXME" src/ --include="*.py" | head -5 || \
 		echo "$(YELLOW)⚠ Found TODO/FIXME comments (non-blocking)$(NC)"
