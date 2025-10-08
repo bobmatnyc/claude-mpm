@@ -32,11 +32,11 @@ pipx inject claude-mpm python-socketio aiohttp aiohttp-cors python-engineio aiof
 
 ### Option 3: Automatic Dependency Check
 
-Claude MPM includes a script to check and install missing monitor dependencies:
+Claude MPM includes a built-in command to check and install missing monitor dependencies:
 
 ```bash
 # Check and install missing dependencies
-python -m claude_mpm.scripts.check_monitor_deps
+claude-mpm doctor --checks monitor
 ```
 
 ## Verifying Monitor Installation

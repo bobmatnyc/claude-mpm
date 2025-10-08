@@ -75,8 +75,11 @@ Available Commands:
 /mpm-organize [--dry-run] [--force]
   Organize project file structure
 
-/mpm-init
+/mpm-init [update]
   Initialize or update project documentation
+
+/mpm-monitor [start|stop|restart|status|port]
+  Manage Socket.IO monitoring server and dashboard
 
 Use '/mpm-help <command>' for detailed help on a specific command.
 ```

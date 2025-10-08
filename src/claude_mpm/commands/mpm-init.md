@@ -1,4 +1,4 @@
-# /mpm-init
+# /mpm-init [update]
 
 Initialize or intelligently update your project for optimal use with Claude Code and Claude MPM using the Agentic Coder Optimizer agent.
 
@@ -6,8 +6,9 @@ Initialize or intelligently update your project for optimal use with Claude Code
 
 ```
 /mpm-init                      # Auto-detects and offers update or create
+/mpm-init update               # Lightweight update based on recent git activity
 /mpm-init --review             # Review project state without changes
-/mpm-init --update             # Update existing CLAUDE.md
+/mpm-init --update             # Full update of existing CLAUDE.md
 /mpm-init --organize           # Organize project structure
 /mpm-init --force              # Force recreate from scratch
 /mpm-init --project-type web --framework react
@@ -17,6 +18,8 @@ Initialize or intelligently update your project for optimal use with Claude Code
 ## Description
 
 This command delegates to the Agentic Coder Optimizer agent to establish clear, single-path project standards for documentation, tooling, and workflows.
+
+**Quick Update Mode**: Running `/mpm-init update` performs a lightweight update focused on recent git activity. It analyzes recent commits, generates an activity report, and updates documentation with minimal changes. Perfect for quick refreshes after development sprints.
 
 **Smart Update Mode**: When CLAUDE.md exists, the command automatically offers to update rather than recreate, preserving your custom content while refreshing standard sections. Previous versions are archived in `docs/_archive/` for safety.
 
@@ -135,6 +138,14 @@ When updating existing documentation:
 ```
 Analyzes project and offers appropriate action (create/update/review).
 
+### Quick Update (Lightweight)
+```bash
+/mpm-init update
+```
+Fast update based on recent 30-day git activity. Generates activity report and updates docs with minimal changes.
+
+**Note**: Typing `/mpm-init update` executes `claude-mpm mpm-init --quick-update` automatically.
+
 ### Review Project State
 ```bash
 /mpm-init --review
@@ -173,10 +184,26 @@ Quick initialization without code analysis.
 
 ## Implementation
 
-This command executes:
+**IMPORTANT**: This slash command accepts an optional `update` argument for quick updates.
+
+**Argument Processing**:
+- When you type `/mpm-init update`, Claude executes `claude-mpm mpm-init --quick-update`
+- When you type `/mpm-init` (no argument), Claude executes standard mode
+- The slash command handler automatically maps the `update` argument to the `--quick-update` flag
+
+This command routes between different modes:
+
+**Quick Update Mode** (`/mpm-init update`):
+```bash
+claude-mpm mpm-init --quick-update
+```
+This triggers a lightweight update that analyzes recent git activity (30 days) and generates an activity report.
+
+**Standard Mode** (`/mpm-init`):
 ```bash
 claude-mpm mpm-init [options]
 ```
+This triggers the full initialization or smart update flow.
 
 The command delegates to the Agentic Coder Optimizer agent which:
 1. Analyzes your project structure
@@ -186,6 +213,12 @@ The command delegates to the Agentic Coder Optimizer agent which:
 5. Sets up memory systems
 6. Performs AST analysis (if enabled)
 7. Organizes everything with priority rankings
+
+**Quick Update Mode** performs:
+1. Git history analysis (last 30 days)
+2. Recent activity report generation
+3. Lightweight documentation updates
+4. Change summary for PM memory
 
 ## Expected Output
 
@@ -206,12 +239,23 @@ The command delegates to the Agentic Coder Optimizer agent which:
 - ✅ **Files organized**: Misplaced files moved (if --organize)
 - ✅ **Change summary**: Report of what was updated
 
+### For Quick Update Mode (`/mpm-init update`)
+- ✅ **Activity Report**: Summary of recent 30-day git activity
+- ✅ **Recent Commits**: List of commits with authors and dates
+- ✅ **Changed Files**: Files with most modifications
+- ✅ **Active Branches**: Current and recent branch activity
+- ✅ **Lightweight Doc Updates**: Append activity notes to CLAUDE.md
+- ✅ **PM Memory Update**: Recommendations for project manager
+- ✅ **Quick Check**: Verify CLAUDE.md freshness without full regeneration
+
 ## Notes
 
+- **Quick Update vs Full Update**: Use `/mpm-init update` for fast activity-based updates (30 days), or `/mpm-init --update` for comprehensive doc refresh
 - **Smart Mode**: Automatically detects existing CLAUDE.md and offers update vs recreate
 - **Safe Updates**: Previous versions always archived before updating
 - **Custom Content**: Your project-specific sections are preserved by default
 - **Git Integration**: Analyzes recent commits to understand project evolution
+- **Argument Processing**: The slash command processes the `update` argument and routes to `--quick-update` flag
 - The command uses the Agentic Coder Optimizer agent for implementation
 - AST analysis is enabled by default for comprehensive documentation
 - Priority rankings help AI agents focus on critical instructions first

@@ -105,15 +105,24 @@ Claude MPM supports both Mamba and traditional Python venv environments:
 
 ### 🔴 Project Structure Requirements
 
+**📋 Organization Standard**: See **[docs/reference/PROJECT_ORGANIZATION.md](docs/reference/PROJECT_ORGANIZATION.md)** for comprehensive organization rules and guidelines used by the `/mpm-organize` command.
+
 1. **File Organization**: Always refer to `docs/developer/STRUCTURE.md` when creating new files
    - **Scripts**: ALL scripts go in `/scripts/`, NEVER in project root
    - **Tests**: ALL tests go in `/tests/`, NEVER in project root
    - **Python modules**: Always under `/src/claude_mpm/`
-   
-2. **Import Conventions**: 
+   - **Temporary files**: Always in `/tmp/`, NEVER committed to repo
+   - **Documentation**: In `/docs/` by category (developer, user, reference, etc.)
+
+2. **Import Conventions**:
    - Use full package names: `from claude_mpm.module import ...`
    - Never use relative imports in main code
    - Check existing patterns before adding new imports
+
+3. **Organization Enforcement**:
+   - Use `/mpm-organize --dry-run` to preview organization changes
+   - Run `/mpm-organize` to apply organization standards
+   - Structure validation runs automatically in pre-commit hooks
 
 ### 🔴 Testing Requirements
 

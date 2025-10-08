@@ -83,6 +83,8 @@ claude-mpm agents create my-agent         # Interactive creation
 
 #### 🔧 Development
 - [Development Workflow](developer/README.md) - Quality-first development process
+- [Project Structure](developer/STRUCTURE.md) - File organization reference
+- [Project Organization](reference/PROJECT_ORGANIZATION.md) - Organization standards & rules
 - [Testing Strategy](developer/TESTING.md) - Unit, integration, E2E testing
 - [Code Quality](developer/LINTING.md) - Automated formatting & quality checks
 - [Contributing](developer/03-development/README.md) - How to contribute to the project

@@ -30,13 +30,18 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
         ),
         epilog=(
             "Examples:\n"
-            "  claude-mpm mpm-init                          # Initialize/update current directory\n"
-            "  claude-mpm mpm-init --review                 # Review project state without changes\n"
-            "  claude-mpm mpm-init --update                 # Update existing CLAUDE.md\n"
-            "  claude-mpm mpm-init --organize               # Organize project structure\n"
-            "  claude-mpm mpm-init --project-type web       # Initialize as web project\n"
-            "  claude-mpm mpm-init --framework react        # Initialize with React framework\n"
-            "  claude-mpm mpm-init /path/to/project --force # Force reinitialize project"
+            "  claude-mpm mpm-init                                    # Initialize/update current directory\n"
+            "  claude-mpm mpm-init --review                           # Review project state without changes\n"
+            "  claude-mpm mpm-init --update                           # Update existing CLAUDE.md\n"
+            "  claude-mpm mpm-init --quick-update                     # Quick update based on recent git activity\n"
+            "  claude-mpm mpm-init --quick-update --non-interactive   # View activity report only\n"
+            "  claude-mpm mpm-init --quick-update --days 7            # Analyze last 7 days\n"
+            "  claude-mpm mpm-init --quick-update --export            # Export report to default location\n"
+            "  claude-mpm mpm-init --quick-update --export report.md  # Export to specific file\n"
+            "  claude-mpm mpm-init --organize                         # Organize project structure\n"
+            "  claude-mpm mpm-init --project-type web                 # Initialize as web project\n"
+            "  claude-mpm mpm-init --framework react                  # Initialize with React framework\n"
+            "  claude-mpm mpm-init /path/to/project --force           # Force reinitialize project"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -80,6 +85,31 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
         "--update",
         action="store_true",
         help="Update existing CLAUDE.md instead of recreating (smart merge)",
+    )
+    init_group.add_argument(
+        "--quick-update",
+        action="store_true",
+        help="Perform lightweight update based on recent git activity (default: 30 days)",
+    )
+    init_group.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Non-interactive mode - display report only without prompting for changes (use with --quick-update)",
+    )
+    init_group.add_argument(
+        "--days",
+        type=int,
+        default=30,
+        choices=[7, 14, 30, 60, 90],
+        help="Number of days for git history analysis in quick update mode (default: 30)",
+    )
+    init_group.add_argument(
+        "--export",
+        type=str,
+        nargs="?",
+        const="auto",
+        metavar="PATH",
+        help="Export activity report to file (default: docs/reports/activity-report-{timestamp}.md)",
     )
     init_group.add_argument(
         "--review",

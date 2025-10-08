@@ -188,7 +188,7 @@ claude-mpm mcp-pipx-config
 |---------|-----------|---------------|
 | **"Agent not found"** | Run `/mpm-doctor` to diagnose | [Troubleshooting](troubleshooting.md) |
 | **Dashboard won't load** | Reinstall: `pipx install "claude-mpm[monitor]"` | [Installation](installation.md) |
-| **Monitor not working** | Check dependencies: `python scripts/check_monitor_deps.py` | [Monitoring Guide](02-guides/monitoring.md) |
+| **Monitor not working** | Check dependencies: `claude-mpm doctor --checks monitor` | [Monitoring Guide](02-guides/monitoring.md) |
 | **Setup issues** | Initialize project: `/mpm-init` | [First Run](01-getting-started/first-run.md) |
 
 ### Get Support:
