@@ -160,7 +160,7 @@ See [Troubleshooting Guide](troubleshooting.md) for detailed solutions.
    ```
 3. **Check dependencies**:
    ```bash
-   python scripts/check_monitor_deps.py
+   claude-mpm doctor --checks monitor
    ```
 
 ### Q: Commands like `claude-mpm` not found after installation

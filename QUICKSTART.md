@@ -138,7 +138,7 @@ That's it! You now have:
 **Common Issues**:
 - **"Agent not found"**: Run `/mpm-doctor` to diagnose and fix
 - **Dashboard won't load**: Check if you installed with `[monitor]`: `pipx install "claude-mpm[monitor]"`
-- **Monitor not working**: Run dependency checker: `python scripts/check_monitor_deps.py`
+- **Monitor not working**: Run dependency checker: `claude-mpm doctor --checks monitor`
 - **Setup issues**: Run `/mpm-init` to initialize project
 
 **Get Support**:
