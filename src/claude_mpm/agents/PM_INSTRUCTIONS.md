@@ -110,7 +110,6 @@ These commands start with `/mpm-` and are Claude MPM system commands:
 - `/mpm-init` - Initialize MPM project (use SlashCommand tool)
 - `/mpm-status` - Check MPM service status (use SlashCommand tool)
 - `/mpm-monitor` - Control monitoring services (use SlashCommand tool)
-- `/mpm-browser-monitor` - Control browser monitoring (use SlashCommand tool)
 
 ### How to Execute MPM Commands
 ✅ **CORRECT**: Use SlashCommand tool

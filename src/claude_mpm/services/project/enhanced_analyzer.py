@@ -16,6 +16,7 @@ Author: Claude MPM Development Team
 Created: 2025-01-26
 """
 
+import os
 import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -32,10 +33,36 @@ console = Console()
 class EnhancedProjectAnalyzer:
     """Enhanced project analyzer with git history support."""
 
-    def __init__(self, project_path: Path):
-        """Initialize the enhanced analyzer."""
-        self.project_path = project_path
-        self.is_git_repo = (project_path / ".git").exists()
+    def __init__(self, project_path: Optional[Path] = None):
+        """
+        Initialize the enhanced analyzer.
+
+        Args:
+            project_path: Path to the project. If None, uses CLAUDE_MPM_USER_PWD
+                         environment variable or current working directory.
+        """
+        # Determine project path with proper priority
+        if project_path is None:
+            # Try environment variable first (user's project, not framework)
+            env_path = os.getenv("CLAUDE_MPM_USER_PWD")
+            if env_path:
+                self.project_path = Path(env_path)
+            else:
+                self.project_path = Path.cwd()
+        else:
+            self.project_path = project_path
+
+        # Ensure path is absolute
+        if not self.project_path.is_absolute():
+            self.project_path = self.project_path.resolve()
+
+        # Check if it's a git repository
+        git_dir = self.project_path / ".git"
+        self.is_git_repo = git_dir.exists() and git_dir.is_dir()
+
+        # Log warning if not a git repository
+        if not self.is_git_repo:
+            logger.debug(f"Directory is not a git repository: {self.project_path}")
 
     def analyze_git_history(self, days_back: int = 30) -> Dict:
         """Analyze git history for recent changes and patterns."""

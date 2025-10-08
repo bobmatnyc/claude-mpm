@@ -15,7 +15,9 @@ Organize your project files into proper directories using intelligent pattern de
 
 This slash command delegates to the **Project Organizer agent** to perform thorough project housekeeping. The agent analyzes your project structure, detects existing patterns and framework conventions, then organizes files into proper directories following best practices.
 
-**Smart Organization**: The agent first checks CLAUDE.md for project-specific organization guidelines. If not found, it applies framework-specific conventions and industry best practices.
+**Smart Organization**: The agent follows the official [Project Organization Standard](../../../docs/reference/PROJECT_ORGANIZATION.md), which defines comprehensive organization rules for Claude MPM projects. It also checks CLAUDE.md for project-specific guidelines and respects framework-specific conventions.
+
+**Standard Documentation**: After organizing, this command ensures the organization standard is documented and accessible at `docs/reference/PROJECT_ORGANIZATION.md` with proper linking from CLAUDE.md.
 
 ## Features
 
@@ -47,21 +49,26 @@ This slash command delegates to the **Project Organizer agent** to perform thoro
 
 ## What This Command Does
 
-### 1. CLAUDE.md Analysis
+### 1. Organization Standard Verification
+- Ensures `docs/reference/PROJECT_ORGANIZATION.md` exists and is current
+- Creates or updates the standard if needed
+- Links the standard from CLAUDE.md for easy reference
+
+### 2. CLAUDE.md Analysis
 - Checks for existing organization guidelines
 - Extracts project-specific rules and conventions
 - Identifies priority areas for organization
 
-### 2. Project Structure Detection
+### 3. Project Structure Detection
 - Scans directory hierarchy and patterns
 - Identifies naming conventions (camelCase, kebab-case, snake_case)
 - Maps current file type locations
 - Detects framework-specific conventions (Next.js, Django, Rails, etc.)
 - Determines organization type (feature/type/domain-based)
 
-### 3. File Organization Strategy
+### 4. File Organization Strategy
 
-The agent organizes files into standard directories:
+The agent organizes files into standard directories per [PROJECT_ORGANIZATION.md](../../../docs/reference/PROJECT_ORGANIZATION.md):
 
 ```
 docs/           # All documentation files (*.md, guides, architecture)
@@ -72,7 +79,7 @@ src/            # Source code following framework conventions
 .claude/        # Claude MPM configuration and agents
 ```
 
-### 4. Framework-Specific Handling
+### 5. Framework-Specific Handling
 
 **Next.js Projects**:
 - Respects `pages/`, `app/`, `public/`, API routes
@@ -93,7 +100,7 @@ src/            # Source code following framework conventions
 - Detects and respects framework conventions
 - Applies appropriate organizational patterns
 
-### 5. Safe File Movement
+### 6. Safe File Movement
 
 For each file to be moved:
 1. Analyzes file purpose and dependencies
@@ -102,14 +109,14 @@ For each file to be moved:
 4. Updates import paths in affected files
 5. Validates build still works
 
-### 6. Backup Creation
+### 7. Backup Creation
 
 Before major reorganization:
 ```bash
 backup_YYYYMMDD_HHMMSS.tar.gz  # Complete project backup
 ```
 
-### 7. Import Path Updates
+### 8. Import Path Updates
 
 Automatically updates:
 - Python imports (`from old.path import X` → `from new.path import X`)
@@ -117,7 +124,7 @@ Automatically updates:
 - Relative path references
 - Configuration file paths
 
-### 8. Organization Report
+### 9. Organization Report
 
 Generates detailed report including:
 - Files moved and their new locations
@@ -273,6 +280,12 @@ Use `/mpm-organize` when:
 - Can be run repeatedly safely (idempotent)
 - Follows guidelines in CLAUDE.md when available
 - Falls back to framework conventions and best practices
+
+## Related Documentation
+
+- **[Project Organization Standard](../../../docs/reference/PROJECT_ORGANIZATION.md)**: Comprehensive organization rules and guidelines
+- **[Project Structure](../../../docs/developer/STRUCTURE.md)**: Authoritative file organization reference
+- **[CLAUDE.md](../../../CLAUDE.md)**: Development guidelines with organization quick reference
 
 ## Related Commands
 

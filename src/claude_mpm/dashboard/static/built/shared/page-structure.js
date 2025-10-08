@@ -7,7 +7,6 @@ export class PageStructure {
     constructor() {
         this.pages = [
             { id: 'main', label: '📈 Main Dashboard', href: '/static/' },
-            { id: 'monitors', label: '📋 All Monitors', href: '/static/monitors-index.html' },
             { id: 'events', label: '📊 Events', href: '/static/events.html' },
             { id: 'agents', label: '🤖 Agents', href: '/static/agents.html' },
             { id: 'tools', label: '🔧 Tools', href: '/static/tools.html' },
@@ -24,7 +23,6 @@ export class PageStructure {
         if (path.includes('tools.html')) return 'tools';
         if (path.includes('files.html')) return 'files';
         if (path.includes('activity.html')) return 'activity';
-        if (path.includes('monitors-index.html')) return 'monitors';
         if (path.includes('index.html') || path.endsWith('/static/') || path.endsWith('/')) return 'main';
 
         return 'main';

@@ -61,6 +61,10 @@ class MPMInitCommand:
         preserve_custom: bool = True,
         skip_archive: bool = False,
         dry_run: bool = False,
+        quick_update: bool = False,
+        non_interactive: bool = False,
+        days: int = 30,
+        export: Optional[str] = None,
     ) -> Dict:
         """
         Initialize project with Agentic Coder Optimizer standards.
@@ -78,6 +82,10 @@ class MPMInitCommand:
             preserve_custom: Preserve custom sections when updating
             skip_archive: Skip archiving existing files
             dry_run: Show what would be done without making changes
+            quick_update: Perform lightweight update based on recent git activity
+            non_interactive: Non-interactive mode - display report only without prompting
+            days: Number of days for git history analysis (7, 14, 30, 60, or 90)
+            export: Export report to file (path or "auto" for default location)
 
         Returns:
             Dict containing initialization results
@@ -89,6 +97,13 @@ class MPMInitCommand:
 
             if review_only:
                 return self._run_review_mode()
+
+            if quick_update:
+                return self._run_quick_update_mode(
+                    days=days,
+                    non_interactive=non_interactive,
+                    export=export,
+                )
 
             if has_existing and not force and not update_mode:
                 # Auto-select update mode if organize_files or dry_run is specified
@@ -571,6 +586,419 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
                 console.print(f"  → {rec}")
 
         console.print("\n" + "=" * 60 + "\n")
+
+    def _run_quick_update_mode(
+        self,
+        days: int = 30,
+        non_interactive: bool = False,
+        export: Optional[str] = None,
+    ) -> Dict:
+        """Run quick update mode - lightweight update based on recent git activity."""
+        console.print("\n[bold cyan]⚡ Quick Update Mode[/bold cyan]\n")
+        console.print(
+            f"[dim]Analyzing recent git activity ({days} days) for lightweight documentation update...[/dim]\n"
+        )
+
+        if not self.analyzer.is_git_repo:
+            console.print(
+                "[yellow]⚠️  Not a git repository. Quick update requires git.[/yellow]"
+            )
+            console.print(
+                "[dim]Tip: Use `/mpm-init --review` for non-git projects.[/dim]\n"
+            )
+            return {
+                "status": "error",
+                "message": "Quick update requires a git repository",
+            }
+
+        claude_md = self.project_path / "CLAUDE.md"
+        if not claude_md.exists():
+            console.print(
+                "[yellow]⚠️  CLAUDE.md not found. Quick update requires existing documentation.[/yellow]"
+            )
+            console.print(
+                "[dim]Tip: Use `/mpm-init` to create initial documentation.[/dim]\n"
+            )
+            return {
+                "status": "error",
+                "message": "Quick update requires existing CLAUDE.md",
+            }
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            # Analyze git history
+            task = progress.add_task(
+                f"[cyan]Analyzing git history ({days} days)...", total=None
+            )
+            git_analysis = self.analyzer.analyze_git_history(days_back=days)
+            progress.update(task, description="[green]✓ Git analysis complete")
+
+            # Analyze current documentation
+            task = progress.add_task(
+                "[cyan]Checking documentation status...", total=None
+            )
+            doc_analysis = self.doc_manager.analyze_existing_content()
+            progress.update(task, description="[green]✓ Documentation analyzed")
+
+        # Generate activity report
+        activity_report = self._generate_activity_report(
+            git_analysis, doc_analysis, days
+        )
+
+        # Display the report
+        self._display_activity_report(activity_report)
+
+        # Export report if requested
+        if export:
+            export_path = self._export_activity_report(activity_report, export)
+            console.print(f"\n[green]✅ Report exported to: {export_path}[/green]")
+
+        # Handle non-interactive mode
+        if non_interactive:
+            console.print(
+                "\n[cyan]ℹ️  Non-interactive mode: Report displayed, no changes made.[/cyan]"
+            )
+            return {
+                "status": "success",
+                "mode": "quick_update",
+                "activity_report": activity_report,
+                "changes_made": False,
+                "non_interactive": True,
+            }
+
+        # Offer to append activity notes to CLAUDE.md
+        console.print("\n[bold]Update Options:[/bold]")
+        console.print("  [1] Append activity summary to CLAUDE.md")
+        console.print("  [2] Display report only (no changes)")
+        console.print("  [3] Cancel")
+
+        from rich.prompt import Prompt
+
+        choice = Prompt.ask("\nSelect option", choices=["1", "2", "3"], default="2")
+
+        if choice == "1":
+            # Append activity notes
+            self._append_activity_notes(claude_md, activity_report)
+            console.print("\n[green]✅ Activity notes appended to CLAUDE.md[/green]")
+
+            # Archive the update
+            self.archive_manager.auto_archive_before_update(
+                claude_md, update_reason="Quick update - recent activity summary"
+            )
+
+            return {
+                "status": "success",
+                "mode": "quick_update",
+                "activity_report": activity_report,
+                "changes_made": True,
+            }
+        if choice == "2":
+            console.print("\n[cyan]Report generated - no changes made[/cyan]")
+            return {
+                "status": "success",
+                "mode": "quick_update",
+                "activity_report": activity_report,
+                "changes_made": False,
+            }
+        console.print("\n[yellow]Quick update cancelled[/yellow]")
+        return {"status": "cancelled", "message": "Quick update cancelled"}
+
+    def _generate_activity_report(
+        self, git_analysis: Dict, doc_analysis: Dict, days: int = 30
+    ) -> Dict:
+        """Generate activity report from git analysis and documentation status."""
+        from datetime import datetime, timezone
+
+        report = {
+            "period": f"Last {days} days",
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "summary": {},
+            "recommendations": [],
+        }
+
+        # Git activity summary
+        if git_analysis.get("git_available"):
+            recent_commits = git_analysis.get("recent_commits", [])
+            changed_files = git_analysis.get("changed_files", {})
+            authors = git_analysis.get("authors", {})
+            branch_info = git_analysis.get("branch_info", {})
+
+            report["summary"] = {
+                "total_commits": len(recent_commits),
+                "total_authors": authors.get("total_authors", 0),
+                "files_changed": changed_files.get("total_files", 0),
+                "current_branch": branch_info.get("current_branch", "unknown"),
+                "has_uncommitted": branch_info.get("has_uncommitted_changes", False),
+                "uncommitted_count": branch_info.get("uncommitted_files", 0),
+            }
+
+            # Recent commits (last 10)
+            report["recent_commits"] = recent_commits[:10]
+
+            # Most changed files
+            most_changed = changed_files.get("most_changed", {})
+            report["hot_files"] = list(most_changed.items())[:10]
+
+            # Active branches
+            branches = branch_info.get("branches", [])
+            report["active_branches"] = [
+                b for b in branches if not b.startswith("remotes/")
+            ][:5]
+
+            # Generate recommendations
+            if len(recent_commits) > 20:
+                report["recommendations"].append(
+                    "High activity detected - consider updating architecture docs"
+                )
+
+            if changed_files.get("total_files", 0) > 50:
+                report["recommendations"].append(
+                    "Many files changed - review CLAUDE.md for accuracy"
+                )
+
+            if branch_info.get("has_uncommitted_changes"):
+                report["recommendations"].append(
+                    "Uncommitted changes detected - commit before updating docs"
+                )
+
+            # Check for documentation changes
+            doc_changes = git_analysis.get("documentation_changes", {})
+            if not doc_changes.get("has_recent_doc_changes"):
+                report["recommendations"].append(
+                    "No recent doc updates - CLAUDE.md may be outdated"
+                )
+
+        # Documentation freshness
+        if doc_analysis.get("exists"):
+            report["doc_status"] = {
+                "size": doc_analysis.get("size", 0),
+                "lines": doc_analysis.get("lines", 0),
+                "has_priority_index": doc_analysis.get("has_priority_index", False),
+                "has_priority_markers": doc_analysis.get("has_priority_markers", False),
+                "last_modified": doc_analysis.get("last_modified", "unknown"),
+            }
+
+            if not doc_analysis.get("has_priority_markers"):
+                report["recommendations"].append(
+                    "Add priority markers (🔴🟡🟢⚪) to CLAUDE.md"
+                )
+
+        return report
+
+    def _export_activity_report(self, report: Dict, export_path: str) -> Path:
+        """Export activity report to a markdown file."""
+        from datetime import datetime, timezone
+        from pathlib import Path
+
+        # Determine export path
+        if export_path == "auto":
+            # Generate default path with timestamp
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+            reports_dir = self.project_path / "docs" / "reports"
+            reports_dir.mkdir(parents=True, exist_ok=True)
+            file_path = reports_dir / f"activity-report-{timestamp}.md"
+        else:
+            # Use provided path
+            file_path = Path(export_path)
+            if not file_path.is_absolute():
+                file_path = self.project_path / file_path
+            # Create parent directory if needed
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Generate markdown content
+        summary = report.get("summary", {})
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+        content = f"""# Activity Report
+
+**Generated**: {timestamp}
+**Analysis Period**: {report.get('period', 'Last 30 days')}
+
+## Summary
+
+- **Total Commits**: {summary.get('total_commits', 0)}
+- **Active Contributors**: {summary.get('total_authors', 0)}
+- **Files Modified**: {summary.get('files_changed', 0)}
+- **Current Branch**: {summary.get('current_branch', 'unknown')}
+"""
+
+        if summary.get("has_uncommitted"):
+            content += f"- **⚠️  Uncommitted Changes**: {summary.get('uncommitted_count', 0)} files\n"
+
+        # Recent commits
+        recent_commits = report.get("recent_commits", [])
+        if recent_commits:
+            content += "\n## Recent Commits\n\n"
+            for commit in recent_commits[:10]:
+                content += (
+                    f"- `{commit['hash']}` {commit['message']} - {commit['author']}\n"
+                )
+
+        # Hot files
+        hot_files = report.get("hot_files", [])
+        if hot_files:
+            content += "\n## Most Changed Files\n\n"
+            for hot_file_path, changes in hot_files[:10]:
+                content += f"- `{hot_file_path}`: {changes} changes\n"
+
+        # Active branches
+        branches = report.get("active_branches", [])
+        if branches:
+            content += "\n## Active Branches\n\n"
+            for branch in branches:
+                marker = "→" if branch == summary.get("current_branch") else " "
+                content += f"{marker} {branch}\n"
+
+        # Documentation status
+        doc_status = report.get("doc_status", {})
+        if doc_status:
+            content += "\n## CLAUDE.md Status\n\n"
+            content += f"- **Size**: {doc_status.get('size', 0):,} characters\n"
+            content += f"- **Lines**: {doc_status.get('lines', 0)}\n"
+            content += f"- **Priority Markers**: {'✓' if doc_status.get('has_priority_markers') else '✗'}\n"
+            content += (
+                f"- **Last Modified**: {doc_status.get('last_modified', 'unknown')}\n"
+            )
+
+        # Recommendations
+        recommendations = report.get("recommendations", [])
+        if recommendations:
+            content += "\n## Recommendations\n\n"
+            for rec in recommendations:
+                content += f"- {rec}\n"
+
+        content += (
+            "\n---\n\n*Generated by Claude MPM `/mpm-init --quick-update --export`*\n"
+        )
+
+        # Write to file
+        file_path.write_text(content, encoding="utf-8")
+
+        return file_path
+
+    def _display_activity_report(self, report: Dict) -> None:
+        """Display the activity report in a formatted manner."""
+        console.print("\n" + "=" * 60)
+        console.print("[bold]RECENT ACTIVITY SUMMARY[/bold]")
+        console.print("=" * 60 + "\n")
+
+        summary = report.get("summary", {})
+        period = report.get("period", "Last 30 days")
+
+        # Summary statistics
+        console.print(f"[bold cyan]📊 Activity Overview ({period.lower()})[/bold cyan]")
+        console.print(f"  Total commits: {summary.get('total_commits', 0)}")
+        console.print(f"  Active contributors: {summary.get('total_authors', 0)}")
+        console.print(f"  Files modified: {summary.get('files_changed', 0)}")
+        console.print(f"  Current branch: {summary.get('current_branch', 'unknown')}")
+
+        if summary.get("has_uncommitted"):
+            console.print(
+                f"  [yellow]⚠️  Uncommitted changes: {summary.get('uncommitted_count', 0)} files[/yellow]"
+            )
+
+        # Recent commits
+        recent_commits = report.get("recent_commits", [])
+        if recent_commits:
+            console.print("\n[bold cyan]📝 Recent Commits (last 10)[/bold cyan]")
+            for commit in recent_commits[:10]:
+                console.print(
+                    f"  [{commit['hash']}] {commit['message'][:60]} - {commit['author']}"
+                )
+
+        # Hot files
+        hot_files = report.get("hot_files", [])
+        if hot_files:
+            console.print("\n[bold cyan]🔥 Most Changed Files[/bold cyan]")
+            for file_path, changes in hot_files[:10]:
+                console.print(f"  {file_path}: {changes} changes")
+
+        # Active branches
+        branches = report.get("active_branches", [])
+        if branches:
+            console.print("\n[bold cyan]🌿 Active Branches[/bold cyan]")
+            for branch in branches:
+                marker = "→" if branch == summary.get("current_branch") else " "
+                console.print(f"  {marker} {branch}")
+
+        # Documentation status
+        doc_status = report.get("doc_status", {})
+        if doc_status:
+            console.print("\n[bold cyan]📚 CLAUDE.md Status[/bold cyan]")
+            console.print(f"  Size: {doc_status.get('size', 0):,} characters")
+            console.print(f"  Lines: {doc_status.get('lines', 0)}")
+            console.print(
+                f"  Priority markers: {'✓' if doc_status.get('has_priority_markers') else '✗'}"
+            )
+            console.print(
+                f"  Last modified: {doc_status.get('last_modified', 'unknown')}"
+            )
+
+        # Recommendations
+        recommendations = report.get("recommendations", [])
+        if recommendations:
+            console.print("\n[bold cyan]💡 Recommendations[/bold cyan]")
+            for rec in recommendations:
+                console.print(f"  → {rec}")
+
+        console.print("\n" + "=" * 60 + "\n")
+
+    def _append_activity_notes(self, claude_md_path: Path, report: Dict) -> None:
+        """Append activity notes to CLAUDE.md."""
+        from datetime import datetime, timezone
+
+        # Generate activity summary section
+        summary = report.get("summary", {})
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+        activity_section = f"""
+
+---
+
+## 📈 Recent Activity Summary
+
+**Last Updated**: {timestamp}
+**Analysis Period**: {report.get('period', 'Last 30 days')}
+
+### Activity Metrics
+- **Commits**: {summary.get('total_commits', 0)}
+- **Contributors**: {summary.get('total_authors', 0)}
+- **Files Changed**: {summary.get('files_changed', 0)}
+- **Current Branch**: {summary.get('current_branch', 'unknown')}
+"""
+
+        if summary.get("has_uncommitted"):
+            activity_section += f"- **⚠️  Uncommitted Changes**: {summary.get('uncommitted_count', 0)} files\n"
+
+        # Add recent commits
+        recent_commits = report.get("recent_commits", [])
+        if recent_commits:
+            activity_section += "\n### Recent Commits\n"
+            for commit in recent_commits[:5]:
+                activity_section += f"- `{commit['hash']}` {commit['message'][:60]} ({commit['author']})\n"
+
+        # Add hot files
+        hot_files = report.get("hot_files", [])
+        if hot_files:
+            activity_section += "\n### Most Active Files\n"
+            for file_path, changes in hot_files[:5]:
+                activity_section += f"- `{file_path}`: {changes} changes\n"
+
+        # Add recommendations
+        recommendations = report.get("recommendations", [])
+        if recommendations:
+            activity_section += "\n### 💡 Recommendations\n"
+            for rec in recommendations:
+                activity_section += f"- {rec}\n"
+
+        activity_section += "\n---\n"
+
+        # Append to file
+        with open(claude_md_path, "a", encoding="utf-8") as f:
+            f.write(activity_section)
 
     def _run_dry_run_mode(self, organize_files: bool, has_existing: bool) -> Dict:
         """Run dry-run mode to show what would be done without making changes."""
@@ -1082,6 +1510,28 @@ preserving valuable project-specific information while refreshing standard secti
     default=True,
     help="Enable/disable AST analysis for enhanced documentation (default: enabled)",
 )
+@click.option(
+    "--quick-update",
+    is_flag=True,
+    help="Perform lightweight update based on recent git activity (default: 30 days)",
+)
+@click.option(
+    "--non-interactive",
+    is_flag=True,
+    help="Non-interactive mode - display report only without prompting (use with --quick-update)",
+)
+@click.option(
+    "--days",
+    type=int,
+    default=30,
+    help="Number of days for git history analysis in quick update mode (default: 30)",
+)
+@click.option(
+    "--export",
+    type=str,
+    default=None,
+    help="Export activity report to file (default: docs/reports/activity-report-{timestamp}.md)",
+)
 @click.argument(
     "project_path",
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
@@ -1100,6 +1550,10 @@ def mpm_init(
     skip_archive,
     verbose,
     ast_analysis,
+    quick_update,
+    non_interactive,
+    days,
+    export,
     project_path,
 ):
     """
@@ -1141,6 +1595,10 @@ def mpm_init(
             organize_files=organize,
             preserve_custom=preserve_custom,
             skip_archive=skip_archive,
+            quick_update=quick_update,
+            non_interactive=non_interactive,
+            days=days,
+            export=export,
         )
 
         # Exit with appropriate code

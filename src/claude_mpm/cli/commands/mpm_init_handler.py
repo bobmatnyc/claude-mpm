@@ -63,6 +63,10 @@ def manage_mpm_init(args):
             "preserve_custom": getattr(args, "preserve_custom", True),
             "skip_archive": getattr(args, "skip_archive", False),
             "dry_run": getattr(args, "dry_run", False),
+            "quick_update": getattr(args, "quick_update", False),
+            "non_interactive": getattr(args, "non_interactive", False),
+            "days": getattr(args, "days", 30),
+            "export": getattr(args, "export", None),
         }
 
         # Execute initialization (now synchronous)

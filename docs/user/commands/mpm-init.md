@@ -86,6 +86,48 @@ claude-mpm mpm-init --minimal
 claude-mpm mpm-init --comprehensive
 ```
 
+### Quick Update Mode
+
+The `--quick-update` flag enables a lightweight documentation update based on recent git activity:
+
+**Basic quick update** (analyzes last 30 days):
+```bash
+claude-mpm mpm-init --quick-update
+```
+
+**Customize analysis period**:
+```bash
+claude-mpm mpm-init --quick-update --days 7    # Last 7 days
+claude-mpm mpm-init --quick-update --days 14   # Last 14 days
+claude-mpm mpm-init --quick-update --days 60   # Last 60 days
+claude-mpm mpm-init --quick-update --days 90   # Last 90 days
+```
+
+**Non-interactive mode** (view report only, no changes):
+```bash
+claude-mpm mpm-init --quick-update --non-interactive
+```
+
+**Export activity report**:
+```bash
+# Export to default location (docs/reports/activity-report-{timestamp}.md)
+claude-mpm mpm-init --quick-update --export
+
+# Export to specific file
+claude-mpm mpm-init --quick-update --export my-report.md
+
+# Combine with other options
+claude-mpm mpm-init --quick-update --days 14 --export --non-interactive
+```
+
+Quick update mode:
+- Analyzes recent git commits and file changes
+- Shows activity metrics (commits, authors, changed files)
+- Displays hot files and active branches
+- Provides documentation freshness recommendations
+- Optionally appends activity summary to CLAUDE.md
+- Can export report to markdown file
+
 ### Other Options
 
 **Dry run** (preview without changes):
@@ -107,6 +149,30 @@ claude-mpm mpm-init --json
 ```bash
 claude-mpm mpm-init --list-templates
 ```
+
+## Activity Reports
+
+When using `--quick-update --export`, a markdown report is generated with:
+
+### Report Contents
+- **Summary metrics**: Commits, contributors, files changed, current branch
+- **Recent commits**: Last 10 commits with hashes and messages
+- **Most changed files**: Top 10 files by change frequency
+- **Active branches**: List of active development branches
+- **CLAUDE.md status**: Size, priority markers, last modified
+- **Recommendations**: Actionable suggestions based on analysis
+
+### Report Location
+- **Default**: `docs/reports/activity-report-{timestamp}.md`
+- **Custom**: Specify any path with `--export PATH`
+- **Git-ignored**: Reports directory is automatically ignored
+
+### Use Cases
+1. **Team updates**: Share activity summaries with team members
+2. **Progress tracking**: Document development velocity over time
+3. **Documentation audits**: Identify when CLAUDE.md needs updates
+4. **Project reviews**: Quick overview of recent project activity
+5. **CI/CD integration**: Automated documentation freshness checks
 
 ## What Gets Created
 
