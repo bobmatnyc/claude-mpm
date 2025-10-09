@@ -19,7 +19,6 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Prompt
-from rich.table import Table
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -28,6 +27,7 @@ from claude_mpm.services.project.archive_manager import ArchiveManager
 from claude_mpm.services.project.documentation_manager import DocumentationManager
 from claude_mpm.services.project.enhanced_analyzer import EnhancedProjectAnalyzer
 from claude_mpm.services.project.project_organizer import ProjectOrganizer
+from claude_mpm.utils.display_helper import DisplayHelper
 
 logger = get_logger(__name__)
 console = Console()
@@ -46,6 +46,7 @@ class MPMInitCommand:
         self.organizer = ProjectOrganizer(self.project_path)
         self.archive_manager = ArchiveManager(self.project_path)
         self.analyzer = EnhancedProjectAnalyzer(self.project_path)
+        self.display = DisplayHelper(console)
 
     def initialize_project(
         self,
@@ -426,34 +427,7 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
 
     def _display_documentation_status(self, analysis: Dict) -> None:
         """Display current documentation status."""
-        table = Table(title="Current CLAUDE.md Status", show_header=True)
-        table.add_column("Property", style="cyan")
-        table.add_column("Value", style="white")
-
-        table.add_row("Size", f"{analysis.get('size', 0):,} characters")
-        table.add_row("Lines", str(analysis.get("lines", 0)))
-        table.add_row("Sections", str(len(analysis.get("sections", []))))
-        table.add_row(
-            "Has Priority Index", "✓" if analysis.get("has_priority_index") else "✗"
-        )
-        table.add_row(
-            "Has Priority Markers", "✓" if analysis.get("has_priority_markers") else "✗"
-        )
-
-        if analysis.get("last_modified"):
-            table.add_row("Last Modified", analysis["last_modified"])
-
-        console.print(table)
-
-        if analysis.get("outdated_patterns"):
-            console.print("\n[yellow]⚠️  Outdated patterns detected:[/yellow]")
-            for pattern in analysis["outdated_patterns"]:
-                console.print(f"  • {pattern}")
-
-        if analysis.get("custom_sections"):
-            console.print("\n[blue][INFO]️  Custom sections found:[/blue]")
-            for section in analysis["custom_sections"][:5]:
-                console.print(f"  • {section}")
+        self.display.display_documentation_status(analysis)
 
     def _prompt_update_action(self) -> str:
         """Prompt user for update action."""
@@ -526,29 +500,26 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
         self, structure: Dict, docs: Dict, git: Optional[Dict], state: Dict
     ) -> None:
         """Display comprehensive review report."""
-        console.print("\n" + "=" * 60)
-        console.print("[bold]PROJECT REVIEW REPORT[/bold]")
-        console.print("=" * 60 + "\n")
+        self.display.display_header("PROJECT REVIEW REPORT")
 
         # Project State
-        console.print("[bold cyan]📊 Project State[/bold cyan]")
-        console.print(f"  Phase: {state.get('phase', 'unknown')}")
+        state_data = {"Phase": state.get("phase", "unknown")}
         if state.get("indicators"):
-            console.print("  Indicators:")
-            for indicator in state["indicators"][:5]:
-                console.print(f"    • {indicator}")
+            state_data["Indicators"] = state["indicators"][:5]
+        self.display.display_report_section("📊 Project State", state_data)
 
         # Structure Report
-        console.print("\n[bold cyan]📁 Project Structure[/bold cyan]")
-        console.print(f"  Existing directories: {len(structure.get('exists', []))}")
-        console.print(f"  Missing directories: {len(structure.get('missing', []))}")
+        structure_data = {
+            "Existing directories": len(structure.get("exists", [])),
+            "Missing directories": len(structure.get("missing", [])),
+        }
         if structure.get("issues"):
-            console.print(f"  Issues found: {len(structure['issues'])}")
-            for issue in structure["issues"][:3]:
-                console.print(f"    ⚠️  {issue['description']}")
+            structure_data["Issues found"] = len(structure["issues"])
+            structure_data["Issues"] = structure["issues"][:3]
+        self.display.display_report_section("📁 Project Structure", structure_data)
 
         # Documentation Report
-        console.print("\n[bold cyan]📚 Documentation Status[/bold cyan]")
+        self.display.display_section_title("📚 Documentation Status")
         if docs.get("exists"):
             console.print(f"  CLAUDE.md: Found ({docs.get('size', 0):,} chars)")
             console.print(f"  Sections: {len(docs.get('sections', []))}")
@@ -560,32 +531,34 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
 
         # Git Analysis
         if git and git.get("git_available"):
-            console.print("\n[bold cyan]📈 Recent Activity (30 days)[/bold cyan]")
-            console.print(f"  Commits: {len(git.get('recent_commits', []))}")
-            console.print(
-                f"  Authors: {git.get('authors', {}).get('total_authors', 0)}"
-            )
-            console.print(
-                f"  Changed files: {git.get('changed_files', {}).get('total_files', 0)}"
-            )
+            git_metrics = {
+                "Commits": len(git.get("recent_commits", [])),
+                "Authors": git.get("authors", {}).get("total_authors", 0),
+                "Changed files": git.get("changed_files", {}).get("total_files", 0),
+            }
 
             if git.get("branch_info"):
                 branch_info = git["branch_info"]
-                console.print(
-                    f"  Current branch: {branch_info.get('current_branch', 'unknown')}"
+                git_metrics["Current branch"] = branch_info.get(
+                    "current_branch", "unknown"
                 )
-                if branch_info.get("has_uncommitted_changes"):
-                    console.print(
-                        f"  ⚠️  Uncommitted changes: {branch_info.get('uncommitted_files', 0)} files"
-                    )
+
+            self.display.display_metrics_section(
+                "📈 Recent Activity (30 days)", git_metrics
+            )
+
+            if git.get("branch_info", {}).get("has_uncommitted_changes"):
+                self.display.display_metric_row(
+                    "⚠️  Uncommitted changes",
+                    f"{git['branch_info'].get('uncommitted_files', 0)} files",
+                    warning=True,
+                )
 
         # Recommendations
         if state.get("recommendations"):
-            console.print("\n[bold cyan]💡 Recommendations[/bold cyan]")
-            for rec in state["recommendations"][:5]:
-                console.print(f"  → {rec}")
+            self.display.display_recommendations(state["recommendations"])
 
-        console.print("\n" + "=" * 60 + "\n")
+        self.display.display_separator()
 
     def _run_quick_update_mode(
         self,
@@ -881,70 +854,49 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
 
     def _display_activity_report(self, report: Dict) -> None:
         """Display the activity report in a formatted manner."""
-        console.print("\n" + "=" * 60)
-        console.print("[bold]RECENT ACTIVITY SUMMARY[/bold]")
-        console.print("=" * 60 + "\n")
+        self.display.display_header("RECENT ACTIVITY SUMMARY")
 
         summary = report.get("summary", {})
         period = report.get("period", "Last 30 days")
 
         # Summary statistics
-        console.print(f"[bold cyan]📊 Activity Overview ({period.lower()})[/bold cyan]")
-        console.print(f"  Total commits: {summary.get('total_commits', 0)}")
-        console.print(f"  Active contributors: {summary.get('total_authors', 0)}")
-        console.print(f"  Files modified: {summary.get('files_changed', 0)}")
-        console.print(f"  Current branch: {summary.get('current_branch', 'unknown')}")
-
-        if summary.get("has_uncommitted"):
-            console.print(
-                f"  [yellow]⚠️  Uncommitted changes: {summary.get('uncommitted_count', 0)} files[/yellow]"
-            )
+        self.display.display_activity_summary(summary, period)
 
         # Recent commits
         recent_commits = report.get("recent_commits", [])
         if recent_commits:
-            console.print("\n[bold cyan]📝 Recent Commits (last 10)[/bold cyan]")
-            for commit in recent_commits[:10]:
-                console.print(
-                    f"  [{commit['hash']}] {commit['message'][:60]} - {commit['author']}"
-                )
+            self.display.display_commit_list(recent_commits)
 
         # Hot files
         hot_files = report.get("hot_files", [])
         if hot_files:
-            console.print("\n[bold cyan]🔥 Most Changed Files[/bold cyan]")
-            for file_path, changes in hot_files[:10]:
-                console.print(f"  {file_path}: {changes} changes")
+            self.display.display_file_change_list(hot_files)
 
         # Active branches
         branches = report.get("active_branches", [])
+        current_branch = summary.get("current_branch", "unknown")
         if branches:
-            console.print("\n[bold cyan]🌿 Active Branches[/bold cyan]")
-            for branch in branches:
-                marker = "→" if branch == summary.get("current_branch") else " "
-                console.print(f"  {marker} {branch}")
+            self.display.display_branch_list(branches, current_branch)
 
         # Documentation status
         doc_status = report.get("doc_status", {})
         if doc_status:
-            console.print("\n[bold cyan]📚 CLAUDE.md Status[/bold cyan]")
-            console.print(f"  Size: {doc_status.get('size', 0):,} characters")
-            console.print(f"  Lines: {doc_status.get('lines', 0)}")
-            console.print(
-                f"  Priority markers: {'✓' if doc_status.get('has_priority_markers') else '✗'}"
-            )
-            console.print(
-                f"  Last modified: {doc_status.get('last_modified', 'unknown')}"
-            )
+            doc_metrics = {
+                "Size": f"{doc_status.get('size', 0):,} characters",
+                "Lines": doc_status.get("lines", 0),
+                "Priority markers": (
+                    "✓" if doc_status.get("has_priority_markers") else "✗"
+                ),
+                "Last modified": doc_status.get("last_modified", "unknown"),
+            }
+            self.display.display_metrics_section("📚 CLAUDE.md Status", doc_metrics)
 
         # Recommendations
         recommendations = report.get("recommendations", [])
         if recommendations:
-            console.print("\n[bold cyan]💡 Recommendations[/bold cyan]")
-            for rec in recommendations:
-                console.print(f"  → {rec}")
+            self.display.display_recommendations(recommendations)
 
-        console.print("\n" + "=" * 60 + "\n")
+        self.display.display_separator()
 
     def _append_activity_notes(self, claude_md_path: Path, report: Dict) -> None:
         """Append activity notes to CLAUDE.md."""
@@ -1419,39 +1371,35 @@ preserving valuable project-specific information while refreshing standard secti
         if result["status"] == "success":
             console.print("\n[green]✅ Project Initialization Complete![/green]\n")
 
+            # Display files created
             if result.get("files_created"):
-                console.print("[bold]Files Created:[/bold]")
-                for file in result["files_created"]:
-                    console.print(f"  • {file}")
-                console.print()
-
-            if result.get("files_updated"):
-                console.print("[bold]Files Updated:[/bold]")
-                for file in result["files_updated"]:
-                    console.print(f"  • {file}")
-                console.print()
-
-            if result.get("next_steps"):
-                console.print("[bold]Next Steps:[/bold]")
-                for step in result["next_steps"]:
-                    console.print(f"  → {step}")
-                console.print()
-
-            console.print(
-                Panel(
-                    "[green]Your project is now optimized for Claude Code and Claude MPM![/green]\n\n"
-                    "Key files:\n"
-                    "• [cyan]CLAUDE.md[/cyan] - Main documentation for AI agents\n"
-                    "  - Organized with priority rankings (🔴🟡🟢⚪)\n"
-                    "  - Instructions ranked by importance for AI understanding\n"
-                    "  - Holistic documentation review completed\n"
-                    "• [cyan].claude-mpm/[/cyan] - Configuration and memories\n"
-                    "• [cyan]CODE_STRUCTURE.md[/cyan] - AST-derived architecture documentation (if enabled)\n\n"
-                    "[dim]Run 'claude-mpm run' to start using the optimized setup[/dim]",
-                    title="Success",
-                    border_style="green",
+                self.display.display_files_list(
+                    "Files Created:", result["files_created"]
                 )
+
+            # Display files updated
+            if result.get("files_updated"):
+                self.display.display_files_list(
+                    "Files Updated:", result["files_updated"]
+                )
+
+            # Display next steps
+            if result.get("next_steps"):
+                self.display.display_next_steps(result["next_steps"])
+
+            # Display success panel
+            success_content = (
+                "[green]Your project is now optimized for Claude Code and Claude MPM![/green]\n\n"
+                "Key files:\n"
+                "• [cyan]CLAUDE.md[/cyan] - Main documentation for AI agents\n"
+                "  - Organized with priority rankings (🔴🟡🟢⚪)\n"
+                "  - Instructions ranked by importance for AI understanding\n"
+                "  - Holistic documentation review completed\n"
+                "• [cyan].claude-mpm/[/cyan] - Configuration and memories\n"
+                "• [cyan]CODE_STRUCTURE.md[/cyan] - AST-derived architecture documentation (if enabled)\n\n"
+                "[dim]Run 'claude-mpm run' to start using the optimized setup[/dim]"
             )
+            self.display.display_success_panel("Success", success_content)
 
 
 @click.command(name="mpm-init")
