@@ -60,6 +60,8 @@ class SimpleAgentManager:
         import logging
 
         self.logger = logging.getLogger(__name__)
+        # Track pending changes for batch operations
+        self.deferred_changes: Dict[str, bool] = {}
 
     def _load_states(self):
         """Load agent states from file."""
@@ -84,6 +86,33 @@ class SimpleAgentManager:
             self.states[agent_name] = {}
         self.states[agent_name]["enabled"] = enabled
         self._save_states()
+
+    def set_agent_enabled_deferred(self, agent_name: str, enabled: bool) -> None:
+        """Queue agent state change without saving."""
+        self.deferred_changes[agent_name] = enabled
+
+    def commit_deferred_changes(self) -> None:
+        """Save all deferred changes at once."""
+        for agent_name, enabled in self.deferred_changes.items():
+            if agent_name not in self.states:
+                self.states[agent_name] = {}
+            self.states[agent_name]["enabled"] = enabled
+        self._save_states()
+        self.deferred_changes.clear()
+
+    def discard_deferred_changes(self) -> None:
+        """Discard all pending changes."""
+        self.deferred_changes.clear()
+
+    def get_pending_state(self, agent_name: str) -> bool:
+        """Get agent state including pending changes."""
+        if agent_name in self.deferred_changes:
+            return self.deferred_changes[agent_name]
+        return self.states.get(agent_name, {}).get("enabled", True)
+
+    def has_pending_changes(self) -> bool:
+        """Check if there are unsaved changes."""
+        return len(self.deferred_changes) > 0
 
     def discover_agents(self) -> List[AgentConfig]:
         """Discover available agents from template JSON files."""
@@ -296,6 +325,33 @@ class ConfigureCommand(BaseCommand):
                     self._switch_scope()
                 elif choice == "6":
                     self._show_version_info_interactive()
+                elif choice == "l":
+                    # Check for pending agent changes
+                    if self.agent_manager and self.agent_manager.has_pending_changes():
+                        should_save = Confirm.ask(
+                            "[yellow]You have unsaved agent changes. Save them before launching?[/yellow]",
+                            default=True,
+                        )
+                        if should_save:
+                            self.agent_manager.commit_deferred_changes()
+                            self.console.print("[green]✓ Agent changes saved[/green]")
+                        else:
+                            self.agent_manager.discard_deferred_changes()
+                            self.console.print(
+                                "[yellow]⚠ Agent changes discarded[/yellow]"
+                            )
+
+                    # Save all configuration
+                    self.console.print("\n[cyan]Saving configuration...[/cyan]")
+                    if self._save_all_configuration():
+                        # Launch Claude MPM (this will replace the process if successful)
+                        self._launch_claude_mpm()
+                        # If execvp fails, we'll return here and break
+                        break
+                    self.console.print(
+                        "[red]✗ Failed to save configuration. Not launching.[/red]"
+                    )
+                    Prompt.ask("\nPress Enter to continue")
                 elif choice == "q":
                     self.console.print(
                         "\n[green]Configuration complete. Goodbye![/green]"
@@ -356,16 +412,17 @@ class ConfigureCommand(BaseCommand):
             ),
             ("5", "Switch Scope", f"Current: {self.current_scope}"),
             ("6", "Version Info", "Display MPM and Claude versions"),
-            ("q", "Quit", "Exit configuration interface"),
+            ("l", "Save & Launch", "Save all changes and start Claude MPM"),
+            ("q", "Quit", "Exit without launching"),
         ]
 
         table = Table(show_header=False, box=None, padding=(0, 2))
-        table.add_column("Key", style="cyan", width=3)
-        table.add_column("Option", style="bold white", width=20)
-        table.add_column("Description", style="dim")
+        table.add_column("Key", style="cyan bold", width=4)  # Bolder shortcuts
+        table.add_column("Option", style="bold white", width=24)  # Wider for titles
+        table.add_column("Description", style="white")  # Better contrast
 
         for key, option, desc in menu_items:
-            table.add_row(f"[{key}]", option, desc)
+            table.add_row(f"\\[{key}]", option, desc)
 
         menu_panel = Panel(
             table, title="[bold]Main Menu[/bold]", box=ROUNDED, style="green"
@@ -392,15 +449,10 @@ class ConfigureCommand(BaseCommand):
             self.console.print("\n[bold]Agent Management Options:[/bold]")
 
             # Use Text objects to properly display shortcuts with styling
-            text_e = Text("  ")
-            text_e.append("[e]", style="cyan bold")
-            text_e.append(" Enable an agent")
-            self.console.print(text_e)
-
-            text_d = Text("  ")
-            text_d.append("[d]", style="cyan bold")
-            text_d.append(" Disable an agent")
-            self.console.print(text_d)
+            text_t = Text("  ")
+            text_t.append("[t]", style="cyan bold")
+            text_t.append(" Toggle agents (enable/disable multiple)")
+            self.console.print(text_t)
 
             text_c = Text("  ")
             text_c.append("[c]", style="cyan bold")
@@ -428,10 +480,8 @@ class ConfigureCommand(BaseCommand):
 
             if choice == "b":
                 break
-            if choice == "e":
-                self._enable_agent_interactive(agents)
-            elif choice == "d":
-                self._disable_agent_interactive(agents)
+            if choice == "t":
+                self._toggle_agents_interactive(agents)
             elif choice == "c":
                 self._customize_agent_template(agents)
             elif choice == "v":
@@ -494,55 +544,127 @@ class ConfigureCommand(BaseCommand):
 
         self.console.print(table)
 
-    def _enable_agent_interactive(self, agents: List[AgentConfig]) -> None:
-        """Interactive agent enabling."""
-        agent_id = Prompt.ask("Enter agent ID to enable (or 'all' for all agents)")
+    def _display_agents_with_pending_states(self, agents: List[AgentConfig]) -> None:
+        """Display agents table with pending state indicators."""
+        has_pending = self.agent_manager.has_pending_changes()
+        pending_count = len(self.agent_manager.deferred_changes) if has_pending else 0
 
-        if agent_id.lower() == "all":
-            if Confirm.ask("[yellow]Enable ALL agents?[/yellow]"):
-                for agent in agents:
-                    self.agent_manager.set_agent_enabled(agent.name, True)
-                self.console.print("[green]All agents enabled successfully![/green]")
-        else:
-            try:
-                idx = int(agent_id) - 1
-                if 0 <= idx < len(agents):
-                    agent = agents[idx]
-                    self.agent_manager.set_agent_enabled(agent.name, True)
-                    self.console.print(
-                        f"[green]Agent '{agent.name}' enabled successfully![/green]"
-                    )
+        title = f"Available Agents ({len(agents)} total)"
+        if has_pending:
+            title += f" [yellow]({pending_count} change{'s' if pending_count != 1 else ''} pending)[/yellow]"
+
+        table = Table(title=title, box=ROUNDED, show_lines=True, expand=True)
+        table.add_column("ID", justify="right", style="cyan", width=5)
+        table.add_column("Name", style="bold", width=22)
+        table.add_column("Status", width=20)
+        table.add_column("Description", style="bold cyan", width=45)
+
+        for idx, agent in enumerate(agents, 1):
+            current_state = self.agent_manager.is_agent_enabled(agent.name)
+            pending_state = self.agent_manager.get_pending_state(agent.name)
+
+            # Show pending status with arrow
+            if current_state != pending_state:
+                if pending_state:
+                    status = "[yellow]✗ Disabled → ✓ Enabled[/yellow]"
                 else:
-                    self.console.print("[red]Invalid agent ID.[/red]")
-            except ValueError:
-                self.console.print("[red]Invalid input. Please enter a number.[/red]")
+                    status = "[yellow]✓ Enabled → ✗ Disabled[/yellow]"
+            else:
+                status = (
+                    "[green]✓ Enabled[/green]"
+                    if current_state
+                    else "[dim]✗ Disabled[/dim]"
+                )
 
-        Prompt.ask("Press Enter to continue")
+            desc_display = Text()
+            desc_display.append(
+                (
+                    agent.description[:42] + "..."
+                    if len(agent.description) > 42
+                    else agent.description
+                ),
+                style="cyan",
+            )
 
-    def _disable_agent_interactive(self, agents: List[AgentConfig]) -> None:
-        """Interactive agent disabling."""
-        agent_id = Prompt.ask("Enter agent ID to disable (or 'all' for all agents)")
+            table.add_row(str(idx), agent.name, status, desc_display)
 
-        if agent_id.lower() == "all":
-            if Confirm.ask("[yellow]Disable ALL agents?[/yellow]"):
-                for agent in agents:
-                    self.agent_manager.set_agent_enabled(agent.name, False)
-                self.console.print("[green]All agents disabled successfully![/green]")
-        else:
-            try:
-                idx = int(agent_id) - 1
-                if 0 <= idx < len(agents):
-                    agent = agents[idx]
-                    self.agent_manager.set_agent_enabled(agent.name, False)
-                    self.console.print(
-                        f"[green]Agent '{agent.name}' disabled successfully![/green]"
-                    )
+        self.console.print(table)
+
+    def _toggle_agents_interactive(self, agents: List[AgentConfig]) -> None:
+        """Interactive multi-agent enable/disable with batch save."""
+
+        # Initialize pending states from current states
+        for agent in agents:
+            current_state = self.agent_manager.is_agent_enabled(agent.name)
+            self.agent_manager.set_agent_enabled_deferred(agent.name, current_state)
+
+        while True:
+            # Display table with pending states
+            self._display_agents_with_pending_states(agents)
+
+            # Show menu
+            self.console.print("\n[bold]Toggle Agent Status:[/bold]")
+            text_toggle = Text("  ")
+            text_toggle.append("[t]", style="cyan bold")
+            text_toggle.append(" Enter agent IDs to toggle (e.g., '1,3,5' or '1-4')")
+            self.console.print(text_toggle)
+
+            text_all = Text("  ")
+            text_all.append("[a]", style="cyan bold")
+            text_all.append(" Enable all agents")
+            self.console.print(text_all)
+
+            text_none = Text("  ")
+            text_none.append("[n]", style="cyan bold")
+            text_none.append(" Disable all agents")
+            self.console.print(text_none)
+
+            text_save = Text("  ")
+            text_save.append("[s]", style="green bold")
+            text_save.append(" Save changes and return")
+            self.console.print(text_save)
+
+            text_cancel = Text("  ")
+            text_cancel.append("[c]", style="yellow bold")
+            text_cancel.append(" Cancel (discard changes)")
+            self.console.print(text_cancel)
+
+            choice = (
+                Prompt.ask("[bold cyan]Select an option[/bold cyan]", default="s")
+                .strip()
+                .lower()
+            )
+
+            if choice == "s":
+                if self.agent_manager.has_pending_changes():
+                    self.agent_manager.commit_deferred_changes()
+                    self.console.print("[green]✓ Changes saved successfully![/green]")
                 else:
-                    self.console.print("[red]Invalid agent ID.[/red]")
-            except ValueError:
-                self.console.print("[red]Invalid input. Please enter a number.[/red]")
-
-        Prompt.ask("Press Enter to continue")
+                    self.console.print("[yellow]No changes to save.[/yellow]")
+                Prompt.ask("Press Enter to continue")
+                break
+            if choice == "c":
+                self.agent_manager.discard_deferred_changes()
+                self.console.print("[yellow]Changes discarded.[/yellow]")
+                Prompt.ask("Press Enter to continue")
+                break
+            if choice == "a":
+                for agent in agents:
+                    self.agent_manager.set_agent_enabled_deferred(agent.name, True)
+            elif choice == "n":
+                for agent in agents:
+                    self.agent_manager.set_agent_enabled_deferred(agent.name, False)
+            elif choice == "t" or choice.replace(",", "").replace("-", "").isdigit():
+                selected_ids = self._parse_id_selection(
+                    choice if choice != "t" else Prompt.ask("Enter IDs"), len(agents)
+                )
+                for idx in selected_ids:
+                    if 1 <= idx <= len(agents):
+                        agent = agents[idx - 1]
+                        current = self.agent_manager.get_pending_state(agent.name)
+                        self.agent_manager.set_agent_enabled_deferred(
+                            agent.name, not current
+                        )
 
     def _customize_agent_template(self, agents: List[AgentConfig]) -> None:
         """Customize agent JSON template."""
@@ -1706,6 +1828,68 @@ class ConfigureCommand(BaseCommand):
             self.console.print(f"[red]Error saving configuration: {e}[/red]")
             Prompt.ask("Press Enter to continue")
             return False
+
+    def _save_all_configuration(self) -> bool:
+        """Save all configuration changes across all contexts.
+
+        Returns:
+            bool: True if all saves successful, False otherwise
+        """
+        try:
+            # 1. Save any pending agent changes
+            if self.agent_manager and self.agent_manager.has_pending_changes():
+                self.agent_manager.commit_deferred_changes()
+                self.console.print("[green]✓ Agent changes saved[/green]")
+
+            # 2. Save configuration file
+            config = Config()
+
+            # Determine config file path based on scope
+            if self.current_scope == "project":
+                config_file = self.project_dir / ".claude-mpm" / "configuration.yaml"
+            else:
+                config_file = Path.home() / ".claude-mpm" / "configuration.yaml"
+
+            config_file.parent.mkdir(parents=True, exist_ok=True)
+
+            # Save with suppressed logging to avoid duplicate messages
+            import logging
+
+            root_logger = logging.getLogger("claude_mpm")
+            original_level = root_logger.level
+            root_logger.setLevel(logging.WARNING)
+
+            try:
+                config.save(config_file, format="yaml")
+            finally:
+                root_logger.setLevel(original_level)
+
+            self.console.print(f"[green]✓ Configuration saved to {config_file}[/green]")
+            return True
+
+        except Exception as e:
+            self.console.print(f"[red]✗ Error saving configuration: {e}[/red]")
+            import traceback
+
+            traceback.print_exc()
+            return False
+
+    def _launch_claude_mpm(self) -> None:
+        """Launch Claude MPM run command, replacing current process."""
+        self.console.print("\n[bold cyan]═══ Launching Claude MPM ═══[/bold cyan]\n")
+
+        try:
+            # Use execvp to replace the current process with claude-mpm run
+            # This ensures a clean transition from configurator to Claude MPM
+            os.execvp("claude-mpm", ["claude-mpm", "run"])
+        except Exception as e:
+            self.console.print(
+                f"[yellow]⚠ Could not launch Claude MPM automatically: {e}[/yellow]"
+            )
+            self.console.print(
+                "[cyan]→ Please run 'claude-mpm run' manually to start.[/cyan]"
+            )
+            Prompt.ask("\nPress Enter to exit")
 
     def _switch_scope(self) -> None:
         """Switch between project and user scope."""
