@@ -41,8 +41,8 @@ class MemoryHookService(BaseService, MemoryHookInterface):
         These hooks ensure memory is properly managed and persisted.
 
         DESIGN DECISION: We register hooks for key lifecycle events:
-        - Before Claude interaction: Load relevant memories
-        - After Claude interaction: Save new memories
+        - Before Claude interaction: Load relevant memories (kuzu-memory + legacy)
+        - After Claude interaction: Save new memories (kuzu-memory + legacy)
         - On error: Ensure memory state is preserved
         """
         if not self.hook_service:
@@ -90,10 +90,92 @@ class MemoryHookService(BaseService, MemoryHookInterface):
             if success2:
                 self.registered_hooks.append("memory_save")
 
-            self.logger.debug("Memory hooks registered successfully")
+            self.logger.debug("Legacy memory hooks registered successfully")
+
+            # Register kuzu-memory hooks if available
+            self._register_kuzu_memory_hooks()
 
         except Exception as e:
             self.logger.warning(f"Failed to register memory hooks: {e}")
+
+    def _register_kuzu_memory_hooks(self):
+        """Register kuzu-memory bidirectional enrichment hooks.
+
+        WHY: Kuzu-memory provides persistent knowledge graph storage that works
+        across conversations. This enables:
+        1. Delegation context enrichment with relevant memories (READ)
+        2. Automatic learning extraction from responses (WRITE)
+
+        DESIGN DECISION: These hooks are separate from legacy memory hooks to
+        allow independent evolution and configuration. Both systems can coexist.
+        """
+        try:
+            # Check if kuzu-memory is enabled in config
+            from claude_mpm.core.config import Config
+
+            config = Config()
+            kuzu_config = config.get("memory.kuzu", {})
+            if isinstance(kuzu_config, dict):
+                kuzu_enabled = kuzu_config.get("enabled", True)
+                enrichment_enabled = kuzu_config.get("enrichment", True)
+                learning_enabled = kuzu_config.get("learning", True)
+            else:
+                # Default to enabled if config section doesn't exist
+                kuzu_enabled = True
+                enrichment_enabled = True
+                learning_enabled = True
+
+            if not kuzu_enabled:
+                self.logger.debug("Kuzu-memory disabled in configuration")
+                return
+
+            from claude_mpm.hooks import (
+                get_kuzu_enrichment_hook,
+                get_kuzu_response_hook,
+            )
+
+            # Get kuzu-memory hooks
+            enrichment_hook = get_kuzu_enrichment_hook()
+            learning_hook = get_kuzu_response_hook()
+
+            # Register enrichment hook (PreDelegationHook) if enabled
+            if enrichment_hook.enabled and enrichment_enabled:
+                success = self.hook_service.register_hook(enrichment_hook)
+                if success:
+                    self.registered_hooks.append("kuzu_memory_enrichment")
+                    self.logger.info(
+                        "✅ Kuzu-memory enrichment enabled (prompts → memories)"
+                    )
+                else:
+                    self.logger.warning(
+                        "Failed to register kuzu-memory enrichment hook"
+                    )
+            elif not enrichment_enabled:
+                self.logger.debug("Kuzu-memory enrichment disabled in configuration")
+
+            # Register learning hook (PostDelegationHook) if enabled
+            if learning_hook.enabled and learning_enabled:
+                success = self.hook_service.register_hook(learning_hook)
+                if success:
+                    self.registered_hooks.append("kuzu_response_learner")
+                    self.logger.info(
+                        "✅ Kuzu-memory learning enabled (responses → memories)"
+                    )
+                else:
+                    self.logger.warning("Failed to register kuzu-memory learning hook")
+            elif not learning_enabled:
+                self.logger.debug("Kuzu-memory learning disabled in configuration")
+
+            # If neither hook is enabled, kuzu-memory is not available
+            if not enrichment_hook.enabled and not learning_hook.enabled:
+                self.logger.debug(
+                    "Kuzu-memory not available. Install with: pipx install kuzu-memory"
+                )
+
+        except ImportError as e:
+            self.logger.debug(f"Kuzu-memory hooks not available: {e}")
+        except Exception as e:
+            self.logger.warning(f"Failed to register kuzu-memory hooks: {e}")
 
     def _load_relevant_memories_hook(self, context):
         """Hook function to load relevant memories before Claude interaction.

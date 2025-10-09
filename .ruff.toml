@@ -78,6 +78,7 @@ ignore = [
     "N818",  # Exception name should end with Error - legacy compatibility
     "N999",  # Invalid module name - legacy test files
     "PIE810", # Use tuple in startswith - minor stylistic preference
+    "PLC0415", # Import outside top-level - intentional lazy loading pattern (see PERFORMANCE.md)
     "PLR0911",  # Too many return statements (complexity)
     "PLR0912",  # Too many branches (complexity)
     "PLR0913",  # Too many arguments (complexity)

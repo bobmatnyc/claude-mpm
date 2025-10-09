@@ -9,6 +9,12 @@ This directory contains essential utility scripts for Claude MPM development, de
 - **`install_dev.sh`** - Development installation with enhanced features and debugging
 - **`deploy_local.sh`** - Enhanced local deployment script with comprehensive setup
 - **`uninstall.sh`** - Clean uninstallation script
+- **`pipx-install-local`** - Install claude-mpm from local source to any directory using pipx
+
+### Local Development
+- **`claude-mpm`** - Main development script (run from project root only)
+- **`claude-mpm-dev`** - Development variant with additional debugging
+- **`claude-mpm-mamba`** - Mamba/Conda environment variant
 
 ## 🚀 Build & Release Scripts
 

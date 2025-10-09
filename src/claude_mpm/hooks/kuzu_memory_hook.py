@@ -157,9 +157,13 @@ class KuzuMemoryHook(SubmitHook):
             List of relevant memory dictionaries
         """
         try:
-            # Use kuzu-memory recall command
+            # Type narrowing: ensure kuzu_memory_cmd is not None before using
+            if self.kuzu_memory_cmd is None:
+                return []
+
+            # Use kuzu-memory recall command (v1.2.7+ syntax)
             result = subprocess.run(
-                [self.kuzu_memory_cmd, "recall", query, "--format", "json"],
+                [self.kuzu_memory_cmd, "memory", "recall", query, "--format", "json"],
                 capture_output=True,
                 text=True,
                 timeout=5,
@@ -168,10 +172,21 @@ class KuzuMemoryHook(SubmitHook):
             )
 
             if result.returncode == 0 and result.stdout:
-                memories = json.loads(result.stdout)
-                return memories if isinstance(memories, list) else []
+                try:
+                    # Parse JSON with strict=False to handle control characters
+                    data = json.loads(result.stdout, strict=False)
+                    # v1.2.7 returns dict with 'memories' key, not array
+                    if isinstance(data, dict):
+                        memories = data.get("memories", [])
+                    else:
+                        memories = data if isinstance(data, list) else []
+                    return memories
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse kuzu-memory JSON output: {e}")
+                    logger.debug(f"Raw output: {result.stdout[:200]}")
+                    return []  # Graceful fallback
 
-        except (subprocess.TimeoutExpired, json.JSONDecodeError, Exception) as e:
+        except (subprocess.TimeoutExpired, Exception) as e:
             logger.debug(f"Memory retrieval failed: {e}")
 
         return []
@@ -255,12 +270,12 @@ Note: Use the memories above to provide more informed and contextual responses.
         Returns:
             True if storage was successful
         """
-        if not self.enabled:
+        if not self.enabled or self.kuzu_memory_cmd is None:
             return False
 
         try:
-            # Use kuzu-memory remember command (synchronous)
-            cmd = [self.kuzu_memory_cmd, "remember", content]
+            # Use kuzu-memory store command (v1.2.7+ syntax)
+            cmd = [self.kuzu_memory_cmd, "memory", "store", content]
 
             # Execute store command in project directory
             result = subprocess.run(
@@ -273,8 +288,10 @@ Note: Use the memories above to provide more informed and contextual responses.
             )
 
             if result.returncode == 0:
-                logger.debug(f"Stored memory: {content[:50]}...")
+                logger.debug(f"Stored memory in kuzu: {content[:50]}...")
                 return True
+            logger.warning(f"Failed to store memory in kuzu: {result.stderr}")
+            return False
 
         except Exception as e:
             logger.error(f"Failed to store memory: {e}")
