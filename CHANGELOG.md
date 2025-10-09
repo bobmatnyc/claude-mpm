@@ -1,3 +1,11 @@
+## [4.7.6] - 2025-10-09
+
+### Fixed
+- Enhanced configurator input handling with whitespace stripping and case normalization
+- Improved agent table description visibility with bold cyan styling
+- Added agent reset to defaults functionality with confirmation
+- Better error handling and user confirmation prompts in configurator
+
 ## [4.7.5] - 2025-10-08
 
 ### Changed
