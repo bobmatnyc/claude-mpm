@@ -374,7 +374,9 @@ class ConfigureCommand(BaseCommand):
         self.console.print(menu_panel)
         self.console.print()
 
-        return Prompt.ask("[bold cyan]Select an option[/bold cyan]", default="q")
+        choice = Prompt.ask("[bold cyan]Select an option[/bold cyan]", default="q")
+        # Strip whitespace to handle leading/trailing spaces
+        return choice.strip().lower()
 
     def _manage_agents(self) -> None:
         """Agent management interface."""
@@ -425,7 +427,7 @@ class ConfigureCommand(BaseCommand):
         table.add_column("ID", style="dim", width=3)
         table.add_column("Name", style="cyan", width=22)
         table.add_column("Status", width=12)
-        table.add_column("Description", style="white", width=45)
+        table.add_column("Description", style="bold cyan", width=45)
         table.add_column("Model/Tools", style="dim", width=20)
 
         for idx, agent in enumerate(agents, 1):
@@ -456,12 +458,11 @@ class ConfigureCommand(BaseCommand):
                 except Exception:
                     tools_display = "Default"
 
-            # Truncate description for table display
-            desc_display = (
-                agent.description[:42] + "..."
-                if len(agent.description) > 42
-                else agent.description
-            )
+            # Truncate description for table display with bright styling
+            if len(agent.description) > 42:
+                desc_display = f"[cyan]{agent.description[:42]}[/cyan][dim]...[/dim]"
+            else:
+                desc_display = f"[cyan]{agent.description}[/cyan]"
 
             table.add_row(str(idx), agent.name, status, desc_display, tools_display)
 
@@ -820,6 +821,61 @@ class ConfigureCommand(BaseCommand):
 
         with self.console.pager():
             self.console.print(syntax)
+
+    def _reset_agent_defaults(self, agents: List[AgentConfig]) -> None:
+        """Reset an agent to default enabled state and remove custom template.
+
+        This method:
+        - Prompts for agent ID
+        - Resets agent to enabled state
+        - Removes any custom template overrides
+        - Shows success/error messages
+        """
+        agent_id = Prompt.ask("Enter agent ID to reset to defaults")
+
+        try:
+            idx = int(agent_id) - 1
+            if 0 <= idx < len(agents):
+                agent = agents[idx]
+
+                # Confirm the reset action
+                if not Confirm.ask(
+                    f"[yellow]Reset '{agent.name}' to defaults? This will:[/yellow]\n"
+                    "  - Enable the agent\n"
+                    "  - Remove custom template (if any)\n"
+                    "[yellow]Continue?[/yellow]"
+                ):
+                    self.console.print("[yellow]Reset cancelled.[/yellow]")
+                    Prompt.ask("Press Enter to continue")
+                    return
+
+                # Enable the agent
+                self.agent_manager.set_agent_enabled(agent.name, True)
+
+                # Remove custom template if exists
+                template_path = self._get_agent_template_path(agent.name)
+                if template_path.exists() and not str(template_path).startswith(
+                    str(self.agent_manager.templates_dir)
+                ):
+                    # This is a custom template, remove it
+                    template_path.unlink(missing_ok=True)
+                    self.console.print(
+                        f"[green]✓ Removed custom template for '{agent.name}'[/green]"
+                    )
+
+                self.console.print(
+                    f"[green]✓ Agent '{agent.name}' reset to defaults![/green]"
+                )
+                self.console.print(
+                    "[dim]Agent is now enabled with system template.[/dim]"
+                )
+            else:
+                self.console.print("[red]Invalid agent ID.[/red]")
+
+        except ValueError:
+            self.console.print("[red]Invalid input. Please enter a number.[/red]")
+
+        Prompt.ask("Press Enter to continue")
 
     def _view_agent_details(self, agents: List[AgentConfig]) -> None:
         """View detailed information about an agent."""
@@ -1331,7 +1387,7 @@ class ConfigureCommand(BaseCommand):
             table.add_column("ID", style="dim", width=5)
             table.add_column("Agent", style="cyan", width=25)
             table.add_column("Status", width=15)
-            table.add_column("Description", style="white", width=45)
+            table.add_column("Description", style="bold cyan", width=45)
 
             for idx, agent in enumerate(agents, 1):
                 # Agent is ENABLED if NOT in disabled list
@@ -1341,11 +1397,13 @@ class ConfigureCommand(BaseCommand):
                     if is_enabled
                     else "[red]✗ Disabled[/red]"
                 )
-                desc_display = (
-                    agent.description[:42] + "..."
-                    if len(agent.description) > 42
-                    else agent.description
-                )
+                # Format description with bright styling
+                if len(agent.description) > 42:
+                    desc_display = (
+                        f"[cyan]{agent.description[:42]}[/cyan][dim]...[/dim]"
+                    )
+                else:
+                    desc_display = f"[cyan]{agent.description}[/cyan]"
                 table.add_row(str(idx), agent.name, status, desc_display)
 
             self.console.print(table)
