@@ -1,3 +1,17 @@
+## [4.7.5] - 2025-10-08
+
+### Changed
+- Reduced code bloat by 505 lines (-21.7%) through refactoring
+- Created DisplayHelper utility class with 21 reusable display methods
+- Refactored mpm_init.py to eliminate duplicate display logic (52 lines saved)
+- Removed unnecessary backup HTML file (713 lines)
+
+### Technical Improvements
+- Consolidated 4 display methods in mpm_init.py using new DisplayHelper
+- Improved separation of concerns with dedicated display utility
+- Better code organization and maintainability
+- Zero functionality changes (100% backward compatible)
+
 ## [4.7.4] - 2025-10-08
 
 ### Added
