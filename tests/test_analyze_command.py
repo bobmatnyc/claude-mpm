@@ -62,7 +62,8 @@ That's the analysis.
         print(f"\nDiagram {i+1}:")
         print(f"  Title: {diagram['title']}")
         print(f"  Content length: {len(diagram['content'])} chars")
-        print(f"  First line: {diagram['content'].split('\\n')[0]}")
+        first_line = diagram["content"].split("\n")[0]
+        print(f"  First line: {first_line}")
 
     assert len(diagrams) == 2, f"Expected 2 diagrams, got {len(diagrams)}"
     assert "classDiagram" in diagrams[0]["content"]

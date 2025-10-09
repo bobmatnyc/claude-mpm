@@ -59,7 +59,7 @@ def main():
         cmd = [claude_mpm, "tickets", "--help"]
     else:
         # Pass through all arguments to claude-mpm tickets
-        cmd = [claude_mpm, "tickets"] + sys.argv[1:]
+        cmd = [claude_mpm, "tickets", *sys.argv[1:]]
 
     # Execute the command
     try:
