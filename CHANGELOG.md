@@ -1,3 +1,11 @@
+## [4.7.7] - 2025-10-09
+
+### Fixed
+- **Configurator Menu Display**: Resolved issue where keyboard shortcuts like [e], [d], [c] were not visible due to Rich markup consuming them
+- Applied Text object pattern to 25 shortcuts across 5 menus (Agent Management, Template Editing, Behavior Configuration, MCP Services, Hook Services)
+- Improved menu readability and keyboard shortcut visibility
+- All menu shortcuts now use Text.append() with style parameter for proper rendering
+
 ## [4.7.6] - 2025-10-09
 
 ### Fixed
