@@ -390,12 +390,38 @@ class ConfigureCommand(BaseCommand):
 
             # Show agent menu
             self.console.print("\n[bold]Agent Management Options:[/bold]")
-            self.console.print("  [cyan][e][/cyan] Enable an agent")
-            self.console.print("  [cyan][d][/cyan] Disable an agent")
-            self.console.print("  [cyan][c][/cyan] Customize agent template")
-            self.console.print("  [cyan][v][/cyan] View agent details")
-            self.console.print("  [cyan][r][/cyan] Reset agent to defaults")
-            self.console.print("  [cyan][b][/cyan] Back to main menu")
+
+            # Use Text objects to properly display shortcuts with styling
+            text_e = Text("  ")
+            text_e.append("[e]", style="cyan bold")
+            text_e.append(" Enable an agent")
+            self.console.print(text_e)
+
+            text_d = Text("  ")
+            text_d.append("[d]", style="cyan bold")
+            text_d.append(" Disable an agent")
+            self.console.print(text_d)
+
+            text_c = Text("  ")
+            text_c.append("[c]", style="cyan bold")
+            text_c.append(" Customize agent template")
+            self.console.print(text_c)
+
+            text_v = Text("  ")
+            text_v.append("[v]", style="cyan bold")
+            text_v.append(" View agent details")
+            self.console.print(text_v)
+
+            text_r = Text("  ")
+            text_r.append("[r]", style="cyan bold")
+            text_r.append(" Reset agent to defaults")
+            self.console.print(text_r)
+
+            text_b = Text("  ")
+            text_b.append("[b]", style="cyan bold")
+            text_b.append(" Back to main menu")
+            self.console.print(text_b)
+
             self.console.print()
 
             choice = Prompt.ask("[bold cyan]Select an option[/bold cyan]", default="b")
@@ -613,14 +639,41 @@ class ConfigureCommand(BaseCommand):
         # Editing options
         self.console.print("[bold]Editing Options:[/bold]")
         if not is_system:
-            self.console.print("  [cyan][1][/cyan] Edit in external editor")
-            self.console.print("  [cyan][2][/cyan] Add/modify a field")
-            self.console.print("  [cyan][3][/cyan] Remove a field")
-            self.console.print("  [cyan][4][/cyan] Reset to defaults")
+            text_1 = Text("  ")
+            text_1.append("[1]", style="cyan bold")
+            text_1.append(" Edit in external editor")
+            self.console.print(text_1)
+
+            text_2 = Text("  ")
+            text_2.append("[2]", style="cyan bold")
+            text_2.append(" Add/modify a field")
+            self.console.print(text_2)
+
+            text_3 = Text("  ")
+            text_3.append("[3]", style="cyan bold")
+            text_3.append(" Remove a field")
+            self.console.print(text_3)
+
+            text_4 = Text("  ")
+            text_4.append("[4]", style="cyan bold")
+            text_4.append(" Reset to defaults")
+            self.console.print(text_4)
         else:
-            self.console.print("  [cyan][1][/cyan] Create customized copy")
-            self.console.print("  [cyan][2][/cyan] View full template")
-        self.console.print("  [cyan][b][/cyan] Back")
+            text_1 = Text("  ")
+            text_1.append("[1]", style="cyan bold")
+            text_1.append(" Create customized copy")
+            self.console.print(text_1)
+
+            text_2 = Text("  ")
+            text_2.append("[2]", style="cyan bold")
+            text_2.append(" View full template")
+            self.console.print(text_2)
+
+        text_b = Text("  ")
+        text_b.append("[b]", style="cyan bold")
+        text_b.append(" Back")
+        self.console.print(text_b)
+
         self.console.print()
 
         choice = Prompt.ask("[bold cyan]Select an option[/bold cyan]", default="b")
@@ -973,11 +1026,32 @@ class ConfigureCommand(BaseCommand):
 
             # Show behavior menu
             self.console.print("\n[bold]Options:[/bold]")
-            self.console.print("  [cyan][1][/cyan] Edit identity configuration")
-            self.console.print("  [cyan][2][/cyan] Edit workflow configuration")
-            self.console.print("  [cyan][3][/cyan] Import behavior file")
-            self.console.print("  [cyan][4][/cyan] Export behavior file")
-            self.console.print("  [cyan][b][/cyan] Back to main menu")
+
+            text_1 = Text("  ")
+            text_1.append("[1]", style="cyan bold")
+            text_1.append(" Edit identity configuration")
+            self.console.print(text_1)
+
+            text_2 = Text("  ")
+            text_2.append("[2]", style="cyan bold")
+            text_2.append(" Edit workflow configuration")
+            self.console.print(text_2)
+
+            text_3 = Text("  ")
+            text_3.append("[3]", style="cyan bold")
+            text_3.append(" Import behavior file")
+            self.console.print(text_3)
+
+            text_4 = Text("  ")
+            text_4.append("[4]", style="cyan bold")
+            text_4.append(" Export behavior file")
+            self.console.print(text_4)
+
+            text_b = Text("  ")
+            text_b.append("[b]", style="cyan bold")
+            text_b.append(" Back to main menu")
+            self.console.print(text_b)
+
             self.console.print()
 
             choice = Prompt.ask("[bold cyan]Select an option[/bold cyan]", default="b")
@@ -1264,9 +1338,22 @@ class ConfigureCommand(BaseCommand):
         self.console.print(table)
         self.console.print("\n[bold]Commands:[/bold]")
         self.console.print("  Enter service IDs to toggle (e.g., '1,3' or '1-4')")
-        self.console.print("  [cyan][a][/cyan] Enable all")
-        self.console.print("  [cyan][n][/cyan] Disable all")
-        self.console.print("  [cyan][b][/cyan] Back to previous menu")
+
+        text_a = Text("  ")
+        text_a.append("[a]", style="cyan bold")
+        text_a.append(" Enable all")
+        self.console.print(text_a)
+
+        text_n = Text("  ")
+        text_n.append("[n]", style="cyan bold")
+        text_n.append(" Disable all")
+        self.console.print(text_n)
+
+        text_b = Text("  ")
+        text_b.append("[b]", style="cyan bold")
+        text_b.append(" Back to previous menu")
+        self.console.print(text_b)
+
         self.console.print()
 
         choice = Prompt.ask("[bold cyan]Toggle services[/bold cyan]", default="b")
@@ -1331,9 +1418,22 @@ class ConfigureCommand(BaseCommand):
         self.console.print(table)
         self.console.print("\n[bold]Commands:[/bold]")
         self.console.print("  Enter service IDs to toggle (e.g., '1,3' or '1-4')")
-        self.console.print("  [cyan][a][/cyan] Enable all")
-        self.console.print("  [cyan][n][/cyan] Disable all")
-        self.console.print("  [cyan][b][/cyan] Back to previous menu")
+
+        text_a = Text("  ")
+        text_a.append("[a]", style="cyan bold")
+        text_a.append(" Enable all")
+        self.console.print(text_a)
+
+        text_n = Text("  ")
+        text_n.append("[n]", style="cyan bold")
+        text_n.append(" Disable all")
+        self.console.print(text_n)
+
+        text_b = Text("  ")
+        text_b.append("[b]", style="cyan bold")
+        text_b.append(" Back to previous menu")
+        self.console.print(text_b)
+
         self.console.print()
 
         choice = Prompt.ask("[bold cyan]Toggle services[/bold cyan]", default="b")
