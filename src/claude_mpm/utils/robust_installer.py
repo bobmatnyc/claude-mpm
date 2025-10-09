@@ -9,6 +9,7 @@ DESIGN DECISION: We implement exponential backoff for retries and provide
 multiple installation strategies (pip, conda, source) to maximize success rate.
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -80,6 +81,7 @@ class RobustPackageInstaller:
         self.use_cache = use_cache
         self.attempts: List[InstallAttempt] = []
         self.success_cache: Dict[str, bool] = {}
+        self.in_virtualenv = self._check_virtualenv()
         self.is_pep668_managed = self._check_pep668_managed()
         self.pep668_warning_shown = False
 
@@ -201,6 +203,35 @@ class RobustPackageInstaller:
         except Exception as e:
             return False, f"Unexpected error: {e!s}"
 
+    def _check_virtualenv(self) -> bool:
+        """
+        Check if running inside a virtual environment.
+
+        WHY: Virtual environments are already isolated and don't need
+        --user or --break-system-packages flags. In fact, using --user
+        in a virtualenv causes errors.
+
+        Returns:
+            True if in a virtualenv, False otherwise
+        """
+        # Multiple ways to detect virtualenv
+        return (
+            (
+                # venv creates sys.base_prefix
+                hasattr(sys, "base_prefix")
+                and sys.base_prefix != sys.prefix
+            )
+            or (
+                # virtualenv creates sys.real_prefix
+                hasattr(sys, "real_prefix")
+            )
+            or (
+                # VIRTUAL_ENV environment variable
+                os.environ.get("VIRTUAL_ENV")
+                is not None
+            )
+        )
+
     def _check_pep668_managed(self) -> bool:
         """
         Check if Python environment is PEP 668 externally managed.
@@ -211,6 +242,11 @@ class RobustPackageInstaller:
         Returns:
             True if PEP 668 managed, False otherwise
         """
+        # If in virtualenv, PEP 668 doesn't apply
+        if self.in_virtualenv:
+            logger.debug("Running in virtualenv, PEP 668 restrictions don't apply")
+            return False
+
         # Check for EXTERNALLY-MANAGED marker file
         stdlib_path = sysconfig.get_path("stdlib")
         marker_file = Path(stdlib_path) / "EXTERNALLY-MANAGED"
@@ -240,7 +276,7 @@ class RobustPackageInstaller:
                 "Your Python installation is marked as externally managed (PEP 668).\n"
                 "This typically means you're using a system Python managed by Homebrew, apt, etc.\n"
                 "\n"
-                "Installing packages with --break-system-packages --user flags...\n"
+                "Installing packages with --break-system-packages flag...\n"
                 "\n"
                 "RECOMMENDED: Use a virtual environment instead:\n"
                 "  python -m venv .venv\n"
@@ -255,8 +291,10 @@ class RobustPackageInstaller:
         """
         Build the installation command for a given strategy.
 
-        WHY: PEP 668 support added to handle externally managed Python
-        environments by adding appropriate flags when needed.
+        WHY: Proper environment detection ensures we use the right pip flags:
+        - Virtualenv: No special flags needed (already isolated)
+        - PEP 668 system: Use --break-system-packages only
+        - Normal system: Use --user for user-local install
 
         Args:
             package_spec: Package specification
@@ -267,14 +305,19 @@ class RobustPackageInstaller:
         """
         base_cmd = [sys.executable, "-m", "pip", "install"]
 
-        # Add PEP 668 bypass flags if needed
-        if self.is_pep668_managed:
+        # Determine appropriate flags based on environment
+        if self.in_virtualenv:
+            # In virtualenv - no special flags needed
+            logger.debug("Installing in virtualenv (no special flags)")
+        elif self.is_pep668_managed:
+            # System Python with PEP 668 - use --break-system-packages only
             self._show_pep668_warning()
-            # Add flags to bypass PEP 668 restrictions
-            base_cmd.extend(["--break-system-packages", "--user"])
-            logger.debug(
-                "Added --break-system-packages --user flags for PEP 668 environment"
-            )
+            base_cmd.append("--break-system-packages")
+            logger.debug("Added --break-system-packages flag for PEP 668 environment")
+        else:
+            # Normal system Python - use --user for user-local install
+            base_cmd.append("--user")
+            logger.debug("Added --user flag for user-local installation")
 
         # Add cache control
         if not self.use_cache:
@@ -612,11 +655,16 @@ class RobustPackageInstaller:
         try:
             cmd = [sys.executable, "-m", "pip", "install"]
 
-            # Add PEP 668 bypass flags if needed
-            if self.is_pep668_managed:
+            # Add appropriate flags based on environment
+            if self.in_virtualenv:
+                logger.debug("Batch install in virtualenv (no special flags)")
+            elif self.is_pep668_managed:
                 self._show_pep668_warning()
-                cmd.extend(["--break-system-packages", "--user"])
-                logger.debug("Added PEP 668 flags for batch installation")
+                cmd.append("--break-system-packages")
+                logger.debug("Added --break-system-packages for batch installation")
+            else:
+                cmd.append("--user")
+                logger.debug("Added --user flag for batch installation")
 
             cmd.extend(packages)
 
@@ -654,12 +702,18 @@ class RobustPackageInstaller:
         lines.append("INSTALLATION REPORT")
         lines.append("=" * 60)
 
-        # Add PEP 668 status
-        if self.is_pep668_managed:
-            lines.append("")
+        # Add environment status
+        lines.append("")
+        if self.in_virtualenv:
+            lines.append("✓ Environment: Virtual Environment (isolated)")
+            lines.append("  No special pip flags needed")
+        elif self.is_pep668_managed:
             lines.append("⚠️  PEP 668 Managed Environment: YES")
-            lines.append("   Installations used --break-system-packages --user flags")
+            lines.append("   Installations used --break-system-packages flag")
             lines.append("   Consider using a virtual environment for better isolation")
+        else:
+            lines.append("Environment: System Python")
+            lines.append("   Installations used --user flag for user-local install")
 
         # Summary
         total_attempts = len(self.attempts)
@@ -672,7 +726,7 @@ class RobustPackageInstaller:
         lines.append("")
 
         # Details by package
-        packages = {}
+        packages: Dict[str, List[InstallAttempt]] = {}
         for attempt in self.attempts:
             if attempt.package not in packages:
                 packages[attempt.package] = []

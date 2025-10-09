@@ -550,7 +550,7 @@ class MCPServiceVerifier:
 
         try:
             # Build test command - add --help to test without side effects
-            test_cmd = [command] + args[:2] if args else [command]  # Include base args
+            test_cmd = [command, *args[:2]] if args else [command]  # Include base args
             test_cmd.append("--help")
 
             result = subprocess.run(

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# clod-npm - Binary executable to load claude-mpm from this local project
+
+# Get the directory where this script is located, following symlinks
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+    DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink
+done
+SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+# Project root is where this script is located
+PROJECT_ROOT="$SCRIPT_DIR"
+
+# Use the existing claude-mpm script from this project
+CLAUDE_MPM_SCRIPT="$PROJECT_ROOT/scripts/claude-mpm"
+
+# Check if the claude-mpm script exists
+if [ ! -f "$CLAUDE_MPM_SCRIPT" ]; then
+    echo "Error: claude-mpm script not found at $CLAUDE_MPM_SCRIPT"
+    echo "Make sure you're running this from the claude-mpm project root"
+    exit 1
+fi
+
+# Make sure the script is executable
+chmod +x "$CLAUDE_MPM_SCRIPT"
+
+# Execute the claude-mpm script with all arguments
+exec "$CLAUDE_MPM_SCRIPT" "$@"

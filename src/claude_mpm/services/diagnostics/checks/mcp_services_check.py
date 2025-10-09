@@ -495,7 +495,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                     base_cmd = config["mcp_command"]
                     if len(base_cmd) > 0 and base_cmd[0] == config["package"]:
                         # Simple case where first command is the package name
-                        mcp_command = ["pipx", "run", config["package"]] + base_cmd[1:]
+                        mcp_command = ["pipx", "run", config["package"], *base_cmd[1:]]
                     else:
                         # Complex case - just try running the package with mcp arg
                         mcp_command = ["pipx", "run", config["package"], "mcp"]
@@ -509,7 +509,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                     base_cmd = config["mcp_command"]
                     if service_name == "kuzu-memory":
                         # Special case for kuzu-memory with args
-                        mcp_command = ["pipx", "run", base_cmd[0]] + base_cmd[1:]
+                        mcp_command = ["pipx", "run", base_cmd[0], *base_cmd[1:]]
                     else:
                         mcp_command = ["pipx", "run", *base_cmd]
             else:

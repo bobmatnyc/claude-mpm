@@ -14,7 +14,7 @@ import logging
 import subprocess
 import sys
 import time
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from packaging.requirements import InvalidRequirement, Requirement
 
@@ -72,7 +72,7 @@ class AgentDependencyLoader:
         Returns:
             Dictionary mapping agent IDs to their file paths
         """
-        deployed_agents = {}
+        deployed_agents: Dict[str, Path] = {}
         claude_agents_dir = Path.cwd() / ".claude" / "agents"
 
         if not claude_agents_dir.exists():
@@ -409,7 +409,7 @@ class AgentDependencyLoader:
         Returns:
             Analysis results including missing and satisfied dependencies
         """
-        results = {
+        results: Dict[str, Any] = {
             "agents": {},
             "summary": {
                 "total_agents": len(self.deployed_agents),
@@ -422,7 +422,7 @@ class AgentDependencyLoader:
         }
 
         for agent_id, deps in self.agent_dependencies.items():
-            agent_result = {
+            agent_result: Dict[str, Dict[str, List[str]]] = {
                 "python": {"satisfied": [], "missing": [], "outdated": []},
                 "system": {"satisfied": [], "missing": []},
             }
@@ -476,8 +476,8 @@ class AgentDependencyLoader:
         """
         import sys
 
-        compatible = []
-        incompatible = []
+        compatible: List[str] = []
+        incompatible: List[str] = []
 
         for dep in dependencies:
             try:
@@ -593,20 +593,37 @@ class AgentDependencyLoader:
             try:
                 cmd = [sys.executable, "-m", "pip", "install"]
 
-                # Check for PEP 668 managed environment
+                # Check environment and add appropriate flags
+                import os
                 import sysconfig
 
-                stdlib_path = sysconfig.get_path("stdlib")
-                marker_file = Path(stdlib_path) / "EXTERNALLY-MANAGED"
-                parent_marker = marker_file.parent.parent / "EXTERNALLY-MANAGED"
+                # Check if in virtualenv
+                in_virtualenv = (
+                    (hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix)
+                    or (hasattr(sys, "real_prefix"))
+                    or (os.environ.get("VIRTUAL_ENV") is not None)
+                )
 
-                if marker_file.exists() or parent_marker.exists():
-                    logger.warning(
-                        "PEP 668 managed environment detected. "
-                        "Installing with --break-system-packages --user flags. "
-                        "Consider using a virtual environment instead."
-                    )
-                    cmd.extend(["--break-system-packages", "--user"])
+                if in_virtualenv:
+                    # In virtualenv - no special flags needed
+                    logger.debug("Installing in virtualenv (no special flags)")
+                else:
+                    # Check for PEP 668 managed environment
+                    stdlib_path = sysconfig.get_path("stdlib")
+                    marker_file = Path(stdlib_path) / "EXTERNALLY-MANAGED"
+                    parent_marker = marker_file.parent.parent / "EXTERNALLY-MANAGED"
+
+                    if marker_file.exists() or parent_marker.exists():
+                        logger.warning(
+                            "PEP 668 managed environment detected. "
+                            "Installing with --break-system-packages flag. "
+                            "Consider using a virtual environment instead."
+                        )
+                        cmd.append("--break-system-packages")
+                    else:
+                        # Normal system Python - use --user
+                        cmd.append("--user")
+                        logger.debug("Installing with --user flag")
 
                 cmd.extend(compatible)
 
@@ -946,13 +963,16 @@ class AgentDependencyLoader:
 
 def check_deployed_agent_dependencies(
     auto_install: bool = False, verbose: bool = False
-) -> None:
+) -> int:
     """
     Check dependencies for currently deployed agents.
 
     Args:
         auto_install: If True, automatically install missing Python dependencies
         verbose: If True, enable verbose logging
+
+    Returns:
+        Status code: 0 if all dependencies satisfied, 1 if missing dependencies
     """
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
