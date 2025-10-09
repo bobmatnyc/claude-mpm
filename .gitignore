@@ -306,3 +306,5 @@ wheels/
 .kuzu-memory/
 .kuzu-memory-backups/
 kuzu-memories/
+.zshrc
+bin/
