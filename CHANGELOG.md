@@ -1,3 +1,21 @@
+## [4.7.8] - 2025-10-09
+
+### Added
+- **Multi-Agent Batch Toggle**: Enable/disable multiple agents with single selection (e.g., '1,3,5' or '1-4')
+- **Batch Operations**: Bulk enable all ('a') or disable all ('n') agents
+- **Batch Save with Preview**: See pending changes (yellow arrows) before committing
+- **Save & Launch Feature**: New [l] menu option to save and launch Claude MPM
+- **Smart Change Management**: Auto-prompt to save or discard pending agent changes
+
+### Fixed
+- **Menu Visibility**: Fixed missing [l] and [q] shortcuts (escaped Rich markup brackets)
+- **Text Contrast**: Changed menu descriptions from dim to white for better readability
+- **Layout Improvements**: Wider columns for better menu alignment
+
+### Changed
+- **Toggle Interface**: Replaced separate [e]/[d] options with unified [t] toggle
+- **Bold Shortcuts**: Menu shortcuts now use bold cyan for better visibility
+
 ## [4.7.7] - 2025-10-09
 
 ### Fixed
