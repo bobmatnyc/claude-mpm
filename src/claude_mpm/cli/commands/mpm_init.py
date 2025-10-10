@@ -12,7 +12,7 @@ import contextlib
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import click
 from rich.console import Console
@@ -63,6 +63,7 @@ class MPMInitCommand:
         skip_archive: bool = False,
         dry_run: bool = False,
         quick_update: bool = False,
+        catchup: bool = False,
         non_interactive: bool = False,
         days: int = 30,
         export: Optional[str] = None,
@@ -84,6 +85,7 @@ class MPMInitCommand:
             skip_archive: Skip archiving existing files
             dry_run: Show what would be done without making changes
             quick_update: Perform lightweight update based on recent git activity
+            catchup: Show recent commit history from all branches for PM context
             non_interactive: Non-interactive mode - display report only without prompting
             days: Number of days for git history analysis (7, 14, 30, 60, or 90)
             export: Export report to file (path or "auto" for default location)
@@ -98,6 +100,11 @@ class MPMInitCommand:
 
             if review_only:
                 return self._run_review_mode()
+
+            if catchup:
+                data = self._catchup()
+                self._display_catchup(data)
+                return {"status": "success", "mode": "catchup", "catchup_data": data}
 
             if quick_update:
                 return self._run_quick_update_mode(
@@ -678,6 +685,142 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
             }
         console.print("\n[yellow]Quick update cancelled[/yellow]")
         return {"status": "cancelled", "message": "Quick update cancelled"}
+
+    def _catchup(self) -> Dict[str, Any]:
+        """Get recent commit history for PM context.
+
+        Returns:
+            Dict containing commit history and contributor stats
+        """
+        from collections import Counter
+        from datetime import datetime
+        from subprocess import run
+
+        try:
+            # Get last 25 commits from all branches with author info
+            result = run(
+                ["git", "log", "--all", "--format=%h|%an|%ai|%s", "-25"],
+                capture_output=True,
+                text=True,
+                check=True,
+                cwd=str(self.project_path),
+            )
+
+            commits = []
+            authors = []
+
+            for line in result.stdout.strip().split("\n"):
+                if not line:
+                    continue
+
+                parts = line.split("|", 3)
+                if len(parts) == 4:
+                    hash_val, author, date_str, message = parts
+
+                    # Parse date
+                    try:
+                        dt = datetime.fromisoformat(date_str.replace(" ", "T", 1))
+                        date_display = dt.strftime("%Y-%m-%d %H:%M")
+                    except Exception:
+                        date_display = date_str[:16]
+
+                    commits.append(
+                        {
+                            "hash": hash_val,
+                            "author": author,
+                            "date": date_display,
+                            "message": message,
+                        }
+                    )
+                    authors.append(author)
+
+            # Calculate contributor stats
+            author_counts = Counter(authors)
+
+            return {
+                "commits": commits,
+                "total_commits": len(commits),
+                "contributors": dict(author_counts),
+                "contributor_count": len(author_counts),
+            }
+
+        except Exception as e:
+            console.print(f"[yellow]Could not retrieve commit history: {e}[/yellow]")
+            return {
+                "commits": [],
+                "total_commits": 0,
+                "contributors": {},
+                "contributor_count": 0,
+                "error": str(e),
+            }
+
+    def _display_catchup(self, data: Dict[str, Any]) -> None:
+        """Display catchup information to console.
+
+        Args:
+            data: Commit history data from _catchup()
+        """
+        from rich.panel import Panel
+        from rich.table import Table
+
+        if data.get("error"):
+            console.print(
+                Panel(
+                    "[yellow]Not a git repository or no commits found[/yellow]",
+                    title="⚠️ Catchup Status",
+                    border_style="yellow",
+                )
+            )
+            return
+
+        # Display contributor summary
+        if data["contributors"]:
+            console.print("\n[bold cyan]👥 Active Contributors[/bold cyan]")
+            for author, count in sorted(
+                data["contributors"].items(), key=lambda x: x[1], reverse=True
+            ):
+                console.print(
+                    f"  • [green]{author}[/green]: {count} commit{'s' if count != 1 else ''}"
+                )
+
+        # Display commit history table
+        if data["commits"]:
+            console.print(
+                f"\n[bold cyan]📝 Last {data['total_commits']} Commits[/bold cyan]"
+            )
+
+            table = Table(
+                show_header=True, header_style="bold magenta", border_style="dim"
+            )
+            table.add_column("#", style="dim", width=3)
+            table.add_column("Hash", style="yellow", width=8)
+            table.add_column("Author", style="green", width=20)
+            table.add_column("Date", style="cyan", width=16)
+            table.add_column("Message", style="white")
+
+            for idx, commit in enumerate(data["commits"], 1):
+                # Truncate message if too long
+                msg = commit["message"]
+                if len(msg) > 80:
+                    msg = msg[:77] + "..."
+
+                # Truncate author if too long
+                author = commit["author"]
+                if len(author) > 18:
+                    author = author[:18] + "..."
+
+                table.add_row(str(idx), commit["hash"], author, commit["date"], msg)
+
+            console.print(table)
+
+        # Display PM recommendations
+        console.print("\n[bold cyan]💡 PM Recommendations[/bold cyan]")
+        console.print(
+            f"  • Total activity: {data['total_commits']} commits from {data['contributor_count']} contributor{'s' if data['contributor_count'] != 1 else ''}"
+        )
+        console.print("  • Review commit messages for recent project context")
+        console.print("  • Identify development patterns and focus areas")
+        console.print("  • Use this context to inform current work priorities\n")
 
     def _generate_activity_report(
         self, git_analysis: Dict, doc_analysis: Dict, days: int = 30
@@ -1464,6 +1607,11 @@ preserving valuable project-specific information while refreshing standard secti
     help="Perform lightweight update based on recent git activity (default: 30 days)",
 )
 @click.option(
+    "--catchup",
+    is_flag=True,
+    help="Show recent commit history from all branches for PM context",
+)
+@click.option(
     "--non-interactive",
     is_flag=True,
     help="Non-interactive mode - display report only without prompting (use with --quick-update)",
@@ -1499,6 +1647,7 @@ def mpm_init(
     verbose,
     ast_analysis,
     quick_update,
+    catchup,
     non_interactive,
     days,
     export,
@@ -1544,6 +1693,7 @@ def mpm_init(
             preserve_custom=preserve_custom,
             skip_archive=skip_archive,
             quick_update=quick_update,
+            catchup=catchup,
             non_interactive=non_interactive,
             days=days,
             export=export,

@@ -146,6 +146,23 @@ Fast update based on recent 30-day git activity. Generates activity report and u
 
 **Note**: Typing `/mpm-init update` executes `claude-mpm mpm-init --quick-update` automatically.
 
+### Catchup Mode
+
+Show recent commit history to provide PM with project context:
+
+```bash
+/mpm-init catchup
+```
+
+This displays:
+- Last 25 commits from all branches
+- Author attribution (WHO did WHAT)
+- Temporal context (WHEN)
+- Contributor activity summary
+- PM recommendations based on commit patterns
+
+Useful for understanding recent development activity and getting PM up to speed on project changes.
+
 ### Review Project State
 ```bash
 /mpm-init --review
