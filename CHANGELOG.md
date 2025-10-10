@@ -1,3 +1,15 @@
+## [4.7.9] - 2025-10-10
+
+### Added
+- **mpm-init --catchup Mode**: New mode to display recent commit history for PM context
+- Last 25 commits from all branches with author attribution and temporal context
+- Contributor activity summary showing who did what
+- PM recommendations based on commit patterns
+- Comprehensive test coverage with 11 tests
+
+### Changed
+- Enhanced mpm-init command with catchup functionality for better PM project awareness
+
 ## [4.7.8] - 2025-10-09
 
 ### Added
