@@ -92,6 +92,11 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
         help="Perform lightweight update based on recent git activity (default: 30 days)",
     )
     init_group.add_argument(
+        "--catchup",
+        action="store_true",
+        help="Show recent commit history from all branches for PM context",
+    )
+    init_group.add_argument(
         "--non-interactive",
         action="store_true",
         help="Non-interactive mode - display report only without prompting for changes (use with --quick-update)",
