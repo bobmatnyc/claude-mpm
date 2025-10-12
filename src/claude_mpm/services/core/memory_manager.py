@@ -40,9 +40,11 @@ class MemoryManager(IMemoryManager):
     4. Legacy format migration (e.g., PM.md -> PM_memories.md)
     5. Memory caching for performance
 
-    Memory Loading Order:
-    - User-level memories: ~/.claude-mpm/memories/ (global defaults)
-    - Project-level memories: ./.claude-mpm/memories/ (overrides user)
+    Memory Scope:
+    - Project-level ONLY: ./.claude-mpm/memories/ (project-scoped isolation)
+    - User-level memories are NOT loaded to prevent cross-project contamination
+
+    Note: As of v4.7.10+, memories are strictly project-scoped for complete isolation.
     """
 
     def __init__(
@@ -279,7 +281,10 @@ class MemoryManager(IMemoryManager):
 
     def _load_actual_memories(self, deployed_agents: Set[str]) -> Dict[str, Any]:
         """
-        Load actual memories from both user and project directories.
+        Load actual memories from project directory only.
+
+        Memories are project-scoped to ensure complete isolation between projects.
+        User-level memories are no longer supported to prevent cross-project contamination.
 
         Args:
             deployed_agents: Set of deployed agent names
@@ -287,32 +292,14 @@ class MemoryManager(IMemoryManager):
         Returns:
             Dictionary with actual_memories and agent_memories
         """
-        # Define memory directories in priority order
-        user_memories_dir = Path.home() / ".claude-mpm" / "memories"
+        # Define project memory directory (project-scoped only)
         project_memories_dir = Path.cwd() / ".claude-mpm" / "memories"
 
         # Dictionary to store aggregated memories
         pm_memories = []
         agent_memories_dict = {}
 
-        # Load memories from user directory first
-        if user_memories_dir.exists():
-            self.logger.info(
-                f"Loading user-level memory files from: {user_memories_dir}"
-            )
-            self._load_memories_from_directory(
-                user_memories_dir,
-                deployed_agents,
-                pm_memories,
-                agent_memories_dict,
-                "user",
-            )
-        else:
-            self.logger.debug(
-                f"No user memories directory found at: {user_memories_dir}"
-            )
-
-        # Load memories from project directory (overrides user memories)
+        # Load memories from project directory only
         if project_memories_dir.exists():
             self.logger.info(
                 f"Loading project-level memory files from: {project_memories_dir}"

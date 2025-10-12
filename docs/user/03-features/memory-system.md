@@ -78,15 +78,28 @@ The kuzu-memory system operates automatically:
 4. **Context Enrichment**: Automatically adds relevant context to user prompts
 5. **Project Isolation**: Each project maintains its own memory database
 
-### Database Locations
+### Memory Storage Locations
 
+**Kuzu-Memory (Graph Database)**:
 ```bash
-# Project-specific databases
+# Project-specific databases (recommended)
 ~/.claude-mpm/kuzu-memory/projects/<project-hash>/
 
 # Shared memories (if enabled)
 ~/.claude-mpm/kuzu-memory/shared/
 ```
+
+**Agent Memory Files (Legacy)**:
+```bash
+# Project-level ONLY (strict isolation)
+./.claude-mpm/memories/
+  ├── PM_memories.md
+  ├── engineer_memories.md
+  ├── qa_memories.md
+  └── ...
+```
+
+**Important**: As of v4.7.10+, agent memory files are **project-scoped only**. User-level memories (`~/.claude-mpm/memories/`) are no longer loaded to prevent cross-project contamination and ensure complete isolation between projects.
 
 ### Checking Kuzu-Memory Status
 
@@ -427,6 +440,49 @@ claude-mpm memory add documentation preference "Code examples must show both suc
 **Project milestones:**
 - Document key architectural decisions explicitly
 - Add important project-specific patterns
+
+## Migration Guide (v4.7.10+)
+
+### User-Level to Project-Level Memory Migration
+
+**Important Change**: As of v4.7.10+, agent memory files are **project-scoped only**. User-level memories at `~/.claude-mpm/memories/` are no longer loaded to ensure complete isolation between projects.
+
+**Why this change?**
+- Prevents memory contamination between different projects
+- Ensures each project has completely independent context
+- Aligns with agent deployment behavior (agents deploy to project-level since v4.0.32+)
+- Improves security and data isolation
+
+**If you have existing user-level memories:**
+
+1. **Check for user-level memories:**
+   ```bash
+   ls -la ~/.claude-mpm/memories/
+   ```
+
+2. **Copy relevant memories to current project:**
+   ```bash
+   # Create project memory directory if it doesn't exist
+   mkdir -p ./.claude-mpm/memories/
+
+   # Copy specific agent memories you want to keep
+   cp ~/.claude-mpm/memories/PM_memories.md ./.claude-mpm/memories/
+   cp ~/.claude-mpm/memories/engineer_memories.md ./.claude-mpm/memories/
+   # etc.
+   ```
+
+3. **Review and customize for each project:**
+   - User-level memories were global - review each memory item
+   - Remove items that don't apply to the current project
+   - Keep only project-relevant knowledge
+
+4. **Optional cleanup:**
+   ```bash
+   # After migrating to all projects, optionally remove user-level memories
+   rm -rf ~/.claude-mpm/memories/
+   ```
+
+**Note**: Kuzu-memory (graph database) has always been project-scoped and is unaffected by this change.
 
 ## Troubleshooting
 
