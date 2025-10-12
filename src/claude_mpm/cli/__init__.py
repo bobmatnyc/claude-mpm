@@ -36,6 +36,7 @@ from .commands import (  # run_guarded_session is imported lazily to avoid loadi
 )
 from .commands.analyze_code import manage_analyze_code
 from .commands.dashboard import manage_dashboard
+from .commands.upgrade import upgrade
 from .parser import create_parser, preprocess_args
 from .utils import ensure_directories, setup_logging
 
@@ -232,6 +233,9 @@ def main(argv: Optional[list] = None):
         # Re-enabled: MCP pre-warming is safe with subprocess daemon (v4.2.40)
         # The subprocess approach avoids fork() issues entirely
         _verify_mcp_gateway_startup()
+
+        # Check for updates (non-blocking, async)
+        _check_for_updates_async()
     else:
         # Still need directories for configure command to work
         ensure_directories()
@@ -544,6 +548,83 @@ def _verify_mcp_gateway_startup():
         # Continue execution - MCP gateway issues shouldn't block startup
 
 
+def _check_for_updates_async():
+    """
+    Check for updates in background thread (non-blocking).
+
+    WHY: Users should be notified of new versions and have an easy way to upgrade
+    without manually checking PyPI/npm. This runs asynchronously on startup to avoid
+    blocking the CLI.
+
+    DESIGN DECISION: This is non-blocking and non-critical - failures are logged
+    but don't prevent startup. Only runs for pip/pipx/npm installations, skips
+    editable/development installations.
+    """
+
+    def run_update_check():
+        """Inner function to run in background thread."""
+        loop = None
+        try:
+            import asyncio
+
+            from ..core.logger import get_logger
+            from ..services.self_upgrade_service import SelfUpgradeService
+
+            logger = get_logger("upgrade_check")
+
+            # Create new event loop for this thread
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+            # Create upgrade service and check for updates
+            upgrade_service = SelfUpgradeService()
+
+            # Skip for editable installs (development mode)
+            from ..services.self_upgrade_service import InstallationMethod
+
+            if upgrade_service.installation_method == InstallationMethod.EDITABLE:
+                logger.debug("Skipping version check for editable installation")
+                return
+
+            # Check and prompt for upgrade if available (non-blocking)
+            loop.run_until_complete(upgrade_service.check_and_prompt_on_startup())
+
+        except Exception as e:
+            # Non-critical - log but don't fail startup
+            try:
+                from ..core.logger import get_logger
+
+                logger = get_logger("upgrade_check")
+                logger.debug(f"Update check failed (non-critical): {e}")
+            except Exception:
+                pass  # Avoid any errors in error handling
+        finally:
+            # Properly clean up event loop
+            if loop is not None:
+                try:
+                    # Cancel all running tasks
+                    pending = asyncio.all_tasks(loop)
+                    for task in pending:
+                        task.cancel()
+                    # Wait for tasks to complete cancellation
+                    if pending:
+                        loop.run_until_complete(
+                            asyncio.gather(*pending, return_exceptions=True)
+                        )
+                except Exception:
+                    pass  # Ignore cleanup errors
+                finally:
+                    loop.close()
+                    # Clear the event loop reference to help with cleanup
+                    asyncio.set_event_loop(None)
+
+    # Run update check in background thread to avoid blocking startup
+    import threading
+
+    update_check_thread = threading.Thread(target=run_update_check, daemon=True)
+    update_check_thread.start()
+
+
 def _ensure_run_attributes(args):
     """
     Ensure run command attributes exist when defaulting to run.
@@ -657,6 +738,7 @@ def _execute_command(command: str, args) -> int:
         CLICommands.CLEANUP.value: cleanup_memory,
         CLICommands.MCP.value: manage_mcp,
         CLICommands.DOCTOR.value: run_doctor,
+        CLICommands.UPGRADE.value: upgrade,
         "debug": manage_debug,  # Add debug command
         "mpm-init": None,  # Will be handled separately with lazy import
     }
