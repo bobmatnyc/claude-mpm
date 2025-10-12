@@ -346,7 +346,11 @@ class TestMemoryManager:
             assert not old_pm.exists()
 
     def test_load_memories_with_priority(self, memory_manager, mock_cache_manager):
-        """Test memory loading with user/project priority."""
+        """Test memory loading with project-only scope (v4.7.10+).
+
+        As of v4.7.10+, only project-level memories are loaded to prevent
+        cross-project contamination. User-level memories are no longer loaded.
+        """
         mock_cache_manager.get_deployed_agents.return_value = {"test_agent"}
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -357,10 +361,12 @@ class TestMemoryManager:
             project_dir = Path(tmpdir) / "project" / ".claude-mpm" / "memories"
             project_dir.mkdir(parents=True)
 
-            # Create conflicting memories
+            # Create memories in both locations
+            # User-level should NOT be loaded (v4.7.10+)
             user_pm = user_dir / "PM_memories.md"
             user_pm.write_text("# PM Memory\n- User task 1\n- Common task")
 
+            # Project-level should be loaded
             project_pm = project_dir / "PM_memories.md"
             project_pm.write_text("# PM Memory\n- Project task 1\n- Common task")
 
@@ -375,14 +381,14 @@ class TestMemoryManager:
                 # Load memories
                 result = memory_manager.load_memories()
 
-            # Verify project overrides user for common items
+            # Verify only project-level memories are loaded (v4.7.10+)
             assert "actual_memories" in result
             content = result["actual_memories"]
 
-            # Should have both unique tasks and the common task
-            assert "user task 1" in content.lower()
-            assert "project task 1" in content.lower()
-            assert "common task" in content.lower()
+            # Should ONLY have project tasks (user tasks NOT loaded)
+            assert "user task 1" not in content.lower(), "User-level memories should NOT be loaded"
+            assert "project task 1" in content.lower(), "Project-level memories should be loaded"
+            assert "common task" in content.lower(), "Project-level common task should be present"
 
     def test_naming_mismatch_warning(self, memory_manager, mock_cache_manager, caplog):
         """Test warning for agent naming mismatches."""
