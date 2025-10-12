@@ -44,6 +44,7 @@ class CLICommands(str, Enum):
     MCP = "mcp"
     DOCTOR = "doctor"
     DASHBOARD = "dashboard"
+    UPGRADE = "upgrade"
 
     def with_prefix(self, prefix: CLIPrefix = CLIPrefix.MPM) -> str:
         """Get command with prefix."""
