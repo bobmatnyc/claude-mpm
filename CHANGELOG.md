@@ -1,3 +1,25 @@
+## [4.7.11] - 2025-10-12
+
+### Added
+- **Self-Upgrade System**: Automatic version checking and upgrade functionality
+  - `SelfUpgradeService` detects installation method (pip, pipx, npm, editable)
+  - Non-blocking startup version checks with 24-hour cache TTL
+  - New `claude-mpm upgrade` command for manual upgrades
+  - Support for `-y/--yes` flag for non-interactive upgrades
+  - Automatic restart after successful upgrade
+  - Installation method auto-detection with appropriate upgrade commands
+
+### Changed
+- Startup now includes background version check (non-blocking)
+- Added UPGRADE command constant to CLICommands enum
+
+### Technical Details
+- New files: `src/claude_mpm/services/self_upgrade_service.py` (346 lines)
+- New CLI command: `src/claude_mpm/cli/commands/upgrade.py` (155 lines)
+- Integrated `_check_for_updates_async()` in CLI startup sequence
+- Leverages existing `PackageVersionChecker` for PyPI/npm queries
+- Graceful failure handling - never breaks existing installation
+
 ## [4.7.10] - 2025-10-11
 
 ### Fixed
