@@ -1,3 +1,21 @@
+## [4.7.10] - 2025-10-11
+
+### Fixed
+- **Memory Isolation**: Enforce project-only memory scope to prevent cross-project contamination
+  - Removed user-level memory loading (`~/.claude-mpm/memories/`)
+  - Memories now strictly project-scoped (`./.claude-mpm/memories/`)
+  - Prevents memory leakage between different projects
+  - Aligns with agent deployment behavior (project-level since v4.0.32+)
+
+### Breaking Changes
+- **User-level memories no longer loaded**: Projects must have their own memory files
+- Migration guide provided in documentation for existing user-level memories
+
+### Documentation
+- Added memory migration guide in docs/user/03-features/memory-system.md
+- Updated MemoryManager docstrings for v4.7.10+ behavior
+- Explained project-only scope benefits and security improvements
+
 ## [4.7.9] - 2025-10-10
 
 ### Added
