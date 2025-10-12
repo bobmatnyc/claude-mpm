@@ -423,6 +423,11 @@ def create_parser(
 
         add_doctor_parser(subparsers)
 
+        # Add upgrade command
+        from ..commands.upgrade import add_upgrade_parser
+
+        add_upgrade_parser(subparsers)
+
         # Add verify command for MCP service verification
         from ..commands.verify import add_parser as add_verify_parser
 
