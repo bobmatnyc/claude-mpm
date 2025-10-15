@@ -24,7 +24,7 @@ Complete guide for developing with Claude MPM, including setup, workflows, quali
 git clone https://github.com/bobmatnyc/claude-mpm.git
 cd claude-mpm
 
-# Automated environment setup (detects Mamba/venv)
+# Automated environment setup (uses venv)
 ./scripts/claude-mpm --setup
 
 # Or manual setup
@@ -63,21 +63,16 @@ make lint-fix
 
 ### Environment Management
 
-Claude MPM supports both Mamba (recommended) and traditional Python venv:
+Claude MPM uses Python virtual environments (venv) for dependency management:
 
 ```bash
-# Mamba setup (recommended - 50-80% faster dependency resolution)
-mamba create -n claude-mpm python=3.11
-mamba activate claude-mpm
-pip install -e .
-
-# Traditional venv setup
+# venv setup (recommended)
 python -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # Linux/Mac (Windows: venv\Scripts\activate)
 pip install -e .
 
-# Force venv even if Mamba available
-./scripts/claude-mpm --use-venv
+# Or use the automated script
+./scripts/claude-mpm --help  # Creates and activates venv automatically
 ```
 
 ### Development Tools

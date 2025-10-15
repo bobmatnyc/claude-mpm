@@ -132,11 +132,6 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
         help="Create comprehensive setup including CI/CD, testing, and deployment configs",
     )
     init_group.add_argument(
-        "--use-venv",
-        action="store_true",
-        help="Use traditional Python venv instead of mamba/conda environment",
-    )
-    init_group.add_argument(
         "--ast-analysis",
         action="store_true",
         default=True,

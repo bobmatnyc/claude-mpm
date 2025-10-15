@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude MPM executable wrapper with automatic Mamba/venv detection
+# Claude MPM executable wrapper with venv support
 
 # Disable telemetry by default
 export DISABLE_TELEMETRY=1
@@ -15,52 +15,6 @@ SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 VENV_DIR="$PROJECT_ROOT/venv"
 SRC_DIR="$PROJECT_ROOT/src"
-MAMBA_SCRIPT="$SCRIPT_DIR/claude-mpm-mamba"
-
-# Check for --use-venv flag to force venv usage
-USE_VENV=false
-for arg in "$@"; do
-    if [[ "$arg" == "--use-venv" ]]; then
-        USE_VENV=true
-        break
-    fi
-done
-
-# Auto-detect and use Mamba if available (unless --use-venv is specified)
-if [[ "$USE_VENV" == false ]]; then
-    # Check if mamba/conda is available and environment.yml exists
-    if (command -v mamba &> /dev/null || command -v conda &> /dev/null || command -v micromamba &> /dev/null) && \
-       [[ -f "$PROJECT_ROOT/environment.yml" ]] && \
-       [[ -x "$MAMBA_SCRIPT" ]]; then
-        # Use Mamba-based environment
-        echo -e "\033[0;34m[INFO]\033[0m Auto-detected Mamba/Conda - using Mamba environment"
-        echo -e "\033[0;34m[INFO]\033[0m To use venv instead, run with --use-venv flag"
-        # Remove --use-venv from arguments if it exists (though it shouldn't be here)
-        ARGS=()
-        for arg in "$@"; do
-            if [[ "$arg" != "--use-venv" ]]; then
-                ARGS+=("$arg")
-            fi
-        done
-        exec "$MAMBA_SCRIPT" "${ARGS[@]}"
-    fi
-fi
-
-# If we get here, use venv (either forced or Mamba not available)
-if [[ "$USE_VENV" == true ]]; then
-    echo -e "\033[0;34m[INFO]\033[0m Using venv as requested (--use-venv flag)"
-    # Remove --use-venv from arguments
-    NEW_ARGS=()
-    for arg in "$@"; do
-        if [[ "$arg" != "--use-venv" ]]; then
-            NEW_ARGS+=("$arg")
-        fi
-    done
-    set -- "${NEW_ARGS[@]}"
-else
-    echo -e "\033[0;33m[INFO]\033[0m Mamba/Conda not found or environment.yml missing - using venv"
-    echo -e "\033[0;33m[INFO]\033[0m For better performance, consider installing Mamba: https://github.com/conda-forge/miniforge"
-fi
 
 # Colors for output
 RED='\033[0;31m'

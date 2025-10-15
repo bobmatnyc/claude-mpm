@@ -54,7 +54,6 @@ class MPMInitCommand:
         framework: Optional[str] = None,
         force: bool = False,
         verbose: bool = False,
-        use_venv: bool = False,
         ast_analysis: bool = True,
         update_mode: bool = False,
         review_only: bool = False,
@@ -76,7 +75,6 @@ class MPMInitCommand:
             framework: Specific framework if applicable
             force: Force initialization even if project already configured
             verbose: Show detailed output
-            use_venv: Force use of venv instead of mamba
             ast_analysis: Enable AST analysis for enhanced documentation
             update_mode: Update existing CLAUDE.md instead of recreating
             review_only: Review project state without making changes
@@ -188,7 +186,7 @@ class MPMInitCommand:
 
                 # Run the initialization through subprocess
                 result = self._run_initialization(
-                    prompt, verbose, use_venv, update_mode
+                    prompt, verbose, update_mode
                 )
 
                 complete_desc = (
@@ -406,15 +404,10 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
         return base_prompt
 
     def _build_claude_mpm_command(
-        self, verbose: bool, use_venv: bool = False
+        self, verbose: bool
     ) -> List[str]:
         """Build the claude-mpm run command with appropriate arguments."""
         cmd = [str(self.claude_mpm_script)]
-
-        # Add venv flag if requested or if mamba issues detected
-        # This goes BEFORE the subcommand
-        if use_venv:
-            cmd.append("--use-venv")
 
         # Add top-level flags that go before 'run' subcommand
         cmd.append("--no-check-dependencies")
@@ -1376,7 +1369,6 @@ preserving valuable project-specific information while refreshing standard secti
         self,
         prompt: str,
         verbose: bool,
-        use_venv: bool = False,
         update_mode: bool = False,
     ) -> Dict:
         """Run the initialization through subprocess calling claude-mpm."""
@@ -1392,7 +1384,7 @@ preserving valuable project-specific information while refreshing standard secti
 
             try:
                 # Build the command
-                cmd = self._build_claude_mpm_command(verbose, use_venv)
+                cmd = self._build_claude_mpm_command(verbose)
                 # Add the input file flag
                 cmd.extend(["-i", prompt_file])
 
@@ -1409,30 +1401,6 @@ preserving valuable project-specific information while refreshing standard secti
                     cwd=str(self.project_path),
                     check=False,
                 )
-
-                # Check for environment-specific errors
-                if "libmamba" in result.stderr or "tree-sitter" in result.stderr:
-                    console.print(
-                        "\n[yellow]⚠️  Environment dependency issue detected.[/yellow]"
-                    )
-                    console.print(
-                        "[yellow]Attempting alternative initialization method...[/yellow]\n"
-                    )
-
-                    # Try again with venv flag to bypass mamba
-                    cmd_venv = self._build_claude_mpm_command(verbose, use_venv=True)
-                    cmd_venv.extend(["-i", prompt_file])
-
-                    if verbose:
-                        console.print(f"[dim]Retrying with: {' '.join(cmd_venv)}[/dim]")
-
-                    result = subprocess.run(
-                        cmd_venv,
-                        capture_output=not verbose,
-                        text=True,
-                        cwd=str(self.project_path),
-                        check=False,
-                    )
             finally:
                 # Clean up temporary file
 
@@ -1483,15 +1451,6 @@ preserving valuable project-specific information while refreshing standard secti
                 if result.stderr
                 else result.stdout if result.stdout else "Unknown error occurred"
             )
-            # Clean up mamba warnings from error message
-            if "libmamba" in error_msg:
-                lines = error_msg.split("\n")
-                error_lines = [
-                    line
-                    for line in lines
-                    if not line.startswith("warning") and line.strip()
-                ]
-                error_msg = "\n".join(error_lines) if error_lines else error_msg
 
             logger.error(f"claude-mpm run failed: {error_msg}")
             return {
