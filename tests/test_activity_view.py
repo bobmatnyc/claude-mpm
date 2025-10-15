@@ -257,7 +257,7 @@ def main():
     except Exception as e:
         print(f"❌ Error connecting to dashboard: {e}")
         print("\n💡 Make sure the dashboard is running:")
-        print("   ./scripts/claude-mpm --use-venv dashboard start --background")
+        print("   ./scripts/claude-mpm dashboard start --background")
         sys.exit(1)
 
 
