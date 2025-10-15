@@ -12,7 +12,7 @@ This document provides development guidelines for the claude-mpm project codebas
 2. **🔴 [Never Assume - Always Verify](#critical-principles)** - Core development principle
 3. **🔴 [Quality Commands](#daily-development-commands)** - `make lint-fix`, `make quality`, `make safe-release-build`
 4. **🔴 [File Organization](#project-structure-requirements)** - Scripts in `/scripts/`, tests in `/tests/`, modules in `/src/claude_mpm/`
-5. **🔴 [Development Environment](#development-environment)** - Use `./scripts/claude-mpm --use-venv` for reliable operation
+5. **🔴 [Development Environment](#development-environment)** - Use `./scripts/claude-mpm` or activate venv directly
 6. **🔴 [Temporary Files](#temporary-files-and-test-outputs)** - All temp files go in `/tmp/` directory
 
 **🟡 Important items for effective development:**
@@ -87,12 +87,12 @@ Following the TSK-0053 refactoring, Claude MPM features:
 
 ### Development Environment
 
-Claude MPM supports both Mamba and traditional Python venv environments:
+Claude MPM uses Python virtual environments (venv) for dependency management:
 
-- **Current Recommendation**: Use `./scripts/claude-mpm --use-venv` due to Mamba dependency conflicts
-- **Automatic detection**: `./scripts/claude-mpm` auto-detects environments but may encounter Mamba issues
-- **Mamba status**: Currently experiencing dependency conflicts (see [DEVELOPMENT_SETUP.md](docs/user/getting-started/DEVELOPMENT_SETUP.md))
-- **Force venv**: Use `./scripts/claude-mpm --use-venv` for reliable operation
+- **Recommended**: Use `./scripts/claude-mpm` which automatically creates and activates the venv
+- **Manual activation**: Run `source venv/bin/activate` (or `venv\Scripts\activate` on Windows)
+- **Setup**: The venv is created automatically on first run with all required dependencies
+- **Requirements**: Python 3.8+ required (see [DEVELOPMENT_SETUP.md](docs/user/getting-started/DEVELOPMENT_SETUP.md))
 
 ### 🔴 Critical Principles
 

@@ -1,3 +1,40 @@
+## [4.8.0] - 2025-10-15
+
+### Changed
+- **Environment Management Simplification**: Removed Mamba/Conda support in favor of standard Python venv
+  - Simplified `./scripts/claude-mpm` to use venv exclusively
+  - Updated all documentation to reflect venv-only workflow
+  - Improved clarity for new users with standardized setup process
+  - Reduces complexity: 855 lines of code removed
+
+### Removed
+- **Mamba Support**: Removed Mamba/Conda auto-detection and wrapper scripts
+  - Deleted `environment.yml`, `scripts/claude-mpm-mamba`, `scripts/switch-env.sh`
+  - Removed `scripts/README_MAMBA.md` and Mamba testing scripts
+  - Removed `--use-venv` CLI flag (no longer needed)
+  - Users who prefer Mamba can still use it manually (not officially supported)
+
+### Added
+- **Content Optimization Agent**: New specialized agent for website content quality
+  - Content quality auditing (grammar, readability, structure)
+  - SEO optimization (keywords, meta tags, headers)
+  - WCAG 2.1/2.2 accessibility compliance checking
+  - AI-powered alt text generation using Claude Sonnet vision
+  - Integration with MCP browser tools for real-world testing
+  - Modern 2025 content tools knowledge (Hemingway, Grammarly principles)
+
+### Migration Guide
+For users currently using Mamba:
+1. Deactivate Mamba environment: `mamba deactivate`
+2. Create Python venv: `python -m venv venv`
+3. Activate venv: `source venv/bin/activate` (or `venv\Scripts\activate` on Windows)
+4. Install dependencies: `pip install -e .`
+
+### Breaking Changes
+- **Mamba auto-detection removed**: `./scripts/claude-mpm` no longer detects or uses Mamba environments
+- **--use-venv flag removed**: No longer needed as venv is the only supported method
+- **Mamba wrapper scripts removed**: Use standard Python venv workflow instead
+
 ## [4.7.11] - 2025-10-12
 
 ### Added
