@@ -185,9 +185,7 @@ class MPMInitCommand:
                 task = progress.add_task(task_desc, total=None)
 
                 # Run the initialization through subprocess
-                result = self._run_initialization(
-                    prompt, verbose, update_mode
-                )
+                result = self._run_initialization(prompt, verbose, update_mode)
 
                 complete_desc = (
                     "[green]✓ Update complete"
@@ -403,9 +401,7 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
 
         return base_prompt
 
-    def _build_claude_mpm_command(
-        self, verbose: bool
-    ) -> List[str]:
+    def _build_claude_mpm_command(self, verbose: bool) -> List[str]:
         """Build the claude-mpm run command with appropriate arguments."""
         cmd = [str(self.claude_mpm_script)]
 
