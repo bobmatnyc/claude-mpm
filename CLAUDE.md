@@ -74,6 +74,12 @@ Following the TSK-0053 refactoring, Claude MPM features:
 - 🧪 **Testing Guide**: See [docs/developer/TESTING.md](docs/developer/TESTING.md) for testing strategies
 - 📚 **Migration Guide**: See [docs/user/MIGRATION.md](docs/user/MIGRATION.md) for upgrade instructions
 
+### Coding Agents (v4.9.0)
+- 💻 **Coding Agents Catalog**: See [docs/reference/CODING_AGENTS.md](docs/reference/CODING_AGENTS.md) for 7 specialized coding agents
+- 🎯 **Agent Capabilities**: See [docs/reference/AGENT_CAPABILITIES.md](docs/reference/AGENT_CAPABILITIES.md) for complete reference
+- 🧪 **Agent Testing**: See [docs/developer/AGENT_TESTING.md](docs/developer/AGENT_TESTING.md) for 175-test infrastructure
+- 📋 **Deployment Log**: See [docs/reference/AGENT_DEPLOYMENT_LOG.md](docs/reference/AGENT_DEPLOYMENT_LOG.md) for deployment history
+
 ### Operations and Quality
 - 🧪 **Quality Assurance**: See [docs/developer/QA.md](docs/developer/QA.md) for testing guidelines
 - 🚀 **Deployment**: See [docs/reference/DEPLOY.md](docs/reference/DEPLOY.md) for versioning and deployment
