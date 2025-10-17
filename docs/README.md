@@ -1,7 +1,7 @@
 # 📚 Claude MPM Documentation Hub
 
-**Version 4.7.3** | Claude Multi-Agent Project Manager
-**Last Updated**: October 7, 2025
+**Version 4.9.0** | Claude Multi-Agent Project Manager
+**Last Updated**: October 17, 2025
 
 Welcome to the complete documentation for Claude MPM (Multi-Agent Project Manager) - a powerful orchestration framework that extends Claude Code with multi-agent workflows, session management, and real-time monitoring.
 
@@ -77,6 +77,10 @@ claude-mpm agents create my-agent         # Interactive creation
 
 #### 🤖 Agent System
 - [Agent Development](AGENTS.md) - Complete agent creation guide
+- [Coding Agents Catalog](reference/CODING_AGENTS.md) - 7 specialized coding agents (NEW v4.9.0)
+- [Agent Capabilities Reference](reference/AGENT_CAPABILITIES.md) - Complete capabilities & routing
+- [Agent Testing Guide](developer/AGENT_TESTING.md) - 175-test infrastructure & methodology
+- [Agent Deployment Log](reference/AGENT_DEPLOYMENT_LOG.md) - Deployment history & rollback
 - [Three-Tier System](developer/07-agent-system/README.md) - PROJECT > USER > SYSTEM hierarchy
 - [Agent Formats](developer/07-agent-system/formats.md) - Markdown, JSON, YAML support
 - [Memory System](user/03-features/memory-system.md) - Agent learning & persistence
@@ -184,6 +188,14 @@ docs/
 ## ✨ Key Features & Capabilities
 
 - **🤖 Multi-Agent System**: 15+ specialized agents for comprehensive project management
+- **💻 Coding Agents (NEW v4.9.0)**: 7 specialized coding agents
+  - Python Engineer v2.0.0 (Python 3.13+, JIT)
+  - TypeScript Engineer v2.0.0 (TS 5.6+, branded types)
+  - Next.js Engineer v2.0.0 (Next.js 15, App Router)
+  - **NEW**: Go Engineer v1.0.0 (Go 1.24+, concurrency)
+  - **NEW**: Rust Engineer v1.0.0 (Rust 2024, WebAssembly)
+  - PHP Engineer v2.0.0 (PHP 8.4-8.5, Laravel 12)
+  - Ruby Engineer v2.0.0 (Ruby 3.4 YJIT, Rails 8)
 - **🧠 Agent Memory**: Persistent learning with simple JSON response field updates
 - **🔄 Session Management**: Resume previous sessions with `--resume`
 - **📊 Real-Time Monitoring**: Live dashboard with `--monitor` flag
@@ -192,6 +204,7 @@ docs/
 - **⚡ Performance**: 50-80% improvement through intelligent caching and lazy loading
 - **🔒 Security**: Comprehensive input validation and sanitization framework
 - **🏗️ Service-Oriented**: Five specialized service domains with interface contracts
+- **🧪 Comprehensive Testing**: 175 tests across coding agents with 95% confidence target
 
 ## 🤝 Contributing
 
