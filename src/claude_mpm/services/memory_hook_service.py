@@ -95,6 +95,9 @@ class MemoryHookService(BaseService, MemoryHookInterface):
             # Register kuzu-memory hooks if available
             self._register_kuzu_memory_hooks()
 
+            # Register failure-learning hooks
+            self._register_failure_learning_hooks()
+
         except Exception as e:
             self.logger.warning(f"Failed to register memory hooks: {e}")
 
@@ -176,6 +179,79 @@ class MemoryHookService(BaseService, MemoryHookInterface):
             self.logger.debug(f"Kuzu-memory hooks not available: {e}")
         except Exception as e:
             self.logger.warning(f"Failed to register kuzu-memory hooks: {e}")
+
+    def _register_failure_learning_hooks(self):
+        """Register failure-learning hooks for automatic learning extraction.
+
+        WHY: When tasks fail and agents fix them, we want to automatically capture
+        this as a learning. The failure-learning system provides:
+        1. Failure detection from tool outputs (errors, exceptions, test failures)
+        2. Fix detection when same task type succeeds after failure
+        3. Learning extraction and persistence to agent memory files
+
+        DESIGN DECISION: These hooks work as a chain with specific priorities:
+        - FailureDetectionHook (priority=85): Detects failures after tool execution
+        - FixDetectionHook (priority=87): Matches fixes with failures
+        - LearningExtractionHook (priority=89): Extracts and persists learnings
+
+        The system is enabled by default but can be disabled via configuration.
+        """
+        try:
+            # Check if failure-learning is enabled in config
+            from claude_mpm.core.config import Config
+
+            config = Config()
+            failure_learning_config = config.get("memory.failure_learning", {})
+
+            if isinstance(failure_learning_config, dict):
+                enabled = failure_learning_config.get("enabled", True)
+            else:
+                # Default to enabled if config section doesn't exist
+                enabled = True
+
+            if not enabled:
+                self.logger.debug("Failure-learning disabled in configuration")
+                return
+
+            # Import failure-learning hooks
+            from claude_mpm.hooks.failure_learning import (
+                get_failure_detection_hook,
+                get_fix_detection_hook,
+                get_learning_extraction_hook,
+            )
+
+            # Get hook instances
+            failure_hook = get_failure_detection_hook()
+            fix_hook = get_fix_detection_hook()
+            learning_hook = get_learning_extraction_hook()
+
+            # Register hooks in priority order
+            success1 = self.hook_service.register_hook(failure_hook)
+            success2 = self.hook_service.register_hook(fix_hook)
+            success3 = self.hook_service.register_hook(learning_hook)
+
+            if success1:
+                self.registered_hooks.append("failure_detection")
+                self.logger.debug("✅ Failure detection enabled")
+
+            if success2:
+                self.registered_hooks.append("fix_detection")
+                self.logger.debug("✅ Fix detection enabled")
+
+            if success3:
+                self.registered_hooks.append("learning_extraction")
+                self.logger.debug("✅ Learning extraction enabled")
+
+            if success1 and success2 and success3:
+                self.logger.info(
+                    "✅ Failure-learning system enabled "
+                    "(failures → fixes → learnings → memory)"
+                )
+
+        except ImportError as e:
+            self.logger.debug(f"Failure-learning hooks not available: {e}")
+        except Exception as e:
+            self.logger.warning(f"Failed to register failure-learning hooks: {e}")
 
     def _load_relevant_memories_hook(self, context):
         """Hook function to load relevant memories before Claude interaction.

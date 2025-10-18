@@ -491,6 +491,44 @@ end
 
 ---
 
+## Agent Performance Benchmarks
+
+Claude MPM coding agents are continuously evaluated using a lightweight SWE benchmark suite (84 tests covering algorithms, real-world scenarios, framework expertise, and edge cases).
+
+### Current Scores (Lightweight Benchmark v1.0)
+
+| Rank | Agent | Score | Grade | Easy | Medium | Hard | Status |
+|------|-------|-------|-------|------|--------|------|--------|
+| 1 | Ruby Engineer | 68.1% | C+ | 3/4 | 4/5 | 2/3 | ✅ Functional |
+| 2 | Rust Engineer | 67.3% | C+ | 3/4 | 4/5 | 2/3 | ✅ Functional |
+| 3 | TypeScript Engineer | 66.8% | C+ | 4/4 | 2/5 | 2/3 | ✅ Functional |
+| 4 | Next.js Engineer | 65.8% | C+ | 4/4 | 4/5 | 1/3 | ✅ Functional |
+| 5 | Golang Engineer | 62.6% | C | 3/4 | 3/5 | 1/3 | ✅ Functional |
+| 6 | Python Engineer | 62.3% | C | 4/4 | 2/5 | 1/3 | ✅ Functional |
+| 7 | PHP Engineer | 60.8% | C | 4/4 | 3/5 | 0/3 | ⚠️ Needs improvement |
+
+**Methodology**: Multi-dimensional evaluation (Correctness 40%, Idiomaticity 25%, Performance 20%, Best Practices 15%) with difficulty weighting (Easy 1.0x, Medium 1.2x, Hard 1.5x).
+
+**Average Score**: 64.8% across all agents
+**Last Updated**: 2025-10-18
+
+### Interpreting Scores
+
+- **70%+ (B-)**: Production-ready with minor improvements needed
+- **65-69% (C+)**: Functional with targeted improvements recommended
+- **60-64% (C)**: Functional but requires enhancement
+- **<60%**: Significant improvements needed
+
+### Benchmark Details
+
+For complete benchmark methodology, test suites, and detailed results, see:
+- [Benchmark Documentation](../benchmarks/README.md) - Complete system documentation
+- [Quick Start Guide](../benchmarks/QUICKSTART.md) - 30-second start guide
+- [Benchmark Quick Reference](BENCHMARK_QUICKREF.md) - Quick reference card
+- Latest Results: `docs/benchmarks/results/baseline-2025-10-18/dashboard.html`
+
+---
+
 ## Agent Selection Guide
 
 ### By Language
