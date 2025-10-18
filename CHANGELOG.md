@@ -1,6 +1,15 @@
 ## [Unreleased]
 
 ### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+## [4.8.3] - 2025-10-18
+
+### Added
 - **Production Benchmark System**: Real agent execution with multi-dimensional scoring
   - Agent invocation via claude-mpm CLI
   - Safe code execution in isolated subprocesses
