@@ -1,0 +1,327 @@
+{
+  "agent_id": "nextjs_engineer",
+  "language": "nextjs",
+  "suite_type": "lightweight",
+  "total_tests": 12,
+  "difficulty_distribution": {
+    "easy": 4,
+    "medium": 5,
+    "hard": 3
+  },
+  "category_coverage": [
+    "performance",
+    "metadata",
+    "middleware",
+    "server_actions",
+    "rendering",
+    "client_components",
+    "routing",
+    "streaming",
+    "server_components",
+    "caching"
+  ],
+  "source_suite": "expanded_v1",
+  "version": "1.0.0",
+  "tests": [
+    {
+      "id": "nextjs_easy_02",
+      "name": "Client Component with State",
+      "difficulty": "easy",
+      "category": "client_components",
+      "description": "Create a client component with state management for a counter.",
+      "signature": "'use client'\nexport default function Counter() { }",
+      "test_cases": [
+        {
+          "input": "Click increment button",
+          "expected": "Counter increases"
+        }
+      ],
+      "constraints": [
+        "Must use 'use client' directive",
+        "Must use useState"
+      ],
+      "hints": [
+        "Add 'use client' at top",
+        "Use useState hook"
+      ],
+      "solution_approach": "Client component with React hooks",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "nextjs_easy_03",
+      "name": "Dynamic Route",
+      "difficulty": "easy",
+      "category": "routing",
+      "description": "Create a dynamic route that displays a post by ID.",
+      "signature": "// app/posts/[id]/page.tsx\nexport default function PostPage({ params }: { params: { id: string } }) { }",
+      "test_cases": [
+        {
+          "input": "/posts/123",
+          "expected": "Display post with id 123"
+        }
+      ],
+      "constraints": [
+        "Must use dynamic route segment",
+        "Must access params"
+      ],
+      "hints": [
+        "Use [id] folder naming",
+        "Access params.id"
+      ],
+      "solution_approach": "Dynamic route with params",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "nextjs_easy_01",
+      "name": "Basic Server Component",
+      "difficulty": "easy",
+      "category": "server_components",
+      "description": "Create a Server Component that fetches data from an API and displays it.",
+      "signature": "// app/users/page.tsx\nexport default async function UsersPage() { }",
+      "test_cases": [
+        {
+          "input": "Fetch from https://api.example.com/users",
+          "expected": "Server-rendered list of users"
+        }
+      ],
+      "constraints": [
+        "Must be async Server Component",
+        "No 'use client' directive"
+      ],
+      "hints": [
+        "Use async/await in component",
+        "Fetch directly in component body"
+      ],
+      "solution_approach": "Async Server Component with fetch",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(n)"
+    },
+    {
+      "id": "nextjs_easy_04",
+      "name": "Loading UI",
+      "difficulty": "easy",
+      "category": "streaming",
+      "description": "Create a loading.tsx file that shows while data is being fetched.",
+      "signature": "// app/posts/loading.tsx\nexport default function Loading() { }",
+      "test_cases": [
+        {
+          "input": "Navigate to /posts",
+          "expected": "Show loading spinner while fetching"
+        }
+      ],
+      "constraints": [
+        "Must be named loading.tsx",
+        "Automatic Suspense boundary"
+      ],
+      "hints": [
+        "Create loading.tsx in route folder",
+        "Return loading UI"
+      ],
+      "solution_approach": "Special loading file convention",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "nextjs_medium_05",
+      "name": "Dynamic Metadata",
+      "difficulty": "medium",
+      "category": "metadata",
+      "description": "Generate dynamic metadata based on page params.",
+      "signature": "export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata>",
+      "test_cases": [
+        {
+          "input": "Post page with dynamic title",
+          "expected": "Title reflects post content"
+        }
+      ],
+      "constraints": [
+        "Must export generateMetadata",
+        "Must be async"
+      ],
+      "hints": [
+        "Fetch data in generateMetadata",
+        "Return Metadata object"
+      ],
+      "solution_approach": "Async metadata generation",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "nextjs_medium_07",
+      "name": "Middleware",
+      "difficulty": "medium",
+      "category": "middleware",
+      "description": "Create middleware to check authentication before rendering pages.",
+      "signature": "// middleware.ts\nexport function middleware(request: NextRequest) { }",
+      "test_cases": [
+        {
+          "input": "Request to protected route",
+          "expected": "Redirect if not authenticated"
+        }
+      ],
+      "constraints": [
+        "Must be in root middleware.ts",
+        "Must return NextResponse"
+      ],
+      "hints": [
+        "Check cookies or headers",
+        "Use NextResponse.redirect()"
+      ],
+      "solution_approach": "Authentication middleware",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "nextjs_medium_02",
+      "name": "Parallel Routes",
+      "difficulty": "medium",
+      "category": "routing",
+      "description": "Implement parallel routes to show multiple sections simultaneously.",
+      "signature": "// app/dashboard/@analytics/page.tsx\n// app/dashboard/@users/page.tsx",
+      "test_cases": [
+        {
+          "input": "/dashboard",
+          "expected": "Both analytics and users sections rendered"
+        }
+      ],
+      "constraints": [
+        "Must use @folder naming",
+        "Must accept slots as props"
+      ],
+      "hints": [
+        "Use @folder for parallel routes",
+        "Access via props.slot"
+      ],
+      "solution_approach": "Parallel routes with slots",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "nextjs_medium_01",
+      "name": "Server Actions",
+      "difficulty": "medium",
+      "category": "server_actions",
+      "description": "Create a Server Action to handle form submission without API routes.",
+      "signature": "'use server'\nexport async function createPost(formData: FormData) { }",
+      "test_cases": [
+        {
+          "input": "Form submission with title and content",
+          "expected": "Post created in database"
+        }
+      ],
+      "constraints": [
+        "Must use 'use server' directive",
+        "Must handle FormData"
+      ],
+      "hints": [
+        "Add 'use server' at top",
+        "Extract data from FormData"
+      ],
+      "solution_approach": "Server Action with form handling",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "nextjs_medium_04",
+      "name": "Streaming with Suspense",
+      "difficulty": "medium",
+      "category": "streaming",
+      "description": "Use Suspense boundaries to stream different parts of a page at different speeds.",
+      "signature": "import { Suspense } from 'react'\nexport default function Page() { }",
+      "test_cases": [
+        {
+          "input": "Page with slow and fast components",
+          "expected": "Fast components render first"
+        }
+      ],
+      "constraints": [
+        "Must use Suspense",
+        "Multiple async components"
+      ],
+      "hints": [
+        "Wrap slow components in Suspense",
+        "Provide fallback UI"
+      ],
+      "solution_approach": "Selective Suspense boundaries",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "nextjs_hard_02",
+      "name": "Advanced Caching Strategy",
+      "difficulty": "hard",
+      "category": "caching",
+      "description": "Implement multi-level caching with on-demand revalidation and tag-based invalidation.",
+      "signature": "import { revalidateTag, revalidatePath } from 'next/cache'",
+      "test_cases": [
+        {
+          "input": "Update post, invalidate related caches",
+          "expected": "All related pages revalidate"
+        }
+      ],
+      "constraints": [
+        "Must use cache tags",
+        "Must handle cascade invalidation"
+      ],
+      "hints": [
+        "Tag fetches with cache tags",
+        "Use revalidateTag in Server Actions"
+      ],
+      "solution_approach": "Tag-based cache invalidation",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "nextjs_hard_04",
+      "name": "Request Waterfall Optimization",
+      "difficulty": "hard",
+      "category": "performance",
+      "description": "Eliminate request waterfalls by parallelizing data fetching in Server Components.",
+      "signature": "// Parallel data fetching pattern",
+      "test_cases": [
+        {
+          "input": "Page needs user data and posts",
+          "expected": "Both fetch in parallel"
+        }
+      ],
+      "constraints": [
+        "Must fetch in parallel",
+        "Must maintain type safety"
+      ],
+      "hints": [
+        "Use Promise.all",
+        "Start fetches before awaiting"
+      ],
+      "solution_approach": "Parallel async operations",
+      "time_complexity": "O(max(t1, t2))",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "nextjs_hard_01",
+      "name": "Partial Pre-rendering",
+      "difficulty": "hard",
+      "category": "rendering",
+      "description": "Implement partial pre-rendering where static shell renders immediately with dynamic content streaming in.",
+      "signature": "// Combine static and dynamic rendering",
+      "test_cases": [
+        {
+          "input": "Page with static header and dynamic content",
+          "expected": "Header renders immediately, content streams"
+        }
+      ],
+      "constraints": [
+        "Must use Suspense strategically",
+        "Static parts must be pre-rendered"
+      ],
+      "hints": [
+        "Separate static and dynamic components",
+        "Use Suspense for dynamic parts"
+      ],
+      "solution_approach": "Mixed static/dynamic rendering",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    }
+  ]
+}

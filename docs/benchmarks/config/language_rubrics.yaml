@@ -1,0 +1,970 @@
+# Language-Specific Quality Assessment Rubrics
+# Multi-Dimensional Evaluation Framework v2
+# Each language has custom indicators for 5 quality dimensions (100 points total)
+
+---
+# Gradually Typed: PHP 8.4-8.5
+php:
+  paradigm: "gradually_typed"
+  description: "PHP with strict types and static analysis"
+
+  # Dimension 1: Safety & Correctness (25 points)
+  safety_correctness:
+    weight: 25
+    primary_indicators:
+      - keyword: "declare(strict_types=1)"
+        points: 8
+        description: "Strict type mode enabled"
+      - keyword: "PHPStan"
+        points: 5
+        description: "Static analysis tool"
+      - keyword: "Psalm"
+        points: 3
+        description: "Alternative static analyzer"
+      - keyword: "level 9"
+        points: 5
+        description: "PHPStan strictest level"
+      - regex: "strict[\\s-]?type"
+        points: 4
+        description: "Strict typing emphasis"
+
+    secondary_indicators:
+      - keyword: "readonly"
+        points: 2
+        description: "Readonly properties"
+      - keyword: "enum"
+        points: 2
+        description: "Type-safe enums"
+      - keyword: "SensitiveParameter"
+        points: 2
+        description: "Security attributes"
+
+  # Dimension 2: Testing & Validation (25 points)
+  testing:
+    weight: 25
+    primary_indicators:
+      - keyword: "PHPUnit"
+        points: 8
+        description: "Testing framework"
+      - keyword: "Pest"
+        points: 6
+        description: "Modern testing framework"
+      - regex: "(90|95|100)%.*coverage"
+        points: 7
+        description: "High coverage target"
+      - keyword: "mutation testing"
+        points: 4
+        description: "Advanced test quality"
+
+    secondary_indicators:
+      - keyword: "integration test"
+        points: 2
+        description: "Integration testing"
+      - keyword: "feature test"
+        points: 2
+        description: "Feature testing"
+      - keyword: "Form Request"
+        points: 2
+        description: "Laravel validation pattern"
+
+  # Dimension 3: Framework & Idioms (20 points)
+  framework_idioms:
+    weight: 20
+    primary_indicators:
+      - keyword: "Laravel"
+        points: 6
+        description: "Framework usage"
+      - keyword: "Eloquent"
+        points: 4
+        description: "ORM patterns"
+      - keyword: "Service Container"
+        points: 4
+        description: "Dependency injection"
+      - keyword: "Policy"
+        points: 3
+        description: "Authorization pattern"
+
+    secondary_indicators:
+      - keyword: "Form Request"
+        points: 2
+        description: "Validation pattern"
+      - keyword: "DTO"
+        points: 2
+        description: "Data transfer objects"
+      - keyword: "Repository"
+        points: 2
+        description: "Repository pattern"
+
+  # Dimension 4: Performance (15 points)
+  performance:
+    weight: 15
+    primary_indicators:
+      - keyword: "OPcache"
+        points: 5
+        description: "Opcode caching"
+      - keyword: "JIT"
+        points: 4
+        description: "Just-in-time compilation"
+      - keyword: "query optimization"
+        points: 3
+        description: "Database optimization"
+      - keyword: "eager loading"
+        points: 3
+        description: "N+1 query prevention"
+
+    secondary_indicators:
+      - keyword: "Redis"
+        points: 2
+        description: "Caching strategy"
+      - keyword: "CDN"
+        points: 1
+        description: "Content delivery"
+      - keyword: "benchmark"
+        points: 1
+        description: "Performance measurement"
+
+  # Dimension 5: Security (15 points)
+  security:
+    weight: 15
+    primary_indicators:
+      - keyword: "OWASP"
+        points: 4
+        description: "Security standards"
+      - keyword: "WebAuthn"
+        points: 4
+        description: "Modern authentication"
+      - keyword: "passkey"
+        points: 3
+        description: "Passwordless auth"
+      - keyword: "BOLA"
+        points: 2
+        description: "Authorization awareness"
+
+    secondary_indicators:
+      - keyword: "CSRF"
+        points: 2
+        description: "CSRF protection"
+      - keyword: "rate limiting"
+        points: 2
+        description: "API protection"
+      - keyword: "validation"
+        points: 2
+        description: "Input validation"
+
+---
+# Dynamically Typed: Ruby 3.4
+ruby:
+  paradigm: "dynamically_typed"
+  description: "Ruby with YJIT optimization and comprehensive testing"
+
+  # Dimension 1: Safety & Correctness (25 points)
+  safety_correctness:
+    weight: 25
+    primary_indicators:
+      - keyword: "RSpec"
+        points: 10
+        description: "BDD testing framework (primary safety mechanism)"
+      - regex: "(90|95|100)%.*coverage"
+        points: 8
+        description: "High test coverage (compensates for dynamic typing)"
+      - keyword: "guard clause"
+        points: 4
+        description: "Idiomatic error prevention"
+      - keyword: "Result object"
+        points: 3
+        description: "Explicit success/failure handling"
+
+    secondary_indicators:
+      - keyword: "Sorbet"
+        points: 3
+        description: "Optional type checker"
+      - keyword: "RBS"
+        points: 2
+        description: "Type signatures"
+      - keyword: "validation"
+        points: 2
+        description: "Input validation"
+
+  # Dimension 2: Testing & Validation (25 points)
+  testing:
+    weight: 25
+    primary_indicators:
+      - keyword: "RSpec"
+        points: 8
+        description: "RSpec framework"
+      - keyword: "FactoryBot"
+        points: 5
+        description: "Test data factories"
+      - keyword: "Shoulda Matchers"
+        points: 4
+        description: "Testing matchers"
+      - regex: "describe.*context.*it"
+        points: 5
+        description: "BDD structure"
+
+    secondary_indicators:
+      - keyword: "integration test"
+        points: 2
+        description: "Integration testing"
+      - keyword: "system test"
+        points: 2
+        description: "End-to-end testing"
+      - keyword: "feature test"
+        points: 2
+        description: "Feature testing"
+
+  # Dimension 3: Framework & Idioms (20 points)
+  framework_idioms:
+    weight: 20
+    primary_indicators:
+      - keyword: "Rails"
+        points: 5
+        description: "Framework usage"
+      - keyword: "Service object"
+        points: 5
+        description: "Service-oriented architecture"
+      - keyword: "PORO"
+        points: 4
+        description: "Plain Old Ruby Objects"
+      - keyword: "Query object"
+        points: 3
+        description: "Query encapsulation"
+
+    secondary_indicators:
+      - keyword: "ActiveRecord"
+        points: 2
+        description: "ORM usage"
+      - keyword: "concern"
+        points: 2
+        description: "Code organization"
+      - keyword: "Enumerable"
+        points: 2
+        description: "Idiomatic Ruby"
+
+  # Dimension 4: Performance (15 points)
+  performance:
+    weight: 15
+    primary_indicators:
+      - keyword: "YJIT"
+        points: 6
+        description: "JIT compilation"
+      - regex: "(18|20|25|30)%.*faster"
+        points: 4
+        description: "Performance metrics"
+      - keyword: "eager loading"
+        points: 3
+        description: "N+1 prevention"
+      - keyword: "Bullet"
+        points: 2
+        description: "N+1 query detection"
+
+    secondary_indicators:
+      - keyword: "cache"
+        points: 2
+        description: "Caching strategy"
+      - keyword: "indexing"
+        points: 2
+        description: "Database indexing"
+      - keyword: "benchmark"
+        points: 1
+        description: "Performance measurement"
+
+  # Dimension 5: Security (15 points)
+  security:
+    weight: 15
+    primary_indicators:
+      - keyword: "Brakeman"
+        points: 5
+        description: "Security scanner"
+      - keyword: "authentication"
+        points: 4
+        description: "Auth implementation"
+      - keyword: "authorization"
+        points: 3
+        description: "Authorization patterns"
+
+    secondary_indicators:
+      - keyword: "CSRF"
+        points: 2
+        description: "CSRF protection"
+      - keyword: "SQL injection"
+        points: 2
+        description: "Injection prevention"
+      - keyword: "validation"
+        points: 2
+        description: "Input validation"
+
+---
+# Statically Typed: Python 3.12+
+python:
+  paradigm: "gradually_typed"
+  description: "Python with type hints and static analysis"
+
+  # Dimension 1: Safety & Correctness (25 points)
+  safety_correctness:
+    weight: 25
+    primary_indicators:
+      - keyword: "mypy"
+        points: 8
+        description: "Static type checker"
+      - keyword: "type hint"
+        points: 6
+        description: "Type annotations"
+      - keyword: "strict mode"
+        points: 5
+        description: "Mypy strict mode"
+      - keyword: "Pydantic"
+        points: 4
+        description: "Runtime validation"
+
+    secondary_indicators:
+      - keyword: "typing"
+        points: 3
+        description: "Typing module usage"
+      - keyword: "dataclass"
+        points: 2
+        description: "Type-safe data structures"
+      - keyword: "Protocol"
+        points: 2
+        description: "Structural typing"
+
+  # Dimension 2: Testing & Validation (25 points)
+  testing:
+    weight: 25
+    primary_indicators:
+      - keyword: "pytest"
+        points: 8
+        description: "Testing framework"
+      - regex: "(90|95|100)%.*coverage"
+        points: 7
+        description: "High coverage target"
+      - keyword: "hypothesis"
+        points: 5
+        description: "Property-based testing"
+      - keyword: "fixture"
+        points: 3
+        description: "Test fixtures"
+
+    secondary_indicators:
+      - keyword: "mock"
+        points: 2
+        description: "Mocking support"
+      - keyword: "integration test"
+        points: 2
+        description: "Integration testing"
+
+  # Dimension 3: Framework & Idioms (20 points)
+  framework_idioms:
+    weight: 20
+    primary_indicators:
+      - keyword: "FastAPI"
+        points: 6
+        description: "Modern framework"
+      - keyword: "async"
+        points: 5
+        description: "Async patterns"
+      - keyword: "context manager"
+        points: 4
+        description: "Pythonic patterns"
+      - keyword: "decorator"
+        points: 3
+        description: "Decorators"
+
+    secondary_indicators:
+      - keyword: "dependency injection"
+        points: 3
+        description: "DI pattern"
+      - keyword: "generator"
+        points: 2
+        description: "Memory efficiency"
+
+  # Dimension 4: Performance (15 points)
+  performance:
+    weight: 15
+    primary_indicators:
+      - keyword: "async"
+        points: 5
+        description: "Asynchronous code"
+      - keyword: "cache"
+        points: 4
+        description: "Caching"
+      - keyword: "profiling"
+        points: 3
+        description: "Performance profiling"
+      - keyword: "optimization"
+        points: 3
+        description: "Optimization focus"
+
+    secondary_indicators:
+      - keyword: "benchmark"
+        points: 2
+        description: "Benchmarking"
+      - keyword: "vectorization"
+        points: 1
+        description: "NumPy optimization"
+
+  # Dimension 5: Security (15 points)
+  security:
+    weight: 15
+    primary_indicators:
+      - keyword: "OAuth"
+        points: 4
+        description: "Authentication"
+      - keyword: "JWT"
+        points: 3
+        description: "Token auth"
+      - keyword: "validation"
+        points: 4
+        description: "Input validation"
+      - keyword: "CORS"
+        points: 2
+        description: "CORS handling"
+
+    secondary_indicators:
+      - keyword: "SQL injection"
+        points: 3
+        description: "Injection prevention"
+      - keyword: "rate limiting"
+        points: 2
+        description: "API protection"
+
+---
+# Statically Typed: TypeScript
+typescript:
+  paradigm: "statically_typed"
+  description: "TypeScript with strict compiler settings"
+
+  # Dimension 1: Safety & Correctness (25 points)
+  safety_correctness:
+    weight: 25
+    primary_indicators:
+      - keyword: "strict"
+        points: 8
+        description: "Strict mode enabled"
+      - keyword: "type"
+        points: 7
+        description: "Type annotations"
+      - keyword: "interface"
+        points: 5
+        description: "Interface definitions"
+      - keyword: "generic"
+        points: 3
+        description: "Generic types"
+
+    secondary_indicators:
+      - keyword: "readonly"
+        points: 2
+        description: "Immutability"
+      - keyword: "never"
+        points: 2
+        description: "Exhaustiveness checking"
+      - keyword: "as const"
+        points: 2
+        description: "Literal types"
+
+  # Dimension 2: Testing & Validation (25 points)
+  testing:
+    weight: 25
+    primary_indicators:
+      - keyword: "Jest"
+        points: 7
+        description: "Testing framework"
+      - keyword: "Vitest"
+        points: 7
+        description: "Modern testing"
+      - regex: "(90|95|100)%.*coverage"
+        points: 6
+        description: "High coverage"
+      - keyword: "Testing Library"
+        points: 3
+        description: "Component testing"
+
+    secondary_indicators:
+      - keyword: "mock"
+        points: 2
+        description: "Mocking"
+      - keyword: "integration test"
+        points: 2
+        description: "Integration testing"
+
+  # Dimension 3: Framework & Idioms (20 points)
+  framework_idioms:
+    weight: 20
+    primary_indicators:
+      - keyword: "React"
+        points: 5
+        description: "React patterns"
+      - keyword: "async/await"
+        points: 5
+        description: "Async patterns"
+      - keyword: "Promise"
+        points: 4
+        description: "Promise handling"
+      - keyword: "error boundary"
+        points: 3
+        description: "Error handling"
+
+    secondary_indicators:
+      - keyword: "hook"
+        points: 3
+        description: "React hooks"
+      - keyword: "TypeScript utility"
+        points: 2
+        description: "Utility types"
+
+  # Dimension 4: Performance (15 points)
+  performance:
+    weight: 15
+    primary_indicators:
+      - keyword: "memoization"
+        points: 4
+        description: "Memoization"
+      - keyword: "lazy loading"
+        points: 4
+        description: "Code splitting"
+      - keyword: "optimization"
+        points: 4
+        description: "Performance focus"
+
+    secondary_indicators:
+      - keyword: "bundle size"
+        points: 3
+        description: "Bundle optimization"
+      - keyword: "Web Worker"
+        points: 2
+        description: "Background processing"
+
+  # Dimension 5: Security (15 points)
+  security:
+    weight: 15
+    primary_indicators:
+      - keyword: "XSS"
+        points: 4
+        description: "XSS prevention"
+      - keyword: "CSRF"
+        points: 3
+        description: "CSRF protection"
+      - keyword: "sanitization"
+        points: 4
+        description: "Input sanitization"
+      - keyword: "CSP"
+        points: 2
+        description: "Content Security Policy"
+
+    secondary_indicators:
+      - keyword: "authentication"
+        points: 3
+        description: "Auth implementation"
+
+---
+# Hybrid: Next.js (TypeScript + React)
+nextjs:
+  paradigm: "statically_typed"
+  description: "Next.js with TypeScript, React, and server components"
+
+  # Dimension 1: Safety & Correctness (25 points)
+  safety_correctness:
+    weight: 25
+    primary_indicators:
+      - keyword: "TypeScript"
+        points: 8
+        description: "TypeScript usage"
+      - keyword: "Zod"
+        points: 6
+        description: "Runtime validation"
+      - keyword: "server action"
+        points: 5
+        description: "Type-safe actions"
+      - keyword: "tRPC"
+        points: 4
+        description: "End-to-end type safety"
+
+    secondary_indicators:
+      - keyword: "strict mode"
+        points: 3
+        description: "Strict TypeScript"
+      - keyword: "type inference"
+        points: 2
+        description: "Type inference"
+
+  # Dimension 2: Testing & Validation (25 points)
+  testing:
+    weight: 25
+    primary_indicators:
+      - keyword: "Vitest"
+        points: 7
+        description: "Modern testing"
+      - keyword: "Playwright"
+        points: 6
+        description: "E2E testing"
+      - keyword: "Testing Library"
+        points: 5
+        description: "Component testing"
+      - regex: "(90|95|100)%.*coverage"
+        points: 5
+        description: "High coverage"
+
+    secondary_indicators:
+      - keyword: "MSW"
+        points: 3
+        description: "API mocking"
+      - keyword: "snapshot test"
+        points: 2
+        description: "Snapshot testing"
+
+  # Dimension 3: Framework & Idioms (20 points)
+  framework_idioms:
+    weight: 20
+    primary_indicators:
+      - keyword: "App Router"
+        points: 6
+        description: "Next.js 14+ patterns"
+      - keyword: "Server Component"
+        points: 5
+        description: "RSC usage"
+      - keyword: "Server Action"
+        points: 4
+        description: "Server actions"
+      - keyword: "streaming"
+        points: 3
+        description: "Streaming SSR"
+
+    secondary_indicators:
+      - keyword: "middleware"
+        points: 3
+        description: "Next.js middleware"
+      - keyword: "Image optimization"
+        points: 2
+        description: "Next.js Image"
+
+  # Dimension 4: Performance (15 points)
+  performance:
+    weight: 15
+    primary_indicators:
+      - keyword: "cache"
+        points: 5
+        description: "Caching strategy"
+      - keyword: "Suspense"
+        points: 4
+        description: "React Suspense"
+      - keyword: "lazy loading"
+        points: 3
+        description: "Code splitting"
+      - keyword: "ISR"
+        points: 3
+        description: "Incremental Static Regeneration"
+
+    secondary_indicators:
+      - keyword: "bundle optimization"
+        points: 2
+        description: "Bundle size"
+      - keyword: "Web Vitals"
+        points: 2
+        description: "Performance metrics"
+
+  # Dimension 5: Security (15 points)
+  security:
+    weight: 15
+    primary_indicators:
+      - keyword: "authentication"
+        points: 5
+        description: "Auth implementation"
+      - keyword: "middleware"
+        points: 4
+        description: "Route protection"
+      - keyword: "CSRF"
+        points: 3
+        description: "CSRF protection"
+      - keyword: "sanitization"
+        points: 3
+        description: "Input sanitization"
+
+    secondary_indicators:
+      - keyword: "rate limiting"
+        points: 2
+        description: "API protection"
+
+---
+# Statically Typed: Go
+go:
+  paradigm: "statically_typed"
+  description: "Go with built-in type safety and concurrency"
+
+  # Dimension 1: Safety & Correctness (25 points)
+  safety_correctness:
+    weight: 25
+    primary_indicators:
+      - keyword: "error handling"
+        points: 8
+        description: "Explicit error handling"
+      - keyword: "interface"
+        points: 7
+        description: "Interface design"
+      - keyword: "struct"
+        points: 5
+        description: "Type definitions"
+      - keyword: "pointer"
+        points: 3
+        description: "Pointer safety"
+
+    secondary_indicators:
+      - keyword: "nil check"
+        points: 3
+        description: "Nil safety"
+      - keyword: "defer"
+        points: 2
+        description: "Resource cleanup"
+
+  # Dimension 2: Testing & Validation (25 points)
+  testing:
+    weight: 25
+    primary_indicators:
+      - keyword: "testing"
+        points: 8
+        description: "Go testing package"
+      - regex: "(90|95|100)%.*coverage"
+        points: 7
+        description: "High coverage"
+      - keyword: "table-driven"
+        points: 5
+        description: "Table-driven tests"
+      - keyword: "benchmark"
+        points: 3
+        description: "Benchmarking"
+
+    secondary_indicators:
+      - keyword: "testify"
+        points: 3
+        description: "Testing library"
+      - keyword: "mock"
+        points: 2
+        description: "Mocking"
+
+  # Dimension 3: Framework & Idioms (20 points)
+  framework_idioms:
+    weight: 20
+    primary_indicators:
+      - keyword: "goroutine"
+        points: 6
+        description: "Concurrency patterns"
+      - keyword: "channel"
+        points: 5
+        description: "Channel communication"
+      - keyword: "context"
+        points: 4
+        description: "Context usage"
+      - keyword: "middleware"
+        points: 3
+        description: "Middleware pattern"
+
+    secondary_indicators:
+      - keyword: "sync"
+        points: 3
+        description: "Synchronization"
+      - keyword: "embed"
+        points: 2
+        description: "Embedding"
+
+  # Dimension 4: Performance (15 points)
+  performance:
+    weight: 15
+    primary_indicators:
+      - keyword: "concurrency"
+        points: 5
+        description: "Concurrent design"
+      - keyword: "pooling"
+        points: 4
+        description: "Resource pooling"
+      - keyword: "profiling"
+        points: 3
+        description: "Performance profiling"
+      - keyword: "optimization"
+        points: 3
+        description: "Optimization"
+
+    secondary_indicators:
+      - keyword: "benchmark"
+        points: 2
+        description: "Benchmarking"
+      - keyword: "memory"
+        points: 2
+        description: "Memory optimization"
+
+  # Dimension 5: Security (15 points)
+  security:
+    weight: 15
+    primary_indicators:
+      - keyword: "authentication"
+        points: 4
+        description: "Auth implementation"
+      - keyword: "JWT"
+        points: 3
+        description: "Token auth"
+      - keyword: "validation"
+        points: 4
+        description: "Input validation"
+      - keyword: "TLS"
+        points: 2
+        description: "Transport security"
+
+    secondary_indicators:
+      - keyword: "rate limiting"
+        points: 3
+        description: "Rate limiting"
+      - keyword: "CORS"
+        points: 2
+        description: "CORS handling"
+
+---
+# Statically Typed: Rust
+rust:
+  paradigm: "statically_typed"
+  description: "Rust with ownership system and zero-cost abstractions"
+
+  # Dimension 1: Safety & Correctness (25 points)
+  safety_correctness:
+    weight: 25
+    primary_indicators:
+      - keyword: "ownership"
+        points: 8
+        description: "Ownership system"
+      - keyword: "borrow checker"
+        points: 7
+        description: "Borrow checking"
+      - keyword: "Result"
+        points: 5
+        description: "Result type"
+      - keyword: "Option"
+        points: 3
+        description: "Option type"
+
+    secondary_indicators:
+      - keyword: "lifetime"
+        points: 3
+        description: "Lifetime annotations"
+      - keyword: "unsafe"
+        points: 2
+        description: "Unsafe blocks (justified)"
+
+  # Dimension 2: Testing & Validation (25 points)
+  testing:
+    weight: 25
+    primary_indicators:
+      - keyword: "cargo test"
+        points: 8
+        description: "Testing framework"
+      - regex: "(90|95|100)%.*coverage"
+        points: 7
+        description: "High coverage"
+      - keyword: "proptest"
+        points: 5
+        description: "Property testing"
+      - keyword: "criterion"
+        points: 3
+        description: "Benchmarking"
+
+    secondary_indicators:
+      - keyword: "integration test"
+        points: 3
+        description: "Integration testing"
+      - keyword: "doc test"
+        points: 2
+        description: "Documentation tests"
+
+  # Dimension 3: Framework & Idioms (20 points)
+  framework_idioms:
+    weight: 20
+    primary_indicators:
+      - keyword: "trait"
+        points: 6
+        description: "Trait design"
+      - keyword: "async"
+        points: 5
+        description: "Async Rust"
+      - keyword: "tokio"
+        points: 4
+        description: "Async runtime"
+      - keyword: "serde"
+        points: 3
+        description: "Serialization"
+
+    secondary_indicators:
+      - keyword: "iterator"
+        points: 3
+        description: "Iterator patterns"
+      - keyword: "macro"
+        points: 2
+        description: "Macros"
+
+  # Dimension 4: Performance (15 points)
+  performance:
+    weight: 15
+    primary_indicators:
+      - keyword: "zero-cost"
+        points: 5
+        description: "Zero-cost abstractions"
+      - keyword: "benchmark"
+        points: 4
+        description: "Benchmarking"
+      - keyword: "optimization"
+        points: 3
+        description: "Optimization focus"
+      - keyword: "profiling"
+        points: 3
+        description: "Performance profiling"
+
+    secondary_indicators:
+      - keyword: "inline"
+        points: 2
+        description: "Inline optimization"
+      - keyword: "SIMD"
+        points: 2
+        description: "SIMD operations"
+
+  # Dimension 5: Security (15 points)
+  security:
+    weight: 15
+    primary_indicators:
+      - keyword: "memory safety"
+        points: 5
+        description: "Memory safety"
+      - keyword: "authentication"
+        points: 4
+        description: "Auth implementation"
+      - keyword: "validation"
+        points: 3
+        description: "Input validation"
+      - keyword: "TLS"
+        points: 2
+        description: "Transport security"
+
+    secondary_indicators:
+      - keyword: "sanitization"
+        points: 2
+        description: "Data sanitization"
+      - keyword: "rate limiting"
+        points: 2
+        description: "Rate limiting"
+
+---
+# Metadata
+version: "2.0.0"
+created: "2025-10-17"
+description: "Multi-dimensional language-specific quality assessment rubrics"
+total_points: 100
+dimensions:
+  - name: "Safety & Correctness"
+    weight: 25
+    description: "Type safety, correctness mechanisms, static analysis"
+  - name: "Testing & Validation"
+    weight: 25
+    description: "Testing practices, coverage, test quality"
+  - name: "Framework & Idioms"
+    weight: 20
+    description: "Framework patterns, language idioms, best practices"
+  - name: "Performance"
+    weight: 15
+    description: "Performance optimization, efficiency, benchmarking"
+  - name: "Security"
+    weight: 15
+    description: "Security practices, vulnerability prevention, authentication"
