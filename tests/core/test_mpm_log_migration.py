@@ -415,17 +415,26 @@ class TestMPMLogManagerIntegration:
                 startup_dir = await log_manager.setup_logging("startup")
                 mpm_dir = await log_manager.setup_logging("mpm")
 
-                # Write some logs
+                # Verify directories exist immediately after creation (before cleanup)
+                startup_exists = startup_dir.exists()
+                mpm_exists = mpm_dir.exists()
+
+                # Write some logs to mpm directory (keeps it from being cleaned up)
                 await log_manager.write_log_async("Test message", "INFO")
 
-                return prompt_file, startup_dir, mpm_dir
+                return prompt_file, startup_dir, mpm_dir, startup_exists, mpm_exists
 
-            prompt_file, startup_dir, mpm_dir = asyncio.run(test_all_logging())
+            prompt_file, startup_dir, mpm_dir, startup_exists, mpm_exists = asyncio.run(
+                test_all_logging()
+            )
 
             # Verify all functionality works
             assert prompt_file is not None
-            assert startup_dir.exists()
-            assert mpm_dir.exists()
+            # Check directories existed at creation time (before cleanup could run)
+            assert startup_exists, "Startup directory should exist after setup"
+            assert mpm_exists, "MPM directory should exist after setup"
+            # MPM directory should still exist because we wrote logs to it
+            assert mpm_dir.exists(), "MPM directory should persist with logs"
 
             # Verify MPM logs go to subdirectory
             assert mpm_dir.name == "mpm"
