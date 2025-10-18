@@ -1,0 +1,12 @@
+# Ignore test run results (keep baseline only)
+results/*
+!results/baseline-*
+!results/.gitkeep
+
+# Ignore temporary files
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# Keep structure
+!results/

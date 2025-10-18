@@ -1,0 +1,337 @@
+{
+  "agent_id": "rust_engineer",
+  "language": "rust",
+  "suite_type": "lightweight",
+  "total_tests": 12,
+  "difficulty_distribution": {
+    "easy": 4,
+    "medium": 5,
+    "hard": 3
+  },
+  "category_coverage": [
+    "error_handling",
+    "functional",
+    "advanced_types",
+    "unsafe",
+    "async",
+    "memory",
+    "borrowing",
+    "lifetimes",
+    "ownership",
+    "pattern_matching",
+    "generics",
+    "data_structures"
+  ],
+  "source_suite": "expanded_v1",
+  "version": "1.0.0",
+  "tests": [
+    {
+      "id": "rust_easy_02",
+      "name": "Borrowing Basics",
+      "difficulty": "easy",
+      "category": "borrowing",
+      "description": "Use immutable and mutable references.",
+      "signature": "fn calculate_length(s: &String) -> usize {\n    s.len()\n}\n\nfn append_text(s: &mut String) {\n    s.push_str(\" world\");\n}",
+      "test_cases": [
+        {
+          "input": "String reference",
+          "expected": "Can read with &, modify with &mut"
+        }
+      ],
+      "constraints": [
+        "Use references",
+        "No ownership transfer"
+      ],
+      "hints": [
+        "& for immutable borrow",
+        "&mut for mutable borrow"
+      ],
+      "solution_approach": "Reference borrowing",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "rust_easy_03",
+      "name": "Option Handling",
+      "difficulty": "easy",
+      "category": "error_handling",
+      "description": "Use Option type for nullable values.",
+      "signature": "fn divide(a: f64, b: f64) -> Option<f64> {\n    if b == 0.0 {\n        None\n    } else {\n        Some(a / b)\n    }\n}",
+      "test_cases": [
+        {
+          "input": "(10.0, 2.0)",
+          "expected": "Some(5.0)"
+        },
+        {
+          "input": "(10.0, 0.0)",
+          "expected": "None"
+        }
+      ],
+      "constraints": [
+        "Use Option<T>",
+        "Handle None case"
+      ],
+      "hints": [
+        "Return Some(value) or None",
+        "Use pattern matching to extract"
+      ],
+      "solution_approach": "Option for nullable values",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "rust_easy_01",
+      "name": "Ownership Transfer",
+      "difficulty": "easy",
+      "category": "ownership",
+      "description": "Demonstrate basic ownership transfer (move semantics).",
+      "signature": "fn transfer_ownership() {\n    let s1 = String::from(\"hello\");\n    let s2 = s1; // s1 is moved\n    // println!(\"{}\", s1); // This would error\n}",
+      "test_cases": [
+        {
+          "input": "String move",
+          "expected": "s1 invalid after move, s2 owns the data"
+        }
+      ],
+      "constraints": [
+        "Understand move semantics",
+        "String ownership"
+      ],
+      "hints": [
+        "String doesn't implement Copy",
+        "Ownership transfers on assignment"
+      ],
+      "solution_approach": "Basic ownership transfer",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "rust_easy_07",
+      "name": "Match Expression",
+      "difficulty": "easy",
+      "category": "pattern_matching",
+      "description": "Use match for pattern matching.",
+      "signature": "fn describe_number(n: i32) -> &'static str {\n    match n {\n        0 => \"zero\",\n        1..=9 => \"single digit\",\n        _ => \"other\",\n    }\n}",
+      "test_cases": [
+        {
+          "input": "0",
+          "expected": "\"zero\""
+        },
+        {
+          "input": "5",
+          "expected": "\"single digit\""
+        }
+      ],
+      "constraints": [
+        "Use match expression",
+        "Cover all cases"
+      ],
+      "hints": [
+        "Use => for arms",
+        "_ for catch-all"
+      ],
+      "solution_approach": "Pattern matching",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "rust_medium_03",
+      "name": "Enum with Data",
+      "difficulty": "medium",
+      "category": "data_structures",
+      "description": "Create enum variants with different data types.",
+      "signature": "enum Message {\n    Quit,\n    Move { x: i32, y: i32 },\n    Write(String),\n    ChangeColor(u8, u8, u8),\n}\n\nfn process_message(msg: Message) {\n    match msg {\n        Message::Quit => println!(\"Quit\"),\n        Message::Move { x, y } => println!(\"Move to {}, {}\", x, y),\n        // ...\n    }\n}",
+      "test_cases": [
+        {
+          "input": "Message::Move { x: 10, y: 20 }",
+          "expected": "\"Move to 10, 20\""
+        }
+      ],
+      "constraints": [
+        "Enum with data variants",
+        "Pattern match to extract"
+      ],
+      "hints": [
+        "Variants can hold different data",
+        "Use match to destructure"
+      ],
+      "solution_approach": "Enum with associated data",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "rust_medium_07",
+      "name": "Closure Capturing",
+      "difficulty": "medium",
+      "category": "functional",
+      "description": "Use closures that capture environment.",
+      "signature": "fn create_adder(x: i32) -> impl Fn(i32) -> i32 {\n    move |y| x + y\n}",
+      "test_cases": [
+        {
+          "input": "create_adder(5)(10)",
+          "expected": "15"
+        }
+      ],
+      "constraints": [
+        "Closure captures environment",
+        "Use move keyword"
+      ],
+      "hints": [
+        "Closures can capture variables",
+        "move takes ownership"
+      ],
+      "solution_approach": "Closure with captured environment",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "rust_medium_02",
+      "name": "Generic Functions",
+      "difficulty": "medium",
+      "category": "generics",
+      "description": "Write generic function with trait bounds.",
+      "signature": "fn largest<T: PartialOrd>(list: &[T]) -> &T {\n    let mut largest = &list[0];\n    for item in list {\n        if item > largest {\n            largest = item;\n        }\n    }\n    largest\n}",
+      "test_cases": [
+        {
+          "input": "&[1, 5, 3, 2]",
+          "expected": "&5"
+        }
+      ],
+      "constraints": [
+        "Generic over any comparable type",
+        "Use trait bounds"
+      ],
+      "hints": [
+        "Use <T: Trait> syntax",
+        "PartialOrd for comparison"
+      ],
+      "solution_approach": "Generic with trait bounds",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "rust_medium_01",
+      "name": "Lifetime Annotations",
+      "difficulty": "medium",
+      "category": "lifetimes",
+      "description": "Use lifetime annotations to connect reference lifetimes.",
+      "signature": "fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {\n    if x.len() > y.len() { x } else { y }\n}",
+      "test_cases": [
+        {
+          "input": "(\"hello\", \"world\")",
+          "expected": "\"hello\" (longer string)"
+        }
+      ],
+      "constraints": [
+        "Use lifetime parameters",
+        "Connect input and output lifetimes"
+      ],
+      "hints": [
+        "Use 'a syntax for lifetimes",
+        "Input lifetimes must outlive output"
+      ],
+      "solution_approach": "Explicit lifetime annotations",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "rust_medium_04",
+      "name": "Smart Pointers - Box",
+      "difficulty": "medium",
+      "category": "memory",
+      "description": "Use Box for heap allocation and recursive types.",
+      "signature": "enum List {\n    Cons(i32, Box<List>),\n    Nil,\n}\n\nfn create_list() -> List {\n    List::Cons(1, Box::new(List::Cons(2, Box::new(List::Nil))))\n}",
+      "test_cases": [
+        {
+          "input": "Recursive list",
+          "expected": "List created on heap"
+        }
+      ],
+      "constraints": [
+        "Use Box for heap allocation",
+        "Enable recursive types"
+      ],
+      "hints": [
+        "Box::new() allocates on heap",
+        "Enables known size for recursive types"
+      ],
+      "solution_approach": "Heap allocation with Box",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(n)"
+    },
+    {
+      "id": "rust_hard_04",
+      "name": "Higher-Ranked Trait Bounds",
+      "difficulty": "hard",
+      "category": "advanced_types",
+      "description": "Use HRTB (for<'a>) for generic lifetime bounds.",
+      "signature": "fn apply<F>(f: F) -> i32\nwhere\n    F: for<'a> Fn(&'a str) -> i32,\n{\n    f(\"hello\")\n}",
+      "test_cases": [
+        {
+          "input": "Function accepting any lifetime",
+          "expected": "Works with any string reference"
+        }
+      ],
+      "constraints": [
+        "Use for<'a> syntax",
+        "Generic over lifetimes"
+      ],
+      "hints": [
+        "for<'a> means any lifetime",
+        "Required for complex trait bounds"
+      ],
+      "solution_approach": "Higher-ranked trait bounds",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "rust_hard_01",
+      "name": "Async/Await with Tokio",
+      "difficulty": "hard",
+      "category": "async",
+      "description": "Implement async function with tokio runtime.",
+      "signature": "use tokio;\n\n#[tokio::main]\nasync fn main() {\n    let result = fetch_data().await;\n}\n\nasync fn fetch_data() -> Result<String, Box<dyn std::error::Error>> {\n    // Async HTTP request\n    Ok(\"data\".to_string())\n}",
+      "test_cases": [
+        {
+          "input": "Async HTTP request",
+          "expected": "Non-blocking I/O"
+        }
+      ],
+      "constraints": [
+        "Use async/await",
+        "Tokio runtime"
+      ],
+      "hints": [
+        "async fn returns Future",
+        "await to get result"
+      ],
+      "solution_approach": "Async with tokio",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "rust_hard_03",
+      "name": "Unsafe Code",
+      "difficulty": "hard",
+      "category": "unsafe",
+      "description": "Use unsafe for low-level operations with proper safety guarantees.",
+      "signature": "fn split_at_mut(slice: &mut [i32], mid: usize) -> (&mut [i32], &mut [i32]) {\n    let len = slice.len();\n    let ptr = slice.as_mut_ptr();\n    \n    assert!(mid <= len);\n    \n    unsafe {\n        (\n            std::slice::from_raw_parts_mut(ptr, mid),\n            std::slice::from_raw_parts_mut(ptr.add(mid), len - mid),\n        )\n    }\n}",
+      "test_cases": [
+        {
+          "input": "Split slice into two mutable parts",
+          "expected": "Two non-overlapping mutable slices"
+        }
+      ],
+      "constraints": [
+        "Use unsafe block",
+        "Ensure safety invariants"
+      ],
+      "hints": [
+        "Raw pointers in unsafe",
+        "Verify no overlap or UB"
+      ],
+      "solution_approach": "Unsafe with safety guarantees",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    }
+  ]
+}

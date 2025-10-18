@@ -1,3 +1,47 @@
+## [Unreleased]
+
+### Added
+- **Production Benchmark System**: Real agent execution with multi-dimensional scoring
+  - Agent invocation via claude-mpm CLI
+  - Safe code execution in isolated subprocesses
+  - 4-dimensional evaluation (correctness, idiomaticity, performance, best practices)
+  - Comprehensive documentation and test scripts
+- **Automatic Failure-Learning System**: Learn from mistakes automatically
+  - Detects task failures from tool outputs (Bash, NotebookEdit, Task)
+  - Matches fixes with previous failures
+  - Extracts and persists learnings to agent memories
+  - Smart routing to appropriate agents (PM, engineer, QA)
+  - 54/54 tests passing, QA approved
+- **Product Owner Agent v1.0.0**: Modern product management specialist
+  - RICE prioritization, continuous discovery, OKRs
+  - Evidence-based decision framework
+  - Complete artifact templates (PRDs, user stories, roadmaps)
+  - Product-led growth strategies
+  - 2025 best practices (Teresa Torres, Jobs-to-be-Done)
+- **Lightweight Benchmark Suite**: Efficient 84-test agent evaluation
+  - 66% cost reduction vs full suite (175 tests)
+  - 85-90% statistical confidence maintained
+  - Multi-dimensional scoring system
+  - Permanent benchmark infrastructure in docs/benchmarks/
+
+### Changed
+- **Python Engineer v2.0.0 → v2.1.0**: Enhanced with algorithm and async patterns
+  - 4 comprehensive async patterns (gather, worker pools, retry, cancellation)
+  - 4 algorithm patterns (sliding window, BFS, binary search, hash maps)
+  - 5 new anti-patterns to avoid
+  - Algorithm complexity quality standards
+  - Enhanced search query templates
+
+### Performance
+- **Hook System Optimization**: 91% latency reduction (108ms → 10ms per interaction)
+  - Increased git branch cache TTL to 5 minutes (reduces subprocess calls)
+  - Implemented thread pool for HTTP fallback (non-blocking network calls)
+  - Verified async logging is optimal (queue-based, fire-and-forget)
+
+### Fixed
+- Test harness f-string escaping bug in production benchmark runner
+- Input format handling in benchmark test execution
+
 ## [4.8.2] - 2025-10-17
 
 ### Fixed

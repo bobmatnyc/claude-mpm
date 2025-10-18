@@ -72,14 +72,16 @@ claude-mpm agents create my-agent         # Interactive creation
 #### 🏗️ Core System
 - [Architecture Overview](developer/ARCHITECTURE.md) - Service-oriented design & 5 domains
 - [Service Layer Guide](developer/SERVICES.md) - Service development patterns
-- [Performance Guide](developer/PERFORMANCE.md) - Optimization & caching (50-80% improvement)
+- [Performance Guide](developer/PERFORMANCE.md) - Optimization & caching (91% latency reduction in v4.8.2+)
 - [Security Framework](reference/SECURITY.md) - Input validation & security measures
 
 #### 🤖 Agent System
 - [Agent Development](AGENTS.md) - Complete agent creation guide
-- [Coding Agents Catalog](reference/CODING_AGENTS.md) - 7 specialized coding agents (NEW v4.9.0)
+- [Coding Agents Catalog](reference/CODING_AGENTS.md) - 7 specialized coding agents with benchmark scores
+- [Benchmark Infrastructure](benchmarks/README.md) - Complete benchmark system & test suites (NEW)
+- [Benchmark Quick Reference](reference/BENCHMARK_QUICKREF.md) - Performance scores & methodology
 - [Agent Capabilities Reference](reference/AGENT_CAPABILITIES.md) - Complete capabilities & routing
-- [Agent Testing Guide](developer/AGENT_TESTING.md) - 175-test infrastructure & methodology
+- [Agent Testing Guide](developer/AGENT_TESTING.md) - 84-test lightweight benchmark methodology
 - [Agent Deployment Log](reference/AGENT_DEPLOYMENT_LOG.md) - Deployment history & rollback
 - [Three-Tier System](developer/07-agent-system/README.md) - PROJECT > USER > SYSTEM hierarchy
 - [Agent Formats](developer/07-agent-system/formats.md) - Markdown, JSON, YAML support
@@ -188,23 +190,30 @@ docs/
 ## ✨ Key Features & Capabilities
 
 - **🤖 Multi-Agent System**: 15+ specialized agents for comprehensive project management
-- **💻 Coding Agents (NEW v4.9.0)**: 7 specialized coding agents
-  - Python Engineer v2.0.0 (Python 3.13+, JIT)
-  - TypeScript Engineer v2.0.0 (TS 5.6+, branded types)
-  - Next.js Engineer v2.0.0 (Next.js 15, App Router)
-  - **NEW**: Go Engineer v1.0.0 (Go 1.24+, concurrency)
-  - **NEW**: Rust Engineer v1.0.0 (Rust 2024, WebAssembly)
-  - PHP Engineer v2.0.0 (PHP 8.4-8.5, Laravel 12)
-  - Ruby Engineer v2.0.0 (Ruby 3.4 YJIT, Rails 8)
+- **💻 Coding Agents (NEW v4.9.0)**: 7 specialized coding agents with benchmark scores
+  - Python Engineer v2.0.0 (Python 3.13+, JIT) - 62.3% (C)
+  - TypeScript Engineer v2.0.0 (TS 5.6+, branded types) - 66.8% (C+)
+  - Next.js Engineer v2.0.0 (Next.js 15, App Router) - 65.8% (C+)
+  - **NEW**: Go Engineer v1.0.0 (Go 1.24+, concurrency) - 62.6% (C)
+  - **NEW**: Rust Engineer v1.0.0 (Rust 2024, WebAssembly) - 67.3% (C+)
+  - PHP Engineer v2.0.0 (PHP 8.4-8.5, Laravel 12) - 60.8% (C)
+  - Ruby Engineer v2.0.0 (Ruby 3.4 YJIT, Rails 8) - 68.1% (C+) 🥇 **Top Performer**
 - **🧠 Agent Memory**: Persistent learning with simple JSON response field updates
 - **🔄 Session Management**: Resume previous sessions with `--resume`
 - **📊 Real-Time Monitoring**: Live dashboard with `--monitor` flag
 - **🔌 MCP Gateway**: Model Context Protocol integration for extensible tools
 - **📁 Multi-Project Support**: Per-session working directories with git integration
-- **⚡ Performance**: 50-80% improvement through intelligent caching and lazy loading
+- **⚡ Performance Improvements (v4.8.2+)**:
+  - **91% latency reduction** in hook system (108ms → 10ms)
+  - Git branch caching with 5-minute TTL
+  - Non-blocking HTTP fallback with thread pool
+  - 50-80% overall improvement through intelligent caching and lazy loading
 - **🔒 Security**: Comprehensive input validation and sanitization framework
 - **🏗️ Service-Oriented**: Five specialized service domains with interface contracts
-- **🧪 Comprehensive Testing**: 175 tests across coding agents with 95% confidence target
+- **🧪 Comprehensive Testing**: 84-test lightweight benchmark with multi-dimensional scoring
+  - Average agent score: 64.8% across all coding agents
+  - Multi-dimensional evaluation (Correctness 40%, Idiomaticity 25%, Performance 20%, Best Practices 15%)
+  - See [Benchmark Quick Reference](reference/BENCHMARK_QUICKREF.md)
 
 ## 🤝 Contributing
 
