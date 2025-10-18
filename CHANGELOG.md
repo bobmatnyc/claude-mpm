@@ -1,3 +1,9 @@
+## [4.8.2] - 2025-10-17
+
+### Fixed
+- Improved log cleanup test to handle empty directory removal correctly
+- Enhanced test robustness for log migration scenarios
+
 ## [4.8.1] - 2025-10-17
 
 ### Added
