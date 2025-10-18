@@ -203,9 +203,7 @@ class ConnectionManagerService:
             return
 
         # Submit to thread pool - don't wait for result (fire-and-forget)
-        self._http_executor.submit(
-            self._http_emit_blocking, namespace, event, data
-        )
+        self._http_executor.submit(self._http_emit_blocking, namespace, event, data)
 
     def _http_emit_blocking(self, namespace: str, event: str, data: dict):
         """HTTP emission in background thread (blocking operation isolated)."""
@@ -250,7 +248,7 @@ class ConnectionManagerService:
     def cleanup(self):
         """Cleanup connections on service destruction."""
         # Shutdown HTTP executor gracefully
-        if hasattr(self, '_http_executor'):
+        if hasattr(self, "_http_executor"):
             self._http_executor.shutdown(wait=False)
             if DEBUG:
                 print("✅ HTTP executor shutdown", file=sys.stderr)

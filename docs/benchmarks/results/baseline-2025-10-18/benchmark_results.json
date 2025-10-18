@@ -1,0 +1,1567 @@
+{
+  "benchmark_type": "lightweight",
+  "version": "1.0.0",
+  "execution_mode": "mock",
+  "total_agents": 7,
+  "total_tests": 84,
+  "total_passed": 56,
+  "overall_pass_rate": 66.67,
+  "execution_time": 0.0,
+  "timestamp": "2025-10-18T00:17:12.926279",
+  "results": {
+    "python_engineer": {
+      "agent_id": "python_engineer",
+      "language": "python",
+      "total_tests": 12,
+      "passed_tests": 7,
+      "pass_rate": 58.33,
+      "total_weighted_score": 77.07,
+      "average_score": 6.42,
+      "difficulty_breakdown": {
+        "easy": {
+          "total": 4,
+          "passed": 4,
+          "avg_score": 8.21
+        },
+        "medium": {
+          "total": 5,
+          "passed": 2,
+          "avg_score": 5.88
+        },
+        "hard": {
+          "total": 3,
+          "passed": 1,
+          "avg_score": 4.95
+        }
+      },
+      "execution_time": 0.0,
+      "results": [
+        {
+          "test_id": "python_easy_01",
+          "test_name": "Two Sum",
+          "difficulty": "easy",
+          "category": "algorithms",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.19,
+            "idiomaticity": 6.68,
+            "performance": 8.95,
+            "best_practices": 6.2
+          },
+          "weighted_score": 8.07,
+          "execution_time": 0.75,
+          "solution_length": 208
+        },
+        {
+          "test_id": "python_easy_02",
+          "test_name": "Valid Parentheses",
+          "difficulty": "easy",
+          "category": "data_structures",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.1,
+            "idiomaticity": 7.29,
+            "performance": 5.44,
+            "best_practices": 6.02
+          },
+          "weighted_score": 7.45,
+          "execution_time": 1.91,
+          "solution_length": 197
+        },
+        {
+          "test_id": "python_easy_09",
+          "test_name": "FizzBuzz",
+          "difficulty": "easy",
+          "category": "real_world",
+          "passed": true,
+          "dimensions": {
+            "correctness": 8.76,
+            "idiomaticity": 9.48,
+            "performance": 8.82,
+            "best_practices": 8.33
+          },
+          "weighted_score": 8.89,
+          "execution_time": 0.97,
+          "solution_length": 188
+        },
+        {
+          "test_id": "python_easy_05",
+          "test_name": "Find First Palindromic String",
+          "difficulty": "easy",
+          "category": "string_manipulation",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.51,
+            "idiomaticity": 7.26,
+            "performance": 8.57,
+            "best_practices": 7.15
+          },
+          "weighted_score": 8.41,
+          "execution_time": 0.82,
+          "solution_length": 230
+        },
+        {
+          "test_id": "python_medium_02",
+          "test_name": "Three Sum",
+          "difficulty": "medium",
+          "category": "algorithms",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.1,
+            "idiomaticity": 7.32,
+            "performance": 6.67,
+            "best_practices": 7.06
+          },
+          "weighted_score": 7.86,
+          "execution_time": 3.64,
+          "solution_length": 207
+        },
+        {
+          "test_id": "python_medium_03",
+          "test_name": "Longest Substring Without Repeating",
+          "difficulty": "medium",
+          "category": "algorithms",
+          "passed": false,
+          "dimensions": {
+            "correctness": 3.96,
+            "idiomaticity": 5.99,
+            "performance": 5.23,
+            "best_practices": 3.32
+          },
+          "weighted_score": 4.63,
+          "execution_time": 3.15,
+          "solution_length": 230
+        },
+        {
+          "test_id": "python_medium_06",
+          "test_name": "Async Task Processor",
+          "difficulty": "medium",
+          "category": "async_programming",
+          "passed": false,
+          "dimensions": {
+            "correctness": 0.68,
+            "idiomaticity": 4.96,
+            "performance": 3.52,
+            "best_practices": 3.72
+          },
+          "weighted_score": 2.77,
+          "execution_time": 4.75,
+          "solution_length": 256
+        },
+        {
+          "test_id": "python_medium_04",
+          "test_name": "Binary Tree Level Order Traversal",
+          "difficulty": "medium",
+          "category": "data_structures",
+          "passed": false,
+          "dimensions": {
+            "correctness": 3.7,
+            "idiomaticity": 4.33,
+            "performance": 9.44,
+            "best_practices": 5.84
+          },
+          "weighted_score": 5.33,
+          "execution_time": 1.89,
+          "solution_length": 247
+        },
+        {
+          "test_id": "python_medium_10",
+          "test_name": "Rate Limiter",
+          "difficulty": "medium",
+          "category": "real_world",
+          "passed": true,
+          "dimensions": {
+            "correctness": 10.0,
+            "idiomaticity": 9.39,
+            "performance": 5.08,
+            "best_practices": 9.55
+          },
+          "weighted_score": 8.8,
+          "execution_time": 3.55,
+          "solution_length": 293
+        },
+        {
+          "test_id": "python_hard_01",
+          "test_name": "Median of Two Sorted Arrays",
+          "difficulty": "hard",
+          "category": "algorithms",
+          "passed": false,
+          "dimensions": {
+            "correctness": 3.44,
+            "idiomaticity": 4.62,
+            "performance": 6.95,
+            "best_practices": 3.01
+          },
+          "weighted_score": 4.37,
+          "execution_time": 6.94,
+          "solution_length": 248
+        },
+        {
+          "test_id": "python_hard_05",
+          "test_name": "Async Worker Pool with Retries",
+          "difficulty": "hard",
+          "category": "async_programming",
+          "passed": false,
+          "dimensions": {
+            "correctness": 1.23,
+            "idiomaticity": 4.47,
+            "performance": 3.34,
+            "best_practices": 4.28
+          },
+          "weighted_score": 2.92,
+          "execution_time": 9.07,
+          "solution_length": 354
+        },
+        {
+          "test_id": "python_hard_03",
+          "test_name": "Serialize and Deserialize Binary Tree",
+          "difficulty": "hard",
+          "category": "data_structures",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.63,
+            "idiomaticity": 6.74,
+            "performance": 6.01,
+            "best_practices": 5.51
+          },
+          "weighted_score": 7.57,
+          "execution_time": 7.67,
+          "solution_length": 318
+        }
+      ],
+      "timestamp": "2025-10-18T00:17:12.925474"
+    },
+    "typescript_engineer": {
+      "agent_id": "typescript_engineer",
+      "language": "typescript",
+      "total_tests": 12,
+      "passed_tests": 8,
+      "pass_rate": 66.67,
+      "total_weighted_score": 80.85,
+      "average_score": 6.74,
+      "difficulty_breakdown": {
+        "easy": {
+          "total": 4,
+          "passed": 4,
+          "avg_score": 8.02
+        },
+        "medium": {
+          "total": 5,
+          "passed": 2,
+          "avg_score": 5.62
+        },
+        "hard": {
+          "total": 3,
+          "passed": 2,
+          "avg_score": 6.88
+        }
+      },
+      "execution_time": 0.0,
+      "results": [
+        {
+          "test_id": "typescript_easy_01",
+          "test_name": "Type-Safe Two Sum",
+          "difficulty": "easy",
+          "category": "algorithms",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.76,
+            "idiomaticity": 7.55,
+            "performance": 9.69,
+            "best_practices": 6.34
+          },
+          "weighted_score": 8.68,
+          "execution_time": 0.56,
+          "solution_length": 261
+        },
+        {
+          "test_id": "typescript_easy_02",
+          "test_name": "Generic Stack Implementation",
+          "difficulty": "easy",
+          "category": "data_structures",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.36,
+            "idiomaticity": 6.68,
+            "performance": 5.31,
+            "best_practices": 5.7
+          },
+          "weighted_score": 7.33,
+          "execution_time": 1.79,
+          "solution_length": 287
+        },
+        {
+          "test_id": "typescript_easy_03",
+          "test_name": "Type Predicate for User Validation",
+          "difficulty": "easy",
+          "category": "type_safety",
+          "passed": true,
+          "dimensions": {
+            "correctness": 8.95,
+            "idiomaticity": 8.4,
+            "performance": 5.46,
+            "best_practices": 7.11
+          },
+          "weighted_score": 7.84,
+          "execution_time": 1.65,
+          "solution_length": 228
+        },
+        {
+          "test_id": "typescript_easy_04",
+          "test_name": "Mapped Type Utility",
+          "difficulty": "easy",
+          "category": "type_system",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.55,
+            "idiomaticity": 8.18,
+            "performance": 5.62,
+            "best_practices": 8.26
+          },
+          "weighted_score": 8.23,
+          "execution_time": 1.57,
+          "solution_length": 217
+        },
+        {
+          "test_id": "typescript_medium_05",
+          "test_name": "State Machine with Types",
+          "difficulty": "medium",
+          "category": "design_patterns",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.54,
+            "idiomaticity": 8.65,
+            "performance": 5.59,
+            "best_practices": 7.84
+          },
+          "weighted_score": 8.27,
+          "execution_time": 3.23,
+          "solution_length": 257
+        },
+        {
+          "test_id": "typescript_medium_03",
+          "test_name": "Async Pipeline with Types",
+          "difficulty": "medium",
+          "category": "functional_programming",
+          "passed": false,
+          "dimensions": {
+            "correctness": 2.25,
+            "idiomaticity": 3.74,
+            "performance": 8.59,
+            "best_practices": 4.1
+          },
+          "weighted_score": 4.17,
+          "execution_time": 2.19,
+          "solution_length": 285
+        },
+        {
+          "test_id": "typescript_medium_09",
+          "test_name": "Type-Safe Query Builder",
+          "difficulty": "medium",
+          "category": "real_world",
+          "passed": false,
+          "dimensions": {
+            "correctness": 1.93,
+            "idiomaticity": 5.77,
+            "performance": 5.54,
+            "best_practices": 4.26
+          },
+          "weighted_score": 3.96,
+          "execution_time": 3.58,
+          "solution_length": 277
+        },
+        {
+          "test_id": "typescript_medium_06",
+          "test_name": "Branded ID Types",
+          "difficulty": "medium",
+          "category": "type_safety",
+          "passed": true,
+          "dimensions": {
+            "correctness": 8.97,
+            "idiomaticity": 6.59,
+            "performance": 8.39,
+            "best_practices": 6.07
+          },
+          "weighted_score": 7.82,
+          "execution_time": 2.72,
+          "solution_length": 273
+        },
+        {
+          "test_id": "typescript_medium_01",
+          "test_name": "Advanced Generic Constraints",
+          "difficulty": "medium",
+          "category": "type_system",
+          "passed": false,
+          "dimensions": {
+            "correctness": 2.45,
+            "idiomaticity": 4.13,
+            "performance": 6.11,
+            "best_practices": 4.46
+          },
+          "weighted_score": 3.9,
+          "execution_time": 3.72,
+          "solution_length": 280
+        },
+        {
+          "test_id": "typescript_hard_04",
+          "test_name": "Type-Safe Event Sourcing",
+          "difficulty": "hard",
+          "category": "design_patterns",
+          "passed": false,
+          "dimensions": {
+            "correctness": 3.23,
+            "idiomaticity": 3.95,
+            "performance": 7.16,
+            "best_practices": 4.71
+          },
+          "weighted_score": 4.42,
+          "execution_time": 5.91,
+          "solution_length": 254
+        },
+        {
+          "test_id": "typescript_hard_01",
+          "test_name": "Advanced Mapped Types",
+          "difficulty": "hard",
+          "category": "type_system",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.29,
+            "idiomaticity": 6.8,
+            "performance": 8.58,
+            "best_practices": 7.37
+          },
+          "weighted_score": 8.24,
+          "execution_time": 4.1,
+          "solution_length": 265
+        },
+        {
+          "test_id": "typescript_hard_02",
+          "test_name": "Type-Level String Manipulation",
+          "difficulty": "hard",
+          "category": "type_system",
+          "passed": true,
+          "dimensions": {
+            "correctness": 8.69,
+            "idiomaticity": 6.43,
+            "performance": 9.62,
+            "best_practices": 6.55
+          },
+          "weighted_score": 7.99,
+          "execution_time": 4.4,
+          "solution_length": 326
+        }
+      ],
+      "timestamp": "2025-10-18T00:17:12.925623"
+    },
+    "nextjs_engineer": {
+      "agent_id": "nextjs_engineer",
+      "language": "nextjs",
+      "total_tests": 12,
+      "passed_tests": 9,
+      "pass_rate": 75.0,
+      "total_weighted_score": 80.95,
+      "average_score": 6.75,
+      "difficulty_breakdown": {
+        "easy": {
+          "total": 4,
+          "passed": 4,
+          "avg_score": 7.83
+        },
+        "medium": {
+          "total": 5,
+          "passed": 4,
+          "avg_score": 6.9
+        },
+        "hard": {
+          "total": 3,
+          "passed": 1,
+          "avg_score": 5.04
+        }
+      },
+      "execution_time": 0.0,
+      "results": [
+        {
+          "test_id": "nextjs_easy_02",
+          "test_name": "Client Component with State",
+          "difficulty": "easy",
+          "category": "client_components",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.29,
+            "idiomaticity": 6.66,
+            "performance": 5.41,
+            "best_practices": 5.72
+          },
+          "weighted_score": 7.32,
+          "execution_time": 1.65,
+          "solution_length": 230
+        },
+        {
+          "test_id": "nextjs_easy_03",
+          "test_name": "Dynamic Route",
+          "difficulty": "easy",
+          "category": "routing",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.52,
+            "idiomaticity": 6.79,
+            "performance": 5.7,
+            "best_practices": 5.69
+          },
+          "weighted_score": 7.5,
+          "execution_time": 1.78,
+          "solution_length": 259
+        },
+        {
+          "test_id": "nextjs_easy_01",
+          "test_name": "Basic Server Component",
+          "difficulty": "easy",
+          "category": "server_components",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.18,
+            "idiomaticity": 7.42,
+            "performance": 8.87,
+            "best_practices": 6.25
+          },
+          "weighted_score": 8.24,
+          "execution_time": 1.08,
+          "solution_length": 242
+        },
+        {
+          "test_id": "nextjs_easy_04",
+          "test_name": "Loading UI",
+          "difficulty": "easy",
+          "category": "streaming",
+          "passed": true,
+          "dimensions": {
+            "correctness": 8.96,
+            "idiomaticity": 8.09,
+            "performance": 7.83,
+            "best_practices": 7.39
+          },
+          "weighted_score": 8.28,
+          "execution_time": 1.47,
+          "solution_length": 217
+        },
+        {
+          "test_id": "nextjs_medium_05",
+          "test_name": "Dynamic Metadata",
+          "difficulty": "medium",
+          "category": "metadata",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.03,
+            "idiomaticity": 6.18,
+            "performance": 9.38,
+            "best_practices": 6.29
+          },
+          "weighted_score": 7.98,
+          "execution_time": 1.66,
+          "solution_length": 259
+        },
+        {
+          "test_id": "nextjs_medium_07",
+          "test_name": "Middleware",
+          "difficulty": "medium",
+          "category": "middleware",
+          "passed": true,
+          "dimensions": {
+            "correctness": 8.58,
+            "idiomaticity": 8.06,
+            "performance": 6.06,
+            "best_practices": 7.81
+          },
+          "weighted_score": 7.83,
+          "execution_time": 3.41,
+          "solution_length": 227
+        },
+        {
+          "test_id": "nextjs_medium_02",
+          "test_name": "Parallel Routes",
+          "difficulty": "medium",
+          "category": "routing",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.91,
+            "idiomaticity": 6.01,
+            "performance": 2.05,
+            "best_practices": 6.36
+          },
+          "weighted_score": 6.83,
+          "execution_time": 4.89,
+          "solution_length": 229
+        },
+        {
+          "test_id": "nextjs_medium_01",
+          "test_name": "Server Actions",
+          "difficulty": "medium",
+          "category": "server_actions",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.61,
+            "idiomaticity": 7.89,
+            "performance": 5.6,
+            "best_practices": 6.92
+          },
+          "weighted_score": 7.97,
+          "execution_time": 4.07,
+          "solution_length": 235
+        },
+        {
+          "test_id": "nextjs_medium_04",
+          "test_name": "Streaming with Suspense",
+          "difficulty": "medium",
+          "category": "streaming",
+          "passed": false,
+          "dimensions": {
+            "correctness": 1.0,
+            "idiomaticity": 3.31,
+            "performance": 8.76,
+            "best_practices": 5.95
+          },
+          "weighted_score": 3.87,
+          "execution_time": 1.7,
+          "solution_length": 237
+        },
+        {
+          "test_id": "nextjs_hard_02",
+          "test_name": "Advanced Caching Strategy",
+          "difficulty": "hard",
+          "category": "caching",
+          "passed": true,
+          "dimensions": {
+            "correctness": 8.85,
+            "idiomaticity": 6.51,
+            "performance": 5.71,
+            "best_practices": 6.94
+          },
+          "weighted_score": 7.35,
+          "execution_time": 6.25,
+          "solution_length": 226
+        },
+        {
+          "test_id": "nextjs_hard_04",
+          "test_name": "Request Waterfall Optimization",
+          "difficulty": "hard",
+          "category": "performance",
+          "passed": false,
+          "dimensions": {
+            "correctness": 2.41,
+            "idiomaticity": 5.6,
+            "performance": 4.8,
+            "best_practices": 5.54
+          },
+          "weighted_score": 4.16,
+          "execution_time": 9.43,
+          "solution_length": 210
+        },
+        {
+          "test_id": "nextjs_hard_01",
+          "test_name": "Partial Pre-rendering",
+          "difficulty": "hard",
+          "category": "rendering",
+          "passed": false,
+          "dimensions": {
+            "correctness": 0.04,
+            "idiomaticity": 5.15,
+            "performance": 7.46,
+            "best_practices": 5.52
+          },
+          "weighted_score": 3.62,
+          "execution_time": 5.04,
+          "solution_length": 205
+        }
+      ],
+      "timestamp": "2025-10-18T00:17:12.925756"
+    },
+    "php_engineer": {
+      "agent_id": "php_engineer",
+      "language": "php",
+      "total_tests": 12,
+      "passed_tests": 7,
+      "pass_rate": 58.33,
+      "total_weighted_score": 76.74,
+      "average_score": 6.39,
+      "difficulty_breakdown": {
+        "easy": {
+          "total": 4,
+          "passed": 4,
+          "avg_score": 8.78
+        },
+        "medium": {
+          "total": 5,
+          "passed": 3,
+          "avg_score": 6.24
+        },
+        "hard": {
+          "total": 3,
+          "passed": 0,
+          "avg_score": 3.48
+        }
+      },
+      "execution_time": 0.0,
+      "results": [
+        {
+          "test_id": "php_easy_01",
+          "test_name": "Strict Types Array Sum",
+          "difficulty": "easy",
+          "category": "algorithms",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.84,
+            "idiomaticity": 8.47,
+            "performance": 9.53,
+            "best_practices": 7.07
+          },
+          "weighted_score": 9.02,
+          "execution_time": 1.05,
+          "solution_length": 243
+        },
+        {
+          "test_id": "php_easy_05",
+          "test_name": "Temperature Converter",
+          "difficulty": "easy",
+          "category": "real_world",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.03,
+            "idiomaticity": 9.13,
+            "performance": 9.4,
+            "best_practices": 8.64
+          },
+          "weighted_score": 9.07,
+          "execution_time": 0.72,
+          "solution_length": 304
+        },
+        {
+          "test_id": "php_easy_03",
+          "test_name": "String Palindrome Check",
+          "difficulty": "easy",
+          "category": "string_manipulation",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.52,
+            "idiomaticity": 8.37,
+            "performance": 6.97,
+            "best_practices": 8.72
+          },
+          "weighted_score": 8.6,
+          "execution_time": 1.86,
+          "solution_length": 249
+        },
+        {
+          "test_id": "php_easy_02",
+          "test_name": "Email Validator",
+          "difficulty": "easy",
+          "category": "validation",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.91,
+            "idiomaticity": 7.57,
+            "performance": 7.03,
+            "best_practices": 7.8
+          },
+          "weighted_score": 8.43,
+          "execution_time": 1.22,
+          "solution_length": 234
+        },
+        {
+          "test_id": "php_medium_09",
+          "test_name": "Repository Pattern",
+          "difficulty": "medium",
+          "category": "design_patterns",
+          "passed": true,
+          "dimensions": {
+            "correctness": 8.8,
+            "idiomaticity": 7.62,
+            "performance": 6.69,
+            "best_practices": 6.24
+          },
+          "weighted_score": 7.7,
+          "execution_time": 3.05,
+          "solution_length": 370
+        },
+        {
+          "test_id": "php_medium_01",
+          "test_name": "Laravel Eloquent Query Builder",
+          "difficulty": "medium",
+          "category": "laravel",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.05,
+            "idiomaticity": 8.63,
+            "performance": 6.88,
+            "best_practices": 8.44
+          },
+          "weighted_score": 8.42,
+          "execution_time": 3.07,
+          "solution_length": 245
+        },
+        {
+          "test_id": "php_medium_02",
+          "test_name": "Custom Validation Rule",
+          "difficulty": "medium",
+          "category": "laravel",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.51,
+            "idiomaticity": 6.99,
+            "performance": 4.01,
+            "best_practices": 6.75
+          },
+          "weighted_score": 7.37,
+          "execution_time": 4.92,
+          "solution_length": 308
+        },
+        {
+          "test_id": "php_medium_03",
+          "test_name": "Service Container Binding",
+          "difficulty": "medium",
+          "category": "laravel",
+          "passed": false,
+          "dimensions": {
+            "correctness": 0.19,
+            "idiomaticity": 4.83,
+            "performance": 9.55,
+            "best_practices": 3.78
+          },
+          "weighted_score": 3.76,
+          "execution_time": 2.0,
+          "solution_length": 308
+        },
+        {
+          "test_id": "php_medium_04",
+          "test_name": "Database Migration with Relations",
+          "difficulty": "medium",
+          "category": "laravel",
+          "passed": false,
+          "dimensions": {
+            "correctness": 0.52,
+            "idiomaticity": 5.65,
+            "performance": 8.01,
+            "best_practices": 4.69
+          },
+          "weighted_score": 3.93,
+          "execution_time": 2.43,
+          "solution_length": 320
+        },
+        {
+          "test_id": "php_hard_05",
+          "test_name": "Distributed Lock Manager",
+          "difficulty": "hard",
+          "category": "concurrency",
+          "passed": false,
+          "dimensions": {
+            "correctness": 0.6,
+            "idiomaticity": 5.34,
+            "performance": 9.44,
+            "best_practices": 3.44
+          },
+          "weighted_score": 3.98,
+          "execution_time": 3.95,
+          "solution_length": 371
+        },
+        {
+          "test_id": "php_hard_02",
+          "test_name": "Database Transaction Saga",
+          "difficulty": "hard",
+          "category": "database",
+          "passed": false,
+          "dimensions": {
+            "correctness": 0.6,
+            "idiomaticity": 4.64,
+            "performance": 5.11,
+            "best_practices": 4.63
+          },
+          "weighted_score": 3.12,
+          "execution_time": 7.42,
+          "solution_length": 367
+        },
+        {
+          "test_id": "php_hard_01",
+          "test_name": "Advanced Query Optimization",
+          "difficulty": "hard",
+          "category": "performance",
+          "passed": false,
+          "dimensions": {
+            "correctness": 0.39,
+            "idiomaticity": 4.08,
+            "performance": 6.78,
+            "best_practices": 5.41
+          },
+          "weighted_score": 3.34,
+          "execution_time": 6.7,
+          "solution_length": 272
+        }
+      ],
+      "timestamp": "2025-10-18T00:17:12.925884"
+    },
+    "ruby_engineer": {
+      "agent_id": "ruby_engineer",
+      "language": "ruby",
+      "total_tests": 12,
+      "passed_tests": 9,
+      "pass_rate": 75.0,
+      "total_weighted_score": 82.5,
+      "average_score": 6.88,
+      "difficulty_breakdown": {
+        "easy": {
+          "total": 4,
+          "passed": 3,
+          "avg_score": 7.21
+        },
+        "medium": {
+          "total": 5,
+          "passed": 4,
+          "avg_score": 7.03
+        },
+        "hard": {
+          "total": 3,
+          "passed": 2,
+          "avg_score": 6.17
+        }
+      },
+      "execution_time": 0.0,
+      "results": [
+        {
+          "test_id": "ruby_easy_01",
+          "test_name": "Array Sum with Inject",
+          "difficulty": "easy",
+          "category": "algorithms",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.22,
+            "idiomaticity": 7.53,
+            "performance": 9.89,
+            "best_practices": 7.9
+          },
+          "weighted_score": 8.73,
+          "execution_time": 1.01,
+          "solution_length": 217
+        },
+        {
+          "test_id": "ruby_easy_09",
+          "test_name": "Default Parameter Values",
+          "difficulty": "easy",
+          "category": "functions",
+          "passed": false,
+          "dimensions": {
+            "correctness": 0.12,
+            "idiomaticity": 3.27,
+            "performance": 6.19,
+            "best_practices": 3.15
+          },
+          "weighted_score": 2.58,
+          "execution_time": 1.94,
+          "solution_length": 240
+        },
+        {
+          "test_id": "ruby_easy_10",
+          "test_name": "Truthiness Check",
+          "difficulty": "easy",
+          "category": "idioms",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.26,
+            "idiomaticity": 7.87,
+            "performance": 9.95,
+            "best_practices": 6.59
+          },
+          "weighted_score": 8.65,
+          "execution_time": 1.14,
+          "solution_length": 218
+        },
+        {
+          "test_id": "ruby_easy_03",
+          "test_name": "String Palindrome",
+          "difficulty": "easy",
+          "category": "string_manipulation",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.89,
+            "idiomaticity": 8.48,
+            "performance": 7.48,
+            "best_practices": 8.88
+          },
+          "weighted_score": 8.9,
+          "execution_time": 1.45,
+          "solution_length": 226
+        },
+        {
+          "test_id": "ruby_medium_06",
+          "test_name": "Service Object Pattern",
+          "difficulty": "medium",
+          "category": "design_patterns",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.28,
+            "idiomaticity": 6.43,
+            "performance": 8.36,
+            "best_practices": 5.37
+          },
+          "weighted_score": 7.8,
+          "execution_time": 2.44,
+          "solution_length": 318
+        },
+        {
+          "test_id": "ruby_medium_01",
+          "test_name": "Metaprogramming with Define Method",
+          "difficulty": "medium",
+          "category": "metaprogramming",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.75,
+            "idiomaticity": 8.01,
+            "performance": 2.68,
+            "best_practices": 7.91
+          },
+          "weighted_score": 7.62,
+          "execution_time": 4.56,
+          "solution_length": 300
+        },
+        {
+          "test_id": "ruby_medium_03",
+          "test_name": "Module Mixins",
+          "difficulty": "medium",
+          "category": "oop",
+          "passed": false,
+          "dimensions": {
+            "correctness": 3.2,
+            "idiomaticity": 4.08,
+            "performance": 7.72,
+            "best_practices": 3.18
+          },
+          "weighted_score": 4.32,
+          "execution_time": 2.45,
+          "solution_length": 268
+        },
+        {
+          "test_id": "ruby_medium_04",
+          "test_name": "ActiveRecord Scope",
+          "difficulty": "medium",
+          "category": "rails",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.42,
+            "idiomaticity": 6.4,
+            "performance": 5.15,
+            "best_practices": 6.95
+          },
+          "weighted_score": 7.44,
+          "execution_time": 3.43,
+          "solution_length": 316
+        },
+        {
+          "test_id": "ruby_medium_07",
+          "test_name": "RSpec Shared Examples",
+          "difficulty": "medium",
+          "category": "testing",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.53,
+            "idiomaticity": 8.62,
+            "performance": 3.26,
+            "best_practices": 8.86
+          },
+          "weighted_score": 7.95,
+          "execution_time": 4.98,
+          "solution_length": 366
+        },
+        {
+          "test_id": "ruby_hard_02",
+          "test_name": "Decorator Pattern",
+          "difficulty": "hard",
+          "category": "design_patterns",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.37,
+            "idiomaticity": 6.99,
+            "performance": 3.16,
+            "best_practices": 5.72
+          },
+          "weighted_score": 6.99,
+          "execution_time": 9.62,
+          "solution_length": 336
+        },
+        {
+          "test_id": "ruby_hard_01",
+          "test_name": "DSL Creation",
+          "difficulty": "hard",
+          "category": "metaprogramming",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.11,
+            "idiomaticity": 6.73,
+            "performance": 5.95,
+            "best_practices": 5.47
+          },
+          "weighted_score": 7.34,
+          "execution_time": 6.28,
+          "solution_length": 365
+        },
+        {
+          "test_id": "ruby_hard_05",
+          "test_name": "YJIT Optimization Pattern",
+          "difficulty": "hard",
+          "category": "performance",
+          "passed": false,
+          "dimensions": {
+            "correctness": 2.3,
+            "idiomaticity": 5.61,
+            "performance": 7.03,
+            "best_practices": 3.04
+          },
+          "weighted_score": 4.18,
+          "execution_time": 4.91,
+          "solution_length": 347
+        }
+      ],
+      "timestamp": "2025-10-18T00:17:12.926012"
+    },
+    "golang_engineer": {
+      "agent_id": "golang_engineer",
+      "language": "golang",
+      "total_tests": 12,
+      "passed_tests": 7,
+      "pass_rate": 58.33,
+      "total_weighted_score": 76.15,
+      "average_score": 6.35,
+      "difficulty_breakdown": {
+        "easy": {
+          "total": 4,
+          "passed": 3,
+          "avg_score": 6.78
+        },
+        "medium": {
+          "total": 5,
+          "passed": 3,
+          "avg_score": 6.58
+        },
+        "hard": {
+          "total": 3,
+          "passed": 1,
+          "avg_score": 5.38
+        }
+      },
+      "execution_time": 0.0,
+      "results": [
+        {
+          "test_id": "go_easy_01",
+          "test_name": "Simple Goroutine",
+          "difficulty": "easy",
+          "category": "concurrency",
+          "passed": false,
+          "dimensions": {
+            "correctness": 1.08,
+            "idiomaticity": 3.17,
+            "performance": 5.46,
+            "best_practices": 3.8
+          },
+          "weighted_score": 2.89,
+          "execution_time": 1.75,
+          "solution_length": 227
+        },
+        {
+          "test_id": "go_easy_05",
+          "test_name": "Error Handling",
+          "difficulty": "easy",
+          "category": "error_handling",
+          "passed": true,
+          "dimensions": {
+            "correctness": 8.6,
+            "idiomaticity": 7.39,
+            "performance": 7.79,
+            "best_practices": 7.56
+          },
+          "weighted_score": 7.98,
+          "execution_time": 1.46,
+          "solution_length": 241
+        },
+        {
+          "test_id": "go_easy_04",
+          "test_name": "Interface Implementation",
+          "difficulty": "easy",
+          "category": "interfaces",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.18,
+            "idiomaticity": 7.83,
+            "performance": 5.92,
+            "best_practices": 7.79
+          },
+          "weighted_score": 7.98,
+          "execution_time": 1.7,
+          "solution_length": 314
+        },
+        {
+          "test_id": "go_easy_03",
+          "test_name": "Struct Methods",
+          "difficulty": "easy",
+          "category": "oop",
+          "passed": true,
+          "dimensions": {
+            "correctness": 8.77,
+            "idiomaticity": 8.52,
+            "performance": 6.62,
+            "best_practices": 8.69
+          },
+          "weighted_score": 8.27,
+          "execution_time": 1.56,
+          "solution_length": 265
+        },
+        {
+          "test_id": "go_medium_01",
+          "test_name": "Worker Pool",
+          "difficulty": "medium",
+          "category": "concurrency",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.1,
+            "idiomaticity": 6.71,
+            "performance": 9.68,
+            "best_practices": 7.15
+          },
+          "weighted_score": 8.33,
+          "execution_time": 1.55,
+          "solution_length": 258
+        },
+        {
+          "test_id": "go_medium_04",
+          "test_name": "Custom Error Type",
+          "difficulty": "medium",
+          "category": "error_handling",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.52,
+            "idiomaticity": 7.05,
+            "performance": 6.12,
+            "best_practices": 5.64
+          },
+          "weighted_score": 7.64,
+          "execution_time": 3.01,
+          "solution_length": 315
+        },
+        {
+          "test_id": "go_medium_05",
+          "test_name": "Generic Stack",
+          "difficulty": "medium",
+          "category": "generics",
+          "passed": false,
+          "dimensions": {
+            "correctness": 1.71,
+            "idiomaticity": 5.28,
+            "performance": 5.88,
+            "best_practices": 3.82
+          },
+          "weighted_score": 3.75,
+          "execution_time": 3.3,
+          "solution_length": 311
+        },
+        {
+          "test_id": "go_medium_07",
+          "test_name": "Interface Composition",
+          "difficulty": "medium",
+          "category": "interfaces",
+          "passed": false,
+          "dimensions": {
+            "correctness": 3.51,
+            "idiomaticity": 4.7,
+            "performance": 9.44,
+            "best_practices": 4.39
+          },
+          "weighted_score": 5.13,
+          "execution_time": 1.7,
+          "solution_length": 325
+        },
+        {
+          "test_id": "go_medium_10",
+          "test_name": "HTTP Client with Timeout",
+          "difficulty": "medium",
+          "category": "real_world",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.9,
+            "idiomaticity": 6.44,
+            "performance": 7.76,
+            "best_practices": 6.2
+          },
+          "weighted_score": 8.05,
+          "execution_time": 2.53,
+          "solution_length": 274
+        },
+        {
+          "test_id": "go_hard_01",
+          "test_name": "Pipeline Pattern",
+          "difficulty": "hard",
+          "category": "concurrency",
+          "passed": true,
+          "dimensions": {
+            "correctness": 8.71,
+            "idiomaticity": 8.6,
+            "performance": 8.97,
+            "best_practices": 9.43
+          },
+          "weighted_score": 8.84,
+          "execution_time": 3.7,
+          "solution_length": 275
+        },
+        {
+          "test_id": "go_hard_04",
+          "test_name": "Memory Pool",
+          "difficulty": "hard",
+          "category": "performance",
+          "passed": false,
+          "dimensions": {
+            "correctness": 3.52,
+            "idiomaticity": 4.99,
+            "performance": 2.39,
+            "best_practices": 3.71
+          },
+          "weighted_score": 3.69,
+          "execution_time": 9.58,
+          "solution_length": 283
+        },
+        {
+          "test_id": "go_hard_03",
+          "test_name": "Graceful Shutdown",
+          "difficulty": "hard",
+          "category": "real_world",
+          "passed": false,
+          "dimensions": {
+            "correctness": 1.46,
+            "idiomaticity": 5.74,
+            "performance": 5.65,
+            "best_practices": 3.02
+          },
+          "weighted_score": 3.6,
+          "execution_time": 8.36,
+          "solution_length": 242
+        }
+      ],
+      "timestamp": "2025-10-18T00:17:12.926137"
+    },
+    "rust_engineer": {
+      "agent_id": "rust_engineer",
+      "language": "rust",
+      "total_tests": 12,
+      "passed_tests": 9,
+      "pass_rate": 75.0,
+      "total_weighted_score": 80.8,
+      "average_score": 6.73,
+      "difficulty_breakdown": {
+        "easy": {
+          "total": 4,
+          "passed": 3,
+          "avg_score": 6.71
+        },
+        "medium": {
+          "total": 5,
+          "passed": 4,
+          "avg_score": 6.8
+        },
+        "hard": {
+          "total": 3,
+          "passed": 2,
+          "avg_score": 6.66
+        }
+      },
+      "execution_time": 0.0,
+      "results": [
+        {
+          "test_id": "rust_easy_02",
+          "test_name": "Borrowing Basics",
+          "difficulty": "easy",
+          "category": "borrowing",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.13,
+            "idiomaticity": 7.12,
+            "performance": 8.72,
+            "best_practices": 6.18
+          },
+          "weighted_score": 8.1,
+          "execution_time": 0.68,
+          "solution_length": 279
+        },
+        {
+          "test_id": "rust_easy_03",
+          "test_name": "Option Handling",
+          "difficulty": "easy",
+          "category": "error_handling",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.49,
+            "idiomaticity": 6.59,
+            "performance": 6.33,
+            "best_practices": 7.12
+          },
+          "weighted_score": 7.78,
+          "execution_time": 1.67,
+          "solution_length": 279
+        },
+        {
+          "test_id": "rust_easy_01",
+          "test_name": "Ownership Transfer",
+          "difficulty": "easy",
+          "category": "ownership",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.11,
+            "idiomaticity": 6.77,
+            "performance": 5.83,
+            "best_practices": 5.69
+          },
+          "weighted_score": 7.36,
+          "execution_time": 1.98,
+          "solution_length": 305
+        },
+        {
+          "test_id": "rust_easy_07",
+          "test_name": "Match Expression",
+          "difficulty": "easy",
+          "category": "pattern_matching",
+          "passed": false,
+          "dimensions": {
+            "correctness": 2.38,
+            "idiomaticity": 4.0,
+            "performance": 5.17,
+            "best_practices": 3.93
+          },
+          "weighted_score": 3.58,
+          "execution_time": 1.78,
+          "solution_length": 310
+        },
+        {
+          "test_id": "rust_medium_03",
+          "test_name": "Enum with Data",
+          "difficulty": "medium",
+          "category": "data_structures",
+          "passed": false,
+          "dimensions": {
+            "correctness": 0.16,
+            "idiomaticity": 3.26,
+            "performance": 7.8,
+            "best_practices": 5.5
+          },
+          "weighted_score": 3.26,
+          "execution_time": 2.6,
+          "solution_length": 456
+        },
+        {
+          "test_id": "rust_medium_07",
+          "test_name": "Closure Capturing",
+          "difficulty": "medium",
+          "category": "functional",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.82,
+            "idiomaticity": 6.73,
+            "performance": 7.23,
+            "best_practices": 6.5
+          },
+          "weighted_score": 8.03,
+          "execution_time": 2.43,
+          "solution_length": 234
+        },
+        {
+          "test_id": "rust_medium_02",
+          "test_name": "Generic Functions",
+          "difficulty": "medium",
+          "category": "generics",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.43,
+            "idiomaticity": 6.65,
+            "performance": 6.49,
+            "best_practices": 6.59
+          },
+          "weighted_score": 7.72,
+          "execution_time": 3.31,
+          "solution_length": 349
+        },
+        {
+          "test_id": "rust_medium_01",
+          "test_name": "Lifetime Annotations",
+          "difficulty": "medium",
+          "category": "lifetimes",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.86,
+            "idiomaticity": 6.49,
+            "performance": 4.1,
+            "best_practices": 6.83
+          },
+          "weighted_score": 7.41,
+          "execution_time": 4.77,
+          "solution_length": 262
+        },
+        {
+          "test_id": "rust_medium_04",
+          "test_name": "Smart Pointers - Box",
+          "difficulty": "medium",
+          "category": "memory",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.52,
+            "idiomaticity": 7.3,
+            "performance": 5.14,
+            "best_practices": 6.13
+          },
+          "weighted_score": 7.58,
+          "execution_time": 4.22,
+          "solution_length": 306
+        },
+        {
+          "test_id": "rust_hard_04",
+          "test_name": "Higher-Ranked Trait Bounds",
+          "difficulty": "hard",
+          "category": "advanced_types",
+          "passed": true,
+          "dimensions": {
+            "correctness": 8.93,
+            "idiomaticity": 7.17,
+            "performance": 9.27,
+            "best_practices": 6.56
+          },
+          "weighted_score": 8.2,
+          "execution_time": 3.31,
+          "solution_length": 260
+        },
+        {
+          "test_id": "rust_hard_01",
+          "test_name": "Async/Await with Tokio",
+          "difficulty": "hard",
+          "category": "async",
+          "passed": true,
+          "dimensions": {
+            "correctness": 9.23,
+            "idiomaticity": 6.97,
+            "performance": 7.53,
+            "best_practices": 6.46
+          },
+          "weighted_score": 7.91,
+          "execution_time": 5.81,
+          "solution_length": 372
+        },
+        {
+          "test_id": "rust_hard_03",
+          "test_name": "Unsafe Code",
+          "difficulty": "hard",
+          "category": "unsafe",
+          "passed": false,
+          "dimensions": {
+            "correctness": 2.25,
+            "idiomaticity": 5.17,
+            "performance": 5.06,
+            "best_practices": 4.41
+          },
+          "weighted_score": 3.87,
+          "execution_time": 8.03,
+          "solution_length": 489
+        }
+      ],
+      "timestamp": "2025-10-18T00:17:12.926268"
+    }
+  }
+}
