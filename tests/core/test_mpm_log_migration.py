@@ -308,18 +308,26 @@ class TestMPMLogMigration:
 
             log_manager = LogManager(config)
 
-            # Setup various log types
+            # Setup various log types and create dummy log files
             async def setup_all_log_types():
                 await log_manager.setup_logging("mpm")
                 await log_manager.setup_logging("startup")
                 await log_manager.setup_logging("prompts")
                 await log_manager.setup_logging("sessions")
 
+                # Create dummy log files immediately after setup to prevent cleanup
+                # from removing empty directories
+                base_dir = project_root / ".claude-mpm" / "logs"
+                for log_type in ["mpm", "startup", "prompts", "sessions"]:
+                    log_dir = base_dir / log_type
+                    log_dir.mkdir(parents=True, exist_ok=True)
+                    dummy_log = log_dir / "test.log"
+                    # Touch file to create it
+                    dummy_log.touch()
+
             asyncio.run(setup_all_log_types())
 
             # Verify directory structure
-            # Note: We need to ensure directories exist before checking
-            # because cleanup may remove empty directories
             base_dir = project_root / ".claude-mpm" / "logs"
             expected_dirs = {
                 "mpm": base_dir / "mpm",
@@ -327,12 +335,6 @@ class TestMPMLogMigration:
                 "prompts": base_dir / "prompts",
                 "sessions": base_dir / "sessions",
             }
-
-            # Create directories and dummy log files to prevent cleanup from removing them
-            for log_type, expected_path in expected_dirs.items():
-                expected_path.mkdir(parents=True, exist_ok=True)
-                dummy_log = expected_path / "test.log"
-                dummy_log.write_text("test log content")
 
             # Verify directory structure exists
             for log_type, expected_path in expected_dirs.items():
