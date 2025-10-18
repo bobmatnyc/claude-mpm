@@ -234,11 +234,9 @@ class LearningExtractionHook(BaseHook):
                 return False
 
             # Add to agent memory
-            success = self.memory_manager.update_agent_memory(
+            return self.memory_manager.update_agent_memory(
                 agent_id=agent_id, new_items=learning_items
             )
-
-            return success
 
         except Exception as e:
             logger.error(f"Failed to write learning to memory for {agent_id}: {e}")
