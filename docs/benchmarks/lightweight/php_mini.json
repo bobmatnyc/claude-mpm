@@ -1,0 +1,342 @@
+{
+  "agent_id": "php_engineer",
+  "language": "php",
+  "suite_type": "lightweight",
+  "total_tests": 12,
+  "difficulty_distribution": {
+    "easy": 4,
+    "medium": 5,
+    "hard": 3
+  },
+  "category_coverage": [
+    "performance",
+    "real_world",
+    "validation",
+    "concurrency",
+    "database",
+    "string_manipulation",
+    "laravel",
+    "design_patterns",
+    "algorithms"
+  ],
+  "source_suite": "expanded_v1",
+  "version": "1.0.0",
+  "tests": [
+    {
+      "id": "php_easy_01",
+      "name": "Strict Types Array Sum",
+      "difficulty": "easy",
+      "category": "algorithms",
+      "description": "Calculate sum of array with strict type declarations.",
+      "signature": "<?php\ndeclare(strict_types=1);\nfunction arraySum(array $numbers): int|float",
+      "test_cases": [
+        {
+          "input": "[1, 2, 3, 4, 5]",
+          "expected": "15"
+        },
+        {
+          "input": "[1.5, 2.5, 3.0]",
+          "expected": "7.0"
+        }
+      ],
+      "constraints": [
+        "Must use strict_types=1",
+        "Must handle int and float"
+      ],
+      "hints": [
+        "Use array_sum or loop",
+        "Declare return type as int|float"
+      ],
+      "solution_approach": "Strict type array reduction",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "php_easy_05",
+      "name": "Temperature Converter",
+      "difficulty": "easy",
+      "category": "real_world",
+      "description": "Convert temperature between Celsius and Fahrenheit with strict types.",
+      "signature": "<?php\ndeclare(strict_types=1);\nfunction celsiusToFahrenheit(float $celsius): float\nfunction fahrenheitToCelsius(float $fahrenheit): float",
+      "test_cases": [
+        {
+          "input": "celsiusToFahrenheit(0)",
+          "expected": "32.0"
+        },
+        {
+          "input": "fahrenheitToCelsius(32)",
+          "expected": "0.0"
+        }
+      ],
+      "constraints": [
+        "Strict float types",
+        "Accurate conversion"
+      ],
+      "hints": [
+        "F = C * 9/5 + 32",
+        "C = (F - 32) * 5/9"
+      ],
+      "solution_approach": "Mathematical conversion",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "php_easy_03",
+      "name": "String Palindrome Check",
+      "difficulty": "easy",
+      "category": "string_manipulation",
+      "description": "Check if a string is a palindrome, ignoring case and spaces.",
+      "signature": "<?php\ndeclare(strict_types=1);\nfunction isPalindrome(string $str): bool",
+      "test_cases": [
+        {
+          "input": "A man a plan a canal Panama",
+          "expected": "true"
+        },
+        {
+          "input": "hello",
+          "expected": "false"
+        }
+      ],
+      "constraints": [
+        "Case-insensitive",
+        "Ignore spaces and punctuation"
+      ],
+      "hints": [
+        "Remove non-alphanumeric characters",
+        "Compare with reversed string"
+      ],
+      "solution_approach": "String normalization and comparison",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(n)"
+    },
+    {
+      "id": "php_easy_02",
+      "name": "Email Validator",
+      "difficulty": "easy",
+      "category": "validation",
+      "description": "Validate email address using filter_var with strict types.",
+      "signature": "<?php\ndeclare(strict_types=1);\nfunction isValidEmail(string $email): bool",
+      "test_cases": [
+        {
+          "input": "test@example.com",
+          "expected": "true"
+        },
+        {
+          "input": "invalid.email",
+          "expected": "false"
+        }
+      ],
+      "constraints": [
+        "Must use filter_var",
+        "Strict type declarations"
+      ],
+      "hints": [
+        "Use FILTER_VALIDATE_EMAIL",
+        "Return boolean"
+      ],
+      "solution_approach": "Built-in email validation",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "php_medium_09",
+      "name": "Repository Pattern",
+      "difficulty": "medium",
+      "category": "design_patterns",
+      "description": "Implement repository pattern with interface and Eloquent implementation.",
+      "signature": "interface UserRepositoryInterface\n{\n    public function find(int $id): ?User;\n    public function findByEmail(string $email): ?User;\n}\n\nclass EloquentUserRepository implements UserRepositoryInterface",
+      "test_cases": [
+        {
+          "input": "Bind interface to implementation",
+          "expected": "Repository can be swapped"
+        }
+      ],
+      "constraints": [
+        "Use interface",
+        "Bind in service provider"
+      ],
+      "hints": [
+        "Define interface first",
+        "Bind in AppServiceProvider"
+      ],
+      "solution_approach": "Repository abstraction",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "php_medium_01",
+      "name": "Laravel Eloquent Query Builder",
+      "difficulty": "medium",
+      "category": "laravel",
+      "description": "Build complex query with Eloquent relationships and filters.",
+      "signature": "// In User model\npublic function getActiveUsersWithPosts(): Collection",
+      "test_cases": [
+        {
+          "input": "Users with status='active' and at least one post",
+          "expected": "Collection of users with posts eager loaded"
+        }
+      ],
+      "constraints": [
+        "Use Eloquent relationships",
+        "Eager load to prevent N+1"
+      ],
+      "hints": [
+        "Use with() for eager loading",
+        "Use whereHas() for filtering"
+      ],
+      "solution_approach": "Eloquent query with eager loading",
+      "time_complexity": "O(n + m)",
+      "space_complexity": "O(n)"
+    },
+    {
+      "id": "php_medium_02",
+      "name": "Custom Validation Rule",
+      "difficulty": "medium",
+      "category": "laravel",
+      "description": "Create a custom validation rule that checks if username is unique across multiple tables.",
+      "signature": "class UniqueAcrossTablesRule implements ValidationRule\n{\n    public function validate(string $attribute, mixed $value, Closure $fail): void\n}",
+      "test_cases": [
+        {
+          "input": "Username exists in users or admins table",
+          "expected": "Validation fails"
+        }
+      ],
+      "constraints": [
+        "Check multiple tables",
+        "Use Laravel validation interface"
+      ],
+      "hints": [
+        "Implement ValidationRule",
+        "Query multiple tables"
+      ],
+      "solution_approach": "Custom validation rule",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "php_medium_03",
+      "name": "Service Container Binding",
+      "difficulty": "medium",
+      "category": "laravel",
+      "description": "Create service provider with singleton and contextual binding.",
+      "signature": "class PaymentServiceProvider extends ServiceProvider\n{\n    public function register(): void\n    {\n        // Bind payment gateways\n    }\n}",
+      "test_cases": [
+        {
+          "input": "Bind Stripe for web, PayPal for API",
+          "expected": "Correct gateway injected based on context"
+        }
+      ],
+      "constraints": [
+        "Use contextual binding",
+        "Register as singleton"
+      ],
+      "hints": [
+        "Use when() for contextual binding",
+        "Use singleton() for shared instance"
+      ],
+      "solution_approach": "Service container patterns",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "php_medium_04",
+      "name": "Database Migration with Relations",
+      "difficulty": "medium",
+      "category": "laravel",
+      "description": "Create migration for polymorphic many-to-many relationship.",
+      "signature": "public function up(): void\n{\n    Schema::create('taggables', function (Blueprint $table) {\n        // Define polymorphic pivot table\n    });\n}",
+      "test_cases": [
+        {
+          "input": "Tags can be attached to posts, videos, and comments",
+          "expected": "Polymorphic pivot table created"
+        }
+      ],
+      "constraints": [
+        "Use morphToMany structure",
+        "Add proper indexes"
+      ],
+      "hints": [
+        "Need taggable_id and taggable_type",
+        "Add foreign keys and indexes"
+      ],
+      "solution_approach": "Polymorphic pivot table",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "php_hard_05",
+      "name": "Distributed Lock Manager",
+      "difficulty": "hard",
+      "category": "concurrency",
+      "description": "Implement distributed locking mechanism using Redis for preventing race conditions.",
+      "signature": "class DistributedLock\n{\n    public function acquire(string $resource, int $ttl): bool\n    public function release(string $resource): bool\n    public function extend(string $resource, int $ttl): bool\n}",
+      "test_cases": [
+        {
+          "input": "Multiple workers processing same job",
+          "expected": "Only one acquires lock"
+        }
+      ],
+      "constraints": [
+        "Use Redis for coordination",
+        "Handle lock expiration"
+      ],
+      "hints": [
+        "Use SET NX EX in Redis",
+        "Generate unique lock tokens"
+      ],
+      "solution_approach": "Distributed locking with Redis",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)"
+    },
+    {
+      "id": "php_hard_02",
+      "name": "Database Transaction Saga",
+      "difficulty": "hard",
+      "category": "database",
+      "description": "Implement multi-step transaction with compensating actions for rollback.",
+      "signature": "class OrderSaga\n{\n    public function process(Order $order): void\n    {\n        DB::transaction(function () use ($order) {\n            // Multiple steps with compensating actions\n        });\n    }\n}",
+      "test_cases": [
+        {
+          "input": "Order processing with payment, inventory, shipping",
+          "expected": "All succeed or compensate on failure"
+        }
+      ],
+      "constraints": [
+        "Handle partial failures",
+        "Implement compensating transactions"
+      ],
+      "hints": [
+        "Use DB::transaction()",
+        "Track actions for rollback"
+      ],
+      "solution_approach": "Saga pattern with compensation",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(n)"
+    },
+    {
+      "id": "php_hard_01",
+      "name": "Advanced Query Optimization",
+      "difficulty": "hard",
+      "category": "performance",
+      "description": "Optimize complex query with subqueries, joins, and indexes to prevent N+1 queries.",
+      "signature": "// Optimize this query:\n// User::with('posts.comments.author')->get()\n// To single efficient query",
+      "test_cases": [
+        {
+          "input": "Load users with posts, comments, and comment authors",
+          "expected": "Maximum 4 queries total"
+        }
+      ],
+      "constraints": [
+        "No N+1 queries",
+        "Use eager loading constraints"
+      ],
+      "hints": [
+        "Use with() with closures",
+        "Select only needed columns"
+      ],
+      "solution_approach": "Query optimization with constraints",
+      "time_complexity": "O(n + m + p)",
+      "space_complexity": "O(n)"
+    }
+  ]
+}
