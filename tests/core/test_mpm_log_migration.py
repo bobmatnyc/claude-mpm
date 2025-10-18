@@ -69,6 +69,11 @@ class TestMPMLogMigration:
             # Setup logging first to create directory
             async def test_logging():
                 await log_manager.setup_logging("mpm")  # This creates the directory
+
+                # Ensure directory exists before write (in case cleanup removed it)
+                mpm_dir = project_root / ".claude-mpm" / "logs" / "mpm"
+                mpm_dir.mkdir(parents=True, exist_ok=True)
+
                 await log_manager.write_log_async("Test MPM log message", "INFO")
                 # Give more time for async write and directory creation
                 await asyncio.sleep(0.3)
@@ -77,9 +82,6 @@ class TestMPMLogMigration:
 
             # Verify file was created in correct location
             mpm_dir = project_root / ".claude-mpm" / "logs" / "mpm"
-
-            # Ensure directory exists (create if cleanup removed it)
-            mpm_dir.mkdir(parents=True, exist_ok=True)
             assert mpm_dir.exists()
 
             # Check for log file with today's date
