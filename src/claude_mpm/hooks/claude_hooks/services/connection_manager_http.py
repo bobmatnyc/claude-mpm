@@ -12,6 +12,7 @@ This eliminates disconnection issues and matches the process lifecycle.
 import asyncio
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 # Debug mode is enabled by default for better visibility into hook processing
@@ -78,6 +79,13 @@ class ConnectionManagerService:
 
         # Track async emit tasks to prevent garbage collection
         self._emit_tasks: set = set()
+
+        # Thread pool for non-blocking HTTP requests
+        # WHY: Prevents HTTP POST from blocking hook processing (2s timeout → 0ms blocking)
+        # max_workers=2: Sufficient for low-frequency HTTP fallback events
+        self._http_executor = ThreadPoolExecutor(
+            max_workers=2, thread_name_prefix="http-emit"
+        )
 
         if DEBUG:
             print(
@@ -181,7 +189,11 @@ class ConnectionManagerService:
             return False
 
     def _try_http_emit(self, namespace: str, event: str, data: dict):
-        """Try to emit event using HTTP POST fallback."""
+        """Try to emit event using HTTP POST fallback (non-blocking).
+
+        WHY non-blocking: HTTP POST can take up to 2 seconds (timeout),
+        blocking hook processing. Thread pool makes it fire-and-forget.
+        """
         if not REQUESTS_AVAILABLE:
             if DEBUG:
                 print(
@@ -190,6 +202,11 @@ class ConnectionManagerService:
                 )
             return
 
+        # Submit to thread pool - don't wait for result (fire-and-forget)
+        self._http_executor.submit(self._http_emit_blocking, namespace, event, data)
+
+    def _http_emit_blocking(self, namespace: str, event: str, data: dict):
+        """HTTP emission in background thread (blocking operation isolated)."""
         try:
             # Create payload for HTTP API
             payload = {
@@ -230,4 +247,8 @@ class ConnectionManagerService:
 
     def cleanup(self):
         """Cleanup connections on service destruction."""
-        # Nothing to cleanup for HTTP POST approach
+        # Shutdown HTTP executor gracefully
+        if hasattr(self, "_http_executor"):
+            self._http_executor.shutdown(wait=False)
+            if DEBUG:
+                print("✅ HTTP executor shutdown", file=sys.stderr)

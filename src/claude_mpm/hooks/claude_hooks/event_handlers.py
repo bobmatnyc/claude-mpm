@@ -312,14 +312,16 @@ class EventHandlers:
         if not working_dir:
             working_dir = Path.cwd()
 
-        # Check cache first (cache for 30 seconds)
+        # Check cache first (cache for 300 seconds = 5 minutes)
+        # WHY 5 minutes: Git branches rarely change during development sessions,
+        # reducing subprocess overhead significantly without staleness issues
         current_time = datetime.now(timezone.utc).timestamp()
         cache_key = working_dir
 
         if (
             cache_key in self.hook_handler._git_branch_cache
             and cache_key in self.hook_handler._git_branch_cache_time
-            and current_time - self.hook_handler._git_branch_cache_time[cache_key] < 30
+            and current_time - self.hook_handler._git_branch_cache_time[cache_key] < 300
         ):
             return self.hook_handler._git_branch_cache[cache_key]
 
