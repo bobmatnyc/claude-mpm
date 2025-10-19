@@ -1,6 +1,20 @@
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+### Deprecated
+
+### Security
+
+## [4.10.0] - 2025-10-19
+
+### Added
 - KuzuMemoryService now registered as built-in MCP Gateway tool
 - **Interactive auto-install for mcp-vector-search**: On first use, users can choose pip/pipx installation or skip
   - Interactive prompt with 3 clear options: pip, pipx, or fallback to grep/glob
@@ -25,14 +39,6 @@
   - User-friendly installation options with explanations
   - Non-disruptive fallback behavior when installation skipped
   - Better error messages and recovery suggestions
-
-### Fixed
-
-### Removed
-
-### Deprecated
-
-### Security
 
 ## [4.8.6] - 2025-10-18
 
