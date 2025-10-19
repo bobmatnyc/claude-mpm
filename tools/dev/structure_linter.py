@@ -326,7 +326,7 @@ class StructureLinter:
         else:
             # Check that [Unreleased] section has proper subsections
             found_sections = set()
-            for i in range(unreleased_line + 1, min(unreleased_line + 20, len(lines))):
+            for i in range(unreleased_line + 1, min(unreleased_line + 50, len(lines))):
                 line = lines[i]
                 if re.match(r'^##\s+\[', line):  # Next version section
                     break

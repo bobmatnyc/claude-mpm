@@ -64,21 +64,28 @@ class ExternalMCPService(BaseToolAdapter):
             execution_time=0.0,
         )
 
-    async def initialize(self) -> bool:
-        """Initialize the external service."""
+    async def initialize(
+        self, auto_install: bool = True, interactive: bool = True
+    ) -> bool:
+        """Initialize the external service.
+
+        Args:
+            auto_install: Whether to automatically install if not found
+            interactive: Whether to prompt user for installation preferences
+        """
         try:
             # Check if package is installed
             self._is_installed = await self._check_installation()
 
-            if not self._is_installed:
-                self.logger.debug(
-                    f"{self.package_name} not installed - will attempt automatic installation if needed"
+            if not self._is_installed and auto_install:
+                self.logger.info(
+                    f"{self.package_name} not installed - attempting installation"
                 )
-                await self._install_package()
+                await self._install_package(interactive=interactive)
                 self._is_installed = await self._check_installation()
 
             if not self._is_installed:
-                self.logger.error(f"Failed to install {self.package_name}")
+                self.logger.warning(f"{self.package_name} is not available")
                 return False
 
             self.logger.info(f"{self.package_name} is available")
@@ -90,9 +97,21 @@ class ExternalMCPService(BaseToolAdapter):
 
     async def _check_installation(self) -> bool:
         """Check if the package is installed."""
+        # First check if importable (faster and more reliable)
+        import_name = self.package_name.replace("-", "_")
+        try:
+            import importlib.util
+
+            spec = importlib.util.find_spec(import_name)
+            if spec is not None:
+                return True
+        except (ImportError, ModuleNotFoundError, ValueError):
+            pass
+
+        # Fallback: try running as module
         try:
             result = subprocess.run(
-                [sys.executable, "-m", self.package_name.replace("-", "_"), "--help"],
+                [sys.executable, "-m", import_name, "--help"],
                 capture_output=True,
                 text=True,
                 timeout=5,
@@ -106,25 +125,133 @@ class ExternalMCPService(BaseToolAdapter):
         ):
             return False
 
-    async def _install_package(self) -> bool:
-        """Install the package using pip."""
+    async def _install_package(self, interactive: bool = True) -> bool:
+        """Install the package using pip or pipx.
+
+        Args:
+            interactive: Whether to prompt user for installation method choice
+        """
         try:
-            self.logger.info(f"Installing {self.package_name}...")
+            install_method = None
+
+            if interactive:
+                # Show user-friendly installation prompt
+                print(f"\n⚠️  {self.package_name} not found")
+                print("This package enables enhanced functionality (optional).")
+                print("\nInstallation options:")
+                print("1. Install via pip (recommended for this project)")
+                print("2. Install via pipx (isolated, system-wide)")
+                print("3. Skip (continue without this package)")
+
+                try:
+                    choice = input("\nChoose option (1/2/3) [1]: ").strip() or "1"
+                    if choice == "1":
+                        install_method = "pip"
+                    elif choice == "2":
+                        install_method = "pipx"
+                    else:
+                        self.logger.info(
+                            f"Skipping installation of {self.package_name}"
+                        )
+                        return False
+                except (EOFError, KeyboardInterrupt):
+                    print("\nInstallation cancelled")
+                    return False
+            else:
+                # Non-interactive: default to pip
+                install_method = "pip"
+
+            # Install using selected method
+            if install_method == "pip":
+                return await self._install_via_pip()
+            if install_method == "pipx":
+                return await self._install_via_pipx()
+
+            return False
+
+        except Exception as e:
+            self.logger.error(f"Error installing {self.package_name}: {e}")
+            return False
+
+    async def _install_via_pip(self) -> bool:
+        """Install package via pip."""
+        try:
+            print(f"\n📦 Installing {self.package_name} via pip...")
             result = subprocess.run(
                 [sys.executable, "-m", "pip", "install", self.package_name],
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=120,
                 check=False,
             )
 
             if result.returncode == 0:
-                self.logger.info(f"Successfully installed {self.package_name}")
+                print(f"✓ Successfully installed {self.package_name}")
+                self.logger.info(f"Successfully installed {self.package_name} via pip")
                 return True
-            self.logger.error(f"Failed to install {self.package_name}: {result.stderr}")
+
+            error_msg = result.stderr.strip() if result.stderr else "Unknown error"
+            print(f"✗ Installation failed: {error_msg}")
+            self.logger.error(f"Failed to install {self.package_name}: {error_msg}")
             return False
 
+        except subprocess.TimeoutExpired:
+            print("✗ Installation timed out")
+            self.logger.error(f"Installation of {self.package_name} timed out")
+            return False
         except Exception as e:
+            print(f"✗ Installation error: {e}")
+            self.logger.error(f"Error installing {self.package_name}: {e}")
+            return False
+
+    async def _install_via_pipx(self) -> bool:
+        """Install package via pipx."""
+        try:
+            # Check if pipx is available
+            pipx_check = subprocess.run(
+                ["pipx", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+
+            if pipx_check.returncode != 0:
+                print("✗ pipx is not installed")
+                print("Install pipx first: python -m pip install pipx")
+                self.logger.error("pipx not available for installation")
+                return False
+
+            print(f"\n📦 Installing {self.package_name} via pipx...")
+            result = subprocess.run(
+                ["pipx", "install", self.package_name],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+
+            if result.returncode == 0:
+                print(f"✓ Successfully installed {self.package_name}")
+                self.logger.info(f"Successfully installed {self.package_name} via pipx")
+                return True
+
+            error_msg = result.stderr.strip() if result.stderr else "Unknown error"
+            print(f"✗ Installation failed: {error_msg}")
+            self.logger.error(f"Failed to install {self.package_name}: {error_msg}")
+            return False
+
+        except FileNotFoundError:
+            print("✗ pipx command not found")
+            print("Install pipx first: python -m pip install pipx")
+            self.logger.error("pipx command not found")
+            return False
+        except subprocess.TimeoutExpired:
+            print("✗ Installation timed out")
+            self.logger.error(f"Installation of {self.package_name} timed out")
+            return False
+        except Exception as e:
+            print(f"✗ Installation error: {e}")
             self.logger.error(f"Error installing {self.package_name}: {e}")
             return False
 
