@@ -7,6 +7,15 @@
 ### Fixed
 ### Security
 
+## [4.8.4] - 2025-10-18
+
+### Changed
+- **Python Engineer v2.2.0**: Dramatic pass rate improvement (+33.4%)
+  - Fixed async test case definitions in lightweight benchmark
+  - Enhanced sliding window and BFS algorithm patterns
+  - Pass rate: 58.3% → 91.7% (11/12 tests)
+  - Deployed via production benchmark validation
+
 ## [4.8.3] - 2025-10-18
 
 ### Added
