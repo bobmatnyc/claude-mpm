@@ -7,6 +7,29 @@
 ### Fixed
 ### Security
 
+## [4.8.5] - 2025-10-18
+
+### Added
+- **Python Engineer v2.2.1**: AsyncWorkerPool with retry logic and exponential backoff
+  - Enhanced error recovery patterns for async operations
+  - Expected improvement: 91.7% → 100% pass rate on async tests
+- **Next.js Engineer v2.1.0**: Advanced rendering patterns
+  - Pattern 3: Complete PPR (Partial Prerendering) implementation
+  - Pattern 6 (NEW): Parallel data fetching with Promise.all()
+  - Pattern 4: Enhanced Suspense boundaries
+  - Expected improvement: 75% → 91.7-100% pass rate
+- **Git Commit Protocol**: All 35 agents now follow standardized commit practices
+  - Pre-modification file history review with `git log -p`
+  - WHAT + WHY commit message format
+  - 100% agent coverage (35/35 agents)
+- **Context Management Protocol**: PM proactive monitoring
+  - 90% threshold: Warning with actionable recommendations
+  - 95% threshold: Urgent restart required notice
+  - Prevents token limit crashes during complex workflows
+
+### Changed
+- Git commit guidelines coverage: 1/35 → 35/35 agents (100%)
+
 ## [4.8.4] - 2025-10-18
 
 ### Changed
