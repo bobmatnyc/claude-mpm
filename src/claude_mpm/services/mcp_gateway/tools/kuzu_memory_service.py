@@ -13,6 +13,7 @@ DESIGN DECISIONS:
 - Provides high-level tools that abstract kuzu-memory complexity
 - Includes context enrichment for better memory retrieval
 - Supports tagging for organized knowledge management
+- kuzu-memory>=1.1.5 is now a REQUIRED dependency (moved from optional in v4.8.6)
 """
 
 import json
@@ -111,7 +112,13 @@ class KuzuMemoryService(BaseToolAdapter):
         return False
 
     async def _install_package(self) -> bool:
-        """Install kuzu-memory using pipx (preferred over pip)."""
+        """
+        Install kuzu-memory using pipx (preferred over pip).
+
+        NOTE: As of v4.8.6, kuzu-memory is a required dependency and should be
+        installed via pip along with claude-mpm. This method is kept for backward
+        compatibility and edge cases where the package may be missing.
+        """
         try:
             # Check if pipx is available
             import shutil
@@ -119,6 +126,9 @@ class KuzuMemoryService(BaseToolAdapter):
             if not shutil.which("pipx"):
                 self.log_warning(
                     "pipx not found. Install it first: python -m pip install --user pipx"
+                )
+                self.log_info(
+                    "Alternatively, kuzu-memory should be installed via pip with claude-mpm dependencies"
                 )
                 return False
 
@@ -143,23 +153,33 @@ class KuzuMemoryService(BaseToolAdapter):
             return False
 
     async def initialize(self) -> bool:
-        """Initialize the kuzu-memory service."""
+        """
+        Initialize the kuzu-memory service.
+
+        NOTE: As of v4.8.6, kuzu-memory is a required dependency. This method
+        checks for installation and provides helpful messages if missing.
+        """
         try:
             # Check if package is installed
             self._is_installed = await self._check_installation()
 
             if not self._is_installed:
                 self.log_warning(
-                    f"{self.package_name} not installed, attempting installation..."
+                    f"{self.package_name} not found in PATH. "
+                    f"Since v4.8.6, it's a required dependency."
                 )
+                self.log_info("Attempting installation via pipx as fallback...")
                 await self._install_package()
                 self._is_installed = await self._check_installation()
 
             if not self._is_installed:
-                self.log_error(f"Failed to install {self.package_name}")
+                self.log_error(
+                    f"Failed to initialize {self.package_name}. "
+                    f"Please install manually: pip install kuzu-memory>=1.1.5"
+                )
                 return False
 
-            self.log_info(f"{self.package_name} is available")
+            self.log_info(f"{self.package_name} is available and ready")
             self._initialized = True
             return True
 

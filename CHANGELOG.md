@@ -1,7 +1,13 @@
 ## [Unreleased]
 
 ### Added
+- KuzuMemoryService now registered as built-in MCP Gateway tool
+
 ### Changed
+- Move kuzu-memory from optional to required dependency for seamless memory integration
+- kuzu-memory now always installed with Claude MPM (no longer in optional [mcp] extras)
+- Simplified installation instructions - kuzu-memory included out of the box
+
 ### Deprecated
 ### Removed
 ### Fixed
