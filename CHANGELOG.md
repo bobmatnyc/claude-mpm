@@ -7,6 +7,11 @@
 ### Fixed
 ### Security
 
+## [4.8.6] - 2025-10-18
+
+### Fixed
+- Move ClickUp API credentials to environment variables for improved security
+
 ## [4.8.5] - 2025-10-18
 
 ### Added
