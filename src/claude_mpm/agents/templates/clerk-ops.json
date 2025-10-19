@@ -88,7 +88,10 @@
       "Implement proper error handling and logging",
       "Use server-side authentication checks for security",
       "Monitor session performance and optimize accordingly",
-      "Keep Clerk SDKs updated to latest versions"
+      "Keep Clerk SDKs updated to latest versions",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "Development instances limited to 100 users",

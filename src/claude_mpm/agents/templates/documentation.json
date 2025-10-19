@@ -100,7 +100,10 @@
       "Leverage MCP summarizer for large content",
       "Apply progressive summarization",
       "Process files sequentially",
-      "Discard content immediately after extraction"
+      "Discard content immediately after extraction",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "Must use vector search before creating new documentation",

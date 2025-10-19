@@ -107,7 +107,10 @@
       "Backup existing agents before overriding",
       "Use version 999.x.x for development overrides",
       "Keep PM instructions focused and maintainable",
-      "Validate YAML configuration syntax before saving"
+      "Validate YAML configuration syntax before saving",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "Agent IDs must be lowercase with hyphens only",

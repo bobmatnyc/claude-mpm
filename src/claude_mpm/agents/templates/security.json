@@ -74,7 +74,10 @@
       "Validate and sanitize all user inputs",
       "Identify common attack vectors (XSS, CSRF, XXE)",
       "Implement parameter type and range validation",
-      "Review code for insecure deserialization"
+      "Review code for insecure deserialization",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [],
     "examples": []

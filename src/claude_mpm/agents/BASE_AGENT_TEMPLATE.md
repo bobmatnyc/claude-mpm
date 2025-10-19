@@ -139,6 +139,124 @@ End every response with this structured data:
 ❌ Never read files >1MB or process in parallel
 ❌ Never retain content after extraction
 
+## Git Commit Protocol
+
+### Pre-Modification Review (MANDATORY)
+
+**Before modifying any file, you MUST**:
+1. **Review recent commit history**: `git log --oneline -5 <file_path>`
+2. **Understand context**: What was changed and why
+3. **Check for patterns**: Ongoing work or related changes
+4. **Identify dependencies**: Related commits or issues
+
+**Example**:
+```bash
+# Before editing src/services/auth.py
+git log --oneline -5 src/services/auth.py
+# Output shows: Recent security updates, refactoring, bug fixes
+# Context: Understand recent changes before modifying
+```
+
+### Commit Message Standards (MANDATORY)
+
+**Every commit MUST include**:
+1. **WHAT**: Succinct summary of changes (50 characters or less)
+2. **WHY**: Explanation of rationale and problem solved
+3. **FORMAT**: Conventional commits (feat/fix/docs/refactor/perf/test/chore)
+
+**Commit Message Structure**:
+```
+type(scope): brief description
+
+- Detail 1: What changed
+- Detail 2: Why it changed
+- Detail 3: Impact or considerations
+
+🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+**Commit Types**:
+- `feat:` New features or capabilities
+- `fix:` Bug fixes
+- `docs:` Documentation changes
+- `refactor:` Code restructuring without behavior change
+- `perf:` Performance improvements
+- `test:` Test additions or modifications
+- `chore:` Maintenance tasks (dependencies, config, build)
+
+### Commit Quality Examples
+
+**✅ GOOD Commit Messages**:
+```
+feat: enhance sliding window pattern with edge cases
+
+- Added if not s: return 0 edge case handling
+- Step-by-step comments explaining window expansion/contraction
+- Improves pattern clarity for Longest Substring test
+
+Fixes: python_medium_03 test failure (score 4.63 → 7.5+)
+```
+
+```
+fix: resolve race condition in log cleanup test
+
+- Added asyncio.sleep(0.1) to allow cleanup completion
+- Prevents intermittent test failures
+- Affects test_directory_structure_verification
+
+Related: Issue #42 - Intermittent test failures
+```
+
+**❌ BAD Commit Messages**:
+```
+update file          # No context - what file? what update? why?
+fix                  # What was fixed? How? Why?
+changes              # What changes? Why needed?
+wip                  # Work in progress - commit when complete
+minor tweaks         # Not descriptive - be specific
+```
+
+### Pre-Commit Checklist
+
+**Never commit without**:
+- [ ] Reviewed recent file history (`git log --oneline -5 <file>`)
+- [ ] Understood context of changes and recent work
+- [ ] Written explanatory commit message (WHAT + WHY)
+- [ ] Followed conventional commits format
+- [ ] Verified changes don't conflict with recent commits
+
+### Git History as Context
+
+**Use commit history to**:
+- Understand file evolution and design decisions
+- Identify related changes across multiple commits
+- Recognize ongoing refactoring or feature development
+- Avoid conflicting changes or undoing recent work
+- Learn from previous commit message patterns
+- Discover why certain approaches were chosen or avoided
+
+**Example Workflow**:
+```bash
+# 1. Review file history before changes
+git log --oneline -10 src/agents/engineer.py
+
+# 2. Understand recent work
+# Output: "feat: add async patterns", "fix: handle edge cases", etc.
+
+# 3. Make your changes with context
+
+# 4. Write commit message explaining WHAT and WHY
+git commit -m "refactor: extract validation logic to helper function
+
+- Moved duplicate validation code to _validate_input()
+- Improves code reusability and testing
+- Follows pattern established in commit abc123f
+
+Builds on: Recent validation improvements (last 3 commits)"
+```
+
 ## TodoWrite Protocol
 
 ### Required Prefix Format

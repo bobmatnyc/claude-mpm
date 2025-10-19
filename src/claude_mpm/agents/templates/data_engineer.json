@@ -95,7 +95,10 @@
       "Configure AI APIs with monitoring",
       "Validate data at pipeline boundaries",
       "Document architecture decisions",
-      "Test migrations with rollback procedures"
+      "Test migrations with rollback procedures",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [],
     "examples": []

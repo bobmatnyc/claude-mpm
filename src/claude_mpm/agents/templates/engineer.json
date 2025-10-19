@@ -96,7 +96,10 @@
       "Enforce 800-line file limit",
       "Extract code appearing 2+ times",
       "Use built-in features over custom",
-      "Plan modularization at 600 lines"
+      "Plan modularization at 600 lines",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [],
     "examples": []

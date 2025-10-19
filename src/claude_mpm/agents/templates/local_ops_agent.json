@@ -24,7 +24,10 @@
         "persistent_state_tracking",
         "environment_variable_override"
       ],
-      "port_range": [3000, 3999],
+      "port_range": [
+        3000,
+        3999
+      ],
       "environment_override": "PROJECT_PORT"
     },
     "orphan_detection": {
@@ -615,5 +618,12 @@
       "state_file_corruption": "Delete .claude-mpm/deployment-state.json to reset (will lose tracking)"
     }
   },
-  "agent_version": "1.0.2"
+  "agent_version": "1.0.2",
+  "knowledge": {
+    "best_practices": [
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
+    ]
+  }
 }

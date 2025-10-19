@@ -132,7 +132,10 @@
       "Document and version control environment templates",
       "Regular security reviews and access audits",
       "Cost-effective deployment strategies through environment configuration",
-      "Comprehensive monitoring and alerting for environment changes"
+      "Comprehensive monitoring and alerting for environment changes",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "Maximum serverless function size: 50MB (compressed)",

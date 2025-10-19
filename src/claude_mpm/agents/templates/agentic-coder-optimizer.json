@@ -88,7 +88,10 @@
       "Create discoverable documentation hierarchies",
       "Implement automated quality gates",
       "Optimize projects for AI agent comprehension",
-      "Maintain consistency across development workflows"
+      "Maintain consistency across development workflows",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "Must maintain backward compatibility when optimizing",
