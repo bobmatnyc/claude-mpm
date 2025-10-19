@@ -13,8 +13,9 @@ for structured memory storage with semantic search capabilities.
 DESIGN DECISIONS:
 - Priority 10 for early execution to enrich prompts before other hooks
 - Uses subprocess to call kuzu-memory directly for maximum compatibility
-- Graceful degradation if kuzu-memory is not installed
+- Graceful degradation if kuzu-memory is not in PATH (though it's now required)
 - Automatic extraction and storage of important information
+- kuzu-memory>=1.1.5 is now a REQUIRED dependency (moved from optional in v4.8.6)
 """
 
 import json
@@ -50,7 +51,10 @@ class KuzuMemoryHook(SubmitHook):
         self.enabled = self.kuzu_memory_cmd is not None
 
         if not self.enabled:
-            logger.info("Kuzu-memory not found. Install with: pipx install kuzu-memory")
+            logger.warning(
+                "Kuzu-memory not found in PATH. As of v4.8.6, it's a required dependency. "
+                "Install with: pip install kuzu-memory>=1.1.5 or pipx install kuzu-memory"
+            )
         else:
             logger.info(f"Kuzu-memory integration enabled: {self.kuzu_memory_cmd}")
 
@@ -72,6 +76,10 @@ class KuzuMemoryHook(SubmitHook):
         1. Check pipx installation
         2. Check system PATH
         3. Return None if not found
+
+        NOTE: As of v4.8.6, kuzu-memory is a required dependency and should be
+        installed via pip. This method checks both pipx and system PATH for
+        backward compatibility.
         """
         # Check pipx installation
         pipx_path = (

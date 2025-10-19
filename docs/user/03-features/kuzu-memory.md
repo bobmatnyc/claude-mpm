@@ -18,13 +18,13 @@ Kuzu-memory is a personal knowledge graph system that:
 - Stores memories with tags and relationships for organized knowledge management
 - Works with project-specific databases (each project gets its own memory store)
 
-## Automatic Installation
+## Installation
 
-Claude MPM automatically installs kuzu-memory via pipx when first started. If kuzu-memory is not detected:
+Claude MPM now includes kuzu-memory as a required dependency, providing seamless memory integration out of the box:
 
-1. **Automatic Detection**: Claude MPM checks for kuzu-memory in standard locations
-2. **Auto-Installation**: If not found, installs via `pipx install kuzu-memory`
-3. **Graceful Degradation**: If installation fails, Claude MPM continues without memory features
+1. **Automatic Installation**: kuzu-memory is installed automatically with Claude MPM
+2. **No Manual Setup**: No additional installation steps required
+3. **Built-in Integration**: Memory features are always available and ready to use
 
 ## How It Works
 

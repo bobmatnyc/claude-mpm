@@ -60,10 +60,12 @@ Claude MPM offers several optional dependency groups that can be combined:
 
 | Dependency Group | Description | Packages Included |
 |-----------------|-------------|------------------|
-| `[mcp]` | MCP services for external tool integration | mcp, mcp-vector-search, mcp-browser, mcp-ticketer, kuzu-memory |
+| `[mcp]` | MCP services for external tool integration | mcp, mcp-vector-search, mcp-browser, mcp-ticketer |
 | `[monitor]` | Real-time monitoring dashboard | python-socketio, aiohttp, websockets, aiofiles |
 | `[dev]` | Development tools | pytest, black, flake8, mypy, ruff |
 | `[docs]` | Documentation building | sphinx, sphinx-rtd-theme |
+
+**Note**: kuzu-memory is now a required dependency and is installed automatically with Claude MPM.
 
 ### Installing Multiple Optional Groups
 
@@ -93,8 +95,8 @@ uv pip install "claude-mpm[mcp,monitor]"
 
 | Use Case | Installation Command | What You Get |
 |----------|---------------------|--------------|
-| Basic CLI only | `pip install claude-mpm` | Core Claude MPM functionality |
-| With AI tools | `pip install "claude-mpm[mcp]"` | + MCP services, vector search, kuzu-memory |
+| Basic CLI only | `pip install claude-mpm` | Core Claude MPM functionality + kuzu-memory |
+| With AI tools | `pip install "claude-mpm[mcp]"` | + MCP services, vector search |
 | With dashboard | `pip install "claude-mpm[monitor]"` | + Real-time monitoring web interface |
 | **Full features** | `pip install "claude-mpm[mcp,monitor]"` | All features enabled (recommended) |
 | Development | `pip install "claude-mpm[mcp,monitor,dev]"` | + Testing and linting tools |
@@ -178,11 +180,13 @@ pip install "claude-mpm[mcp,monitor,agents,dev,docs]"
 ```
 
 **Optional Dependencies**:
-- `claude-mpm[mcp]`: **NEW** - Include MCP services (mcp-vector-search, kuzu-memory)
+- `claude-mpm[mcp]`: Include MCP services (mcp-vector-search, mcp-browser, mcp-ticketer)
 - `claude-mpm[monitor]`: Include real-time monitoring features
 - `claude-mpm[agents]`: Include agent analysis tools
 - `claude-mpm[dev]`: Include development and testing tools
 - `claude-mpm[docs]`: Include documentation tools
+
+**Note**: kuzu-memory is now a required dependency, installed automatically with all installation methods.
 
 ### Method 4: npm (Wrapper)
 
@@ -344,13 +348,13 @@ Claude MPM v4.4.x includes optional MCP (Model Context Protocol) services that e
 - **Purpose**: Persistent knowledge management with graph database
 - **Features**: Project context storage, conversation history, learning retention
 - **Database**: Project-specific graph database
-- **Installation**: Optional dependency or automatic via pipx
+- **Installation**: Now included as required dependency with Claude MPM
 
 ### Installation Options
 
 #### Option 1: Include MCP Services (Recommended)
 ```bash
-# Install with MCP services as dependencies
+# Install with MCP services as dependencies (includes kuzu-memory automatically)
 pip install "claude-mpm[mcp]"
 # or
 pipx install "claude-mpm[mcp]"
@@ -360,15 +364,16 @@ uv pip install "claude-mpm[mcp]"
 
 #### Option 2: Basic Installation with Automatic Fallback
 ```bash
-# Basic installation - MCP services auto-install on first use
+# Basic installation - includes kuzu-memory, MCP services auto-install on first use
 pip install claude-mpm
 ```
 
-When MCP services are needed but not pre-installed:
+When optional MCP services are needed but not pre-installed:
 - Claude MPM automatically detects missing services
 - Attempts installation via pipx in the background
 - Falls back gracefully if installation fails
 - Provides clear diagnostic information via `claude-mpm doctor`
+- kuzu-memory is always available (required dependency)
 
 ### Troubleshooting MCP Installation
 
@@ -426,8 +431,9 @@ claude-mpm doctor --checks mcp --verbose
 **MCP services not installing automatically**
 - Check pipx is available: `which pipx`
 - Install pipx if missing: `python -m pip install --user pipx`
-- Manual service installation: `pipx install mcp-vector-search kuzu-memory`
+- Manual service installation: `pipx install mcp-vector-search mcp-browser mcp-ticketer`
 - Use diagnostic command: `claude-mpm doctor --checks mcp --verbose`
+- Note: kuzu-memory is included with Claude MPM (no separate installation needed)
 
 **Network/firewall issues**
 - Try different index: `pip install -i https://pypi.org/simple/ claude-mpm`
@@ -505,8 +511,9 @@ npm uninstall -g @bobmatnyc/claude-mpm
 # Remove virtual environments
 rm -rf venv claude-mpm-env
 
-# Remove MCP services (optional)
-pipx uninstall mcp-vector-search kuzu-memory
+# Remove optional MCP services
+pipx uninstall mcp-vector-search mcp-browser mcp-ticketer
+# Note: kuzu-memory is part of Claude MPM and uninstalled with it
 
 # Remove project databases (optional)
 rm -rf ~/.claude-mpm

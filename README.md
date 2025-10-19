@@ -45,10 +45,11 @@ claude-mpm mcp-pipx-config
 ```
 
 **💡 Optional Dependencies**:
-- `[mcp]` - Include MCP services (mcp-vector-search, mcp-browser, mcp-ticketer, kuzu-memory)
+- `[mcp]` - Include MCP services (mcp-vector-search, mcp-browser, mcp-ticketer)
 - `[monitor]` - Full monitoring dashboard with Socket.IO and async web server components
 - **Combine both**: Use `"claude-mpm[mcp,monitor]"` to install all features
-- Without optional dependencies, MCP services auto-install on first use via pipx
+- **Note**: kuzu-memory is now a required dependency, always included with Claude MPM
+- Without optional MCP dependencies, other MCP services auto-install on first use via pipx
 
 **🎉 Pipx Support Now Fully Functional!** Recent improvements ensure complete compatibility:
 - ✅ Socket.IO daemon script path resolution (fixed)
