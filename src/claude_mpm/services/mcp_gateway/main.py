@@ -314,6 +314,15 @@ class MCPGatewayOrchestrator:
             except Exception as e:
                 self.logger.warning(f"Could not load document summarizer: {e}")
 
+        # Kuzu-Memory Service (now a required dependency)
+        try:
+            from .tools.kuzu_memory_service import KuzuMemoryService
+
+            tools.append(KuzuMemoryService())
+            self.logger.info("KuzuMemoryService added to built-in tools")
+        except Exception as e:
+            self.logger.warning(f"Could not load KuzuMemoryService: {e}")
+
         # Ticket tools removed - mcp-ticketer provides ticket functionality
 
         if not tools:
