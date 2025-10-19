@@ -83,7 +83,10 @@
       "Set up container orchestration",
       "Implement comprehensive monitoring",
       "Optimize infrastructure costs and performance",
-      "Manage multi-environment configurations"
+      "Manage multi-environment configurations",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [],
     "examples": []

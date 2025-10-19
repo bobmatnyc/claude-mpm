@@ -130,7 +130,10 @@
       "Verify test process termination after execution to prevent memory leaks",
       "Monitor for orphaned test processes: ps aux | grep -E \"(vitest|jest|node.*test)\"",
       "Clean up hanging processes: pkill -f \"vitest\" || pkill -f \"jest\"",
-      "Always validate package.json test script is CI-safe before execution"
+      "Always validate package.json test script is CI-safe before execution",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "Maximum 5-10 test files for sampling per session",

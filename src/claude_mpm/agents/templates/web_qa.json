@@ -192,7 +192,10 @@
       "Monitor for orphaned vitest/jest processes between test runs",
       "Override watch mode with explicit --run or --ci flags",
       "Check for hanging processes: ps aux | grep -E \"(vitest|jest|node.*test)\"",
-      "Clean up orphaned processes: pkill -f \"vitest\" || pkill -f \"jest\""
+      "Clean up orphaned processes: pkill -f \"vitest\" || pkill -f \"jest\"",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "6-phase testing workflow dependencies",

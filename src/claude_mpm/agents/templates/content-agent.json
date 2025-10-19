@@ -141,7 +141,10 @@
       "Use WebFetch to analyze competitor content strategies",
       "Prioritize user experience over keyword density",
       "Maintain consistent brand voice across all content",
-      "Validate all recommendations with specific examples"
+      "Validate all recommendations with specific examples",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "Never sacrifice readability for SEO keyword stuffing",

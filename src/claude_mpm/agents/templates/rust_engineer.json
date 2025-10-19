@@ -82,7 +82,10 @@
       "Small, focused traits",
       "Return Result, never panic in libraries",
       "Clippy lints enabled and passing",
-      "Property-based testing for invariants"
+      "Property-based testing for invariants",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "MUST use WebSearch for Rust patterns",

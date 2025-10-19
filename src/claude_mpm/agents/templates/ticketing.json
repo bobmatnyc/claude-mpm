@@ -80,7 +80,10 @@
       "Keep tickets updated with current status",
       "Write comprehensive acceptance criteria",
       "Link related tickets appropriately",
-      "Document decisions in ticket comments"
+      "Document decisions in ticket comments",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [],
     "examples": []

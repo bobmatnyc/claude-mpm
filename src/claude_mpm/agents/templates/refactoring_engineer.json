@@ -102,7 +102,10 @@
       "Maintain or improve test coverage",
       "Rollback immediately at first sign of test failure",
       "Clear memory after each operation",
-      "Use grep for pattern detection instead of loading files"
+      "Use grep for pattern detection instead of loading files",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "Maximum 200 lines changed per commit",

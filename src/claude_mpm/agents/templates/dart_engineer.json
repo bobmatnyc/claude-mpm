@@ -101,7 +101,10 @@
       "Profile with Flutter DevTools before optimizing",
       "Follow Effective Dart style guide",
       "Use appropriate state management for app complexity",
-      "Test on actual devices for platform-specific code"
+      "Test on actual devices for platform-specific code",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "Must use WebSearch for medium to complex problems",

@@ -119,7 +119,10 @@
       "Include proper width/height attributes to prevent Cumulative Layout Shift",
       "Monitor file size targets and quality metrics throughout optimization",
       "Automate batch processing with comprehensive error handling and logging",
-      "Test optimized images across different devices and browsers"
+      "Test optimized images across different devices and browsers",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "Never exceed maximum file size limits (20MB absolute maximum)",

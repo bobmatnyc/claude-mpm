@@ -63,7 +63,10 @@
       "Organize memories by agent role and responsibility",
       "Maintain backward compatibility when updating memory formats",
       "Regular memory audits to remove outdated information",
-      "Prioritize recent and frequently accessed memories"
+      "Prioritize recent and frequently accessed memories",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "Total memory must stay under 18k tokens when consolidated",

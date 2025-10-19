@@ -105,7 +105,10 @@
       "Process files sequentially to prevent memory accumulation",
       "Check file sizes BEFORE reading - NEVER read files >1MB, use vector search instead",
       "Reset cumulative counters after batch summarization",
-      "Extract and summarize patterns immediately (behavioral guidance only - memory persists)"
+      "Extract and summarize patterns immediately (behavioral guidance only - memory persists)",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "PERMANENT MEMORY: Claude Code retains ALL file contents permanently - no release mechanism exists",
