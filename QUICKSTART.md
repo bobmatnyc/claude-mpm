@@ -81,7 +81,9 @@ Opens dashboard at http://localhost:8765 showing agent activity.
 ✅ **Multi-Agent Orchestration**: PM agent automatically delegates to specialists:
    Research → Engineer → QA → Documentation
 
-✅ **Auto-Installing MCP Services**: mcp-vector-search and kuzu-memory installed automatically
+✅ **Smart MCP Services**: kuzu-memory included, mcp-vector-search auto-installs on first use
+   - Interactive prompt offers pip/pipx installation or fallback to grep/glob
+   - Your choice is remembered for seamless future use
 
 ✅ **Persistent Knowledge**: Project-specific memory graph tracks learnings across sessions
 
@@ -91,6 +93,29 @@ Opens dashboard at http://localhost:8765 showing agent activity.
 
 ✅ **Real-Time Monitoring**: See agent collaboration live
 
+## First-Use: Vector Search Auto-Install
+
+When you first use semantic search features (e.g., `/mpm-search` or Research agent), you'll see:
+
+```
+⚠️  mcp-vector-search not found
+This package enables semantic code search (optional feature).
+
+Installation options:
+  1. Install via pip (recommended for this project)
+  2. Install via pipx (isolated, system-wide)
+  3. Skip (use traditional grep/glob instead)
+
+Choose option (1/2/3) [3]:
+```
+
+**What to Choose?**
+- **Option 1 (pip)**: Installs in your current Python environment. Best for project-specific work.
+- **Option 2 (pipx)**: Creates isolated environment. Best if you want vector search globally.
+- **Option 3 (skip)**: System continues with grep/glob. You can always install later.
+
+**After Installation**: Vector search works seamlessly. No more prompts!
+
 ## Essential Commands
 
 ```bash
@@ -99,6 +124,10 @@ claude-mpm
 
 # With monitoring dashboard
 claude-mpm run --monitor
+
+# Semantic code search (triggers auto-install prompt if needed)
+claude-mpm search "authentication logic"
+/mpm-search "database connection"
 
 # One-time task
 claude-mpm run -i "your task" --non-interactive
@@ -111,13 +140,15 @@ claude-mpm run -i "your task" --non-interactive
 
 That's it! You now have:
 - Multi-agent task delegation with streamlined Rich interface
-- Auto-installing MCP services (mcp-vector-search, kuzu-memory)
-- Project-specific knowledge graphs for persistent learning
+- Interactive auto-install for mcp-vector-search (choose pip/pipx on first use)
+- Project-specific knowledge graphs for persistent learning (kuzu-memory included)
 - Intelligent context enrichment across conversations
 - Persistent sessions
 - Real-time monitoring
 
 ### Quick Tips
+- First search triggers interactive mcp-vector-search install (optional)
+- Choose option 1 (pip) for quick setup, option 3 (skip) to use grep/glob
 - Use `--monitor` for complex tasks to see agent collaboration
 - Run `/mpm-init` in new projects to set up Claude MPM
 - Use `/mpm-doctor` to troubleshoot issues

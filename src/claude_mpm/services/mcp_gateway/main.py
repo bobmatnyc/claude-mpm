@@ -323,6 +323,27 @@ class MCPGatewayOrchestrator:
         except Exception as e:
             self.logger.warning(f"Could not load KuzuMemoryService: {e}")
 
+        # MCP Vector Search Service (optional - will auto-install on first use)
+        try:
+            from .tools.external_mcp_services import MCPVectorSearchService
+
+            vector_search = MCPVectorSearchService()
+            # Try to initialize without interactive prompts during gateway startup
+            # This will only succeed if already installed
+            init_success = await vector_search.initialize(
+                auto_install=False, interactive=False
+            )
+
+            if init_success:
+                tools.append(vector_search)
+                self.logger.info("MCPVectorSearchService added to built-in tools")
+            else:
+                self.logger.debug(
+                    "mcp-vector-search not installed - will be available via auto-install on first use"
+                )
+        except Exception as e:
+            self.logger.debug(f"Could not load MCPVectorSearchService: {e}")
+
         # Ticket tools removed - mcp-ticketer provides ticket functionality
 
         if not tools:

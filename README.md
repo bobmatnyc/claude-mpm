@@ -12,7 +12,8 @@ A powerful orchestration framework for **Claude Code (CLI)** that enables multi-
 - 🧠 **Persistent Knowledge System**: Project-specific kuzu-memory integration for intelligent context retention
 - 🔄 **Session Management**: Resume previous sessions with `--resume`
 - 📊 **Real-Time Monitoring**: Live dashboard with `--monitor` flag
-- 🔌 **Optional MCP Services**: mcp-vector-search and kuzu-memory with automatic fallback installation
+- 🔌 **Smart MCP Services**: Interactive auto-install for mcp-vector-search on first use (pip/pipx choice)
+- 🔍 **Semantic Code Search**: Optional vector search with graceful fallback to grep/glob
 - 📁 **Multi-Project Support**: Per-session working directories with persistent knowledge graphs
 - 🔍 **Git Integration**: View diffs and track changes across projects
 - 🎯 **Smart Task Orchestration**: PM agent intelligently routes work to specialists
@@ -49,7 +50,8 @@ claude-mpm mcp-pipx-config
 - `[monitor]` - Full monitoring dashboard with Socket.IO and async web server components
 - **Combine both**: Use `"claude-mpm[mcp,monitor]"` to install all features
 - **Note**: kuzu-memory is now a required dependency, always included with Claude MPM
-- Without optional MCP dependencies, other MCP services auto-install on first use via pipx
+- **Auto-Install**: mcp-vector-search offers interactive installation on first use (pip/pipx choice)
+- Without pre-installed MCP dependencies, services install on-demand with user confirmation
 
 **🎉 Pipx Support Now Fully Functional!** Recent improvements ensure complete compatibility:
 - ✅ Socket.IO daemon script path resolution (fixed)
@@ -67,6 +69,11 @@ claude-mpm
 
 # Start with monitoring dashboard
 claude-mpm run --monitor
+
+# Use semantic code search (auto-installs mcp-vector-search on first use)
+claude-mpm search "authentication logic"
+# or inside Claude Code session:
+/mpm-search "authentication logic"
 
 # Use MCP Gateway for external tool integration
 claude-mpm mcp

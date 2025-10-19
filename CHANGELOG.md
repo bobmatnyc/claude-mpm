@@ -2,15 +2,36 @@
 
 ### Added
 - KuzuMemoryService now registered as built-in MCP Gateway tool
+- **Interactive auto-install for mcp-vector-search**: On first use, users can choose pip/pipx installation or skip
+  - Interactive prompt with 3 clear options: pip, pipx, or fallback to grep/glob
+  - 120-second timeout protection for pip/pipx installation commands
+  - Graceful error handling with informative messages for all failure modes
+  - Non-blocking first-use experience (EOFError/KeyboardInterrupt safe)
+- **MCPVectorSearchService registered as conditional built-in MCP Gateway tool**: Available when installed
+- **Enhanced search command with graceful fallback**: Falls back to grep/glob when mcp-vector-search unavailable
+  - Search command detects missing service and offers installation
+  - Fallback suggestions provided (e.g., `grep -r 'pattern' .`)
+  - All core functionality continues without vector search
 
 ### Changed
 - Move kuzu-memory from optional to required dependency for seamless memory integration
 - kuzu-memory now always installed with Claude MPM (no longer in optional [mcp] extras)
 - Simplified installation instructions - kuzu-memory included out of the box
+- **Research agent template now adapts to available tools**: Uses vector search when available, grep/glob otherwise
+  - Checks for mcp-vector-search availability before recommending search method
+  - Seamless workflow whether vector search is installed or not
+  - No error messages when using fallback methods
+- **Improved user experience for optional MCP services installation**: Interactive prompts, clear choices
+  - User-friendly installation options with explanations
+  - Non-disruptive fallback behavior when installation skipped
+  - Better error messages and recovery suggestions
+
+### Fixed
+
+### Removed
 
 ### Deprecated
-### Removed
-### Fixed
+
 ### Security
 
 ## [4.8.6] - 2025-10-18
