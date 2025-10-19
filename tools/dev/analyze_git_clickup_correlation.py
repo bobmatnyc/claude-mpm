@@ -16,10 +16,15 @@ Performance considerations:
 - ClickUp API rate limit: 2 requests/second
 - Batch processing for efficiency
 - Caching to avoid redundant API calls
+
+Security:
+- API credentials are loaded from environment variables
+- Required environment variables: CLICKUP_API_KEY, CLICKUP_WORKSPACE_ID
 """
 
 import json
 import logging
+import os
 import re
 import subprocess
 import time
@@ -592,11 +597,23 @@ class Visualizer:
 
 def main():
     """Main execution function."""
-    # Configuration
+    # Load configuration from environment
     REPO_PATH = "/Users/masa/Projects/claude-mpm"
-    API_KEY = "pk_88362330_0PLR81BFHW965IMG69LUX4KAVLU1E9MC"
-    WORKSPACE_ID = "9014422905"
+    API_KEY = os.getenv("CLICKUP_API_KEY")
+    WORKSPACE_ID = os.getenv("CLICKUP_WORKSPACE_ID")
     ANALYSIS_DAYS = 60  # Last 2 months
+
+    # Validate required environment variables
+    if not API_KEY:
+        raise ValueError(
+            "CLICKUP_API_KEY environment variable is required. "
+            "Please set it in your .env file or environment."
+        )
+    if not WORKSPACE_ID:
+        raise ValueError(
+            "CLICKUP_WORKSPACE_ID environment variable is required. "
+            "Please set it in your .env file or environment."
+        )
 
     logger.info("Starting Git-ClickUp correlation analysis...")
 
