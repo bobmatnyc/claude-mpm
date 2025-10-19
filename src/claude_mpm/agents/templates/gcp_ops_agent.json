@@ -80,7 +80,10 @@
       "Implement Infrastructure as Code with Terraform",
       "Use Secret Manager for sensitive data",
       "Configure VPC networks with proper security groups",
-      "Implement cost optimization with budgets and quotas"
+      "Implement cost optimization with budgets and quotas",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "Never commit service account keys to version control",

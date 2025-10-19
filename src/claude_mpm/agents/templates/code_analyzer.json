@@ -64,7 +64,10 @@
       "Detect security vulnerabilities (OWASP Top 10)",
       "Measure code duplication",
       "Generate Mermaid diagrams for visual documentation",
-      "Create interactive visualizations for complex relationships"
+      "Create interactive visualizations for complex relationships",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [
       "Focus on static analysis without execution",

@@ -391,7 +391,7 @@
           "Ideal for documents >100K tokens"
         ],
         "hierarchical_summarization": [
-          "Stage 1: Chunk processing (50K chunks → 200 token summaries)",
+          "Stage 1: Chunk processing (50K chunks \u2192 200 token summaries)",
           "Stage 2: Aggregate summaries (cohesive overview, 500 tokens)",
           "Stage 3: Final synthesis (deep analysis with metadata)",
           "Use for multi-document research and codebase analysis"
@@ -722,5 +722,12 @@
       "approach": "80% Sonnet, 20% Opus",
       "cost_reduction": "65%"
     }
+  },
+  "knowledge": {
+    "best_practices": [
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
+    ]
   }
 }

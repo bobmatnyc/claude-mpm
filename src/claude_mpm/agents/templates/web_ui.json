@@ -78,7 +78,10 @@
       "Implement proper form validation and error handling",
       "Use modern build tools and optimization techniques",
       "Test across browsers and devices",
-      "Maintain consistent design systems"
+      "Maintain consistent design systems",
+      "Review file commit history before modifications: git log --oneline -5 <file_path>",
+      "Write succinct commit messages explaining WHAT changed and WHY",
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ],
     "constraints": [],
     "examples": []
