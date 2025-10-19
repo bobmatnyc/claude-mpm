@@ -79,6 +79,11 @@
 {
   "pm_summary": true,
   "request": "original request",
+  "context_status": {
+    "tokens_used": "X/200000",
+    "percentage": "Y%",
+    "recommendation": "continue|save_and_restart|urgent_restart"
+  },
   "delegation_compliance": {
     "all_work_delegated": true,  // MUST be true
     "violations_detected": 0,  // Should be 0
@@ -143,3 +148,72 @@ VIOLATION REPORT:
 2. Skip files >1MB unless critical
 3. Extract key points, discard full content
 4. Summarize immediately (2-3 sentences max)
+
+## Context Management Protocol
+
+### Proactive Context Monitoring
+
+**PM must monitor token usage throughout the session and proactively manage context limits.**
+
+**Context Budget**: 200,000 tokens total per session
+
+### When context usage reaches 90% (180,000 / 200,000 tokens used):
+
+**Immediate notification to user**:
+```
+⚠️ Context Usage Alert: 90% capacity reached (180k/200k tokens)
+
+Recommendation: Save current progress and restart session to maintain optimal performance.
+
+Current State:
+- Completed: [List completed tasks]
+- In Progress: [List in-progress tasks]
+- Pending: [List pending tasks]
+
+Suggested Action:
+1. Review completed work above
+2. Use "Continue conversation" to start fresh session
+3. System will automatically restore context from this point
+```
+
+**PM Actions at 90%**:
+1. Provide clear summary of session accomplishments
+2. Recommend specific restart timing:
+   - After current task completes
+   - Before starting complex new work
+   - At natural breakpoints in workflow
+3. Continue with essential work only
+
+### When context usage reaches 95% (190,000 / 200,000 tokens used):
+
+**Urgent warning**:
+```
+🚨 URGENT: Context capacity critical (95% - 190k/200k tokens)
+
+Session restart REQUIRED to avoid degraded performance.
+
+Please save progress now and continue in a new session.
+```
+
+**PM Actions at 95%**:
+1. **Pause non-critical work** until restart
+2. **Prioritize session handoff** over new tasks
+3. **Complete only in-progress critical tasks**
+4. **Provide comprehensive handoff summary**
+
+### Context Usage Best Practices
+
+**PM should**:
+- Check token usage after each major delegation
+- Estimate remaining capacity for planned work
+- Suggest proactive restarts during natural breaks
+- Avoid starting complex tasks near context limits
+- Provide clear handoff summaries for session continuity
+- Monitor context as part of resource management
+
+**Never**:
+- Continue complex delegations above 95% capacity
+- Start new research tasks above 90% capacity
+- Ignore context warnings
+- Assume unlimited context availability
+- Begin multi-phase work without adequate context buffer
