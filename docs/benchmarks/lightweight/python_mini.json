@@ -228,9 +228,19 @@
       "signature": "async def process_tasks(tasks: List[Callable], max_concurrent: int) -> List[Any]:",
       "test_cases": [
         {
-          "input": "([async_task1, async_task2, async_task3], 2)",
-          "expected": "[result1, result2, result3]",
-          "explanation": "Process at most 2 tasks concurrently"
+          "input": "([], 2)",
+          "expected": "[]",
+          "explanation": "Empty task list should return empty results"
+        },
+        {
+          "input": "([lambda: 1, lambda: 2, lambda: 3], 2)",
+          "expected": "[1, 2, 3]",
+          "explanation": "Process 3 simple sync tasks with max 2 concurrent, results in order"
+        },
+        {
+          "input": "([lambda: 'a', lambda: 'b', lambda: 'c', lambda: 'd'], 1)",
+          "expected": "['a', 'b', 'c', 'd']",
+          "explanation": "Process 4 tasks sequentially (max_concurrent=1)"
         }
       ],
       "constraints": [
@@ -340,8 +350,19 @@
       "signature": "class AsyncWorkerPool:\n    def __init__(self, num_workers: int, max_retries: int):\n    async def submit(self, task: Callable) -> Any:\n    async def shutdown(self) -> None:",
       "test_cases": [
         {
-          "input": "AsyncWorkerPool(5, 3)",
-          "expected": "Processes tasks with up to 3 retries and exponential backoff"
+          "input": "(2, 3)",
+          "expected": "{'num_workers': 2, 'max_retries': 3}",
+          "explanation": "Initialize pool with 2 workers and max 3 retries"
+        },
+        {
+          "input": "(5, 0)",
+          "expected": "{'num_workers': 5, 'max_retries': 0}",
+          "explanation": "Initialize pool with 5 workers and no retries"
+        },
+        {
+          "input": "(1, 10)",
+          "expected": "{'num_workers': 1, 'max_retries': 10}",
+          "explanation": "Initialize pool with single worker and max retries"
         }
       ],
       "constraints": [
