@@ -16,8 +16,7 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 
-from claude_mpm.cli.utils import handle_async_errors
-from claude_mpm.services.service_container import get_service_container
+from claude_mpm.services.core.service_container import get_global_container
 
 console = Console()
 
@@ -27,8 +26,9 @@ class MCPSearchInterface:
 
     def __init__(self):
         """Initialize the search interface."""
-        self.container = get_service_container()
+        self.container = get_global_container()
         self.mcp_gateway = None
+        self.vector_search_available = False
 
     async def initialize(self):
         """Initialize the MCP gateway connection."""
@@ -39,9 +39,126 @@ class MCPSearchInterface:
             if not self.mcp_gateway:
                 self.mcp_gateway = MCPGatewayService()
                 await self.mcp_gateway.initialize()
+
+            # Check if vector search is available
+            self.vector_search_available = await self._check_vector_search_available()
+
         except Exception as e:
             console.print(f"[red]Failed to initialize MCP gateway: {e}[/red]")
             raise
+
+    async def _check_vector_search_available(self) -> bool:
+        """Check if mcp-vector-search is available and offer installation if not."""
+        import importlib.util
+
+        # Check if package is installed
+        spec = importlib.util.find_spec("mcp_vector_search")
+        if spec is not None:
+            return True
+
+        # Package not found - offer installation
+        console.print("\n[yellow]⚠️  mcp-vector-search not found[/yellow]")
+        console.print("This package enables semantic code search (optional feature).")
+        console.print("\nInstallation options:")
+        console.print("  1. Install via pip (recommended for this project)")
+        console.print("  2. Install via pipx (isolated, system-wide)")
+        console.print("  3. Skip (use traditional grep/glob instead)")
+
+        try:
+            choice = input("\nChoose option (1/2/3) [3]: ").strip() or "3"
+
+            if choice == "1":
+                return await self._install_via_pip()
+            if choice == "2":
+                return await self._install_via_pipx()
+            console.print(
+                "[dim]Continuing with fallback search methods (grep/glob)[/dim]"
+            )
+            return False
+
+        except (EOFError, KeyboardInterrupt):
+            console.print("\n[dim]Installation cancelled, using fallback methods[/dim]")
+            return False
+
+    async def _install_via_pip(self) -> bool:
+        """Install mcp-vector-search via pip."""
+        import subprocess
+
+        try:
+            console.print("\n[cyan]📦 Installing mcp-vector-search via pip...[/cyan]")
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "install", "mcp-vector-search"],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+
+            if result.returncode == 0:
+                console.print(
+                    "[green]✓ Successfully installed mcp-vector-search[/green]"
+                )
+                return True
+
+            error_msg = result.stderr.strip() if result.stderr else "Unknown error"
+            console.print(f"[red]✗ Installation failed: {error_msg}[/red]")
+            return False
+
+        except subprocess.TimeoutExpired:
+            console.print("[red]✗ Installation timed out[/red]")
+            return False
+        except Exception as e:
+            console.print(f"[red]✗ Installation error: {e}[/red]")
+            return False
+
+    async def _install_via_pipx(self) -> bool:
+        """Install mcp-vector-search via pipx."""
+        import subprocess
+
+        try:
+            # Check if pipx is available
+            pipx_check = subprocess.run(
+                ["pipx", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+
+            if pipx_check.returncode != 0:
+                console.print("[red]✗ pipx is not installed[/red]")
+                console.print("Install pipx first: python -m pip install pipx")
+                return False
+
+            console.print("\n[cyan]📦 Installing mcp-vector-search via pipx...[/cyan]")
+            result = subprocess.run(
+                ["pipx", "install", "mcp-vector-search"],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+
+            if result.returncode == 0:
+                console.print(
+                    "[green]✓ Successfully installed mcp-vector-search[/green]"
+                )
+                return True
+
+            error_msg = result.stderr.strip() if result.stderr else "Unknown error"
+            console.print(f"[red]✗ Installation failed: {error_msg}[/red]")
+            return False
+
+        except FileNotFoundError:
+            console.print("[red]✗ pipx command not found[/red]")
+            console.print("Install pipx first: python -m pip install pipx")
+            return False
+        except subprocess.TimeoutExpired:
+            console.print("[red]✗ Installation timed out[/red]")
+            return False
+        except Exception as e:
+            console.print(f"[red]✗ Installation error: {e}[/red]")
+            return False
 
     async def search_code(
         self,
@@ -125,6 +242,12 @@ class MCPSearchInterface:
         if not self.mcp_gateway:
             await self.initialize()
 
+        # Check if vector search is available
+        if not self.vector_search_available:
+            return {
+                "error": "mcp-vector-search is not available. Use traditional grep/glob tools instead, or run command again to install."
+            }
+
         try:
             return await self.mcp_gateway.call_tool(tool_name, params)
         except Exception as e:
@@ -196,7 +319,6 @@ def display_search_results(results: Dict[str, Any], output_format: str = "rich")
 @click.option("--focus", multiple=True, help="Focus areas (with --context)")
 @click.option("--force", is_flag=True, help="Force reindexing (with --index)")
 @click.option("--json", "output_json", is_flag=True, help="Output results as JSON")
-@handle_async_errors
 async def search_command(
     query: Optional[str],
     similar: Optional[str],
@@ -228,8 +350,24 @@ async def search_command(
     output_format = "json" if output_json else "rich"
 
     try:
+        # Show first-time usage tips if vector search is available
+        if search.vector_search_available and not (index or status):
+            console.print(
+                "\n[dim]💡 Tip: Vector search provides semantic code understanding.[/dim]"
+            )
+            console.print(
+                "[dim]   Run with --index first to index your project.[/dim]\n"
+            )
+
         # Handle different operation modes
         if index:
+            if not search.vector_search_available:
+                console.print("[red]✗ mcp-vector-search is required for indexing[/red]")
+                console.print(
+                    "[dim]Install it or use traditional grep/glob for search[/dim]"
+                )
+                sys.exit(1)
+
             console.print("[cyan]Indexing project...[/cyan]")
             result = await search.index_project(
                 force=force, file_extensions=list(extensions) if extensions else None
@@ -239,10 +377,23 @@ async def search_command(
             display_search_results(result, output_format)
 
         elif status:
+            if not search.vector_search_available:
+                console.print(
+                    "[red]✗ mcp-vector-search is required for status check[/red]"
+                )
+                console.print("[dim]Install it to use vector search features[/dim]")
+                sys.exit(1)
+
             result = await search.get_status()
             display_search_results(result, output_format)
 
         elif similar:
+            if not search.vector_search_available:
+                console.print("[yellow]⚠️  Vector search not available[/yellow]")
+                console.print("[dim]Similarity search requires mcp-vector-search[/dim]")
+                console.print("[dim]Falling back to basic file search...[/dim]")
+                sys.exit(1)
+
             result = await search.search_similar(
                 file_path=similar,
                 function_name=function,
@@ -252,6 +403,12 @@ async def search_command(
             display_search_results(result, output_format)
 
         elif context:
+            if not search.vector_search_available:
+                console.print("[yellow]⚠️  Vector search not available[/yellow]")
+                console.print("[dim]Context search requires mcp-vector-search[/dim]")
+                console.print("[dim]Try using grep for text-based search instead[/dim]")
+                sys.exit(1)
+
             result = await search.search_context(
                 description=context,
                 focus_areas=list(focus) if focus else None,
@@ -260,6 +417,15 @@ async def search_command(
             display_search_results(result, output_format)
 
         elif query:
+            if not search.vector_search_available:
+                console.print("[yellow]⚠️  Vector search not available[/yellow]")
+                console.print("[dim]Code search requires mcp-vector-search[/dim]")
+                console.print(
+                    "\n[cyan]Alternative: Use grep for pattern matching:[/cyan]"
+                )
+                console.print(f"  grep -r '{query}' .")
+                sys.exit(1)
+
             result = await search.search_code(
                 query=query,
                 limit=limit,

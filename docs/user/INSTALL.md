@@ -58,14 +58,17 @@ claude-mpm mcp-pipx-config
 
 Claude MPM offers several optional dependency groups that can be combined:
 
-| Dependency Group | Description | Packages Included |
-|-----------------|-------------|------------------|
-| `[mcp]` | MCP services for external tool integration | mcp, mcp-vector-search, mcp-browser, mcp-ticketer |
-| `[monitor]` | Real-time monitoring dashboard | python-socketio, aiohttp, websockets, aiofiles |
-| `[dev]` | Development tools | pytest, black, flake8, mypy, ruff |
-| `[docs]` | Documentation building | sphinx, sphinx-rtd-theme |
+| Dependency Group | Description | Packages Included | Auto-Install |
+|-----------------|-------------|------------------|--------------|
+| `[mcp]` | MCP services for external tool integration | mcp, mcp-vector-search, mcp-browser, mcp-ticketer | ✅ Interactive on first use |
+| `[monitor]` | Real-time monitoring dashboard | python-socketio, aiohttp, websockets, aiofiles | ❌ Manual install only |
+| `[dev]` | Development tools | pytest, black, flake8, mypy, ruff | ❌ Manual install only |
+| `[docs]` | Documentation building | sphinx, sphinx-rtd-theme | ❌ Manual install only |
 
-**Note**: kuzu-memory is now a required dependency and is installed automatically with Claude MPM.
+**Note**:
+- kuzu-memory is now a required dependency and is installed automatically with Claude MPM
+- mcp-vector-search offers interactive installation on first use when not pre-installed
+- Other optional MCP services install automatically without prompts (legacy behavior)
 
 ### Installing Multiple Optional Groups
 
@@ -342,7 +345,11 @@ Claude MPM v4.4.x includes optional MCP (Model Context Protocol) services that e
 - **Purpose**: Intelligent code search and project indexing
 - **Features**: Semantic code search, project analysis, similarity detection
 - **Database**: Project-specific vector indices
-- **Installation**: Optional dependency or automatic via pipx
+- **Installation**: Optional - auto-installs on first use with interactive prompt
+- **Auto-Install**: On first use of search features, you'll be prompted to choose:
+  - Install via pip (recommended for this project)
+  - Install via pipx (isolated, system-wide)
+  - Skip (use traditional grep/glob instead)
 
 #### kuzu-memory
 - **Purpose**: Persistent knowledge management with graph database
@@ -362,30 +369,56 @@ pipx install "claude-mpm[mcp]"
 uv pip install "claude-mpm[mcp]"
 ```
 
-#### Option 2: Basic Installation with Automatic Fallback
+**Benefits**: All features ready immediately, no installation prompts during work
+
+#### Option 2: Basic Installation with Interactive Auto-Install
 ```bash
-# Basic installation - includes kuzu-memory, MCP services auto-install on first use
+# Basic installation - includes kuzu-memory, mcp-vector-search installs on first use
 pip install claude-mpm
 ```
 
-When optional MCP services are needed but not pre-installed:
-- Claude MPM automatically detects missing services
-- Attempts installation via pipx in the background
-- Falls back gracefully if installation fails
-- Provides clear diagnostic information via `claude-mpm doctor`
+**First-Use Experience**: When you first use search features (e.g., `/mpm-search`), you'll see:
+
+```
+⚠️  mcp-vector-search not found
+This package enables semantic code search (optional feature).
+
+Installation options:
+  1. Install via pip (recommended for this project)
+  2. Install via pipx (isolated, system-wide)
+  3. Skip (use traditional grep/glob instead)
+
+Choose option (1/2/3) [3]:
+```
+
+**How It Works**:
+- Claude MPM automatically detects missing services when you try to use them
+- Interactive prompt offers installation choices
+- pip installation: Installs in current Python environment
+- pipx installation: Creates isolated environment (better for global tools)
+- Skip: Falls back gracefully to grep/glob search methods
 - kuzu-memory is always available (required dependency)
+
+**Fallback Behavior**: Without mcp-vector-search, the system uses traditional search:
+- Research agent uses grep and glob for code discovery
+- Search command suggests grep alternatives
+- All core functionality continues to work
 
 ### Troubleshooting MCP Installation
 
-If automatic MCP service installation fails:
+#### Auto-Install Issues
+
+If the interactive auto-install prompt doesn't appear or fails:
 
 ```bash
 # Check MCP service status
 claude-mpm doctor --checks mcp
 
-# Manual MCP service installation
+# Manual installation via pip (current environment)
+pip install mcp-vector-search
+
+# Manual installation via pipx (isolated environment)
 pipx install mcp-vector-search
-pipx install kuzu-memory
 
 # Configure MCP services for pipx users
 claude-mpm mcp-pipx-config
@@ -393,6 +426,33 @@ claude-mpm mcp-pipx-config
 # Verify installation
 claude-mpm doctor --checks mcp --verbose
 ```
+
+**Common Auto-Install Problems**:
+
+1. **"Installation failed" during auto-install**
+   - Try manual installation: `pip install mcp-vector-search`
+   - Check pip/pipx is up to date: `pip install --upgrade pip`
+   - Verify network connectivity and PyPI access
+
+2. **"pipx is not installed" when choosing option 2**
+   - Install pipx first: `python -m pip install --user pipx`
+   - Then run: `pipx ensurepath`
+   - Restart terminal and try again
+
+3. **Auto-install prompt not appearing**
+   - Feature may already be installed: `pip list | grep mcp-vector-search`
+   - Try running `/mpm-search --status` to trigger detection
+   - Check if search is working without prompts
+
+4. **"Installation timed out"**
+   - Network may be slow or blocked
+   - Try manual installation with longer timeout
+   - Check corporate firewall/proxy settings
+
+5. **Prefer to skip auto-install entirely**
+   - Choose option 3 when prompted
+   - System will use grep/glob fallback methods
+   - Functionality continues without vector search
 
 ## Troubleshooting
 
