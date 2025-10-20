@@ -16,19 +16,23 @@ logger = get_logger(__name__)
 
 
 def analyze_recent_activity(
-    repo_path: str = ".", days: int = 7, max_commits: int = 50
+    repo_path: str = ".", days: int = 7, max_commits: int = 50, min_commits: int = 25
 ) -> Dict[str, Any]:
     """
-    Analyze recent git activity for context reconstruction.
+    Analyze recent git activity for context reconstruction with adaptive time window.
 
-    This function analyzes git history to provide comprehensive context about
-    recent project activity including commits, contributors, file changes,
-    and branch activity.
+    Strategy:
+    1. Try to get commits from last {days} days
+    2. If fewer than {min_commits} found, expand window to get {min_commits}
+    3. Never exceed {max_commits} total
+
+    This ensures meaningful context for both high-velocity and low-velocity projects.
 
     Args:
         repo_path: Path to the git repository (default: current directory)
-        days: Number of days to look back (default: 7)
+        days: Number of days to look back initially (default: 7)
         max_commits: Maximum number of commits to analyze (default: 50)
+        min_commits: Minimum commits to retrieve, will expand window if needed (default: 25)
 
     Returns:
         Dict containing:
@@ -38,6 +42,9 @@ def analyze_recent_activity(
         - contributors: Dict[str, Dict] - Contributor statistics
         - file_changes: Dict[str, Dict] - File change statistics
         - has_activity: bool - Whether any activity was found
+        - adaptive_mode: bool - Whether time window was expanded
+        - actual_time_span: Optional[str] - Actual time span if adaptive mode was used
+        - reason: Optional[str] - Explanation for adaptive mode
         - error: Optional[str] - Error message if analysis failed
     """
     repo_path_obj = Path(repo_path)
@@ -48,6 +55,8 @@ def analyze_recent_activity(
         "contributors": {},
         "file_changes": {},
         "has_activity": False,
+        "adaptive_mode": False,
+        "min_commits_target": min_commits,
     }
 
     try:
@@ -66,7 +75,7 @@ def analyze_recent_activity(
         ]
         analysis["branches"] = list(set(branches))
 
-        # Get recent commits from all branches
+        # Step 1: Get commits from specified time window
         result = subprocess.run(
             [
                 "git",
@@ -87,6 +96,99 @@ def analyze_recent_activity(
             return analysis
 
         analysis["has_activity"] = True
+
+        # Step 2: Count commit lines (lines with pipe separator) to determine if we need adaptive mode
+        temp_commits = []
+        for line in result.stdout.strip().split("\n"):
+            if "|" in line:
+                temp_commits.append(line)
+
+        # Step 3: Check if we need adaptive mode
+        if len(temp_commits) < min_commits:
+            logger.info(
+                f"Only {len(temp_commits)} commits found in last {days} days, "
+                f"expanding to get at least {min_commits} commits"
+            )
+
+            # Get last N commits regardless of date
+            expanded_result = subprocess.run(
+                [
+                    "git",
+                    "log",
+                    "--all",
+                    f"-{min_commits}",
+                    "--format=%h|%an|%ae|%ai|%s",
+                    "--name-status",
+                ],
+                cwd=str(repo_path_obj),
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            if expanded_result.stdout.strip():
+                result = expanded_result
+                analysis["adaptive_mode"] = True
+
+                # Calculate actual time span
+                from datetime import datetime
+
+                commit_lines = [
+                    line for line in result.stdout.strip().split("\n") if "|" in line
+                ]
+                if commit_lines:
+                    # Parse first and last commit dates
+                    try:
+                        first_parts = commit_lines[0].split("|", 4)
+                        last_parts = commit_lines[-1].split("|", 4)
+
+                        if len(first_parts) >= 4 and len(last_parts) >= 4:
+                            # Parse ISO format dates (e.g., "2025-10-20 11:38:20 -0700")
+                            # Extract just the date portion before timezone
+                            first_date_str = first_parts[3].strip()
+                            last_date_str = last_parts[3].strip()
+
+                            # Remove timezone info for parsing
+                            first_date_clean = first_date_str.split(" +")[0].split(
+                                " -"
+                            )[0]
+                            last_date_clean = last_date_str.split(" +")[0].split(" -")[
+                                0
+                            ]
+
+                            # Parse as datetime
+                            first_date = datetime.fromisoformat(
+                                first_date_clean.replace(" ", "T")
+                            )
+                            last_date = datetime.fromisoformat(
+                                last_date_clean.replace(" ", "T")
+                            )
+
+                            days_diff = (first_date - last_date).days
+                            # Handle the case where days_diff might be 0 or 1
+                            if days_diff <= 1:
+                                days_diff = max(days_diff, 1)
+
+                            analysis["actual_time_span"] = str(days_diff)
+
+                            # Provide clear messaging based on the expansion
+                            if days_diff > days:
+                                analysis["reason"] = (
+                                    f"Expanded from {days} days to {days_diff} days "
+                                    f"to reach minimum {min_commits} commits for meaningful context"
+                                )
+                            else:
+                                # High-velocity project: reached min_commits without expanding time window
+                                analysis["reason"] = (
+                                    f"Fetched last {min_commits} commits (spanning {days_diff} days) "
+                                    f"to ensure meaningful context"
+                                )
+                    except Exception as e:
+                        logger.warning(f"Could not calculate actual time span: {e}")
+                        analysis["actual_time_span"] = f">{days} days"
+                        analysis["reason"] = (
+                            f"Expanded beyond {days} days to get minimum {min_commits} commits"
+                        )
 
         # Parse commit log
         commits = []
