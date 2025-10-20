@@ -1,16 +1,6 @@
 ## [Unreleased]
 
 ### Added
-- **Session Pause and Resume**: Save and restore complete session state across Claude sessions
-  - `claude-mpm mpm-init pause`: Capture conversation context, git state, and todos
-  - `claude-mpm mpm-init resume`: Restore session with automatic change detection
-  - Session storage in `.claude-mpm/sessions/pause/` with secure permissions (0600)
-  - Change detection: Shows commits, file modifications, and conflicts since pause
-  - Optional git commit creation with session information (use `--no-commit` to skip)
-  - Support for session summaries, accomplishments, and next steps
-  - List available sessions with `--list` flag
-  - Resume specific sessions with `--session-id` parameter
-  - Atomic file operations with integrity checksums
 
 ### Changed
 
@@ -21,6 +11,20 @@
 ### Deprecated
 
 ### Security
+
+## [4.11.0] - 2025-10-19
+
+### Added
+- **Session Pause and Resume**: Save and restore complete session state across Claude sessions
+  - `claude-mpm mpm-init pause`: Capture conversation context, git state, and todos
+  - `claude-mpm mpm-init resume`: Restore session with automatic change detection
+  - Session storage in `.claude-mpm/sessions/pause/` with secure permissions (0600)
+  - Change detection: Shows commits, file modifications, and conflicts since pause
+  - Optional git commit creation with session information (use `--no-commit` to skip)
+  - Support for session summaries, accomplishments, and next steps
+  - List available sessions with `--list` flag
+  - Resume specific sessions with `--session-id` parameter
+  - Atomic file operations with integrity checksums
 
 ## [4.10.0] - 2025-10-19
 
