@@ -11,6 +11,7 @@ documentation with code structure analysis.
 import contextlib
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -20,6 +21,9 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Prompt
 
+# Import pause/resume managers
+from claude_mpm.cli.commands.session_pause_manager import SessionPauseManager
+from claude_mpm.cli.commands.session_resume_manager import SessionResumeManager
 from claude_mpm.core.logging_utils import get_logger
 
 # Import new services
@@ -47,6 +51,10 @@ class MPMInitCommand:
         self.archive_manager = ArchiveManager(self.project_path)
         self.analyzer = EnhancedProjectAnalyzer(self.project_path)
         self.display = DisplayHelper(console)
+
+        # Session management
+        self.pause_manager = SessionPauseManager(self.project_path)
+        self.resume_manager = SessionResumeManager(self.project_path)
 
     def initialize_project(
         self,
@@ -1464,6 +1472,125 @@ preserving valuable project-specific information while refreshing standard secti
             logger.error(f"Initialization failed: {e}")
             return {"status": "error", "message": str(e)}
 
+    def handle_pause(
+        self,
+        summary: Optional[str] = None,
+        accomplishments: Optional[List[str]] = None,
+        next_steps: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Handle session pause request.
+
+        Args:
+            summary: Summary of what was being worked on
+            accomplishments: List of things accomplished
+            next_steps: List of next steps to continue work
+
+        Returns:
+            Dict containing pause result
+        """
+        try:
+            # If no context provided, prompt for it
+            if not summary:
+                summary = Prompt.ask(
+                    "\n[bold]What were you working on?[/bold]",
+                    default="Working on project improvements",
+                )
+
+            if not accomplishments:
+                console.print(
+                    "\n[bold]List accomplishments (enter blank line to finish):[/bold]"
+                )
+                accomplishments = []
+                while True:
+                    item = Prompt.ask("  Accomplishment", default="")
+                    if not item:
+                        break
+                    accomplishments.append(item)
+
+            if not next_steps:
+                console.print(
+                    "\n[bold]List next steps (enter blank line to finish):[/bold]"
+                )
+                next_steps = []
+                while True:
+                    item = Prompt.ask("  Next step", default="")
+                    if not item:
+                        break
+                    next_steps.append(item)
+
+            # Pause the session
+            return self.pause_manager.pause_session(
+                conversation_summary=summary,
+                accomplishments=accomplishments,
+                next_steps=next_steps,
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to pause session: {e}")
+            console.print(f"[red]❌ Error pausing session: {e}[/red]")
+            return {"status": "error", "message": str(e)}
+
+    def handle_resume(self, session_id: Optional[str] = None) -> Dict[str, Any]:
+        """Handle session resume request.
+
+        Args:
+            session_id: Optional specific session ID to resume
+
+        Returns:
+            Dict containing resume result
+        """
+        try:
+            # Check if there are any paused sessions
+            available_sessions = self.resume_manager.list_available_sessions()
+
+            if not available_sessions:
+                console.print("\n[yellow]No paused sessions found.[/yellow]")
+                console.print(
+                    "[dim]To pause a session, run: claude-mpm mpm-init pause[/dim]\n"
+                )
+                return {"status": "error", "message": "No paused sessions found"}
+
+            # If no session ID specified and multiple sessions exist, let user choose
+            if not session_id and len(available_sessions) > 1:
+                console.print("\n[bold]Available Paused Sessions:[/bold]\n")
+                for idx, session in enumerate(available_sessions, 1):
+                    paused_at = session.get("paused_at", "unknown")
+                    try:
+                        dt = datetime.fromisoformat(paused_at.replace("Z", "+00:00"))
+                        paused_display = dt.strftime("%Y-%m-%d %H:%M")
+                    except Exception:
+                        paused_display = paused_at
+
+                    summary = session.get("summary", "No summary")
+                    if len(summary) > 60:
+                        summary = summary[:57] + "..."
+
+                    console.print(
+                        f"  [{idx}] {session['session_id']} - {paused_display}"
+                    )
+                    console.print(f"      {summary}\n")
+
+                choice = Prompt.ask(
+                    "Select session to resume",
+                    choices=[str(i) for i in range(1, len(available_sessions) + 1)],
+                    default="1",
+                )
+                session_id = available_sessions[int(choice) - 1]["session_id"]
+
+            # Resume the session
+            result = self.resume_manager.resume_session(session_id=session_id)
+
+            # Display resume context
+            if result.get("status") == "success":
+                console.print("\n[dim]Resume context has been displayed above.[/dim]\n")
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Failed to resume session: {e}")
+            console.print(f"[red]❌ Error resuming session: {e}[/red]")
+            return {"status": "error", "message": str(e)}
+
     def _display_results(self, result: Dict, verbose: bool):
         """Display initialization results."""
         if result["status"] == "success":
@@ -1500,7 +1627,7 @@ preserving valuable project-specific information while refreshing standard secti
             self.display.display_success_panel("Success", success_content)
 
 
-@click.command(name="mpm-init")
+@click.group(name="mpm-init", invoke_without_command=True)
 @click.option(
     "--project-type",
     type=click.Choice(
@@ -1589,7 +1716,9 @@ preserving valuable project-specific information while refreshing standard secti
     required=False,
     default=".",
 )
+@click.pass_context
 def mpm_init(
+    ctx,
     project_type,
     framework,
     force,
@@ -1619,18 +1748,28 @@ def mpm_init(
     - Optimize for AI agent understanding
     - Perform AST analysis for enhanced developer documentation
 
+    Session Management:
+    - pause: Pause the current session and save state
+    - resume: Resume the most recent (or specified) paused session
+
     Update Mode:
     When CLAUDE.md exists, the command offers to update rather than recreate,
     preserving custom content while refreshing standard sections.
 
     Examples:
         claude-mpm mpm-init                           # Initialize/update current directory
+        claude-mpm mpm-init pause                     # Pause current session
+        claude-mpm mpm-init resume                    # Resume latest session
         claude-mpm mpm-init --review                  # Review project state without changes
         claude-mpm mpm-init --update                  # Force update mode
         claude-mpm mpm-init --organize                # Organize misplaced files
         claude-mpm mpm-init --project-type web        # Initialize as web project
         claude-mpm mpm-init /path/to/project --force  # Force reinitialize project
     """
+    # If a subcommand is being invoked, don't run the main command
+    if ctx.invoked_subcommand is not None:
+        return
+
     try:
         # Create command instance
         command = MPMInitCommand(Path(project_path))
@@ -1665,6 +1804,116 @@ def mpm_init(
         sys.exit(130)
     except Exception as e:
         console.print(f"[red]Initialization failed: {e}[/red]")
+        sys.exit(1)
+
+
+@mpm_init.command(name="pause")
+@click.option(
+    "--summary",
+    "-s",
+    type=str,
+    help="Summary of what you were working on",
+)
+@click.option(
+    "--accomplishment",
+    "-a",
+    multiple=True,
+    help="Accomplishment from this session (can be used multiple times)",
+)
+@click.option(
+    "--next-step",
+    "-n",
+    multiple=True,
+    help="Next step to continue work (can be used multiple times)",
+)
+@click.argument(
+    "project_path",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    required=False,
+    default=".",
+)
+def pause_session(summary, accomplishment, next_step, project_path):
+    """
+    Pause the current session and save state.
+
+    This command captures:
+    - Conversation summary and progress
+    - Git repository state (commits, branch, status)
+    - Todo list status
+    - Working directory changes
+
+    The saved state enables seamless session resumption with full context.
+
+    Examples:
+        claude-mpm mpm-init pause
+        claude-mpm mpm-init pause -s "Working on authentication feature"
+        claude-mpm mpm-init pause -a "Implemented login" -a "Added tests"
+        claude-mpm mpm-init pause -n "Add logout functionality"
+    """
+    try:
+        command = MPMInitCommand(Path(project_path))
+
+        result = command.handle_pause(
+            summary=summary,
+            accomplishments=list(accomplishment) if accomplishment else None,
+            next_steps=list(next_step) if next_step else None,
+        )
+
+        if result["status"] == "success":
+            sys.exit(0)
+        else:
+            sys.exit(1)
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Pause cancelled by user[/yellow]")
+        sys.exit(130)
+    except Exception as e:
+        console.print(f"[red]Pause failed: {e}[/red]")
+        sys.exit(1)
+
+
+@mpm_init.command(name="resume")
+@click.option(
+    "--session-id",
+    "-i",
+    type=str,
+    help="Specific session ID to resume (defaults to most recent)",
+)
+@click.argument(
+    "project_path",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    required=False,
+    default=".",
+)
+def resume_session(session_id, project_path):
+    """
+    Resume a paused session.
+
+    This command:
+    - Loads the most recent (or specified) paused session
+    - Checks for changes since the pause (commits, file changes, branch changes)
+    - Displays warnings for any conflicts
+    - Generates a complete context summary for seamless resumption
+
+    Examples:
+        claude-mpm mpm-init resume
+        claude-mpm mpm-init resume --session-id session-20251019-120000
+    """
+    try:
+        command = MPMInitCommand(Path(project_path))
+
+        result = command.handle_resume(session_id=session_id)
+
+        if result["status"] == "success":
+            sys.exit(0)
+        else:
+            sys.exit(1)
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Resume cancelled by user[/yellow]")
+        sys.exit(130)
+    except Exception as e:
+        console.print(f"[red]Resume failed: {e}[/red]")
         sys.exit(1)
 
 
