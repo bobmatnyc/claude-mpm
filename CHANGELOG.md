@@ -12,6 +12,15 @@
 
 ### Security
 
+## [4.11.2] - 2025-10-20
+
+### Added
+- **Adaptive context window for `/mpm-init context`**: Automatically expands time window to ensure meaningful context
+  - High-velocity projects: Uses specified time window (e.g., 7 days)
+  - Low-velocity projects: Automatically expands to get at least 25 commits
+  - Clear notification when window expands for user transparency
+  - Works for both active and dormant projects to provide meaningful analysis
+
 ## [4.11.1] - 2025-10-19
 
 ### Fixed
