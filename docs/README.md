@@ -199,7 +199,10 @@ docs/
   - PHP Engineer v2.0.0 (PHP 8.4-8.5, Laravel 12) - 60.8% (C)
   - Ruby Engineer v2.0.0 (Ruby 3.4 YJIT, Rails 8) - 68.1% (C+) 🥇 **Top Performer**
 - **🧠 Agent Memory**: Persistent learning with simple JSON response field updates
-- **🔄 Session Management**: Resume previous sessions with `--resume`
+- **🔄 Session Management**: Pause and resume sessions with complete context continuity (NEW in v4.8.5+)
+  - Save session state with `claude-mpm mpm-init pause`
+  - Restore with automatic change detection using `claude-mpm mpm-init resume`
+  - Full context preservation: conversation, git state, todos, accomplishments
 - **📊 Real-Time Monitoring**: Live dashboard with `--monitor` flag
 - **🔌 MCP Gateway**: Model Context Protocol integration for extensible tools
 - **📁 Multi-Project Support**: Per-session working directories with git integration

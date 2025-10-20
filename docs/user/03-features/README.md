@@ -25,6 +25,13 @@ Explore comprehensive logging and session management capabilities.
 - Searching and analyzing logs
 - Privacy and security
 
+### [Session Pause and Resume](session-pause-resume.md) **NEW in v4.8.5**
+Save and restore complete session state across Claude sessions.
+- Pause with conversation context and todos
+- Resume with automatic change detection
+- Git integration and conflict detection
+- Team handoff and context continuity
+
 ### [Memory Protection](memory-protection.md)
 Discover how Claude MPM helps manage context limits and prevents overflow.
 - Context monitoring
@@ -46,6 +53,7 @@ Learn how Claude MPM automatically generates agent documentation.
 | Ticket Creation | ❌ Manual | ✅ Automatic |
 | Agent Specialization | ❌ | ✅ Multi-agent |
 | Session History | Limited | ✅ Comprehensive |
+| Session Pause/Resume | ❌ | ✅ Full state saving |
 | Context Management | ❌ Manual | ✅ Automated |
 | Process Control | ❌ | ✅ Full control |
 | Pattern Detection | ❌ | ✅ Real-time |
@@ -103,8 +111,9 @@ See individual feature pages for customization details.
 ## Next Steps
 
 Dive into each feature:
-1. Start with [Automatic Tickets](automatic-tickets.md) for task management
-2. Learn about [Agent Delegation](agent-delegation.md) for specialized help
-3. Explore [Session Logging](session-logging.md) for history
-4. Understand [Memory Protection](memory-protection.md) for reliability
-5. Discover [Dynamic Agent Capabilities](dynamic-agent-capabilities.md) for auto-documentation
+1. Start with [Session Pause and Resume](session-pause-resume.md) for context continuity (NEW)
+2. Learn about [Automatic Tickets](automatic-tickets.md) for task management
+3. Explore [Agent Delegation](agent-delegation.md) for specialized help
+4. Check out [Session Logging](session-logging.md) for comprehensive history
+5. Understand [Memory Protection](memory-protection.md) for reliability
+6. Discover [Dynamic Agent Capabilities](dynamic-agent-capabilities.md) for auto-documentation

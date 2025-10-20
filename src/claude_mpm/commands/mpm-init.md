@@ -7,6 +7,10 @@ Initialize or intelligently update your project for optimal use with Claude Code
 ```
 /mpm-init                      # Auto-detects and offers update or create
 /mpm-init update               # Lightweight update based on recent git activity
+/mpm-init catchup              # Show recent commit history for context
+/mpm-init pause                # Pause session and save state
+/mpm-init resume               # Resume most recent paused session
+/mpm-init resume --list        # List all paused sessions
 /mpm-init --review             # Review project state without changes
 /mpm-init --update             # Full update of existing CLAUDE.md
 /mpm-init --organize           # Organize project structure
@@ -163,6 +167,76 @@ This displays:
 
 Useful for understanding recent development activity and getting PM up to speed on project changes.
 
+### Session Management (Pause/Resume)
+
+Save and restore session state across Claude sessions:
+
+**Pause Current Session:**
+```bash
+/mpm-init pause
+```
+
+This captures and saves:
+- Conversation context and progress
+- Current git repository state
+- Active and completed todo items
+- Working directory status
+- Session timestamp and metadata
+
+**Resume Previous Session:**
+```bash
+/mpm-init resume
+```
+
+This loads and analyzes:
+- Most recent (or specified) paused session
+- Changes since pause (git commits, file modifications)
+- Potential conflicts or warnings
+- Full context for seamless continuation
+
+**Pause Options:**
+- `-s, --summary TEXT`: Provide session summary
+- `-a, --accomplishment TEXT`: Record accomplishments (can be used multiple times)
+- `-n, --next-step TEXT`: Document next steps (can be used multiple times)
+- `--no-commit`: Skip creating git commit with session info
+
+**Resume Options:**
+- `--session-id TEXT`: Resume specific session by ID
+- `--list`: List all available paused sessions
+
+**Example Usage:**
+```bash
+# Pause with detailed context
+/mpm-init pause -s "Implemented authentication system" \
+  -a "Added login endpoint" \
+  -a "Created user model" \
+  -a "Wrote integration tests" \
+  -n "Add logout endpoint" \
+  -n "Implement password reset"
+
+# Resume latest session
+/mpm-init resume
+
+# List available sessions
+/mpm-init resume --list
+
+# Resume specific session
+/mpm-init resume --session-id session-20251020-012501
+```
+
+**Session Storage:**
+- Sessions saved in `.claude-mpm/sessions/pause/`
+- JSON format with secure permissions (0600)
+- Includes checksums for data integrity
+- Automatic git commit creation (unless `--no-commit`)
+
+**Use Cases:**
+- **Context Continuity**: Maintain context across multiple Claude sessions
+- **Team Handoffs**: Save state before passing work to another team member
+- **Long-running Projects**: Track progress over multiple work sessions
+- **Break Points**: Document progress at natural stopping points
+- **Change Awareness**: Detect what changed while you were away
+
 ### Review Project State
 ```bash
 /mpm-init --review
@@ -268,10 +342,13 @@ The command delegates to the Agentic Coder Optimizer agent which:
 ## Notes
 
 - **Quick Update vs Full Update**: Use `/mpm-init update` for fast activity-based updates (30 days), or `/mpm-init --update` for comprehensive doc refresh
+- **Session Management**: Use `/mpm-init pause` to save state and `/mpm-init resume` to continue later with full context
 - **Smart Mode**: Automatically detects existing CLAUDE.md and offers update vs recreate
 - **Safe Updates**: Previous versions always archived before updating
 - **Custom Content**: Your project-specific sections are preserved by default
-- **Git Integration**: Analyzes recent commits to understand project evolution
+- **Git Integration**: Analyzes recent commits to understand project evolution; pause creates optional git commits
+- **Session Storage**: Paused sessions stored in `.claude-mpm/sessions/pause/` with secure permissions
+- **Change Detection**: Resume automatically detects and reports changes since pause
 - **Argument Processing**: The slash command processes the `update` argument and routes to `--quick-update` flag
 - The command uses the Agentic Coder Optimizer agent for implementation
 - AST analysis is enabled by default for comprehensive documentation

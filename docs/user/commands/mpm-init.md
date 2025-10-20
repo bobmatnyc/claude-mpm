@@ -128,6 +128,133 @@ Quick update mode:
 - Optionally appends activity summary to CLAUDE.md
 - Can export report to markdown file
 
+### Session Management (Pause/Resume)
+
+**NEW in v4.8.5**: Save and restore session state across Claude sessions for seamless context continuity.
+
+#### Pause Session
+
+Capture and save your current session state:
+
+```bash
+# Basic pause
+claude-mpm mpm-init pause
+
+# Pause with summary
+claude-mpm mpm-init pause -s "Implemented user authentication"
+
+# Pause with accomplishments and next steps
+claude-mpm mpm-init pause \
+  -s "Working on API integration" \
+  -a "Added OAuth2 client" \
+  -a "Implemented token refresh" \
+  -a "Created integration tests" \
+  -n "Add rate limiting" \
+  -n "Document API endpoints"
+
+# Pause without creating git commit
+claude-mpm mpm-init pause --no-commit -s "WIP: refactoring auth module"
+```
+
+**Pause Options:**
+- `-s, --summary TEXT`: Summary of what you were working on
+- `-a, --accomplishment TEXT`: Things accomplished (can be used multiple times)
+- `-n, --next-step TEXT`: Next steps to continue (can be used multiple times)
+- `--no-commit`: Skip creating git commit with session information
+
+**What Gets Saved:**
+- Conversation context and summary
+- Current git repository state (branch, commit, status)
+- Active and completed todo items
+- Working directory changes
+- Session timestamp and metadata
+- Project path and version information
+
+#### Resume Session
+
+Load and restore a paused session:
+
+```bash
+# Resume most recent session
+claude-mpm mpm-init resume
+
+# List all available paused sessions
+claude-mpm mpm-init resume --list
+
+# Resume specific session
+claude-mpm mpm-init resume --session-id session-20251020-143022
+```
+
+**Resume Options:**
+- `--session-id TEXT`: Resume specific session by ID
+- `--list`: List all available paused sessions with timestamps
+
+**What Gets Restored:**
+- Full conversation context and progress
+- Git state at time of pause
+- Todo items (active and completed)
+- Next steps and accomplishments
+- **Change detection**: Shows what changed since pause (commits, files, conflicts)
+
+**Change Detection:**
+
+When resuming, the system automatically detects:
+- New commits since pause
+- Modified files
+- Branch changes
+- Potential conflicts
+- Uncommitted changes
+
+This ensures you're immediately aware of any changes that occurred while the session was paused.
+
+#### Session Storage
+
+Sessions are stored in `.claude-mpm/sessions/pause/`:
+- **Format**: JSON with checksums for data integrity
+- **Security**: Files created with `0600` permissions (owner-only access)
+- **Naming**: `session-YYYYMMDD-HHMMSS.json`
+- **Git Integration**: Optional commit created with pause info (unless `--no-commit`)
+
+#### Use Cases
+
+**Context Continuity:**
+```bash
+# End of day
+claude-mpm mpm-init pause -s "Completed user module" \
+  -a "Implemented CRUD operations" \
+  -n "Add input validation"
+
+# Next morning
+claude-mpm mpm-init resume
+# Returns: Full context plus any changes made by team members
+```
+
+**Team Handoffs:**
+```bash
+# Developer A finishes work
+claude-mpm mpm-init pause -s "Authentication module ready for review" \
+  -a "All tests passing" \
+  -n "Needs code review" \
+  -n "Consider performance optimization"
+
+# Developer B picks up
+claude-mpm mpm-init resume --list  # See available sessions
+claude-mpm mpm-init resume --session-id session-20251020-170000
+```
+
+**Long-Running Projects:**
+```bash
+# Pause at natural break points
+claude-mpm mpm-init pause -s "Milestone 2 complete" \
+  -a "Payment integration done" \
+  -a "Email notifications working" \
+  -n "Start Milestone 3: Analytics dashboard"
+
+# Resume days or weeks later
+claude-mpm mpm-init resume
+# Returns: Full context of where you left off
+```
+
 ### Other Options
 
 **Dry run** (preview without changes):
