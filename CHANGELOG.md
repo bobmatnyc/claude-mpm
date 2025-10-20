@@ -12,6 +12,16 @@
 
 ### Security
 
+## [4.11.1] - 2025-10-19
+
+### Fixed
+- Replaced broken session state storage with intelligent git-based context reconstruction
+  - Removed SessionPauseManager and SessionResumeManager
+  - Removed session state JSON files and Claude Code-style session restore
+  - Added git-based context analysis via Research agent delegation
+  - Renamed `resume` command to `context` (backward compatible alias maintained)
+  - Intelligent analysis of commit history, work streams, risks, and recommendations
+
 ## [4.11.0] - 2025-10-19
 
 ### Added
