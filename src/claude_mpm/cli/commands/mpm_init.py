@@ -1491,11 +1491,22 @@ preserving valuable project-specific information while refreshing standard secti
         """
         from claude_mpm.utils.git_analyzer import analyze_recent_activity
 
-        # 1. Analyze git history
+        # 1. Analyze git history with adaptive window
         console.print(f"\n🔍 Analyzing last {days} days of git history...\n")
         git_analysis = analyze_recent_activity(
-            repo_path=str(self.project_path), days=days, max_commits=50
+            repo_path=str(self.project_path), days=days, max_commits=50, min_commits=25
         )
+
+        # Show adaptive behavior to user
+        if git_analysis.get("adaptive_mode"):
+            console.print(
+                f"[cyan]ℹ️  Note: Analyzed {git_analysis.get('actual_time_span', 'extended period')} "
+                f"to get meaningful context[/cyan]"
+            )
+            if git_analysis.get("reason"):
+                console.print(f"[dim]    Reason: {git_analysis['reason']}[/dim]\n")
+            else:
+                console.print()
 
         if git_analysis.get("error"):
             console.print(
@@ -1553,7 +1564,15 @@ preserving valuable project-specific information while refreshing standard secti
 You are Research agent analyzing git history to provide PM with intelligent project context for resuming work.
 
 ## Analysis Scope
-- **Time Range**: Last {days} days
+- **Time Range**: Last {days} days"""
+
+        # Add adaptive mode note if applicable
+        if git_analysis.get("adaptive_mode"):
+            actual_days = git_analysis.get("actual_time_span", "extended period")
+            prompt += f""" (adaptive: {actual_days} days analyzed)
+- **Note**: {git_analysis.get('reason', 'Analysis window adjusted to ensure meaningful context')}"""
+
+        prompt += f"""
 - **Commits Analyzed**: {len(commits)} commits
 - **Branches**: {', '.join(branches[:5]) if branches else 'main'}
 - **Contributors**: {', '.join(contributors.keys()) if contributors else 'Unknown'}
