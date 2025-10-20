@@ -1,0 +1,652 @@
+{
+  "agent_id": "java_engineer",
+  "language": "java",
+  "suite_type": "lightweight",
+  "total_tests": 12,
+  "difficulty_distribution": {
+    "easy": 4,
+    "medium": 5,
+    "hard": 3
+  },
+  "category_coverage": [
+    "algorithms",
+    "concurrency",
+    "spring_boot",
+    "performance",
+    "testing"
+  ],
+  "source_suite": "expanded_v1",
+  "version": "1.0.0",
+  "tests": [
+    {
+      "id": "java_01",
+      "name": "Stream API Filter and Transform",
+      "difficulty": "easy",
+      "category": "algorithms",
+      "description": "Use Java Stream API to filter even numbers, multiply each by 2, and collect into a new list with proper error handling.",
+      "signature": "public class StreamProcessor {\n    public static List<Integer> processEvenNumbers(List<Integer> numbers) {\n        // Filter even numbers, multiply by 2, return new list\n    }\n}",
+      "test_cases": [
+        {
+          "input": "[1, 2, 3, 4, 5, 6]",
+          "expected": "[4, 8, 12]"
+        },
+        {
+          "input": "[]",
+          "expected": "[]"
+        },
+        {
+          "input": "null",
+          "expected": "IllegalArgumentException"
+        }
+      ],
+      "constraints": [
+        "Use Stream API (filter, map, collect)",
+        "Handle null input gracefully",
+        "Single-pass stream operation"
+      ],
+      "hints": [
+        "Use stream().filter() for even numbers",
+        "Use map() to multiply by 2",
+        "Use Collectors.toList() to collect"
+      ],
+      "solution_approach": "Stream API with filter-map-collect pipeline",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(n)",
+      "validation_criteria": {
+        "correctness": [
+          "Correctly filters even numbers",
+          "Multiplies each by 2",
+          "Returns List<Integer>",
+          "Handles null input with IllegalArgumentException"
+        ],
+        "quality": [
+          "Uses Stream API methods (filter, map, collect)",
+          "Includes JavaDoc comments",
+          "Follows Java naming conventions (camelCase)",
+          "No raw types"
+        ],
+        "performance": [
+          "Single-pass stream operation",
+          "No unnecessary intermediate collections"
+        ]
+      },
+      "expected_files": ["StreamProcessor.java"],
+      "estimated_time_seconds": 120
+    },
+    {
+      "id": "java_02",
+      "name": "JUnit 5 Unit Tests with Assertions",
+      "difficulty": "easy",
+      "category": "testing",
+      "description": "Create JUnit 5 unit tests for a simple calculator class with comprehensive assertions and edge case coverage.",
+      "signature": "public class CalculatorTest {\n    @Test\n    void testAddition() {\n        // Test addition operation\n    }\n}",
+      "test_cases": [
+        {
+          "input": "Calculator.add(2, 3)",
+          "expected": "5"
+        },
+        {
+          "input": "Calculator.divide(10, 0)",
+          "expected": "ArithmeticException"
+        }
+      ],
+      "constraints": [
+        "Use JUnit 5 annotations (@Test, @BeforeEach, etc.)",
+        "Use AssertJ or JUnit assertions",
+        "Test edge cases (division by zero, negative numbers)"
+      ],
+      "hints": [
+        "Use @Test annotation for test methods",
+        "Use assertEquals, assertThrows",
+        "Group related tests with @Nested"
+      ],
+      "solution_approach": "JUnit 5 test class with comprehensive assertions",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)",
+      "validation_criteria": {
+        "correctness": [
+          "All test methods compile and run",
+          "Tests cover positive cases",
+          "Tests cover edge cases (division by zero)",
+          "Uses proper JUnit 5 annotations"
+        ],
+        "quality": [
+          "Clear test method names (testAddition, testDivisionByZero)",
+          "Proper use of assertions",
+          "JavaDoc comments on test class",
+          "Follows AAA pattern (Arrange, Act, Assert)"
+        ],
+        "performance": [
+          "Tests run quickly (<100ms each)",
+          "No unnecessary setup/teardown"
+        ]
+      },
+      "expected_files": ["CalculatorTest.java"],
+      "estimated_time_seconds": 150
+    },
+    {
+      "id": "java_03",
+      "name": "Virtual Threads Basic Usage",
+      "difficulty": "easy",
+      "category": "concurrency",
+      "description": "Create a service that uses Java 21 virtual threads to process multiple tasks concurrently with simple error handling.",
+      "signature": "public class VirtualThreadService {\n    public static List<String> processTasks(List<Callable<String>> tasks) throws InterruptedException {\n        // Process tasks using virtual threads\n    }\n}",
+      "test_cases": [
+        {
+          "input": "3 tasks returning strings",
+          "expected": "List of 3 results"
+        },
+        {
+          "input": "Empty task list",
+          "expected": "Empty result list"
+        }
+      ],
+      "constraints": [
+        "Use Executors.newVirtualThreadPerTaskExecutor()",
+        "Use try-with-resources for executor",
+        "Handle InterruptedException"
+      ],
+      "hints": [
+        "Use newVirtualThreadPerTaskExecutor()",
+        "Use invokeAll() to execute tasks",
+        "Use try-with-resources for cleanup"
+      ],
+      "solution_approach": "Virtual thread executor with task submission",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(n)",
+      "validation_criteria": {
+        "correctness": [
+          "Uses virtual threads (not platform threads)",
+          "All tasks execute concurrently",
+          "Results collected in order",
+          "Proper exception handling"
+        ],
+        "quality": [
+          "Try-with-resources for executor cleanup",
+          "Clear method signatures",
+          "JavaDoc explaining async behavior",
+          "No thread pool leaks"
+        ],
+        "performance": [
+          "Virtual threads used (lightweight)",
+          "No unnecessary blocking",
+          "Proper executor shutdown"
+        ]
+      },
+      "expected_files": ["VirtualThreadService.java"],
+      "estimated_time_seconds": 180
+    },
+    {
+      "id": "java_04",
+      "name": "Spring Boot REST Controller",
+      "difficulty": "easy",
+      "category": "spring_boot",
+      "description": "Implement a Spring Boot REST controller with basic CRUD operations for a User entity, including proper HTTP status codes.",
+      "signature": "@RestController\n@RequestMapping(\"/api/users\")\npublic class UserController {\n    @GetMapping(\"/{id}\")\n    public ResponseEntity<User> getUser(@PathVariable Long id) {\n        // Get user by ID\n    }\n}",
+      "test_cases": [
+        {
+          "input": "GET /api/users/1",
+          "expected": "200 OK with User JSON"
+        },
+        {
+          "input": "GET /api/users/999",
+          "expected": "404 Not Found"
+        }
+      ],
+      "constraints": [
+        "Use @RestController annotation",
+        "Use @GetMapping, @PostMapping annotations",
+        "Return ResponseEntity with proper status codes"
+      ],
+      "hints": [
+        "Use @RequestMapping for base path",
+        "Use @PathVariable for URL parameters",
+        "Return ResponseEntity.ok() or ResponseEntity.notFound()"
+      ],
+      "solution_approach": "Spring Boot REST controller with annotations",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)",
+      "validation_criteria": {
+        "correctness": [
+          "Controller compiles without errors",
+          "Proper HTTP methods (GET, POST, PUT, DELETE)",
+          "Correct status codes (200, 404, 201)",
+          "Valid JSON responses"
+        ],
+        "quality": [
+          "Uses Spring annotations correctly",
+          "RESTful endpoint naming",
+          "JavaDoc on controller class",
+          "Follows Spring Boot conventions"
+        ],
+        "performance": [
+          "No blocking operations in controller",
+          "Proper dependency injection"
+        ]
+      },
+      "expected_files": ["UserController.java"],
+      "estimated_time_seconds": 180
+    },
+    {
+      "id": "java_05",
+      "name": "Binary Search with Generics",
+      "difficulty": "medium",
+      "category": "algorithms",
+      "description": "Implement a generic binary search algorithm that works with any Comparable type, including proper edge case handling.",
+      "signature": "public class BinarySearch {\n    public static <T extends Comparable<T>> int search(List<T> list, T target) {\n        // Binary search implementation\n    }\n}",
+      "test_cases": [
+        {
+          "input": "([1, 3, 5, 7, 9], 5)",
+          "expected": "2"
+        },
+        {
+          "input": "([1, 3, 5, 7, 9], 6)",
+          "expected": "-1"
+        },
+        {
+          "input": "([], 5)",
+          "expected": "-1"
+        }
+      ],
+      "constraints": [
+        "Use generics with Comparable bound",
+        "O(log n) time complexity",
+        "Handle empty lists and not found cases"
+      ],
+      "hints": [
+        "Use <T extends Comparable<T>> for generic constraint",
+        "Use left + (right - left) / 2 to avoid overflow",
+        "Return -1 if not found"
+      ],
+      "solution_approach": "Generic binary search with type constraints",
+      "time_complexity": "O(log n)",
+      "space_complexity": "O(1)",
+      "validation_criteria": {
+        "correctness": [
+          "Finds existing elements correctly",
+          "Returns -1 for missing elements",
+          "Handles empty list",
+          "Works with any Comparable type"
+        ],
+        "quality": [
+          "Proper generic type constraints",
+          "Clear variable names (left, right, mid)",
+          "JavaDoc explaining algorithm",
+          "No integer overflow in midpoint calculation"
+        ],
+        "performance": [
+          "O(log n) time complexity",
+          "Iterative approach (no recursion overhead)",
+          "Minimal comparisons"
+        ]
+      },
+      "expected_files": ["BinarySearch.java"],
+      "estimated_time_seconds": 240
+    },
+    {
+      "id": "java_06",
+      "name": "CompletableFuture Pipeline with Error Handling",
+      "difficulty": "medium",
+      "category": "concurrency",
+      "description": "Create an async service using CompletableFuture to fetch, process, and store user data with timeout and error handling.",
+      "signature": "public class AsyncUserService {\n    public CompletableFuture<User> processUser(Long userId, Duration timeout) {\n        // Async pipeline with error handling\n    }\n}",
+      "test_cases": [
+        {
+          "input": "userId=1, timeout=5s",
+          "expected": "Processed User object"
+        },
+        {
+          "input": "userId=999, timeout=5s",
+          "expected": "CompletionException with fallback"
+        }
+      ],
+      "constraints": [
+        "Use CompletableFuture.supplyAsync()",
+        "Use thenApply/thenCompose for chaining",
+        "Use exceptionally() for error handling",
+        "Implement timeout with orTimeout()"
+      ],
+      "hints": [
+        "Chain operations with thenApply()",
+        "Use exceptionally() for fallback values",
+        "Use orTimeout() for timeout handling"
+      ],
+      "solution_approach": "CompletableFuture composition with error recovery",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)",
+      "validation_criteria": {
+        "correctness": [
+          "CompletableFuture chain works correctly",
+          "Error handling with exceptionally() or handle()",
+          "Fallback values provided on error",
+          "Timeout enforced"
+        ],
+        "quality": [
+          "Clean CompletableFuture composition",
+          "Meaningful variable names",
+          "JavaDoc explaining async flow",
+          "Proper exception types"
+        ],
+        "performance": [
+          "Non-blocking operations",
+          "Proper executor usage",
+          "No thread pool exhaustion"
+        ]
+      },
+      "expected_files": ["AsyncUserService.java"],
+      "estimated_time_seconds": 300
+    },
+    {
+      "id": "java_07",
+      "name": "Mockito Integration Tests",
+      "difficulty": "medium",
+      "category": "testing",
+      "description": "Write integration tests for a service layer using Mockito to mock repository dependencies and verify interactions.",
+      "signature": "@ExtendWith(MockitoExtension.class)\npublic class UserServiceTest {\n    @Mock\n    private UserRepository userRepository;\n    \n    @InjectMocks\n    private UserService userService;\n    \n    @Test\n    void testGetUserById() {\n        // Test with mocked repository\n    }\n}",
+      "test_cases": [
+        {
+          "input": "Mock repository returns user",
+          "expected": "Service returns user"
+        },
+        {
+          "input": "Mock repository throws exception",
+          "expected": "Service handles exception"
+        }
+      ],
+      "constraints": [
+        "Use @Mock and @InjectMocks annotations",
+        "Use Mockito.when().thenReturn() for stubbing",
+        "Use verify() to check interactions"
+      ],
+      "hints": [
+        "Use @ExtendWith(MockitoExtension.class)",
+        "Use when().thenReturn() for stubbing",
+        "Use verify() to assert method calls"
+      ],
+      "solution_approach": "Mockito-based unit testing with mocks",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)",
+      "validation_criteria": {
+        "correctness": [
+          "Mocks configured correctly",
+          "Tests verify service behavior",
+          "Exception handling tested",
+          "Interactions verified with verify()"
+        ],
+        "quality": [
+          "Proper use of @Mock and @InjectMocks",
+          "Clear test method names",
+          "AAA pattern followed",
+          "No real dependencies"
+        ],
+        "performance": [
+          "Tests run quickly (no real I/O)",
+          "Isolated from external dependencies"
+        ]
+      },
+      "expected_files": ["UserServiceTest.java"],
+      "estimated_time_seconds": 300
+    },
+    {
+      "id": "java_08",
+      "name": "Spring Boot Service with Dependency Injection",
+      "difficulty": "medium",
+      "category": "spring_boot",
+      "description": "Implement a Spring Boot service layer with constructor injection, transaction management, and business logic.",
+      "signature": "@Service\npublic class OrderService {\n    private final OrderRepository orderRepository;\n    private final InventoryService inventoryService;\n    \n    public OrderService(OrderRepository orderRepository, InventoryService inventoryService) {\n        // Constructor injection\n    }\n    \n    @Transactional\n    public Order createOrder(OrderRequest request) {\n        // Business logic with transaction\n    }\n}",
+      "test_cases": [
+        {
+          "input": "Valid order request",
+          "expected": "Order created successfully"
+        },
+        {
+          "input": "Insufficient inventory",
+          "expected": "InsufficientStockException"
+        }
+      ],
+      "constraints": [
+        "Use constructor injection",
+        "Use @Transactional annotation",
+        "Handle business validation"
+      ],
+      "hints": [
+        "Use @Service annotation",
+        "Constructor injection for dependencies",
+        "Use @Transactional for atomic operations"
+      ],
+      "solution_approach": "Spring service with DI and transactions",
+      "time_complexity": "O(1)",
+      "space_complexity": "O(1)",
+      "validation_criteria": {
+        "correctness": [
+          "Service compiles and runs",
+          "Constructor injection works",
+          "Transaction boundaries correct",
+          "Business validation implemented"
+        ],
+        "quality": [
+          "Constructor injection (not field injection)",
+          "Final fields for immutability",
+          "Clear method signatures",
+          "Proper exception handling"
+        ],
+        "performance": [
+          "Single transaction per operation",
+          "No N+1 query issues",
+          "Proper connection pooling"
+        ]
+      },
+      "expected_files": ["OrderService.java"],
+      "estimated_time_seconds": 360
+    },
+    {
+      "id": "java_09",
+      "name": "HashMap Optimization for Collision Handling",
+      "difficulty": "medium",
+      "category": "performance",
+      "description": "Implement a custom hash-based cache with optimized collision handling and proper capacity management.",
+      "signature": "public class OptimizedCache<K, V> {\n    private static final int DEFAULT_CAPACITY = 16;\n    private static final float LOAD_FACTOR = 0.75f;\n    \n    public V put(K key, V value) {\n        // Optimized put with rehashing\n    }\n    \n    public V get(K key) {\n        // O(1) average lookup\n    }\n}",
+      "test_cases": [
+        {
+          "input": "Put and get 100 entries",
+          "expected": "All entries retrievable"
+        },
+        {
+          "input": "Trigger rehashing at 75% capacity",
+          "expected": "Automatic resizing"
+        }
+      ],
+      "constraints": [
+        "Use array-based storage",
+        "Implement rehashing at load factor threshold",
+        "Handle collisions efficiently"
+      ],
+      "hints": [
+        "Use array of Entry nodes",
+        "Calculate hash with key.hashCode()",
+        "Rehash when size > capacity * loadFactor"
+      ],
+      "solution_approach": "Custom hash map with rehashing",
+      "time_complexity": "O(1) average",
+      "space_complexity": "O(n)",
+      "validation_criteria": {
+        "correctness": [
+          "Put and get operations work",
+          "Handles hash collisions",
+          "Rehashing triggers correctly",
+          "Preserves all entries after rehash"
+        ],
+        "quality": [
+          "Generic type parameters",
+          "Clear naming (buckets, entries)",
+          "JavaDoc explaining algorithm",
+          "Proper null handling"
+        ],
+        "performance": [
+          "O(1) average lookup time",
+          "Load factor optimization",
+          "Minimal rehashing overhead"
+        ]
+      },
+      "expected_files": ["OptimizedCache.java"],
+      "estimated_time_seconds": 360
+    },
+    {
+      "id": "java_10",
+      "name": "Dijkstra Shortest Path with JGraphT",
+      "difficulty": "hard",
+      "category": "algorithms",
+      "description": "Implement shortest path algorithm using JGraphT library for weighted directed graphs with proper error handling.",
+      "signature": "public class ShortestPathFinder {\n    public static List<String> findShortestPath(\n        Graph<String, DefaultWeightedEdge> graph,\n        String source,\n        String target\n    ) {\n        // Dijkstra shortest path implementation\n    }\n}",
+      "test_cases": [
+        {
+          "input": "Graph with 5 vertices, source='A', target='E'",
+          "expected": "['A', 'C', 'D', 'E']"
+        },
+        {
+          "input": "No path exists",
+          "expected": "Empty list"
+        }
+      ],
+      "constraints": [
+        "Use JGraphT library (DijkstraShortestPath)",
+        "Handle disconnected graphs",
+        "Return empty list if no path exists"
+      ],
+      "hints": [
+        "Use DijkstraShortestPath from JGraphT",
+        "Check if path is null before returning",
+        "Use DefaultDirectedWeightedGraph"
+      ],
+      "solution_approach": "JGraphT Dijkstra with error handling",
+      "time_complexity": "O((V + E) log V)",
+      "space_complexity": "O(V)",
+      "validation_criteria": {
+        "correctness": [
+          "Finds shortest path correctly",
+          "Handles disconnected graphs",
+          "Returns empty list if no path",
+          "Works with weighted edges"
+        ],
+        "quality": [
+          "Uses JGraphT library correctly",
+          "Clear method signatures",
+          "JavaDoc explaining algorithm",
+          "Proper null checks"
+        ],
+        "performance": [
+          "O((V + E) log V) time complexity",
+          "Efficient priority queue usage",
+          "No unnecessary graph traversals"
+        ]
+      },
+      "expected_files": ["ShortestPathFinder.java"],
+      "estimated_time_seconds": 480
+    },
+    {
+      "id": "java_11",
+      "name": "Concurrent Data Structure with Thread Safety",
+      "difficulty": "hard",
+      "category": "concurrency",
+      "description": "Implement a thread-safe bounded queue using Java concurrency utilities with blocking operations and proper synchronization.",
+      "signature": "public class BoundedBlockingQueue<T> {\n    private final int capacity;\n    private final Queue<T> queue;\n    private final ReentrantLock lock;\n    private final Condition notFull;\n    private final Condition notEmpty;\n    \n    public void put(T item) throws InterruptedException {\n        // Blocking put operation\n    }\n    \n    public T take() throws InterruptedException {\n        // Blocking take operation\n    }\n}",
+      "test_cases": [
+        {
+          "input": "Put 10 items to queue with capacity 5",
+          "expected": "Blocks after 5 items until space available"
+        },
+        {
+          "input": "Take from empty queue",
+          "expected": "Blocks until item available"
+        }
+      ],
+      "constraints": [
+        "Use ReentrantLock for synchronization",
+        "Use Condition for blocking",
+        "Thread-safe operations"
+      ],
+      "hints": [
+        "Use ReentrantLock instead of synchronized",
+        "Use Condition.await() and signal()",
+        "Use try-finally for lock release"
+      ],
+      "solution_approach": "Lock-based bounded blocking queue",
+      "time_complexity": "O(1) per operation",
+      "space_complexity": "O(capacity)",
+      "validation_criteria": {
+        "correctness": [
+          "Thread-safe operations",
+          "Blocking when full/empty",
+          "Proper signaling on state changes",
+          "No race conditions"
+        ],
+        "quality": [
+          "Uses ReentrantLock (not synchronized for virtual threads)",
+          "Proper lock acquisition in try-finally",
+          "Clear state management",
+          "JavaDoc explaining concurrency"
+        ],
+        "performance": [
+          "O(1) operations",
+          "Minimal lock contention",
+          "Efficient condition signaling"
+        ]
+      },
+      "expected_files": ["BoundedBlockingQueue.java"],
+      "estimated_time_seconds": 540
+    },
+    {
+      "id": "java_12",
+      "name": "Memory-Efficient CSV Stream Processor",
+      "difficulty": "hard",
+      "category": "performance",
+      "description": "Process large CSV files (millions of rows) using streams with constant memory usage, error handling, and progress reporting.",
+      "signature": "public class CsvStreamProcessor {\n    public static ProcessingResult processLargeCsv(\n        Path csvPath,\n        Predicate<String[]> filter,\n        Consumer<ProcessingProgress> progressCallback\n    ) throws IOException {\n        // Stream-based CSV processing\n    }\n}",
+      "test_cases": [
+        {
+          "input": "CSV with 1 million rows",
+          "expected": "Processes with constant memory"
+        },
+        {
+          "input": "Malformed CSV rows",
+          "expected": "Skips bad rows, reports errors"
+        }
+      ],
+      "constraints": [
+        "Constant memory usage (streaming)",
+        "Handle malformed rows gracefully",
+        "Provide progress reporting"
+      ],
+      "hints": [
+        "Use Files.lines() for streaming",
+        "Use try-with-resources",
+        "Process line-by-line, don't load all into memory"
+      ],
+      "solution_approach": "Stream-based CSV processing",
+      "time_complexity": "O(n)",
+      "space_complexity": "O(1)",
+      "validation_criteria": {
+        "correctness": [
+          "Processes CSV correctly",
+          "Constant memory usage (streaming)",
+          "Progress reporting works",
+          "Proper resource cleanup"
+        ],
+        "quality": [
+          "Try-with-resources for file handling",
+          "Specific exceptions (IOException, etc.)",
+          "Clear separation of parsing and processing",
+          "Comprehensive JavaDoc"
+        ],
+        "performance": [
+          "Stream-based processing (no loading into memory)",
+          "Efficient buffering strategy",
+          "Minimal object creation in hot path",
+          "Parallel stream where appropriate"
+        ]
+      },
+      "expected_files": ["CsvStreamProcessor.java"],
+      "estimated_time_seconds": 600
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 {
-  "generation_date": "2025-10-18",
+  "generation_date": "2025-10-20",
   "suite_type": "lightweight",
-  "total_agents": 7,
-  "total_tests": 84,
+  "total_agents": 8,
+  "total_tests": 96,
   "selection_strategy": {
     "easy_tests_per_agent": 4,
     "medium_tests_per_agent": 5,
@@ -128,6 +128,25 @@
         "oop",
         "interfaces",
         "generics"
+      ]
+    },
+    {
+      "agent_id": "java_engineer",
+      "language": "java",
+      "total_tests": 12,
+      "distribution": {
+        "easy": 4,
+        "medium": 5,
+        "hard": 3
+      },
+      "categories": [
+        "algorithms",
+        "concurrency",
+        "spring_boot",
+        "performance",
+        "testing",
+        "streams",
+        "design_patterns"
       ]
     },
     {

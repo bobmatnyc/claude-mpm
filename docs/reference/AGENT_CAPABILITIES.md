@@ -1,7 +1,7 @@
 # Agent Capabilities Reference
 
-**Version**: 4.9.0
-**Last Updated**: 2025-10-17
+**Version**: 4.10.0
+**Last Updated**: 2025-10-20
 
 Complete reference documentation for all Claude MPM agent capabilities, routing configurations, and integration details.
 
@@ -19,7 +19,7 @@ Complete reference documentation for all Claude MPM agent capabilities, routing 
 
 ## Coding Agents
 
-Comprehensive capabilities for all 7 coding agents.
+Comprehensive capabilities for all 8 coding agents.
 
 ### Python Engineer v2.0.0
 
@@ -273,6 +273,92 @@ Stores:
 - Context management strategies
 - Microservices architectures
 - Performance optimizations
+
+---
+
+### Java Engineer v1.0.0 🆕
+
+**Agent ID**: `java-engineer`
+**Version**: v1.0.0
+**Model**: Sonnet
+**Category**: Engineering
+**Status**: ✅ Production
+
+#### Core Capabilities
+
+| Capability | Details |
+|------------|---------|
+| **Java Version** | 21 LTS |
+| **Spring Boot** | 3.x with auto-configuration |
+| **Architecture** | Hexagonal, clean architecture, DDD, CQRS |
+| **Concurrency** | Virtual threads, CompletableFuture, reactive |
+| **Testing** | JUnit 5, Mockito, AssertJ, TestContainers |
+| **Build Tools** | Maven 4.x, Gradle 8.x |
+| **Performance** | G1GC, ZGC, JFR, JMH benchmarking |
+
+#### Routing Configuration
+
+```yaml
+keywords:
+  - java
+  - java-21
+  - spring
+  - spring-boot
+  - maven
+  - gradle
+  - junit
+  - junit5
+  - virtual-threads
+  - enterprise
+  - microservices
+  - jvm
+
+file_patterns:
+  - "*.java"
+  - "pom.xml"
+  - "build.gradle"
+  - "build.gradle.kts"
+
+path_patterns:
+  - "/src/main/java/"
+  - "/src/test/java/"
+  - "/src/"
+
+priority: 100
+```
+
+#### Memory Routing Rules
+
+Stores:
+- Java 21 LTS features (virtual threads, pattern matching, sealed classes)
+- Spring Boot 3.x patterns and configurations
+- Hexagonal and clean architecture implementations
+- Concurrency patterns (virtual threads, CompletableFuture, reactive streams)
+- Performance optimization techniques (JVM tuning, profiling)
+- Testing strategies (JUnit 5, Mockito, TestContainers)
+
+#### Example Delegation
+
+```
+User: "I need a Spring Boot REST API with virtual threads"
+PM: Task(agent="java-engineer",
+         task="Implement Spring Boot REST API with:
+               - Java 21 virtual threads for concurrency
+               - Constructor injection
+               - Hexagonal architecture (domain, application, infrastructure)
+               - JUnit 5 and Mockito tests
+               - TestContainers for integration tests")
+```
+
+#### Quality Checklist
+
+- [ ] Java 21 LTS features used (virtual threads, pattern matching)
+- [ ] Constructor injection in Spring components
+- [ ] Try-with-resources for AutoCloseable
+- [ ] Explicit @Transactional boundaries
+- [ ] 90%+ test coverage with JUnit 5
+- [ ] Static analysis passed (SonarQube, SpotBugs)
+- [ ] Performance profiled (JFR/JMC)
 
 ---
 
