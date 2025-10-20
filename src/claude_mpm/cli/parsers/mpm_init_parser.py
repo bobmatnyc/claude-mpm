@@ -31,6 +31,8 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
         epilog=(
             "Examples:\n"
             "  claude-mpm mpm-init                                    # Initialize/update current directory\n"
+            "  claude-mpm mpm-init pause                              # Pause current session\n"
+            "  claude-mpm mpm-init resume                             # Resume latest session\n"
             "  claude-mpm mpm-init --review                           # Review project state without changes\n"
             "  claude-mpm mpm-init --update                           # Update existing CLAUDE.md\n"
             "  claude-mpm mpm-init --quick-update                     # Quick update based on recent git activity\n"
@@ -199,6 +201,63 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
 
     # Path argument
     mpm_init_parser.add_argument(
+        "project_path",
+        nargs="?",
+        default=".",
+        help="Path to project directory (default: current directory)",
+    )
+
+    # Add subparsers for pause/resume commands
+    subcommands = mpm_init_parser.add_subparsers(
+        dest="subcommand",
+        title="session management",
+        description="Commands for managing session pause/resume",
+    )
+
+    # Pause subcommand
+    pause_parser = subcommands.add_parser(
+        "pause",
+        help="Pause current session and save state",
+        description="Pause the current session and capture state for later resumption",
+    )
+    pause_parser.add_argument(
+        "--summary",
+        "-s",
+        type=str,
+        help="Summary of what you were working on",
+    )
+    pause_parser.add_argument(
+        "--accomplishment",
+        "-a",
+        action="append",
+        help="Accomplishment from this session (can be used multiple times)",
+    )
+    pause_parser.add_argument(
+        "--next-step",
+        "-n",
+        action="append",
+        help="Next step to continue work (can be used multiple times)",
+    )
+    pause_parser.add_argument(
+        "project_path",
+        nargs="?",
+        default=".",
+        help="Path to project directory (default: current directory)",
+    )
+
+    # Resume subcommand
+    resume_parser = subcommands.add_parser(
+        "resume",
+        help="Resume a paused session",
+        description="Resume the most recent (or specified) paused session",
+    )
+    resume_parser.add_argument(
+        "--session-id",
+        "-i",
+        type=str,
+        help="Specific session ID to resume (defaults to most recent)",
+    )
+    resume_parser.add_argument(
         "project_path",
         nargs="?",
         default=".",
