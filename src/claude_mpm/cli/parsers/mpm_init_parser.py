@@ -31,8 +31,7 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
         epilog=(
             "Examples:\n"
             "  claude-mpm mpm-init                                    # Initialize/update current directory\n"
-            "  claude-mpm mpm-init pause                              # Pause current session\n"
-            "  claude-mpm mpm-init resume                             # Resume latest session\n"
+            "  claude-mpm mpm-init --catchup                          # Show recent git history for context\n"
             "  claude-mpm mpm-init --review                           # Review project state without changes\n"
             "  claude-mpm mpm-init --update                           # Update existing CLAUDE.md\n"
             "  claude-mpm mpm-init --quick-update                     # Quick update based on recent git activity\n"
@@ -207,55 +206,57 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
         help="Path to project directory (default: current directory)",
     )
 
-    # Add subparsers for pause/resume commands
+    # Add subparsers for context commands
     subcommands = mpm_init_parser.add_subparsers(
         dest="subcommand",
-        title="session management",
-        description="Commands for managing session pause/resume",
+        title="context management",
+        description="Commands for managing project context",
     )
 
-    # Pause subcommand
-    pause_parser = subcommands.add_parser(
-        "pause",
-        help="Pause current session and save state",
-        description="Pause the current session and capture state for later resumption",
+    # Context subcommand (primary name)
+    context_parser = subcommands.add_parser(
+        "context",
+        help="Provide intelligent context for resuming work",
+        description="Analyze git history to provide context for resuming work",
+        epilog="Note: 'resume' is deprecated, use 'context' instead",
     )
-    pause_parser.add_argument(
-        "--summary",
-        "-s",
+    context_parser.add_argument(
+        "--session-id",
+        "-i",
         type=str,
-        help="Summary of what you were working on",
+        help="Unused (for compatibility) - will be removed in future version",
     )
-    pause_parser.add_argument(
-        "--accomplishment",
-        "-a",
-        action="append",
-        help="Accomplishment from this session (can be used multiple times)",
+    context_parser.add_argument(
+        "--days",
+        type=int,
+        default=7,
+        help="Number of days of git history to analyze (default: 7)",
     )
-    pause_parser.add_argument(
-        "--next-step",
-        "-n",
-        action="append",
-        help="Next step to continue work (can be used multiple times)",
-    )
-    pause_parser.add_argument(
+    context_parser.add_argument(
         "project_path",
         nargs="?",
         default=".",
         help="Path to project directory (default: current directory)",
     )
 
-    # Resume subcommand
+    # Resume subcommand (deprecated alias for backward compatibility)
     resume_parser = subcommands.add_parser(
         "resume",
-        help="Resume a paused session",
-        description="Resume the most recent (or specified) paused session",
+        help="[DEPRECATED] Use 'context' instead",
+        description="[DEPRECATED] This command is deprecated. Use 'context' instead.\n\n"
+        "Analyze git history to provide context for resuming work",
     )
     resume_parser.add_argument(
         "--session-id",
         "-i",
         type=str,
-        help="Specific session ID to resume (defaults to most recent)",
+        help="Unused (for compatibility) - will be removed in future version",
+    )
+    resume_parser.add_argument(
+        "--days",
+        type=int,
+        default=7,
+        help="Number of days of git history to analyze (default: 7)",
     )
     resume_parser.add_argument(
         "project_path",

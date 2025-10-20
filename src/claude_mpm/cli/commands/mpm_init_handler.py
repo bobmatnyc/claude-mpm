@@ -25,10 +25,17 @@ def manage_mpm_init(args):
         # Import the command implementation
         from .mpm_init import MPMInitCommand
 
-        # Handle pause/resume subcommands
+        # Handle context subcommands
         subcommand = getattr(args, "subcommand", None)
 
-        if subcommand == "pause":
+        if subcommand in ("context", "resume"):
+            # Show deprecation warning for 'resume'
+            if subcommand == "resume":
+                console.print(
+                    "[yellow]⚠️  Warning: 'resume' is deprecated. Use 'context' instead.[/yellow]"
+                )
+                console.print("[dim]Run: claude-mpm mpm-init context[/dim]\n")
+
             # Get project path
             project_path = (
                 Path(args.project_path) if hasattr(args, "project_path") else Path.cwd()
@@ -37,32 +44,14 @@ def manage_mpm_init(args):
             # Create command instance
             command = MPMInitCommand(project_path)
 
-            # Handle pause with optional arguments
-            result = command.handle_pause(
-                summary=getattr(args, "summary", None),
-                accomplishments=getattr(args, "accomplishment", None),
-                next_steps=getattr(args, "next_step", None),
+            # Handle context with optional session ID and days
+            result = command.handle_context(
+                session_id=getattr(args, "session_id", None),
+                days=getattr(args, "days", 7),
             )
 
             # Return appropriate exit code
-            if result.get("status") == "success":
-                return 0
-            return 1
-
-        if subcommand == "resume":
-            # Get project path
-            project_path = (
-                Path(args.project_path) if hasattr(args, "project_path") else Path.cwd()
-            )
-
-            # Create command instance
-            command = MPMInitCommand(project_path)
-
-            # Handle resume with optional session ID
-            result = command.handle_resume(session_id=getattr(args, "session_id", None))
-
-            # Return appropriate exit code
-            if result.get("status") == "success":
+            if result.get("status") in ("success", "context_ready"):
                 return 0
             return 1
 
