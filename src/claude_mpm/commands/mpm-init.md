@@ -7,10 +7,9 @@ Initialize or intelligently update your project for optimal use with Claude Code
 ```
 /mpm-init                      # Auto-detects and offers update or create
 /mpm-init update               # Lightweight update based on recent git activity
-/mpm-init catchup              # Show recent commit history for context
-/mpm-init pause                # Pause session and save state
-/mpm-init resume               # Resume most recent paused session
-/mpm-init resume --list        # List all paused sessions
+/mpm-init context              # Intelligent context analysis from git history
+/mpm-init context --days 14    # Analyze last 14 days of git history
+/mpm-init catchup              # Quick commit history display (no analysis)
 /mpm-init --review             # Review project state without changes
 /mpm-init --update             # Full update of existing CLAUDE.md
 /mpm-init --organize           # Organize project structure
@@ -21,7 +20,11 @@ Initialize or intelligently update your project for optimal use with Claude Code
 
 ## Description
 
-This command delegates to the Agentic Coder Optimizer agent to establish clear, single-path project standards for documentation, tooling, and workflows.
+This command has two primary modes:
+- **Project initialization/updates**: Delegates to the Agentic Coder Optimizer agent for documentation, tooling, and workflow setup
+- **Context analysis** (context/catchup): Provides intelligent project context from git history for resuming work
+
+**Note**: The `resume` subcommand is deprecated. Use `context` instead. The `resume` command still works for backward compatibility but will be removed in a future version.
 
 **Quick Update Mode**: Running `/mpm-init update` performs a lightweight update focused on recent git activity. It analyzes recent commits, generates an activity report, and updates documentation with minimal changes. Perfect for quick refreshes after development sprints.
 
@@ -57,6 +60,46 @@ This command delegates to the Agentic Coder Optimizer agent to establish clear, 
 - `--preserve-custom`: Preserve custom sections when updating (default)
 - `--no-preserve-custom`: Don't preserve custom sections
 - `--skip-archive`: Skip archiving existing files before updating
+
+## Context Analysis
+
+**Purpose**: Provide intelligent project context for resuming work by analyzing git history.
+
+### Commands
+
+#### `/mpm-init context` (Primary)
+```bash
+/mpm-init context                  # Analyze last 7 days of git history
+/mpm-init context --days 14        # Analyze last 14 days
+```
+
+Analyzes recent git commits to identify:
+- **Active work streams**: What was being worked on (themes from commit patterns)
+- **Intent and motivation**: Why this work matters (from commit messages)
+- **Risks and blockers**: What needs attention (stalled work, conflicts, anti-patterns)
+- **Recommended next actions**: What to work on next (logical continuations)
+
+**How it works**:
+1. Parses git history (default: last 7 days)
+2. PM delegates to Research agent with structured prompt
+3. Research analyzes work streams, intent, risks, recommendations
+4. PM presents intelligent summary for seamless work resumption
+
+**NOT session state**: This does NOT save/restore conversation state like Claude Code. Instead, it reconstructs project context from git history using conventional commits and commit message analysis.
+
+#### `/mpm-init resume` [DEPRECATED]
+Alias for `context`. Use `context` instead.
+
+### `/mpm-init catchup` (Simple Git History)
+```bash
+/mpm-init catchup
+```
+
+Quick display of last 25 commits across all branches. No analysis - just raw git log output with authors and dates. Use this for quick "what happened recently?" checks.
+
+**Distinction**:
+- **catchup**: Quick commit history (instant, no analysis)
+- **context**: Intelligent work resumption (10-30s, deep analysis)
 
 ## What This Command Does
 
@@ -150,92 +193,52 @@ Fast update based on recent 30-day git activity. Generates activity report and u
 
 **Note**: Typing `/mpm-init update` executes `claude-mpm mpm-init --quick-update` automatically.
 
-### Catchup Mode
+### Context Analysis (Intelligent Resumption)
 
-Show recent commit history to provide PM with project context:
+Get intelligent context for resuming work based on git history analysis:
+
+**Standard Context Analysis:**
+```bash
+/mpm-init context              # Analyze last 7 days (default)
+/mpm-init context --days 14    # Analyze last 14 days
+/mpm-init context --days 30    # Analyze last 30 days
+```
+
+This provides intelligent analysis including:
+- **Work stream identification** from commit patterns
+- **Intent analysis** (why work was done)
+- **Risk detection** (stalled work, conflicts, etc.)
+- **Recommended next actions** for seamless continuation
+
+**How it works:**
+1. Parses git history (7 days default)
+2. PM delegates to Research agent with structured prompt
+3. Research agent provides deep analysis
+4. PM presents intelligent summary
+
+**NOT session state**: This reconstructs context from git history, not saved conversation state.
+
+**Backward Compatibility:**
+```bash
+/mpm-init resume               # Still works but deprecated
+```
+
+The old `resume` command redirects to `context` with a deprecation warning.
+
+### Quick Git History (Catchup)
+
+Display recent commit history without analysis:
 
 ```bash
 /mpm-init catchup
 ```
 
-This displays:
+Shows:
 - Last 25 commits from all branches
-- Author attribution (WHO did WHAT)
-- Temporal context (WHEN)
+- Author attribution and timestamps
 - Contributor activity summary
-- PM recommendations based on commit patterns
 
-Useful for understanding recent development activity and getting PM up to speed on project changes.
-
-### Session Management (Pause/Resume)
-
-Save and restore session state across Claude sessions:
-
-**Pause Current Session:**
-```bash
-/mpm-init pause
-```
-
-This captures and saves:
-- Conversation context and progress
-- Current git repository state
-- Active and completed todo items
-- Working directory status
-- Session timestamp and metadata
-
-**Resume Previous Session:**
-```bash
-/mpm-init resume
-```
-
-This loads and analyzes:
-- Most recent (or specified) paused session
-- Changes since pause (git commits, file modifications)
-- Potential conflicts or warnings
-- Full context for seamless continuation
-
-**Pause Options:**
-- `-s, --summary TEXT`: Provide session summary
-- `-a, --accomplishment TEXT`: Record accomplishments (can be used multiple times)
-- `-n, --next-step TEXT`: Document next steps (can be used multiple times)
-- `--no-commit`: Skip creating git commit with session info
-
-**Resume Options:**
-- `--session-id TEXT`: Resume specific session by ID
-- `--list`: List all available paused sessions
-
-**Example Usage:**
-```bash
-# Pause with detailed context
-/mpm-init pause -s "Implemented authentication system" \
-  -a "Added login endpoint" \
-  -a "Created user model" \
-  -a "Wrote integration tests" \
-  -n "Add logout endpoint" \
-  -n "Implement password reset"
-
-# Resume latest session
-/mpm-init resume
-
-# List available sessions
-/mpm-init resume --list
-
-# Resume specific session
-/mpm-init resume --session-id session-20251020-012501
-```
-
-**Session Storage:**
-- Sessions saved in `.claude-mpm/sessions/pause/`
-- JSON format with secure permissions (0600)
-- Includes checksums for data integrity
-- Automatic git commit creation (unless `--no-commit`)
-
-**Use Cases:**
-- **Context Continuity**: Maintain context across multiple Claude sessions
-- **Team Handoffs**: Save state before passing work to another team member
-- **Long-running Projects**: Track progress over multiple work sessions
-- **Break Points**: Document progress at natural stopping points
-- **Change Awareness**: Detect what changed while you were away
+Use this for quick "what happened recently?" checks. For intelligent analysis, use `context` instead.
 
 ### Review Project State
 ```bash
@@ -283,6 +286,49 @@ Quick initialization without code analysis.
 - The slash command handler automatically maps the `update` argument to the `--quick-update` flag
 
 This command routes between different modes:
+
+### Context Analysis Commands
+
+**IMPORTANT**: Context analysis commands (`/mpm-init context`, `/mpm-init catchup`) have distinct behaviors:
+
+**`/mpm-init context` - Delegates to PM**:
+```bash
+claude-mpm mpm-init context --days 7
+```
+
+This command delegates work to the PM framework:
+1. Parses git history (7 days default)
+2. PM constructs structured Research delegation prompt
+3. PM presents prompt for Research agent to analyze
+4. Research identifies work streams, intent, risks, recommendations
+5. PM synthesizes for user
+
+This is intelligent analysis requiring Research agent expertise.
+
+**How the PM delegates to Research:**
+The PM creates a delegation prompt that asks Research to analyze:
+- **Work Stream Identification**: Groups related commits into themes
+- **Intent Analysis**: Infers why work was done from commit messages
+- **Risk Detection**: Identifies stalled work, conflicts, and blockers
+- **Recommended Actions**: Suggests logical next steps for continuation
+
+**`/mpm-init catchup` - Direct CLI execution**:
+```bash
+claude-mpm mpm-init catchup
+```
+
+This executes directly via CLI without agent delegation:
+- Displays last 25 commits from all branches
+- Shows authors, dates, commit messages
+- Instant output (no analysis)
+
+This is a simple git log display utility.
+
+---
+
+### Project Initialization/Update Commands
+
+**IMPORTANT**: Standard initialization and update commands delegate to the Agentic Coder Optimizer agent.
 
 **Quick Update Mode** (`/mpm-init update`):
 ```bash
@@ -342,15 +388,20 @@ The command delegates to the Agentic Coder Optimizer agent which:
 ## Notes
 
 - **Quick Update vs Full Update**: Use `/mpm-init update` for fast activity-based updates (30 days), or `/mpm-init --update` for comprehensive doc refresh
-- **Session Management**: Use `/mpm-init pause` to save state and `/mpm-init resume` to continue later with full context
+- **Context Analysis**: Use `/mpm-init context` to analyze git history and get intelligent resumption context from Research agent
+- **Quick History**: Use `/mpm-init catchup` for instant commit history display without analysis
+- **Deprecation Notice**: The `resume` command is deprecated. Use `context` instead. The old command still works but shows a warning.
 - **Smart Mode**: Automatically detects existing CLAUDE.md and offers update vs recreate
 - **Safe Updates**: Previous versions always archived before updating
 - **Custom Content**: Your project-specific sections are preserved by default
-- **Git Integration**: Analyzes recent commits to understand project evolution; pause creates optional git commits
-- **Session Storage**: Paused sessions stored in `.claude-mpm/sessions/pause/` with secure permissions
-- **Change Detection**: Resume automatically detects and reports changes since pause
+- **Git Integration**: Analyzes recent commits to understand project evolution and provide work context
+- **Backward Compatibility**: All existing `resume` commands redirect to `context` with deprecation warning
 - **Argument Processing**: The slash command processes the `update` argument and routes to `--quick-update` flag
-- The command uses the Agentic Coder Optimizer agent for implementation
+- **Agent Delegation**:
+  - Project initialization and updates use the Agentic Coder Optimizer agent
+  - Context analysis (`context`) delegates to PM, who coordinates with Research agent
+  - Simple git history (`catchup`) executes directly via CLI without agent delegation
+- **NOT Session State**: Context analysis reconstructs project understanding from git history, not saved conversation state
 - AST analysis is enabled by default for comprehensive documentation
 - Priority rankings help AI agents focus on critical instructions first
 - The holistic review ensures documentation quality and completeness

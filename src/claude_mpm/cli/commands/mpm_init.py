@@ -11,7 +11,6 @@ documentation with code structure analysis.
 import contextlib
 import subprocess
 import sys
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -21,9 +20,6 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Prompt
 
-# Import pause/resume managers
-from claude_mpm.cli.commands.session_pause_manager import SessionPauseManager
-from claude_mpm.cli.commands.session_resume_manager import SessionResumeManager
 from claude_mpm.core.logging_utils import get_logger
 
 # Import new services
@@ -51,10 +47,6 @@ class MPMInitCommand:
         self.archive_manager = ArchiveManager(self.project_path)
         self.analyzer = EnhancedProjectAnalyzer(self.project_path)
         self.display = DisplayHelper(console)
-
-        # Session management
-        self.pause_manager = SessionPauseManager(self.project_path)
-        self.resume_manager = SessionResumeManager(self.project_path)
 
     def initialize_project(
         self,
@@ -1472,124 +1464,197 @@ preserving valuable project-specific information while refreshing standard secti
             logger.error(f"Initialization failed: {e}")
             return {"status": "error", "message": str(e)}
 
-    def handle_pause(
+    def handle_context(
         self,
-        summary: Optional[str] = None,
-        accomplishments: Optional[List[str]] = None,
-        next_steps: Optional[List[str]] = None,
+        session_id: Optional[str] = None,
+        list_sessions: bool = False,
+        days: int = 7,
     ) -> Dict[str, Any]:
-        """Handle session pause request.
+        """
+        Provide intelligent context for resuming work based on git history.
+
+        Analyzes recent commits to identify:
+        - Active work streams (what was being worked on)
+        - Intent and motivation (why this work)
+        - Risks and blockers
+        - Recommended next actions
+
+        This delegates to Research agent for deep analysis.
 
         Args:
-            summary: Summary of what was being worked on
-            accomplishments: List of things accomplished
-            next_steps: List of next steps to continue work
+            session_id: Unused parameter (for compatibility)
+            list_sessions: Unused parameter (for compatibility)
+            days: Number of days of git history to analyze (default: 7)
 
         Returns:
-            Dict containing pause result
+            Dict containing context result
         """
-        try:
-            # If no context provided, prompt for it
-            if not summary:
-                summary = Prompt.ask(
-                    "\n[bold]What were you working on?[/bold]",
-                    default="Working on project improvements",
-                )
+        from claude_mpm.utils.git_analyzer import analyze_recent_activity
 
-            if not accomplishments:
-                console.print(
-                    "\n[bold]List accomplishments (enter blank line to finish):[/bold]"
-                )
-                accomplishments = []
-                while True:
-                    item = Prompt.ask("  Accomplishment", default="")
-                    if not item:
-                        break
-                    accomplishments.append(item)
+        # 1. Analyze git history
+        console.print(f"\n🔍 Analyzing last {days} days of git history...\n")
+        git_analysis = analyze_recent_activity(
+            repo_path=str(self.project_path), days=days, max_commits=50
+        )
 
-            if not next_steps:
-                console.print(
-                    "\n[bold]List next steps (enter blank line to finish):[/bold]"
-                )
-                next_steps = []
-                while True:
-                    item = Prompt.ask("  Next step", default="")
-                    if not item:
-                        break
-                    next_steps.append(item)
-
-            # Pause the session
-            return self.pause_manager.pause_session(
-                conversation_summary=summary,
-                accomplishments=accomplishments,
-                next_steps=next_steps,
+        if git_analysis.get("error"):
+            console.print(
+                f"[yellow]⚠️  Could not analyze git history: {git_analysis['error']}[/yellow]"
             )
+            console.print(
+                "[dim]Ensure this is a git repository with commit history.[/dim]\n"
+            )
+            return {
+                "status": "error",
+                "message": git_analysis["error"],
+            }
 
-        except Exception as e:
-            logger.error(f"Failed to pause session: {e}")
-            console.print(f"[red]❌ Error pausing session: {e}[/red]")
-            return {"status": "error", "message": str(e)}
+        if not git_analysis.get("has_activity"):
+            console.print(
+                f"[yellow]⚠️  No git activity found in the last {days} days.[/yellow]"
+            )
+            console.print("[dim]Try increasing the --days parameter.[/dim]\n")
+            return {
+                "status": "error",
+                "message": f"No git activity in last {days} days",
+            }
 
-    def handle_resume(self, session_id: Optional[str] = None) -> Dict[str, Any]:
-        """Handle session resume request.
+        # 2. Build Research delegation prompt
+        research_prompt = self._build_research_context_prompt(git_analysis, days)
 
-        Args:
-            session_id: Optional specific session ID to resume
+        # 3. Display prompt for PM to delegate
+        console.print("\n" + "=" * 80)
+        console.print("📋 DELEGATE TO RESEARCH AGENT:")
+        console.print("=" * 80 + "\n")
+        console.print(research_prompt)
+        console.print("\n" + "=" * 80 + "\n")
 
-        Returns:
-            Dict containing resume result
-        """
-        try:
-            # Check if there are any paused sessions
-            available_sessions = self.resume_manager.list_available_sessions()
+        return {
+            "status": "context_ready",
+            "git_analysis": git_analysis,
+            "research_prompt": research_prompt,
+            "recommendation": "PM should delegate this prompt to Research agent",
+        }
 
-            if not available_sessions:
-                console.print("\n[yellow]No paused sessions found.[/yellow]")
-                console.print(
-                    "[dim]To pause a session, run: claude-mpm mpm-init pause[/dim]\n"
-                )
-                return {"status": "error", "message": "No paused sessions found"}
+    def _build_research_context_prompt(
+        self, git_analysis: Dict[str, Any], days: int
+    ) -> str:
+        """Build structured Research agent delegation prompt from git analysis."""
 
-            # If no session ID specified and multiple sessions exist, let user choose
-            if not session_id and len(available_sessions) > 1:
-                console.print("\n[bold]Available Paused Sessions:[/bold]\n")
-                for idx, session in enumerate(available_sessions, 1):
-                    paused_at = session.get("paused_at", "unknown")
-                    try:
-                        dt = datetime.fromisoformat(paused_at.replace("Z", "+00:00"))
-                        paused_display = dt.strftime("%Y-%m-%d %H:%M")
-                    except Exception:
-                        paused_display = paused_at
+        # Extract key data
+        commits = git_analysis.get("commits", [])
+        branches = git_analysis.get("branches", [])
+        contributors = git_analysis.get("contributors", {})
+        file_changes = git_analysis.get("file_changes", {})
 
-                    summary = session.get("summary", "No summary")
-                    if len(summary) > 60:
-                        summary = summary[:57] + "..."
+        # Build prompt following Prompt Engineer's template
+        prompt = f"""# Project Context Analysis Mission
 
-                    console.print(
-                        f"  [{idx}] {session['session_id']} - {paused_display}"
-                    )
-                    console.print(f"      {summary}\n")
+You are Research agent analyzing git history to provide PM with intelligent project context for resuming work.
 
-                choice = Prompt.ask(
-                    "Select session to resume",
-                    choices=[str(i) for i in range(1, len(available_sessions) + 1)],
-                    default="1",
-                )
-                session_id = available_sessions[int(choice) - 1]["session_id"]
+## Analysis Scope
+- **Time Range**: Last {days} days
+- **Commits Analyzed**: {len(commits)} commits
+- **Branches**: {', '.join(branches[:5]) if branches else 'main'}
+- **Contributors**: {', '.join(contributors.keys()) if contributors else 'Unknown'}
 
-            # Resume the session
-            result = self.resume_manager.resume_session(session_id=session_id)
+## Your Mission
 
-            # Display resume context
-            if result.get("status") == "success":
-                console.print("\n[dim]Resume context has been displayed above.[/dim]\n")
+Analyze git history to answer these questions for PM:
 
-            return result
+1. **What was being worked on?** (Active work streams)
+2. **Why was this work happening?** (Intent and motivation)
+3. **What's the natural next step?** (Continuation recommendations)
+4. **What needs attention?** (Risks, stalls, conflicts)
 
-        except Exception as e:
-            logger.error(f"Failed to resume session: {e}")
-            console.print(f"[red]❌ Error resuming session: {e}[/red]")
-            return {"status": "error", "message": str(e)}
+## Git Data Provided
+
+### Recent Commits ({min(len(commits), 10)} most recent):
+"""
+
+        # Add recent commits
+        for commit in commits[:10]:
+            author = commit.get("author", "Unknown")
+            timestamp = commit.get("timestamp", "Unknown date")
+            message = commit.get("message", "No message")
+            files = commit.get("files", [])
+
+            prompt += f"\n- **{timestamp}** by {author}"
+            prompt += f"\n  {message}"
+            prompt += f"\n  Files changed: {len(files)}\n"
+
+        # Add file change summary
+        if file_changes:
+            # Sort by modifications count
+            sorted_files = sorted(
+                file_changes.items(),
+                key=lambda x: x[1].get("modifications", 0),
+                reverse=True,
+            )
+            prompt += "\n### Most Changed Files:\n"
+            for file_path, file_data in sorted_files[:10]:
+                modifications = file_data.get("modifications", 0)
+                file_contributors = file_data.get("contributors", [])
+                prompt += f"- {file_path}: {modifications} changes ({len(file_contributors)} contributor{'s' if len(file_contributors) != 1 else ''})\n"
+
+        # Add contributor summary
+        if contributors:
+            prompt += "\n### Contributors:\n"
+            sorted_contributors = sorted(
+                contributors.items(),
+                key=lambda x: x[1].get("commits", 0),
+                reverse=True,
+            )
+            for name, info in sorted_contributors[:5]:
+                commit_count = info.get("commits", 0)
+                prompt += f"- {name}: {commit_count} commit{'s' if commit_count != 1 else ''}\n"
+
+        # Add analysis instructions
+        prompt += """
+
+## Analysis Instructions
+
+### Phase 1: Work Stream Identification
+Group related commits into thematic work streams. For each stream:
+- **Name**: Infer from commit messages (e.g., "Authentication refactor")
+- **Status**: ongoing/completed/stalled
+- **Commits**: Count of commits in this stream
+- **Intent**: WHY this work (from commit bodies/messages)
+- **Key Files**: Most changed files in this stream
+
+### Phase 2: Risk Detection
+Identify:
+- **Stalled Work**: Work streams with no activity >3 days
+- **Anti-Patterns**: WIP commits, temp commits, debug commits
+- **Documentation Lag**: Code changes without doc updates
+- **Conflicts**: Merge conflicts or divergent branches
+
+### Phase 3: Recommendations
+Based on analysis:
+1. **Primary Focus**: Most active/recent work to continue
+2. **Quick Wins**: Small tasks that could be finished
+3. **Blockers**: Issues preventing progress
+4. **Next Steps**: Logical continuation points
+
+## Output Format
+
+Provide a clear markdown summary with:
+
+1. **Active Work Streams** (What was being worked on)
+2. **Intent Summary** (Why this work matters)
+3. **Risks Detected** (What needs attention)
+4. **Recommended Next Actions** (What to work on)
+
+Keep it concise (<1000 words) but actionable.
+
+## Success Criteria
+- Work streams accurately reflect development themes
+- Intent captures the "why" not just "what"
+- Recommendations are specific and actionable
+- Risks are prioritized by impact
+"""
+
+        return prompt
 
     def _display_results(self, result: Dict, verbose: bool):
         """Display initialization results."""
@@ -1748,9 +1813,9 @@ def mpm_init(
     - Optimize for AI agent understanding
     - Perform AST analysis for enhanced developer documentation
 
-    Session Management:
-    - pause: Pause the current session and save state
-    - resume: Resume the most recent (or specified) paused session
+    Context Management:
+    - resume: Analyze git history to provide context for resuming work
+    - --catchup: Show recent commit history for PM context
 
     Update Mode:
     When CLAUDE.md exists, the command offers to update rather than recreate,
@@ -1758,8 +1823,7 @@ def mpm_init(
 
     Examples:
         claude-mpm mpm-init                           # Initialize/update current directory
-        claude-mpm mpm-init pause                     # Pause current session
-        claude-mpm mpm-init resume                    # Resume latest session
+        claude-mpm mpm-init --catchup                 # Show recent git history for context
         claude-mpm mpm-init --review                  # Review project state without changes
         claude-mpm mpm-init --update                  # Force update mode
         claude-mpm mpm-init --organize                # Organize misplaced files
@@ -1807,77 +1871,18 @@ def mpm_init(
         sys.exit(1)
 
 
-@mpm_init.command(name="pause")
-@click.option(
-    "--summary",
-    "-s",
-    type=str,
-    help="Summary of what you were working on",
-)
-@click.option(
-    "--accomplishment",
-    "-a",
-    multiple=True,
-    help="Accomplishment from this session (can be used multiple times)",
-)
-@click.option(
-    "--next-step",
-    "-n",
-    multiple=True,
-    help="Next step to continue work (can be used multiple times)",
-)
-@click.argument(
-    "project_path",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    required=False,
-    default=".",
-)
-def pause_session(summary, accomplishment, next_step, project_path):
-    """
-    Pause the current session and save state.
-
-    This command captures:
-    - Conversation summary and progress
-    - Git repository state (commits, branch, status)
-    - Todo list status
-    - Working directory changes
-
-    The saved state enables seamless session resumption with full context.
-
-    Examples:
-        claude-mpm mpm-init pause
-        claude-mpm mpm-init pause -s "Working on authentication feature"
-        claude-mpm mpm-init pause -a "Implemented login" -a "Added tests"
-        claude-mpm mpm-init pause -n "Add logout functionality"
-    """
-    try:
-        command = MPMInitCommand(Path(project_path))
-
-        result = command.handle_pause(
-            summary=summary,
-            accomplishments=list(accomplishment) if accomplishment else None,
-            next_steps=list(next_step) if next_step else None,
-        )
-
-        if result["status"] == "success":
-            sys.exit(0)
-        else:
-            sys.exit(1)
-
-    except KeyboardInterrupt:
-        console.print("\n[yellow]Pause cancelled by user[/yellow]")
-        sys.exit(130)
-    except Exception as e:
-        console.print(f"[red]Pause failed: {e}[/red]")
-        sys.exit(1)
-
-
-@mpm_init.command(name="resume")
+@mpm_init.command(name="context")
 @click.option(
     "--session-id",
     "-i",
     type=str,
-    help="Specific session ID to resume (defaults to most recent)",
+    help="Unused (for compatibility) - will be removed in future version",
+)
+@click.option(
+    "--days",
+    type=int,
+    default=7,
+    help="Number of days of git history to analyze (default: 7)",
 )
 @click.argument(
     "project_path",
@@ -1885,35 +1890,84 @@ def pause_session(summary, accomplishment, next_step, project_path):
     required=False,
     default=".",
 )
-def resume_session(session_id, project_path):
+def context_command(session_id, days, project_path):
     """
-    Resume a paused session.
+    Provide intelligent context for resuming work based on git history.
 
-    This command:
-    - Loads the most recent (or specified) paused session
-    - Checks for changes since the pause (commits, file changes, branch changes)
-    - Displays warnings for any conflicts
-    - Generates a complete context summary for seamless resumption
+    Analyzes recent git history and generates a Research agent delegation
+    prompt for intelligent project context reconstruction.
 
     Examples:
-        claude-mpm mpm-init resume
-        claude-mpm mpm-init resume --session-id session-20251019-120000
+        claude-mpm mpm-init context                  # Analyze last 7 days
+        claude-mpm mpm-init context --days 14        # Analyze last 14 days
+        claude-mpm mpm-init context --days 30        # Analyze last 30 days
+
+    Note: 'resume' is deprecated, use 'context' instead.
     """
     try:
         command = MPMInitCommand(Path(project_path))
 
-        result = command.handle_resume(session_id=session_id)
+        result = command.handle_context(session_id=session_id, days=days)
 
-        if result["status"] == "success":
+        if result["status"] == "success" or result["status"] == "context_ready":
             sys.exit(0)
         else:
             sys.exit(1)
 
     except KeyboardInterrupt:
-        console.print("\n[yellow]Resume cancelled by user[/yellow]")
+        console.print("\n[yellow]Context analysis cancelled by user[/yellow]")
         sys.exit(130)
     except Exception as e:
-        console.print(f"[red]Resume failed: {e}[/red]")
+        console.print(f"[red]Context analysis failed: {e}[/red]")
+        sys.exit(1)
+
+
+# Add deprecated 'resume' alias for backward compatibility
+@mpm_init.command(name="resume", hidden=True)
+@click.option(
+    "--session-id",
+    "-i",
+    type=str,
+    help="Unused (for compatibility) - will be removed in future version",
+)
+@click.option(
+    "--days",
+    type=int,
+    default=7,
+    help="Number of days of git history to analyze (default: 7)",
+)
+@click.argument(
+    "project_path",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    required=False,
+    default=".",
+)
+def resume_session(session_id, days, project_path):
+    """
+    [DEPRECATED] Use 'context' instead.
+
+    This command is deprecated and will be removed in a future version.
+    Please use 'claude-mpm mpm-init context' instead.
+    """
+    console.print(
+        "[yellow]⚠️  Warning: 'resume' is deprecated. Use 'context' instead.[/yellow]"
+    )
+    console.print("[dim]Run: claude-mpm mpm-init context[/dim]\n")
+
+    try:
+        command = MPMInitCommand(Path(project_path))
+        result = command.handle_context(session_id=session_id, days=days)
+
+        if result["status"] == "success" or result["status"] == "context_ready":
+            sys.exit(0)
+        else:
+            sys.exit(1)
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Context analysis cancelled by user[/yellow]")
+        sys.exit(130)
+    except Exception as e:
+        console.print(f"[red]Context analysis failed: {e}[/red]")
         sys.exit(1)
 
 
