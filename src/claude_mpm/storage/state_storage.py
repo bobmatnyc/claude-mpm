@@ -86,7 +86,7 @@ class StateStorage:
             return True
 
         except Exception as e:
-            self.logger.error(f"Failed to write JSON to {file_path}: {e}")
+            logger.error(f"Failed to write JSON to {file_path}: {e}")
             self.error_count += 1
             return False
 
@@ -106,7 +106,7 @@ class StateStorage:
             file_path = Path(file_path)
 
             if not file_path.exists():
-                self.logger.debug(f"File not found: {file_path}")
+                logger.debug(f"File not found: {file_path}")
                 return None
 
             # Auto-detect compression
@@ -125,7 +125,7 @@ class StateStorage:
             return data
 
         except Exception as e:
-            self.logger.error(f"Failed to read JSON from {file_path}: {e}")
+            logger.error(f"Failed to read JSON from {file_path}: {e}")
             self.error_count += 1
             return None
 
@@ -166,7 +166,7 @@ class StateStorage:
             return True
 
         except Exception as e:
-            self.logger.error(f"Failed to write pickle to {file_path}: {e}")
+            logger.error(f"Failed to write pickle to {file_path}: {e}")
             self.error_count += 1
             return False
 
@@ -186,7 +186,7 @@ class StateStorage:
             file_path = Path(file_path)
 
             if not file_path.exists():
-                self.logger.debug(f"File not found: {file_path}")
+                logger.debug(f"File not found: {file_path}")
                 return None
 
             # Auto-detect compression
@@ -205,7 +205,7 @@ class StateStorage:
             return data
 
         except Exception as e:
-            self.logger.error(f"Failed to read pickle from {file_path}: {e}")
+            logger.error(f"Failed to read pickle from {file_path}: {e}")
             self.error_count += 1
             return None
 
@@ -262,7 +262,7 @@ class StateStorage:
                 Path(temp_path).replace(file_path)
 
                 self.write_count += 1
-                self.logger.debug(f"Atomic write successful: {file_path}")
+                logger.debug(f"Atomic write successful: {file_path}")
                 return True
 
             finally:
@@ -271,7 +271,7 @@ class StateStorage:
                     Path(temp_path).unlink()
 
         except Exception as e:
-            self.logger.error(f"Atomic write failed for {file_path}: {e}")
+            logger.error(f"Atomic write failed for {file_path}: {e}")
             self.error_count += 1
             return False
 
@@ -339,7 +339,7 @@ class StateStorage:
                 f.write(checksum)
 
         except Exception as e:
-            self.logger.warning(f"Could not add checksum: {e}")
+            logger.warning(f"Could not add checksum: {e}")
 
     def verify_checksum(self, file_path: Union[str, Path]) -> bool:
         """Verify file checksum for integrity.
@@ -370,13 +370,13 @@ class StateStorage:
             actual = hasher.hexdigest()
 
             if actual != expected:
-                self.logger.error(f"Checksum mismatch for {file_path}")
+                logger.error(f"Checksum mismatch for {file_path}")
                 return False
 
             return True
 
         except Exception as e:
-            self.logger.warning(f"Could not verify checksum: {e}")
+            logger.warning(f"Could not verify checksum: {e}")
             return True  # Assume valid if can't verify
 
     def cleanup_temp_files(self) -> int:
@@ -396,7 +396,7 @@ class StateStorage:
                     if age > 3600:
                         temp_file.unlink()
                         cleaned += 1
-                        self.logger.debug(f"Cleaned up temp file: {temp_file}")
+                        logger.debug(f"Cleaned up temp file: {temp_file}")
                 except Exception:
                     pass
 
@@ -408,12 +408,12 @@ class StateStorage:
                     cleaned += 1
 
             if cleaned > 0:
-                self.logger.info(f"Cleaned up {cleaned} temporary files")
+                logger.info(f"Cleaned up {cleaned} temporary files")
 
             return cleaned
 
         except Exception as e:
-            self.logger.error(f"Error cleaning up temp files: {e}")
+            logger.error(f"Error cleaning up temp files: {e}")
             return 0
 
     def get_storage_info(self) -> Dict[str, Any]:
@@ -447,7 +447,7 @@ class StateStorage:
             }
 
         except Exception as e:
-            self.logger.error(f"Error getting storage info: {e}")
+            logger.error(f"Error getting storage info: {e}")
             return {"storage_directory": str(self.storage_dir), "error": str(e)}
 
 

@@ -25,6 +25,47 @@ def manage_mpm_init(args):
         # Import the command implementation
         from .mpm_init import MPMInitCommand
 
+        # Handle pause/resume subcommands
+        subcommand = getattr(args, "subcommand", None)
+
+        if subcommand == "pause":
+            # Get project path
+            project_path = (
+                Path(args.project_path) if hasattr(args, "project_path") else Path.cwd()
+            )
+
+            # Create command instance
+            command = MPMInitCommand(project_path)
+
+            # Handle pause with optional arguments
+            result = command.handle_pause(
+                summary=getattr(args, "summary", None),
+                accomplishments=getattr(args, "accomplishment", None),
+                next_steps=getattr(args, "next_step", None),
+            )
+
+            # Return appropriate exit code
+            if result.get("status") == "success":
+                return 0
+            return 1
+
+        if subcommand == "resume":
+            # Get project path
+            project_path = (
+                Path(args.project_path) if hasattr(args, "project_path") else Path.cwd()
+            )
+
+            # Create command instance
+            command = MPMInitCommand(project_path)
+
+            # Handle resume with optional session ID
+            result = command.handle_resume(session_id=getattr(args, "session_id", None))
+
+            # Return appropriate exit code
+            if result.get("status") == "success":
+                return 0
+            return 1
+
         # Handle special flags
         if getattr(args, "list_templates", False):
             # List available templates
@@ -55,7 +96,6 @@ def manage_mpm_init(args):
             "framework": getattr(args, "framework", None),
             "force": getattr(args, "force", False),
             "verbose": getattr(args, "verbose", False),
-            "use_venv": getattr(args, "use_venv", False),
             "ast_analysis": getattr(args, "ast_analysis", True),
             "update_mode": getattr(args, "update", False),
             "review_only": getattr(args, "review", False),
