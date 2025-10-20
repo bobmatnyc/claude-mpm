@@ -12,6 +12,18 @@
 
 ### Security
 
+## [4.12.0] - 2025-10-20
+
+### Added
+- **Java Engineer Agent**: Added 8th specialized coding agent with comprehensive Java ecosystem support
+  - Modern Java (21+) development patterns and best practices
+  - Enterprise framework expertise (Spring Boot, Jakarta EE, Quarkus)
+  - Build tool integration (Maven, Gradle) with dependency management
+  - Testing frameworks (JUnit 5, TestNG, Mockito, AssertJ)
+  - Performance optimization and memory management
+  - Cloud-native patterns and microservices architecture
+  - Comprehensive benchmark suite with 175 automated tests
+
 ## [4.11.2] - 2025-10-20
 
 ### Added
