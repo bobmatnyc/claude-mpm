@@ -12,6 +12,16 @@
 
 ### Security
 
+## [4.12.3] - 2025-10-21
+
+### Changed
+- **PM Instructions Modularization (Phase 2)**: Completed comprehensive refactoring of PM_INSTRUCTIONS.md
+  - Extracted validation templates, circuit breakers, and PM examples to separate template files
+  - Consolidated git file tracking protocol into dedicated template
+  - Extracted PM red flags and response format specifications
+  - Added comprehensive template ecosystem with README documentation
+  - Improved maintainability and modularity of PM instruction system
+
 ## [4.12.2] - 2025-10-20
 
 ### Added
