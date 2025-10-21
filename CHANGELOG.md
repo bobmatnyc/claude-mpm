@@ -12,6 +12,11 @@
 
 ### Security
 
+## [4.12.1] - 2025-10-20
+
+### Added
+- Patch release for improved stability
+
 ## [4.12.0] - 2025-10-20
 
 ### Added
