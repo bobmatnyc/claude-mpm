@@ -12,6 +12,16 @@
 
 ### Security
 
+## [4.12.5] - 2025-10-21
+
+### Added
+- **Auto-Configuration Feature (Phases 1-2)**: Foundation for intelligent project analysis and agent recommendations
+  - Phase 1: Created interfaces (IToolchainAnalyzer, IAgentRecommender, IAutoConfigManager) and 13 data models
+  - Phase 2: Implemented Strategy pattern for language detection with 4 detection strategies (Node.js, Python, Rust, Go)
+  - ToolchainAnalyzerService with 5-minute caching and framework detection for 10+ frameworks
+  - 108 new tests with 100% pass rate (~3,400 lines of production code)
+  - Achieved >90% language detection and ~95% framework detection accuracy
+
 ## [4.12.4] - 2025-10-21
 
 ### Fixed
