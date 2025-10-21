@@ -588,6 +588,8 @@ class LogManager:
 
         def write_task():
             try:
+                # Ensure directory exists before writing (race condition with cleanup)
+                log_dir.mkdir(parents=True, exist_ok=True)
                 with log_file.open("a", encoding="utf-8") as f:
                     f.write(log_entry)
             except Exception as e:

@@ -310,20 +310,21 @@ class TestMPMLogMigration:
 
             # Setup various log types and create dummy log files
             async def setup_all_log_types():
-                await log_manager.setup_logging("mpm")
-                await log_manager.setup_logging("startup")
-                await log_manager.setup_logging("prompts")
-                await log_manager.setup_logging("sessions")
-
-                # Create dummy log files immediately after setup to prevent cleanup
-                # from removing empty directories
+                # Create directories and files atomically to prevent race condition
+                # with cleanup removing empty directories
                 base_dir = project_root / ".claude-mpm" / "logs"
                 for log_type in ["mpm", "startup", "prompts", "sessions"]:
                     log_dir = base_dir / log_type
                     log_dir.mkdir(parents=True, exist_ok=True)
                     dummy_log = log_dir / "test.log"
-                    # Touch file to create it
-                    dummy_log.touch()
+                    # Create file immediately to prevent cleanup from removing directory
+                    dummy_log.write_text("test content")
+
+                # Now setup logging (which triggers cleanup but directories have files)
+                await log_manager.setup_logging("mpm")
+                await log_manager.setup_logging("startup")
+                await log_manager.setup_logging("prompts")
+                await log_manager.setup_logging("sessions")
 
             asyncio.run(setup_all_log_types())
 
@@ -410,21 +411,26 @@ class TestMPMLogManagerIntegration:
 
             # Test various log types still work
             async def test_all_logging():
-                # Test prompt logging
+                # Test prompt logging (creates prompts dir with file)
                 prompt_file = await log_manager.log_prompt(
                     "system", "Test system prompt", {"test": True}
                 )
 
-                # Test general logging setup
-                startup_dir = await log_manager.setup_logging("startup")
+                # Write to mpm log first (creates mpm dir with file)
+                await log_manager.write_log_async("Test message", "INFO")
+
+                # Create startup directory and file before setup to prevent race condition
+                startup_dir = log_manager._get_log_directory("startup")
+                startup_dir.mkdir(parents=True, exist_ok=True)
+                (startup_dir / "test.log").write_text("test")
+
+                # Now setup logging (which triggers cleanup but dirs have files)
+                await log_manager.setup_logging("startup")
                 mpm_dir = await log_manager.setup_logging("mpm")
 
-                # Verify directories exist immediately after creation (before cleanup)
+                # Verify directories exist
                 startup_exists = startup_dir.exists()
                 mpm_exists = mpm_dir.exists()
-
-                # Write some logs to mpm directory (keeps it from being cleaned up)
-                await log_manager.write_log_async("Test message", "INFO")
 
                 return prompt_file, startup_dir, mpm_dir, startup_exists, mpm_exists
 
