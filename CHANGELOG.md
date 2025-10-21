@@ -12,6 +12,24 @@
 
 ### Security
 
+## [4.12.2] - 2025-10-20
+
+### Added
+- **Mandatory Git File Tracking Protocol**: PM now enforces file tracking for all agent-created files
+  - Circuit Breaker #5 prevents session completion without tracking new files
+  - PM must verify all new files are tracked in git (cannot delegate this responsibility)
+  - Comprehensive tracking decision matrix for different file types and locations
+  - Enhanced PM mantra: "delegate, verify, and track files"
+  - New scorecard metrics for file tracking compliance
+
+### Changed
+- **PM Instructions v0006**: Updated base PM instructions with file tracking enforcement
+  - File tracking verification checklist (7 steps) integrated into PM workflow
+  - Pre-action checklist enhanced with file tracking questions
+  - Bash tool permissions expanded to allow git operations for file tracking
+  - JSON response format now includes file_tracking section
+  - Red flags updated to catch common file tracking violations
+
 ## [4.12.1] - 2025-10-20
 
 ### Added
