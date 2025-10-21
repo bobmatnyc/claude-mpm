@@ -21,6 +21,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from ..models.agent_config import (
+    AgentCapabilities,
+    AgentRecommendation,
+    ConfigurationPreview,
+    ConfigurationResult,
+    ValidationResult,
+)
+from ..models.toolchain import ToolchainAnalysis
+
 
 # Agent registry interface
 @dataclass
@@ -327,4 +336,179 @@ class RunnerConfigurationInterface(ABC):
 
         Args:
             config: Logging configuration
+        """
+
+
+# Agent recommender interface
+class IAgentRecommender(ABC):
+    """Interface for agent recommendation operations.
+
+    WHY: Automated agent recommendation is critical for the auto-configuration
+    feature. This interface abstracts the recommendation logic to enable different
+    scoring algorithms, rule-based systems, and ML-based approaches.
+
+    DESIGN DECISION: Separates recommendation from configuration to enable
+    independent testing and different recommendation strategies (rule-based,
+    ML-based, hybrid). Returns structured recommendations with confidence scores.
+    """
+
+    @abstractmethod
+    def recommend_agents(
+        self,
+        toolchain: ToolchainAnalysis,
+        constraints: Optional[Dict[str, Any]] = None,
+    ) -> List[AgentRecommendation]:
+        """Recommend agents based on toolchain analysis.
+
+        Analyzes the toolchain and recommends agents that best match the
+        project's technical requirements. Considers:
+        - Language compatibility
+        - Framework expertise
+        - Deployment environment requirements
+        - Optional user-defined constraints (max agents, required capabilities)
+
+        Args:
+            toolchain: Complete toolchain analysis results
+            constraints: Optional constraints for recommendations:
+                - max_agents: Maximum number of agents to recommend
+                - required_capabilities: List of required agent capabilities
+                - excluded_agents: List of agent IDs to exclude
+                - min_confidence: Minimum confidence score threshold
+
+        Returns:
+            List[AgentRecommendation]: Ordered list of recommended agents
+                with confidence scores and reasoning
+
+        Raises:
+            ValueError: If constraints are invalid or contradictory
+        """
+
+    @abstractmethod
+    def get_agent_capabilities(self, agent_id: str) -> AgentCapabilities:
+        """Get detailed capabilities for an agent.
+
+        Retrieves comprehensive capability information for a specific agent:
+        - Supported languages and frameworks
+        - Specialization areas
+        - Required toolchain components
+        - Performance characteristics
+
+        Args:
+            agent_id: Unique identifier of the agent
+
+        Returns:
+            AgentCapabilities: Complete capability information
+
+        Raises:
+            KeyError: If agent_id does not exist
+        """
+
+    @abstractmethod
+    def match_score(self, agent_id: str, toolchain: ToolchainAnalysis) -> float:
+        """Calculate match score between agent and toolchain.
+
+        Computes a numerical score (0.0 to 1.0) indicating how well an agent
+        matches the project's toolchain. Higher scores indicate better matches.
+        Considers:
+        - Language compatibility
+        - Framework experience
+        - Deployment target alignment
+        - Toolchain component coverage
+
+        Args:
+            agent_id: Unique identifier of the agent
+            toolchain: Complete toolchain analysis
+
+        Returns:
+            float: Match score between 0.0 (no match) and 1.0 (perfect match)
+
+        Raises:
+            KeyError: If agent_id does not exist
+        """
+
+
+# Auto-configuration manager interface
+class IAutoConfigManager(ABC):
+    """Interface for automated configuration management.
+
+    WHY: Auto-configuration orchestrates the entire process of analyzing,
+    recommending, validating, and deploying agents. This interface abstracts
+    the orchestration logic to enable different workflows and approval processes.
+
+    DESIGN DECISION: Provides both preview and apply modes to enable user review
+    before deployment. Includes validation to catch configuration issues early.
+    Supports both interactive (confirmation required) and automated modes.
+    """
+
+    @abstractmethod
+    async def auto_configure(
+        self, project_path: Path, confirmation_required: bool = True
+    ) -> ConfigurationResult:
+        """Perform automated agent configuration.
+
+        Complete end-to-end configuration workflow:
+        1. Analyze project toolchain
+        2. Generate agent recommendations
+        3. Validate proposed configuration
+        4. Request user confirmation (if required)
+        5. Deploy approved agents
+        6. Verify deployment success
+
+        Args:
+            project_path: Path to the project root directory
+            confirmation_required: Whether to require user approval before deployment
+
+        Returns:
+            ConfigurationResult: Complete configuration results including
+                deployed agents, validation results, and any errors
+
+        Raises:
+            FileNotFoundError: If project_path does not exist
+            PermissionError: If unable to write to project directory
+            ValidationError: If configuration validation fails critically
+        """
+
+    @abstractmethod
+    def validate_configuration(
+        self, recommendations: List[AgentRecommendation]
+    ) -> ValidationResult:
+        """Validate proposed configuration before deployment.
+
+        Performs comprehensive validation of recommended agents:
+        - Checks for conflicting agent capabilities
+        - Verifies resource requirements are met
+        - Validates agent compatibility with project
+        - Identifies potential configuration issues
+
+        Args:
+            recommendations: List of agent recommendations to validate
+
+        Returns:
+            ValidationResult: Validation result with any warnings or errors
+
+        Raises:
+            ValueError: If recommendations list is empty or invalid
+        """
+
+    @abstractmethod
+    def preview_configuration(self, project_path: Path) -> ConfigurationPreview:
+        """Preview what would be configured without applying changes.
+
+        Performs analysis and recommendation without making any changes:
+        - Analyzes project toolchain
+        - Generates recommendations
+        - Validates configuration
+        - Returns preview of what would be deployed
+
+        Useful for testing and showing users what would happen before
+        committing to changes.
+
+        Args:
+            project_path: Path to the project root directory
+
+        Returns:
+            ConfigurationPreview: Preview of configuration that would be applied
+
+        Raises:
+            FileNotFoundError: If project_path does not exist
         """

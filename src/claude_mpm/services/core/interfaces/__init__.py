@@ -24,11 +24,13 @@ MODULES:
 """
 
 # Agent interfaces (agent management and operations)
-from .agent import (  # Agent registry; Agent deployment; Agent capabilities; System instructions; Subprocess management; Runner configuration
+from .agent import (  # Agent registry; Agent deployment; Agent capabilities; System instructions; Subprocess management; Runner configuration; Agent recommendation; Auto-configuration
     AgentCapabilitiesInterface,
     AgentDeploymentInterface,
     AgentMetadata,
+    IAgentRecommender,
     IAgentRegistry,
+    IAutoConfigManager,
     RunnerConfigurationInterface,
     SubprocessLauncherInterface,
     SystemInstructionsInterface,
@@ -61,6 +63,11 @@ from .infrastructure import (  # Type variables; Core dependency injection; Conf
     ServiceType,
     T,
     TemplateRenderContext,
+)
+
+# Project interfaces (project analysis and toolchain detection)
+from .project import (  # Toolchain analysis
+    IToolchainAnalyzer,
 )
 
 # Service interfaces (business services)
@@ -118,6 +125,10 @@ class InterfaceRegistry:
         "socketio_service": SocketIOServiceInterface,
         "project_analyzer": ProjectAnalyzerInterface,
         "ticket_manager": TicketManagerInterface,
+        # Project interfaces
+        "toolchain_analyzer": IToolchainAnalyzer,
+        "agent_recommender": IAgentRecommender,
+        "auto_config_manager": IAutoConfigManager,
     }
 
     @classmethod
@@ -151,7 +162,9 @@ __all__ = [
     "HealthStatus",
     "HookServiceInterface",
     # Agent interfaces
+    "IAgentRecommender",
     "IAgentRegistry",
+    "IAutoConfigManager",
     "ICacheService",
     "IConfigurationManager",
     "IConfigurationService",
@@ -166,6 +179,8 @@ __all__ = [
     "IServiceLifecycle",
     "IStructuredLogger",
     "ITemplateManager",
+    # Project interfaces
+    "IToolchainAnalyzer",
     # Registry
     "InterfaceRegistry",
     "MemoryHookInterface",

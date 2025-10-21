@@ -16,7 +16,9 @@ from .interfaces import (  # Core dependency injection; Configuration management
     CacheEntry,
     HealthStatus,
     HookServiceInterface,
+    IAgentRecommender,
     IAgentRegistry,
+    IAutoConfigManager,
     ICacheService,
     IConfigurationManager,
     IConfigurationService,
@@ -31,6 +33,7 @@ from .interfaces import (  # Core dependency injection; Configuration management
     IServiceLifecycle,
     IStructuredLogger,
     ITemplateManager,
+    IToolchainAnalyzer,
     MemoryServiceInterface,
     ProjectAnalyzerInterface,
     ServiceType,
@@ -38,8 +41,21 @@ from .interfaces import (  # Core dependency injection; Configuration management
     TemplateRenderContext,
     TicketManagerInterface,
 )
+from .models import (  # Data models for services
+    AgentCapabilities,
+    AgentRecommendation,
+    ConfidenceLevel,
+    ConfigurationPreview,
+    ConfigurationResult,
+    DeploymentTarget,
+    Framework,
+    LanguageDetection,
+    ToolchainAnalysis,
+    ToolchainComponent,
+    ValidationResult,
+)
 
-__all__ = [
+__all__ = [  # noqa: RUF022 - Grouped by category with comments for clarity
     # Service interfaces
     "AgentDeploymentInterface",
     "AgentMetadata",
@@ -48,7 +64,9 @@ __all__ = [
     "CacheEntry",
     "HealthStatus",
     "HookServiceInterface",
+    "IAgentRecommender",
     "IAgentRegistry",
+    "IAutoConfigManager",
     "ICacheService",
     "IConfigurationManager",
     "IConfigurationService",
@@ -63,6 +81,7 @@ __all__ = [
     "IServiceLifecycle",
     "IStructuredLogger",
     "ITemplateManager",
+    "IToolchainAnalyzer",
     # Registry
     "InterfaceRegistry",
     "MemoryServiceInterface",
@@ -73,4 +92,17 @@ __all__ = [
     "SyncBaseService",
     "TemplateRenderContext",
     "TicketManagerInterface",
+    # Data models - Toolchain
+    "ConfidenceLevel",
+    "ToolchainComponent",
+    "LanguageDetection",
+    "Framework",
+    "DeploymentTarget",
+    "ToolchainAnalysis",
+    # Data models - Agent Configuration
+    "AgentCapabilities",
+    "AgentRecommendation",
+    "ConfigurationResult",
+    "ValidationResult",
+    "ConfigurationPreview",
 ]
