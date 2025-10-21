@@ -12,6 +12,11 @@
 
 ### Security
 
+## [4.12.4] - 2025-10-21
+
+### Fixed
+- Resolved race condition in log directory creation during parallel test execution
+
 ## [4.12.3] - 2025-10-21
 
 ### Changed
