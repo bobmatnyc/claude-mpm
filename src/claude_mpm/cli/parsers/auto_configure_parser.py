@@ -104,14 +104,6 @@ Examples:
         help="Project path to analyze (default: current directory)",
     )
 
-    # Add dry-run as an alias for --preview
-    auto_configure_parser.add_argument(
-        "--dry-run",
-        dest="dry_run",
-        action="store_true",
-        help=argparse.SUPPRESS,  # Hidden, use --preview instead
-    )
-
     return auto_configure_parser
 
 
