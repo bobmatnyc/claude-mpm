@@ -312,6 +312,9 @@ class InteractiveSession:
             "\033[32m│\033[0m     /mpm        - MPM overview and help           \033[32m│\033[0m"
         )
         print(
+            "\033[32m│\033[0m     /mpm-init   - Initialize or update project    \033[32m│\033[0m"
+        )
+        print(
             "\033[32m│\033[0m     /mpm-agents - Show available agents           \033[32m│\033[0m"
         )
         print(

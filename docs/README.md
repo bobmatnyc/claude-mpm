@@ -96,6 +96,12 @@ claude-mpm run --monitor                  # With real-time dashboard
 - [Code Quality](developer/LINTING.md) - Automated formatting & quality checks
 - [Contributing](developer/03-development/README.md) - How to contribute to the project
 
+#### 🚀 Local Operations
+- [Local Process Management](user/03-features/local-process-management.md) - **NEW!** Deploy & monitor local development servers
+- [Process Management Architecture](developer/LOCAL_PROCESS_MANAGEMENT.md) - Developer guide & extension points
+- [Local Ops CLI Commands](reference/LOCAL_OPS_COMMANDS.md) - Complete command reference
+- [Local Agents](user/03-features/local-agents.md) - Project-specific agent customization
+
 #### 📊 Operations
 - [Real-Time Monitoring](MONITOR.md) - Web dashboard & live metrics
 - [Deployment Process](DEPLOYMENT.md) - Version management & release workflow
@@ -113,6 +119,8 @@ claude-mpm run --monitor                  # With real-time dashboard
 | **Check quality** | `make quality` | [Development](developer/README.md) |
 | **Fix code style** | `make lint-fix` | [Code Quality](developer/LINTING.md) |
 | **Run tests** | `make test` | [Testing](developer/TESTING.md) |
+| **Deploy locally** | `claude-mpm local-deploy start --command "npm run dev" --auto-restart` | [Local Process Management](user/03-features/local-process-management.md) |
+| **Monitor deployment** | `claude-mpm local-deploy monitor <deployment-id>` | [Local Ops Commands](reference/LOCAL_OPS_COMMANDS.md) |
 | **List agents** | `claude-mpm agents list --by-tier` | [Agent System](AGENTS.md) |
 | **Create agent** | `claude-mpm agents create <name>` | [Creation Guide](developer/07-agent-system/creation-guide.md) |
 | **Deploy agents** | `claude-mpm agents deploy` | [Agent Management](developer/07-agent-system/README.md) |
@@ -211,6 +219,13 @@ docs/
   - Save session state with `claude-mpm mpm-init pause`
   - Restore with automatic change detection using `claude-mpm mpm-init resume`
   - Full context preservation: conversation, git state, todos, accomplishments
+- **🚀 Local Process Management (NEW v4.13.0)**: Professional-grade local deployment with health monitoring
+  - Three-tier health checks (HTTP, process, resource)
+  - Auto-restart on crash with exponential backoff & circuit breaker
+  - Memory leak detection & resource exhaustion prevention
+  - Log error monitoring with pattern matching
+  - 10 CLI commands for comprehensive process management
+  - Configuration-driven via YAML (`.claude-mpm/local-ops-config.yaml`)
 - **📊 Real-Time Monitoring**: Live dashboard with `--monitor` flag
 - **🔌 MCP Gateway**: Model Context Protocol integration for extensible tools
 - **📁 Multi-Project Support**: Per-session working directories with git integration

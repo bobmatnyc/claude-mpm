@@ -730,6 +730,16 @@ def _execute_command(command: str, args) -> int:
         # Convert CommandResult to exit code
         return result.exit_code if result else 0
 
+    # Handle local-deploy command with lazy import
+    if command == "local-deploy":
+        # Lazy import to avoid loading unless needed
+        from .commands.local_deploy import LocalDeployCommand
+
+        cmd = LocalDeployCommand()
+        result = cmd.run(args)
+        # Convert CommandResult to exit code
+        return result.exit_code if result else 0
+
     # Map stable commands to their implementations
     command_map = {
         CLICommands.RUN.value: run_session,
