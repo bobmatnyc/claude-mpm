@@ -1,3 +1,72 @@
+## [Unreleased]
+
+### Added
+- **Local Process Management System**: Professional-grade process management for local development deployments
+  - **Phase 1**: Core process management with LocalProcessManager and StateManager
+    - Background process spawning with process group isolation (PGID)
+    - Port conflict prevention with auto-find alternative port
+    - State persistence to JSON files in `.claude-mpm/local-ops-state/`
+    - Graceful shutdown with configurable timeout (SIGTERM → SIGKILL)
+  - **Phase 2**: Health monitoring system with three-tier checks
+    - HTTPHealthCheck: Endpoint availability, response time, status code validation
+    - ProcessHealthCheck: Process existence, zombie detection, responsiveness
+    - ResourceHealthCheck: CPU, memory, file descriptors, threads, connections
+    - Background monitoring thread with configurable interval (default: 30s)
+    - Historical health data storage (last 100 checks per deployment)
+  - **Phase 3**: Auto-restart system with intelligent crash recovery
+    - Exponential backoff policy (configurable: 2s → 300s with 2x multiplier)
+    - Circuit breaker pattern (default: 3 failures in 5 minutes → open for 10 minutes)
+    - Restart history tracking with success/failure counts
+    - Crash detection via health checks and process monitoring
+  - **Phase 4**: Stability enhancements for preemptive issue detection
+    - Memory leak detector with linear regression analysis (threshold: 10 MB/min growth)
+    - Log pattern monitor with configurable error patterns and regex support
+    - Resource exhaustion monitor (FD threshold: 80%, thread limit: 1000)
+  - **Phase 5**: Unified integration and CLI commands
+    - UnifiedLocalOpsManager coordinating all components (556 LOC)
+    - 10 CLI subcommands under `local-deploy` command (638 LOC):
+      - `start`: Start deployment with auto-restart and monitoring
+      - `stop`: Graceful or force shutdown
+      - `restart`: Restart with same configuration
+      - `status`: Comprehensive deployment status (process, health, restart history)
+      - `health`: Health check results across all tiers
+      - `list`: List all deployments with filtering by status
+      - `monitor`: Live monitoring dashboard with real-time updates
+      - `history`: Restart history and circuit breaker state
+      - `enable-auto-restart`: Enable crash recovery
+      - `disable-auto-restart`: Disable crash recovery
+    - YAML configuration support (`.claude-mpm/local-ops-config.yaml`)
+    - Rich terminal output with panels, tables, and live updates
+- **Comprehensive Documentation**: Three comprehensive documentation files (~30,000 words total)
+  - User guide: `docs/user/03-features/local-process-management.md` (650+ lines)
+    - Quick start examples for Next.js, Django, multiple microservices
+    - Feature documentation for all capabilities
+    - Configuration guide with YAML schema
+    - Troubleshooting section for common issues
+    - Best practices for development workflow
+  - Developer guide: `docs/developer/LOCAL_PROCESS_MANAGEMENT.md` (870+ lines)
+    - Complete architecture overview with ASCII diagrams
+    - Five-phase implementation details
+    - Service layer API documentation
+    - Extension points for custom health checks and restart policies
+    - Testing strategy and performance considerations
+  - CLI reference: `docs/reference/LOCAL_OPS_COMMANDS.md` (1,100+ lines)
+    - Complete command reference for all 10 subcommands
+    - Configuration file schema with all options
+    - Return codes and error handling
+    - 20+ practical examples and workflows
+  - Updated main documentation hub (`docs/README.md`) with Local Operations section
+
+### Changed
+- **Documentation Index**: Added Local Operations section to main documentation hub
+  - New section in "By Topic" navigation
+  - Added to AI Agent Quick Reference with deployment commands
+  - Updated Key Features with Local Process Management capabilities
+
+### Fixed
+- **FileLock Deadlock**: Resolved deadlock in DeploymentStateManager causing state persistence issues
+- **Test Suite Stability**: Fixed 16 failing tests across health manager, log monitor, and state manager
+
 ## [4.13.2] - 2025-10-22
 
 ### Added

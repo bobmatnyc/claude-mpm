@@ -337,6 +337,13 @@ def create_parser(
         pass
 
     try:
+        from .local_deploy_parser import add_local_deploy_arguments
+
+        add_local_deploy_arguments(subparsers)
+    except ImportError:
+        pass
+
+    try:
         from .mcp_parser import add_mcp_subparser
 
         add_mcp_subparser(subparsers)
