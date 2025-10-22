@@ -1,4 +1,4 @@
-## [Unreleased]
+## [4.13.0] - 2025-10-21
 
 ### Added
 - **Auto-Configuration Feature (Complete)**: Five-phase implementation for automatic agent configuration
