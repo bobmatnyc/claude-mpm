@@ -20,6 +20,25 @@ from .agent_config import (
     ConfigurationResult,
     ValidationResult,
 )
+from .process import (
+    PROTECTED_PORT_RANGES,
+    DeploymentState,
+    ProcessInfo,
+    ProcessStatus,
+    StartConfig,
+    is_port_protected,
+)
+from .restart import (
+    CircuitBreakerState,
+    RestartAttempt,
+    RestartConfig,
+    RestartHistory,
+)
+from .stability import (
+    LogPatternMatch,
+    MemoryTrend,
+    ResourceUsage,
+)
 from .toolchain import (
     ConfidenceLevel,
     DeploymentTarget,
@@ -43,4 +62,20 @@ __all__ = [  # noqa: RUF022 - Grouped by category with comments for clarity
     "ConfigurationResult",
     "ValidationResult",
     "ConfigurationPreview",
+    # Process management models
+    "ProcessStatus",
+    "DeploymentState",
+    "ProcessInfo",
+    "StartConfig",
+    "PROTECTED_PORT_RANGES",
+    "is_port_protected",
+    # Restart management models
+    "CircuitBreakerState",
+    "RestartAttempt",
+    "RestartHistory",
+    "RestartConfig",
+    # Stability monitoring models
+    "MemoryTrend",
+    "LogPatternMatch",
+    "ResourceUsage",
 ]

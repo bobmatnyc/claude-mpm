@@ -43,6 +43,12 @@ from .communication import (  # WebSocket/SocketIO; Project analysis; Ticket man
     TicketManagerInterface,
 )
 
+# Health interfaces (health monitoring)
+from .health import (  # Health checks; Health monitoring
+    IHealthCheck,
+    IHealthCheckManager,
+)
+
 # Infrastructure interfaces (core framework services)
 from .infrastructure import (  # Type variables; Core dependency injection; Configuration management; Caching; Health monitoring; Template management; Service factory; Logging; Service lifecycle; Error handling; Performance monitoring; Event system
     CacheEntry,
@@ -65,9 +71,31 @@ from .infrastructure import (  # Type variables; Core dependency injection; Conf
     TemplateRenderContext,
 )
 
+# Model interfaces (content processing and model providers)
+from .model import (  # Model providers; Routing
+    IModelProvider,
+    IModelRouter,
+    ModelCapability,
+    ModelProvider,
+    ModelResponse,
+)
+
+# Process interfaces (local process management)
+from .process import (  # Process lifecycle; State persistence
+    IDeploymentStateManager,
+    ILocalProcessManager,
+)
+
 # Project interfaces (project analysis and toolchain detection)
 from .project import (  # Toolchain analysis
     IToolchainAnalyzer,
+)
+
+# Restart interfaces (auto-restart management)
+from .restart import (  # Crash detection; Restart policy; Restart orchestration
+    ICrashDetector,
+    IRestartManager,
+    IRestartPolicy,
 )
 
 # Service interfaces (business services)
@@ -79,6 +107,13 @@ from .service import (  # Version service; Command handling; Memory management; 
     SessionManagementInterface,
     UtilityServiceInterface,
     VersionServiceInterface,
+)
+
+# Stability interfaces (proactive monitoring and crash prevention)
+from .stability import (  # Memory leak detection; Log monitoring; Resource monitoring
+    ILogMonitor,
+    IMemoryLeakDetector,
+    IResourceMonitor,
 )
 
 
@@ -129,6 +164,23 @@ class InterfaceRegistry:
         "toolchain_analyzer": IToolchainAnalyzer,
         "agent_recommender": IAgentRecommender,
         "auto_config_manager": IAutoConfigManager,
+        # Model interfaces
+        "model_provider": IModelProvider,
+        "model_router": IModelRouter,
+        # Process interfaces
+        "deployment_state_manager": IDeploymentStateManager,
+        "local_process_manager": ILocalProcessManager,
+        # Health interfaces
+        "health_check": IHealthCheck,
+        "health_check_manager": IHealthCheckManager,
+        # Restart interfaces
+        "crash_detector": ICrashDetector,
+        "restart_policy": IRestartPolicy,
+        "restart_manager": IRestartManager,
+        # Stability interfaces
+        "memory_leak_detector": IMemoryLeakDetector,
+        "log_monitor": ILogMonitor,
+        "resource_monitor": IResourceMonitor,
     }
 
     @classmethod
@@ -153,7 +205,7 @@ class InterfaceRegistry:
 
 
 # Re-export everything for backward compatibility
-__all__ = [
+__all__ = [  # noqa: RUF022 - Semantic grouping by domain preferred over alphabetical
     "AgentCapabilitiesInterface",
     "AgentDeploymentInterface",
     "AgentMetadata",
@@ -168,12 +220,29 @@ __all__ = [
     "ICacheService",
     "IConfigurationManager",
     "IConfigurationService",
+    # Process interfaces
+    "IDeploymentStateManager",
     "IErrorHandler",
     "IEventBus",
+    # Health interfaces
+    "IHealthCheck",
+    "IHealthCheckManager",
     "IHealthMonitor",
+    # Infrastructure interfaces
+    "ILocalProcessManager",
+    # Restart interfaces
+    "ICrashDetector",
+    "IRestartManager",
+    "IRestartPolicy",
+    # Stability interfaces
+    "IMemoryLeakDetector",
+    "ILogMonitor",
+    "IResourceMonitor",
+    # Model interfaces
+    "IModelProvider",
+    "IModelRouter",
     "IPerformanceMonitor",
     "IPromptCache",
-    # Infrastructure interfaces
     "IServiceContainer",
     "IServiceFactory",
     "IServiceLifecycle",
@@ -183,6 +252,9 @@ __all__ = [
     "IToolchainAnalyzer",
     # Registry
     "InterfaceRegistry",
+    "ModelCapability",
+    "ModelProvider",
+    "ModelResponse",
     "MemoryHookInterface",
     "MemoryServiceInterface",
     "ProjectAnalyzerInterface",
