@@ -127,7 +127,7 @@ class AutoConfigureCommand(BaseCommand):
             # Initialize services with dependency injection
             toolchain_analyzer = ToolchainAnalyzerService()
             agent_registry = AgentRegistry()
-            agent_recommender = AgentRecommenderService(agent_registry=agent_registry)
+            agent_recommender = AgentRecommenderService()
 
             # Get deployment service
             try:
@@ -228,11 +228,11 @@ class AutoConfigureCommand(BaseCommand):
         if self.console and not json_output:
             with self.console.status("[bold green]Analyzing project toolchain..."):
                 preview = self.auto_config_manager.preview_configuration(
-                    str(project_path), min_confidence
+                    project_path, min_confidence
                 )
         else:
             preview = self.auto_config_manager.preview_configuration(
-                str(project_path), min_confidence
+                project_path, min_confidence
             )
 
         # Output results
@@ -252,11 +252,11 @@ class AutoConfigureCommand(BaseCommand):
         if self.console and not json_output:
             with self.console.status("[bold green]Analyzing project toolchain..."):
                 preview = self.auto_config_manager.preview_configuration(
-                    str(project_path), min_confidence
+                    project_path, min_confidence
                 )
         else:
             preview = self.auto_config_manager.preview_configuration(
-                str(project_path), min_confidence
+                project_path, min_confidence
             )
 
         # Display preview (unless JSON output)
@@ -273,9 +273,17 @@ class AutoConfigureCommand(BaseCommand):
                 return CommandResult.error_result("Operation cancelled", exit_code=0)
 
         # Execute configuration
+        import asyncio
+
         observer = RichProgressObserver(self.console) if self.console else None
-        result = self.auto_config_manager.execute_configuration(
-            str(project_path), min_confidence, observer=observer
+        result = asyncio.run(
+            self.auto_config_manager.auto_configure(
+                project_path,
+                confirmation_required=False,  # Already confirmed above
+                dry_run=False,
+                min_confidence=min_confidence,
+                observer=observer,
+            )
         )
 
         # Output results
