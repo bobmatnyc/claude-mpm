@@ -32,7 +32,38 @@ pip install --upgrade claude-mpm
 
 **💡 Why `[monitor]`?** Enables the real-time dashboard that shows agent collaboration in action. Essential for complex projects!
 
-### 2. Start Claude MPM (10 seconds)
+### 2. Auto-Configure Your Project (30 seconds) **NEW!**
+
+**🎯 Fastest Way to Get Started**:
+```bash
+# Navigate to your project
+cd /path/to/your/project
+
+# Let Claude MPM detect your stack and configure agents
+claude-mpm auto-configure
+```
+
+**What it does**:
+- Detects your languages (Python, Node.js, Rust, Go)
+- Identifies frameworks (FastAPI, Next.js, React, etc.)
+- Recommends and deploys appropriate agents
+- Shows confidence scores for transparency
+
+**Supported Projects**:
+- Python (FastAPI, Django, Flask)
+- Node.js (Next.js, React, Express)
+- Rust (Actix-web, Rocket, Axum)
+- Go (Gin, Echo, Fiber)
+- Multi-language monorepos
+
+**💡 First Time?** Use `--preview` to see recommendations before deploying:
+```bash
+claude-mpm auto-configure --preview
+```
+
+See the [Auto-Configuration Guide](03-features/auto-configuration.md) for detailed usage.
+
+### 3. Start Claude MPM (10 seconds)
 
 ```bash
 # Interactive mode (recommended for first time)
@@ -44,7 +75,7 @@ claude-mpm run --monitor
 
 **🎯 What happens**: Opens a Claude Code session with 15+ specialized agents ready to help.
 
-### 3. Try Your First Task (2 minutes)
+### 4. Try Your First Task (2 minutes)
 
 In the Claude session, try any of these:
 
@@ -64,7 +95,7 @@ In the Claude session, try any of these:
 
 **🤖 Watch the Magic**: PM agent automatically delegates to specialists (Research → Engineer → QA → Documentation)
 
-### 4. Explore Claude Code Slash Commands (2 minutes)
+### 5. Explore Claude Code Slash Commands (2 minutes)
 
 Claude MPM adds powerful slash commands to Claude Code:
 
@@ -125,6 +156,15 @@ claude-mpm resume
 
 ### Project Management
 ```bash
+# Auto-configure agents for your project (NEW!)
+claude-mpm auto-configure
+
+# Preview recommendations before deploying
+claude-mpm auto-configure --preview
+
+# Detect project toolchain
+claude-mpm agents detect
+
 # Health check and diagnostics
 claude-mpm doctor
 

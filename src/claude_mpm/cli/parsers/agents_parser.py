@@ -266,4 +266,13 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
         help="Only show summary, not individual agents",
     )
 
+    # Auto-configuration commands (TSK-0054 Phase 5)
+    from .auto_configure_parser import (
+        add_agents_detect_subparser,
+        add_agents_recommend_subparser,
+    )
+
+    add_agents_detect_subparser(agents_subparsers)
+    add_agents_recommend_subparser(agents_subparsers)
+
     return agents_parser

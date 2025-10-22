@@ -1,5 +1,8 @@
 """Agent services module - hierarchical organization of agent-related services."""
 
+# Auto-configuration exports
+from .auto_config_manager import AutoConfigManagerService
+
 # Registry exports
 # Deployment exports
 from .deployment.agent_deployment import AgentDeploymentService
@@ -29,6 +32,15 @@ from .memory.agent_persistence_service import (
     PersistenceRecord,
     PersistenceStrategy,
 )
+from .observers import (
+    CompositeObserver,
+    ConsoleProgressObserver,
+    IDeploymentObserver,
+    NullObserver,
+)
+
+# Recommender exports
+from .recommender import AgentRecommenderService
 from .registry import AgentMetadata, AgentRegistry, AgentTier, AgentType
 from .registry.deployed_agent_discovery import DeployedAgentDiscovery
 from .registry.modification_tracker import (
@@ -41,34 +53,35 @@ from .registry.modification_tracker import (
 
 __all__ = [
     "AgentCapabilitiesGenerator",
-    # Deployment
     "AgentDeploymentService",
     "AgentLifecycleManager",
     "AgentLifecycleRecord",
-    # Management
     "AgentManager",
-    # Memory
     "AgentMemoryManager",
     "AgentMetadata",
     "AgentModification",
     "AgentModificationTracker",
     "AgentPersistenceService",
     "AgentProfileLoader",
-    # Registry
+    "AgentRecommenderService",
     "AgentRegistry",
     "AgentTier",
     "AgentType",
     "AgentVersionManager",
+    "AutoConfigManagerService",
     "BaseAgentManager",
+    "CompositeObserver",
+    "ConsoleProgressObserver",
     "DeployedAgentDiscovery",
-    # Loading
     "FrameworkAgentLoader",
+    "IDeploymentObserver",
     "LifecycleOperation",
     "LifecycleOperationResult",
     "LifecycleState",
     "ModificationHistory",
     "ModificationTier",
     "ModificationType",
+    "NullObserver",
     "PersistenceOperation",
     "PersistenceRecord",
     "PersistenceStrategy",

@@ -720,6 +720,16 @@ def _execute_command(command: str, args) -> int:
         result = handle_verify(args)
         return result if result is not None else 0
 
+    # Handle auto-configure command with lazy import
+    if command == "auto-configure":
+        # Lazy import to avoid loading unless needed
+        from .commands.auto_configure import AutoConfigureCommand
+
+        cmd = AutoConfigureCommand()
+        result = cmd.run(args)
+        # Convert CommandResult to exit code
+        return result.exit_code if result else 0
+
     # Map stable commands to their implementations
     command_map = {
         CLICommands.RUN.value: run_session,
