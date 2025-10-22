@@ -339,7 +339,7 @@ class RestartManager(SyncBaseService, IRestartManager):
             return
 
         try:
-            with open(self.history_file) as f:
+            with self.history_file.open() as f:
                 data = json.load(f)
 
             # Load history into restart policy
@@ -369,7 +369,7 @@ class RestartManager(SyncBaseService, IRestartManager):
                     data[deployment_id] = history.to_dict()
 
             # Write to disk
-            with open(self.history_file, "w") as f:
+            with self.history_file.open("w") as f:
                 json.dump(data, f, indent=2)
 
             self.logger.debug(f"Saved restart history for {len(data)} deployments")

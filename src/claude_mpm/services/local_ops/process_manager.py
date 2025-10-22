@@ -35,7 +35,7 @@ import platform
 import signal
 import subprocess
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
 from typing import List, Optional
@@ -202,7 +202,7 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
                 working_directory=str(working_dir),
                 environment=config.environment,
                 port=allocated_port,
-                started_at=datetime.now(),
+                started_at=datetime.now(tz=timezone.utc),
                 status=ProcessStatus.RUNNING,
                 metadata=config.metadata,
             )
@@ -437,11 +437,7 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
 
         # Check if port is in use
         connections = psutil.net_connections()
-        for conn in connections:
-            if conn.laddr.port == port:
-                return False
-
-        return True
+        return all(conn.laddr.port != port for conn in connections)
 
     def find_available_port(
         self, preferred_port: int, max_attempts: int = 10
@@ -503,7 +499,7 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
             Unique deployment identifier
         """
         # Use timestamp for uniqueness
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        timestamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d-%H%M%S")
 
         # Generate short hash from project name for readability
         name_hash = sha256(project_name.encode()).hexdigest()[:8]
