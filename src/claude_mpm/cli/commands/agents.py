@@ -122,6 +122,9 @@ class AgentsCommand(AgentCommand):
                 "delete": self._delete_local_agent,
                 "manage": self._manage_local_agents,
                 "configure": self._configure_deployment,
+                # Auto-configuration commands (TSK-0054 Phase 5)
+                "detect": self._detect_toolchain,
+                "recommend": self._recommend_agents,
             }
 
             if args.agents_command in command_map:
@@ -1360,6 +1363,34 @@ class AgentsCommand(AgentCommand):
             return CommandResult.error_result(
                 f"Error in interactive configuration: {e}"
             )
+
+    def _detect_toolchain(self, args) -> CommandResult:
+        """Detect project toolchain without deploying agents.
+
+        Part of TSK-0054 Phase 5: Auto-configuration CLI integration.
+        """
+        try:
+            from .agents_detect import AgentsDetectCommand
+
+            cmd = AgentsDetectCommand()
+            return cmd.run(args)
+        except Exception as e:
+            self.logger.error(f"Error detecting toolchain: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error detecting toolchain: {e}")
+
+    def _recommend_agents(self, args) -> CommandResult:
+        """Recommend agents based on project toolchain.
+
+        Part of TSK-0054 Phase 5: Auto-configuration CLI integration.
+        """
+        try:
+            from .agents_recommend import AgentsRecommendCommand
+
+            cmd = AgentsRecommendCommand()
+            return cmd.run(args)
+        except Exception as e:
+            self.logger.error(f"Error recommending agents: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error recommending agents: {e}")
 
 
 def manage_agents(args):
