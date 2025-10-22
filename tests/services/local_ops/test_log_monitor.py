@@ -152,6 +152,7 @@ class TestLogMonitor:
             f.flush()
             # Force OS to write to disk
             import os
+
             os.fsync(f.fileno())
 
         # Add extra delay for watchdog to detect and process file change
@@ -161,6 +162,7 @@ class TestLogMonitor:
         # Manually trigger the file handler to process changes.
         if len(matches) == 0 and deployment_id in monitor._handlers:
             from watchdog.events import FileModifiedEvent
+
             event = FileModifiedEvent(str(log_file))
             monitor._handlers[deployment_id].on_modified(event)
 
@@ -204,6 +206,7 @@ class TestLogMonitor:
         # WORKAROUND: Manually trigger watchdog event if needed (macOS test environment issue)
         if len(matches) < 2 and deployment_id in monitor._handlers:
             from watchdog.events import FileModifiedEvent
+
             event = FileModifiedEvent(str(log_file))
             monitor._handlers[deployment_id].on_modified(event)
 
@@ -341,6 +344,7 @@ class TestLogMonitor:
         app1_matches = monitor.get_recent_matches("app1")
         if len(app1_matches) == 0 and "app1" in monitor._handlers:
             from watchdog.events import FileModifiedEvent
+
             event = FileModifiedEvent(str(log_file1))
             monitor._handlers["app1"].on_modified(event)
             app1_matches = monitor.get_recent_matches("app1")
@@ -497,6 +501,7 @@ class TestLogMonitorEdgeCases:
         # WORKAROUND: Manually trigger watchdog event if needed (macOS test environment issue)
         if len(matches) == 0 and deployment_id in monitor._handlers:
             from watchdog.events import FileModifiedEvent
+
             event = FileModifiedEvent(str(log_file))
             monitor._handlers[deployment_id].on_modified(event)
 

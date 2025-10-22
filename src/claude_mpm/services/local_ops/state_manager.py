@@ -115,7 +115,7 @@ class DeploymentStateManager(SyncBaseService, IDeploymentStateManager):
                 if not self.state_file.exists():
                     return {}
 
-                with open(self.state_file) as f:
+                with self.state_file.open() as f:
                     data = json.load(f)
 
                 # Convert dict entries to DeploymentState objects
@@ -175,7 +175,7 @@ class DeploymentStateManager(SyncBaseService, IDeploymentStateManager):
         # Atomic write: write to temp file then rename
         temp_file = self.state_file.with_suffix(".tmp")
         try:
-            with open(temp_file, "w") as f:
+            with temp_file.open("w") as f:
                 json.dump(data, f, indent=2)
             temp_file.replace(self.state_file)
         except Exception as e:
