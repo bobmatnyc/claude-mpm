@@ -1,3 +1,13 @@
+## [4.13.1] - 2025-10-21
+
+### Fixed
+- **CLI Critical Bug Fixes**: Resolved multiple issues preventing CLI from loading in v4.13.0
+  - Removed duplicate --dry-run argument definition causing argparse crash
+  - Fixed auto-configure command registration in claude-mpm script
+  - Fixed AgentRecommenderService initialization (removed incorrect parameter)
+  - Fixed preview_configuration calls to use Path objects instead of strings
+  - Fixed async workflow in auto_configure command to use asyncio.run()
+
 ## [4.13.0] - 2025-10-21
 
 ### Added
