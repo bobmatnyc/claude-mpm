@@ -117,7 +117,7 @@ class LogFileHandler(FileSystemEventHandler):
 
         new_lines = []
 
-        with open(self.log_file, encoding="utf-8", errors="ignore") as f:
+        with Path(self.log_file).open(encoding="utf-8", errors="ignore") as f:
             # Seek to last position
             f.seek(self.last_position)
 

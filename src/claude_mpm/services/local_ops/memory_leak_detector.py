@@ -33,7 +33,7 @@ USAGE:
 
 import threading
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Callable, Dict, List, Tuple
 
 from claude_mpm.services.core.base import SyncBaseService
@@ -117,7 +117,7 @@ class MemoryLeakDetector(SyncBaseService, IMemoryLeakDetector):
         """
         with self._lock:
             # Add new measurement
-            timestamp = datetime.now()
+            timestamp = datetime.now(tz=timezone.utc)
             self._measurements[deployment_id].append((timestamp, memory_mb))
 
             # Trim to window size
@@ -249,9 +249,7 @@ class MemoryLeakDetector(SyncBaseService, IMemoryLeakDetector):
 
         # Calculate slope (MB per minute)
         memory_delta = last_memory - first_memory
-        slope = memory_delta / time_delta_minutes
-
-        return slope
+        return memory_delta / time_delta_minutes
 
     def _trigger_leak_callbacks(self, deployment_id: str, trend: MemoryTrend) -> None:
         """

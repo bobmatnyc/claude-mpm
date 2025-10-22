@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [4.14.0] - 2025-10-22
+
 ### Added
 - **Local Process Management System**: Professional-grade process management for local development deployments
   - **Phase 1**: Core process management with LocalProcessManager and StateManager

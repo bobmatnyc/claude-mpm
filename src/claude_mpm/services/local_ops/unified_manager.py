@@ -530,7 +530,7 @@ class UnifiedLocalOpsManager(SyncBaseService):
         # Load from file if it exists
         if self.config_path.exists():
             try:
-                with open(self.config_path) as f:
+                with self.config_path.open() as f:
                     return yaml.safe_load(f) or {}
             except Exception as e:
                 self.log_warning(f"Failed to load config from {self.config_path}: {e}")
