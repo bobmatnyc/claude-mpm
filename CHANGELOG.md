@@ -1,3 +1,21 @@
+## [4.13.2] - 2025-10-22
+
+### Added
+- **Enhanced Help Documentation**: Comprehensive auto-configuration documentation (~1,000 lines)
+  - Enhanced `/mpm-help` command with auto-configuration section (+159 lines)
+  - Enhanced `/mpm-agents` command with new subcommands (+73 lines)
+  - Created `/mpm-auto-configure` documentation (217 lines)
+  - Created `/mpm-agents-detect` documentation (168 lines)
+  - Created `/mpm-agents-recommend` documentation (214 lines)
+  - Updated PM_INSTRUCTIONS.md with proactive suggestion patterns (+66 lines)
+
+### Changed
+- **PM Behavior**: PM now proactively suggests auto-configuration in appropriate contexts
+  - Suggests to new users without deployed agents
+  - Suggests when few agents are deployed
+  - Suggests when user asks about agent selection
+  - Suggests when project stack changes are detected
+
 ## [4.13.1] - 2025-10-21
 
 ### Fixed
