@@ -1,6 +1,23 @@
 ## [Unreleased]
 
 ### Added
+- **Auto-Configuration Feature (Complete)**: Five-phase implementation for automatic agent configuration
+  - **Phase 1**: Interfaces and data models (IToolchainAnalyzer, IAgentRecommender, IAutoConfigManager)
+  - **Phase 2**: Toolchain detection with Strategy pattern (Python, Node.js, Rust, Go)
+  - **Phase 3**: Agent recommendation engine with confidence scoring and multi-factor analysis
+  - **Phase 4**: Auto-configuration orchestration with Observer pattern for deployment tracking
+  - **Phase 5**: CLI integration with Rich progress display and JSON output support
+  - 207 comprehensive tests with 76% code coverage
+  - Support for 4 languages, 10+ frameworks, and 5+ deployment targets
+  - Three CLI commands: `auto-configure`, `agents detect`, `agents recommend`
+  - Preview mode for safe exploration before deployment
+  - Configuration persistence with rollback capability
+  - Confidence-based recommendations (default 80%+ threshold)
+- **Comprehensive Documentation**: User and developer documentation for auto-configuration
+  - User guide: `/docs/user/03-features/auto-configuration.md` with examples and troubleshooting
+  - Developer guide: `/docs/developer/AUTO_CONFIGURATION.md` with architecture and extension patterns
+  - Updated quick start guide with auto-configuration workflow
+  - Updated documentation index with auto-configuration references
 
 ### Changed
 

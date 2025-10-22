@@ -1,0 +1,511 @@
+# Agent Capabilities Configuration
+# =================================
+# This file defines agent capabilities and toolchain mappings for the auto-configuration feature.
+# Each agent entry specifies supported languages, frameworks, deployment targets, and confidence weights.
+#
+# Part of TSK-0054: Auto-Configuration Feature - Phase 3
+
+agent_capabilities:
+  # ===================================
+  # ENGINEERING AGENTS (Language-Specific)
+  # ===================================
+
+  python_engineer:
+    name: "Python Engineer"
+    agent_id: "python_engineer"
+    specialization: "engineering"
+    description: "Python 3.12+ development specialist with async-first, type-safe implementations"
+    supports:
+      languages:
+        - python
+      frameworks:
+        - django
+        - flask
+        - fastapi
+        - sqlalchemy
+        - pytest
+        - pydantic
+      build_tools:
+        - poetry
+        - pip
+        - setuptools
+        - conda
+      deployment:
+        - aws
+        - gcp
+        - azure
+        - docker
+        - kubernetes
+    confidence_weight: 0.9
+    auto_deploy: true
+    metadata:
+      template_file: "python_engineer.json"
+      category: "engineering"
+      tags:
+        - python
+        - python-3-13
+        - engineering
+        - performance
+
+  typescript_engineer:
+    name: "TypeScript Engineer"
+    agent_id: "typescript_engineer"
+    specialization: "engineering"
+    description: "TypeScript specialist for type-safe JavaScript development"
+    supports:
+      languages:
+        - typescript
+        - javascript
+      frameworks:
+        - express
+        - nestjs
+        - angular
+        - vue
+        - react  # Generic React, overridden by nextjs-engineer for Next.js
+      build_tools:
+        - npm
+        - yarn
+        - pnpm
+        - webpack
+        - vite
+        - turbo
+      deployment:
+        - node
+        - docker
+        - kubernetes
+    confidence_weight: 0.85
+    auto_deploy: true
+    metadata:
+      template_file: "typescript_engineer.json"
+      category: "engineering"
+      tags:
+        - typescript
+        - javascript
+        - engineering
+
+  nextjs_engineer:
+    name: "Next.js Engineer"
+    agent_id: "nextjs_engineer"
+    specialization: "engineering"
+    description: "Next.js and React specialist with SSR/SSG expertise"
+    supports:
+      languages:
+        - typescript
+        - javascript
+      frameworks:
+        - nextjs
+        - next.js
+        - react
+      build_tools:
+        - npm
+        - yarn
+        - pnpm
+        - turbo
+      deployment:
+        - vercel
+        - netlify
+        - docker
+        - kubernetes
+    confidence_weight: 0.95  # Higher priority than typescript-engineer for Next.js projects
+    auto_deploy: true
+    metadata:
+      template_file: "nextjs_engineer.json"
+      category: "engineering"
+      tags:
+        - nextjs
+        - react
+        - typescript
+        - ssr
+        - ssg
+      # This agent takes priority over typescript_engineer when Next.js is detected
+      overrides:
+        - typescript_engineer
+
+  golang_engineer:
+    name: "Golang Engineer"
+    agent_id: "golang_engineer"
+    specialization: "engineering"
+    description: "Go language specialist for high-performance backend services"
+    supports:
+      languages:
+        - go
+        - golang
+      frameworks:
+        - gin
+        - echo
+        - fiber
+        - chi
+        - gorilla
+      build_tools:
+        - go
+        - make
+      deployment:
+        - docker
+        - kubernetes
+        - gcp
+        - aws
+    confidence_weight: 0.9
+    auto_deploy: true
+    metadata:
+      template_file: "golang_engineer.json"
+      category: "engineering"
+      tags:
+        - golang
+        - go
+        - performance
+        - microservices
+
+  java_engineer:
+    name: "Java Engineer"
+    agent_id: "java_engineer"
+    specialization: "engineering"
+    description: "Java development specialist with Spring and enterprise patterns"
+    supports:
+      languages:
+        - java
+      frameworks:
+        - spring
+        - spring-boot
+        - hibernate
+        - junit
+        - maven
+        - gradle
+      build_tools:
+        - maven
+        - gradle
+        - ant
+      deployment:
+        - docker
+        - kubernetes
+        - aws
+        - gcp
+    confidence_weight: 0.9
+    auto_deploy: true
+    metadata:
+      template_file: "java_engineer.json"
+      category: "engineering"
+      tags:
+        - java
+        - spring
+        - enterprise
+
+  rust_engineer:
+    name: "Rust Engineer"
+    agent_id: "rust_engineer"
+    specialization: "engineering"
+    description: "Rust specialist for systems programming and performance-critical applications"
+    supports:
+      languages:
+        - rust
+      frameworks:
+        - actix
+        - rocket
+        - tokio
+        - async-std
+      build_tools:
+        - cargo
+        - rustc
+      deployment:
+        - docker
+        - kubernetes
+        - aws
+    confidence_weight: 0.9
+    auto_deploy: true
+    metadata:
+      template_file: "rust_engineer.json"
+      category: "engineering"
+      tags:
+        - rust
+        - systems-programming
+        - performance
+
+  php_engineer:
+    name: "PHP Engineer"
+    agent_id: "php-engineer"
+    specialization: "engineering"
+    description: "PHP development specialist with Laravel and modern PHP practices"
+    supports:
+      languages:
+        - php
+      frameworks:
+        - laravel
+        - symfony
+        - wordpress
+        - drupal
+        - phpunit
+      build_tools:
+        - composer
+        - npm
+        - yarn
+      deployment:
+        - docker
+        - kubernetes
+        - aws
+        - apache
+        - nginx
+    confidence_weight: 0.9
+    auto_deploy: true
+    metadata:
+      template_file: "php-engineer.json"
+      category: "engineering"
+      tags:
+        - php
+        - laravel
+        - web
+
+  ruby_engineer:
+    name: "Ruby Engineer"
+    agent_id: "ruby-engineer"
+    specialization: "engineering"
+    description: "Ruby development specialist with Rails expertise"
+    supports:
+      languages:
+        - ruby
+      frameworks:
+        - rails
+        - ruby-on-rails
+        - sinatra
+        - rspec
+      build_tools:
+        - bundler
+        - gem
+        - rake
+      deployment:
+        - docker
+        - kubernetes
+        - heroku
+        - aws
+    confidence_weight: 0.9
+    auto_deploy: true
+    metadata:
+      template_file: "ruby-engineer.json"
+      category: "engineering"
+      tags:
+        - ruby
+        - rails
+        - web
+
+  # ===================================
+  # DEVOPS AGENTS (Deployment-Specific)
+  # ===================================
+
+  vercel_ops_agent:
+    name: "Vercel Ops Agent"
+    agent_id: "vercel_ops_agent"
+    specialization: "devops"
+    description: "Vercel deployment and operations specialist"
+    supports:
+      languages:
+        - typescript
+        - javascript
+      frameworks:
+        - nextjs
+        - react
+        - vue
+        - svelte
+      deployment:
+        - vercel
+      build_tools:
+        - npm
+        - yarn
+        - pnpm
+    confidence_weight: 0.95  # Very high confidence for Vercel projects
+    auto_deploy: true
+    metadata:
+      template_file: "vercel_ops_agent.json"
+      category: "devops"
+      tags:
+        - vercel
+        - deployment
+        - serverless
+
+  gcp_ops_agent:
+    name: "GCP Ops Agent"
+    agent_id: "gcp_ops_agent"
+    specialization: "devops"
+    description: "Google Cloud Platform operations specialist"
+    supports:
+      languages:
+        - python
+        - go
+        - java
+        - typescript
+      deployment:
+        - gcp
+        - google-cloud
+        - cloud-run
+        - app-engine
+        - cloud-functions
+      build_tools:
+        - gcloud
+        - terraform
+        - ansible
+    confidence_weight: 0.9
+    auto_deploy: true
+    metadata:
+      template_file: "gcp_ops_agent.json"
+      category: "devops"
+      tags:
+        - gcp
+        - google-cloud
+        - devops
+
+  local_ops_agent:
+    name: "Local Ops Agent"
+    agent_id: "local_ops_agent"
+    specialization: "devops"
+    description: "Local development and deployment operations"
+    supports:
+      languages:
+        - python
+        - typescript
+        - javascript
+        - go
+        - java
+      deployment:
+        - docker
+        - docker-compose
+        - local
+      build_tools:
+        - docker
+        - docker-compose
+        - make
+    confidence_weight: 0.7  # Lower confidence, fallback option
+    auto_deploy: false  # Only deploy when explicitly needed
+    metadata:
+      template_file: "local_ops_agent.json"
+      category: "devops"
+      tags:
+        - local
+        - docker
+        - development
+
+  ops:
+    name: "Ops Agent"
+    agent_id: "ops"
+    specialization: "devops"
+    description: "General DevOps and infrastructure operations"
+    supports:
+      languages:
+        - python
+        - bash
+        - shell
+        - yaml
+      deployment:
+        - aws
+        - azure
+        - kubernetes
+        - docker
+      build_tools:
+        - terraform
+        - ansible
+        - jenkins
+        - gitlab-ci
+        - github-actions
+    confidence_weight: 0.75  # Medium confidence, general fallback
+    auto_deploy: false  # Only deploy when explicitly needed
+    metadata:
+      template_file: "ops.json"
+      category: "devops"
+      tags:
+        - devops
+        - infrastructure
+        - ci-cd
+
+# ===================================
+# FRAMEWORK DETECTION MAPPINGS
+# ===================================
+# These mappings help identify frameworks from package files
+framework_detection:
+  python:
+    package_files:
+      - requirements.txt
+      - pyproject.toml
+      - Pipfile
+      - setup.py
+    framework_indicators:
+      django: ["django", "Django"]
+      flask: ["flask", "Flask"]
+      fastapi: ["fastapi", "FastAPI"]
+      pytest: ["pytest"]
+
+  typescript:
+    package_files:
+      - package.json
+      - package-lock.json
+      - yarn.lock
+      - pnpm-lock.yaml
+    framework_indicators:
+      nextjs: ["next", "nextjs"]
+      react: ["react", "react-dom"]
+      nestjs: ["@nestjs/core"]
+      express: ["express"]
+
+  golang:
+    package_files:
+      - go.mod
+      - go.sum
+    framework_indicators:
+      gin: ["gin-gonic/gin"]
+      echo: ["labstack/echo"]
+
+  java:
+    package_files:
+      - pom.xml
+      - build.gradle
+      - build.gradle.kts
+    framework_indicators:
+      spring: ["spring-boot", "spring-framework"]
+
+# ===================================
+# DEPLOYMENT TARGET DETECTION
+# ===================================
+deployment_detection:
+  vercel:
+    indicators:
+      - vercel.json
+      - .vercel
+    frameworks:
+      - nextjs
+      - react
+
+  gcp:
+    indicators:
+      - app.yaml
+      - cloudbuild.yaml
+      - .gcloudignore
+    platforms:
+      - cloud-run
+      - app-engine
+
+  docker:
+    indicators:
+      - Dockerfile
+      - docker-compose.yml
+      - docker-compose.yaml
+      - .dockerignore
+
+# ===================================
+# RECOMMENDATION RULES
+# ===================================
+recommendation_rules:
+  # Minimum confidence threshold for recommendations
+  min_confidence_threshold: 0.5
+
+  # Maximum number of engineer agents to recommend
+  max_engineer_agents: 3
+
+  # Maximum number of ops agents to recommend
+  max_ops_agents: 2
+
+  # Framework-specific agents take priority over language-specific
+  framework_priority_boost: 0.15
+
+  # Deployment target match gives additional boost
+  deployment_match_boost: 0.1
+
+  # Scoring weights
+  scoring_weights:
+    language_match: 0.5      # 50% weight on primary language
+    framework_match: 0.3     # 30% weight on framework
+    deployment_match: 0.2    # 20% weight on deployment target

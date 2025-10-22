@@ -302,6 +302,13 @@ def create_parser(
         pass
 
     try:
+        from .auto_configure_parser import add_auto_configure_subparser
+
+        add_auto_configure_subparser(subparsers)
+    except ImportError:
+        pass
+
+    try:
         from .memory_parser import add_memory_subparser
 
         add_memory_subparser(subparsers)

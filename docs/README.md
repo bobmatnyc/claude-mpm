@@ -40,15 +40,15 @@ Welcome to the complete documentation for Claude MPM (Multi-Agent Project Manage
 pip install claude-mpm                    # Basic installation
 pipx install "claude-mpm[monitor]"       # With monitoring dashboard
 
-# 2. Run
+# 2. Auto-configure your project (NEW!)
+claude-mpm auto-configure                 # Detect stack & configure agents
+
+# 3. Run
 claude-mpm run                            # Interactive mode
 claude-mpm run --monitor                  # With real-time dashboard
-
-# 3. Create custom agent (optional)
-claude-mpm agents create my-agent         # Interactive creation
 ```
 
-**✨ That's it!** See [Quick Start Guide](user/quickstart.md) for detailed setup or continue below for comprehensive navigation.
+**✨ That's it!** Auto-configuration detects your project's languages and frameworks, then deploys the right agents automatically. See [Quick Start Guide](user/quickstart.md) for detailed setup or continue below for comprehensive navigation.
 
 ## 📖 Documentation Sections
 
@@ -66,6 +66,7 @@ claude-mpm agents create my-agent         # Interactive creation
 #### 🚀 Getting Started
 - [Installation Guide](user/INSTALL.md) - All installation methods (pip, pipx, development)
 - [Quick Start](user/quickstart.md) - 5-minute setup and first run
+- [Auto-Configuration](user/03-features/auto-configuration.md) - **NEW!** Automatic agent setup
 - [Basic Usage](user/02-guides/basic-usage.md) - Essential commands and workflows
 - [Migration Guide](user/MIGRATION.md) - Upgrading from previous versions
 
@@ -107,6 +108,7 @@ claude-mpm agents create my-agent         # Interactive creation
 
 | Task | Command | Documentation |
 |------|---------|---------------|
+| **Auto-configure** | `claude-mpm auto-configure` | [Auto-Configuration](user/03-features/auto-configuration.md) |
 | **Run system** | `claude-mpm run` | [Quick Start](user/quickstart.md) |
 | **Check quality** | `make quality` | [Development](developer/README.md) |
 | **Fix code style** | `make lint-fix` | [Code Quality](developer/LINTING.md) |
@@ -189,8 +191,14 @@ docs/
 
 ## ✨ Key Features & Capabilities
 
+- **🎯 Auto-Configuration (NEW v4.10.0)**: Automatically detect project stack and configure agents
+  - Detects Python, Node.js, Rust, Go, and more
+  - Identifies frameworks (FastAPI, Next.js, React, etc.)
+  - Recommends agents with confidence scores (default 80%+)
+  - Preview mode for safe exploration
+  - 207 comprehensive tests with 76% coverage
 - **🤖 Multi-Agent System**: 15+ specialized agents for comprehensive project management
-- **💻 Coding Agents (NEW v4.9.0)**: 7 specialized coding agents with benchmark scores
+- **💻 Coding Agents (v4.9.0)**: 7 specialized coding agents with benchmark scores
   - Python Engineer v2.0.0 (Python 3.13+, JIT) - 62.3% (C)
   - TypeScript Engineer v2.0.0 (TS 5.6+, branded types) - 66.8% (C+)
   - Next.js Engineer v2.0.0 (Next.js 15, App Router) - 65.8% (C+)
