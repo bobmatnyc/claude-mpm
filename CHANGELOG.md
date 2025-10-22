@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Fixed
+
 ## [4.14.0] - 2025-10-22
 
 ### Added
