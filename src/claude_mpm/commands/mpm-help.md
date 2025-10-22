@@ -66,6 +66,15 @@ Available Commands:
 /mpm-agents [list|deploy|remove] [name]
   Manage agent deployment
 
+/mpm-auto-configure [--preview] [--yes]
+  🤖 NEW! Automatically configure agents based on your project
+
+/mpm-agents-detect
+  🤖 NEW! Detect project toolchain and frameworks
+
+/mpm-agents-recommend
+  🤖 NEW! Show recommended agents for your project
+
 /mpm-config [validate|view|status]
   Manage configuration settings
 
@@ -117,6 +126,157 @@ Related Commands:
   /mpm-status   Show current system status
   /mpm-config   Manage configuration
 ```
+
+## Auto-Configuration Commands (NEW!)
+
+### /mpm-auto-configure - Automatic Agent Configuration
+
+**Description:**
+Automatically detects your project's toolchain and frameworks, then recommends and optionally deploys the most appropriate agents for your stack.
+
+**Usage:**
+```
+/mpm-auto-configure [options]
+```
+
+**Options:**
+- `--preview` - Show what would be configured without making changes
+- `--yes` - Skip confirmation prompts and apply automatically
+- `--force` - Force reconfiguration even if agents already deployed
+
+**Examples:**
+```
+/mpm-auto-configure --preview    # Preview recommendations
+/mpm-auto-configure              # Interactive configuration
+/mpm-auto-configure --yes        # Auto-apply recommendations
+```
+
+**What it detects:**
+- Programming languages (Python, Node.js, Rust, Go, Java)
+- Frameworks (FastAPI, Flask, Next.js, React, Vue, Express)
+- Testing tools (pytest, Jest, Vitest, Playwright)
+- Build tools (Vite, Webpack, Rollup)
+- Package managers (npm, yarn, pnpm, pip, poetry)
+- Deployment platforms (Vercel, Railway, Docker)
+
+**Recommended agents by stack:**
+- **Python + FastAPI**: fastapi-engineer, python-engineer, api-qa
+- **Next.js**: nextjs-engineer, react-engineer, web-qa
+- **React**: react-engineer, web-qa
+- **Full-stack**: Combination of backend + frontend agents
+- **Testing**: playwright-qa, api-qa based on detected test tools
+
+### /mpm-agents-detect - Toolchain Detection
+
+**Description:**
+Scans your project to detect programming languages, frameworks, tools, and configuration files.
+
+**Usage:**
+```
+/mpm-agents-detect
+```
+
+**Output:**
+- Detected languages and versions
+- Frameworks and their configurations
+- Testing tools and test frameworks
+- Build tools and bundlers
+- Package managers
+- Deployment configurations
+
+**Example:**
+```
+/mpm-agents-detect
+
+Detected Project Stack:
+======================
+Languages: Python 3.11, Node.js 20.x
+Frameworks: FastAPI 0.104.0, React 18.2.0
+Testing: pytest, Playwright
+Build: Vite 5.0.0
+Package Manager: poetry, npm
+Deployment: Docker, Vercel
+```
+
+### /mpm-agents-recommend - Agent Recommendations
+
+**Description:**
+Based on detected toolchain, shows which agents are recommended for your project with explanations.
+
+**Usage:**
+```
+/mpm-agents-recommend
+```
+
+**Output:**
+- Recommended agents with rationale
+- Agent capabilities and when to use them
+- Suggested deployment order
+- Complementary agent combinations
+
+**Example:**
+```
+/mpm-agents-recommend
+
+Recommended Agents for Your Project:
+===================================
+
+Essential Agents:
+✓ fastapi-engineer - Detected FastAPI framework
+✓ python-engineer - Python 3.11 project
+✓ api-qa - API testing and validation
+
+Recommended Agents:
+○ react-engineer - React frontend detected
+○ web-qa - Web UI testing
+○ playwright-qa - Playwright tests found
+
+Optional Agents:
+○ docker-ops - Docker configuration found
+○ vercel-ops - Vercel deployment detected
+```
+
+## Quick Start with Auto-Configuration
+
+For new projects or first-time setup:
+
+1. **Preview what would be configured:**
+   ```
+   /mpm-auto-configure --preview
+   ```
+
+2. **Review recommendations:**
+   ```
+   /mpm-agents-recommend
+   ```
+
+3. **Apply configuration:**
+   ```
+   /mpm-auto-configure
+   ```
+
+Or skip straight to auto-apply:
+```
+/mpm-auto-configure --yes
+```
+
+## Supported Technology Stacks
+
+**Python:**
+- FastAPI, Flask, Django, Starlette
+- pytest, unittest
+- uvicorn, gunicorn
+
+**JavaScript/TypeScript:**
+- Next.js, React, Vue, Svelte
+- Express, Nest.js, Fastify
+- Jest, Vitest, Playwright
+- Vite, Webpack, Rollup
+
+**Other:**
+- Rust (Cargo, Actix, Rocket)
+- Go (modules, Gin, Echo)
+- Java (Maven, Gradle, Spring Boot)
 
 ## Related Commands
 

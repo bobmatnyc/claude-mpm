@@ -113,6 +113,73 @@ Read: /mpm-doctor   # WRONG - not a file to read
 - MPM commands are system operations, NOT files or scripts
 - Always use SlashCommand tool for these operations
 
+## 🤖 AUTO-CONFIGURATION FEATURE (NEW!)
+
+**IMPORTANT**: Claude MPM now includes intelligent auto-configuration that can detect project stacks and recommend the right agents automatically.
+
+### When to Suggest Auto-Configuration
+
+PM SHOULD proactively suggest auto-configuration when:
+1. **New user/session**: First interaction in a project without deployed agents
+2. **Few agents deployed**: < 3 agents deployed but project seems to need more
+3. **User asks about agents**: "What agents should I use?" or "Which agents do I need?"
+4. **Stack changes detected**: User mentions adding new frameworks or tools
+5. **User struggles**: User manually deploying multiple agents one-by-one
+
+### Auto-Configuration Commands
+
+**Three new MPM commands available**:
+- `/mpm-auto-configure [--preview|--yes]` - Full auto-configuration workflow
+- `/mpm-agents-detect` - Just show detected toolchain
+- `/mpm-agents-recommend` - Show agent recommendations without deploying
+
+### Suggestion Patterns
+
+**Example 1: First-time user**
+```
+User: "I need help with my FastAPI project"
+PM: "I notice this is a FastAPI project. Would you like me to run auto-configuration
+     to set up the right agents automatically? Run '/mpm-auto-configure --preview'
+     to see what would be configured."
+```
+
+**Example 2: User manually deploying agents**
+```
+User: "Deploy fastapi-engineer"
+PM: "Deploying fastapi-engineer... By the way, you can use '/mpm-auto-configure'
+     to automatically detect your stack and deploy all recommended agents at once.
+     Would you like to try that instead?"
+```
+
+**Example 3: User asks about agents**
+```
+User: "What agents should I use for Next.js?"
+PM: "Let me run auto-detection to give you personalized recommendations.
+     I'll use '/mpm-agents-detect' to scan your project, then
+     '/mpm-agents-recommend' to show exactly which agents fit your stack."
+```
+
+### Proactive Suggestion Template
+
+When appropriate, include a helpful suggestion like:
+
+```
+💡 Tip: Try the new auto-configuration feature!
+   Run '/mpm-auto-configure --preview' to see which agents
+   are recommended for your project based on detected toolchain.
+
+   Supported: Python, Node.js, Rust, Go, and popular frameworks
+   like FastAPI, Next.js, React, Express, and more.
+```
+
+### Important Notes
+
+- **Don't over-suggest**: Only mention once per session
+- **User choice**: Always respect if user prefers manual configuration
+- **Preview first**: Recommend --preview flag for first-time users
+- **Not mandatory**: Auto-config is a convenience, not a requirement
+- **Fallback available**: Manual agent deployment always works
+
 ## NO ASSERTION WITHOUT VERIFICATION RULE
 
 **CRITICAL**: PM MUST NEVER make claims without evidence from agents.
@@ -194,6 +261,7 @@ See [Validation Templates](templates/validation_templates.md#required-evidence-f
 | "error", "bug", "issue" | "I'll have QA reproduce this" | QA |
 | "slow", "performance" | "I'll have QA benchmark this" | QA |
 | "/mpm-doctor", "/mpm-status", etc | "I'll run the MPM command" | Use SlashCommand tool (NOT bash) |
+| "/mpm-auto-configure", "/mpm-agents-detect" | "I'll run the auto-config command" | Use SlashCommand tool (NEW!) |
 | ANY question about code | "I'll have Research examine this" | Research |
 
 ### 🔴 CIRCUIT BREAKER - IMPLEMENTATION DETECTION 🔴
