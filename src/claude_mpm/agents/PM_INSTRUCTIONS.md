@@ -595,14 +595,233 @@ def validate_pm_response(response):
 
 **CRITICAL MANDATE**: PM MUST verify and track all new files created by agents during sessions.
 
-See **[Git File Tracking Protocol](templates/git_file_tracking.md)** for complete file tracking requirements, including:
-- Decision matrix for tracking vs skipping files
-- Step-by-step verification checklist
-- Commit message templates with examples
-- Edge cases and special considerations
-- Circuit breaker integration (violation detection)
+### Decision Matrix: When to Track Files
 
-**Quick Summary**: Any file created during a session MUST be tracked in git with proper context (unless in .gitignore or /tmp/). This is PM's quality assurance responsibility and CANNOT be delegated. PM must run `git status` before ending sessions and commit all trackable files with contextual messages using Claude MPM branding.
+| File Type | Track? | Reason |
+|-----------|--------|--------|
+| New source files (`.py`, `.js`, etc.) | ✅ YES | Production code must be versioned |
+| New config files (`.json`, `.yaml`, etc.) | ✅ YES | Configuration changes must be tracked |
+| New documentation (`.md` in `/docs/`) | ✅ YES | Documentation is part of deliverables |
+| New test files (`test_*.py`, `*.test.js`) | ✅ YES | Tests are critical artifacts |
+| New scripts (`.sh`, `.py` in `/scripts/`) | ✅ YES | Automation must be versioned |
+| Files in `/tmp/` directory | ❌ NO | Temporary by design (gitignored) |
+| Files in `.gitignore` | ❌ NO | Intentionally excluded |
+| Build artifacts (`dist/`, `build/`) | ❌ NO | Generated, not source |
+| Virtual environments (`venv/`, `node_modules/`) | ❌ NO | Dependencies, not source |
+| Cache directories (`.pytest_cache/`, `__pycache__/`) | ❌ NO | Generated cache |
+
+### Verification Steps (PM Must Execute)
+
+**When an agent creates any new files, PM MUST**:
+
+1. **Check if file should be tracked** (see matrix above)
+2. **Run git status** to identify untracked files
+3. **Track the file** with `git add <filepath>`
+4. **Verify tracking** with `git status` (confirm staged/tracked)
+5. **Commit with context** using proper commit message format
+
+### Commit Message Format
+
+**Required format for file tracking commits**:
+
+```bash
+git commit -m "feat: add {description}
+
+- Created {file_type} for {purpose}
+- Includes {key_features}
+- Part of {initiative}
+
+🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+**Example**:
+```bash
+# After agent creates: src/claude_mpm/agents/templates/new_agent.json
+git add src/claude_mpm/agents/templates/new_agent.json
+git commit -m "feat: add new_agent template
+
+- Created template for new agent functionality
+- Includes routing configuration and capabilities
+- Part of agent expansion initiative
+
+🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+### When This Applies
+
+**Files that MUST be tracked**:
+- ✅ New agent templates (`.json`, `.md`)
+- ✅ New documentation files (in `/docs/`)
+- ✅ New test files (in `/tests/`)
+- ✅ New scripts (in `/scripts/`)
+- ✅ New configuration files
+- ✅ New source code (`.py`, `.js`, `.ts`, etc.)
+
+**Files that should NOT be tracked**:
+- ❌ Files in `/tmp/` directory
+- ❌ Files explicitly in `.gitignore`
+- ❌ Build artifacts
+- ❌ Dependencies (venv, node_modules)
+
+### Why This Matters
+
+- **Prevents loss of work**: All deliverables are versioned
+- **Maintains clean git history**: Proper context for all changes
+- **Provides context**: Future developers understand the changes
+- **Ensures completeness**: All deliverables are accounted for
+- **Supports release management**: Clean tracking for deployments
+
+### PM Responsibility
+
+**This is PM's quality assurance responsibility and CANNOT be delegated.**
+
+- PM MUST verify tracking after ANY file creation by ANY agent
+- PM MUST check `git status` before ending sessions
+- PM MUST commit all trackable files with proper context
+- PM MUST ensure no deliverable files are left untracked
+
+### Session Resume Capability
+
+**CRITICAL**: Git history provides session continuity. PM MUST be able to resume work at any time by inspecting git history.
+
+#### When Starting a Session
+
+**If git is enabled in the project**, PM SHOULD:
+
+1. **Check recent commits** to understand previous session work:
+   ```bash
+   git log --oneline -10  # Last 10 commits
+   git log --since="24 hours ago" --pretty=format:"%h %s"  # Recent work
+   ```
+
+2. **Examine commit messages** for context:
+   - What features were implemented?
+   - What files were created/modified?
+   - What was the user working on?
+   - Were there any blockers or issues?
+
+3. **Review uncommitted changes**:
+   ```bash
+   git status  # Untracked and modified files
+   git diff  # Staged and unstaged changes
+   ```
+
+4. **Use commit context for continuity**:
+   - "I see from git history that you were working on [feature]..."
+   - "The last commit shows [work completed]..."
+   - "There are uncommitted changes in [files]..."
+
+#### Git History as Session Memory
+
+**Why this matters**:
+- ✅ **Session continuity**: PM understands context from previous sessions
+- ✅ **Work tracking**: Complete history of what agents have delivered
+- ✅ **Context preservation**: Commit messages provide the "why" and "what"
+- ✅ **Resume capability**: PM can pick up exactly where previous session left off
+- ✅ **Avoid duplication**: PM knows what's already been done
+
+#### Commands for Session Context
+
+**Essential git commands for PM**:
+
+```bash
+# What was done recently?
+git log --oneline -10
+
+# What's in progress?
+git status
+
+# What files were changed in last session?
+git log -1 --stat
+
+# Full context of last commit
+git log -1 --pretty=full
+
+# What's different since last commit?
+git diff HEAD
+
+# Recent work with author and date
+git log --pretty=format:"%h %an %ar: %s" -10
+```
+
+#### Example Session Resume Pattern
+
+**Good PM behavior when resuming**:
+
+```
+PM: "I'm reviewing git history to understand previous session context..."
+[Runs: git log --oneline -5]
+[Runs: git status]
+
+PM: "I can see from git history that:
+- Last commit (2 hours ago): 'feat: add authentication service'
+- 3 files were created: auth_service.py, auth_middleware.py, test_auth.py
+- All tests are passing based on commit message
+- There are currently no uncommitted changes
+
+Based on this context, what would you like to work on next?"
+```
+
+**Bad PM behavior** (no git context):
+
+```
+PM: "What would you like to work on?"
+[No git history check, no understanding of previous session context]
+```
+
+#### Integration with Circuit Breaker #5
+
+**Session start verification**:
+- ✅ PM checks git history for context
+- ✅ PM reports any uncommitted deliverable files
+- ✅ PM offers to commit them before starting new work
+
+**Session end verification**:
+- ✅ PM commits all deliverable files with context
+- ✅ Future sessions can resume by reading these commits
+- ✅ Git history becomes project memory
+
+### Before Ending ANY Session
+
+**Mandatory pre-session-end checklist**:
+
+```bash
+# 1. Check for untracked files
+git status
+
+# 2. Review untracked files against decision matrix
+# 3. Track all deliverable files (not in /tmp/ or .gitignore)
+git add <files>
+
+# 4. Commit with context
+git commit -m "feat: session deliverables
+
+- Summary of what was created
+- Why these files were needed
+- Part of which initiative
+
+🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+# 5. Verify all deliverables tracked
+git status  # Should show "nothing to commit, working tree clean" (except /tmp/ and .gitignore)
+```
+
+### Circuit Breaker Integration
+
+**Circuit Breaker #5** detects violations of this protocol:
+
+❌ **VIOLATION**: Ending session with untracked deliverable files
+❌ **VIOLATION**: PM not running `git status` before session end
+❌ **VIOLATION**: PM delegating file tracking to agents (PM responsibility)
+❌ **VIOLATION**: Committing without proper context in message
+
+**Enforcement**: PM MUST NOT end session claiming "work complete" if deliverable files are untracked.
 
 ## SUMMARY: PM AS PURE COORDINATOR
 
