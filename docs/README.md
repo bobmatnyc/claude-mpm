@@ -156,7 +156,6 @@ docs/
 │   └── VERSIONING.md     # Version management
 ├── agents/                # 🤖 Agent-specific documentation
 ├── api/                   # 📚 Auto-generated API docs
-├── _archive/              # 🗃️ Historical documentation
 └── _internal/             # 🔧 Internal maintenance docs
 ```
 
@@ -167,9 +166,9 @@ docs/
 1. **🎯 Use Quick Navigation** - Jump directly to your user type section above
 2. **🔍 Search by Topic** - Browse the "By Topic" section for specific subjects
 3. **📁 Check Documentation Structure** - Navigate the organized folder structure
-4. **🗃️ Search Archives** - Historical docs in [`_archive/`](_archive/) (reorganized 2025-08)
-5. **🐛 Browse Issues** - Known problems & solutions on GitHub
-6. **📚 API Docs** - Auto-generated documentation in [`api/`](api/)
+4. **🐛 Browse Issues** - Known problems & solutions on GitHub
+5. **📚 API Docs** - Auto-generated documentation in [`api/`](api/)
+6. **📜 Git History** - Historical content available via git log and commit history
 
 ## 🎯 Common Workflows
 
