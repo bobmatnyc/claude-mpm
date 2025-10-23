@@ -6,6 +6,25 @@
 
 ### Fixed
 
+## [4.14.4] - 2025-10-23
+
+### Changed
+- Project organization improvements per PROJECT_ORGANIZATION.md standard
+- Moved planning documents to docs/planning/
+- Cleaned up project root
+- Removed unused TypeScript/Node.js configuration files
+
+### Fixed
+- Fixed cross-project memory contamination in PathResolver
+- PathResolver now respects CLAUDE_MPM_USER_PWD environment variable
+- Proper project-local path resolution for global installations
+
+### Added
+- Comprehensive Git File Tracking Protocol to base PM instructions
+- Session Resume Capability for git-enabled projects
+- PM can now resume sessions by inspecting git history
+- Improved directory-aware PATH management for development workflow
+
 ## [4.14.3] - 2025-10-22
 
 ### Changed
