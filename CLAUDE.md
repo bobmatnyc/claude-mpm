@@ -83,7 +83,7 @@ Following the TSK-0053 refactoring, Claude MPM features:
 ### Operations and Quality
 - 🧪 **Quality Assurance**: See [docs/developer/QA.md](docs/developer/QA.md) for testing guidelines
 - 🚀 **Deployment**: See [docs/reference/DEPLOY.md](docs/reference/DEPLOY.md) for versioning and deployment
-- 📊 **Response Logging**: See [docs/_archive/RESPONSE_LOGGING_CONFIG.md](docs/_archive/RESPONSE_LOGGING_CONFIG.md) for response logging configuration
+- 📊 **Response Logging**: See [docs/reference/RESPONSE_LOGGING_CONFIG.md](docs/reference/RESPONSE_LOGGING_CONFIG.md) for response logging configuration
 - 🔢 **Versioning**: See [docs/reference/VERSIONING.md](docs/reference/VERSIONING.md) for version management
 - 🧠 **Memory System**: See [docs/user/03-features/memory-system.md](docs/user/03-features/memory-system.md) for agent memory management
 - 🎨 **Output Style**: See [docs/developer/OUTPUT_STYLE.md](docs/developer/OUTPUT_STYLE.md) for agent response formatting standards
