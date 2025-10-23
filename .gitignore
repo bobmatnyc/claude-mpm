@@ -6,6 +6,9 @@
 # AI Code Review docs
 ai-code-review-docs/
 
+# Local development binary (wrapper for scripts/claude-mpm)
+/claude-mpm
+
 # Virtual environments (CRITICAL)
 venv/
 env/
