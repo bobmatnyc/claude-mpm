@@ -6,9 +6,10 @@ Centralizing these functions reduces code duplication and provides a single plac
 for common CLI operations.
 """
 
+import difflib
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from ..core.logger import get_logger
 
@@ -207,3 +208,53 @@ def ensure_directories() -> None:
         # Continue even if initialization fails
         # The individual commands will handle missing directories as needed
         pass
+
+
+def suggest_similar_commands(
+    invalid_command: str,
+    valid_commands: List[str],
+    cutoff: float = 0.6,
+    max_suggestions: int = 3,
+) -> Optional[str]:
+    """
+    Suggest similar commands for an invalid command using fuzzy matching.
+
+    WHY: Helps users quickly identify typos and discover correct command names
+    by suggesting the most similar valid commands. Uses stdlib difflib for
+    zero-dependency fuzzy matching.
+
+    DESIGN DECISION: Using difflib.get_close_matches provides good results for
+    typos and partial matches while being simple and lightweight (no external deps).
+
+    Args:
+        invalid_command: The invalid command the user typed
+        valid_commands: List of valid commands to match against
+        cutoff: Similarity threshold (0.0-1.0), default 0.6
+        max_suggestions: Maximum number of suggestions to return, default 3
+
+    Returns:
+        Formatted suggestion string or None if no good matches found
+
+    Examples:
+        >>> suggest_similar_commands("tickts", ["tickets", "run", "agents"])
+        "Did you mean 'tickets'?"
+
+        >>> suggest_similar_commands("mem", ["memory", "monitor", "mcp"])
+        "Did you mean one of these?\n  memory\n  monitor\n  mcp"
+
+        >>> suggest_similar_commands("xyz", ["tickets", "run"])
+        None  # No good matches
+    """
+    # Use difflib to find close matches
+    matches = difflib.get_close_matches(
+        invalid_command, valid_commands, n=max_suggestions, cutoff=cutoff
+    )
+
+    if not matches:
+        return None
+
+    # Format suggestion message
+    if len(matches) == 1:
+        return f"Did you mean '{matches[0]}'?"
+    suggestions = "\n  ".join(matches)
+    return f"Did you mean one of these?\n  {suggestions}"

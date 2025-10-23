@@ -677,7 +677,8 @@ def _execute_command(command: str, args) -> int:
     lazily to avoid loading unnecessary code.
 
     DESIGN DECISION: run_guarded is imported only when needed to maintain
-    separation between stable and experimental features.
+    separation between stable and experimental features. Command suggestions
+    are provided for unknown commands to improve user experience.
 
     Args:
         command: The command name to execute
@@ -768,9 +769,32 @@ def _execute_command(command: str, args) -> int:
         result = command_map[command](args)
         # Commands may return None (success) or an exit code
         return result if result is not None else 0
-    # Unknown command - this shouldn't happen with argparse
-    # but we handle it for completeness
-    print(f"Unknown command: {command}")
+
+    # Unknown command - provide suggestions
+    from rich.console import Console
+
+    from .utils import suggest_similar_commands
+
+    console = Console(stderr=True)
+
+    console.print(f"\n[red]Error:[/red] Unknown command: {command}\n", style="bold")
+
+    # Get all valid commands for suggestions
+    all_commands = [
+        *command_map.keys(),
+        "run-guarded",
+        "uninstall",
+        "verify",
+        "auto-configure",
+        "local-deploy",
+    ]
+
+    suggestion = suggest_similar_commands(command, all_commands)
+    if suggestion:
+        console.print(f"[yellow]{suggestion}[/yellow]\n")
+
+    console.print("[dim]Run 'claude-mpm --help' for usage information.[/dim]\n")
+
     return 1
 
 

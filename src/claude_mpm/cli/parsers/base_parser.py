@@ -11,9 +11,94 @@ and reduce duplication across command parsers.
 """
 
 import argparse
+import sys
 from typing import List, Optional
 
 from ...constants import CLICommands, CLIPrefix, LogLevel
+
+
+class SuggestingArgumentParser(argparse.ArgumentParser):
+    """
+    Custom ArgumentParser that suggests similar commands on error.
+
+    WHY: Provides better user experience by suggesting corrections for typos
+    and invalid commands instead of just showing an error message.
+
+    DESIGN DECISION: Extends ArgumentParser.error() to add suggestions before
+    exiting. This catches all parser errors including invalid subcommands and
+    invalid options.
+    """
+
+    def error(self, message: str) -> None:
+        """
+        Override error method to add command suggestions.
+
+        Args:
+            message: Error message from argparse
+        """
+        from ..utils import suggest_similar_commands
+
+        # Try to extract the invalid command/option from the error message
+        invalid_value = None
+        valid_choices = []
+
+        # Handle invalid subcommand errors
+        # Format: "argument COMMAND: invalid choice: 'tickts' (choose from ...)"
+        if "invalid choice:" in message:
+            try:
+                # Extract the invalid choice
+                parts = message.split("invalid choice: '")
+                if len(parts) > 1:
+                    invalid_value = parts[1].split("'")[0]
+
+                # Extract valid choices
+                if "(choose from" in message:
+                    choices_part = message.split("(choose from")[1]
+                    # Remove trailing parenthesis and split
+                    choices_str = choices_part.rstrip(")")
+                    # Parse choices - they may be quoted or unquoted
+                    valid_choices = [
+                        c.strip().strip("'\"")
+                        for c in choices_str.split(",")
+                        if c.strip()
+                    ]
+            except (IndexError, ValueError):
+                pass
+
+        # Handle unrecognized arguments (invalid options)
+        # Format: "unrecognized arguments: --verbos"
+        elif "unrecognized arguments:" in message:
+            try:
+                parts = message.split("unrecognized arguments:")
+                if len(parts) > 1:
+                    invalid_value = parts[1].strip().split()[0]
+
+                # Get common options from parser
+                valid_choices = []
+                for action in self._actions:
+                    for option in action.option_strings:
+                        valid_choices.append(option)
+            except (IndexError, ValueError):
+                pass
+
+        # Build error message with suggestions
+        from rich.console import Console
+
+        console = Console(stderr=True)
+
+        console.print(f"\n[red]Error:[/red] {message}\n", style="bold")
+
+        # Add suggestions if we found valid choices
+        if invalid_value and valid_choices:
+            suggestion = suggest_similar_commands(invalid_value, valid_choices)
+            if suggestion:
+                console.print(f"[yellow]{suggestion}[/yellow]\n")
+
+        # Show help hint
+        console.print(f"[dim]Run '{self.prog} --help' for usage information.[/dim]\n")
+
+        # Exit with error code
+        sys.exit(2)
 
 
 def _get_enhanced_version(base_version: str) -> str:
@@ -111,15 +196,18 @@ def create_main_parser(
     WHY: This creates the foundation parser that other modules will extend
     with their specific subcommands and arguments.
 
+    DESIGN DECISION: Uses SuggestingArgumentParser to provide helpful suggestions
+    for typos and invalid commands, improving user experience.
+
     Args:
         prog_name: The program name to use
         version: The version string to display
 
     Returns:
-        Configured ArgumentParser instance ready for subparser addition
+        Configured SuggestingArgumentParser instance ready for subparser addition
     """
-    # Main parser
-    parser = argparse.ArgumentParser(
+    # Main parser with suggestion support
+    parser = SuggestingArgumentParser(
         prog=prog_name,
         description=f"Claude Multi-Agent Project Manager v{version} - Orchestrate Claude with agent delegation and ticket tracking",
         epilog="By default, runs an orchestrated Claude session. Use 'claude-mpm' for interactive mode or 'claude-mpm -i \"prompt\"' for non-interactive mode.\n\nTo pass arguments to Claude CLI, use -- separator: claude-mpm run -- --model sonnet --temperature 0.1",
