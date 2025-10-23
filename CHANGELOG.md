@@ -1,6 +1,12 @@
 ## [Unreleased]
 
 ### Added
+- **CLI Command Suggestions**: Intelligent "Did you mean?" feature for command typos
+  - Fuzzy matching with 60% similarity threshold for helpful suggestions
+  - Up to 3 suggestions per error for common mistakes
+  - Zero new dependencies - uses Python stdlib difflib
+  - 25 comprehensive tests with 100% pass rate
+  - Improves user experience with helpful error recovery
 
 ### Changed
 
