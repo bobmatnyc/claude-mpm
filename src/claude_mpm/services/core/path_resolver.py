@@ -13,6 +13,7 @@ that was previously embedded in FrameworkLoader. It manages:
 The service consolidates path management logic while maintaining backward compatibility.
 """
 
+import os
 import subprocess
 from enum import Enum
 from pathlib import Path
@@ -74,9 +75,24 @@ class PathResolver(IPathResolver):
             return path_obj
 
         if base_dir is None:
-            base_dir = Path.cwd()
+            base_dir = self._get_working_dir()
 
         return (base_dir / path_obj).resolve()
+
+    def _get_working_dir(self) -> Path:
+        """Get working directory respecting CLAUDE_MPM_USER_PWD.
+
+        When Claude MPM runs from a global installation, CLAUDE_MPM_USER_PWD
+        contains the user's actual working directory. This ensures project-local
+        paths are resolved correctly.
+
+        Returns:
+            Path: The user's working directory
+        """
+        user_pwd = os.environ.get("CLAUDE_MPM_USER_PWD")
+        if user_pwd:
+            return Path(user_pwd)
+        return Path.cwd()
 
     def validate_path(self, path: Path, must_exist: bool = False) -> bool:
         """
@@ -129,7 +145,7 @@ class PathResolver(IPathResolver):
             Project root path or None if not found
         """
         if start_path is None:
-            start_path = Path.cwd()
+            start_path = self._get_working_dir()
 
         start_path = start_path.resolve()
 
@@ -299,7 +315,7 @@ class PathResolver(IPathResolver):
         paths = {"project": None, "user": None, "system": None}
 
         # Project-specific instructions
-        project_path = Path.cwd() / ".claude-mpm" / "INSTRUCTIONS.md"
+        project_path = self._get_working_dir() / ".claude-mpm" / "INSTRUCTIONS.md"
         if project_path.exists():
             paths["project"] = project_path
 
@@ -423,11 +439,11 @@ class PathResolver(IPathResolver):
         """Check common locations for claude-mpm."""
         candidates = [
             # Current directory (if we're already in claude-mpm)
-            Path.cwd(),
+            self._get_working_dir(),
             # Development location
             Path.home() / "Projects" / "claude-mpm",
             # Current directory subdirectory
-            Path.cwd() / "claude-mpm",
+            self._get_working_dir() / "claude-mpm",
         ]
 
         for candidate in candidates:
@@ -487,7 +503,7 @@ class PathResolver(IPathResolver):
             pass
 
         # Check if we're in development
-        if (Path.cwd() / "pyproject.toml").exists():
+        if (self._get_working_dir() / "pyproject.toml").exists():
             return DeploymentContext.DEVELOPMENT
 
         return DeploymentContext.UNKNOWN
