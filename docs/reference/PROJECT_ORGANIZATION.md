@@ -214,13 +214,8 @@ docs/
 ├── assets/                     # Documentation assets
 │   └── *.png                   # Images and diagrams
 │
-├── dashboard/                  # Dashboard documentation
-│   └── *.md                    # Dashboard guides
-│
-└── _archive/                   # Archived documentation
-    ├── changelogs/             # Historical changelogs
-    ├── qa-reports/             # QA reports
-    └── test-results/           # Test results
+└── dashboard/                  # Dashboard documentation
+    └── *.md                    # Dashboard guides
 ```
 
 ### Script Organization (`/scripts/`)
@@ -323,7 +318,6 @@ tests/
 | Developer docs | `/docs/developer/` | N/A |
 | API reference | `/docs/reference/` | N/A |
 | Design docs | `/docs/design/` | N/A |
-| Archived docs | `/docs/_archive/` | N/A |
 
 ### Prohibited Locations
 
@@ -528,7 +522,6 @@ tests/fixtures/
 | Reference | `/docs/reference/` | API and technical reference |
 | Examples | `/docs/examples/` | Usage examples |
 | Design | `/docs/design/` | Design documents |
-| Archive | `/docs/_archive/` | Historical documentation |
 
 ### Documentation Hierarchy
 
@@ -544,10 +537,9 @@ docs/
 │   ├── PROJECT_ORGANIZATION.md # This file
 │   ├── API.md                  # API reference
 │   └── ...
-├── user/                       # For users of Claude MPM
-│   ├── getting-started/        # Getting started guides
-│   └── 03-features/            # Feature documentation
-└── _archive/                   # Historical documentation
+└── user/                       # For users of Claude MPM
+    ├── getting-started/        # Getting started guides
+    └── 03-features/            # Feature documentation
 ```
 
 ### Cross-Referencing
