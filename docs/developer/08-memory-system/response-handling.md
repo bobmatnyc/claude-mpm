@@ -461,5 +461,5 @@ The system is designed for extensibility:
 
 - [Response Logging Implementation](./response-logging.md) - Technical implementation details
 - [Memory System Overview](../README.md) - Parent memory system documentation
-- [Configuration Guide](/docs/RESPONSE_LOGGING_CONFIG.md) - User configuration guide
+- [Configuration Guide](/docs/reference/RESPONSE_LOGGING_CONFIG.md) - User configuration guide
 - [Hook System](/docs/developer/02-core-components/hook-system.md) - Hook integration details
