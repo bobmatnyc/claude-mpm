@@ -71,6 +71,9 @@ agent_metadata_backup/
 # MCP Vector Search cache
 .mcp-vector-search/
 
+# MCP local configuration (contains API keys)
+.mcp/
+
 # Auto-generated version file (no longer used)
 src/claude_mpm/_version.py
 
