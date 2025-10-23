@@ -725,5 +725,5 @@ if __name__ == '__main__':
 
 - [Response Handling Overview](./response-handling.md) - High-level architecture
 - [Memory System](../README.md) - Parent documentation
-- [User Configuration Guide](/docs/RESPONSE_LOGGING_CONFIG.md) - End-user guide
+- [User Configuration Guide](/docs/reference/RESPONSE_LOGGING_CONFIG.md) - End-user guide
 - [Hook System](/docs/developer/02-core-components/hook-system.md) - Integration details
