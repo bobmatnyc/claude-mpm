@@ -1,0 +1,1 @@
+"""Memory CLI command tests."""
