@@ -179,227 +179,27 @@ class FrontmatterValidator:
         Returns:
             ValidationResult with validation status and corrected frontmatter
         """
-        errors = []
-        warnings = []
-        corrections = []
+        errors: List[str] = []
+        warnings: List[str] = []
+        corrections: List[str] = []
         corrected = frontmatter.copy()
-        field_corrections = {}  # Track only the fields that actually need correction
+        field_corrections: Dict[str, Any] = {}
 
-        # Required fields check (from schema)
-        required_fields = (
-            self.schema.get("required", ["name", "description", "version", "model"])
-            if self.schema
-            else ["name", "description", "version", "model"]
-        )
-        for field in required_fields:
-            if field not in corrected:
-                errors.append(f"Missing required field: {field}")
+        # Check required fields
+        self._validate_required_fields(corrected, errors)
 
-        # Validate and correct name field
-        if "name" in corrected:
-            name = corrected["name"]
-            if not isinstance(name, str):
-                errors.append(
-                    f"Field 'name' must be a string, got {type(name).__name__}"
-                )
-            elif not re.match(r"^[a-z][a-z0-9_]*$", name):
-                # Try to fix the name
-                fixed_name = name.lower().replace("-", "_").replace(" ", "_")
-                fixed_name = re.sub(r"[^a-z0-9_]", "", fixed_name)
-                if fixed_name and fixed_name[0].isalpha():
-                    corrected["name"] = fixed_name
-                    field_corrections["name"] = fixed_name
-                    corrections.append(
-                        f"Corrected name from '{name}' to '{fixed_name}'"
-                    )
-                else:
-                    errors.append(f"Invalid name format: {name}")
-
-        # Validate and correct model field
-        if "model" in corrected:
-            model = corrected["model"]
-
-            # Convert to string if it's a number (YAML might parse dates as integers)
-            if isinstance(model, (int, float)):
-                model = str(model)
-                corrected["model"] = model
-                field_corrections["model"] = model
-                corrections.append(f"Converted model from number to string: {model}")
-
-            if not isinstance(model, str):
-                errors.append(
-                    f"Field 'model' must be a string, got {type(model).__name__}"
-                )
-            else:
-                normalized_model = self._normalize_model(model)
-                if normalized_model != model:
-                    corrected["model"] = normalized_model
-                    field_corrections["model"] = normalized_model
-                    corrections.append(
-                        f"Normalized model from '{model}' to '{normalized_model}'"
-                    )
-
-                if normalized_model not in self.VALID_MODELS:
-                    errors.append(
-                        f"Invalid model: {model} (normalized to {normalized_model})"
-                    )
-
-        # Validate and correct tools field
-        if "tools" in corrected:
-            tools = corrected["tools"]
-            corrected_tools, tool_corrections = self._correct_tools(tools)
-            if tool_corrections:
-                corrected["tools"] = corrected_tools
-                field_corrections["tools"] = corrected_tools
-                corrections.extend(tool_corrections)
-
-            # Validate tool names
-            invalid_tools = []
-            for tool in corrected_tools:
-                if tool not in self.VALID_TOOLS:
-                    # Try to correct the tool name
-                    corrected_tool = self.TOOL_CORRECTIONS.get(tool.lower())
-                    if corrected_tool:
-                        idx = corrected_tools.index(tool)
-                        corrected_tools[idx] = corrected_tool
-                        corrected["tools"] = corrected_tools
-                        field_corrections["tools"] = corrected_tools
-                        corrections.append(
-                            f"Corrected tool '{tool}' to '{corrected_tool}'"
-                        )
-                    else:
-                        invalid_tools.append(tool)
-
-            if invalid_tools:
-                warnings.append(f"Unknown tools: {', '.join(invalid_tools)}")
-
-        # Validate version fields
-        version_fields = ["version", "base_version"]
-        for field in version_fields:
-            if field in corrected:
-                version = corrected[field]
-                if not isinstance(version, str):
-                    errors.append(
-                        f"Field '{field}' must be a string, got {type(version).__name__}"
-                    )
-                elif not re.match(r"^\d+\.\d+\.\d+$", version):
-                    # Try to fix common version issues
-                    if re.match(r"^\d+\.\d+$", version):
-                        fixed_version = f"{version}.0"
-                        corrected[field] = fixed_version
-                        field_corrections[field] = fixed_version
-                        corrections.append(
-                            f"Fixed {field} from '{version}' to '{fixed_version}'"
-                        )
-                    elif re.match(r"^v?\d+\.\d+\.\d+$", version):
-                        fixed_version = version.lstrip("v")
-                        corrected[field] = fixed_version
-                        field_corrections[field] = fixed_version
-                        corrections.append(
-                            f"Fixed {field} from '{version}' to '{fixed_version}'"
-                        )
-                    else:
-                        errors.append(f"Invalid {field} format: {version}")
-
-        # Validate description
-        if "description" in corrected:
-            desc = corrected["description"]
-            if not isinstance(desc, str):
-                errors.append(
-                    f"Field 'description' must be a string, got {type(desc).__name__}"
-                )
-            elif len(desc) < 10:
-                warnings.append(
-                    f"Description too short ({len(desc)} chars, minimum 10)"
-                )
-            elif len(desc) > 200:
-                warnings.append(
-                    f"Description too long ({len(desc)} chars, maximum 200)"
-                )
-
-        # Validate optional fields
-        if "category" in corrected:
-            valid_categories = [
-                "engineering",
-                "research",
-                "quality",
-                "operations",
-                "specialized",
-            ]
-            if corrected["category"] not in valid_categories:
-                warnings.append(f"Invalid category: {corrected['category']}")
-
-        if "resource_tier" in corrected:
-            valid_tiers = ["basic", "standard", "intensive", "lightweight"]
-            if corrected["resource_tier"] not in valid_tiers:
-                warnings.append(f"Invalid resource_tier: {corrected['resource_tier']}")
-
-        # Validate color field
-        if "color" in corrected:
-            color = corrected["color"]
-            if not isinstance(color, str):
-                errors.append(
-                    f"Field 'color' must be a string, got {type(color).__name__}"
-                )
-            # Color validation could be expanded to check for valid color names/hex codes
-
-        # Validate author field
-        if "author" in corrected:
-            author = corrected["author"]
-            if not isinstance(author, str):
-                errors.append(
-                    f"Field 'author' must be a string, got {type(author).__name__}"
-                )
-            elif len(author) > 100:
-                warnings.append(
-                    f"Author field too long ({len(author)} chars, maximum 100)"
-                )
-
-        # Validate tags field (supports both list and comma-separated string)
-        if "tags" in corrected:
-            tags = corrected["tags"]
-            if isinstance(tags, str):
-                # Convert comma-separated string to list for validation
-                tag_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
-            elif isinstance(tags, list):
-                tag_list = tags
-            else:
-                errors.append(
-                    f"Field 'tags' must be a list or comma-separated string, got {type(tags).__name__}"
-                )
-                tag_list = []
-
-            for tag in tag_list:
-                if not isinstance(tag, str):
-                    errors.append(
-                        f"All tags must be strings, found {type(tag).__name__}"
-                    )
-                elif not re.match(r"^[a-z][a-z0-9-]*$", tag):
-                    warnings.append(
-                        f"Tag '{tag}' doesn't match recommended pattern (lowercase, alphanumeric with hyphens)"
-                    )
-
-        # Validate numeric fields
-        for field_name, (min_val, max_val) in [
-            ("max_tokens", (1000, 200000)),
-            ("temperature", (0, 1)),
-        ]:
-            if field_name in corrected:
-                value = corrected[field_name]
-                if field_name == "temperature" and not isinstance(value, (int, float)):
-                    errors.append(
-                        f"Field '{field_name}' must be a number, got {type(value).__name__}"
-                    )
-                elif field_name == "max_tokens" and not isinstance(value, int):
-                    errors.append(
-                        f"Field '{field_name}' must be an integer, got {type(value).__name__}"
-                    )
-                elif isinstance(value, (int, float)) and not (
-                    min_val <= value <= max_val
-                ):
-                    warnings.append(
-                        f"Field '{field_name}' value {value} outside recommended range [{min_val}, {max_val}]"
-                    )
+        # Validate and correct individual fields
+        self._validate_name_field(corrected, field_corrections, errors, corrections)
+        self._validate_model_field(corrected, field_corrections, errors, corrections)
+        self._validate_tools_field(corrected, field_corrections, warnings, corrections)
+        self._validate_version_fields(corrected, field_corrections, errors, corrections)
+        self._validate_description_field(corrected, errors, warnings)
+        self._validate_category_field(corrected, warnings)
+        self._validate_resource_tier_field(corrected, warnings)
+        self._validate_color_field(corrected, errors)
+        self._validate_author_field(corrected, errors, warnings)
+        self._validate_tags_field(corrected, errors, warnings)
+        self._validate_numeric_fields(corrected, errors, warnings)
 
         # Determine if valid
         is_valid = len(errors) == 0
@@ -412,6 +212,287 @@ class FrontmatterValidator:
             corrected_frontmatter=corrected if corrections else None,
             field_corrections=field_corrections if field_corrections else None,
         )
+
+    def _validate_required_fields(self, corrected: Dict[str, Any], errors: List[str]) -> None:
+        """Check that all required fields are present."""
+        required_fields = (
+            self.schema.get("required", ["name", "description", "version", "model"])
+            if self.schema
+            else ["name", "description", "version", "model"]
+        )
+        for field in required_fields:
+            if field not in corrected:
+                errors.append(f"Missing required field: {field}")
+
+    def _validate_name_field(
+        self,
+        corrected: Dict[str, Any],
+        field_corrections: Dict[str, Any],
+        errors: List[str],
+        corrections: List[str],
+    ) -> None:
+        """Validate and correct the name field."""
+        if "name" not in corrected:
+            return
+
+        name = corrected["name"]
+        if not isinstance(name, str):
+            errors.append(f"Field 'name' must be a string, got {type(name).__name__}")
+            return
+
+        if not re.match(r"^[a-z][a-z0-9_]*$", name):
+            # Try to fix the name
+            fixed_name = name.lower().replace("-", "_").replace(" ", "_")
+            fixed_name = re.sub(r"[^a-z0-9_]", "", fixed_name)
+            if fixed_name and fixed_name[0].isalpha():
+                corrected["name"] = fixed_name
+                field_corrections["name"] = fixed_name
+                corrections.append(f"Corrected name from '{name}' to '{fixed_name}'")
+            else:
+                errors.append(f"Invalid name format: {name}")
+
+    def _validate_model_field(
+        self,
+        corrected: Dict[str, Any],
+        field_corrections: Dict[str, Any],
+        errors: List[str],
+        corrections: List[str],
+    ) -> None:
+        """Validate and correct the model field."""
+        if "model" not in corrected:
+            return
+
+        model = corrected["model"]
+
+        # Convert to string if it's a number (YAML might parse dates as integers)
+        if isinstance(model, (int, float)):
+            model = str(model)
+            corrected["model"] = model
+            field_corrections["model"] = model
+            corrections.append(f"Converted model from number to string: {model}")
+
+        if not isinstance(model, str):
+            errors.append(f"Field 'model' must be a string, got {type(model).__name__}")
+            return
+
+        normalized_model = self._normalize_model(model)
+        if normalized_model != model:
+            corrected["model"] = normalized_model
+            field_corrections["model"] = normalized_model
+            corrections.append(
+                f"Normalized model from '{model}' to '{normalized_model}'"
+            )
+
+        if normalized_model not in self.VALID_MODELS:
+            errors.append(
+                f"Invalid model: {model} (normalized to {normalized_model})"
+            )
+
+    def _validate_tools_field(
+        self,
+        corrected: Dict[str, Any],
+        field_corrections: Dict[str, Any],
+        warnings: List[str],
+        corrections: List[str],
+    ) -> None:
+        """Validate and correct the tools field."""
+        if "tools" not in corrected:
+            return
+
+        tools = corrected["tools"]
+        corrected_tools, tool_corrections = self._correct_tools(tools)
+        if tool_corrections:
+            corrected["tools"] = corrected_tools
+            field_corrections["tools"] = corrected_tools
+            corrections.extend(tool_corrections)
+
+        # Validate tool names
+        invalid_tools = []
+        for tool in corrected_tools:
+            if tool not in self.VALID_TOOLS:
+                # Try to correct the tool name
+                corrected_tool = self.TOOL_CORRECTIONS.get(tool.lower())
+                if corrected_tool:
+                    idx = corrected_tools.index(tool)
+                    corrected_tools[idx] = corrected_tool
+                    corrected["tools"] = corrected_tools
+                    field_corrections["tools"] = corrected_tools
+                    corrections.append(
+                        f"Corrected tool '{tool}' to '{corrected_tool}'"
+                    )
+                else:
+                    invalid_tools.append(tool)
+
+        if invalid_tools:
+            warnings.append(f"Unknown tools: {', '.join(invalid_tools)}")
+
+    def _validate_version_fields(
+        self,
+        corrected: Dict[str, Any],
+        field_corrections: Dict[str, Any],
+        errors: List[str],
+        corrections: List[str],
+    ) -> None:
+        """Validate and correct version fields."""
+        version_fields = ["version", "base_version"]
+        for field in version_fields:
+            if field not in corrected:
+                continue
+
+            version = corrected[field]
+            if not isinstance(version, str):
+                errors.append(
+                    f"Field '{field}' must be a string, got {type(version).__name__}"
+                )
+                continue
+
+            if re.match(r"^\d+\.\d+\.\d+$", version):
+                continue  # Valid format
+
+            # Try to fix common version issues
+            if re.match(r"^\d+\.\d+$", version):
+                fixed_version = f"{version}.0"
+                corrected[field] = fixed_version
+                field_corrections[field] = fixed_version
+                corrections.append(
+                    f"Fixed {field} from '{version}' to '{fixed_version}'"
+                )
+            elif re.match(r"^v?\d+\.\d+\.\d+$", version):
+                fixed_version = version.lstrip("v")
+                corrected[field] = fixed_version
+                field_corrections[field] = fixed_version
+                corrections.append(
+                    f"Fixed {field} from '{version}' to '{fixed_version}'"
+                )
+            else:
+                errors.append(f"Invalid {field} format: {version}")
+
+    def _validate_description_field(
+        self, corrected: Dict[str, Any], errors: List[str], warnings: List[str]
+    ) -> None:
+        """Validate the description field."""
+        if "description" not in corrected:
+            return
+
+        desc = corrected["description"]
+        if not isinstance(desc, str):
+            errors.append(
+                f"Field 'description' must be a string, got {type(desc).__name__}"
+            )
+        elif len(desc) < 10:
+            warnings.append(f"Description too short ({len(desc)} chars, minimum 10)")
+        elif len(desc) > 200:
+            warnings.append(f"Description too long ({len(desc)} chars, maximum 200)")
+
+    def _validate_category_field(
+        self, corrected: Dict[str, Any], warnings: List[str]
+    ) -> None:
+        """Validate the category field."""
+        if "category" not in corrected:
+            return
+
+        valid_categories = [
+            "engineering",
+            "research",
+            "quality",
+            "operations",
+            "specialized",
+        ]
+        if corrected["category"] not in valid_categories:
+            warnings.append(f"Invalid category: {corrected['category']}")
+
+    def _validate_resource_tier_field(
+        self, corrected: Dict[str, Any], warnings: List[str]
+    ) -> None:
+        """Validate the resource_tier field."""
+        if "resource_tier" not in corrected:
+            return
+
+        valid_tiers = ["basic", "standard", "intensive", "lightweight"]
+        if corrected["resource_tier"] not in valid_tiers:
+            warnings.append(f"Invalid resource_tier: {corrected['resource_tier']}")
+
+    def _validate_color_field(
+        self, corrected: Dict[str, Any], errors: List[str]
+    ) -> None:
+        """Validate the color field."""
+        if "color" not in corrected:
+            return
+
+        color = corrected["color"]
+        if not isinstance(color, str):
+            errors.append(f"Field 'color' must be a string, got {type(color).__name__}")
+
+    def _validate_author_field(
+        self, corrected: Dict[str, Any], errors: List[str], warnings: List[str]
+    ) -> None:
+        """Validate the author field."""
+        if "author" not in corrected:
+            return
+
+        author = corrected["author"]
+        if not isinstance(author, str):
+            errors.append(
+                f"Field 'author' must be a string, got {type(author).__name__}"
+            )
+        elif len(author) > 100:
+            warnings.append(
+                f"Author field too long ({len(author)} chars, maximum 100)"
+            )
+
+    def _validate_tags_field(
+        self, corrected: Dict[str, Any], errors: List[str], warnings: List[str]
+    ) -> None:
+        """Validate the tags field."""
+        if "tags" not in corrected:
+            return
+
+        tags = corrected["tags"]
+        if isinstance(tags, str):
+            # Convert comma-separated string to list for validation
+            tag_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
+        elif isinstance(tags, list):
+            tag_list = tags
+        else:
+            errors.append(
+                f"Field 'tags' must be a list or comma-separated string, got {type(tags).__name__}"
+            )
+            return
+
+        for tag in tag_list:
+            if not isinstance(tag, str):
+                errors.append(f"All tags must be strings, found {type(tag).__name__}")
+            elif not re.match(r"^[a-z][a-z0-9-]*$", tag):
+                warnings.append(
+                    f"Tag '{tag}' doesn't match recommended pattern (lowercase, alphanumeric with hyphens)"
+                )
+
+    def _validate_numeric_fields(
+        self, corrected: Dict[str, Any], errors: List[str], warnings: List[str]
+    ) -> None:
+        """Validate numeric fields (max_tokens, temperature)."""
+        for field_name, (min_val, max_val) in [
+            ("max_tokens", (1000, 200000)),
+            ("temperature", (0, 1)),
+        ]:
+            if field_name not in corrected:
+                continue
+
+            value = corrected[field_name]
+            if field_name == "temperature" and not isinstance(value, (int, float)):
+                errors.append(
+                    f"Field '{field_name}' must be a number, got {type(value).__name__}"
+                )
+            elif field_name == "max_tokens" and not isinstance(value, int):
+                errors.append(
+                    f"Field '{field_name}' must be an integer, got {type(value).__name__}"
+                )
+            elif isinstance(value, (int, float)) and not (
+                min_val <= value <= max_val
+            ):
+                warnings.append(
+                    f"Field '{field_name}' value {value} outside recommended range [{min_val}, {max_val}]"
+                )
 
     def _normalize_model(self, model: str) -> str:
         """
