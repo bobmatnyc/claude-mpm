@@ -6,6 +6,13 @@
 
 ### Fixed
 
+## [4.14.6] - 2025-10-24
+
+### Fixed
+- Fixed OUTPUT_STYLE.md packaging issue in pipx installations
+- PM agent now receives complete 290-line instruction set instead of truncated 11-line version
+- Corrected package_data configuration to include full docs/developer/OUTPUT_STYLE.md
+
 ## [4.14.5] - 2025-10-23
 
 ### Fixed
