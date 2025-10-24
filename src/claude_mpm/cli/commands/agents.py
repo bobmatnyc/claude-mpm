@@ -480,10 +480,9 @@ class AgentsCommand(AgentCommand):
             # Route to appropriate handler based on input
             if fix_all:
                 return self._fix_all_agents(dry_run, output_format)
-            elif agent_name:
+            if agent_name:
                 return self._fix_single_agent(agent_name, dry_run, output_format)
-            else:
-                return self._handle_no_agent_specified(output_format)
+            return self._handle_no_agent_specified(output_format)
 
         except Exception as e:
             self.logger.error(f"Error fixing agents: {e}", exc_info=True)
@@ -558,9 +557,7 @@ class AgentsCommand(AgentCommand):
         """Print result for a single agent."""
         print(f"📄 {agent_result['agent']}:")
         if agent_result.get("skipped"):
-            print(
-                f"  ⚠️  Skipped: {agent_result.get('reason', 'Unknown reason')}"
-            )
+            print(f"  ⚠️  Skipped: {agent_result.get('reason', 'Unknown reason')}")
         elif agent_result.get("was_valid"):
             print("  ✓ No issues found")
         else:
@@ -576,9 +573,7 @@ class AgentsCommand(AgentCommand):
 
         if dry_run:
             if agent_result.get("corrections_available", 0) > 0:
-                print(
-                    f"  🔧 Would fix: {agent_result['corrections_available']} issues"
-                )
+                print(f"  🔧 Would fix: {agent_result['corrections_available']} issues")
         elif agent_result.get("corrections_made", 0) > 0:
             print(f"  ✓ Fixed: {agent_result['corrections_made']} issues")
 
@@ -605,9 +600,7 @@ class AgentsCommand(AgentCommand):
     ) -> None:
         """Print text output for single agent fix operation."""
         mode = "DRY RUN" if dry_run else "FIX"
-        print(
-            f"\n🔧 {mode}: Checking agent '{agent_name}' for frontmatter issues...\n"
-        )
+        print(f"\n🔧 {mode}: Checking agent '{agent_name}' for frontmatter issues...\n")
 
         print(f"📄 {agent_name}:")
         if result.get("was_valid"):
