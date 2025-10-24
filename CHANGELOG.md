@@ -6,6 +6,14 @@
 
 ### Fixed
 
+## [4.14.5] - 2025-10-23
+
+### Fixed
+- Fixed agentic-coder-optimizer agent to use markdown (.md) memory files instead of JSON
+- Added explicit Memory File Format section to agent instructions
+- Clarified naming convention: {agent-id}_memories.md
+- Prevents agent from creating incorrect JSON-formatted memory files
+
 ## [4.14.4] - 2025-10-23
 
 ### Changed
