@@ -1680,16 +1680,13 @@ class CodeTreeAnalyzer:
         """Select appropriate analyzer for language."""
         if language == "python":
             return self.python_analyzer
-        elif language in {"javascript", "typescript"}:
+        if language in {"javascript", "typescript"}:
             return self.javascript_analyzer
-        else:
-            return self.generic_analyzer
+        return self.generic_analyzer
 
     def _filter_nodes(self, nodes: list) -> list:
         """Filter nodes without emitting events."""
-        return [
-            self._node_to_dict(n) for n in nodes if not self._is_internal_node(n)
-        ]
+        return [self._node_to_dict(n) for n in nodes if not self._is_internal_node(n)]
 
     def _filter_and_emit_nodes(self, nodes: list, path: Path) -> list:
         """Filter nodes and emit events for each."""
