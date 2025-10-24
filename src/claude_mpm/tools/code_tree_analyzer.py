@@ -1528,10 +1528,31 @@ class CodeTreeAnalyzer:
         if not path.exists() or not path.is_file():
             return {"error": f"Invalid file: {file_path}"}
 
-        # Get language first (needed for return statement)
         language = self._get_language(path)
+        self._emit_analysis_start(path, language)
 
-        # Emit analysis start event
+        # Check cache
+        file_hash = self._get_file_hash(path)
+        cache_key = f"{file_path}:{file_hash}"
+
+        if cache_key in self.cache:
+            nodes = self.cache[cache_key]
+            self._emit_cache_hit(path)
+            filtered_nodes = self._filter_nodes(nodes)
+        else:
+            nodes, filtered_nodes, duration = self._analyze_and_cache_file(
+                path, language, cache_key
+            )
+            self._emit_analysis_complete(path, filtered_nodes, duration)
+
+        # Prepare final data structures
+        final_nodes = self._prepare_final_nodes(nodes, filtered_nodes)
+        elements = self._convert_nodes_to_elements(final_nodes)
+
+        return self._build_result(file_path, language, final_nodes, elements)
+
+    def _emit_analysis_start(self, path: Path, language: str) -> None:
+        """Emit analysis start event."""
         if self.emitter:
             from datetime import datetime
 
@@ -1546,179 +1567,197 @@ class CodeTreeAnalyzer:
                 },
             )
 
-        # Check cache
-        file_hash = self._get_file_hash(path)
-        cache_key = f"{file_path}:{file_hash}"
+    def _emit_cache_hit(self, path: Path) -> None:
+        """Emit cache hit event."""
+        if self.emitter:
+            from datetime import datetime
 
-        if cache_key in self.cache:
-            nodes = self.cache[cache_key]
-            if self.emitter:
-                from datetime import datetime
-
-                self.emitter.emit(
-                    "info",
-                    {
-                        "type": "cache.hit",
-                        "file": str(path),
-                        "message": f"Using cached analysis for {path.name}",
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                    },
-                )
-        else:
-            # Analyze file
-            if self.emitter:
-                from datetime import datetime
-
-                self.emitter.emit(
-                    "info",
-                    {
-                        "type": "cache.miss",
-                        "file": str(path),
-                        "message": f"Cache miss, analyzing fresh: {path.name}",
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                    },
-                )
-
-            if language == "python":
-                analyzer = self.python_analyzer
-            elif language in {"javascript", "typescript"}:
-                analyzer = self.javascript_analyzer
-            else:
-                analyzer = self.generic_analyzer
-
-            start_time = time.time()
-
-            # Emit parsing event
-            if self.emitter:
-                from datetime import datetime
-
-                self.emitter.emit(
-                    "info",
-                    {
-                        "type": "analysis.parse",
-                        "file": str(path),
-                        "message": f"Parsing file content: {path.name}",
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                    },
-                )
-
-            nodes = analyzer.analyze_file(path) if analyzer else []
-            duration = time.time() - start_time
-
-            # Cache results
-            self.cache[cache_key] = nodes
-
-            # Filter internal functions before emitting
-            filtered_nodes = []
-            classes_count = 0
-            functions_count = 0
-            methods_count = 0
-
-            for node in nodes:
-                # Only include main structural elements
-                if not self._is_internal_node(node):
-                    # Emit found element event
-                    if self.emitter:
-                        from datetime import datetime
-
-                        self.emitter.emit(
-                            "info",
-                            {
-                                "type": f"analysis.{node.node_type}",
-                                "name": node.name,
-                                "file": str(path),
-                                "line_start": node.line_start,
-                                "complexity": node.complexity,
-                                "message": f"Found {node.node_type}: {node.name}",
-                                "timestamp": datetime.now(timezone.utc).isoformat(),
-                            },
-                        )
-
-                        # Count node types
-                        if node.node_type == "class":
-                            classes_count += 1
-                        elif node.node_type == "function":
-                            functions_count += 1
-                        elif node.node_type == "method":
-                            methods_count += 1
-
-                    filtered_nodes.append(
-                        {
-                            "name": node.name,
-                            "type": node.node_type,
-                            "line_start": node.line_start,
-                            "line_end": node.line_end,
-                            "complexity": node.complexity,
-                            "has_docstring": node.has_docstring,
-                            "signature": node.signature,
-                        }
-                    )
-
-            # Emit analysis complete event with stats
-            if self.emitter:
-                from datetime import datetime
-
-                self.emitter.emit(
-                    "info",
-                    {
-                        "type": "analysis.complete",
-                        "file": str(path),
-                        "stats": {
-                            "classes": classes_count,
-                            "functions": functions_count,
-                            "methods": methods_count,
-                            "total_nodes": len(filtered_nodes),
-                        },
-                        "duration": duration,
-                        "message": f"Analysis complete: {classes_count} classes, {functions_count} functions, {methods_count} methods",
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                    },
-                )
-
-                self.emitter.emit_file_analyzed(file_path, filtered_nodes, duration)
-
-        # Prepare the nodes data
-        final_nodes = (
-            filtered_nodes
-            if "filtered_nodes" in locals()
-            else [
+            self.emitter.emit(
+                "info",
                 {
-                    "name": n.name,
-                    "type": n.node_type,
-                    "line_start": n.line_start,
-                    "line_end": n.line_end,
-                    "complexity": n.complexity,
-                    "has_docstring": n.has_docstring,
-                    "signature": n.signature,
-                }
-                for n in nodes
-                if not self._is_internal_node(n)
-            ]
-        )
+                    "type": "cache.hit",
+                    "file": str(path),
+                    "message": f"Using cached analysis for {path.name}",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
 
-        # Convert nodes to elements format for dashboard compatibility
+    def _emit_cache_miss(self, path: Path) -> None:
+        """Emit cache miss event."""
+        if self.emitter:
+            from datetime import datetime
+
+            self.emitter.emit(
+                "info",
+                {
+                    "type": "cache.miss",
+                    "file": str(path),
+                    "message": f"Cache miss, analyzing fresh: {path.name}",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+
+    def _emit_parsing_start(self, path: Path) -> None:
+        """Emit parsing start event."""
+        if self.emitter:
+            from datetime import datetime
+
+            self.emitter.emit(
+                "info",
+                {
+                    "type": "analysis.parse",
+                    "file": str(path),
+                    "message": f"Parsing file content: {path.name}",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+
+    def _emit_node_found(self, node: CodeNode, path: Path) -> None:
+        """Emit node found event."""
+        if self.emitter:
+            from datetime import datetime
+
+            self.emitter.emit(
+                "info",
+                {
+                    "type": f"analysis.{node.node_type}",
+                    "name": node.name,
+                    "file": str(path),
+                    "line_start": node.line_start,
+                    "complexity": node.complexity,
+                    "message": f"Found {node.node_type}: {node.name}",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+
+    def _emit_analysis_complete(
+        self, path: Path, filtered_nodes: list, duration: float
+    ) -> None:
+        """Emit analysis complete event."""
+        if not self.emitter:
+            return
+
+        from datetime import datetime
+
+        stats = self._calculate_node_stats(filtered_nodes)
+        self.emitter.emit(
+            "info",
+            {
+                "type": "analysis.complete",
+                "file": str(path),
+                "stats": stats,
+                "duration": duration,
+                "message": f"Analysis complete: {stats['classes']} classes, {stats['functions']} functions, {stats['methods']} methods",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+        self.emitter.emit_file_analyzed(str(path), filtered_nodes, duration)
+
+    def _analyze_and_cache_file(
+        self, path: Path, language: str, cache_key: str
+    ) -> tuple:
+        """Analyze file content and cache results."""
+        self._emit_cache_miss(path)
+        self._emit_parsing_start(path)
+
+        # Select analyzer based on language
+        analyzer = self._select_analyzer(language)
+
+        # Perform analysis
+        start_time = time.time()
+        nodes = analyzer.analyze_file(path) if analyzer else []
+        duration = time.time() - start_time
+
+        # Cache results
+        self.cache[cache_key] = nodes
+
+        # Filter and process nodes
+        filtered_nodes = self._filter_and_emit_nodes(nodes, path)
+
+        return nodes, filtered_nodes, duration
+
+    def _select_analyzer(self, language: str):
+        """Select appropriate analyzer for language."""
+        if language == "python":
+            return self.python_analyzer
+        elif language in {"javascript", "typescript"}:
+            return self.javascript_analyzer
+        else:
+            return self.generic_analyzer
+
+    def _filter_nodes(self, nodes: list) -> list:
+        """Filter nodes without emitting events."""
+        return [
+            self._node_to_dict(n) for n in nodes if not self._is_internal_node(n)
+        ]
+
+    def _filter_and_emit_nodes(self, nodes: list, path: Path) -> list:
+        """Filter nodes and emit events for each."""
+        filtered_nodes = []
+        for node in nodes:
+            if not self._is_internal_node(node):
+                self._emit_node_found(node, path)
+                filtered_nodes.append(self._node_to_dict(node))
+        return filtered_nodes
+
+    def _node_to_dict(self, node: CodeNode) -> dict:
+        """Convert CodeNode to dictionary."""
+        return {
+            "name": node.name,
+            "type": node.node_type,
+            "line_start": node.line_start,
+            "line_end": node.line_end,
+            "complexity": node.complexity,
+            "has_docstring": node.has_docstring,
+            "signature": node.signature,
+        }
+
+    def _calculate_node_stats(self, filtered_nodes: list) -> dict:
+        """Calculate statistics from filtered nodes."""
+        classes_count = sum(1 for n in filtered_nodes if n["type"] == "class")
+        functions_count = sum(1 for n in filtered_nodes if n["type"] == "function")
+        methods_count = sum(1 for n in filtered_nodes if n["type"] == "method")
+        return {
+            "classes": classes_count,
+            "functions": functions_count,
+            "methods": methods_count,
+            "total_nodes": len(filtered_nodes),
+        }
+
+    def _prepare_final_nodes(self, nodes: list, filtered_nodes: list) -> list:
+        """Prepare final nodes data structure."""
+        if filtered_nodes:
+            return filtered_nodes
+        return [self._node_to_dict(n) for n in nodes if not self._is_internal_node(n)]
+
+    def _convert_nodes_to_elements(self, final_nodes: list) -> list:
+        """Convert nodes to elements format for dashboard."""
         elements = []
         for node in final_nodes:
             element = {
                 "name": node["name"],
                 "type": node["type"],
-                "line": node["line_start"],  # Dashboard expects 'line' not 'line_start'
+                "line": node["line_start"],
                 "complexity": node["complexity"],
                 "signature": node.get("signature", ""),
                 "has_docstring": node.get("has_docstring", False),
             }
-            # Add methods if it's a class (for expandable tree)
             if node["type"] == "class":
-                element["methods"] = []  # Could be populated with class methods
+                element["methods"] = []
             elements.append(element)
+        return elements
 
+    def _build_result(
+        self, file_path: str, language: str, final_nodes: list, elements: list
+    ) -> dict:
+        """Build final result dictionary."""
         return {
             "path": file_path,
             "language": language,
-            "nodes": final_nodes,  # Keep for backward compatibility
-            "elements": elements,  # Add for dashboard compatibility
+            "nodes": final_nodes,
+            "elements": elements,
             "complexity": sum(e["complexity"] for e in elements),
-            "lines": len(elements),  # Simple line count approximation
+            "lines": len(elements),
             "stats": {
                 "classes": len([e for e in elements if e["type"] == "class"]),
                 "functions": len([e for e in elements if e["type"] == "function"]),
