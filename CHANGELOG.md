@@ -6,6 +6,14 @@
 
 ### Fixed
 
+## [4.14.7] - 2025-10-24
+
+### Fixed
+- Fixed output style deployment truncation bug in agent deployment
+- Removed 180 lines of broken extraction logic from extract_output_style_content()
+- Agent deployment now reads OUTPUT_STYLE.md directly instead of using broken content extraction
+- Ensures complete output style instructions are deployed to all agents
+
 ## [4.14.6] - 2025-10-24
 
 ### Fixed
