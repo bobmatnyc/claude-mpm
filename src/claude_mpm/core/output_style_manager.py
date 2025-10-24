@@ -160,203 +160,23 @@ class OutputStyleManager:
 
     def extract_output_style_content(self, framework_loader=None) -> str:
         """
-        Extract output style content from framework instructions.
-
-        This extracts PM delegation behavior, tone, communication standards,
-        response formats, TodoWrite requirements, and workflow rules from:
-        - INSTRUCTIONS.md
-        - BASE_PM.md
+        Read output style content from OUTPUT_STYLE.md.
 
         Args:
-            framework_loader: Optional FrameworkLoader instance to reuse loaded content
+            framework_loader: Optional framework loader (kept for compatibility, not used)
 
         Returns:
-            Formatted output style content in YAML frontmatter + markdown format
+            Complete output style content from file
         """
-        # Build the content sections
-        sections = []
-
-        # Add YAML frontmatter
-        sections.append("---")
-        sections.append("name: Claude MPM")
-        sections.append(
-            "description: Multi-Agent Project Manager orchestration mode for delegation and coordination"
-        )
-        sections.append("---")
-        sections.append("")
-
-        # Header
-        sections.append(
-            "You are Claude Multi-Agent PM, a PROJECT MANAGER whose SOLE PURPOSE is to delegate work to specialized agents."
-        )
-        sections.append("")
-
-        # Extract from INSTRUCTIONS.md
-        if framework_loader and framework_loader.framework_content.get(
-            "framework_instructions"
-        ):
-            instructions = framework_loader.framework_content["framework_instructions"]
-            sections.extend(self._extract_instructions_sections(instructions))
-        else:
-            # Load from file if no framework_loader provided
-            instructions_path = (
-                Path(__file__).parent.parent / "agents" / "INSTRUCTIONS.md"
-            )
-            if instructions_path.exists():
-                instructions = instructions_path.read_text()
-                sections.extend(self._extract_instructions_sections(instructions))
-
-        # Extract from BASE_PM.md
-        if framework_loader and framework_loader.framework_content.get(
-            "base_pm_instructions"
-        ):
-            base_pm = framework_loader.framework_content["base_pm_instructions"]
-            sections.extend(self._extract_base_pm_sections(base_pm))
-        else:
-            # Load from file if no framework_loader provided
-            base_pm_path = Path(__file__).parent.parent / "agents" / "BASE_PM.md"
-            if base_pm_path.exists():
-                base_pm = base_pm_path.read_text()
-                sections.extend(self._extract_base_pm_sections(base_pm))
-
-        return "\n".join(sections)
-
-    def _extract_instructions_sections(self, content: str) -> list:
-        """Extract relevant sections from INSTRUCTIONS.md."""
-        sections = []
-
-        # Extract Primary Directive
-        if "## 🔴 PRIMARY DIRECTIVE" in content:
-            sections.append("## 🔴 PRIMARY DIRECTIVE - MANDATORY DELEGATION 🔴")
-            sections.append("")
-            sections.append(
-                "**YOU ARE STRICTLY FORBIDDEN FROM DOING ANY WORK DIRECTLY.**"
-            )
-            sections.append("")
-            sections.append(
-                "Direct implementation is ABSOLUTELY PROHIBITED unless the user EXPLICITLY overrides with phrases like:"
-            )
-            sections.append('- "do this yourself"')
-            sections.append('- "don\'t delegate"')
-            sections.append('- "implement directly"')
-            sections.append('- "you do it"')
-            sections.append('- "no delegation"')
-            sections.append("")
-
-        # Extract Core Identity and Rules
-        if "## Core Identity" in content:
-            sections.append("## Core Operating Rules")
-            sections.append("")
-            sections.append("**DEFAULT BEHAVIOR - ALWAYS DELEGATE**:")
-            sections.append(
-                "- 🔴 You MUST delegate 100% of ALL work to specialized agents by default"
-            )
-            sections.append(
-                "- 🔴 Direct action is STRICTLY FORBIDDEN without explicit user override"
-            )
-            sections.append(
-                "- 🔴 Even the simplest tasks MUST be delegated - NO EXCEPTIONS"
-            )
-            sections.append("- 🔴 When in doubt, ALWAYS DELEGATE - never act directly")
-            sections.append("")
-            sections.append("**Allowed Tools**:")
-            sections.append("- **Task** for delegation (YOUR PRIMARY FUNCTION)")
-            sections.append("- **TodoWrite** for tracking delegation progress ONLY")
-            sections.append(
-                "- **WebSearch/WebFetch** for gathering context BEFORE delegation"
-            )
-            sections.append(
-                "- **Direct answers** ONLY for questions about PM capabilities"
-            )
-            sections.append("")
-
-        # Extract Communication Standards
-        if "## Communication Standards" in content:
-            sections.append("## Communication Standards")
-            sections.append("")
-            sections.append("- **Tone**: Professional, neutral by default")
-            sections.append('- **Use**: "Understood", "Confirmed", "Noted"')
-            sections.append("- **No simplification** without explicit user request")
-            sections.append("- **No mocks** outside test environments")
-            sections.append("- **Complete implementations** only - no placeholders")
-            sections.append(
-                '- **FORBIDDEN**: Overeager enthusiasm ("Excellent!", "Perfect!", "Amazing!")'
-            )
-            sections.append("")
-
-        # Extract Error Handling
-        if "## Error Handling Protocol" in content:
-            sections.append("## Error Handling Protocol")
-            sections.append("")
-            sections.append("**3-Attempt Process**:")
-            sections.append("1. **First Failure**: Re-delegate with enhanced context")
-            sections.append(
-                '2. **Second Failure**: Mark "ERROR - Attempt 2/3", escalate if needed'
-            )
-            sections.append(
-                "3. **Third Failure**: TodoWrite escalation with user decision required"
-            )
-            sections.append("")
-
-        # Extract Standard Operating Procedure
-        if "## Standard Operating Procedure" in content:
-            sections.append("## Standard Operating Procedure")
-            sections.append("")
-            sections.append("1. **Analysis**: Parse request, assess context (NO TOOLS)")
-            sections.append(
-                "2. **Planning**: Agent selection, task breakdown, priority assignment"
-            )
-            sections.append("3. **Delegation**: Task Tool with enhanced format")
-            sections.append("4. **Monitoring**: Track progress via TodoWrite")
-            sections.append("5. **Integration**: Synthesize results, validate, report")
-            sections.append("")
-
-        return sections
-
-    def _extract_base_pm_sections(self, content: str) -> list:
-        """Extract relevant sections from BASE_PM.md."""
-        sections = []
-
-        # Extract TodoWrite Requirements
-        if "## TodoWrite Framework Requirements" in content:
-            sections.append("## TodoWrite Requirements")
-            sections.append("")
-            sections.append("### Mandatory [Agent] Prefix Rules")
-            sections.append("")
-            sections.append("**ALWAYS use [Agent] prefix for delegated tasks**:")
-            sections.append("- ✅ `[Research] Analyze authentication patterns`")
-            sections.append("- ✅ `[Engineer] Implement user registration`")
-            sections.append("- ✅ `[QA] Test payment flow`")
-            sections.append("- ✅ `[Documentation] Update API docs`")
-            sections.append("")
-            sections.append("**NEVER use [PM] prefix for implementation tasks**")
-            sections.append("")
-            sections.append("### Task Status Management")
-            sections.append("")
-            sections.append("- `pending` - Task not yet started")
-            sections.append(
-                "- `in_progress` - Currently being worked on (ONE at a time)"
-            )
-            sections.append("- `completed` - Task finished successfully")
-            sections.append("")
-
-        # Extract PM Response Format
-        if "## PM Response Format" in content:
-            sections.append("## Response Format")
-            sections.append("")
-            sections.append(
-                "When completing delegations, provide structured summaries including:"
-            )
-            sections.append("- Request summary")
-            sections.append("- Agents used and task counts")
-            sections.append("- Tasks completed with [Agent] prefixes")
-            sections.append("- Files affected across all agents")
-            sections.append("- Blockers encountered and resolutions")
-            sections.append("- Next steps for user")
-            sections.append("- Key information to remember")
-            sections.append("")
-
-        return sections
+        # Always read from the complete OUTPUT_STYLE.md file
+        if self.mpm_output_style_path.exists():
+            content = self.mpm_output_style_path.read_text()
+            self.logger.info(f"Read OUTPUT_STYLE.md directly ({len(content)} chars)")
+            return content
+        # Fallback error
+        error_msg = f"OUTPUT_STYLE.md not found at {self.mpm_output_style_path}"
+        self.logger.error(error_msg)
+        raise FileNotFoundError(error_msg)
 
     def save_output_style(self, content: str) -> Path:
         """
