@@ -213,7 +213,9 @@ class FrontmatterValidator:
             field_corrections=field_corrections if field_corrections else None,
         )
 
-    def _validate_required_fields(self, corrected: Dict[str, Any], errors: List[str]) -> None:
+    def _validate_required_fields(
+        self, corrected: Dict[str, Any], errors: List[str]
+    ) -> None:
         """Check that all required fields are present."""
         required_fields = (
             self.schema.get("required", ["name", "description", "version", "model"])
@@ -284,9 +286,7 @@ class FrontmatterValidator:
             )
 
         if normalized_model not in self.VALID_MODELS:
-            errors.append(
-                f"Invalid model: {model} (normalized to {normalized_model})"
-            )
+            errors.append(f"Invalid model: {model} (normalized to {normalized_model})")
 
     def _validate_tools_field(
         self,
@@ -317,9 +317,7 @@ class FrontmatterValidator:
                     corrected_tools[idx] = corrected_tool
                     corrected["tools"] = corrected_tools
                     field_corrections["tools"] = corrected_tools
-                    corrections.append(
-                        f"Corrected tool '{tool}' to '{corrected_tool}'"
-                    )
+                    corrections.append(f"Corrected tool '{tool}' to '{corrected_tool}'")
                 else:
                     invalid_tools.append(tool)
 
@@ -436,9 +434,7 @@ class FrontmatterValidator:
                 f"Field 'author' must be a string, got {type(author).__name__}"
             )
         elif len(author) > 100:
-            warnings.append(
-                f"Author field too long ({len(author)} chars, maximum 100)"
-            )
+            warnings.append(f"Author field too long ({len(author)} chars, maximum 100)")
 
     def _validate_tags_field(
         self, corrected: Dict[str, Any], errors: List[str], warnings: List[str]
@@ -487,9 +483,7 @@ class FrontmatterValidator:
                 errors.append(
                     f"Field '{field_name}' must be an integer, got {type(value).__name__}"
                 )
-            elif isinstance(value, (int, float)) and not (
-                min_val <= value <= max_val
-            ):
+            elif isinstance(value, (int, float)) and not (min_val <= value <= max_val):
                 warnings.append(
                     f"Field '{field_name}' value {value} outside recommended range [{min_val}, {max_val}]"
                 )
