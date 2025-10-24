@@ -475,148 +475,177 @@ class AgentsCommand(AgentCommand):
             dry_run = getattr(args, "dry_run", False)
             agent_name = getattr(args, "agent_name", None)
             fix_all = getattr(args, "all", False)
-
             output_format = getattr(args, "format", "text")
 
-            # Determine what to fix
+            # Route to appropriate handler based on input
             if fix_all:
-                # Fix all agents
-                result = self.validation_service.fix_all_agents(dry_run=dry_run)
-
-                if output_format in ["json", "yaml"]:
-                    formatted = (
-                        self._formatter.format_as_json(result)
-                        if output_format == "json"
-                        else self._formatter.format_as_yaml(result)
-                    )
-                    print(formatted)
-                else:
-                    # Text output
-                    mode = "DRY RUN" if dry_run else "FIX"
-                    print(
-                        f"\n🔧 {mode}: Checking {result.get('total_agents', 0)} agent(s) for frontmatter issues...\n"
-                    )
-
-                    if result.get("results"):
-                        for agent_result in result["results"]:
-                            print(f"📄 {agent_result['agent']}:")
-                            if agent_result.get("skipped"):
-                                print(
-                                    f"  ⚠️  Skipped: {agent_result.get('reason', 'Unknown reason')}"
-                                )
-                            elif agent_result.get("was_valid"):
-                                print("  ✓ No issues found")
-                            else:
-                                if agent_result.get("errors_found", 0) > 0:
-                                    print(
-                                        f"  ❌ Errors found: {agent_result['errors_found']}"
-                                    )
-                                if agent_result.get("warnings_found", 0) > 0:
-                                    print(
-                                        f"  ⚠️  Warnings found: {agent_result['warnings_found']}"
-                                    )
-                                if dry_run:
-                                    if agent_result.get("corrections_available", 0) > 0:
-                                        print(
-                                            f"  🔧 Would fix: {agent_result['corrections_available']} issues"
-                                        )
-                                elif agent_result.get("corrections_made", 0) > 0:
-                                    print(
-                                        f"  ✓ Fixed: {agent_result['corrections_made']} issues"
-                                    )
-                            print()
-
-                    # Summary
-                    print("=" * 80)
-                    print("SUMMARY:")
-                    print(f"  Agents checked: {result.get('agents_checked', 0)}")
-                    print(
-                        f"  Total issues found: {result.get('total_issues_found', 0)}"
-                    )
-                    if dry_run:
-                        print(
-                            f"  Issues that would be fixed: {result.get('total_corrections_available', 0)}"
-                        )
-                        print("\n💡 Run without --dry-run to apply fixes")
-                    else:
-                        print(
-                            f"  Issues fixed: {result.get('total_corrections_made', 0)}"
-                        )
-                        if result.get("total_corrections_made", 0) > 0:
-                            print("\n✓ Frontmatter issues have been fixed!")
-                    print("=" * 80 + "\n")
-
-                msg = f"{'Would fix' if dry_run else 'Fixed'} {result.get('total_corrections_available' if dry_run else 'total_corrections_made', 0)} issues"
-                return CommandResult.success_result(msg, data=result)
-
-            if agent_name:
-                # Fix specific agent
-                result = self.validation_service.fix_agent_frontmatter(
-                    agent_name, dry_run=dry_run
-                )
-
-                if not result.get("success"):
-                    return CommandResult.error_result(
-                        result.get("error", "Failed to fix agent")
-                    )
-
-                if output_format in ["json", "yaml"]:
-                    formatted = (
-                        self._formatter.format_as_json(result)
-                        if output_format == "json"
-                        else self._formatter.format_as_yaml(result)
-                    )
-                    print(formatted)
-                else:
-                    # Text output
-                    mode = "DRY RUN" if dry_run else "FIX"
-                    print(
-                        f"\n🔧 {mode}: Checking agent '{agent_name}' for frontmatter issues...\n"
-                    )
-
-                    print(f"📄 {agent_name}:")
-                    if result.get("was_valid"):
-                        print("  ✓ No issues found")
-                    else:
-                        if result.get("errors_found"):
-                            print("  ❌ Errors:")
-                            for error in result["errors_found"]:
-                                print(f"    - {error}")
-                        if result.get("warnings_found"):
-                            print("  ⚠️  Warnings:")
-                            for warning in result["warnings_found"]:
-                                print(f"    - {warning}")
-                        if dry_run:
-                            if result.get("corrections_available"):
-                                print("  🔧 Would fix:")
-                                for correction in result["corrections_available"]:
-                                    print(f"    - {correction}")
-                        elif result.get("corrections_made"):
-                            print("  ✓ Fixed:")
-                            for correction in result["corrections_made"]:
-                                print(f"    - {correction}")
-                    print()
-
-                    if dry_run and result.get("corrections_available"):
-                        print("💡 Run without --dry-run to apply fixes\n")
-                    elif not dry_run and result.get("corrections_made"):
-                        print("✓ Frontmatter issues have been fixed!\n")
-
-                msg = f"{'Would fix' if dry_run else 'Fixed'} agent '{agent_name}'"
-                return CommandResult.success_result(msg, data=result)
-
-            # No agent specified and not --all
-            usage_msg = "Please specify an agent name or use --all to fix all agents\nUsage: claude-mpm agents fix [agent_name] [--dry-run] [--all]"
-            if output_format in ["json", "yaml"]:
-                return CommandResult.error_result(
-                    "No agent specified", data={"usage": usage_msg}
-                )
-            print(f"❌ {usage_msg}")
-            return CommandResult.error_result("No agent specified")
+                return self._fix_all_agents(dry_run, output_format)
+            elif agent_name:
+                return self._fix_single_agent(agent_name, dry_run, output_format)
+            else:
+                return self._handle_no_agent_specified(output_format)
 
         except Exception as e:
             self.logger.error(f"Error fixing agents: {e}", exc_info=True)
             return CommandResult.error_result(f"Error fixing agents: {e}")
+
+    def _fix_all_agents(self, dry_run: bool, output_format: str) -> CommandResult:
+        """Fix all agents' frontmatter issues."""
+        result = self.validation_service.fix_all_agents(dry_run=dry_run)
+
+        if output_format in ["json", "yaml"]:
+            self._print_structured_output(result, output_format)
+        else:
+            self._print_all_agents_text_output(result, dry_run)
+
+        msg = f"{'Would fix' if dry_run else 'Fixed'} {result.get('total_corrections_available' if dry_run else 'total_corrections_made', 0)} issues"
+        return CommandResult.success_result(msg, data=result)
+
+    def _fix_single_agent(
+        self, agent_name: str, dry_run: bool, output_format: str
+    ) -> CommandResult:
+        """Fix a single agent's frontmatter issues."""
+        result = self.validation_service.fix_agent_frontmatter(
+            agent_name, dry_run=dry_run
+        )
+
+        if not result.get("success"):
+            return CommandResult.error_result(
+                result.get("error", "Failed to fix agent")
+            )
+
+        if output_format in ["json", "yaml"]:
+            self._print_structured_output(result, output_format)
+        else:
+            self._print_single_agent_text_output(agent_name, result, dry_run)
+
+        msg = f"{'Would fix' if dry_run else 'Fixed'} agent '{agent_name}'"
+        return CommandResult.success_result(msg, data=result)
+
+    def _handle_no_agent_specified(self, output_format: str) -> CommandResult:
+        """Handle case where no agent is specified."""
+        usage_msg = "Please specify an agent name or use --all to fix all agents\nUsage: claude-mpm agents fix [agent_name] [--dry-run] [--all]"
+        if output_format in ["json", "yaml"]:
+            return CommandResult.error_result(
+                "No agent specified", data={"usage": usage_msg}
+            )
+        print(f"❌ {usage_msg}")
+        return CommandResult.error_result("No agent specified")
+
+    def _print_structured_output(self, result: dict, output_format: str) -> None:
+        """Print result in JSON or YAML format."""
+        formatted = (
+            self._formatter.format_as_json(result)
+            if output_format == "json"
+            else self._formatter.format_as_yaml(result)
+        )
+        print(formatted)
+
+    def _print_all_agents_text_output(self, result: dict, dry_run: bool) -> None:
+        """Print text output for all agents fix operation."""
+        mode = "DRY RUN" if dry_run else "FIX"
+        print(
+            f"\n🔧 {mode}: Checking {result.get('total_agents', 0)} agent(s) for frontmatter issues...\n"
+        )
+
+        if result.get("results"):
+            for agent_result in result["results"]:
+                self._print_agent_result(agent_result, dry_run)
+
+        self._print_all_agents_summary(result, dry_run)
+
+    def _print_agent_result(self, agent_result: dict, dry_run: bool) -> None:
+        """Print result for a single agent."""
+        print(f"📄 {agent_result['agent']}:")
+        if agent_result.get("skipped"):
+            print(
+                f"  ⚠️  Skipped: {agent_result.get('reason', 'Unknown reason')}"
+            )
+        elif agent_result.get("was_valid"):
+            print("  ✓ No issues found")
+        else:
+            self._print_agent_issues(agent_result, dry_run)
+        print()
+
+    def _print_agent_issues(self, agent_result: dict, dry_run: bool) -> None:
+        """Print issues found for an agent."""
+        if agent_result.get("errors_found", 0) > 0:
+            print(f"  ❌ Errors found: {agent_result['errors_found']}")
+        if agent_result.get("warnings_found", 0) > 0:
+            print(f"  ⚠️  Warnings found: {agent_result['warnings_found']}")
+
+        if dry_run:
+            if agent_result.get("corrections_available", 0) > 0:
+                print(
+                    f"  🔧 Would fix: {agent_result['corrections_available']} issues"
+                )
+        elif agent_result.get("corrections_made", 0) > 0:
+            print(f"  ✓ Fixed: {agent_result['corrections_made']} issues")
+
+    def _print_all_agents_summary(self, result: dict, dry_run: bool) -> None:
+        """Print summary for all agents fix operation."""
+        print("=" * 80)
+        print("SUMMARY:")
+        print(f"  Agents checked: {result.get('agents_checked', 0)}")
+        print(f"  Total issues found: {result.get('total_issues_found', 0)}")
+
+        if dry_run:
+            print(
+                f"  Issues that would be fixed: {result.get('total_corrections_available', 0)}"
+            )
+            print("\n💡 Run without --dry-run to apply fixes")
+        else:
+            print(f"  Issues fixed: {result.get('total_corrections_made', 0)}")
+            if result.get("total_corrections_made", 0) > 0:
+                print("\n✓ Frontmatter issues have been fixed!")
+        print("=" * 80 + "\n")
+
+    def _print_single_agent_text_output(
+        self, agent_name: str, result: dict, dry_run: bool
+    ) -> None:
+        """Print text output for single agent fix operation."""
+        mode = "DRY RUN" if dry_run else "FIX"
+        print(
+            f"\n🔧 {mode}: Checking agent '{agent_name}' for frontmatter issues...\n"
+        )
+
+        print(f"📄 {agent_name}:")
+        if result.get("was_valid"):
+            print("  ✓ No issues found")
+        else:
+            self._print_single_agent_issues(result, dry_run)
+        print()
+
+        self._print_single_agent_footer(result, dry_run)
+
+    def _print_single_agent_issues(self, result: dict, dry_run: bool) -> None:
+        """Print issues for a single agent."""
+        if result.get("errors_found"):
+            print("  ❌ Errors:")
+            for error in result["errors_found"]:
+                print(f"    - {error}")
+
+        if result.get("warnings_found"):
+            print("  ⚠️  Warnings:")
+            for warning in result["warnings_found"]:
+                print(f"    - {warning}")
+
+        if dry_run:
+            if result.get("corrections_available"):
+                print("  🔧 Would fix:")
+                for correction in result["corrections_available"]:
+                    print(f"    - {correction}")
+        elif result.get("corrections_made"):
+            print("  ✓ Fixed:")
+            for correction in result["corrections_made"]:
+                print(f"    - {correction}")
+
+    def _print_single_agent_footer(self, result: dict, dry_run: bool) -> None:
+        """Print footer message for single agent fix."""
+        if dry_run and result.get("corrections_available"):
+            print("💡 Run without --dry-run to apply fixes\n")
+        elif not dry_run and result.get("corrections_made"):
+            print("✓ Frontmatter issues have been fixed!\n")
 
     def _check_agent_dependencies(self, args) -> CommandResult:
         """Check agent dependencies."""
