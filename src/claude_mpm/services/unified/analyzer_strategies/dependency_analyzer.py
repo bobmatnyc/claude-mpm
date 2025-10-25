@@ -14,6 +14,7 @@ import re
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional
 
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
 
 from ..strategies import (
@@ -166,7 +167,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
                 return self._analyze_manifest(target_path, options)
 
         return {
-            "status": "error",
+            "status": OperationResult.ERROR,
             "message": f"Unsupported target type: {type(target).__name__}",
         }
 
@@ -175,7 +176,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
     ) -> Dict[str, Any]:
         """Analyze dependencies in a project directory."""
         results = {
-            "status": "success",
+            "status": OperationResult.SUCCESS,
             "type": "project",
             "path": str(project_path),
             "package_managers": [],
@@ -221,7 +222,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
     ) -> Dict[str, Any]:
         """Analyze a specific package manifest file."""
         results = {
-            "status": "success",
+            "status": OperationResult.SUCCESS,
             "type": "manifest",
             "path": str(manifest_path),
             "dependencies": {},
@@ -238,7 +239,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
         if not manager:
             return {
-                "status": "error",
+                "status": OperationResult.ERROR,
                 "message": f"Unknown manifest file: {manifest_path.name}",
             }
 

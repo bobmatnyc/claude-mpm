@@ -14,6 +14,7 @@ import re
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional
 
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
 
 from ..strategies import (
@@ -188,14 +189,14 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
             return self._analyze_ast_performance(target, options)
 
         return {
-            "status": "error",
+            "status": OperationResult.ERROR,
             "message": f"Unsupported target type: {type(target).__name__}",
         }
 
     def _analyze_file(self, file_path: Path, options: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze a single file for performance issues."""
         results = {
-            "status": "success",
+            "status": OperationResult.SUCCESS,
             "type": "file",
             "path": str(file_path),
             "issues": [],
@@ -250,7 +251,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
     ) -> Dict[str, Any]:
         """Analyze all files in a directory for performance issues."""
         results = {
-            "status": "success",
+            "status": OperationResult.SUCCESS,
             "type": "directory",
             "path": str(dir_path),
             "files_analyzed": 0,
@@ -654,7 +655,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
     ) -> Dict[str, Any]:
         """Analyze performance of an AST node."""
         results = {
-            "status": "success",
+            "status": OperationResult.SUCCESS,
             "type": "ast",
             "complexity": {},
             "issues": [],
