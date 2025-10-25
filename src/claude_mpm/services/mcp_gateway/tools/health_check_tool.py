@@ -220,7 +220,7 @@ class HealthCheckTool(BaseToolAdapter):
 
             if memory_usage > 90:
                 check_result["errors"].append("High memory usage detected")
-                check_result["status"] = "unhealthy"
+                check_result["status"] = HealthStatus.UNHEALTHY
             elif memory_usage > 80:
                 check_result["warnings"].append("Elevated memory usage")
 
@@ -233,7 +233,7 @@ class HealthCheckTool(BaseToolAdapter):
 
             if cpu_usage > 95:
                 check_result["errors"].append("High CPU usage detected")
-                check_result["status"] = "unhealthy"
+                check_result["status"] = HealthStatus.UNHEALTHY
             elif cpu_usage > 80:
                 check_result["warnings"].append("Elevated CPU usage")
 
@@ -249,7 +249,7 @@ class HealthCheckTool(BaseToolAdapter):
 
                 if disk_usage_percent > 95:
                     check_result["errors"].append("Disk space critically low")
-                    check_result["status"] = "unhealthy"
+                    check_result["status"] = HealthStatus.UNHEALTHY
                 elif disk_usage_percent > 85:
                     check_result["warnings"].append("Disk space running low")
 
@@ -303,7 +303,7 @@ class HealthCheckTool(BaseToolAdapter):
 
             if not mcp_dir.exists():
                 check_result["errors"].append("MCP directory does not exist")
-                check_result["status"] = "unhealthy"
+                check_result["status"] = HealthStatus.UNHEALTHY
 
         except Exception as e:
             check_result["status"] = HealthStatus.UNHEALTHY
@@ -354,7 +354,7 @@ class HealthCheckTool(BaseToolAdapter):
                 )
 
             if len(available_essential) == 0:
-                check_result["status"] = "unhealthy"
+                check_result["status"] = HealthStatus.UNHEALTHY
                 check_result["errors"].append("No essential tools available")
 
         except Exception as e:
@@ -414,11 +414,13 @@ class HealthCheckTool(BaseToolAdapter):
 
         statuses = [check.get("status", "unknown") for check in checks.values()]
 
-        if "unhealthy" in statuses or HealthStatus.UNHEALTHY in statuses:
+        # Check for unhealthy (handle both string and enum)
+        if HealthStatus.UNHEALTHY in statuses or "unhealthy" in statuses:
             return "unhealthy"
         if "warning" in statuses:
             return "warning"
-        if all(status == "healthy" for status in statuses):
+        # Check for healthy (handle both string and enum)
+        if all(status in (HealthStatus.HEALTHY, "healthy") for status in statuses):
             return "healthy"
         return "unknown"
 
@@ -435,16 +437,17 @@ class HealthCheckTool(BaseToolAdapter):
         for check_name, check_result in checks.items():
             status = check_result.get("status", "unknown")
 
-            if status == "healthy":
+            # Check for healthy (handle both string and enum)
+            if status in (HealthStatus.HEALTHY, "healthy"):
                 summary["healthy"] += 1
-            elif status in ["warning", "unhealthy", HealthStatus.UNHEALTHY]:
+            elif status in ["warning", HealthStatus.UNHEALTHY, "unhealthy"]:
                 summary["warnings"] += 1
                 # Collect warning messages
                 warnings = check_result.get("warnings", [])
                 for warning in warnings:
                     summary["issues"].append(f"{check_name}: {warning}")
                 # Collect error messages if status is unhealthy
-                if status in ["unhealthy", HealthStatus.UNHEALTHY]:
+                if status in (HealthStatus.UNHEALTHY, "unhealthy"):
                     summary["errors"] += 1
                     errors = check_result.get("errors", [])
                     for error in errors:

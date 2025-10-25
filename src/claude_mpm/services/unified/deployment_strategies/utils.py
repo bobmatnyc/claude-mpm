@@ -293,11 +293,11 @@ def verify_deployment_health(
 
         # Determine overall status
         if all(health["checks"].values()):
-            health["status"] = "healthy"
+            health["status"] = HealthStatus.HEALTHY
         elif any(health["checks"].values()):
-            health["status"] = "degraded"
+            health["status"] = HealthStatus.DEGRADED
         else:
-            health["status"] = "unhealthy"
+            health["status"] = HealthStatus.UNHEALTHY
 
     except Exception as e:
         health["status"] = HealthStatus.UNKNOWN

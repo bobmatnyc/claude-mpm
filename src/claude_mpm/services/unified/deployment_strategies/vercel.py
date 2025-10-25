@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from claude_mpm.core.enums import OperationResult
+from claude_mpm.core.enums import HealthStatus, OperationResult
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.unified.strategies import StrategyMetadata, StrategyPriority
 
@@ -314,7 +314,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
         }
 
         if not deployment_url:
-            health["status"] = "unhealthy"
+            health["status"] = HealthStatus.UNHEALTHY
             health["error"] = "No deployment URL"
             return health
 
@@ -342,14 +342,14 @@ class VercelDeploymentStrategy(DeploymentStrategy):
 
             # Determine overall status
             if all(health["checks"].values()):
-                health["status"] = "healthy"
+                health["status"] = HealthStatus.HEALTHY
             elif any(health["checks"].values()):
-                health["status"] = "degraded"
+                health["status"] = HealthStatus.DEGRADED
             else:
-                health["status"] = "unhealthy"
+                health["status"] = HealthStatus.UNHEALTHY
 
         except Exception as e:
-            health["status"] = "unhealthy"
+            health["status"] = HealthStatus.UNHEALTHY
             health["error"] = str(e)
 
         return health
