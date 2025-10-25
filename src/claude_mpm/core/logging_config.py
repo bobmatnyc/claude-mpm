@@ -235,7 +235,10 @@ def log_operation(
             execution_time = time.time() - start_time
             logger.info(
                 f"Completed {operation}",
-                extra={"execution_time": execution_time, "status": OperationResult.SUCCESS},
+                extra={
+                    "execution_time": execution_time,
+                    "status": OperationResult.SUCCESS,
+                },
             )
         except Exception as e:
             execution_time = time.time() - start_time

@@ -416,7 +416,9 @@ class DockerDeploymentStrategy(DeploymentStrategy):
 
         if container_id:
             health["running"] = check_docker_container(container_id)
-            health["status"] = ServiceState.RUNNING if health["running"] else ServiceState.ERROR
+            health["status"] = (
+                ServiceState.RUNNING if health["running"] else ServiceState.ERROR
+            )
 
         return health
 
@@ -561,7 +563,11 @@ class GitDeploymentStrategy(DeploymentStrategy):
     def get_health_status(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
         """Get Git deployment health."""
         return {
-            "status": ServiceState.RUNNING if deployment_info.get("commit_hash") else ServiceState.ERROR,
+            "status": (
+                ServiceState.RUNNING
+                if deployment_info.get("commit_hash")
+                else ServiceState.ERROR
+            ),
             "commit": deployment_info.get("commit_hash", "unknown"),
             "branch": deployment_info.get("branch", "unknown"),
         }

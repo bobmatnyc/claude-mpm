@@ -464,5 +464,7 @@ class MemoryHookService(BaseService, MemoryHookInterface):
             "hook_service_available": self.hook_service is not None,
             "memory_enabled": self.is_memory_enabled(),
             "total_hooks": len(self.registered_hooks),
-            "status": ServiceState.RUNNING if self.registered_hooks else ServiceState.IDLE,
+            "status": (
+                ServiceState.RUNNING if self.registered_hooks else ServiceState.IDLE
+            ),
         }

@@ -180,7 +180,8 @@ class InteractiveSession:
             # Notify WebSocket if connected
             if self.runner.websocket_server:
                 self.runner.websocket_server.claude_status_changed(
-                    status=ServiceState.STARTING, message="Launching Claude interactive session"
+                    status=ServiceState.STARTING,
+                    message="Launching Claude interactive session",
                 )
 
             # Launch using selected method
@@ -455,7 +456,8 @@ class InteractiveSession:
         # Notify WebSocket before exec
         if self.runner.websocket_server:
             self.runner.websocket_server.claude_status_changed(
-                status=ServiceState.RUNNING, message="Claude process started (exec mode)"
+                status=ServiceState.RUNNING,
+                message="Claude process started (exec mode)",
             )
 
         # This will not return if successful

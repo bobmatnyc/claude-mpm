@@ -277,7 +277,11 @@ class InstructionReinforcementHook:
             vtype = v.violation_type.value
             violation_types[vtype] = violation_types.get(vtype, 0) + 1
 
-        status = OperationResult.ERROR if self.violation_count < 3 else OperationResult.FAILED
+        status = (
+            OperationResult.ERROR
+            if self.violation_count < 3
+            else OperationResult.FAILED
+        )
 
         return {
             "total_violations": self.violation_count,
