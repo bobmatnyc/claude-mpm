@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from ...core.enums import OutputFormat
 from ...core.logging_config import get_logger
 from ...services.agents.agent_builder import AgentBuilderService
 from ...services.agents.deployment.agent_deployment import AgentDeploymentService
@@ -35,6 +36,18 @@ class AgentManagerCommand(AgentCommand):
         if self.deployment_service is None:
             self.deployment_service = AgentDeploymentService()
         return self.deployment_service
+
+    def _get_output_format(self, args) -> str:
+        """
+        Get output format from args with enum default.
+
+        Args:
+            args: Command arguments
+
+        Returns:
+            Output format string (compatible with both enum and string usage)
+        """
+        return getattr(args, "format", OutputFormat.TEXT)
 
     def run(self, args) -> CommandResult:
         """Execute agent manager command.
@@ -122,8 +135,8 @@ class AgentManagerCommand(AgentCommand):
                 )
 
         # Format output
-        output_format = getattr(args, "format", "text")
-        if output_format == "json":
+        output_format = self._get_output_format(args)
+        if str(output_format).lower() == OutputFormat.JSON:
             return CommandResult.success_result("Agents listed", data=agents)
         output = self._format_agent_list(agents)
         return CommandResult.success_result(output)
@@ -288,8 +301,8 @@ class AgentManagerCommand(AgentCommand):
             if not agent_info:
                 return CommandResult.error_result(f"Agent '{agent_id}' not found")
 
-            output_format = getattr(args, "format", "text")
-            if output_format == "json":
+            output_format = self._get_output_format(args)
+            if str(output_format).lower() == OutputFormat.JSON:
                 return CommandResult.success_result("Agent details", data=agent_info)
             output = self._format_agent_details(agent_info)
             return CommandResult.success_result(output)
@@ -332,8 +345,8 @@ class AgentManagerCommand(AgentCommand):
         """List available agent templates."""
         templates = self.builder_service.list_available_templates()
 
-        output_format = getattr(args, "format", "text")
-        if output_format == "json":
+        output_format = self._get_output_format(args)
+        if str(output_format).lower() == OutputFormat.JSON:
             return CommandResult.success_result("Templates listed", data=templates)
         output = "Available Agent Templates:\n\n"
         for template in templates:
@@ -357,7 +370,7 @@ class AgentManagerCommand(AgentCommand):
             clean_user = not getattr(args, "project_only", False)
             dry_run = getattr(args, "dry_run", False)
             force = getattr(args, "force", False)
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
 
             # Track results
             results = {
@@ -397,7 +410,7 @@ class AgentManagerCommand(AgentCommand):
             )
 
             # Handle output based on format
-            if output_format == "json":
+            if str(output_format).lower() == OutputFormat.JSON:
                 return CommandResult.success_result("Reset completed", data=results)
 
             # Generate text output
@@ -858,9 +871,9 @@ class AgentManagerCommand(AgentCommand):
                 return CommandResult.success_result("No local agent templates found")
 
             # Format output
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
 
-            if output_format == "json":
+            if str(output_format).lower() == OutputFormat.JSON:
                 data = [
                     {
                         "id": t.agent_id,
@@ -1379,8 +1392,8 @@ def manage_agent_manager(args) -> int:
 
     if result.success:
         # Handle JSON output format
-        output_format = getattr(args, "format", "text")
-        if output_format == "json" and result.data is not None:
+        output_format = self._get_output_format(args)
+        if str(output_format).lower() == OutputFormat.JSON and result.data is not None:
             print(json.dumps(result.data, indent=2))
         elif result.message:
             print(result.message)
