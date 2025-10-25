@@ -36,6 +36,7 @@ from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
 from claude_mpm.core.base_service import BaseService
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.unified_agent_registry import UnifiedAgentRegistry as AgentRegistry
 from claude_mpm.core.unified_paths import get_path_manager
@@ -551,12 +552,14 @@ class AgentModificationTracker(BaseService):
                     errors.append(f"File does not exist: {modification.file_path}")
 
             # Update validation status
-            modification.validation_status = "failed" if errors else "passed"
+            modification.validation_status = (
+                OperationResult.FAILED if errors else OperationResult.SUCCESS
+            )
             modification.validation_errors = errors
 
         except Exception as e:
             self.logger.error(f"Validation error: {e}")
-            modification.validation_status = "error"
+            modification.validation_status = OperationResult.ERROR
             modification.validation_errors.append(str(e))
 
     async def _invalidate_agent_cache(self, agent_name: str) -> None:
