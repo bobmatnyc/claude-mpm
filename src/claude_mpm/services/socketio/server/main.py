@@ -16,6 +16,8 @@ from collections import deque
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 
+from ....core.enums import ServiceState
+
 try:
     import aiohttp
     import socketio
@@ -384,7 +386,7 @@ class SocketIOServer(SocketIOServiceInterface):
             "session_id": session_id,
             "start_time": datetime.now(timezone.utc).isoformat(),
             "agent": "pm",  # Default to PM, will be updated if delegated
-            "status": "active",
+            "status": ServiceState.RUNNING,
             "launch_method": launch_method,
             "working_dir": working_dir,
         }

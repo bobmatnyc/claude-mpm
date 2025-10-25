@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from ....core.enums import OperationResult
 from ..models import DiagnosticResult, DiagnosticStatus
 from .base_check import BaseDiagnosticCheck
 
@@ -418,7 +419,7 @@ class InstallationCheck(BaseDiagnosticCheck):
                 message=f"Missing optional dependencies: {', '.join(warnings)}",
                 details={
                     "optional_missing": warnings,
-                    "status": "partial",
+                    "status": OperationResult.PARTIAL,
                     "installed": installed,
                     "python_executable": sys.executable,
                     "in_venv": in_venv,
@@ -429,7 +430,7 @@ class InstallationCheck(BaseDiagnosticCheck):
             status=DiagnosticStatus.OK,
             message="All dependencies installed",
             details={
-                "status": "complete",
+                "status": OperationResult.COMPLETED,
                 "installed": installed,
                 "python_executable": sys.executable,
                 "in_venv": in_venv,
