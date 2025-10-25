@@ -17,6 +17,7 @@ from datetime import timezone
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService
+from claude_mpm.core.enums import OperationResult, ServiceState
 from claude_mpm.services.core.interfaces import SessionManagementInterface
 
 
@@ -223,7 +224,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
             "id": session_id,
             "config": session_config,
             "start_time": time.time(),
-            "status": "active",
+            "status": ServiceState.RUNNING,
             "type": session_config.get("type", "interactive"),
         }
 
@@ -267,7 +268,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
             return self.active_sessions[session_id].copy()
         return {
             "id": session_id,
-            "status": "not_found",
+            "status": OperationResult.ERROR,
             "error": "Session not found",
         }
 
