@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
+from claude_mpm.core.enums import ModelTier
 from claude_mpm.core.logging_utils import get_logger
 
 logger = get_logger(__name__)
@@ -54,33 +55,8 @@ class FrontmatterValidator:
     - Logging of all corrections made
     """
 
-    # Model name mappings for normalization
-    MODEL_MAPPINGS = {
-        # Sonnet variations
-        "claude-3-5-sonnet-20241022": "sonnet",
-        "claude-3-5-sonnet-20240620": "sonnet",
-        "claude-sonnet-4-20250514": "sonnet",
-        "claude-4-sonnet-20250514": "sonnet",
-        "claude-3-sonnet-20240229": "sonnet",
-        "20241022": "sonnet",  # Common shorthand - maps to current Sonnet
-        "20240620": "sonnet",  # Previous Sonnet version
-        "3.5-sonnet": "sonnet",
-        "sonnet-3.5": "sonnet",
-        "sonnet-4": "sonnet",
-        # Opus variations
-        "claude-3-opus-20240229": "opus",
-        "claude-opus-4-20250514": "opus",
-        "claude-4-opus-20250514": "opus",
-        "3-opus": "opus",
-        "opus-3": "opus",
-        "opus-4": "opus",
-        # Haiku variations
-        "claude-3-haiku-20240307": "haiku",
-        "claude-3-5-haiku-20241022": "haiku",
-        "3-haiku": "haiku",
-        "haiku-3": "haiku",
-        "haiku-3.5": "haiku",
-    }
+    # NOTE: Model normalization now handled by ModelTier.normalize()
+    # This enum-based approach replaced 26 lines of manual mappings
 
     # Tool name corrections (case normalization)
     TOOL_CORRECTIONS = {
@@ -490,7 +466,7 @@ class FrontmatterValidator:
 
     def _normalize_model(self, model: str) -> str:
         """
-        Normalize model name to standard tier (opus, sonnet, haiku).
+        Normalize model name to standard tier using ModelTier enum.
 
         Args:
             model: Original model name
@@ -498,27 +474,7 @@ class FrontmatterValidator:
         Returns:
             Normalized model tier name
         """
-        # Direct mapping check
-        if model in self.MODEL_MAPPINGS:
-            return self.MODEL_MAPPINGS[model]
-
-        # Already normalized
-        if model in self.VALID_MODELS:
-            return model
-
-        # Try case-insensitive match
-        model_lower = model.lower()
-        if model_lower in self.VALID_MODELS:
-            return model_lower
-
-        # Check if model contains tier name
-        for tier in self.VALID_MODELS:
-            if tier in model_lower:
-                return tier
-
-        # Default to sonnet if unrecognized
-        logger.warning(f"Unrecognized model '{model}', defaulting to 'sonnet'")
-        return "sonnet"
+        return ModelTier.normalize(model).value
 
     def _correct_tools(self, tools: Any) -> Tuple[List[str], List[str]]:
         """
