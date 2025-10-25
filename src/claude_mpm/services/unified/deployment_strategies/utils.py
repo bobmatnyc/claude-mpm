@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from claude_mpm.core.enums import OperationResult
+from claude_mpm.core.enums import HealthStatus, OperationResult
 from claude_mpm.core.logging_utils import get_logger
 
 logger = get_logger(__name__)
@@ -300,7 +300,7 @@ def verify_deployment_health(
             health["status"] = "unhealthy"
 
     except Exception as e:
-        health["status"] = "error"
+        health["status"] = HealthStatus.UNKNOWN
         health["errors"].append(str(e))
 
     return health

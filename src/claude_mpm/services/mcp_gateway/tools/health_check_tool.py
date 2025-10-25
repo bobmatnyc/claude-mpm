@@ -26,7 +26,7 @@ from typing import Any, Dict
 import psutil
 
 from claude_mpm.config.paths import paths
-from claude_mpm.core.enums import OperationResult, ServiceState
+from claude_mpm.core.enums import HealthStatus, OperationResult, ServiceState
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     MCPToolDefinition,
@@ -263,7 +263,7 @@ class HealthCheckTool(BaseToolAdapter):
             }
 
         except Exception as e:
-            check_result["status"] = "error"
+            check_result["status"] = HealthStatus.UNHEALTHY
             check_result["errors"].append(f"System health check failed: {e}")
 
         return check_result
@@ -306,7 +306,7 @@ class HealthCheckTool(BaseToolAdapter):
                 check_result["status"] = "unhealthy"
 
         except Exception as e:
-            check_result["status"] = "error"
+            check_result["status"] = HealthStatus.UNHEALTHY
             check_result["errors"].append(f"Gateway health check failed: {e}")
 
         return check_result
@@ -358,7 +358,7 @@ class HealthCheckTool(BaseToolAdapter):
                 check_result["errors"].append("No essential tools available")
 
         except Exception as e:
-            check_result["status"] = "error"
+            check_result["status"] = HealthStatus.UNHEALTHY
             check_result["errors"].append(f"Tools health check failed: {e}")
 
         return check_result
@@ -402,7 +402,7 @@ class HealthCheckTool(BaseToolAdapter):
             }
 
         except Exception as e:
-            check_result["status"] = "error"
+            check_result["status"] = HealthStatus.UNHEALTHY
             check_result["errors"].append(f"Config health check failed: {e}")
 
         return check_result
@@ -414,9 +414,7 @@ class HealthCheckTool(BaseToolAdapter):
 
         statuses = [check.get("status", "unknown") for check in checks.values()]
 
-        if "error" in statuses:
-            return "error"
-        if "unhealthy" in statuses:
+        if "unhealthy" in statuses or HealthStatus.UNHEALTHY in statuses:
             return "unhealthy"
         if "warning" in statuses:
             return "warning"
@@ -439,17 +437,17 @@ class HealthCheckTool(BaseToolAdapter):
 
             if status == "healthy":
                 summary["healthy"] += 1
-            elif status in ["warning", "unhealthy"]:
+            elif status in ["warning", "unhealthy", HealthStatus.UNHEALTHY]:
                 summary["warnings"] += 1
                 # Collect warning messages
                 warnings = check_result.get("warnings", [])
                 for warning in warnings:
                     summary["issues"].append(f"{check_name}: {warning}")
-            elif status == "error":
-                summary["errors"] += 1
-                # Collect error messages
-                errors = check_result.get("errors", [])
-                for error in errors:
-                    summary["issues"].append(f"{check_name}: {error}")
+                # Collect error messages if status is unhealthy
+                if status in ["unhealthy", HealthStatus.UNHEALTHY]:
+                    summary["errors"] += 1
+                    errors = check_result.get("errors", [])
+                    for error in errors:
+                        summary["issues"].append(f"{check_name}: {error}")
 
         return summary
