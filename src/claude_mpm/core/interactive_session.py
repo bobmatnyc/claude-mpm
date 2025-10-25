@@ -11,6 +11,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
+from claude_mpm.core.enums import ServiceState
 from claude_mpm.core.logger import get_logger
 
 
@@ -179,7 +180,7 @@ class InteractiveSession:
             # Notify WebSocket if connected
             if self.runner.websocket_server:
                 self.runner.websocket_server.claude_status_changed(
-                    status="starting", message="Launching Claude interactive session"
+                    status=ServiceState.STARTING, message="Launching Claude interactive session"
                 )
 
             # Launch using selected method
@@ -454,7 +455,7 @@ class InteractiveSession:
         # Notify WebSocket before exec
         if self.runner.websocket_server:
             self.runner.websocket_server.claude_status_changed(
-                status="running", message="Claude process started (exec mode)"
+                status=ServiceState.RUNNING, message="Claude process started (exec mode)"
             )
 
         # This will not return if successful
@@ -494,7 +495,7 @@ class InteractiveSession:
         # Notify WebSocket of error
         if self.runner.websocket_server:
             self.runner.websocket_server.claude_status_changed(
-                status="error", message=f"Failed to launch Claude: {error}"
+                status=ServiceState.ERROR, message=f"Failed to launch Claude: {error}"
             )
 
     def _handle_keyboard_interrupt(self) -> None:
