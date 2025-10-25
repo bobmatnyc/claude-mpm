@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.interfaces import AgentDeploymentInterface
 from claude_mpm.core.logger import get_logger
 
@@ -235,7 +236,7 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
             # Build status information
             return {
                 "service_version": "refactored-1.0.0",
-                "status": "ready",
+                "status": OperationResult.SUCCESS,
                 "templates_dir": str(self.templates_dir),
                 "base_agent_path": str(self.base_agent_path),
                 "working_directory": str(self.working_directory),
@@ -255,7 +256,7 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
             self.logger.error(f"Failed to get deployment status: {e}", exc_info=True)
             return {
                 "service_version": "refactored-1.0.0",
-                "status": "error",
+                "status": OperationResult.ERROR,
                 "error": str(e),
             }
 

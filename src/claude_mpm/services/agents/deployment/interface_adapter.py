@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.interfaces import AgentDeploymentInterface
 from claude_mpm.core.logger import get_logger
 
@@ -195,7 +196,7 @@ class AgentDeploymentInterfaceAdapter(AgentDeploymentInterface):
             # Ensure the result is a dictionary
             if not isinstance(status, dict):
                 return {
-                    "status": "unknown",
+                    "status": OperationResult.UNKNOWN,
                     "error": "Invalid status format from deployment service",
                     "interface_version": "1.0.0",
                     "adapter_used": True,
@@ -210,7 +211,7 @@ class AgentDeploymentInterfaceAdapter(AgentDeploymentInterface):
         except Exception as e:
             self.logger.error(f"Failed to get deployment status: {e}", exc_info=True)
             return {
-                "status": "error",
+                "status": OperationResult.ERROR,
                 "error": str(e),
                 "interface_version": "1.0.0",
                 "adapter_used": True,
