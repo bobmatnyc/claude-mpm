@@ -22,6 +22,7 @@ import tty
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.services.core.interfaces import SubprocessLauncherInterface
 
 
@@ -62,9 +63,9 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
         try:
             env = kwargs.get("env", self.prepare_subprocess_environment())
             self.launch_subprocess_interactive(command, env)
-            return {"status": "launched", "command": command, "method": "interactive"}
+            return {"status": OperationResult.SUCCESS, "command": command, "method": "interactive"}
         except Exception as e:
-            return {"status": "failed", "error": str(e), "command": command}
+            return {"status": OperationResult.FAILED, "error": str(e), "command": command}
 
     async def launch_subprocess_async(
         self, command: List[str], **kwargs
@@ -109,7 +110,7 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
         # For now, return unknown status
         return {
             "process_id": process_id,
-            "status": "unknown",
+            "status": OperationResult.UNKNOWN,
             "message": "Process tracking not implemented",
         }
 
