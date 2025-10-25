@@ -25,7 +25,7 @@ Features:
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from claude_mpm.core.enums import ServiceState, ValidationSeverity
+from claude_mpm.core.enums import OperationResult, ServiceState, ValidationSeverity
 from claude_mpm.core.logging_utils import get_logger
 
 from .interfaces import (
@@ -344,8 +344,8 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
 
             if not result1.success or not result2.success:
                 return {
-                    "success": False,
-                    "error": "Failed to analyze one or both targets",
+                    OperationResult.SUCCESS.value: False,
+                    OperationResult.ERROR.value: "Failed to analyze one or both targets",
                 }
 
             # Compare metrics
@@ -355,7 +355,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
             finding_diff = self._compare_findings(result1.findings, result2.findings)
 
             return {
-                "success": True,
+                OperationResult.SUCCESS.value: True,
                 "target1": str(target1),
                 "target2": str(target2),
                 "metric_differences": metric_diff,
@@ -379,7 +379,10 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
 
         except Exception as e:
             self._logger.error(f"Comparison error: {e!s}")
-            return {"success": False, "error": str(e)}
+            return {
+                OperationResult.SUCCESS.value: False,
+                OperationResult.ERROR.value: str(e),
+            }
 
     def get_recommendations(
         self, analysis_result: AnalysisResult

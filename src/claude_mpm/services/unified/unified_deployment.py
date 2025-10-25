@@ -305,7 +305,7 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
             }
 
             # Update metrics
-            if result.get("success", False):
+            if result.get(OperationResult.SUCCESS.value, False):
                 self._metrics["successful_deployments"] += 1
                 deployed_path = Path(target) / Path(source).name
 
@@ -319,7 +319,7 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
             self._metrics["failed_deployments"] += 1
             return DeploymentResult(
                 success=False,
-                message=result.get("error", "Deployment failed"),
+                message=result.get(OperationResult.ERROR.value, "Deployment failed"),
                 metadata=result,
             )
 

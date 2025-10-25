@@ -117,8 +117,10 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
             )
 
             # Ensure success field is present
-            if "success" not in results:
-                results["success"] = not bool(results.get("errors", []))
+            if OperationResult.SUCCESS.value not in results:
+                results[OperationResult.SUCCESS.value] = not bool(
+                    results.get("errors", [])
+                )
 
             self.logger.info(f"Deployment completed: {results.get('success', False)}")
             return results
@@ -126,7 +128,7 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
         except Exception as e:
             self.logger.error(f"Deployment failed: {e}", exc_info=True)
             return {
-                "success": False,
+                OperationResult.SUCCESS.value: False,
                 "error": str(e),
                 "deployed": [],
                 "updated": [],
@@ -302,7 +304,7 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
         except Exception as e:
             self.logger.error(f"Async deployment failed: {e}", exc_info=True)
             return {
-                "success": False,
+                OperationResult.SUCCESS.value: False,
                 "error": str(e),
                 "deployed": [],
                 "updated": [],
