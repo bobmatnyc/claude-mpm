@@ -25,6 +25,7 @@ Features:
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from claude_mpm.core.enums import ValidationSeverity
 from claude_mpm.core.logging_utils import get_logger
 
 from .interfaces import (
@@ -223,7 +224,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
                 return AnalysisResult(
                     success=False,
                     summary=f"No strategy available for analysis type: {analysis_type}",
-                    severity="error",
+                    severity=ValidationSeverity.ERROR,
                 )
 
             # Execute analysis using strategy
@@ -236,7 +237,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
                 return AnalysisResult(
                     success=False,
                     summary=f"Validation failed: {'; '.join(validation_errors)}",
-                    severity="error",
+                    severity=ValidationSeverity.ERROR,
                 )
 
             # Perform analysis
@@ -251,7 +252,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
                 findings=result_data.get("findings", []),
                 metrics=metrics,
                 summary=result_data.get("summary", "Analysis completed"),
-                severity=result_data.get("severity", "info"),
+                severity=result_data.get("severity", ValidationSeverity.INFO),
                 recommendations=result_data.get("recommendations", []),
             )
 
@@ -405,7 +406,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
             )
 
         # Add severity-based recommendations
-        if analysis_result.severity == "critical":
+        if analysis_result.severity == ValidationSeverity.CRITICAL:
             recommendations.insert(
                 0,
                 {
@@ -414,7 +415,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
                     "priority": "high",
                 },
             )
-        elif analysis_result.severity == "error":
+        elif analysis_result.severity == ValidationSeverity.ERROR:
             recommendations.insert(
                 0,
                 {
