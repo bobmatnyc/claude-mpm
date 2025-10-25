@@ -12,7 +12,6 @@ DESIGN DECISIONS:
 """
 
 import json
-from pathlib import Path
 from typing import List
 
 from rich.box import ROUNDED
@@ -39,7 +38,7 @@ class AgentDisplay:
         console: Console,
         agent_manager,  # SimpleAgentManager instance
         get_template_path_fn,  # Function to get template path for an agent
-        display_header_fn  # Function to display configure header
+        display_header_fn,  # Function to display configure header
     ):
         """Initialize agent display handler.
 

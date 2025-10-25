@@ -7,7 +7,6 @@ DESIGN: Pure functions for path resolution without side effects (except mkdir).
 """
 
 from pathlib import Path
-from typing import Optional
 
 
 def get_agent_template_path(
@@ -70,8 +69,7 @@ def get_config_directory(scope: str, project_dir: Path) -> Path:
     """
     if scope == "project":
         return project_dir / ".claude-mpm"
-    else:
-        return Path.home() / ".claude-mpm"
+    return Path.home() / ".claude-mpm"
 
 
 def get_agents_directory(scope: str, project_dir: Path) -> Path:

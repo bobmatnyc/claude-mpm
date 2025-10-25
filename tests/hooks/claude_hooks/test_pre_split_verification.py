@@ -157,9 +157,7 @@ class TestPreSplitVerification:
 
         # Collect module-level assignments
         module_level_assigns = [
-            node
-            for node in tree.body
-            if isinstance(node, ast.Assign) or isinstance(node, ast.AnnAssign)
+            node for node in tree.body if isinstance(node, (ast.Assign, ast.AnnAssign))
         ]
 
         # Should have minimal module-level state
@@ -182,8 +180,7 @@ class TestPreSplitVerification:
             methods = [
                 item
                 for item in cls.body
-                if isinstance(item, ast.FunctionDef)
-                and item.name.startswith("test_")
+                if isinstance(item, ast.FunctionDef) and item.name.startswith("test_")
             ]
 
             # Each test class should have 2-10 tests
@@ -212,10 +209,7 @@ class TestPreSplitVerification:
             # Walk the class body looking for references to other test classes
             for node in ast.walk(class_node):
                 if isinstance(node, ast.Name):
-                    if (
-                        node.id in test_class_names
-                        and node.id != class_node.name
-                    ):
+                    if node.id in test_class_names and node.id != class_node.name:
                         pytest.fail(
                             f"{class_node.name} references {node.id} - cross-class dependency detected"
                         )
@@ -267,9 +261,7 @@ class TestPreSplitVerification:
         ]
 
         missing_classes = set(actual_classes) - set(all_planned_classes)
-        assert (
-            not missing_classes
-        ), f"Classes not in split plan: {missing_classes}"
+        assert not missing_classes, f"Classes not in split plan: {missing_classes}"
 
         extra_classes = set(all_planned_classes) - set(actual_classes)
         assert not extra_classes, f"Classes in plan but not in file: {extra_classes}"
@@ -298,6 +290,7 @@ class TestPreSplitVerification:
                 "--co",  # Collect only, don't run
                 "-q",
             ],
+            check=False,
             capture_output=True,
             text=True,
         )

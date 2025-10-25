@@ -30,7 +30,6 @@ from claude_mpm.cli.commands.configure import (
 )
 from claude_mpm.cli.shared import CommandResult
 
-
 # ==============================================================================
 # SimpleAgentManager Unit Tests
 # ==============================================================================
@@ -342,9 +341,7 @@ class TestConfigureCommand:
             startup=False,
         )
 
-        with patch.object(
-            configure_cmd, "_list_agents_non_interactive"
-        ) as mock_list:
+        with patch.object(configure_cmd, "_list_agents_non_interactive") as mock_list:
             mock_list.return_value = CommandResult.success_result()
             result = configure_cmd.run(args)
 
@@ -637,9 +634,7 @@ class TestConfigureCommand:
         mock_discover.assert_called_once()
 
     # Test 35: _enable_agent_non_interactive - success
-    def test_enable_agent_non_interactive_success(
-        self, configure_cmd, temp_config_dir
-    ):
+    def test_enable_agent_non_interactive_success(self, configure_cmd, temp_config_dir):
         """Test enabling agent in non-interactive mode."""
         configure_cmd.agent_manager = SimpleAgentManager(temp_config_dir)
 
@@ -745,7 +740,9 @@ class TestConfigureCommandAdditionalMethods:
         assert mock_print.called
 
     # Test 45: _get_agent_template_path - project level exists
-    def test_get_agent_template_path_project(self, configure_cmd, tmp_path, temp_config_dir):
+    def test_get_agent_template_path_project(
+        self, configure_cmd, tmp_path, temp_config_dir
+    ):
         """Test getting agent template path from project level."""
         configure_cmd.project_dir = tmp_path
         configure_cmd.current_scope = "project"
@@ -762,7 +759,9 @@ class TestConfigureCommandAdditionalMethods:
         assert path == template_file
 
     # Test 46: _get_agent_template_path - user level fallback
-    def test_get_agent_template_path_user(self, configure_cmd, tmp_path, temp_config_dir):
+    def test_get_agent_template_path_user(
+        self, configure_cmd, tmp_path, temp_config_dir
+    ):
         """Test getting agent template path from user level."""
         configure_cmd.project_dir = tmp_path
         configure_cmd.current_scope = "user"
@@ -781,7 +780,9 @@ class TestConfigureCommandAdditionalMethods:
             assert path == template_file
 
     # Test 47: _get_agent_template_path - default fallback
-    def test_get_agent_template_path_default(self, configure_cmd, tmp_path, temp_config_dir):
+    def test_get_agent_template_path_default(
+        self, configure_cmd, tmp_path, temp_config_dir
+    ):
         """Test getting agent template path from default location."""
         configure_cmd.project_dir = tmp_path
         configure_cmd.current_scope = "project"

@@ -273,7 +273,9 @@ class TestConfigureGolden:
     # ============================================================================
     # GOLDEN TEST 8: Run - Non-Interactive List Agents
     # ============================================================================
-    def test_run_list_agents_golden(self, configure_cmd, temp_config_dir, mock_templates_dir):
+    def test_run_list_agents_golden(
+        self, configure_cmd, temp_config_dir, mock_templates_dir
+    ):
         """
         Capture exact behavior of non-interactive list agents.
 
@@ -388,7 +390,9 @@ class TestConfigureGolden:
     # ============================================================================
     # GOLDEN TEST 12: Export Config Flow
     # ============================================================================
-    def test_export_config_golden(self, configure_cmd, temp_config_dir, tmp_path, mock_templates_dir):
+    def test_export_config_golden(
+        self, configure_cmd, temp_config_dir, tmp_path, mock_templates_dir
+    ):
         """
         Capture exact behavior of config export.
 
@@ -451,9 +455,9 @@ class TestConfigureGolden:
             "scope": "project",
             "agents": {
                 "qa": {"enabled": True, "template_path": "/mock/qa"},
-                "engineer": {"enabled": False, "template_path": "/mock/engineer"}
+                "engineer": {"enabled": False, "template_path": "/mock/engineer"},
             },
-            "behaviors": {}
+            "behaviors": {},
         }
         import_path = tmp_path / "import_config.json"
         import_path.write_text(json.dumps(import_data))
@@ -463,9 +467,7 @@ class TestConfigureGolden:
 
         # Verify
         assert result.success is True
-        saved_states = json.loads(
-            configure_cmd.agent_manager.config_file.read_text()
-        )
+        saved_states = json.loads(configure_cmd.agent_manager.config_file.read_text())
         assert saved_states["qa"]["enabled"] is True
         assert saved_states["engineer"]["enabled"] is False
 
@@ -473,9 +475,7 @@ class TestConfigureGolden:
     # GOLDEN TEST 14: List Agents - Table Display
     # ============================================================================
     @patch("claude_mpm.cli.commands.configure.SimpleAgentManager")
-    def test_list_agents_table_display_golden(
-        self, mock_manager_class, configure_cmd
-    ):
+    def test_list_agents_table_display_golden(self, mock_manager_class, configure_cmd):
         """
         Capture exact behavior of agent table display.
 
@@ -589,9 +589,7 @@ class TestConfigureGolden:
         assert result3.success is True
 
         # Verify final state
-        states = json.loads(
-            configure_cmd.agent_manager.config_file.read_text()
-        )
+        states = json.loads(configure_cmd.agent_manager.config_file.read_text())
         assert states["engineer"]["enabled"] is False
         assert states["designer"]["enabled"] is True
 
@@ -617,9 +615,7 @@ class TestConfigureGolden:
     # ============================================================================
     # GOLDEN TEST 19: Invalid Agent Name Handling
     # ============================================================================
-    def test_invalid_agent_name_handling_golden(
-        self, configure_cmd, temp_config_dir
-    ):
+    def test_invalid_agent_name_handling_golden(self, configure_cmd, temp_config_dir):
         """
         Capture exact behavior when operating on invalid agent names.
 
@@ -637,9 +633,7 @@ class TestConfigureGolden:
         assert result.success is True
 
         # State should be created
-        states = json.loads(
-            configure_cmd.agent_manager.config_file.read_text()
-        )
+        states = json.loads(configure_cmd.agent_manager.config_file.read_text())
         assert "nonexistent_agent" in states
         assert states["nonexistent_agent"]["enabled"] is True
 

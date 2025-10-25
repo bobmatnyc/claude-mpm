@@ -15,7 +15,6 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Any, List
 
 from rich.box import ROUNDED
 from rich.console import Console
@@ -43,7 +42,7 @@ class ConfigPersistence:
         get_template_path_fn,  # Function to get template path
         display_header_fn,  # Function to display header
         current_scope: str,
-        project_dir: Path
+        project_dir: Path,
     ):
         """Initialize persistence handler.
 
