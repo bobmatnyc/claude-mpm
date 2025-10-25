@@ -74,7 +74,11 @@ class AnalyzeCodeCommand(BaseCommand):
             return f"Path is not a directory: {path}"
 
         # Validate output format
-        if args.output and str(args.output).lower() not in (OutputFormat.JSON, "tree", "stats"):
+        if args.output and str(args.output).lower() not in (
+            OutputFormat.JSON,
+            "tree",
+            "stats",
+        ):
             return f"Invalid output format: {args.output}"
 
         return None

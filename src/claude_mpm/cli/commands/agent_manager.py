@@ -1392,7 +1392,7 @@ def manage_agent_manager(args) -> int:
 
     if result.success:
         # Handle JSON output format
-        output_format = self._get_output_format(args)
+        output_format = getattr(args, "format", OutputFormat.TEXT)
         if str(output_format).lower() == OutputFormat.JSON and result.data is not None:
             print(json.dumps(result.data, indent=2))
         elif result.message:

@@ -247,7 +247,11 @@ class MCPCheck(BaseDiagnosticCheck):
                 category="MCP Server Status",
                 status=DiagnosticStatus.WARNING,
                 message="Could not determine server status",
-                details={"running": "unknown", "state": ServiceState.UNKNOWN, "error": result.stderr},
+                details={
+                    "running": "unknown",
+                    "state": ServiceState.UNKNOWN,
+                    "error": result.stderr,
+                },
             )
 
         except subprocess.TimeoutExpired:
@@ -255,14 +259,22 @@ class MCPCheck(BaseDiagnosticCheck):
                 category="MCP Server Status",
                 status=DiagnosticStatus.WARNING,
                 message="Server status check timed out",
-                details={"running": "unknown", "state": ServiceState.UNKNOWN, "error": "timeout"},
+                details={
+                    "running": "unknown",
+                    "state": ServiceState.UNKNOWN,
+                    "error": "timeout",
+                },
             )
         except Exception as e:
             return DiagnosticResult(
                 category="MCP Server Status",
                 status=DiagnosticStatus.WARNING,
                 message=f"Could not check server status: {e!s}",
-                details={"running": "unknown", "state": ServiceState.UNKNOWN, "error": str(e)},
+                details={
+                    "running": "unknown",
+                    "state": ServiceState.UNKNOWN,
+                    "error": str(e),
+                },
             )
 
     def _check_startup_verification(self) -> DiagnosticResult:
