@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 
 from ...constants import AgentCommands
+from ...core.enums import OutputFormat
 from ...services.cli.agent_cleanup_service import AgentCleanupService
 from ...services.cli.agent_dependency_service import AgentDependencyService
 from ...services.cli.agent_listing_service import AgentListingService
@@ -25,6 +26,14 @@ from ..shared import (
     CommandResult,
 )
 from ..utils import get_agent_versions_display
+
+
+def _is_structured_output(args) -> bool:
+    """Check if args specify structured output format (JSON/YAML)."""
+    if hasattr(args, "format"):
+        fmt = str(args.format).lower()
+        return fmt in (OutputFormat.JSON, OutputFormat.YAML)
+    return False
 
 
 class AgentsCommand(AgentCommand):
@@ -87,6 +96,31 @@ class AgentsCommand(AgentCommand):
             )
         return self._cleanup_service
 
+    def _get_output_format(self, args) -> str:
+        """
+        Get output format from args with enum default.
+
+        Args:
+            args: Command arguments
+
+        Returns:
+            Output format string (compatible with both enum and string usage)
+        """
+        return getattr(args, "format", OutputFormat.TEXT)
+
+    def _is_structured_format(self, format_str: str) -> bool:
+        """
+        Check if format is structured (JSON/YAML).
+
+        Args:
+            format_str: Format string to check
+
+        Returns:
+            True if format is JSON or YAML
+        """
+        fmt = str(format_str).lower()
+        return fmt in (OutputFormat.JSON, OutputFormat.YAML)
+
     def validate_args(self, args) -> str:
         """Validate command arguments."""
         # Most agent commands are optional, so basic validation
@@ -145,14 +179,14 @@ class AgentsCommand(AgentCommand):
         try:
             agent_versions = get_agent_versions_display()
 
-            output_format = getattr(args, "format", "text")
-            if output_format in ["json", "yaml"]:
+            output_format = self._get_output_format(args)
+            if self._is_structured_format(output_format):
                 # Parse the agent versions display into structured data
                 if agent_versions:
                     data = {"agent_versions": agent_versions, "has_agents": True}
                     formatted = (
                         self._formatter.format_as_json(data)
-                        if output_format == "json"
+                        if str(output_format).lower() == OutputFormat.JSON
                         else self._formatter.format_as_yaml(data)
                     )
                     print(formatted)
@@ -166,7 +200,7 @@ class AgentsCommand(AgentCommand):
                 }
                 formatted = (
                     self._formatter.format_as_json(data)
-                    if output_format == "json"
+                    if str(output_format).lower() == OutputFormat.JSON
                     else self._formatter.format_as_yaml(data)
                 )
                 print(formatted)
@@ -188,7 +222,7 @@ class AgentsCommand(AgentCommand):
     def _list_agents(self, args) -> CommandResult:
         """List available or deployed agents."""
         try:
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
 
             if hasattr(args, "by_tier") and args.by_tier:
                 return self._list_agents_by_tier(args)
@@ -199,7 +233,7 @@ class AgentsCommand(AgentCommand):
             # Default: show usage
             usage_msg = "Use --system to list system agents, --deployed to list deployed agents, or --by-tier to group by precedence"
 
-            if output_format in ["json", "yaml"]:
+            if self._is_structured_format(output_format):
                 return CommandResult.error_result(
                     "No list option specified",
                     data={
@@ -220,7 +254,7 @@ class AgentsCommand(AgentCommand):
             verbose = getattr(args, "verbose", False)
             agents = self.listing_service.list_system_agents(verbose=verbose)
 
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
             quiet = getattr(args, "quiet", False)
 
             # Convert AgentInfo objects to dicts for formatter
@@ -259,7 +293,7 @@ class AgentsCommand(AgentCommand):
                 verbose=verbose
             )
 
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
             quiet = getattr(args, "quiet", False)
 
             # Convert AgentInfo objects to dicts for formatter
@@ -284,7 +318,7 @@ class AgentsCommand(AgentCommand):
             print(formatted)
 
             # Add warnings for text output
-            if output_format == "text" and warnings:
+            if str(output_format).lower() == OutputFormat.TEXT and warnings:
                 print("\nWarnings:")
                 for warning in warnings:
                     print(f"  ⚠️  {warning}")
@@ -306,7 +340,7 @@ class AgentsCommand(AgentCommand):
         """List agents grouped by tier/precedence."""
         try:
             tier_info = self.listing_service.list_agents_by_tier()
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
 
             # Convert to format expected by formatter
             agents_by_tier = {
@@ -389,7 +423,7 @@ class AgentsCommand(AgentCommand):
                 or project_result.get("target_dir"),
             }
 
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
             verbose = getattr(args, "verbose", False)
 
             formatted = self._formatter.format_deployment_result(
@@ -415,7 +449,7 @@ class AgentsCommand(AgentCommand):
         try:
             result = self.cleanup_service.clean_deployed_agents()
 
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
             dry_run = False  # Regular clean is not a dry run
 
             formatted = self._formatter.format_cleanup_result(
@@ -453,7 +487,7 @@ class AgentsCommand(AgentCommand):
                     f"Could not retrieve details for agent '{agent_name}'"
                 )
 
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
             verbose = getattr(args, "verbose", False)
 
             formatted = self._formatter.format_agent_details(
@@ -475,7 +509,7 @@ class AgentsCommand(AgentCommand):
             dry_run = getattr(args, "dry_run", False)
             agent_name = getattr(args, "agent_name", None)
             fix_all = getattr(args, "all", False)
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
 
             # Route to appropriate handler based on input
             if fix_all:
@@ -492,7 +526,7 @@ class AgentsCommand(AgentCommand):
         """Fix all agents' frontmatter issues."""
         result = self.validation_service.fix_all_agents(dry_run=dry_run)
 
-        if output_format in ["json", "yaml"]:
+        if self._is_structured_format(output_format):
             self._print_structured_output(result, output_format)
         else:
             self._print_all_agents_text_output(result, dry_run)
@@ -513,7 +547,7 @@ class AgentsCommand(AgentCommand):
                 result.get("error", "Failed to fix agent")
             )
 
-        if output_format in ["json", "yaml"]:
+        if self._is_structured_format(output_format):
             self._print_structured_output(result, output_format)
         else:
             self._print_single_agent_text_output(agent_name, result, dry_run)
@@ -524,7 +558,7 @@ class AgentsCommand(AgentCommand):
     def _handle_no_agent_specified(self, output_format: str) -> CommandResult:
         """Handle case where no agent is specified."""
         usage_msg = "Please specify an agent name or use --all to fix all agents\nUsage: claude-mpm agents fix [agent_name] [--dry-run] [--all]"
-        if output_format in ["json", "yaml"]:
+        if self._is_structured_format(output_format):
             return CommandResult.error_result(
                 "No agent specified", data={"usage": usage_msg}
             )
@@ -535,7 +569,7 @@ class AgentsCommand(AgentCommand):
         """Print result in JSON or YAML format."""
         formatted = (
             self._formatter.format_as_json(result)
-            if output_format == "json"
+            if str(output_format).lower() == OutputFormat.JSON
             else self._formatter.format_as_yaml(result)
         )
         print(formatted)
@@ -718,7 +752,7 @@ class AgentsCommand(AgentCommand):
     def _list_agent_dependencies(self, args) -> CommandResult:
         """List agent dependencies."""
         try:
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
             result = self.dependency_service.list_dependencies(
                 format_type=output_format
             )
@@ -730,7 +764,7 @@ class AgentsCommand(AgentCommand):
             if output_format == "pip":
                 for dep in result["dependencies"]:
                     print(dep)
-            elif output_format == "json":
+            elif str(output_format).lower() == OutputFormat.JSON:
                 print(json.dumps(result["data"], indent=2))
             else:  # text format
                 print("=" * 60)
@@ -888,7 +922,7 @@ class AgentsCommand(AgentCommand):
                 agents_dir=agents_dir, dry_run=dry_run
             )
 
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
 
             formatted = self._formatter.format_cleanup_result(
                 results, output_format=output_format, dry_run=dry_run
@@ -1425,7 +1459,7 @@ def manage_agents(args):
     result = command.execute(args)
 
     # Print result if structured output format is requested
-    if hasattr(args, "format") and args.format in ["json", "yaml"]:
+    if _is_structured_output(args):
         command.print_result(result, args)
 
     return result.exit_code
