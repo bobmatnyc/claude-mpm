@@ -36,6 +36,7 @@ from .configure_agent_display import AgentDisplay
 from .configure_behavior_manager import BehaviorManager
 from .configure_hook_manager import HookManager
 from .configure_models import AgentConfig
+from .configure_navigation import ConfigNavigation
 from .configure_paths import get_agent_template_path, get_config_directory
 from .configure_persistence import ConfigPersistence
 from .configure_validators import validate_args as validate_configure_args
@@ -56,6 +57,7 @@ class ConfigureCommand(BaseCommand):
         self.behavior_manager = None  # Initialized when scope is set
         self._agent_display = None  # Lazy-initialized
         self._persistence = None  # Lazy-initialized
+        self._navigation = None  # Lazy-initialized
 
     def validate_args(self, args) -> Optional[str]:
         """Validate command arguments."""
@@ -90,6 +92,15 @@ class ConfigureCommand(BaseCommand):
                 self.project_dir
             )
         return self._persistence
+
+    @property
+    def navigation(self) -> ConfigNavigation:
+        """Lazy-initialize navigation handler."""
+        if self._navigation is None:
+            self._navigation = ConfigNavigation(self.console, self.project_dir)
+            # Sync scope from main command
+            self._navigation.current_scope = self.current_scope
+        return self._navigation
 
     def run(self, args) -> CommandResult:
         """Execute the configure command."""
@@ -231,69 +242,15 @@ class ConfigureCommand(BaseCommand):
 
     def _display_header(self) -> None:
         """Display the TUI header."""
-        self.console.clear()
-
-        # Get version for display
-        from claude_mpm import __version__
-
-        # Create header panel
-        header_text = Text()
-        header_text.append("Claude MPM ", style="bold cyan")
-        header_text.append("Configuration Interface", style="bold white")
-        header_text.append(f"\nv{__version__}", style="dim cyan")
-
-        scope_text = Text(f"Scope: {self.current_scope.upper()}", style="yellow")
-        dir_text = Text(f"Directory: {self.project_dir}", style="dim")
-
-        header_content = Columns([header_text], align="center")
-        subtitle_content = f"{scope_text} | {dir_text}"
-
-        header_panel = Panel(
-            header_content,
-            subtitle=subtitle_content,
-            box=ROUNDED,
-            style="blue",
-            padding=(1, 2),
-        )
-
-        self.console.print(header_panel)
-        self.console.print()
+        # Sync scope to navigation before display
+        self.navigation.current_scope = self.current_scope
+        self.navigation.display_header()
 
     def _show_main_menu(self) -> str:
         """Show the main menu and get user choice."""
-        menu_items = [
-            ("1", "Agent Management", "Enable/disable agents and customize settings"),
-            ("2", "Template Editing", "Edit agent JSON templates"),
-            ("3", "Behavior Files", "Manage identity and workflow configurations"),
-            (
-                "4",
-                "Startup Configuration",
-                "Configure MCP services and agents to start",
-            ),
-            ("5", "Switch Scope", f"Current: {self.current_scope}"),
-            ("6", "Version Info", "Display MPM and Claude versions"),
-            ("l", "Save & Launch", "Save all changes and start Claude MPM"),
-            ("q", "Quit", "Exit without launching"),
-        ]
-
-        table = Table(show_header=False, box=None, padding=(0, 2))
-        table.add_column("Key", style="cyan bold", width=4)  # Bolder shortcuts
-        table.add_column("Option", style="bold white", width=24)  # Wider for titles
-        table.add_column("Description", style="white")  # Better contrast
-
-        for key, option, desc in menu_items:
-            table.add_row(f"\\[{key}]", option, desc)
-
-        menu_panel = Panel(
-            table, title="[bold]Main Menu[/bold]", box=ROUNDED, style="green"
-        )
-
-        self.console.print(menu_panel)
-        self.console.print()
-
-        choice = Prompt.ask("[bold cyan]Select an option[/bold cyan]", default="q")
-        # Strip whitespace to handle leading/trailing spaces
-        return choice.strip().lower()
+        # Sync scope to navigation before display
+        self.navigation.current_scope = self.current_scope
+        return self.navigation.show_main_menu()
 
     def _manage_agents(self) -> None:
         """Agent management interface."""
@@ -1421,26 +1378,13 @@ class ConfigureCommand(BaseCommand):
 
     def _launch_claude_mpm(self) -> None:
         """Launch Claude MPM run command, replacing current process."""
-        self.console.print("\n[bold cyan]═══ Launching Claude MPM ═══[/bold cyan]\n")
-
-        try:
-            # Use execvp to replace the current process with claude-mpm run
-            # This ensures a clean transition from configurator to Claude MPM
-            os.execvp("claude-mpm", ["claude-mpm", "run"])
-        except Exception as e:
-            self.console.print(
-                f"[yellow]⚠ Could not launch Claude MPM automatically: {e}[/yellow]"
-            )
-            self.console.print(
-                "[cyan]→ Please run 'claude-mpm run' manually to start.[/cyan]"
-            )
-            Prompt.ask("\nPress Enter to exit")
+        self.navigation.launch_claude_mpm()
 
     def _switch_scope(self) -> None:
         """Switch between project and user scope."""
-        self.current_scope = "user" if self.current_scope == "project" else "project"
-        self.console.print(f"[green]Switched to {self.current_scope} scope[/green]")
-        Prompt.ask("Press Enter to continue")
+        self.navigation.switch_scope()
+        # Sync scope back from navigation
+        self.current_scope = self.navigation.current_scope
 
     def _show_version_info_interactive(self) -> None:
         """Show version information in interactive mode."""
