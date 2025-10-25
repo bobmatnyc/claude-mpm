@@ -17,7 +17,7 @@ class TestHelperMethods(TestAgentDeploymentService):
     def test_get_agent_tools(self, service):
         """Test getting agent-specific tools."""
         with patch(
-            "claude_mpm.services.agents.deployment.agent_deployment.AgentConfigProvider"
+            "claude_mpm.services.agents.deployment.agent_config_provider.AgentConfigProvider"
         ) as mock_provider:
             mock_provider.get_agent_tools.return_value = ["tool1", "tool2"]
 
@@ -28,7 +28,7 @@ class TestHelperMethods(TestAgentDeploymentService):
     def test_get_agent_specific_config(self, service):
         """Test getting agent-specific configuration."""
         with patch(
-            "claude_mpm.services.agents.deployment.agent_deployment.AgentConfigProvider"
+            "claude_mpm.services.agents.deployment.agent_config_provider.AgentConfigProvider"
         ) as mock_provider:
             expected_config = {"setting1": "value1", "setting2": "value2"}
             mock_provider.get_agent_specific_config.return_value = expected_config
@@ -43,7 +43,7 @@ class TestHelperMethods(TestAgentDeploymentService):
         results = {"deployed": [], "updated": [], "skipped": [], "errors": []}
 
         with patch(
-            "claude_mpm.services.agents.deployment.agent_deployment.SystemInstructionsDeployer"
+            "claude_mpm.services.agents.deployment.system_instructions_deployer.SystemInstructionsDeployer"
         ) as mock_deployer_class:
             mock_deployer = Mock()
             mock_deployer_class.return_value = mock_deployer
@@ -57,7 +57,7 @@ class TestHelperMethods(TestAgentDeploymentService):
     def test_deploy_system_instructions_explicit(self, service, tmp_path):
         """Test explicit system instructions deployment."""
         with patch(
-            "claude_mpm.services.agents.deployment.agent_deployment.SystemInstructionsDeployer"
+            "claude_mpm.services.agents.deployment.system_instructions_deployer.SystemInstructionsDeployer"
         ) as mock_deployer_class:
             mock_deployer = Mock()
             mock_deployer_class.return_value = mock_deployer
