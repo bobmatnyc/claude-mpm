@@ -70,6 +70,9 @@ class OperationResult(StrEnum):
     PARTIAL = "partial"
     """Operation completed partially."""
 
+    ROLLBACK = "rollback"
+    """Operation rolled back due to failure or cancellation."""
+
     UNKNOWN = "unknown"
     """Operation result is unknown or indeterminate."""
 
@@ -179,6 +182,41 @@ class ValidationSeverity(StrEnum):
     """Debug-level information for troubleshooting."""
 
 
+class HealthStatus(StrEnum):
+    """
+    Health check status codes for services and components.
+
+    Replaces health check status strings throughout monitoring and diagnostics.
+    Used in: Health checks, monitoring, service diagnostics, uptime tracking.
+
+    Migration Priority: MEDIUM (Week 3)
+    Coverage: ~2% of all magic strings
+
+    Notes:
+        - Added in Phase 3C for comprehensive service health monitoring
+        - Distinct from ServiceState (operational) and OperationResult (transactional)
+        - Maps to standard health check patterns (healthy/unhealthy/degraded)
+    """
+
+    HEALTHY = "healthy"
+    """Component is functioning normally."""
+
+    UNHEALTHY = "unhealthy"
+    """Component is not functioning correctly."""
+
+    DEGRADED = "degraded"
+    """Component is functioning with reduced capability."""
+
+    UNKNOWN = "unknown"
+    """Health status cannot be determined."""
+
+    CHECKING = "checking"
+    """Health check is currently in progress."""
+
+    TIMEOUT = "timeout"
+    """Health check exceeded time limit."""
+
+
 class ModelTier(StrEnum):
     """
     Claude model tier classifications and identifiers.
@@ -272,31 +310,75 @@ class AgentCategory(StrEnum):
 
     Migration Priority: MEDIUM (Week 3)
     Coverage: ~3% of all magic strings
+
+    Notes:
+        - Expanded in Phase 3C to include all template categories
+        - Maps to actual usage in agent JSON templates
+        - Supports both legacy and new category schemes
     """
 
-    RESEARCH = "research"
-    """Research and analysis agents."""
-
+    # Core Engineering Categories
     ENGINEERING = "engineering"
     """Software engineering and implementation agents."""
 
+    # Research and Analysis
+    RESEARCH = "research"
+    """Research and analysis agents."""
+
+    ANALYSIS = "analysis"
+    """Code analysis and architectural review agents."""
+
+    # Quality and Testing
+    QUALITY = "quality"
+    """Quality assurance and testing agents (replaces QA)."""
+
     QA = "qa"
-    """Quality assurance and testing agents."""
+    """Legacy quality assurance category (use QUALITY for new agents)."""
 
     SECURITY = "security"
     """Security analysis and vulnerability assessment agents."""
 
-    DOCUMENTATION = "documentation"
-    """Documentation and technical writing agents."""
-
+    # Operations and Infrastructure
     OPERATIONS = "operations"
     """DevOps and infrastructure management agents."""
 
+    INFRASTRUCTURE = "infrastructure"
+    """Infrastructure provisioning and cloud management agents."""
+
+    # Documentation and Content
+    DOCUMENTATION = "documentation"
+    """Documentation and technical writing agents."""
+
+    CONTENT = "content"
+    """Content creation, optimization, and management agents."""
+
+    # Data and Analytics
     DATA = "data"
     """Data engineering and analytics agents."""
 
+    # Specialized Functions
+    OPTIMIZATION = "optimization"
+    """Performance and resource optimization agents."""
+
+    SPECIALIZED = "specialized"
+    """Specialized single-purpose agents."""
+
+    SYSTEM = "system"
+    """System-level framework agents."""
+
+    # Management and Coordination
+    PROJECT_MANAGEMENT = "project-management"
+    """Project management and coordination agents."""
+
+    PRODUCT = "product"
+    """Product ownership and strategy agents."""
+
+    # Legacy and General
     VERSION_CONTROL = "version_control"
     """Version control and release management agents."""
+
+    DESIGN = "design"
+    """UI/UX design and frontend agents."""
 
     GENERAL = "general"
     """General-purpose agents without specific specialization."""
@@ -304,16 +386,11 @@ class AgentCategory(StrEnum):
     CUSTOM = "custom"
     """User-defined custom agent categories."""
 
-    PROJECT_MANAGEMENT = "project_management"
-    """Project management and coordination agents."""
-
-    DESIGN = "design"
-    """UI/UX design and frontend agents."""
-
 
 # Export all enums for convenient access
 __all__ = [
     "AgentCategory",
+    "HealthStatus",
     "ModelTier",
     "OperationResult",
     "OutputFormat",
