@@ -31,6 +31,7 @@ import time
 from pathlib import Path
 from typing import Optional, Tuple
 
+from ...core.enums import OperationResult
 from ...core.logging_config import get_logger
 
 
@@ -906,7 +907,7 @@ class DaemonManager:
                     with self.startup_status_file.open() as f:
                         status = f.read().strip()
 
-                    if status == "success":
+                    if status == OperationResult.SUCCESS:
                         # Cleanup status file
                         Path(self.startup_status_file).unlink(missing_ok=True)
                         return True
@@ -936,7 +937,7 @@ class DaemonManager:
                 # Don't check if file exists - we need to write to it regardless
                 # The parent created it and is waiting for us to update it
                 with self.startup_status_file.open("w") as f:
-                    f.write("success")
+                    f.write(OperationResult.SUCCESS)
                     f.flush()  # Ensure it's written immediately
                     os.fsync(f.fileno())  # Force write to disk
             except Exception:

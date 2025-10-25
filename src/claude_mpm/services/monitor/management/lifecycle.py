@@ -23,6 +23,7 @@ import time
 from pathlib import Path
 from typing import Optional, Tuple
 
+from ....core.enums import OperationResult
 from ....core.logging_config import get_logger
 
 
@@ -388,7 +389,7 @@ class DaemonLifecycle:
                     with self.startup_status_file.open() as f:
                         status = f.read().strip()
 
-                    if status == "success":
+                    if status == OperationResult.SUCCESS:
                         # Child started successfully
                         self._cleanup_status_file()
                         return True
@@ -438,7 +439,7 @@ class DaemonLifecycle:
         if self.startup_status_file:
             try:
                 with self.startup_status_file.open("w") as f:
-                    f.write("success")
+                    f.write(OperationResult.SUCCESS)
             except Exception as e:
                 self.logger.error(f"Failed to report startup success: {e}")
 
