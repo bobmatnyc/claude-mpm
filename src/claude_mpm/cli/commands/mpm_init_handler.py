@@ -8,6 +8,8 @@ from pathlib import Path
 
 from rich.console import Console
 
+from claude_mpm.core.enums import OperationResult
+
 console = Console()
 
 
@@ -102,7 +104,7 @@ def manage_mpm_init(args):
         result = command.initialize_project(**init_params)
 
         # Return appropriate exit code
-        if result.get("status") == "success":
+        if result.get("status") == OperationResult.SUCCESS:
             return 0
         if result.get("status") == "cancelled":
             return 130  # User cancelled

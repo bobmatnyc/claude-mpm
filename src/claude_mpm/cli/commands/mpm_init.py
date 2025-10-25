@@ -157,7 +157,7 @@ class MPMInitCommand:
                 pre_check_result = self._run_pre_initialization_checks(
                     organize_files, skip_archive, has_existing
                 )
-                if pre_check_result.get("status") == "error":
+                if pre_check_result.get("status") == OperationResult.ERROR:
                     return pre_check_result
 
             # Build the delegation prompt
@@ -200,7 +200,7 @@ class MPMInitCommand:
                 progress.update(task, description=complete_desc)
 
             # Post-processing for update mode
-            if update_mode and result.get("status") == "success":
+            if update_mode and result.get("status") == OperationResult.SUCCESS:
                 self._handle_update_post_processing()
 
             return result
@@ -1685,7 +1685,7 @@ Keep it concise (<1000 words) but actionable.
 
     def _display_results(self, result: Dict, verbose: bool):
         """Display initialization results."""
-        if result["status"] == "success":
+        if result["status"] == OperationResult.SUCCESS:
             console.print("\n[green]✅ Project Initialization Complete![/green]\n")
 
             # Display files created
@@ -1885,7 +1885,7 @@ def mpm_init(
         )
 
         # Exit with appropriate code
-        if result["status"] == "success":
+        if result["status"] == OperationResult.SUCCESS:
             sys.exit(0)
         else:
             sys.exit(1)

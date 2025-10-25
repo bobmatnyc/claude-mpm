@@ -302,7 +302,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
                 file_result = self._analyze_file(file_path, options)
                 if (
-                    file_result["status"] == "success"
+                    file_result["status"] == OperationResult.SUCCESS
                     and file_result["vulnerabilities"]
                 ):
                     results["files"].append(file_result)
@@ -646,7 +646,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
         """Extract key metrics from analysis results."""
         metrics = {}
 
-        if analysis_result.get("status") != "success":
+        if analysis_result.get("status") != OperationResult.SUCCESS:
             return metrics
 
         if analysis_result.get("type") == "file":
