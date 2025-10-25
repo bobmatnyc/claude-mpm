@@ -8,9 +8,9 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
+from conftest import TestAgentDeploymentService
 
 from claude_mpm.core.exceptions import AgentDeploymentError
-from conftest import TestAgentDeploymentService
 
 
 class TestErrorHandling(TestAgentDeploymentService):

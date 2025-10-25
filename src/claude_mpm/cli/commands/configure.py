@@ -12,22 +12,14 @@ DESIGN DECISIONS:
 """
 
 import json
-import os
-import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from rich.box import ROUNDED
-from rich.columns import Columns
 from rich.console import Console
-from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
-from rich.syntax import Syntax
-from rich.table import Table
 from rich.text import Text
 
 from ...core.config import Config
-from ...services.mcp_config_manager import MCPConfigManager
 from ...services.version_service import VersionService
 from ...utils.console import console as default_console
 from ..shared import BaseCommand, CommandResult
@@ -37,12 +29,13 @@ from .configure_behavior_manager import BehaviorManager
 from .configure_hook_manager import HookManager
 from .configure_models import AgentConfig
 from .configure_navigation import ConfigNavigation
-from .configure_paths import get_agent_template_path, get_config_directory
 from .configure_persistence import ConfigPersistence
 from .configure_startup_manager import StartupManager
 from .configure_template_editor import TemplateEditor
-from .configure_validators import validate_args as validate_configure_args
-from .configure_validators import parse_id_selection
+from .configure_validators import (
+    parse_id_selection,
+    validate_args as validate_configure_args,
+)
 
 
 class ConfigureCommand(BaseCommand):
@@ -72,12 +65,14 @@ class ConfigureCommand(BaseCommand):
         """Lazy-initialize agent display handler."""
         if self._agent_display is None:
             if self.agent_manager is None:
-                raise RuntimeError("agent_manager must be initialized before agent_display")
+                raise RuntimeError(
+                    "agent_manager must be initialized before agent_display"
+                )
             self._agent_display = AgentDisplay(
                 self.console,
                 self.agent_manager,
                 self._get_agent_template_path,
-                self._display_header
+                self._display_header,
             )
         return self._agent_display
 
@@ -93,7 +88,7 @@ class ConfigureCommand(BaseCommand):
                 self._get_agent_template_path,
                 self._display_header,
                 self.current_scope,
-                self.project_dir
+                self.project_dir,
             )
         return self._persistence
 
@@ -111,12 +106,11 @@ class ConfigureCommand(BaseCommand):
         """Lazy-initialize template editor."""
         if self._template_editor is None:
             if self.agent_manager is None:
-                raise RuntimeError("agent_manager must be initialized before template_editor")
+                raise RuntimeError(
+                    "agent_manager must be initialized before template_editor"
+                )
             self._template_editor = TemplateEditor(
-                self.console,
-                self.agent_manager,
-                self.current_scope,
-                self.project_dir
+                self.console, self.agent_manager, self.current_scope, self.project_dir
             )
         return self._template_editor
 
@@ -125,13 +119,15 @@ class ConfigureCommand(BaseCommand):
         """Lazy-initialize startup manager."""
         if self._startup_manager is None:
             if self.agent_manager is None:
-                raise RuntimeError("agent_manager must be initialized before startup_manager")
+                raise RuntimeError(
+                    "agent_manager must be initialized before startup_manager"
+                )
             self._startup_manager = StartupManager(
                 self.agent_manager,
                 self.console,
                 self.current_scope,
                 self.project_dir,
-                self._display_header
+                self._display_header,
             )
         return self._startup_manager
 

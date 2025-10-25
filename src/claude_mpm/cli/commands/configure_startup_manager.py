@@ -22,7 +22,7 @@ DESIGN DECISIONS:
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict
 
 from rich.box import ROUNDED
 from rich.console import Console
@@ -33,7 +33,6 @@ from rich.text import Text
 from ...core.config import Config
 from ...services.mcp_config_manager import MCPConfigManager
 from .agent_state_manager import SimpleAgentManager
-from .configure_models import AgentConfig
 from .configure_validators import parse_id_selection
 
 
@@ -55,7 +54,7 @@ class StartupManager:
         console: Console,
         current_scope: str,
         project_dir: Path,
-        display_header_callback: callable
+        display_header_callback: callable,
     ):
         """Initialize startup manager.
 
