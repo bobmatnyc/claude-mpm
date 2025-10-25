@@ -74,8 +74,9 @@ class TestOperationResult:
     def test_iteration(self):
         """Verify enum can be iterated."""
         results = list(OperationResult)
-        assert len(results) == 12
+        assert len(results) == 13  # Updated in Phase 3C (added ROLLBACK)
         assert OperationResult.SUCCESS in results
+        assert OperationResult.ROLLBACK in results
 
 
 class TestOutputFormat:
@@ -323,21 +324,37 @@ class TestAgentCategory:
     def test_all_categories_exist(self):
         """Verify all expected agent categories are defined."""
         expected_categories = [
-            "research",
+            # Core categories
             "engineering",
+            "research",
+            "analysis",
+            # Quality and Testing
+            "quality",
             "qa",
             "security",
-            "documentation",
+            # Operations
             "operations",
+            "infrastructure",
+            # Documentation and Content
+            "documentation",
+            "content",
+            # Data
             "data",
+            # Specialized
+            "optimization",
+            "specialized",
+            "system",
+            # Management
+            "project-management",
+            "product",
+            # Legacy and General
             "version_control",
+            "design",
             "general",
             "custom",
-            "project_management",
-            "design",
         ]
         for category in expected_categories:
-            assert any(c.value == category for c in AgentCategory)
+            assert any(c.value == category for c in AgentCategory), f"Category '{category}' not found in AgentCategory enum"
 
     def test_core_categories(self):
         """Test core agent categories exist."""
@@ -383,7 +400,7 @@ class TestAgentCategory:
     def test_iteration(self):
         """Verify enum can be iterated."""
         categories = list(AgentCategory)
-        assert len(categories) == 12
+        assert len(categories) == 20  # Updated in Phase 3C (expanded from 12 to 20 categories)
 
 
 class TestEnumInteroperability:
