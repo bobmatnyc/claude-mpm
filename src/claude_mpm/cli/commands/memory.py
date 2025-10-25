@@ -16,11 +16,20 @@ import os
 from pathlib import Path
 from typing import Any, Dict
 
+from ...core.enums import OutputFormat
 from ...core.shared.config_loader import ConfigLoader
 from ...services.agents.memory import AgentMemoryManager
 from ...services.cli.memory_crud_service import MemoryCRUDService
 from ...services.cli.memory_output_formatter import MemoryOutputFormatter
 from ..shared.base_command import CommandResult, MemoryCommand
+
+
+def _is_structured_output(args) -> bool:
+    """Check if args specify structured output format (JSON/YAML)."""
+    if hasattr(args, "format"):
+        fmt = str(args.format).lower()
+        return fmt in (OutputFormat.JSON, OutputFormat.YAML)
+    return False
 
 
 class MemoryManagementCommand(MemoryCommand):
@@ -59,6 +68,31 @@ class MemoryManagementCommand(MemoryCommand):
         if self._crud_service is None:
             self._crud_service = MemoryCRUDService(memory_manager=self.memory_manager)
         return self._crud_service
+
+    def _get_output_format(self, args) -> str:
+        """
+        Get output format from args with enum default.
+
+        Args:
+            args: Command arguments
+
+        Returns:
+            Output format string (compatible with both enum and string usage)
+        """
+        return getattr(args, "format", OutputFormat.TEXT)
+
+    def _is_structured_format(self, format_str: str) -> bool:
+        """
+        Check if format is structured (JSON/YAML).
+
+        Args:
+            format_str: Format string to check
+
+        Returns:
+            True if format is JSON or YAML
+        """
+        fmt = str(format_str).lower()
+        return fmt in (OutputFormat.JSON, OutputFormat.YAML)
 
     def validate_args(self, args) -> str:
         """Validate command arguments."""
@@ -104,8 +138,8 @@ class MemoryManagementCommand(MemoryCommand):
             available_commands = list(command_map.keys())
             error_msg = f"Unknown memory command: {args.memory_command}"
 
-            output_format = getattr(args, "format", "text")
-            if output_format in ["json", "yaml"]:
+            output_format = self._get_output_format(args)
+            if self._is_structured_format(output_format):
                 return CommandResult.error_result(
                     error_msg, data={"available_commands": available_commands}
                 )
@@ -120,9 +154,9 @@ class MemoryManagementCommand(MemoryCommand):
     def _show_status(self, args) -> CommandResult:
         """Show memory system status."""
         try:
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
 
-            if output_format in ["json", "yaml"]:
+            if self._is_structured_format(output_format):
                 # Structured output
                 status_data = self._get_status_data()
                 return CommandResult.success_result(
@@ -175,7 +209,7 @@ class MemoryManagementCommand(MemoryCommand):
     def _show_memories(self, args) -> CommandResult:
         """Show agent memories."""
         try:
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
             agent_id = getattr(args, "agent_id", None)
             raw_output = getattr(args, "raw", False)
 
@@ -245,7 +279,7 @@ class MemoryManagementCommand(MemoryCommand):
     def _init_memory(self, args) -> CommandResult:
         """Initialize project-specific memories."""
         try:
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
 
             # Use CRUD service for initialization task
             result = self.crud_service.init_project_memories()
@@ -255,7 +289,7 @@ class MemoryManagementCommand(MemoryCommand):
                     result.get("error", "Failed to create initialization task")
                 )
 
-            if output_format in ["json", "yaml"]:
+            if self._is_structured_format(output_format):
                 # Return structured task data
                 return CommandResult.success_result(
                     "Memory initialization task created", data=result.get("task_data")
@@ -293,7 +327,7 @@ class MemoryManagementCommand(MemoryCommand):
     def _add_learning(self, args) -> CommandResult:
         """Add learning to agent memory."""
         try:
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
 
             # Extract arguments
             agent_id = getattr(args, "agent_id", None)
@@ -313,7 +347,7 @@ class MemoryManagementCommand(MemoryCommand):
                     result.get("error", "Failed to add learning")
                 )
 
-            if output_format in ["json", "yaml"]:
+            if self._is_structured_format(output_format):
                 # Return structured result
                 return CommandResult.success_result(
                     "Learning added to agent memory", data=result
@@ -333,7 +367,7 @@ class MemoryManagementCommand(MemoryCommand):
     def _clean_memory(self, args) -> CommandResult:
         """Clean up old/unused memory files."""
         try:
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
             agent_id = getattr(args, "agent_id", None)
             dry_run = getattr(args, "dry_run", True)
 
@@ -343,7 +377,7 @@ class MemoryManagementCommand(MemoryCommand):
             if not result.get("success"):
                 return CommandResult.error_result(result.get("error", "Cleanup failed"))
 
-            if output_format in ["json", "yaml"]:
+            if self._is_structured_format(output_format):
                 # Return structured cleanup results
                 return CommandResult.success_result(
                     result.get("message", "Memory cleanup completed"), data=result
@@ -384,10 +418,10 @@ class MemoryManagementCommand(MemoryCommand):
     def _optimize_memory(self, args) -> CommandResult:
         """Optimize memory files."""
         try:
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
             agent_id = getattr(args, "agent_id", None)
 
-            if output_format in ["json", "yaml"]:
+            if self._is_structured_format(output_format):
                 # For structured output, perform optimization and return results
                 if agent_id:
                     result = self.memory_manager.optimize_memory(agent_id)
@@ -419,9 +453,9 @@ class MemoryManagementCommand(MemoryCommand):
     def _build_memory(self, args) -> CommandResult:
         """Build agent memories from project documentation."""
         try:
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
 
-            if output_format in ["json", "yaml"]:
+            if self._is_structured_format(output_format):
                 # For structured output, return build results
                 build_data = {
                     "built_memories": [],
@@ -442,9 +476,9 @@ class MemoryManagementCommand(MemoryCommand):
     def _cross_reference_memory(self, args) -> CommandResult:
         """Find cross-references and common patterns."""
         try:
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
 
-            if output_format in ["json", "yaml"]:
+            if self._is_structured_format(output_format):
                 # For structured output, return cross-reference results
                 crossref_data = {
                     "common_patterns": [],
@@ -465,9 +499,9 @@ class MemoryManagementCommand(MemoryCommand):
     def _route_memory_command(self, args) -> CommandResult:
         """Route memory command to appropriate agent."""
         try:
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
 
-            if output_format in ["json", "yaml"]:
+            if self._is_structured_format(output_format):
                 # For structured output, return routing results
                 routing_data = {
                     "routed_to": "memory_agent",
@@ -495,7 +529,7 @@ def manage_memory(args) -> int:
     result = command.execute(args)
 
     # Print result if structured output format is requested
-    if hasattr(args, "format") and args.format in ["json", "yaml"]:
+    if _is_structured_output(args):
         command.print_result(result, args)
 
     return result.exit_code
