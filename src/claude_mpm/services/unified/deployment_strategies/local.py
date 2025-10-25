@@ -19,6 +19,8 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
+from claude_mpm.core.enums import OperationResult
+
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.unified.strategies import StrategyMetadata, StrategyPriority
 
@@ -272,14 +274,14 @@ class LocalDeploymentStrategy(DeploymentStrategy):
         deployed_path = Path(deployment_info.get("deployed_path", ""))
 
         health = {
-            "status": "unknown",
+            "status": OperationResult.UNKNOWN,
             "deployed_path": str(deployed_path),
             "exists": deployed_path.exists() if deployed_path else False,
             "checks": {},
         }
 
         if deployed_path and deployed_path.exists():
-            health["status"] = "healthy"
+            health["status"] = OperationResult.SUCCESS
 
             # Check file integrity
             for file_path in deployment_info.get("deployed_files", []):

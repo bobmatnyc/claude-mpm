@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
+from claude_mpm.core.enums import OperationResult, ServiceState
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.unified.strategies import StrategyMetadata, StrategyPriority
 
@@ -411,11 +412,11 @@ class DockerDeploymentStrategy(DeploymentStrategy):
     def get_health_status(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
         """Get Docker container health."""
         container_id = deployment_info.get("container_id")
-        health = {"status": "unknown", "container_id": container_id}
+        health = {"status": OperationResult.UNKNOWN, "container_id": container_id}
 
         if container_id:
             health["running"] = check_docker_container(container_id)
-            health["status"] = "healthy" if health["running"] else "unhealthy"
+            health["status"] = ServiceState.RUNNING if health["running"] else ServiceState.ERROR
 
         return health
 
@@ -560,7 +561,7 @@ class GitDeploymentStrategy(DeploymentStrategy):
     def get_health_status(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
         """Get Git deployment health."""
         return {
-            "status": "healthy" if deployment_info.get("commit_hash") else "unhealthy",
+            "status": ServiceState.RUNNING if deployment_info.get("commit_hash") else ServiceState.ERROR,
             "commit": deployment_info.get("commit_hash", "unknown"),
             "branch": deployment_info.get("branch", "unknown"),
         }

@@ -18,6 +18,8 @@ import hashlib
 import json
 import shutil
 import subprocess
+
+from claude_mpm.core.enums import OperationResult
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -256,7 +258,7 @@ def verify_deployment_health(
         Health status dictionary
     """
     health = {
-        "status": "unknown",
+        "status": OperationResult.UNKNOWN,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "checks": {},
         "errors": [],
