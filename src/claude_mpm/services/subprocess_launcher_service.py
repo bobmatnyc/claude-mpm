@@ -22,7 +22,7 @@ import tty
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService
-from claude_mpm.core.enums import OperationResult
+from claude_mpm.core.enums import OperationResult, ServiceState
 from claude_mpm.services.core.interfaces import SubprocessLauncherInterface
 
 
@@ -161,7 +161,7 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
             # Notify WebSocket clients
             if self.websocket_server:
                 self.websocket_server.claude_status_changed(
-                    status="running",
+                    status=ServiceState.RUNNING,
                     pid=process.pid,
                     message="Claude subprocess started",
                 )
@@ -196,7 +196,7 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
             # Notify WebSocket clients
             if self.websocket_server:
                 self.websocket_server.claude_status_changed(
-                    status="stopped",
+                    status=ServiceState.STOPPED,
                     message=f"Claude subprocess exited with code {process.returncode}",
                 )
 
