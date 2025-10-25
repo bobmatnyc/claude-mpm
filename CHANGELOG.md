@@ -1,10 +1,41 @@
 ## [Unreleased]
 
 ### Added
+- **Enum System**: Comprehensive type-safe enum system for magic string elimination
+  - `OperationResult`: Standardize operation outcomes (success, error, failed, etc.)
+  - `OutputFormat`: CLI output format handling (json, yaml, text, markdown, etc.)
+  - `ServiceState`: Service lifecycle states (idle, running, stopped, error, etc.)
+  - `ValidationSeverity`: Error severity levels (info, warning, error, critical)
+  - `ModelTier`: Claude model tier normalization (opus, sonnet, haiku)
+  - `AgentCategory`: Agent functional categorization
+- **ModelTier.normalize()**: Intelligent model name normalization method
+  - Handles multiple model name formats (claude-opus-4-20250514, SONNET, etc.)
+  - Case-insensitive substring matching
+  - Safe default fallback to SONNET
+- **Comprehensive Test Suite**: 67 enum tests with 100% pass rate
+- **Developer Documentation**: Complete enum migration guide (`docs/developer/ENUM_MIGRATION_GUIDE.md`)
+  - All 6 enum reference documentation
+  - Migration patterns and use cases
+  - Testing guidelines and troubleshooting
 
 ### Changed
+- **CLI Layer Migration** (Phase 1 & 2): 103 magic strings → type-safe enums
+  - `memory.py`: OutputFormat enum (11 occurrences)
+  - `agents.py`: OutputFormat enum (22 occurrences)
+  - `config.py`: OutputFormat enum (17 occurrences)
+  - `agent_manager.py`: OutputFormat enum (12 occurrences)
+  - `analyze.py`: OutputFormat enum (4 occurrences)
+  - `analyze_code.py`: OutputFormat enum (4 occurrences)
+  - `aggregate.py`: OutputFormat enum (4 occurrences)
+- **Service Layer Migration**: Type-safe severity handling
+  - `interfaces.py`: AnalysisResult.severity default
+  - `unified_analyzer.py`: All severity comparisons use ValidationSeverity
+  - `validation_strategy.py`: ValidationRule severity handling
+  - `mcp_check.py`: ServiceState enum for service lifecycle
+- **Code Reduction**: frontmatter_validator.py - 56 lines of manual model normalization → 3 lines
 
 ### Fixed
+- Linting issues from enum migration (undefined self, elif simplification, __all__ sorting, Yoda conditions)
 
 ## [4.14.7] - 2025-10-24
 
