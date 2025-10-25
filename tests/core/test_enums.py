@@ -354,7 +354,9 @@ class TestAgentCategory:
             "custom",
         ]
         for category in expected_categories:
-            assert any(c.value == category for c in AgentCategory), f"Category '{category}' not found in AgentCategory enum"
+            assert any(
+                c.value == category for c in AgentCategory
+            ), f"Category '{category}' not found in AgentCategory enum"
 
     def test_core_categories(self):
         """Test core agent categories exist."""
@@ -400,7 +402,9 @@ class TestAgentCategory:
     def test_iteration(self):
         """Verify enum can be iterated."""
         categories = list(AgentCategory)
-        assert len(categories) == 20  # Updated in Phase 3C (expanded from 12 to 20 categories)
+        assert (
+            len(categories) == 20
+        )  # Updated in Phase 3C (expanded from 12 to 20 categories)
 
 
 class TestEnumInteroperability:
