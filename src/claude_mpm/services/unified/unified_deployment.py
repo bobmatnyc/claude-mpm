@@ -24,6 +24,7 @@ Features:
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from claude_mpm.core.enums import OperationResult, ServiceState
 from claude_mpm.core.logging_utils import get_logger
 
 from .interfaces import (
@@ -140,7 +141,7 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
 
         return {
             "service": "UnifiedDeploymentService",
-            "status": "healthy" if self._initialized else "unhealthy",
+            "status": ServiceState.RUNNING if self._initialized else ServiceState.ERROR,
             "initialized": self._initialized,
             "registered_strategies": len(strategies),
             "active_deployments": len(self._deployments),
@@ -426,7 +427,7 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
 
         return {
             "id": deployment_id,
-            "status": "rolled_back" if deployment.get("rolled_back") else "active",
+            "status": OperationResult.CANCELLED if deployment.get("rolled_back") else OperationResult.SUCCESS,
             "type": deployment["type"],
             "strategy": deployment["strategy"],
             "source": deployment["source"],

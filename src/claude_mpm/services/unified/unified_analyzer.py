@@ -25,7 +25,7 @@ Features:
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from claude_mpm.core.enums import ValidationSeverity
+from claude_mpm.core.enums import ServiceState, ValidationSeverity
 from claude_mpm.core.logging_utils import get_logger
 
 from .interfaces import (
@@ -135,7 +135,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
 
         return {
             "service": "UnifiedAnalyzer",
-            "status": "healthy" if self._initialized else "unhealthy",
+            "status": ServiceState.RUNNING if self._initialized else ServiceState.ERROR,
             "initialized": self._initialized,
             "registered_strategies": len(strategies),
             "cache_size": len(self._analysis_cache),
