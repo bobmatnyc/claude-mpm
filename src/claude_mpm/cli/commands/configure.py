@@ -37,6 +37,7 @@ from .configure_behavior_manager import BehaviorManager
 from .configure_hook_manager import HookManager
 from .configure_models import AgentConfig
 from .configure_paths import get_agent_template_path, get_config_directory
+from .configure_persistence import ConfigPersistence
 from .configure_validators import validate_args as validate_configure_args
 from .configure_validators import parse_id_selection
 
@@ -54,6 +55,7 @@ class ConfigureCommand(BaseCommand):
         self.hook_manager = HookManager(self.console)
         self.behavior_manager = None  # Initialized when scope is set
         self._agent_display = None  # Lazy-initialized
+        self._persistence = None  # Lazy-initialized
 
     def validate_args(self, args) -> Optional[str]:
         """Validate command arguments."""
@@ -72,6 +74,22 @@ class ConfigureCommand(BaseCommand):
                 self._display_header
             )
         return self._agent_display
+
+    @property
+    def persistence(self) -> ConfigPersistence:
+        """Lazy-initialize persistence handler."""
+        if self._persistence is None:
+            # Note: agent_manager might be None for version_info calls
+            self._persistence = ConfigPersistence(
+                self.console,
+                self.version_service,
+                self.agent_manager,  # Can be None for version operations
+                self._get_agent_template_path,
+                self._display_header,
+                self.current_scope,
+                self.project_dir
+            )
+        return self._persistence
 
     def run(self, args) -> CommandResult:
         """Execute the configure command."""
@@ -1426,69 +1444,7 @@ class ConfigureCommand(BaseCommand):
 
     def _show_version_info_interactive(self) -> None:
         """Show version information in interactive mode."""
-        self.console.clear()
-        self._display_header()
-
-        # Get version information
-        mpm_version = self.version_service.get_version()
-        build_number = self.version_service.get_build_number()
-
-        # Try to get Claude Code version using the installer's method
-        claude_version = "Unknown"
-        try:
-            from ...hooks.claude_hooks.installer import HookInstaller
-
-            installer = HookInstaller()
-            detected_version = installer.get_claude_version()
-            if detected_version:
-                is_compatible, _ = installer.is_version_compatible()
-                claude_version = f"{detected_version} (Claude Code)"
-                if not is_compatible:
-                    claude_version += (
-                        f" - Monitoring requires {installer.MIN_CLAUDE_VERSION}+"
-                    )
-            else:
-                # Fallback to direct subprocess call
-                import subprocess
-
-                result = subprocess.run(
-                    ["claude", "--version"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
-                    check=False,
-                )
-                if result.returncode == 0:
-                    claude_version = result.stdout.strip()
-        except Exception:
-            pass
-
-        # Create version panel
-        version_text = f"""
-[bold cyan]Claude MPM[/bold cyan]
-Version: {mpm_version}
-Build: {build_number}
-
-[bold cyan]Claude Code[/bold cyan]
-Version: {claude_version}
-
-[bold cyan]Python[/bold cyan]
-Version: {sys.version.split()[0]}
-
-[bold cyan]Configuration[/bold cyan]
-Scope: {self.current_scope}
-Directory: {self.project_dir}
-        """
-
-        panel = Panel(
-            version_text.strip(),
-            title="[bold]Version Information[/bold]",
-            box=ROUNDED,
-            style="green",
-        )
-
-        self.console.print(panel)
-        Prompt.ask("\nPress Enter to continue")
+        self.persistence.show_version_info_interactive()
 
     # Non-interactive command methods
 
@@ -1530,92 +1486,15 @@ Directory: {self.project_dir}
 
     def _export_config(self, file_path: str) -> CommandResult:
         """Export configuration to a file."""
-        try:
-            # Gather all configuration
-            config_data = {"scope": self.current_scope, "agents": {}, "behaviors": {}}
-
-            # Get agent states
-            agents = self.agent_manager.discover_agents()
-            for agent in agents:
-                config_data["agents"][agent.name] = {
-                    "enabled": self.agent_manager.is_agent_enabled(agent.name),
-                    "template_path": str(self._get_agent_template_path(agent.name)),
-                }
-
-            # Write to file
-            output_path = Path(file_path)
-            with output_path.open("w") as f:
-                json.dump(config_data, f, indent=2)
-
-            return CommandResult.success_result(
-                f"Configuration exported to {output_path}"
-            )
-
-        except Exception as e:
-            return CommandResult.error_result(f"Failed to export configuration: {e}")
+        return self.persistence.export_config(file_path)
 
     def _import_config(self, file_path: str) -> CommandResult:
         """Import configuration from a file."""
-        try:
-            input_path = Path(file_path)
-            if not input_path.exists():
-                return CommandResult.error_result(f"File not found: {file_path}")
-
-            with input_path.open() as f:
-                config_data = json.load(f)
-
-            # Apply agent states
-            if "agents" in config_data:
-                for agent_name, agent_config in config_data["agents"].items():
-                    if "enabled" in agent_config:
-                        self.agent_manager.set_agent_enabled(
-                            agent_name, agent_config["enabled"]
-                        )
-
-            return CommandResult.success_result(
-                f"Configuration imported from {input_path}"
-            )
-
-        except Exception as e:
-            return CommandResult.error_result(f"Failed to import configuration: {e}")
+        return self.persistence.import_config(file_path)
 
     def _show_version_info(self) -> CommandResult:
         """Show version information in non-interactive mode."""
-        mpm_version = self.version_service.get_version()
-        build_number = self.version_service.get_build_number()
-
-        data = {
-            "mpm_version": mpm_version,
-            "build_number": build_number,
-            "python_version": sys.version.split()[0],
-        }
-
-        # Try to get Claude version
-        try:
-            import subprocess
-
-            result = subprocess.run(
-                ["claude", "--version"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-                check=False,
-            )
-            if result.returncode == 0:
-                data["claude_version"] = result.stdout.strip()
-        except Exception:
-            data["claude_version"] = "Unknown"
-
-        # Print formatted output
-        self.console.print(
-            f"[bold]Claude MPM:[/bold] {mpm_version} (build {build_number})"
-        )
-        self.console.print(
-            f"[bold]Claude Code:[/bold] {data.get('claude_version', 'Unknown')}"
-        )
-        self.console.print(f"[bold]Python:[/bold] {data['python_version']}")
-
-        return CommandResult.success_result("Version information displayed", data=data)
+        return self.persistence.show_version_info()
 
     def _install_hooks(self, force: bool = False) -> CommandResult:
         """Install Claude MPM hooks for Claude Code integration."""
