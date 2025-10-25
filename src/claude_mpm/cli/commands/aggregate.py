@@ -111,7 +111,10 @@ def aggregate_command(args):
     result = command.execute(args)
 
     # Print result if structured output format is requested
-    if hasattr(args, "format") and str(args.format).lower() in (OutputFormat.JSON, OutputFormat.YAML):
+    if hasattr(args, "format") and str(args.format).lower() in (
+        OutputFormat.JSON,
+        OutputFormat.YAML,
+    ):
         command.print_result(result, args)
 
     return result.exit_code

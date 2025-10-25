@@ -133,7 +133,11 @@ class AnalyzeCommand(BaseCommand):
             self._save_output(output, args.output)
 
         return CommandResult.success_result(
-            message=output if str(args.format).lower() == OutputFormat.TEXT else "Analysis completed",
+            message=(
+                output
+                if str(args.format).lower() == OutputFormat.TEXT
+                else "Analysis completed"
+            ),
             data=result_data,
         )
 

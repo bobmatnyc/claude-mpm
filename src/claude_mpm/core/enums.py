@@ -254,9 +254,9 @@ class ModelTier(StrEnum):
         # Tier name extraction
         if "opus" in normalized:
             return cls.OPUS
-        elif "sonnet" in normalized:
+        if "sonnet" in normalized:
             return cls.SONNET
-        elif "haiku" in normalized:
+        if "haiku" in normalized:
             return cls.HAIKU
 
         # Default to sonnet for unknown models
@@ -313,10 +313,10 @@ class AgentCategory(StrEnum):
 
 # Export all enums for convenient access
 __all__ = [
+    "AgentCategory",
+    "ModelTier",
     "OperationResult",
     "OutputFormat",
     "ServiceState",
     "ValidationSeverity",
-    "ModelTier",
-    "AgentCategory",
 ]

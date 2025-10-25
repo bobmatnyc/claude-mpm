@@ -69,7 +69,7 @@ class TestOperationResult:
     def test_membership(self):
         """Test enum membership checks."""
         assert OperationResult.SUCCESS in OperationResult
-        assert "success" == OperationResult.SUCCESS.value
+        assert OperationResult.SUCCESS.value == "success"
 
     def test_iteration(self):
         """Verify enum can be iterated."""
