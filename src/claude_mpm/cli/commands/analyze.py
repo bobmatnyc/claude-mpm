@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from ...core.enums import OutputFormat
 from ...core.logging_config import get_logger
 from ...services.cli.session_manager import SessionManager
 from ..shared import BaseCommand, CommandResult
@@ -132,7 +133,7 @@ class AnalyzeCommand(BaseCommand):
             self._save_output(output, args.output)
 
         return CommandResult.success_result(
-            message=output if args.format == "text" else "Analysis completed",
+            message=output if str(args.format).lower() == OutputFormat.TEXT else "Analysis completed",
             data=result_data,
         )
 
@@ -422,7 +423,7 @@ class AnalyzeCommand(BaseCommand):
         Returns:
             Formatted output string
         """
-        if format_type == "json":
+        if str(format_type).lower() == OutputFormat.JSON:
             result_data["diagrams"] = diagrams
             return json.dumps(result_data, indent=2)
 
@@ -516,7 +517,7 @@ def analyze_command(args):
     result = command.run(args)
 
     if result.success:
-        if args.format == "json":
+        if str(args.format).lower() == OutputFormat.JSON:
             print(json.dumps(result.data, indent=2))
         else:
             print(result.message)
@@ -540,7 +541,7 @@ if __name__ == "__main__":
     parser.add_argument("--focus", nargs="+")
     parser.add_argument("--session-id", type=str)
     parser.add_argument("--no-session", action="store_true")
-    parser.add_argument("--format", default="text")
+    parser.add_argument("--format", default=OutputFormat.TEXT)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--verbose", action="store_true")
 

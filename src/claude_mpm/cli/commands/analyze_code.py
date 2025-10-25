@@ -37,6 +37,7 @@ except ImportError:
     RICH_AVAILABLE = False
     Console = None
 
+from ...core.enums import OutputFormat
 from ...core.logging_config import get_logger
 from ...tools.code_tree_analyzer import CodeTreeAnalyzer
 from ...tools.code_tree_builder import CodeTreeBuilder
@@ -73,7 +74,7 @@ class AnalyzeCodeCommand(BaseCommand):
             return f"Path is not a directory: {path}"
 
         # Validate output format
-        if args.output and args.output not in ("json", "tree", "stats"):
+        if args.output and str(args.output).lower() not in (OutputFormat.JSON, "tree", "stats"):
             return f"Invalid output format: {args.output}"
 
         return None
@@ -123,7 +124,7 @@ class AnalyzeCodeCommand(BaseCommand):
             )
 
             # Handle output format
-            if args.output == "json":
+            if str(args.output).lower() == OutputFormat.JSON:
                 # Output JSON to stdout
                 json.dump(analysis_result, sys.stdout, indent=2, default=str)
                 sys.stdout.write("\n")
