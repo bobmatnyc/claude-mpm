@@ -1,6 +1,43 @@
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [4.14.9] - 2025-10-25
+
+### Added
+- **HealthStatus Enum**: New enum for service health monitoring (6 states)
+  - HEALTHY, UNHEALTHY, DEGRADED, UNKNOWN, CHECKING, TIMEOUT
+  - Distinct semantic domain from ServiceState (operational) and OperationResult (transactional)
+- **OperationResult.ROLLBACK**: New state for rollback operations
+
+### Changed
+- **AgentCategory Expansion** (Phase 3C): 12 → 20 categories (+67% growth)
+  - Added: ANALYSIS, QUALITY, INFRASTRUCTURE, CONTENT, OPTIMIZATION, SPECIALIZED, SYSTEM, PRODUCT
+  - Now covers all 36 agent JSON template categories
+  - Organized by functional domains (Engineering, Quality, Operations, etc.)
+- **AgentCategory Migration** (Phase 3B): Enum validation in agent loader
+  - agent_loader.py: Added category validation with graceful fallback
+  - Invalid categories log warning and default to GENERAL
+  - Maintains backward compatibility (stores as string values)
+- **Service Layer Migration** (Phase 3A Batch 15): 6 more occurrences
+  - performance_analyzer.py: 3 occurrences (ERROR, SUCCESS comparisons)
+  - security_analyzer.py: 1 occurrence (ERROR in exception handler)
+  - structure_analyzer.py: 1 occurrence (SUCCESS comparison)
+  - dependency_analyzer.py: 1 occurrence (SUCCESS comparison)
+- **Test Suite Updated**: All 67 enum tests pass with new expansions
+
+### Progress Summary
+- **Phase 3A Progress**: 108/876 occurrences migrated (12.3%)
+- **Phase 3B**: Complete - Agent category validation enabled
+- **Phase 3C**: Complete - Enum system expanded for full coverage
+
+## [4.14.8] - 2025-10-25
+
+### Added
 - **Enum System**: Comprehensive type-safe enum system for magic string elimination
   - `OperationResult`: Standardize operation outcomes (success, error, failed, etc.)
   - `OutputFormat`: CLI output format handling (json, yaml, text, markdown, etc.)
