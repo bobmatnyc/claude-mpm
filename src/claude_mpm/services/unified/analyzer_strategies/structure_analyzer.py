@@ -13,6 +13,7 @@ import fnmatch
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
 
 from ..strategies import (
@@ -174,14 +175,14 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
 
             if not target_path.is_dir():
                 return {
-                    "status": "error",
+                    "status": OperationResult.ERROR,
                     "message": "Target must be a directory",
                 }
 
             return self._analyze_structure(target_path, options)
 
         return {
-            "status": "error",
+            "status": OperationResult.ERROR,
             "message": f"Unsupported target type: {type(target).__name__}",
         }
 
@@ -190,7 +191,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
     ) -> Dict[str, Any]:
         """Analyze the structure of a project directory."""
         results = {
-            "status": "success",
+            "status": OperationResult.SUCCESS,
             "type": "structure",
             "path": str(root_path),
             "tree": {},

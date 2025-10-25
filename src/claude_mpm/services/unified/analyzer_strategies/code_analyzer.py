@@ -14,6 +14,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
 
 from ..strategies import (
@@ -120,7 +121,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
             return self._analyze_ast(target, options)
 
         return {
-            "status": "error",
+            "status": OperationResult.ERROR,
             "message": f"Unsupported target type: {type(target).__name__}",
         }
 
@@ -159,7 +160,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
             metrics["maintainability_index"] = self._calculate_maintainability(metrics)
 
             return {
-                "status": "success",
+                "status": OperationResult.SUCCESS,
                 "type": "file",
                 "path": str(file_path),
                 "metrics": metrics,
@@ -168,7 +169,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
         except Exception as e:
             logger.error(f"Error analyzing file {file_path}: {e}")
             return {
-                "status": "error",
+                "status": OperationResult.ERROR,
                 "path": str(file_path),
                 "error": str(e),
             }
@@ -178,7 +179,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
     ) -> Dict[str, Any]:
         """Analyze all code files in a directory."""
         results = {
-            "status": "success",
+            "status": OperationResult.SUCCESS,
             "type": "directory",
             "path": str(dir_path),
             "files": [],
@@ -285,7 +286,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
             )
 
         return {
-            "status": "success",
+            "status": OperationResult.SUCCESS,
             "type": "ast",
             "metrics": metrics,
         }
