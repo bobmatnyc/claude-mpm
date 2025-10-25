@@ -196,7 +196,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
         total_metrics = {}
         for file_path in code_files:
             file_result = self._analyze_file(file_path, options)
-            if file_result["status"] == "success":
+            if file_result["status"] == OperationResult.SUCCESS:
                 results["files"].append(file_result)
 
                 # Aggregate metrics
@@ -427,7 +427,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
         """Extract key metrics from analysis results."""
         metrics = {}
 
-        if analysis_result.get("status") != "success":
+        if analysis_result.get("status") != OperationResult.SUCCESS:
             return metrics
 
         # Extract relevant metrics
