@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
+from claude_mpm.core.enums import OutputFormat
+
 
 class OutputFormatter:
     """Handles formatting output in different formats."""
@@ -104,13 +106,13 @@ class OutputFormatter:
         return str(data)
 
 
-def format_output(data: Any, format_type: str = "text", **kwargs) -> str:
+def format_output(data: Any, format_type: str = OutputFormat.TEXT, **kwargs) -> str:
     """
     Format data according to the specified format.
 
     Args:
         data: Data to format
-        format_type: Output format ('json', 'yaml', 'table', 'text')
+        format_type: Output format (use OutputFormat enum or string)
         **kwargs: Additional formatting options
 
     Returns:
@@ -118,20 +120,23 @@ def format_output(data: Any, format_type: str = "text", **kwargs) -> str:
     """
     formatter = OutputFormatter()
 
-    if format_type == "json":
+    # Convert to string for comparison (handles both enum and string inputs)
+    fmt = str(format_type).lower()
+
+    if fmt == OutputFormat.JSON:
         return formatter.format_json(data, **kwargs)
-    if format_type == "yaml":
+    if fmt == OutputFormat.YAML:
         return formatter.format_yaml(data)
-    if format_type == "table":
+    if fmt == OutputFormat.TABLE:
         return formatter.format_table(data, **kwargs)
-    if format_type == "text":
+    if fmt == OutputFormat.TEXT:
         return formatter.format_text(data)
     # Fallback to text format
     return formatter.format_text(data)
 
 
 def format_success_message(
-    message: str, data: Any = None, format_type: str = "text"
+    message: str, data: Any = None, format_type: str = OutputFormat.TEXT
 ) -> str:
     """
     Format a success message with optional data.
@@ -139,12 +144,13 @@ def format_success_message(
     Args:
         message: Success message
         data: Optional data to include
-        format_type: Output format
+        format_type: Output format (use OutputFormat enum or string)
 
     Returns:
         Formatted success message
     """
-    if format_type in ("json", "yaml"):
+    fmt = str(format_type).lower()
+    if fmt in (OutputFormat.JSON, OutputFormat.YAML):
         result = {"success": True, "message": message}
         if data is not None:
             result["data"] = data
@@ -158,7 +164,7 @@ def format_success_message(
 
 
 def format_error_message(
-    message: str, details: Any = None, format_type: str = "text"
+    message: str, details: Any = None, format_type: str = OutputFormat.TEXT
 ) -> str:
     """
     Format an error message with optional details.
@@ -166,12 +172,13 @@ def format_error_message(
     Args:
         message: Error message
         details: Optional error details
-        format_type: Output format
+        format_type: Output format (use OutputFormat enum or string)
 
     Returns:
         Formatted error message
     """
-    if format_type in ("json", "yaml"):
+    fmt = str(format_type).lower()
+    if fmt in (OutputFormat.JSON, OutputFormat.YAML):
         result = {"success": False, "error": message}
         if details is not None:
             result["details"] = details
@@ -187,7 +194,7 @@ def format_error_message(
 def format_list_output(
     items: List[Any],
     title: Optional[str] = None,
-    format_type: str = "text",
+    format_type: str = OutputFormat.TEXT,
     headers: Optional[List[str]] = None,
 ) -> str:
     """
@@ -196,29 +203,31 @@ def format_list_output(
     Args:
         items: List of items to format
         title: Optional title for the list
-        format_type: Output format
+        format_type: Output format (use OutputFormat enum or string)
         headers: Optional headers for table format
 
     Returns:
         Formatted list output
     """
+    fmt = str(format_type).lower()
+
     if not items:
         empty_msg = f"No {title.lower() if title else 'items'} found"
-        if format_type in ("json", "yaml"):
+        if fmt in (OutputFormat.JSON, OutputFormat.YAML):
             return format_output({"items": [], "message": empty_msg}, format_type)
         return empty_msg
 
-    if format_type in ("json", "yaml"):
+    if fmt in (OutputFormat.JSON, OutputFormat.YAML):
         result = {"items": items}
         if title:
             result["title"] = title
         return format_output(result, format_type)
 
-    if format_type == "table":
+    if fmt == OutputFormat.TABLE:
         output = ""
         if title:
             output += f"{title}\n{'=' * len(title)}\n\n"
-        output += format_output(items, "table", headers=headers)
+        output += format_output(items, OutputFormat.TABLE, headers=headers)
         return output
 
     # Text format
@@ -228,5 +237,5 @@ def format_list_output(
         lines.append("=" * len(title))
         lines.append("")
 
-    lines.append(format_output(items, "text"))
+    lines.append(format_output(items, OutputFormat.TEXT))
     return "\n".join(lines)
