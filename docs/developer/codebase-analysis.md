@@ -3,6 +3,14 @@
 **Analyst:** Python Engineer Agent
 **Version Analyzed:** 4.14.7 (Build 468)
 
+## Updates Since Analysis
+
+**Memory Tests Deleted** (Date: 2025-10-24)
+- File: `tests/test_memory_cli_commands.py` (1,487 lines)
+- Reason: 88% failure rate due to architectural mismatch
+- Status: Awaiting rewrite (see tests/TODO_MEMORY_TESTS.md)
+- Impact: Temporary reduction in test coverage, but removes broken tests
+
 ## Executive Summary
 
 Claude MPM is a **mature, production-ready multi-agent orchestration framework** with a comprehensive codebase of ~220K LOC (source) and ~174K LOC (tests). The project demonstrates strong engineering practices with a service-oriented architecture, dependency injection, and extensive test coverage (5,397 test functions). However, the codebase shows signs of rapid growth that has introduced complexity debt, particularly in CLI commands and configuration management.
