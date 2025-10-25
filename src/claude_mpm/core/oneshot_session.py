@@ -300,7 +300,9 @@ class OneshotSession:
                 agent_name = self.runner._extract_agent_from_response(response)
                 if agent_name:
                     self.runner.websocket_server.agent_delegated(
-                        agent=agent_name, task=prompt[:100], status=OperationResult.PENDING
+                        agent=agent_name,
+                        task=prompt[:100],
+                        status=OperationResult.PENDING,
                     )
 
         # Log completion
@@ -336,7 +338,8 @@ class OneshotSession:
         if self.runner.websocket_server:
             self.runner.websocket_server.claude_output(error_msg, "stderr")
             self.runner.websocket_server.claude_status_changed(
-                status=ServiceState.ERROR, message=f"Command failed with code {return_code}"
+                status=ServiceState.ERROR,
+                message=f"Command failed with code {return_code}",
             )
 
         # Log error

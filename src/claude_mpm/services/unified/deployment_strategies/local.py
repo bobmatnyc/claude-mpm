@@ -20,7 +20,6 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from claude_mpm.core.enums import OperationResult
-
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.unified.strategies import StrategyMetadata, StrategyPriority
 

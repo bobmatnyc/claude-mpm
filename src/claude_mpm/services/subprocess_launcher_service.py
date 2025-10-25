@@ -63,9 +63,17 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
         try:
             env = kwargs.get("env", self.prepare_subprocess_environment())
             self.launch_subprocess_interactive(command, env)
-            return {"status": OperationResult.SUCCESS, "command": command, "method": "interactive"}
+            return {
+                "status": OperationResult.SUCCESS,
+                "command": command,
+                "method": "interactive",
+            }
         except Exception as e:
-            return {"status": OperationResult.FAILED, "error": str(e), "command": command}
+            return {
+                "status": OperationResult.FAILED,
+                "error": str(e),
+                "command": command,
+            }
 
     async def launch_subprocess_async(
         self, command: List[str], **kwargs

@@ -427,7 +427,11 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
 
         return {
             "id": deployment_id,
-            "status": OperationResult.CANCELLED if deployment.get("rolled_back") else OperationResult.SUCCESS,
+            "status": (
+                OperationResult.CANCELLED
+                if deployment.get("rolled_back")
+                else OperationResult.SUCCESS
+            ),
             "type": deployment["type"],
             "strategy": deployment["strategy"],
             "source": deployment["source"],

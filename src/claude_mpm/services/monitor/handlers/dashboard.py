@@ -19,7 +19,6 @@ from typing import Dict, Set
 import socketio
 
 from ....core.enums import ServiceState
-
 from ....core.logging_config import get_logger
 
 

@@ -103,7 +103,11 @@ class MPMInitCommand:
             if catchup:
                 data = self._catchup()
                 self._display_catchup(data)
-                return {"status": OperationResult.SUCCESS, "mode": "catchup", "catchup_data": data}
+                return {
+                    "status": OperationResult.SUCCESS,
+                    "mode": "catchup",
+                    "catchup_data": data,
+                }
 
             if quick_update:
                 return self._run_quick_update_mode(
@@ -674,7 +678,10 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
                 "changes_made": False,
             }
         console.print("\n[yellow]Quick update cancelled[/yellow]")
-        return {"status": OperationResult.CANCELLED, "message": "Quick update cancelled"}
+        return {
+            "status": OperationResult.CANCELLED,
+            "message": "Quick update cancelled",
+        }
 
     def _catchup(self) -> Dict[str, Any]:
         """Get recent commit history for PM context.
@@ -1929,7 +1936,10 @@ def context_command(session_id, days, project_path):
 
         result = command.handle_context(session_id=session_id, days=days)
 
-        if result["status"] == OperationResult.SUCCESS or result["status"] == OperationResult.CONTEXT_READY:
+        if (
+            result["status"] == OperationResult.SUCCESS
+            or result["status"] == OperationResult.CONTEXT_READY
+        ):
             sys.exit(0)
         else:
             sys.exit(1)
@@ -1978,7 +1988,10 @@ def resume_session(session_id, days, project_path):
         command = MPMInitCommand(Path(project_path))
         result = command.handle_context(session_id=session_id, days=days)
 
-        if result["status"] == OperationResult.SUCCESS or result["status"] == OperationResult.CONTEXT_READY:
+        if (
+            result["status"] == OperationResult.SUCCESS
+            or result["status"] == OperationResult.CONTEXT_READY
+        ):
             sys.exit(0)
         else:
             sys.exit(1)
