@@ -37,7 +37,7 @@ class TestValidationAndResults(TestAgentDeploymentService):
         agents_dir = tmp_path / ".claude" / "agents"
 
         with patch(
-            "claude_mpm.services.agents.deployment.agent_deployment.AgentFrontmatterValidator"
+            "claude_mpm.services.agents.deployment.agent_frontmatter_validator.AgentFrontmatterValidator"
         ) as mock_validator_class:
             mock_validator = Mock()
             mock_validator.validate_and_repair_existing_agents.return_value = {
