@@ -24,6 +24,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logger import (
     JsonFormatter,
     finalize_streaming_logs,
@@ -234,7 +235,7 @@ def log_operation(
             execution_time = time.time() - start_time
             logger.info(
                 f"Completed {operation}",
-                extra={"execution_time": execution_time, "status": "success"},
+                extra={"execution_time": execution_time, "status": OperationResult.SUCCESS},
             )
         except Exception as e:
             execution_time = time.time() - start_time
@@ -242,7 +243,7 @@ def log_operation(
                 f"Failed {operation}: {e}",
                 extra={
                     "execution_time": execution_time,
-                    "status": "failure",
+                    "status": OperationResult.FAILED,
                     "error": str(e),
                 },
             )
