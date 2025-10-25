@@ -32,6 +32,7 @@ from ...services.version_service import VersionService
 from ...utils.console import console as default_console
 from ..shared import BaseCommand, CommandResult
 from .agent_state_manager import SimpleAgentManager
+from .configure_behavior_manager import BehaviorManager
 from .configure_hook_manager import HookManager
 from .configure_models import AgentConfig
 from .configure_paths import get_agent_template_path, get_config_directory
@@ -50,6 +51,7 @@ class ConfigureCommand(BaseCommand):
         self.project_dir = Path.cwd()
         self.agent_manager = None
         self.hook_manager = HookManager(self.console)
+        self.behavior_manager = None  # Initialized when scope is set
 
     def validate_args(self, args) -> Optional[str]:
         """Validate command arguments."""
@@ -62,12 +64,15 @@ class ConfigureCommand(BaseCommand):
         if getattr(args, "project_dir", None):
             self.project_dir = Path(args.project_dir)
 
-        # Initialize agent manager with appropriate config directory
+        # Initialize agent manager and behavior manager with appropriate config directory
         if self.current_scope == "project":
             config_dir = self.project_dir / ".claude-mpm"
         else:
             config_dir = Path.home() / ".claude-mpm"
         self.agent_manager = SimpleAgentManager(config_dir)
+        self.behavior_manager = BehaviorManager(
+            config_dir, self.current_scope, self.console
+        )
 
         # Disable colors if requested
         if getattr(args, "no_colors", False):
@@ -935,138 +940,30 @@ class ConfigureCommand(BaseCommand):
 
     def _manage_behaviors(self) -> None:
         """Behavior file management interface."""
-        while True:
-            self.console.clear()
-            self._display_header()
-
-            self.console.print("[bold]Behavior File Management[/bold]\n")
-
-            # Display current behavior files
-            self._display_behavior_files()
-
-            # Show behavior menu
-            self.console.print("\n[bold]Options:[/bold]")
-
-            text_1 = Text("  ")
-            text_1.append("[1]", style="cyan bold")
-            text_1.append(" Edit identity configuration")
-            self.console.print(text_1)
-
-            text_2 = Text("  ")
-            text_2.append("[2]", style="cyan bold")
-            text_2.append(" Edit workflow configuration")
-            self.console.print(text_2)
-
-            text_3 = Text("  ")
-            text_3.append("[3]", style="cyan bold")
-            text_3.append(" Import behavior file")
-            self.console.print(text_3)
-
-            text_4 = Text("  ")
-            text_4.append("[4]", style="cyan bold")
-            text_4.append(" Export behavior file")
-            self.console.print(text_4)
-
-            text_b = Text("  ")
-            text_b.append("[b]", style="cyan bold")
-            text_b.append(" Back to main menu")
-            self.console.print(text_b)
-
-            self.console.print()
-
-            choice = Prompt.ask("[bold cyan]Select an option[/bold cyan]", default="b")
-
-            if choice == "b":
-                break
-            if choice == "1":
-                self._edit_identity_config()
-            elif choice == "2":
-                self._edit_workflow_config()
-            elif choice == "3":
-                self._import_behavior_file()
-            elif choice == "4":
-                self._export_behavior_file()
-            else:
-                self.console.print("[red]Invalid choice.[/red]")
-                Prompt.ask("Press Enter to continue")
+        # Note: BehaviorManager handles its own loop and clears screen
+        # but doesn't display our header. We'll need to update BehaviorManager
+        # to accept a header callback in the future. For now, just delegate.
+        self.behavior_manager.manage_behaviors()
 
     def _display_behavior_files(self) -> None:
         """Display current behavior files."""
-        if self.current_scope == "project":
-            config_dir = self.project_dir / ".claude-mpm" / "behaviors"
-        else:
-            config_dir = Path.home() / ".claude-mpm" / "behaviors"
-
-        config_dir.mkdir(parents=True, exist_ok=True)
-
-        table = Table(title="Behavior Files", box=ROUNDED)
-        table.add_column("File", style="cyan", width=30)
-        table.add_column("Size", style="dim", width=10)
-        table.add_column("Modified", style="white", width=20)
-
-        identity_file = config_dir / "identity.yaml"
-        workflow_file = config_dir / "workflow.yaml"
-
-        for file_path in [identity_file, workflow_file]:
-            if file_path.exists():
-                stat = file_path.stat()
-                size = f"{stat.st_size} bytes"
-                modified = f"{stat.st_mtime:.0f}"  # Simplified timestamp
-                table.add_row(file_path.name, size, modified)
-            else:
-                table.add_row(file_path.name, "[dim]Not found[/dim]", "-")
-
-        self.console.print(table)
+        self.behavior_manager.display_behavior_files()
 
     def _edit_identity_config(self) -> None:
         """Edit identity configuration."""
-        self.console.print(
-            "[yellow]Identity configuration editor - Coming soon![/yellow]"
-        )
-        Prompt.ask("Press Enter to continue")
+        self.behavior_manager.edit_identity_config()
 
     def _edit_workflow_config(self) -> None:
         """Edit workflow configuration."""
-        self.console.print(
-            "[yellow]Workflow configuration editor - Coming soon![/yellow]"
-        )
-        Prompt.ask("Press Enter to continue")
+        self.behavior_manager.edit_workflow_config()
 
     def _import_behavior_file(self) -> None:
         """Import a behavior file."""
-        file_path = Prompt.ask("Enter path to behavior file to import")
-
-        try:
-            source = Path(file_path)
-            if not source.exists():
-                self.console.print(f"[red]File not found: {file_path}[/red]")
-                return
-
-            # Determine target directory
-            if self.current_scope == "project":
-                config_dir = self.project_dir / ".claude-mpm" / "behaviors"
-            else:
-                config_dir = Path.home() / ".claude-mpm" / "behaviors"
-
-            config_dir.mkdir(parents=True, exist_ok=True)
-
-            # Copy file
-            import shutil
-
-            target = config_dir / source.name
-            shutil.copy2(source, target)
-
-            self.console.print(f"[green]Successfully imported {source.name}![/green]")
-
-        except Exception as e:
-            self.console.print(f"[red]Error importing file: {e}[/red]")
-
-        Prompt.ask("Press Enter to continue")
+        self.behavior_manager.import_behavior_file()
 
     def _export_behavior_file(self) -> None:
         """Export a behavior file."""
-        self.console.print("[yellow]Behavior file export - Coming soon![/yellow]")
-        Prompt.ask("Press Enter to continue")
+        self.behavior_manager.export_behavior_file()
 
     def _manage_startup_configuration(self) -> bool:
         """Manage startup configuration for MCP services and agents.
@@ -1908,13 +1805,7 @@ Directory: {self.project_dir}
 
     def _run_behavior_management(self) -> CommandResult:
         """Jump directly to behavior management."""
-        try:
-            self._manage_behaviors()
-            return CommandResult.success_result("Behavior management completed")
-        except KeyboardInterrupt:
-            return CommandResult.success_result("Behavior management cancelled")
-        except Exception as e:
-            return CommandResult.error_result(f"Behavior management failed: {e}")
+        return self.behavior_manager.run_behavior_management()
 
     def _run_startup_configuration(self) -> CommandResult:
         """Jump directly to startup configuration."""
