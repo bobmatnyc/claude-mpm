@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from claude_mpm.core.enums import OperationResult
+from claude_mpm.core.enums import HealthStatus, OperationResult
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.unified.strategies import StrategyMetadata, StrategyPriority
 
@@ -289,10 +289,10 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
             # Check if any file is missing
             if any(not check for check in health["checks"].values()):
-                health["status"] = "degraded"
+                health["status"] = HealthStatus.DEGRADED
 
         else:
-            health["status"] = "unhealthy"
+            health["status"] = HealthStatus.UNHEALTHY
 
         return health
 
