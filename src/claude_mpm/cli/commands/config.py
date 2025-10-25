@@ -22,6 +22,7 @@ from rich.syntax import Syntax
 from rich.table import Table
 
 from ...core.config import Config
+from ...core.enums import OutputFormat
 from ...utils.console import console
 from ..shared import (
     BaseCommand,
@@ -29,11 +30,44 @@ from ..shared import (
 )
 
 
+def _is_structured_output(args) -> bool:
+    """Check if args specify structured output format (JSON/YAML)."""
+    if hasattr(args, "format"):
+        fmt = str(args.format).lower()
+        return fmt in (OutputFormat.JSON, OutputFormat.YAML)
+    return False
+
+
 class ConfigCommand(BaseCommand):
     """Configuration management command using shared utilities."""
 
     def __init__(self):
         super().__init__("config")
+
+    def _get_output_format(self, args) -> str:
+        """
+        Get output format from args with enum default.
+
+        Args:
+            args: Command arguments
+
+        Returns:
+            Output format string (compatible with both enum and string usage)
+        """
+        return getattr(args, "format", OutputFormat.TEXT)
+
+    def _is_structured_format(self, format_str: str) -> bool:
+        """
+        Check if format is structured (JSON/YAML).
+
+        Args:
+            format_str: Format string to check
+
+        Returns:
+            True if format is JSON or YAML
+        """
+        fmt = str(format_str).lower()
+        return fmt in (OutputFormat.JSON, OutputFormat.YAML)
 
     def validate_args(self, args) -> str:
         """Validate command arguments."""
@@ -71,7 +105,7 @@ class ConfigCommand(BaseCommand):
                 f"Create with: mkdir -p {config_file.parent} && touch {config_file}"
             )
 
-            if getattr(args, "format", "text") in ["json", "yaml"]:
+            if self._is_structured_format(self._get_output_format(args)):
                 return CommandResult.error_result(
                     error_msg,
                     data={"suggestion": suggestion, "config_file": str(config_file)},
@@ -101,8 +135,8 @@ class ConfigCommand(BaseCommand):
             }
 
             # Handle output format
-            output_format = getattr(args, "format", "text")
-            if output_format in ["json", "yaml"]:
+            output_format = self._get_output_format(args)
+            if self._is_structured_format(output_format):
                 if is_valid and not warnings:
                     return CommandResult.success_result(
                         "Configuration is valid", data=result_data
@@ -160,7 +194,7 @@ class ConfigCommand(BaseCommand):
         except Exception as e:
             self.logger.error(f"Configuration validation error: {e}", exc_info=True)
 
-            if getattr(args, "format", "text") in ["json", "yaml"]:
+            if self._is_structured_format(self._get_output_format(args)):
                 return CommandResult.error_result(
                     f"Failed to validate configuration: {e}",
                     data={"config_file": str(config_file), "exception": str(e)},
@@ -187,7 +221,7 @@ class ConfigCommand(BaseCommand):
                     error_msg = f"Section '{section}' not found in configuration"
                     available_sections = list(config_dict.keys())
 
-                    if getattr(args, "format", "text") in ["json", "yaml"]:
+                    if self._is_structured_format(self._get_output_format(args)):
                         return CommandResult.error_result(
                             error_msg, data={"available_sections": available_sections}
                         )
@@ -198,9 +232,9 @@ class ConfigCommand(BaseCommand):
                     return CommandResult.error_result(error_msg)
 
             # Handle output format
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
 
-            if output_format == "json":
+            if str(output_format).lower() == OutputFormat.JSON:
                 if hasattr(args, "output") and args.output:
                     # Use shared output handling
                     return CommandResult.success_result(
@@ -214,7 +248,7 @@ class ConfigCommand(BaseCommand):
                     "Configuration displayed", data=config_dict
                 )
 
-            if output_format == "yaml":
+            if str(output_format).lower() == OutputFormat.YAML:
                 if hasattr(args, "output") and args.output:
                     # Use shared output handling
                     return CommandResult.success_result(
@@ -239,7 +273,7 @@ class ConfigCommand(BaseCommand):
         except Exception as e:
             self.logger.error(f"Configuration view error: {e}", exc_info=True)
 
-            if getattr(args, "format", "text") in ["json", "yaml"]:
+            if self._is_structured_format(self._get_output_format(args)):
                 return CommandResult.error_result(
                     f"Failed to view configuration: {e}", data={"exception": str(e)}
                 )
@@ -257,9 +291,9 @@ class ConfigCommand(BaseCommand):
             status = config.get_configuration_status()
 
             # Handle output format
-            output_format = getattr(args, "format", "text")
+            output_format = self._get_output_format(args)
 
-            if output_format in ["json", "yaml"]:
+            if self._is_structured_format(output_format):
                 # Structured output
                 result_data = status.copy()
 
@@ -297,7 +331,7 @@ class ConfigCommand(BaseCommand):
         except Exception as e:
             self.logger.error(f"Configuration status error: {e}", exc_info=True)
 
-            if getattr(args, "format", "text") in ["json", "yaml"]:
+            if self._is_structured_format(self._get_output_format(args)):
                 return CommandResult.error_result(
                     f"Failed to get configuration status: {e}",
                     data={"exception": str(e)},
@@ -429,7 +463,7 @@ def manage_config(args) -> int:
     result = command.execute(args)
 
     # Print result if not already handled
-    if hasattr(args, "format") and args.format in ["json", "yaml"]:
+    if _is_structured_output(args):
         command.print_result(result, args)
 
     return result.exit_code
