@@ -241,7 +241,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
         except Exception as e:
             logger.error(f"Error analyzing file {file_path}: {e}")
-            results["status"] = "error"
+            results["status"] = OperationResult.ERROR
             results["error"] = str(e)
 
         return results
@@ -292,7 +292,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
                     continue
 
                 file_result = self._analyze_file(file_path, options)
-                if file_result["status"] == "success":
+                if file_result["status"] == OperationResult.SUCCESS:
                     results["files_analyzed"] += 1
                     total_score += file_result["performance_score"]
 
@@ -803,7 +803,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
         """Extract key metrics from analysis results."""
         metrics = {}
 
-        if analysis_result.get("status") != "success":
+        if analysis_result.get("status") != OperationResult.SUCCESS:
             return metrics
 
         if analysis_result.get("type") == "file":

@@ -242,7 +242,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
         except Exception as e:
             logger.error(f"Error analyzing file {file_path}: {e}")
-            results["status"] = "error"
+            results["status"] = OperationResult.ERROR
             results["error"] = str(e)
 
         return results

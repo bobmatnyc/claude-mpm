@@ -641,7 +641,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
         """Extract key metrics from analysis results."""
         metrics = {}
 
-        if analysis_result.get("status") != "success":
+        if analysis_result.get("status") != OperationResult.SUCCESS:
             return metrics
 
         # Extract structure statistics
