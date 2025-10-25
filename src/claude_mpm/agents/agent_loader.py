@@ -38,6 +38,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from claude_mpm.core.enums import AgentCategory
+
 # Module-level logger
 from claude_mpm.core.logging_utils import get_logger
 
@@ -281,11 +283,21 @@ class AgentLoader:
         # Check for project memory
         has_memory = capabilities.get("has_project_memory", False)
 
+        # Get category with enum validation (fallback to GENERAL if invalid)
+        category_str = metadata.get("category", "general")
+        try:
+            category = AgentCategory(category_str)
+        except ValueError:
+            logger.warning(
+                f"Invalid category '{category_str}' for agent {agent_id}, using GENERAL"
+            )
+            category = AgentCategory.GENERAL
+
         result = {
             "agent_id": agent_id,
             "name": metadata.get("name", agent_id),
             "description": metadata.get("description", ""),
-            "category": metadata.get("category", "general"),
+            "category": category.value,  # Store as string for backward compatibility
             "version": metadata.get("version", "1.0.0"),
             "model": agent_data.get("model", "claude-sonnet-4-20250514"),
             "resource_tier": agent_data.get("resource_tier", "standard"),
