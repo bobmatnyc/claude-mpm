@@ -19,6 +19,7 @@ from typing import Dict, List
 
 import socketio
 
+from ....core.enums import ServiceState
 from ....core.logging_config import get_logger
 
 
@@ -170,7 +171,7 @@ class HookHandler:
             session_info = {
                 "session_id": session_id,
                 "start_time": asyncio.get_event_loop().time(),
-                "status": "active",
+                "status": ServiceState.RUNNING,
                 "event_count": 0,
                 "last_activity": asyncio.get_event_loop().time(),
                 "metadata": data.get("metadata", {}),

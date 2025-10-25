@@ -26,6 +26,7 @@ from typing import Dict, Optional
 import socketio
 from aiohttp import web
 
+from ...core.enums import ServiceState
 from ...core.logging_config import get_logger
 from ...dashboard.api.simple_directory import list_directory
 from .event_emitter import get_event_emitter
@@ -333,7 +334,7 @@ class UnifiedMonitorServer:
 
                 return web.json_response(
                     {
-                        "status": "healthy",
+                        "status": ServiceState.RUNNING,
                         "service": "claude-mpm-monitor",  # Important: must match what is_our_service() checks
                         "version": version,
                         "port": self.port,

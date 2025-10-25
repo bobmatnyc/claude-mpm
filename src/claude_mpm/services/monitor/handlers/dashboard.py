@@ -18,6 +18,8 @@ from typing import Dict, Set
 
 import socketio
 
+from ....core.enums import ServiceState
+
 from ....core.logging_config import get_logger
 
 
@@ -128,7 +130,7 @@ class DashboardHandler:
         try:
             status = {
                 "service": "unified-monitor",
-                "status": "running",
+                "status": ServiceState.RUNNING,
                 "clients_connected": len(self.connected_clients),
                 "uptime": asyncio.get_event_loop().time(),
                 "features": {
