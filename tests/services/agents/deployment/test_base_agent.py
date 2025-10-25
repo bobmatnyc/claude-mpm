@@ -7,10 +7,11 @@ tier determination for the deployment system.
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+from conftest import TestAgentDeploymentService
+
 from claude_mpm.services.agents.deployment.agent_deployment import (
     AgentDeploymentService,
 )
-from conftest import TestAgentDeploymentService
 
 
 class TestBaseAgentHandling(TestAgentDeploymentService):
