@@ -32,6 +32,7 @@ from ...services.version_service import VersionService
 from ...utils.console import console as default_console
 from ..shared import BaseCommand, CommandResult
 from .agent_state_manager import SimpleAgentManager
+from .configure_agent_display import AgentDisplay
 from .configure_behavior_manager import BehaviorManager
 from .configure_hook_manager import HookManager
 from .configure_models import AgentConfig
@@ -52,10 +53,25 @@ class ConfigureCommand(BaseCommand):
         self.agent_manager = None
         self.hook_manager = HookManager(self.console)
         self.behavior_manager = None  # Initialized when scope is set
+        self._agent_display = None  # Lazy-initialized
 
     def validate_args(self, args) -> Optional[str]:
         """Validate command arguments."""
         return validate_configure_args(args)
+
+    @property
+    def agent_display(self) -> AgentDisplay:
+        """Lazy-initialize agent display handler."""
+        if self._agent_display is None:
+            if self.agent_manager is None:
+                raise RuntimeError("agent_manager must be initialized before agent_display")
+            self._agent_display = AgentDisplay(
+                self.console,
+                self.agent_manager,
+                self._get_agent_template_path,
+                self._display_header
+            )
+        return self._agent_display
 
     def run(self, args) -> CommandResult:
         """Execute the configure command."""
@@ -320,101 +336,11 @@ class ConfigureCommand(BaseCommand):
 
     def _display_agents_table(self, agents: List[AgentConfig]) -> None:
         """Display a table of available agents."""
-        table = Table(
-            title=f"Available Agents ({len(agents)} total)",
-            box=ROUNDED,
-            show_lines=True,
-        )
-
-        table.add_column("ID", style="dim", width=3)
-        table.add_column("Name", style="cyan", width=22)
-        table.add_column("Status", width=12)
-        table.add_column("Description", style="bold cyan", width=45)
-        table.add_column("Model/Tools", style="dim", width=20)
-
-        for idx, agent in enumerate(agents, 1):
-            # Check if agent is enabled
-            is_enabled = self.agent_manager.is_agent_enabled(agent.name)
-            status = (
-                "[green]✓ Enabled[/green]" if is_enabled else "[red]✗ Disabled[/red]"
-            )
-
-            # Format tools/dependencies - show first 2 tools
-            tools_display = ""
-            if agent.dependencies:
-                if len(agent.dependencies) > 2:
-                    tools_display = f"{', '.join(agent.dependencies[:2])}..."
-                else:
-                    tools_display = ", ".join(agent.dependencies)
-            else:
-                # Try to get model from template
-                try:
-                    template_path = self._get_agent_template_path(agent.name)
-                    if template_path.exists():
-                        with template_path.open() as f:
-                            template = json.load(f)
-                        model = template.get("capabilities", {}).get("model", "default")
-                        tools_display = f"Model: {model}"
-                    else:
-                        tools_display = "Default"
-                except Exception:
-                    tools_display = "Default"
-
-            # Truncate description for table display with bright styling
-            if len(agent.description) > 42:
-                desc_display = f"[cyan]{agent.description[:42]}[/cyan][dim]...[/dim]"
-            else:
-                desc_display = f"[cyan]{agent.description}[/cyan]"
-
-            table.add_row(str(idx), agent.name, status, desc_display, tools_display)
-
-        self.console.print(table)
+        self.agent_display.display_agents_table(agents)
 
     def _display_agents_with_pending_states(self, agents: List[AgentConfig]) -> None:
         """Display agents table with pending state indicators."""
-        has_pending = self.agent_manager.has_pending_changes()
-        pending_count = len(self.agent_manager.deferred_changes) if has_pending else 0
-
-        title = f"Available Agents ({len(agents)} total)"
-        if has_pending:
-            title += f" [yellow]({pending_count} change{'s' if pending_count != 1 else ''} pending)[/yellow]"
-
-        table = Table(title=title, box=ROUNDED, show_lines=True, expand=True)
-        table.add_column("ID", justify="right", style="cyan", width=5)
-        table.add_column("Name", style="bold", width=22)
-        table.add_column("Status", width=20)
-        table.add_column("Description", style="bold cyan", width=45)
-
-        for idx, agent in enumerate(agents, 1):
-            current_state = self.agent_manager.is_agent_enabled(agent.name)
-            pending_state = self.agent_manager.get_pending_state(agent.name)
-
-            # Show pending status with arrow
-            if current_state != pending_state:
-                if pending_state:
-                    status = "[yellow]✗ Disabled → ✓ Enabled[/yellow]"
-                else:
-                    status = "[yellow]✓ Enabled → ✗ Disabled[/yellow]"
-            else:
-                status = (
-                    "[green]✓ Enabled[/green]"
-                    if current_state
-                    else "[dim]✗ Disabled[/dim]"
-                )
-
-            desc_display = Text()
-            desc_display.append(
-                (
-                    agent.description[:42] + "..."
-                    if len(agent.description) > 42
-                    else agent.description
-                ),
-                style="cyan",
-            )
-
-            table.add_row(str(idx), agent.name, status, desc_display)
-
-        self.console.print(table)
+        self.agent_display.display_agents_with_pending_states(agents)
 
     def _toggle_agents_interactive(self, agents: List[AgentConfig]) -> None:
         """Interactive multi-agent enable/disable with batch save."""
@@ -857,81 +783,7 @@ class ConfigureCommand(BaseCommand):
 
     def _view_agent_details(self, agents: List[AgentConfig]) -> None:
         """View detailed information about an agent."""
-        agent_id = Prompt.ask("Enter agent ID to view")
-
-        try:
-            idx = int(agent_id) - 1
-            if 0 <= idx < len(agents):
-                agent = agents[idx]
-
-                self.console.clear()
-                self._display_header()
-
-                # Try to load full template for more details
-                template_path = self._get_agent_template_path(agent.name)
-                extra_info = ""
-
-                if template_path.exists():
-                    try:
-                        with template_path.open() as f:
-                            template = json.load(f)
-
-                        # Extract additional information
-                        metadata = template.get("metadata", {})
-                        capabilities = template.get("capabilities", {})
-
-                        # Get full description if available
-                        full_desc = metadata.get("description", agent.description)
-
-                        # Get model and tools
-                        model = capabilities.get("model", "default")
-                        tools = capabilities.get("tools", [])
-
-                        # Get tags
-                        tags = metadata.get("tags", [])
-
-                        # Get version info
-                        agent_version = template.get("agent_version", "N/A")
-                        schema_version = template.get("schema_version", "N/A")
-
-                        extra_info = f"""
-[bold]Full Description:[/bold]
-{full_desc}
-
-[bold]Model:[/bold] {model}
-[bold]Agent Version:[/bold] {agent_version}
-[bold]Schema Version:[/bold] {schema_version}
-[bold]Tags:[/bold] {', '.join(tags) if tags else 'None'}
-[bold]Tools:[/bold] {', '.join(tools[:5]) if tools else 'None'}{'...' if len(tools) > 5 else ''}
-"""
-                    except Exception:
-                        pass
-
-                # Create detail panel
-                detail_text = f"""
-[bold]Name:[/bold] {agent.name}
-[bold]Status:[/bold] {'[green]Enabled[/green]' if self.agent_manager.is_agent_enabled(agent.name) else '[red]Disabled[/red]'}
-[bold]Template Path:[/bold] {template_path}
-[bold]Is System Template:[/bold] {'Yes' if str(template_path).startswith(str(self.agent_manager.templates_dir)) else 'No (Custom)'}
-{extra_info}
-                """
-
-                panel = Panel(
-                    detail_text.strip(),
-                    title=f"[bold]{agent.name} Details[/bold]",
-                    box=ROUNDED,
-                    style="cyan",
-                )
-
-                self.console.print(panel)
-
-            else:
-                self.console.print("[red]Invalid agent ID.[/red]")
-
-        except ValueError:
-            self.console.print("[red]Invalid input. Please enter a number.[/red]")
-
-        Prompt.ask("\nPress Enter to continue")
+        self.agent_display.view_agent_details(agents)
 
     def _edit_templates(self) -> None:
         """Template editing interface."""
