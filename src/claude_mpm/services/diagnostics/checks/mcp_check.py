@@ -9,6 +9,8 @@ import json
 import subprocess
 from pathlib import Path
 
+from claude_mpm.core.enums import ServiceState
+
 from ..models import DiagnosticResult, DiagnosticStatus
 from .base_check import BaseDiagnosticCheck
 
@@ -226,18 +228,18 @@ class MCPCheck(BaseDiagnosticCheck):
             )
 
             if result.returncode == 0:
-                if "running" in result.stdout.lower():
+                if ServiceState.RUNNING.value in result.stdout.lower():
                     return DiagnosticResult(
                         category="MCP Server Status",
                         status=DiagnosticStatus.OK,
                         message="MCP server is running",
-                        details={"running": True},
+                        details={"running": True, "state": ServiceState.RUNNING},
                     )
                 return DiagnosticResult(
                     category="MCP Server Status",
                     status=DiagnosticStatus.WARNING,
                     message="MCP server not running",
-                    details={"running": False},
+                    details={"running": False, "state": ServiceState.STOPPED},
                     fix_command="claude-mpm mcp start",
                     fix_description="Start the MCP server",
                 )
@@ -245,7 +247,7 @@ class MCPCheck(BaseDiagnosticCheck):
                 category="MCP Server Status",
                 status=DiagnosticStatus.WARNING,
                 message="Could not determine server status",
-                details={"running": "unknown", "error": result.stderr},
+                details={"running": "unknown", "state": ServiceState.UNKNOWN, "error": result.stderr},
             )
 
         except subprocess.TimeoutExpired:
@@ -253,14 +255,14 @@ class MCPCheck(BaseDiagnosticCheck):
                 category="MCP Server Status",
                 status=DiagnosticStatus.WARNING,
                 message="Server status check timed out",
-                details={"running": "unknown", "error": "timeout"},
+                details={"running": "unknown", "state": ServiceState.UNKNOWN, "error": "timeout"},
             )
         except Exception as e:
             return DiagnosticResult(
                 category="MCP Server Status",
                 status=DiagnosticStatus.WARNING,
                 message=f"Could not check server status: {e!s}",
-                details={"running": "unknown", "error": str(e)},
+                details={"running": "unknown", "state": ServiceState.UNKNOWN, "error": str(e)},
             )
 
     def _check_startup_verification(self) -> DiagnosticResult:
