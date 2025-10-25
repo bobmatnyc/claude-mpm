@@ -22,6 +22,8 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from ..core.enums import OperationResult
+
 try:
     import socketio
 
@@ -268,7 +270,7 @@ class CodeTreeEventEmitter:
                 "name": Path(file_path).name,
                 "language": language or "unknown",
                 "type": "file",
-                "status": "analyzing",
+                "status": OperationResult.PENDING,
             },
         )
 
@@ -287,7 +289,7 @@ class CodeTreeEventEmitter:
                 "nodes_count": nodes_count,
                 "duration": duration,
                 "type": "file",
-                "status": "complete",
+                "status": OperationResult.COMPLETED,
             },
         )
 

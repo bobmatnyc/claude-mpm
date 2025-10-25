@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
 
 from .base_service import BaseService
 from .config import Config
+from .enums import OperationResult
 from .container import DIContainer, ServiceLifetime, get_container
 from .logger import get_logger
 from .shared.config_loader import ConfigLoader
@@ -249,7 +250,7 @@ class ServiceRegistry:
                                 "metrics": health.metrics,
                             }
                 except Exception as e:
-                    health_status[name] = {"status": "error", "message": str(e)}
+                    health_status[name] = {"status": OperationResult.ERROR, "message": str(e)}
 
             return health_status
 

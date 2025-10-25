@@ -21,6 +21,7 @@ import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from ..core.enums import OperationResult
 from ..core.logger import get_logger
 
 
@@ -158,7 +159,7 @@ class InstructionReinforcementHook:
         # Create reminder todo
         reminder_todo = {
             "content": message,
-            "status": "pending",
+            "status": OperationResult.PENDING,
             "activeForm": "Processing instruction reminder",
         }
 
