@@ -33,6 +33,9 @@ from ...utils.console import console as default_console
 from ..shared import BaseCommand, CommandResult
 from .agent_state_manager import SimpleAgentManager
 from .configure_models import AgentConfig
+from .configure_paths import get_agent_template_path, get_config_directory
+from .configure_validators import validate_args as validate_configure_args
+from .configure_validators import parse_id_selection
 
 
 class ConfigureCommand(BaseCommand):
@@ -48,22 +51,7 @@ class ConfigureCommand(BaseCommand):
 
     def validate_args(self, args) -> Optional[str]:
         """Validate command arguments."""
-        # Check for conflicting direct navigation options
-        nav_options = [
-            getattr(args, "agents", False),
-            getattr(args, "templates", False),
-            getattr(args, "behaviors", False),
-            getattr(args, "startup", False),
-            getattr(args, "version_info", False),
-        ]
-        if sum(nav_options) > 1:
-            return "Only one direct navigation option can be specified at a time"
-
-        # Check for conflicting non-interactive options
-        if getattr(args, "enable_agent", None) and getattr(args, "disable_agent", None):
-            return "Cannot enable and disable agents at the same time"
-
-        return None
+        return validate_configure_args(args)
 
     def run(self, args) -> CommandResult:
         """Execute the configure command."""
@@ -652,35 +640,12 @@ class ConfigureCommand(BaseCommand):
 
     def _get_agent_template_path(self, agent_name: str) -> Path:
         """Get the path to an agent's template file."""
-        # First check for custom template in project/user config
-        if self.current_scope == "project":
-            config_dir = self.project_dir / ".claude-mpm" / "agents"
-        else:
-            config_dir = Path.home() / ".claude-mpm" / "agents"
-
-        config_dir.mkdir(parents=True, exist_ok=True)
-        custom_template = config_dir / f"{agent_name}.json"
-
-        # If custom template exists, return it
-        if custom_template.exists():
-            return custom_template
-
-        # Otherwise, look for the system template
-        # Handle various naming conventions
-        possible_names = [
-            f"{agent_name}.json",
-            f"{agent_name.replace('-', '_')}.json",
-            f"{agent_name}-agent.json",
-            f"{agent_name.replace('-', '_')}_agent.json",
-        ]
-
-        for name in possible_names:
-            system_template = self.agent_manager.templates_dir / name
-            if system_template.exists():
-                return system_template
-
-        # Return the custom template path for new templates
-        return custom_template
+        return get_agent_template_path(
+            agent_name,
+            self.current_scope,
+            self.project_dir,
+            self.agent_manager.templates_dir,
+        )
 
     def _edit_in_external_editor(self, template_path: Path, template: Dict) -> None:
         """Open template in external editor."""
@@ -1503,27 +1468,7 @@ class ConfigureCommand(BaseCommand):
 
     def _parse_id_selection(self, selection: str, max_id: int) -> List[int]:
         """Parse ID selection string (e.g., '1,3,5' or '1-4')."""
-        ids = set()
-        parts = selection.split(",")
-
-        for part in parts:
-            part = part.strip()
-            if "-" in part:
-                # Range selection
-                start, end = part.split("-")
-                start_id = int(start.strip())
-                end_id = int(end.strip())
-                if start_id < 1 or end_id > max_id or start_id > end_id:
-                    raise ValueError(f"Invalid range: {part}")
-                ids.update(range(start_id, end_id + 1))
-            else:
-                # Single ID
-                id_num = int(part)
-                if id_num < 1 or id_num > max_id:
-                    raise ValueError(f"Invalid ID: {id_num}")
-                ids.add(id_num)
-
-        return sorted(ids)
+        return parse_id_selection(selection, max_id)
 
     def _enable_all_services(self, startup_config: Dict, config: Config) -> None:
         """Enable all services and agents."""
