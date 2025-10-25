@@ -27,7 +27,27 @@
   - `analyze.py`: OutputFormat enum (4 occurrences)
   - `analyze_code.py`: OutputFormat enum (4 occurrences)
   - `aggregate.py`: OutputFormat enum (4 occurrences)
-- **Service Layer Migration**: Type-safe severity handling
+- **Service Layer Migration** (Phase 3A - Batches 1-14): 102 OperationResult/ServiceState occurrences migrated
+  - Agent deployment & monitor services (8 occurrences)
+  - Analyzer strategies (19 occurrences)
+  - Subprocess & health check services (10 occurrences)
+  - Unified service layer (4 occurrences)
+  - Deployment strategies (8 occurrences)
+  - Monitor services (3 occurrences)
+  - Session & SocketIO services (5 occurrences)
+  - Memory, diagnostics, & SocketIO main (5 occurrences)
+  - MPM-Init command (20 occurrences - largest single file)
+  - Core infrastructure: logging, events, registry (4 occurrences)
+  - Core hooks: instruction reinforcement (5 occurrences)
+  - Session handlers: interactive & oneshot (7 occurrences)
+  - Subprocess launcher service (2 occurrences)
+- **Type System Consolidation** (Phase 3A Batch 12): Eliminated 4 duplicate Literal types
+  - `SessionStatus`: Literal → ServiceState enum
+  - `ServiceStatus`: Literal → ServiceState enum
+  - `ClaudeStatus.status`: Literal → ServiceState enum
+  - `DelegationInfo.status`: Literal → OperationResult enum
+  - Single source of truth for all status-related types
+- **Service Layer Migration** (Phase 2): Type-safe severity handling
   - `interfaces.py`: AnalysisResult.severity default
   - `unified_analyzer.py`: All severity comparisons use ValidationSeverity
   - `validation_strategy.py`: ValidationRule severity handling
