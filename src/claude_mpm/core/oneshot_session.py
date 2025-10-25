@@ -12,6 +12,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
+from claude_mpm.core.enums import OperationResult, ServiceState
 from claude_mpm.core.logger import get_logger
 
 
@@ -162,7 +163,7 @@ class OneshotSession:
 
         if self.runner.websocket_server:
             self.runner.websocket_server.claude_status_changed(
-                status="running", message="Executing Claude oneshot command"
+                status=ServiceState.RUNNING, message="Executing Claude oneshot command"
             )
 
     def _run_subprocess(
@@ -222,7 +223,7 @@ class OneshotSession:
         # End WebSocket session
         if self.runner.websocket_server:
             self.runner.websocket_server.claude_status_changed(
-                status="stopped", message="Session completed"
+                status=ServiceState.STOPPED, message="Session completed"
             )
             self.runner.websocket_server.session_ended()
 
@@ -299,7 +300,7 @@ class OneshotSession:
                 agent_name = self.runner._extract_agent_from_response(response)
                 if agent_name:
                     self.runner.websocket_server.agent_delegated(
-                        agent=agent_name, task=prompt[:100], status="detected"
+                        agent=agent_name, task=prompt[:100], status=OperationResult.PENDING
                     )
 
         # Log completion
@@ -335,7 +336,7 @@ class OneshotSession:
         if self.runner.websocket_server:
             self.runner.websocket_server.claude_output(error_msg, "stderr")
             self.runner.websocket_server.claude_status_changed(
-                status="error", message=f"Command failed with code {return_code}"
+                status=ServiceState.ERROR, message=f"Command failed with code {return_code}"
             )
 
         # Log error
