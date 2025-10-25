@@ -103,7 +103,7 @@ class MPMInitCommand:
             if catchup:
                 data = self._catchup()
                 self._display_catchup(data)
-                return {"status": "success", "mode": "catchup", "catchup_data": data}
+                return {"status": OperationResult.SUCCESS, "mode": "catchup", "catchup_data": data}
 
             if quick_update:
                 return self._run_quick_update_mode(
@@ -674,7 +674,7 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
                 "changes_made": False,
             }
         console.print("\n[yellow]Quick update cancelled[/yellow]")
-        return {"status": "cancelled", "message": "Quick update cancelled"}
+        return {"status": OperationResult.CANCELLED, "message": "Quick update cancelled"}
 
     def _catchup(self) -> Dict[str, Any]:
         """Get recent commit history for PM context.

@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
 
 logger = get_logger(__name__)
@@ -267,7 +268,7 @@ class InstructionReinforcementHook:
         if not self.violations:
             return {
                 "total_violations": 0,
-                "status": "COMPLIANT",
+                "status": OperationResult.SUCCESS,
                 "message": "No PM delegation violations detected",
             }
 
@@ -276,7 +277,7 @@ class InstructionReinforcementHook:
             vtype = v.violation_type.value
             violation_types[vtype] = violation_types.get(vtype, 0) + 1
 
-        status = "WARNING" if self.violation_count < 3 else "CRITICAL"
+        status = OperationResult.ERROR if self.violation_count < 3 else OperationResult.FAILED
 
         return {
             "total_violations": self.violation_count,
