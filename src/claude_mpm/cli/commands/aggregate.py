@@ -16,6 +16,7 @@ import json
 import sys
 from typing import Optional
 
+from ...core.enums import OutputFormat
 from ...core.logger import get_logger
 from ...services.event_aggregator import (
     aggregator_status,
@@ -110,7 +111,7 @@ def aggregate_command(args):
     result = command.execute(args)
 
     # Print result if structured output format is requested
-    if hasattr(args, "format") and args.format in ["json", "yaml"]:
+    if hasattr(args, "format") and str(args.format).lower() in (OutputFormat.JSON, OutputFormat.YAML):
         command.print_result(result, args)
 
     return result.exit_code
@@ -407,7 +408,7 @@ def export_command_legacy(args):
         output_path = Path(f"session_{session.session_id[:8]}_export.json")
 
     # Export based on format
-    if args.format == "json":
+    if str(args.format).lower() == OutputFormat.JSON:
         # Full JSON export
         with output_path.open("w") as f:
             json.dump(session.to_dict(), f, indent=2)
@@ -529,7 +530,7 @@ def add_aggregate_parser(subparsers):
         "--format",
         "-f",
         choices=["json", "summary", "events"],
-        default="json",
+        default=OutputFormat.JSON,
         help="Export format (default: json)",
     )
 
