@@ -25,6 +25,7 @@ import logging
 from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
 from claude_mpm.core.config import Config
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.interfaces import MemoryServiceInterface
 from claude_mpm.core.unified_paths import get_path_manager
 
@@ -596,9 +597,10 @@ class AgentMemoryManager(MemoryServiceInterface):
         """
         # Deprecated - return informative message
         return {
-            "status": "deprecated",
+            "status": OperationResult.ERROR,  # Deprecated function - calling it is an error
             "message": "Cross-reference analysis has been deprecated in favor of simplified memory management",
             "suggestion": "Use get_memory_status() for memory overview",
+            "deprecated": True,
         }
 
     def get_all_memories_raw(self) -> Dict[str, Any]:
@@ -613,9 +615,10 @@ class AgentMemoryManager(MemoryServiceInterface):
         """
         # Deprecated - return informative message
         return {
-            "status": "deprecated",
+            "status": OperationResult.ERROR,  # Deprecated function - calling it is an error
             "message": "Raw memory access has been deprecated in favor of simplified memory management",
             "suggestion": "Use load_agent_memory() for specific agent memories",
+            "deprecated": True,
         }
 
     def _save_memory_file_wrapper(self, agent_id: str, content: str) -> bool:
