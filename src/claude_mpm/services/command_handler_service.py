@@ -12,6 +12,7 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 from typing import Any, Dict, List
 
 from claude_mpm.core.base_service import BaseService
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.services.core.interfaces import CommandHandlerInterface
 
 
@@ -169,7 +170,7 @@ class CommandHandlerService(BaseService, CommandHandlerInterface):
             if command == "test":
                 success = self._handle_test_command(args)
                 return {
-                    "success": success,
+                    OperationResult.SUCCESS.value: success,
                     "command": command,
                     "args": args,
                     "message": (
@@ -179,7 +180,7 @@ class CommandHandlerService(BaseService, CommandHandlerInterface):
             if command == "agents":
                 success = self._handle_agents_command(args)
                 return {
-                    "success": success,
+                    OperationResult.SUCCESS.value: success,
                     "command": command,
                     "args": args,
                     "message": (
@@ -189,14 +190,19 @@ class CommandHandlerService(BaseService, CommandHandlerInterface):
                     ),
                 }
             return {
-                "success": False,
+                OperationResult.SUCCESS.value: False,
                 "command": command,
                 "args": args,
-                "error": f"Unknown command: {command}",
+                OperationResult.ERROR.value: f"Unknown command: {command}",
                 "available_commands": self.get_available_commands(),
             }
         except Exception as e:
-            return {"success": False, "command": command, "args": args, "error": str(e)}
+            return {
+                OperationResult.SUCCESS.value: False,
+                "command": command,
+                "args": args,
+                OperationResult.ERROR.value: str(e),
+            }
 
     def get_command_help(self, command: str) -> str:
         """Get help text for a specific command.
