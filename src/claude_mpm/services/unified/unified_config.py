@@ -26,6 +26,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from claude_mpm.core.enums import ServiceState
 from claude_mpm.core.logging_utils import get_logger
 
 from .interfaces import (
@@ -153,7 +154,7 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
 
         return {
             "service": "UnifiedConfigManager",
-            "status": "healthy" if self._initialized else "unhealthy",
+            "status": ServiceState.RUNNING if self._initialized else ServiceState.ERROR,
             "initialized": self._initialized,
             "registered_strategies": len(strategies),
             "loaded_configs": len(self._configs),
