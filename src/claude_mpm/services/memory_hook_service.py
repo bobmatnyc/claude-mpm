@@ -11,6 +11,7 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 from typing import Any, Dict
 
 from claude_mpm.core.base_service import BaseService
+from claude_mpm.core.enums import ServiceState
 from claude_mpm.services.core.interfaces import MemoryHookInterface
 
 
@@ -463,5 +464,5 @@ class MemoryHookService(BaseService, MemoryHookInterface):
             "hook_service_available": self.hook_service is not None,
             "memory_enabled": self.is_memory_enabled(),
             "total_hooks": len(self.registered_hooks),
-            "status": "active" if self.registered_hooks else "inactive",
+            "status": ServiceState.RUNNING if self.registered_hooks else ServiceState.IDLE,
         }

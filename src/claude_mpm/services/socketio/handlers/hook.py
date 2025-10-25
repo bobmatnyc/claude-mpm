@@ -7,6 +7,7 @@ agent delegations, and other hook-based activity for the system heartbeat.
 from datetime import datetime, timezone
 from typing import Any, Dict
 
+from ....core.enums import ServiceState
 from .base import BaseEventHandler
 
 
@@ -108,7 +109,7 @@ class HookEventHandler(BaseEventHandler):
                 "session_id": session_id,
                 "start_time": datetime.now(timezone.utc).isoformat(),
                 "agent": agent_type,
-                "status": "active",
+                "status": ServiceState.RUNNING,
                 "prompt": data.get("prompt", "")[:100],  # First 100 chars
                 "last_activity": datetime.now(timezone.utc).isoformat(),
             }
@@ -159,7 +160,7 @@ class HookEventHandler(BaseEventHandler):
                     "session_id": session_id,
                     "start_time": datetime.now(timezone.utc).isoformat(),
                     "agent": "pm",  # Default to PM
-                    "status": "active",
+                    "status": ServiceState.RUNNING,
                     "prompt": data.get("prompt_text", "")[:100],
                     "working_directory": data.get("working_directory", ""),
                     "last_activity": datetime.now(timezone.utc).isoformat(),
