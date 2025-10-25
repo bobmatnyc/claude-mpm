@@ -86,7 +86,7 @@ class TestBaseAgentHandling(TestAgentDeploymentService):
     def test_determine_source_tier_project(self, service):
         """Test determining project source tier."""
         with patch(
-            "claude_mpm.services.agents.deployment.agent_deployment.DeploymentTypeDetector"
+            "claude_mpm.services.agents.deployment.deployment_type_detector.DeploymentTypeDetector"
         ) as mock_detector:
             mock_detector.determine_source_tier.return_value = "project"
 

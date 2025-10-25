@@ -102,7 +102,7 @@ class TestVersionAndConfiguration(TestAgentDeploymentService):
         mock_config = Mock()
 
         with patch(
-            "claude_mpm.services.agents.deployment.agent_deployment.DeploymentConfigLoader"
+            "claude_mpm.services.agents.deployment.deployment_config_loader.DeploymentConfigLoader"
         ) as mock_loader_class:
             mock_loader = Mock()
             mock_loader.load_deployment_config.return_value = (
@@ -119,7 +119,7 @@ class TestVersionAndConfiguration(TestAgentDeploymentService):
     def test_determine_agents_directory(self, service, tmp_path):
         """Test determining agents directory."""
         with patch(
-            "claude_mpm.services.agents.deployment.agent_deployment.AgentsDirectoryResolver"
+            "claude_mpm.services.agents.deployment.agents_directory_resolver.AgentsDirectoryResolver"
         ) as mock_resolver_class:
             mock_resolver = Mock()
             expected_dir = tmp_path / ".claude" / "agents"
@@ -135,7 +135,7 @@ class TestVersionAndConfiguration(TestAgentDeploymentService):
         target_dir = tmp_path / "custom" / "agents"
 
         with patch(
-            "claude_mpm.services.agents.deployment.agent_deployment.AgentsDirectoryResolver"
+            "claude_mpm.services.agents.deployment.agents_directory_resolver.AgentsDirectoryResolver"
         ) as mock_resolver_class:
             mock_resolver = Mock()
             mock_resolver.determine_agents_directory.return_value = target_dir
