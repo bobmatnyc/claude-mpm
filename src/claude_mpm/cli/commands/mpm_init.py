@@ -20,6 +20,7 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Prompt
 
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
 
 # Import new services
@@ -139,7 +140,7 @@ class MPMInitCommand:
                         return self._run_review_mode()
                     else:
                         return {
-                            "status": "cancelled",
+                            "status": OperationResult.CANCELLED,
                             "message": "Initialization cancelled",
                         }
 
@@ -203,7 +204,7 @@ class MPMInitCommand:
         except Exception as e:
             logger.error(f"Failed to initialize project: {e}")
             console.print(f"[red]❌ Error: {e}[/red]")
-            return {"status": "error", "message": str(e)}
+            return {"status": OperationResult.ERROR, "message": str(e)}
 
     def _find_claude_mpm_script(self) -> Path:
         """Find the claude-mpm script location."""
@@ -484,7 +485,7 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
         )
 
         return {
-            "status": "success",
+            "status": OperationResult.SUCCESS,
             "mode": "review",
             "structure_report": structure_report,
             "documentation_analysis": doc_analysis,
@@ -576,7 +577,7 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
                 "[dim]Tip: Use `/mpm-init --review` for non-git projects.[/dim]\n"
             )
             return {
-                "status": "error",
+                "status": OperationResult.ERROR,
                 "message": "Quick update requires a git repository",
             }
 
@@ -589,7 +590,7 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
                 "[dim]Tip: Use `/mpm-init` to create initial documentation.[/dim]\n"
             )
             return {
-                "status": "error",
+                "status": OperationResult.ERROR,
                 "message": "Quick update requires existing CLAUDE.md",
             }
 
@@ -631,7 +632,7 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
                 "\n[cyan]ℹ️  Non-interactive mode: Report displayed, no changes made.[/cyan]"
             )
             return {
-                "status": "success",
+                "status": OperationResult.SUCCESS,
                 "mode": "quick_update",
                 "activity_report": activity_report,
                 "changes_made": False,
@@ -659,7 +660,7 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
             )
 
             return {
-                "status": "success",
+                "status": OperationResult.SUCCESS,
                 "mode": "quick_update",
                 "activity_report": activity_report,
                 "changes_made": True,
@@ -667,7 +668,7 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
         if choice == "2":
             console.print("\n[cyan]Report generated - no changes made[/cyan]")
             return {
-                "status": "success",
+                "status": OperationResult.SUCCESS,
                 "mode": "quick_update",
                 "activity_report": activity_report,
                 "changes_made": False,
@@ -1150,7 +1151,7 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
         console.print("\n[dim]Run without --dry-run to execute these changes.[/dim]\n")
 
         return {
-            "status": "success",
+            "status": OperationResult.SUCCESS,
             "mode": "dry_run",
             "actions_planned": actions_planned,
             "message": "Dry run completed - no changes made",
@@ -1208,7 +1209,7 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
             console.print()
 
         return {
-            "status": "success",
+            "status": OperationResult.SUCCESS,
             "checks_passed": checks_passed,
             "warnings": warnings,
         }
@@ -1412,7 +1413,7 @@ preserving valuable project-specific information while refreshing standard secti
             # Check result - be more lenient with return codes
             if result.returncode == 0 or (self.project_path / "CLAUDE.md").exists():
                 response = {
-                    "status": "success",
+                    "status": OperationResult.SUCCESS,
                     "message": "Project initialized successfully",
                     "files_created": [],
                     "files_updated": [],
@@ -1450,7 +1451,7 @@ preserving valuable project-specific information while refreshing standard secti
 
             logger.error(f"claude-mpm run failed: {error_msg}")
             return {
-                "status": "error",
+                "status": OperationResult.ERROR,
                 "message": f"Initialization failed: {error_msg}",
             }
 
@@ -1459,10 +1460,10 @@ preserving valuable project-specific information while refreshing standard secti
             console.print(
                 "[red]Error: claude-mpm command not found. Ensure Claude MPM is properly installed.[/red]"
             )
-            return {"status": "error", "message": "claude-mpm not found"}
+            return {"status": OperationResult.ERROR, "message": "claude-mpm not found"}
         except Exception as e:
             logger.error(f"Initialization failed: {e}")
-            return {"status": "error", "message": str(e)}
+            return {"status": OperationResult.ERROR, "message": str(e)}
 
     def handle_context(
         self,
@@ -1516,7 +1517,7 @@ preserving valuable project-specific information while refreshing standard secti
                 "[dim]Ensure this is a git repository with commit history.[/dim]\n"
             )
             return {
-                "status": "error",
+                "status": OperationResult.ERROR,
                 "message": git_analysis["error"],
             }
 
@@ -1526,7 +1527,7 @@ preserving valuable project-specific information while refreshing standard secti
             )
             console.print("[dim]Try increasing the --days parameter.[/dim]\n")
             return {
-                "status": "error",
+                "status": OperationResult.ERROR,
                 "message": f"No git activity in last {days} days",
             }
 
@@ -1541,7 +1542,7 @@ preserving valuable project-specific information while refreshing standard secti
         console.print("\n" + "=" * 80 + "\n")
 
         return {
-            "status": "context_ready",
+            "status": OperationResult.CONTEXT_READY,
             "git_analysis": git_analysis,
             "research_prompt": research_prompt,
             "recommendation": "PM should delegate this prompt to Research agent",
@@ -1928,7 +1929,7 @@ def context_command(session_id, days, project_path):
 
         result = command.handle_context(session_id=session_id, days=days)
 
-        if result["status"] == "success" or result["status"] == "context_ready":
+        if result["status"] == OperationResult.SUCCESS or result["status"] == OperationResult.CONTEXT_READY:
             sys.exit(0)
         else:
             sys.exit(1)
@@ -1977,7 +1978,7 @@ def resume_session(session_id, days, project_path):
         command = MPMInitCommand(Path(project_path))
         result = command.handle_context(session_id=session_id, days=days)
 
-        if result["status"] == "success" or result["status"] == "context_ready":
+        if result["status"] == OperationResult.SUCCESS or result["status"] == OperationResult.CONTEXT_READY:
             sys.exit(0)
         else:
             sys.exit(1)
