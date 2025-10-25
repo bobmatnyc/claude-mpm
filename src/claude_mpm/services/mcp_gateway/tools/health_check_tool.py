@@ -26,6 +26,7 @@ from typing import Any, Dict
 import psutil
 
 from claude_mpm.config.paths import paths
+from claude_mpm.core.enums import OperationResult, ServiceState
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     MCPToolDefinition,
@@ -168,20 +169,20 @@ class HealthCheckTool(BaseToolAdapter):
                 if i < len(check_results):
                     if isinstance(check_results[i], Exception):
                         results["checks"][check_name] = {
-                            "status": "error",
+                            "status": OperationResult.ERROR,
                             "error": str(check_results[i]),
                         }
                     else:
                         results["checks"][check_name] = check_results[i]
                 else:
                     results["checks"][check_name] = {
-                        "status": "timeout",
+                        "status": OperationResult.TIMEOUT,
                         "error": "Check timed out",
                     }
 
         except asyncio.TimeoutError:
             results["checks"]["timeout"] = {
-                "status": "error",
+                "status": OperationResult.ERROR,
                 "error": f"Health checks timed out after {timeout} seconds",
             }
 
@@ -194,7 +195,7 @@ class HealthCheckTool(BaseToolAdapter):
     async def _check_system_health(self, detailed: bool) -> Dict[str, Any]:
         """Check system health (CPU, memory, disk, etc.)."""
         check_result = {
-            "status": "healthy",
+            "status": ServiceState.RUNNING,
             "checks": {},
             "warnings": [],
             "errors": [],
@@ -270,7 +271,7 @@ class HealthCheckTool(BaseToolAdapter):
     async def _check_gateway_health(self, detailed: bool) -> Dict[str, Any]:
         """Check MCP Gateway health."""
         check_result = {
-            "status": "healthy",
+            "status": ServiceState.RUNNING,
             "checks": {},
             "warnings": [],
             "errors": [],
@@ -313,7 +314,7 @@ class HealthCheckTool(BaseToolAdapter):
     async def _check_tools_health(self, detailed: bool) -> Dict[str, Any]:
         """Check MCP tools health."""
         check_result = {
-            "status": "healthy",
+            "status": ServiceState.RUNNING,
             "checks": {},
             "warnings": [],
             "errors": [],
@@ -365,7 +366,7 @@ class HealthCheckTool(BaseToolAdapter):
     async def _check_config_health(self, detailed: bool) -> Dict[str, Any]:
         """Check configuration health."""
         check_result = {
-            "status": "healthy",
+            "status": ServiceState.RUNNING,
             "checks": {},
             "warnings": [],
             "errors": [],
