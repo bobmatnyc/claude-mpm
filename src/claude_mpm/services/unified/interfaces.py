@@ -25,6 +25,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, TypeVar, Union
 
+from claude_mpm.core.enums import ValidationSeverity
+
 # Type variables for generic interfaces
 T = TypeVar("T")
 ConfigType = TypeVar("ConfigType", bound=Dict[str, Any])
@@ -88,7 +90,7 @@ class AnalysisResult:
     findings: List[Dict[str, Any]] = field(default_factory=list)
     metrics: Dict[str, Any] = field(default_factory=dict)
     summary: str = ""
-    severity: str = "info"  # info, warning, error, critical
+    severity: str = ValidationSeverity.INFO
     recommendations: List[str] = field(default_factory=list)
 
 

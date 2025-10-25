@@ -13,6 +13,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Pattern, Union
 
+from claude_mpm.core.enums import ValidationSeverity
 from claude_mpm.core.logging_utils import get_logger
 
 from .unified_config_service import IConfigStrategy
@@ -45,7 +46,7 @@ class ValidationRule:
     type: ValidationType
     params: Dict[str, Any] = field(default_factory=dict)
     message: Optional[str] = None
-    severity: str = "error"  # error, warning, info
+    severity: str = ValidationSeverity.ERROR
     condition: Optional[Callable] = None
 
 
@@ -73,15 +74,15 @@ class BaseValidator(ABC):
         """Perform validation"""
 
     def _create_result(
-        self, valid: bool, message: Optional[str] = None, severity: str = "error"
+        self, valid: bool, message: Optional[str] = None, severity: str = ValidationSeverity.ERROR
     ) -> ValidationResult:
         """Create validation result"""
         result = ValidationResult(valid=valid)
 
         if not valid and message:
-            if severity == "error":
+            if severity == ValidationSeverity.ERROR:
                 result.errors.append(message)
-            elif severity == "warning":
+            elif severity == ValidationSeverity.WARNING:
                 result.warnings.append(message)
             else:
                 result.info.append(message)
@@ -556,9 +557,9 @@ class DependencyValidator(BaseValidator):
         if errors:
             result = ValidationResult(valid=False)
             for error in errors:
-                if rule.severity == "error":
+                if rule.severity == ValidationSeverity.ERROR:
                     result.errors.append(error)
-                elif rule.severity == "warning":
+                elif rule.severity == ValidationSeverity.WARNING:
                     result.warnings.append(error)
                 else:
                     result.info.append(error)
@@ -721,7 +722,7 @@ class ConditionalValidator(BaseValidator):
             type=ValidationType[rule_def.get("type", "CUSTOM").upper()],
             params=rule_def.get("params", {}),
             message=rule_def.get("message"),
-            severity=rule_def.get("severity", "error"),
+            severity=rule_def.get("severity", ValidationSeverity.ERROR),
         )
 
         # Find appropriate validator
@@ -843,9 +844,9 @@ class CrossFieldValidator(BaseValidator):
         for constraint in constraints:
             if not self._evaluate_constraint(config, constraint):
                 message = constraint.get("message", "Cross-field constraint failed")
-                if rule.severity == "error":
+                if rule.severity == ValidationSeverity.ERROR:
                     result.errors.append(message)
-                elif rule.severity == "warning":
+                elif rule.severity == ValidationSeverity.WARNING:
                     result.warnings.append(message)
                 else:
                     result.info.append(message)
