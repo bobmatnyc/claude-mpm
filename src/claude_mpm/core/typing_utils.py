@@ -32,6 +32,8 @@ from typing import (
 
 from typing_extensions import NotRequired, TypeAlias, TypedDict
 
+from claude_mpm.core.enums import OperationResult, ServiceState
+
 # Generic type variables
 T = TypeVar("T")
 TSession = TypeVar("TSession")  # Generic session type
@@ -42,15 +44,14 @@ TService = TypeVar("TService")  # Generic service type
 PathLike: TypeAlias = Union[str, Path]
 JSONValue: TypeAlias = Union[str, int, float, bool, None, Dict[str, Any], List[Any]]
 JSONDict: TypeAlias = Dict[str, JSONValue]
+
 Headers: TypeAlias = Dict[str, str]
 ErrorCode: TypeAlias = Union[int, str]
 LogLevel: TypeAlias = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 # Session types
 SessionId: TypeAlias = str
-SessionStatus: TypeAlias = Literal[
-    "initializing", "running", "stopped", "error", "completed"
-]
+SessionStatus: TypeAlias = ServiceState  # Replaced Literal with ServiceState enum
 LaunchMethod: TypeAlias = Literal["exec", "subprocess", "oneshot"]
 
 
@@ -152,7 +153,7 @@ class WebSocketMessage(TypedDict):
 class ClaudeStatus(TypedDict):
     """Claude process status."""
 
-    status: Literal["starting", "running", "stopped", "error"]
+    status: ServiceState  # Replaced Literal with ServiceState enum
     message: str
     timestamp: NotRequired[datetime]
     pid: NotRequired[int]
@@ -163,7 +164,7 @@ class DelegationInfo(TypedDict):
 
     agent: AgentId
     task: str
-    status: Literal["detected", "started", "completed", "failed"]
+    status: OperationResult  # Replaced Literal with OperationResult enum
     timestamp: NotRequired[datetime]
     result: NotRequired[str]
 
@@ -194,7 +195,7 @@ class HookContext(TypedDict):
 
 # Service types
 ServiceName: TypeAlias = str
-ServiceStatus: TypeAlias = Literal["idle", "running", "stopped", "error"]
+ServiceStatus: TypeAlias = ServiceState  # Replaced Literal with ServiceState enum
 
 
 class ServiceConfig(TypedDict):
