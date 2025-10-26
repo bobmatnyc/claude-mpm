@@ -23,15 +23,14 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from ...core.base_service import BaseService
+from ...core.enums import OperationResult, ValidationSeverity
 from ..core.interfaces.agent import IAgentRegistry, IAutoConfigManager
 from ..core.models.agent_config import (
     AgentRecommendation,
     ConfigurationPreview,
     ConfigurationResult,
-    ConfigurationStatus,
     ValidationIssue,
     ValidationResult,
-    ValidationSeverity,
 )
 from ..core.models.toolchain import ToolchainAnalysis
 from .observers import IDeploymentObserver, NullObserver
@@ -216,7 +215,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
 
             if not recommendations:
                 return ConfigurationResult(
-                    status=ConfigurationStatus.SUCCESS,
+                    status=OperationResult.SUCCESS,
                     message="No agents recommended for this project configuration",
                     recommendations=recommendations,
                     metadata={
@@ -241,7 +240,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
                     f"Validation failed with {validation_result.error_count} errors"
                 )
                 return ConfigurationResult(
-                    status=ConfigurationStatus.VALIDATION_ERROR,
+                    status=OperationResult.ERROR,
                     validation_errors=[
                         issue.message for issue in validation_result.errors
                     ],
@@ -260,7 +259,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
             if dry_run:
                 self.logger.info("Dry-run mode: skipping deployment")
                 return ConfigurationResult(
-                    status=ConfigurationStatus.SUCCESS,
+                    status=OperationResult.SUCCESS,
                     validation_warnings=[
                         issue.message for issue in validation_result.warnings
                     ],
@@ -280,7 +279,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
                 if not confirmed:
                     self.logger.info("User cancelled auto-configuration")
                     return ConfigurationResult(
-                        status=ConfigurationStatus.USER_CANCELLED,
+                        status=OperationResult.CANCELLED,
                         recommendations=recommendations,
                         message="Auto-configuration cancelled by user",
                         metadata={
@@ -318,9 +317,9 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
 
                 return ConfigurationResult(
                     status=(
-                        ConfigurationStatus.PARTIAL_SUCCESS
+                        OperationResult.WARNING
                         if deployed_agents
-                        else ConfigurationStatus.FAILURE
+                        else OperationResult.FAILED
                     ),
                     deployed_agents=deployed_agents,
                     failed_agents=failed_agents,
@@ -347,7 +346,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
             )
 
             return ConfigurationResult(
-                status=ConfigurationStatus.SUCCESS,
+                status=OperationResult.SUCCESS,
                 deployed_agents=deployed_agents,
                 validation_warnings=[
                     issue.message for issue in validation_result.warnings
@@ -365,7 +364,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
             observer.on_error("auto-configuration", str(e), e)
 
             return ConfigurationResult(
-                status=ConfigurationStatus.FAILURE,
+                status=OperationResult.FAILED,
                 message=f"Auto-configuration failed: {e}",
                 metadata={
                     "duration_ms": (time.time() - start_time) * 1000,
