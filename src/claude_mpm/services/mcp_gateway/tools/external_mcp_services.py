@@ -2,12 +2,22 @@
 External MCP Services Integration
 ==================================
 
-Manages installation and basic setup of external MCP services like mcp-vector-search
+Manages detection and setup of external MCP services like mcp-vector-search
 and mcp-browser. These services run as separate MCP servers in Claude Code,
 not as part of the Claude MPM MCP Gateway.
 
-Note: As of the latest architecture, external services are registered as separate
-MCP servers in Claude Code configuration, not as tools within the gateway.
+IMPORTANT: External services are NOT auto-installed. Users must manually install
+them using pipx or pip. This gives users explicit control over which optional
+services they want to enable.
+
+Installation:
+    pipx install mcp-vector-search
+    pipx install mcp-browser
+    pipx install kuzu-memory
+    pipx install mcp-ticketer
+
+Note: External services are registered as separate MCP servers in Claude Code
+configuration, not as tools within the gateway.
 """
 
 import json
@@ -20,7 +30,12 @@ from claude_mpm.services.mcp_gateway.tools.base_adapter import BaseToolAdapter
 
 
 class ExternalMCPService(BaseToolAdapter):
-    """Base class for external MCP service integration."""
+    """Base class for external MCP service integration.
+
+    External services are detected if already installed but are NOT
+    automatically installed. Users must install them manually using
+    pipx or pip to enable these optional features.
+    """
 
     def __init__(self, service_name: str, package_name: str):
         """
@@ -65,27 +80,37 @@ class ExternalMCPService(BaseToolAdapter):
         )
 
     async def initialize(
-        self, auto_install: bool = True, interactive: bool = True
+        self, auto_install: bool = False, interactive: bool = False
     ) -> bool:
         """Initialize the external service.
 
+        NOTE: Auto-installation is disabled by default (v4.9.0+). Users must
+        manually install external services using pipx or pip.
+
         Args:
-            auto_install: Whether to automatically install if not found
-            interactive: Whether to prompt user for installation preferences
+            auto_install: Whether to automatically install if not found (default: False)
+                         Deprecated - will be removed in future versions
+            interactive: Whether to prompt user for installation preferences (default: False)
+                        Only used if auto_install=True
         """
         try:
             # Check if package is installed
             self._is_installed = await self._check_installation()
 
             if not self._is_installed and auto_install:
-                self.logger.info(
-                    f"{self.package_name} not installed - attempting installation"
+                # This path is deprecated but kept for backward compatibility
+                self.logger.warning(
+                    f"Auto-installation is deprecated. Please install {self.package_name} manually: "
+                    f"pipx install {self.package_name}"
                 )
                 await self._install_package(interactive=interactive)
                 self._is_installed = await self._check_installation()
 
             if not self._is_installed:
-                self.logger.warning(f"{self.package_name} is not available")
+                self.logger.debug(
+                    f"{self.package_name} is not available. "
+                    f"Install manually with: pipx install {self.package_name}"
+                )
                 return False
 
             self.logger.info(f"{self.package_name} is available")
@@ -522,13 +547,20 @@ class MCPBrowserService(ExternalMCPService):
 class ExternalMCPServiceManager:
     """Manager for external MCP services.
 
-    This manager is responsible for checking and installing Python packages
-    for external MCP services. The actual registration of these services
-    happens in Claude Code configuration as separate MCP servers.
+    This manager is responsible for detecting (but NOT installing) Python packages
+    for external MCP services. The actual registration of these services happens
+    in Claude Code configuration as separate MCP servers.
 
-    Note: This class is maintained for backward compatibility and package
-    management. The actual tool registration is handled by separate MCP
-    server instances in Claude Code.
+    IMPORTANT: As of v4.9.0, this manager NO LONGER auto-installs missing services.
+    Users must manually install external services using pipx or pip:
+        - pipx install mcp-vector-search
+        - pipx install mcp-browser
+        - pipx install kuzu-memory
+        - pipx install mcp-ticketer
+
+    Note: This class is maintained for backward compatibility and service detection.
+    The actual tool registration is handled by separate MCP server instances in
+    Claude Code.
     """
 
     def __init__(self):
@@ -539,20 +571,34 @@ class ExternalMCPServiceManager:
     async def initialize_services(self) -> List[ExternalMCPService]:
         """Initialize all external MCP services.
 
-        This method checks if external service packages are installed
-        and attempts to install them if missing. It does NOT register
-        them as tools in the gateway - they run as separate MCP servers.
+        This method checks if external service packages are already installed
+        and registers them if available. It does NOT auto-install missing services.
+
+        External MCP services (mcp-vector-search, mcp-browser, kuzu-memory, mcp-ticketer)
+        must be manually installed by users. This gives users explicit control over
+        which services they want to use.
+
+        Installation instructions:
+        - mcp-vector-search: pipx install mcp-vector-search
+        - mcp-browser: pipx install mcp-browser
+        - kuzu-memory: pipx install kuzu-memory
+        - mcp-ticketer: pipx install mcp-ticketer
+
+        Services run as separate MCP servers in Claude Code, not as tools within
+        the gateway.
         """
         # Create service instances
-        # Note: kuzu-memory is configured via MCPConfigManager and runs as a separate MCP server
-        # It doesn't need to be included here since it's already set up through the MCP config
+        # Note: kuzu-memory and mcp-ticketer are configured via MCPConfigManager
+        # and run as separate MCP servers. They don't need to be included here
+        # since they're already set up through the MCP config.
         services = [MCPVectorSearchService(), MCPBrowserService()]
 
-        # Initialize each service
+        # Initialize each service (check if installed, but DO NOT auto-install)
         initialized_services = []
         for service in services:
             try:
-                if await service.initialize():
+                # Pass auto_install=False to prevent automatic installation
+                if await service.initialize(auto_install=False, interactive=False):
                     initialized_services.append(service)
                     if self.logger:
                         self.logger.info(
@@ -560,7 +606,8 @@ class ExternalMCPServiceManager:
                         )
                 elif self.logger:
                     self.logger.debug(
-                        f"Service not available (optional): {service.service_name}"
+                        f"Service not available (optional): {service.service_name}. "
+                        f"Install manually with: pipx install {service.package_name}"
                     )
             except Exception as e:
                 if self.logger:

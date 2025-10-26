@@ -314,3 +314,6 @@ wheels/
 kuzu-memories/
 .zshrc
 bin/
+
+# MCP Ticketer
+.mcp-ticketer/
