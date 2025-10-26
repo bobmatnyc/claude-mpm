@@ -9,6 +9,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Type
 
+from claude_mpm.core.enums import ValidationSeverity
 from claude_mpm.core.logging_utils import get_logger
 
 from .checks import (
@@ -25,8 +26,6 @@ from .checks import (
     MonitorCheck,
     StartupLogCheck,
 )
-from claude_mpm.core.enums import ValidationSeverity
-
 from .models import DiagnosticResult, DiagnosticSummary
 
 logger = get_logger(__name__)
