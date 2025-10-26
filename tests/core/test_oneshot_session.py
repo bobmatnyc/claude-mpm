@@ -14,6 +14,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.oneshot_session import OneshotSession
 
 
@@ -584,8 +585,9 @@ class TestOneshotSession:
 
         oneshot_session._handle_successful_response(response, prompt)
 
+        # Updated: Use OperationResult enum instead of magic string (enum consolidation work)
         oneshot_session.runner.websocket_server.agent_delegated.assert_called_once_with(
-            agent="engineer", task=prompt[:100], status="detected"
+            agent="engineer", task=prompt[:100], status=OperationResult.PENDING
         )
 
     def test_handle_successful_response_with_tickets(self, oneshot_session, capsys):
