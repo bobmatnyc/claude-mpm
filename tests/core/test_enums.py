@@ -74,7 +74,7 @@ class TestOperationResult:
     def test_iteration(self):
         """Verify enum can be iterated."""
         results = list(OperationResult)
-        assert len(results) == 13  # Updated in Phase 3C (added ROLLBACK)
+        assert len(results) == 14  # Updated: WARNING added in Phase 3C (Batch 26)
         assert OperationResult.SUCCESS in results
         assert OperationResult.ROLLBACK in results
 
@@ -193,7 +193,7 @@ class TestServiceState:
     def test_iteration(self):
         """Verify enum can be iterated."""
         states = list(ServiceState)
-        assert len(states) == 9
+        assert len(states) == 12  # Updated: ProcessStatus consolidation (Batch 24)
 
 
 class TestValidationSeverity:
