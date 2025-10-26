@@ -127,6 +127,15 @@ class ServiceState(StrEnum):
     Coverage: ~7% of all magic strings
     """
 
+    UNINITIALIZED = "uninitialized"
+    """Service has not been initialized yet."""
+
+    INITIALIZING = "initializing"
+    """Service is in the process of initializing."""
+
+    INITIALIZED = "initialized"
+    """Service has been initialized but not started."""
+
     STOPPED = "stopped"
     """Service is completely stopped."""
 

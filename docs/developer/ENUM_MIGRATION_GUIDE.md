@@ -2,8 +2,8 @@
 
 **Status**: Living Document
 **Last Updated**: 2025-10-25
-**Phase**: Phase 3A In Progress (Batch 21 Complete: 169/876 occurrences migrated - 19.3%)
-**Recent**: Phase 3B Complete (AgentCategory validation), Phase 3C Complete (Enum expansions), HealthStatus widely adopted across deployment strategies and base service layer, Batch 21 CLI commands layer (2 occurrences)
+**Phase**: Phase 3A In Progress (Batch 22 Complete: Enum Consolidation Initiative Started)
+**Recent**: Batch 22 completed enum consolidation (MCPServiceState → ServiceState), 3 new ServiceState values added (UNINITIALIZED, INITIALIZING, INITIALIZED), 2 files migrated (19 occurrences), Phase 3B Complete (AgentCategory validation), Phase 3C Complete (Enum expansions)
 
 ## Table of Contents
 
@@ -304,6 +304,68 @@ if agent_type == "engineer":
 if agent_category == AgentCategory.ENGINEER:
     route_to_engineering_team(agent)
 ```
+
+## Enum Consolidation Progress
+
+### Overview
+
+In addition to migrating magic strings to enums, we are consolidating duplicate enum definitions throughout the codebase. Multiple modules had created their own service state enums with similar or identical values, leading to inconsistency and maintenance overhead.
+
+### Consolidated Enums
+
+#### MCPServiceState → ServiceState (Batch 22)
+
+**Date**: 2025-10-25
+**Status**: ✅ Complete
+
+**What Changed**:
+- Removed redundant `MCPServiceState` enum from `src/claude_mpm/services/mcp_gateway/core/base.py`
+- Migrated all MCP Gateway services to use core `ServiceState` enum
+- Enhanced `ServiceState` enum with initialization states (UNINITIALIZED, INITIALIZING, INITIALIZED)
+
+**Enum Values Added to ServiceState**:
+```python
+class ServiceState(StrEnum):
+    UNINITIALIZED = "uninitialized"   # Added from MCPServiceState
+    INITIALIZING = "initializing"     # Added from MCPServiceState
+    INITIALIZED = "initialized"       # Added from MCPServiceState
+    # ... existing states ...
+```
+
+**Files Modified**: 2
+- `src/claude_mpm/services/mcp_gateway/core/base.py` (17 occurrences)
+- `src/claude_mpm/services/mcp_gateway/core/__init__.py` (2 occurrences)
+- `src/claude_mpm/core/enums.py` (added 3 new state values)
+
+**Benefits**:
+- Single source of truth for service lifecycle states
+- Consistent state management across MCP Gateway and core services
+- Improved type safety and IDE support
+- Reduced maintenance overhead
+
+**Migration Pattern**:
+```python
+# Before (Duplicate Enum)
+from .base import MCPServiceState
+
+self._state = MCPServiceState.INITIALIZING
+if self._state == MCPServiceState.RUNNING:
+    # ...
+
+# After (Consolidated Enum)
+from claude_mpm.core.enums import ServiceState
+
+self._state = ServiceState.INITIALIZING
+if self._state == ServiceState.RUNNING:
+    # ...
+```
+
+### Future Consolidations
+
+As we discover other duplicate enum definitions, they will be documented here:
+- [ ] Check for duplicate OperationResult-like enums in services
+- [ ] Check for duplicate OutputFormat enums in CLI modules
+- [ ] Check for duplicate ValidationSeverity enums in validators
 
 ## Migration Patterns
 

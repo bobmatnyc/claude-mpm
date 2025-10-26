@@ -8,23 +8,10 @@ Part of ISS-0034: Infrastructure Setup - MCP Gateway Project Foundation
 """
 
 import asyncio
-from enum import Enum
 from typing import Any, Dict, Optional
 
+from claude_mpm.core.enums import ServiceState
 from claude_mpm.services.core.base import BaseService
-
-
-class MCPServiceState(Enum):
-    """MCP service lifecycle states."""
-
-    UNINITIALIZED = "uninitialized"
-    INITIALIZING = "initializing"
-    INITIALIZED = "initialized"
-    STARTING = "starting"
-    RUNNING = "running"
-    STOPPING = "stopping"
-    STOPPED = "stopped"
-    ERROR = "error"
 
 
 class BaseMCPService(BaseService):
@@ -53,7 +40,7 @@ class BaseMCPService(BaseService):
             config: Service-specific configuration
         """
         super().__init__(service_name or "MCPService", config)
-        self._state = MCPServiceState.UNINITIALIZED
+        self._state = ServiceState.UNINITIALIZED
         self._health_status = {
             "healthy": False,
             "state": self._state.value,
@@ -76,13 +63,13 @@ class BaseMCPService(BaseService):
         """
         async with self._state_lock:
             if self._state not in [
-                MCPServiceState.UNINITIALIZED,
-                MCPServiceState.STOPPED,
+                ServiceState.UNINITIALIZED,
+                ServiceState.STOPPED,
             ]:
                 self.log_warning(f"Cannot initialize from state {self._state.value}")
                 return False
 
-            self._state = MCPServiceState.INITIALIZING
+            self._state = ServiceState.INITIALIZING
             self.log_info("Initializing MCP service")
 
         try:
@@ -91,13 +78,13 @@ class BaseMCPService(BaseService):
 
             async with self._state_lock:
                 if success:
-                    self._state = MCPServiceState.INITIALIZED
+                    self._state = ServiceState.INITIALIZED
                     self._initialized = True
                     self._health_status["healthy"] = True
                     self._health_status["state"] = self._state.value
                     self.log_info("MCP service initialized successfully")
                 else:
-                    self._state = MCPServiceState.ERROR
+                    self._state = ServiceState.ERROR
                     self._health_status["healthy"] = False
                     self._health_status["state"] = self._state.value
                     self.log_error("MCP service initialization failed")
@@ -106,7 +93,7 @@ class BaseMCPService(BaseService):
 
         except Exception as e:
             async with self._state_lock:
-                self._state = MCPServiceState.ERROR
+                self._state = ServiceState.ERROR
                 self._health_status["healthy"] = False
                 self._health_status["state"] = self._state.value
                 self._health_status["details"]["error"] = str(e)
@@ -134,11 +121,11 @@ class BaseMCPService(BaseService):
             True if startup successful
         """
         async with self._state_lock:
-            if self._state != MCPServiceState.INITIALIZED:
+            if self._state != ServiceState.INITIALIZED:
                 self.log_warning(f"Cannot start from state {self._state.value}")
                 return False
 
-            self._state = MCPServiceState.STARTING
+            self._state = ServiceState.STARTING
             self.log_info("Starting MCP service")
 
         try:
@@ -146,12 +133,12 @@ class BaseMCPService(BaseService):
 
             async with self._state_lock:
                 if success:
-                    self._state = MCPServiceState.RUNNING
+                    self._state = ServiceState.RUNNING
                     self._health_status["healthy"] = True
                     self._health_status["state"] = self._state.value
                     self.log_info("MCP service started successfully")
                 else:
-                    self._state = MCPServiceState.ERROR
+                    self._state = ServiceState.ERROR
                     self._health_status["healthy"] = False
                     self._health_status["state"] = self._state.value
                     self.log_error("MCP service startup failed")
@@ -160,7 +147,7 @@ class BaseMCPService(BaseService):
 
         except Exception as e:
             async with self._state_lock:
-                self._state = MCPServiceState.ERROR
+                self._state = ServiceState.ERROR
                 self._health_status["healthy"] = False
                 self._health_status["state"] = self._state.value
                 self._health_status["details"]["error"] = str(e)
@@ -188,18 +175,18 @@ class BaseMCPService(BaseService):
         Subclasses should override _do_shutdown() for custom shutdown logic.
         """
         async with self._state_lock:
-            if self._state in [MCPServiceState.STOPPED, MCPServiceState.STOPPING]:
+            if self._state in [ServiceState.STOPPED, ServiceState.STOPPING]:
                 self.log_warning(f"Already in state {self._state.value}")
                 return
 
-            self._state = MCPServiceState.STOPPING
+            self._state = ServiceState.STOPPING
             self.log_info("Shutting down MCP service")
 
         try:
             await self._do_shutdown()
 
             async with self._state_lock:
-                self._state = MCPServiceState.STOPPED
+                self._state = ServiceState.STOPPED
                 self._shutdown = True
                 self._health_status["healthy"] = False
                 self._health_status["state"] = self._state.value
@@ -207,7 +194,7 @@ class BaseMCPService(BaseService):
 
         except Exception as e:
             async with self._state_lock:
-                self._state = MCPServiceState.ERROR
+                self._state = ServiceState.ERROR
                 self._health_status["healthy"] = False
                 self._health_status["state"] = self._state.value
                 self._health_status["details"]["error"] = str(e)
@@ -232,7 +219,7 @@ class BaseMCPService(BaseService):
         self.log_info("Restarting MCP service")
 
         # Shutdown if running
-        if self._state == MCPServiceState.RUNNING:
+        if self._state == ServiceState.RUNNING:
             await self.shutdown()
 
         # Re-initialize
