@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .config import Config
+from .enums import HealthStatus
 from .mixins import LoggerMixin
 
 
@@ -38,7 +39,7 @@ from .mixins import LoggerMixin
 class ServiceHealth:
     """Service health status information."""
 
-    status: str  # healthy, degraded, unhealthy, unknown
+    status: HealthStatus  # Type-safe health status using enum
     message: str
     timestamp: str
     metrics: Dict[str, Any] = field(default_factory=dict)
@@ -142,7 +143,7 @@ class BaseService(LoggerMixin, ABC):
 
         # Health and metrics
         self._health = ServiceHealth(
-            status="unknown",
+            status=HealthStatus.UNKNOWN,
             message="Service not started",
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
@@ -235,7 +236,7 @@ class BaseService(LoggerMixin, ABC):
         except Exception as e:
             self.logger.error(f"Failed to start service {self.name}: {e}")
             self._health = ServiceHealth(
-                status="unhealthy",
+                status=HealthStatus.UNHEALTHY,
                 message=f"Startup failed: {e!s}",
                 timestamp=datetime.now(timezone.utc).isoformat(),
                 checks={"startup": False},
@@ -272,7 +273,7 @@ class BaseService(LoggerMixin, ABC):
 
         # Update health status
         self._health = ServiceHealth(
-            status="healthy",
+            status=HealthStatus.HEALTHY,
             message="Service started successfully",
             timestamp=datetime.now(timezone.utc).isoformat(),
             checks={"startup": True},
@@ -336,7 +337,7 @@ class BaseService(LoggerMixin, ABC):
 
         # Update health status
         self._health = ServiceHealth(
-            status="unknown",
+            status=HealthStatus.UNKNOWN,
             message="Service stopped",
             timestamp=datetime.now(timezone.utc).isoformat(),
             checks={"running": False},
@@ -372,16 +373,16 @@ class BaseService(LoggerMixin, ABC):
 
             # Determine overall status
             if not checks["running"]:
-                status = "unhealthy"
+                status = HealthStatus.UNHEALTHY
                 message = "Service is not running"
             elif all(checks.values()):
-                status = "healthy"
+                status = HealthStatus.HEALTHY
                 message = "All health checks passed"
             elif any(checks.values()):
-                status = "degraded"
+                status = HealthStatus.DEGRADED
                 message = "Some health checks failed"
             else:
-                status = "unhealthy"
+                status = HealthStatus.UNHEALTHY
                 message = "Multiple health checks failed"
 
             # Update health status
@@ -402,7 +403,7 @@ class BaseService(LoggerMixin, ABC):
         except Exception as e:
             self.logger.error(f"Health check failed for {self.name}: {e}")
             self._health = ServiceHealth(
-                status="unhealthy",
+                status=HealthStatus.UNHEALTHY,
                 message=f"Health check error: {e!s}",
                 timestamp=datetime.now(timezone.utc).isoformat(),
                 checks={"health_check_error": True},
@@ -593,7 +594,7 @@ class BaseService(LoggerMixin, ABC):
                     )
                 else:
                     return ServiceHealth(
-                        status="degraded",
+                        status=HealthStatus.DEGRADED,
                         message="Service circuit breaker is open",
                         timestamp=datetime.now(timezone.utc).isoformat(),
                         checks={"circuit_breaker": False},
@@ -604,7 +605,7 @@ class BaseService(LoggerMixin, ABC):
             health = await self.health_check()
 
             # Update circuit breaker
-            if health.status in ["healthy", "degraded"]:
+            if health.status in (HealthStatus.HEALTHY, HealthStatus.DEGRADED):
                 self._record_circuit_success()
             else:
                 self._record_circuit_failure()
