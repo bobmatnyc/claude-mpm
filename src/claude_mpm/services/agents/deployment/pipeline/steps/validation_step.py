@@ -2,9 +2,10 @@
 
 import time
 
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.services.agents.deployment.validation import DeploymentValidator
 
-from .base_step import BaseDeploymentStep, StepResult, StepStatus
+from .base_step import BaseDeploymentStep, StepResult
 
 
 class ValidationStep(BaseDeploymentStep):
@@ -49,13 +50,13 @@ class ValidationStep(BaseDeploymentStep):
 
             # Determine step status
             if not validation_result.is_valid:
-                status = StepStatus.FAILURE
+                status = OperationResult.FAILED
                 message = f"Validation failed with {validation_result.error_count} errors in {execution_time:.3f}s"
             elif validation_result.has_warnings:
-                status = StepStatus.WARNING
+                status = OperationResult.WARNING
                 message = f"Validation completed with {validation_result.warning_count} warnings in {execution_time:.3f}s"
             else:
-                status = StepStatus.SUCCESS
+                status = OperationResult.SUCCESS
                 message = f"Validation passed successfully in {execution_time:.3f}s"
 
             self.logger.info(message)
@@ -73,7 +74,7 @@ class ValidationStep(BaseDeploymentStep):
             context.add_error(error_msg)
 
             return StepResult(
-                status=StepStatus.FAILURE,
+                status=OperationResult.FAILED,
                 message=error_msg,
                 error=e,
                 execution_time=execution_time,

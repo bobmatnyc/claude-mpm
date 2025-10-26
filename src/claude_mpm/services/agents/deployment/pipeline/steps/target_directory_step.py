@@ -3,7 +3,9 @@
 import time
 from pathlib import Path
 
-from .base_step import BaseDeploymentStep, StepResult, StepStatus
+from claude_mpm.core.enums import OperationResult
+
+from .base_step import BaseDeploymentStep, StepResult
 
 
 class TargetDirectorySetupStep(BaseDeploymentStep):
@@ -59,7 +61,7 @@ class TargetDirectorySetupStep(BaseDeploymentStep):
             context.step_timings[self.name] = execution_time
 
             return StepResult(
-                status=StepStatus.SUCCESS,
+                status=OperationResult.SUCCESS,
                 message=f"Target directory set up at {context.actual_target_dir} in {execution_time:.3f}s",
                 execution_time=execution_time,
             )
@@ -73,7 +75,7 @@ class TargetDirectorySetupStep(BaseDeploymentStep):
             context.add_error(error_msg)
 
             return StepResult(
-                status=StepStatus.FAILURE,
+                status=OperationResult.FAILED,
                 message=error_msg,
                 error=e,
                 execution_time=execution_time,
