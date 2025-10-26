@@ -3,8 +3,9 @@
 import time
 
 from claude_mpm.core.config import Config
+from claude_mpm.core.enums import OperationResult
 
-from .base_step import BaseDeploymentStep, StepResult, StepStatus
+from .base_step import BaseDeploymentStep, StepResult
 
 
 class ConfigurationLoadStep(BaseDeploymentStep):
@@ -54,7 +55,7 @@ class ConfigurationLoadStep(BaseDeploymentStep):
             context.step_timings[self.name] = execution_time
 
             return StepResult(
-                status=StepStatus.SUCCESS,
+                status=OperationResult.SUCCESS,
                 message=f"Configuration loaded successfully in {execution_time:.3f}s",
                 execution_time=execution_time,
             )
@@ -68,7 +69,7 @@ class ConfigurationLoadStep(BaseDeploymentStep):
             context.add_error(error_msg)
 
             return StepResult(
-                status=StepStatus.FAILURE,
+                status=OperationResult.FAILED,
                 message=error_msg,
                 error=e,
                 execution_time=execution_time,

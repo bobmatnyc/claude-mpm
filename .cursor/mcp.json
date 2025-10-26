@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "kuzu-memory": {
+      "command": "kuzu-memory",
+      "args": [
+        "mcp",
+        "serve"
+      ],
+      "env": {
+        "KUZU_MEMORY_PROJECT": "/Users/masa/Projects/claude-mpm"
+      }
+    }
+  }
+}

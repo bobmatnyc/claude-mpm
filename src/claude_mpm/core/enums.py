@@ -70,6 +70,9 @@ class OperationResult(StrEnum):
     PARTIAL = "partial"
     """Operation completed partially."""
 
+    WARNING = "warning"
+    """Operation completed with warnings (partial success with issues)."""
+
     ROLLBACK = "rollback"
     """Operation rolled back due to failure or cancellation."""
 

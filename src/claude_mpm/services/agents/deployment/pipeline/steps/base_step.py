@@ -2,26 +2,17 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
 from typing import Optional
 
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logger import get_logger
-
-
-class StepStatus(Enum):
-    """Status of a pipeline step execution."""
-
-    SUCCESS = "success"
-    FAILURE = "failure"
-    SKIPPED = "skipped"
-    WARNING = "warning"
 
 
 @dataclass
 class StepResult:
     """Result of executing a pipeline step."""
 
-    status: StepStatus
+    status: OperationResult
     message: Optional[str] = None
     error: Optional[Exception] = None
     execution_time: Optional[float] = None
@@ -29,22 +20,22 @@ class StepResult:
     @property
     def is_success(self) -> bool:
         """Check if the step was successful."""
-        return self.status == StepStatus.SUCCESS
+        return self.status == OperationResult.SUCCESS
 
     @property
     def is_failure(self) -> bool:
         """Check if the step failed."""
-        return self.status == StepStatus.FAILURE
+        return self.status == OperationResult.FAILED
 
     @property
     def is_skipped(self) -> bool:
         """Check if the step was skipped."""
-        return self.status == StepStatus.SKIPPED
+        return self.status == OperationResult.SKIPPED
 
     @property
     def is_warning(self) -> bool:
         """Check if the step completed with warnings."""
-        return self.status == StepStatus.WARNING
+        return self.status == OperationResult.WARNING
 
 
 class BaseDeploymentStep(ABC):
@@ -67,7 +58,7 @@ class BaseDeploymentStep(ABC):
         self.logger = get_logger(f"{__name__}.{self.__class__.__name__}")
 
     @abstractmethod
-    def execute(self, context) -> StepResult:
+    def execute(self, context) -> "StepResult":
         """Execute this deployment step.
 
         Args:

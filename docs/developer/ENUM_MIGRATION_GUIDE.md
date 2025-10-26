@@ -2,8 +2,8 @@
 
 **Status**: Living Document
 **Last Updated**: 2025-10-25
-**Phase**: Phase 3A In Progress (Batch 22 Complete: Enum Consolidation Initiative Started)
-**Recent**: Batch 22 completed enum consolidation (MCPServiceState → ServiceState), 3 new ServiceState values added (UNINITIALIZED, INITIALIZING, INITIALIZED), 2 files migrated (19 occurrences), Phase 3B Complete (AgentCategory validation), Phase 3C Complete (Enum expansions)
+**Phase**: Phase 3A In Progress (Batch 23 Complete: Enum Consolidation Initiative)
+**Recent**: Batch 23 completed enum consolidation (StepStatus → OperationResult), 1 new OperationResult value added (WARNING), 5 files migrated (deployment pipeline steps), Phase 3B Complete (AgentCategory validation), Phase 3C Complete (Enum expansions)
 
 ## Table of Contents
 
@@ -312,6 +312,62 @@ if agent_category == AgentCategory.ENGINEER:
 In addition to migrating magic strings to enums, we are consolidating duplicate enum definitions throughout the codebase. Multiple modules had created their own service state enums with similar or identical values, leading to inconsistency and maintenance overhead.
 
 ### Consolidated Enums
+
+#### StepStatus → OperationResult (Batch 23)
+
+**Date**: 2025-10-25
+**Status**: ✅ Complete
+
+**What Changed**:
+- Removed redundant `StepStatus` enum from `src/claude_mpm/services/agents/deployment/pipeline/steps/base_step.py`
+- Migrated all deployment pipeline steps to use core `OperationResult` enum
+- Enhanced `OperationResult` enum with WARNING state for partial success scenarios
+
+**Enum Values Added to OperationResult**:
+```python
+class OperationResult(StrEnum):
+    WARNING = "warning"  # Added from StepStatus for partial success with issues
+    # ... existing states ...
+```
+
+**Value Mapping**:
+- `StepStatus.SUCCESS` → `OperationResult.SUCCESS`
+- `StepStatus.FAILURE` → `OperationResult.FAILED`
+- `StepStatus.SKIPPED` → `OperationResult.SKIPPED`
+- `StepStatus.WARNING` → `OperationResult.WARNING` (new value added)
+
+**Files Modified**: 5
+- `src/claude_mpm/services/agents/deployment/pipeline/steps/base_step.py` (removed StepStatus enum, updated StepResult class)
+- `src/claude_mpm/services/agents/deployment/pipeline/steps/target_directory_step.py` (3 occurrences)
+- `src/claude_mpm/services/agents/deployment/pipeline/steps/configuration_step.py` (3 occurrences)
+- `src/claude_mpm/services/agents/deployment/pipeline/steps/agent_processing_step.py` (5 occurrences)
+- `src/claude_mpm/services/agents/deployment/pipeline/steps/validation_step.py` (4 occurrences)
+- `src/claude_mpm/core/enums.py` (added 1 new result value)
+
+**Benefits**:
+- Unified operation result semantics across deployment pipeline and core services
+- Consistent status reporting between pipeline steps and general operations
+- Improved type safety for deployment status handling
+- Reduced duplicate enum definitions
+
+**Migration Pattern**:
+```python
+# Before (Duplicate Enum)
+from .base_step import StepStatus
+
+return StepResult(
+    status=StepStatus.SUCCESS,
+    message="Step completed successfully"
+)
+
+# After (Consolidated Enum)
+from claude_mpm.core.enums import OperationResult
+
+return StepResult(
+    status=OperationResult.SUCCESS,
+    message="Step completed successfully"
+)
+```
 
 #### MCPServiceState → ServiceState (Batch 22)
 

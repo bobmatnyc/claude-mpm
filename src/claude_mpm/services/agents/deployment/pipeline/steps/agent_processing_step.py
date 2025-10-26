@@ -3,13 +3,14 @@
 import time
 from pathlib import Path
 
+from claude_mpm.core.enums import OperationResult
 from claude_mpm.services.agents.deployment.processors import (
     AgentDeploymentContext,
     AgentDeploymentResult,
     AgentProcessor,
 )
 
-from .base_step import BaseDeploymentStep, StepResult, StepStatus
+from .base_step import BaseDeploymentStep, StepResult
 
 
 class AgentProcessingStep(BaseDeploymentStep):
@@ -37,7 +38,7 @@ class AgentProcessingStep(BaseDeploymentStep):
             if not context.template_files:
                 self.logger.warning("No template files to process")
                 return StepResult(
-                    status=StepStatus.SKIPPED,
+                    status=OperationResult.SKIPPED,
                     message="No template files found to process",
                     execution_time=time.time() - start_time,
                 )
@@ -103,13 +104,13 @@ class AgentProcessingStep(BaseDeploymentStep):
 
             # Determine step status
             if failed_count == 0:
-                status = StepStatus.SUCCESS
+                status = OperationResult.SUCCESS
                 message = f"Successfully processed {processed_count} agents in {execution_time:.3f}s"
             elif processed_count > 0:
-                status = StepStatus.WARNING
+                status = OperationResult.WARNING
                 message = f"Processed {processed_count} agents with {failed_count} failures in {execution_time:.3f}s"
             else:
-                status = StepStatus.FAILURE
+                status = OperationResult.FAILED
                 message = f"Failed to process any agents ({failed_count} failures) in {execution_time:.3f}s"
 
             self.logger.info(message)
@@ -127,7 +128,7 @@ class AgentProcessingStep(BaseDeploymentStep):
             context.add_error(error_msg)
 
             return StepResult(
-                status=StepStatus.FAILURE,
+                status=OperationResult.FAILED,
                 message=error_msg,
                 error=e,
                 execution_time=execution_time,
