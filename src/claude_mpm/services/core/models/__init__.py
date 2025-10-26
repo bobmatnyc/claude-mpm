@@ -24,7 +24,6 @@ from .process import (
     PROTECTED_PORT_RANGES,
     DeploymentState,
     ProcessInfo,
-    ProcessStatus,
     StartConfig,
     is_port_protected,
 )
@@ -63,7 +62,6 @@ __all__ = [  # noqa: RUF022 - Grouped by category with comments for clarity
     "ValidationResult",
     "ConfigurationPreview",
     # Process management models
-    "ProcessStatus",
     "DeploymentState",
     "ProcessInfo",
     "StartConfig",

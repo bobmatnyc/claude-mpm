@@ -2,8 +2,8 @@
 
 **Status**: Living Document
 **Last Updated**: 2025-10-25
-**Phase**: Phase 3A In Progress (Batch 23 Complete: Enum Consolidation Initiative)
-**Recent**: Batch 23 completed enum consolidation (StepStatus → OperationResult), 1 new OperationResult value added (WARNING), 5 files migrated (deployment pipeline steps), Phase 3B Complete (AgentCategory validation), Phase 3C Complete (Enum expansions)
+**Phase**: Phase 3A In Progress (Batch 24 Complete: Enum Consolidation Initiative)
+**Recent**: Batch 24 completed enum consolidation (ProcessStatus → ServiceState), 2 helper methods added to ServiceState, 8 files migrated (process management layer), CRASHED→ERROR semantic mapping, Phase 3B Complete (AgentCategory validation), Phase 3C Complete (Enum expansions)
 
 ## Table of Contents
 
@@ -335,6 +335,53 @@ class OperationResult(StrEnum):
 - `StepStatus.FAILURE` → `OperationResult.FAILED`
 - `StepStatus.SKIPPED` → `OperationResult.SKIPPED`
 - `StepStatus.WARNING` → `OperationResult.WARNING` (new value added)
+
+#### ProcessStatus → ServiceState (Batch 24)
+
+**Date**: 2025-10-25
+**Status**: ✅ Complete
+
+**What Changed**:
+- Removed redundant `ProcessStatus` enum from `src/claude_mpm/services/core/models/process.py`
+- Migrated all 8 files using ProcessStatus to core `ServiceState` enum
+- Added `is_active()` and `is_terminal()` helper methods to `ServiceState`
+- Process states are semantically equivalent to service states
+
+**Helper Methods Added to ServiceState**:
+```python
+class ServiceState(StrEnum):
+    def is_active(self) -> bool:
+        """Check if state represents an active service/process."""
+        return self in (ServiceState.STARTING, ServiceState.RUNNING)
+
+    def is_terminal(self) -> bool:
+        """Check if state represents a terminal/stopped state."""
+        return self in (ServiceState.STOPPED, ServiceState.ERROR)
+```
+
+**Value Mapping**:
+- `ProcessStatus.STARTING` → `ServiceState.STARTING`
+- `ProcessStatus.RUNNING` → `ServiceState.RUNNING`
+- `ProcessStatus.STOPPING` → `ServiceState.STOPPING`
+- `ProcessStatus.STOPPED` → `ServiceState.STOPPED`
+- `ProcessStatus.CRASHED` → `ServiceState.ERROR` (semantic mapping - crashed processes are in error state)
+- `ProcessStatus.UNKNOWN` → `ServiceState.UNKNOWN`
+
+**Files Modified** (8 total):
+1. `src/claude_mpm/services/local_ops/process_manager.py`
+2. `src/claude_mpm/services/local_ops/unified_manager.py`
+3. `src/claude_mpm/services/local_ops/state_manager.py`
+4. `src/claude_mpm/services/local_ops/__init__.py`
+5. `src/claude_mpm/services/core/interfaces/process.py`
+6. `src/claude_mpm/services/core/models/process.py`
+7. `src/claude_mpm/services/core/models/__init__.py`
+8. `src/claude_mpm/cli/commands/local_deploy.py`
+
+**Migration Notes**:
+- Process management is critical infrastructure - all state transitions tested
+- CRASHED→ERROR mapping is semantic: crashed processes are in an error state
+- Helper methods work correctly for all ServiceState values, not just process-related ones
+- Legacy "crashed" status in JSON files is automatically mapped to ERROR during deserialization
 
 **Files Modified**: 5
 - `src/claude_mpm/services/agents/deployment/pipeline/steps/base_step.py` (removed StepStatus enum, updated StepResult class)
