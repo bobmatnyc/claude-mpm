@@ -117,7 +117,9 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 fix_result = DiagnosticResult(
                     category="MCP Service Fixes",
                     status=(
-                        OperationResult.SUCCESS if fix_success else ValidationSeverity.WARNING
+                        OperationResult.SUCCESS
+                        if fix_success
+                        else ValidationSeverity.WARNING
                     ),
                     message=fix_message,
                     details={"auto_fix_applied": True},
@@ -192,7 +194,9 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             details["connected_count"] = connected_count
             details["total_services"] = total_services
             details["total_tools_discovered"] = total_tools
-            details["gateway_configured"] = gateway_result.status == OperationResult.SUCCESS
+            details["gateway_configured"] = (
+                gateway_result.status == OperationResult.SUCCESS
+            )
 
             # Determine overall status
             errors = [r for r in sub_results if r.status == ValidationSeverity.ERROR]
