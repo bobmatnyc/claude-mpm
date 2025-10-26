@@ -5,7 +5,7 @@ MCP Gateway Core Module
 Core interfaces and base classes for the MCP Gateway service.
 """
 
-from .base import BaseMCPService, MCPServiceState
+from .base import BaseMCPService
 from .exceptions import (
     MCPCommunicationError,
     MCPConfigurationError,
@@ -38,7 +38,6 @@ __all__ = [
     # Exceptions
     "MCPException",
     "MCPServerError",
-    "MCPServiceState",
     "MCPToolNotFoundError",
     "MCPValidationError",
 ]
