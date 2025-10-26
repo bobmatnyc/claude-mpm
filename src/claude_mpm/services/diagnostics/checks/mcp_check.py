@@ -9,9 +9,9 @@ import json
 import subprocess
 from pathlib import Path
 
-from claude_mpm.core.enums import ServiceState
+from claude_mpm.core.enums import OperationResult, ServiceState, ValidationSeverity
 
-from ..models import DiagnosticResult, DiagnosticStatus
+from ..models import DiagnosticResult
 from .base_check import BaseDiagnosticCheck
 
 
@@ -36,13 +36,13 @@ class MCPCheck(BaseDiagnosticCheck):
             # Check if MCP is installed
             install_result = self._check_installation()
             sub_results.append(install_result)
-            details["installed"] = install_result.status == DiagnosticStatus.OK
+            details["installed"] = install_result.status == OperationResult.SUCCESS
 
-            if install_result.status == DiagnosticStatus.OK:
+            if install_result.status == OperationResult.SUCCESS:
                 # Check MCP configuration
                 config_result = self._check_configuration()
                 sub_results.append(config_result)
-                details["configured"] = config_result.status == DiagnosticStatus.OK
+                details["configured"] = config_result.status == OperationResult.SUCCESS
 
                 # Check MCP server status
                 status_result = self._check_server_status()
@@ -54,17 +54,17 @@ class MCPCheck(BaseDiagnosticCheck):
                 sub_results.append(startup_result)
 
             # Determine overall status
-            if any(r.status == DiagnosticStatus.ERROR for r in sub_results):
-                status = DiagnosticStatus.ERROR
+            if any(r.status == ValidationSeverity.ERROR for r in sub_results):
+                status = ValidationSeverity.ERROR
                 message = "MCP server has critical issues"
             elif not details.get("installed", False):
-                status = DiagnosticStatus.WARNING
+                status = ValidationSeverity.WARNING
                 message = "MCP server not installed"
-            elif any(r.status == DiagnosticStatus.WARNING for r in sub_results):
-                status = DiagnosticStatus.WARNING
+            elif any(r.status == ValidationSeverity.WARNING for r in sub_results):
+                status = ValidationSeverity.WARNING
                 message = "MCP server needs configuration"
             else:
-                status = DiagnosticStatus.OK
+                status = OperationResult.SUCCESS
                 message = "MCP server properly configured"
 
             return DiagnosticResult(
@@ -78,7 +78,7 @@ class MCPCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category=self.category,
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"MCP check failed: {e!s}",
                 details={"error": str(e)},
             )
@@ -96,7 +96,7 @@ class MCPCheck(BaseDiagnosticCheck):
             if mcp_path.exists():
                 return DiagnosticResult(
                     category="MCP Installation",
-                    status=DiagnosticStatus.OK,
+                    status=OperationResult.SUCCESS,
                     message="MCP server installed",
                     details={"path": str(mcp_path), "installed": True},
                 )
@@ -114,7 +114,7 @@ class MCPCheck(BaseDiagnosticCheck):
                 path = result.stdout.strip()
                 return DiagnosticResult(
                     category="MCP Installation",
-                    status=DiagnosticStatus.OK,
+                    status=OperationResult.SUCCESS,
                     message="MCP server installed",
                     details={"path": path, "installed": True},
                 )
@@ -123,7 +123,7 @@ class MCPCheck(BaseDiagnosticCheck):
 
         return DiagnosticResult(
             category="MCP Installation",
-            status=DiagnosticStatus.WARNING,
+            status=ValidationSeverity.WARNING,
             message="MCP server not installed",
             details={"installed": False},
             fix_command="claude-mpm mcp install",
@@ -148,7 +148,7 @@ class MCPCheck(BaseDiagnosticCheck):
         if not config_path:
             return DiagnosticResult(
                 category="MCP Configuration",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="Claude Code config not found",
                 details={"configured": False},
                 fix_command="claude-mpm mcp config",
@@ -165,7 +165,7 @@ class MCPCheck(BaseDiagnosticCheck):
                 if not gateway:
                     return DiagnosticResult(
                         category="MCP Configuration",
-                        status=DiagnosticStatus.WARNING,
+                        status=ValidationSeverity.WARNING,
                         message="MCP gateway not configured",
                         details={"configured": False, "config_path": str(config_path)},
                         fix_command="claude-mpm mcp config",
@@ -177,7 +177,7 @@ class MCPCheck(BaseDiagnosticCheck):
                 if not command:
                     return DiagnosticResult(
                         category="MCP Configuration",
-                        status=DiagnosticStatus.ERROR,
+                        status=ValidationSeverity.ERROR,
                         message="MCP gateway misconfigured (no command)",
                         details={
                             "configured": True,
@@ -190,7 +190,7 @@ class MCPCheck(BaseDiagnosticCheck):
 
                 return DiagnosticResult(
                     category="MCP Configuration",
-                    status=DiagnosticStatus.OK,
+                    status=OperationResult.SUCCESS,
                     message="MCP gateway configured",
                     details={
                         "configured": True,
@@ -202,7 +202,7 @@ class MCPCheck(BaseDiagnosticCheck):
         except json.JSONDecodeError as e:
             return DiagnosticResult(
                 category="MCP Configuration",
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message="Invalid JSON in config file",
                 details={"error": str(e), "config_path": str(config_path)},
                 fix_description="Fix JSON syntax in Claude Code config",
@@ -210,7 +210,7 @@ class MCPCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="MCP Configuration",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not check configuration: {e!s}",
                 details={"error": str(e)},
             )
@@ -231,13 +231,13 @@ class MCPCheck(BaseDiagnosticCheck):
                 if ServiceState.RUNNING.value in result.stdout.lower():
                     return DiagnosticResult(
                         category="MCP Server Status",
-                        status=DiagnosticStatus.OK,
+                        status=OperationResult.SUCCESS,
                         message="MCP server is running",
                         details={"running": True, "state": ServiceState.RUNNING},
                     )
                 return DiagnosticResult(
                     category="MCP Server Status",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message="MCP server not running",
                     details={"running": False, "state": ServiceState.STOPPED},
                     fix_command="claude-mpm mcp start",
@@ -245,7 +245,7 @@ class MCPCheck(BaseDiagnosticCheck):
                 )
             return DiagnosticResult(
                 category="MCP Server Status",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="Could not determine server status",
                 details={
                     "running": "unknown",
@@ -257,7 +257,7 @@ class MCPCheck(BaseDiagnosticCheck):
         except subprocess.TimeoutExpired:
             return DiagnosticResult(
                 category="MCP Server Status",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="Server status check timed out",
                 details={
                     "running": "unknown",
@@ -268,7 +268,7 @@ class MCPCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="MCP Server Status",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not check server status: {e!s}",
                 details={
                     "running": "unknown",
@@ -290,7 +290,7 @@ class MCPCheck(BaseDiagnosticCheck):
             if not issues:
                 return DiagnosticResult(
                     category="MCP Startup Verification",
-                    status=DiagnosticStatus.OK,
+                    status=OperationResult.SUCCESS,
                     message="Startup verification passed",
                     details={"issues": []},
                 )
@@ -304,20 +304,20 @@ class MCPCheck(BaseDiagnosticCheck):
             if errors:
                 return DiagnosticResult(
                     category="MCP Startup Verification",
-                    status=DiagnosticStatus.ERROR,
+                    status=ValidationSeverity.ERROR,
                     message=f"{len(errors)} critical issue(s) found",
                     details={"errors": errors, "warnings": warnings},
                 )
             if warnings:
                 return DiagnosticResult(
                     category="MCP Startup Verification",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message=f"{len(warnings)} warning(s) found",
                     details={"warnings": warnings},
                 )
             return DiagnosticResult(
                 category="MCP Startup Verification",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="Startup verification passed",
                 details={"issues": []},
             )
@@ -325,7 +325,7 @@ class MCPCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="MCP Startup Verification",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not verify startup: {e!s}",
                 details={"error": str(e)},
             )

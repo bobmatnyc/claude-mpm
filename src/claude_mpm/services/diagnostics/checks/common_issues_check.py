@@ -8,7 +8,8 @@ providing specific fixes for each issue.
 import json
 from pathlib import Path
 
-from ..models import DiagnosticResult, DiagnosticStatus
+from ....core.enums import OperationResult, ValidationSeverity
+from ..models import DiagnosticResult
 from .base_check import BaseDiagnosticCheck
 
 
@@ -33,7 +34,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
             # Check for large .claude.json file
             claude_json_result = self._check_claude_json_size()
             if claude_json_result.has_issues:
-                if claude_json_result.status == DiagnosticStatus.ERROR:
+                if claude_json_result.status == ValidationSeverity.ERROR:
                     issues_found.append(claude_json_result)
                 else:
                     warnings_found.append(claude_json_result)
@@ -62,13 +63,13 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
             total_issues = len(issues_found) + len(warnings_found)
 
             if issues_found:
-                status = DiagnosticStatus.ERROR
+                status = ValidationSeverity.ERROR
                 message = f"{len(issues_found)} critical issue(s), {len(warnings_found)} warning(s)"
             elif warnings_found:
-                status = DiagnosticStatus.WARNING
+                status = ValidationSeverity.WARNING
                 message = f"{len(warnings_found)} known issue(s) detected"
             else:
-                status = DiagnosticStatus.OK
+                status = OperationResult.SUCCESS
                 message = "No known issues detected"
 
             details = {
@@ -90,7 +91,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category=self.category,
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"Common issues check failed: {e!s}",
                 details={"error": str(e)},
             )
@@ -102,7 +103,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
         if not claude_json_path.exists():
             return DiagnosticResult(
                 category="Large .claude.json",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="No .claude.json file",
                 details={"exists": False},
             )
@@ -131,7 +132,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
             if size_mb > 10:  # Critical: >10MB
                 return DiagnosticResult(
                     category="Large .claude.json",
-                    status=DiagnosticStatus.ERROR,
+                    status=ValidationSeverity.ERROR,
                     message=f"Critical: .claude.json is {size_mb:.1f}MB (causes memory issues)",
                     details=details,
                     fix_command="claude-mpm cleanup-memory",
@@ -140,7 +141,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
             if size_mb > 1:  # Warning: >1MB
                 return DiagnosticResult(
                     category="Large .claude.json",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message=f".claude.json is {size_mb:.1f}MB (may cause memory issues)",
                     details=details,
                     fix_command="claude-mpm cleanup-memory",
@@ -149,7 +150,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
 
             return DiagnosticResult(
                 category="Large .claude.json",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message=f".claude.json size acceptable ({size_mb:.2f}MB)",
                 details=details,
             )
@@ -157,7 +158,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="Large .claude.json",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not check .claude.json: {e!s}",
                 details={"error": str(e)},
             )
@@ -170,7 +171,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
         if not memory_dir.exists():
             return DiagnosticResult(
                 category="Memory Usage",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="No project memory directory",
                 details={"exists": False, "path": str(memory_dir)},
             )
@@ -200,7 +201,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
             if size_mb > 100:  # >100MB of memory files
                 return DiagnosticResult(
                     category="Memory Usage",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message=f"High memory usage: {size_mb:.1f}MB in {len(memory_files)} files",
                     details=details,
                     fix_command="claude-mpm memory clean --days 30",
@@ -209,7 +210,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
             if old_files:
                 return DiagnosticResult(
                     category="Memory Usage",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message=f"{len(old_files)} memory file(s) older than 30 days",
                     details=details,
                     fix_command="claude-mpm memory clean --days 30",
@@ -218,7 +219,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
 
             return DiagnosticResult(
                 category="Memory Usage",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message=f"Memory usage normal ({size_mb:.1f}MB)",
                 details=details,
             )
@@ -226,7 +227,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="Memory Usage",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not check memory: {e!s}",
                 details={"error": str(e)},
             )
@@ -257,7 +258,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
         if stale_locks:
             return DiagnosticResult(
                 category="Lock Files",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"{len(stale_locks)} stale lock file(s) found",
                 details={"stale_locks": stale_locks},
                 fix_command=f"rm {' '.join(stale_locks)}",
@@ -266,7 +267,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
 
         return DiagnosticResult(
             category="Lock Files",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message="No stale lock files",
             details={"stale_locks": []},
         )
@@ -302,7 +303,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
         if conflicts:
             return DiagnosticResult(
                 category="Config Conflicts",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"{len(conflicts)} configuration conflict(s)",
                 details={"conflicts": conflicts},
                 fix_description="Resolve conflicting configurations",
@@ -310,7 +311,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
 
         return DiagnosticResult(
             category="Config Conflicts",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message="No configuration conflicts",
             details={"conflicts": []},
         )
@@ -322,7 +323,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
         if not cache_dir.exists():
             return DiagnosticResult(
                 category="Cache",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="No cache directory",
                 details={"exists": False},
             )
@@ -336,7 +337,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
             if size_mb > 500:  # >500MB cache
                 return DiagnosticResult(
                     category="Cache",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message=f"Large cache: {size_mb:.1f}MB",
                     details={
                         "size_mb": round(size_mb, 2),
@@ -348,7 +349,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
 
             return DiagnosticResult(
                 category="Cache",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message=f"Cache size normal ({size_mb:.1f}MB)",
                 details={"size_mb": round(size_mb, 2), "file_count": len(cache_files)},
             )
@@ -356,7 +357,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="Cache",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not check cache: {e!s}",
                 details={"error": str(e)},
             )

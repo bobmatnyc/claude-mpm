@@ -11,8 +11,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from ....core.enums import OperationResult
-from ..models import DiagnosticResult, DiagnosticStatus
+from ....core.enums import OperationResult, ValidationSeverity
+from ..models import DiagnosticResult
 from .base_check import BaseDiagnosticCheck
 
 
@@ -55,14 +55,14 @@ class InstallationCheck(BaseDiagnosticCheck):
             details["dependencies"] = deps_result.details.get("status")
 
             # Determine overall status
-            if any(r.status == DiagnosticStatus.ERROR for r in sub_results):
-                status = DiagnosticStatus.ERROR
+            if any(r.status == ValidationSeverity.ERROR for r in sub_results):
+                status = ValidationSeverity.ERROR
                 message = "Installation has critical issues"
-            elif any(r.status == DiagnosticStatus.WARNING for r in sub_results):
-                status = DiagnosticStatus.WARNING
+            elif any(r.status == ValidationSeverity.WARNING for r in sub_results):
+                status = ValidationSeverity.WARNING
                 message = "Installation has minor issues"
             else:
-                status = DiagnosticStatus.OK
+                status = OperationResult.SUCCESS
                 message = "Installation is healthy"
 
             return DiagnosticResult(
@@ -76,7 +76,7 @@ class InstallationCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category=self.category,
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"Installation check failed: {e!s}",
                 details={"error": str(e)},
             )
@@ -92,7 +92,7 @@ class InstallationCheck(BaseDiagnosticCheck):
         if version_info < min_version:
             return DiagnosticResult(
                 category="Python Version",
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"Python {version_info.major}.{version_info.minor} is below minimum required {min_version[0]}.{min_version[1]}",
                 details={"version": version},
                 fix_description="Upgrade Python to 3.9 or higher",
@@ -100,13 +100,13 @@ class InstallationCheck(BaseDiagnosticCheck):
         if version_info < recommended_version:
             return DiagnosticResult(
                 category="Python Version",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Python {version_info.major}.{version_info.minor} works but {recommended_version[0]}.{recommended_version[1]}+ is recommended",
                 details={"version": version},
             )
         return DiagnosticResult(
             category="Python Version",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message=f"Python {version_info.major}.{version_info.minor}.{version_info.micro}",
             details={"version": version},
         )
@@ -123,7 +123,7 @@ class InstallationCheck(BaseDiagnosticCheck):
 
             return DiagnosticResult(
                 category="Claude MPM Version",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message=f"Version: {version}",
                 details={
                     "version": semantic_version,
@@ -134,7 +134,7 @@ class InstallationCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="Claude MPM Version",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="Could not determine version",
                 details={"error": str(e)},
             )
@@ -244,7 +244,7 @@ class InstallationCheck(BaseDiagnosticCheck):
         if not methods_found:
             return DiagnosticResult(
                 category="Installation Method",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="Installation method unknown",
                 details=details,
             )
@@ -260,7 +260,7 @@ class InstallationCheck(BaseDiagnosticCheck):
                 container_msg += " with virtual environment"
             return DiagnosticResult(
                 category="Installation Method",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message=container_msg,
                 details=details,
             )
@@ -269,7 +269,7 @@ class InstallationCheck(BaseDiagnosticCheck):
         if "pipx" in methods_found:
             return DiagnosticResult(
                 category="Installation Method",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="Running from pipx environment (recommended)",
                 details=details,
             )
@@ -279,7 +279,7 @@ class InstallationCheck(BaseDiagnosticCheck):
             venv_name = Path(sys.prefix).name
             return DiagnosticResult(
                 category="Installation Method",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message=f"Development mode in virtual environment '{venv_name}'",
                 details=details,
             )
@@ -289,7 +289,7 @@ class InstallationCheck(BaseDiagnosticCheck):
             venv_name = Path(sys.prefix).name
             return DiagnosticResult(
                 category="Installation Method",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message=f"Virtual environment '{venv_name}'",
                 details=details,
             )
@@ -298,7 +298,7 @@ class InstallationCheck(BaseDiagnosticCheck):
         if "development" in methods_found and "homebrew" in methods_found:
             return DiagnosticResult(
                 category="Installation Method",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="Development mode with Homebrew Python",
                 details=details,
             )
@@ -306,7 +306,7 @@ class InstallationCheck(BaseDiagnosticCheck):
         if "development" in methods_found:
             return DiagnosticResult(
                 category="Installation Method",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="Development mode",
                 details=details,
             )
@@ -316,9 +316,9 @@ class InstallationCheck(BaseDiagnosticCheck):
             msg = "Homebrew Python"
             if details.get("pipx_installed"):
                 msg += " (pipx is installed but not active - consider using 'pipx run claude-mpm')"
-                status = DiagnosticStatus.WARNING
+                status = ValidationSeverity.WARNING
             else:
-                status = DiagnosticStatus.OK
+                status = OperationResult.SUCCESS
             return DiagnosticResult(
                 category="Installation Method",
                 status=status,
@@ -330,7 +330,7 @@ class InstallationCheck(BaseDiagnosticCheck):
         if "pip" in methods_found:
             return DiagnosticResult(
                 category="Installation Method",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="System pip installation (consider using pipx or venv instead)",
                 details=details,
                 fix_description="Consider reinstalling with pipx for isolated environment",
@@ -340,7 +340,7 @@ class InstallationCheck(BaseDiagnosticCheck):
         if "system" in methods_found:
             return DiagnosticResult(
                 category="Installation Method",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="System Python (consider using pipx or venv)",
                 details=details,
             )
@@ -348,7 +348,7 @@ class InstallationCheck(BaseDiagnosticCheck):
         # Fallback for any other combination
         return DiagnosticResult(
             category="Installation Method",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message=f"Installed via {', '.join(methods_found)}",
             details=details,
         )
@@ -400,7 +400,7 @@ class InstallationCheck(BaseDiagnosticCheck):
 
             return DiagnosticResult(
                 category="Dependencies",
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"Missing critical dependencies: {', '.join(missing)}",
                 details={
                     "missing": missing,
@@ -415,7 +415,7 @@ class InstallationCheck(BaseDiagnosticCheck):
         if warnings:
             return DiagnosticResult(
                 category="Dependencies",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Missing optional dependencies: {', '.join(warnings)}",
                 details={
                     "optional_missing": warnings,
@@ -427,7 +427,7 @@ class InstallationCheck(BaseDiagnosticCheck):
             )
         return DiagnosticResult(
             category="Dependencies",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message="All dependencies installed",
             details={
                 "status": OperationResult.COMPLETED,

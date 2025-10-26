@@ -6,17 +6,9 @@ consistency across all checks and reporting.
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
-
-class DiagnosticStatus(Enum):
-    """Status levels for diagnostic results."""
-
-    OK = "ok"
-    WARNING = "warning"
-    ERROR = "error"
-    SKIPPED = "skipped"
+from ...core.enums import OperationResult, ValidationSeverity
 
 
 @dataclass
@@ -25,10 +17,13 @@ class DiagnosticResult:
 
     WHY: Standardized result format ensures consistent reporting
     and makes it easy to aggregate and display results.
+
+    Note: status uses Union[OperationResult, ValidationSeverity] to support both
+    operation results (SUCCESS, SKIPPED) and validation results (WARNING, ERROR).
     """
 
     category: str  # e.g., "Installation", "Agents", "MCP Server"
-    status: DiagnosticStatus
+    status: Union[OperationResult, ValidationSeverity]
     message: str
     details: Dict[str, Any] = field(default_factory=dict)
     fix_command: Optional[str] = None
@@ -50,16 +45,16 @@ class DiagnosticResult:
     @property
     def has_issues(self) -> bool:
         """Check if this result indicates any issues."""
-        return self.status in (DiagnosticStatus.WARNING, DiagnosticStatus.ERROR)
+        return self.status in (ValidationSeverity.WARNING, ValidationSeverity.ERROR)
 
     @property
     def severity_level(self) -> int:
         """Get numeric severity level for sorting."""
         severity_map = {
-            DiagnosticStatus.OK: 0,
-            DiagnosticStatus.SKIPPED: 1,
-            DiagnosticStatus.WARNING: 2,
-            DiagnosticStatus.ERROR: 3,
+            OperationResult.SUCCESS: 0,
+            OperationResult.SKIPPED: 1,
+            ValidationSeverity.WARNING: 2,
+            ValidationSeverity.ERROR: 3,
         }
         return severity_map.get(self.status, 0)
 
@@ -84,13 +79,13 @@ class DiagnosticSummary:
         self.results.append(result)
         self.total_checks += 1
 
-        if result.status == DiagnosticStatus.OK:
+        if result.status == OperationResult.SUCCESS:
             self.ok_count += 1
-        elif result.status == DiagnosticStatus.WARNING:
+        elif result.status == ValidationSeverity.WARNING:
             self.warning_count += 1
-        elif result.status == DiagnosticStatus.ERROR:
+        elif result.status == ValidationSeverity.ERROR:
             self.error_count += 1
-        elif result.status == DiagnosticStatus.SKIPPED:
+        elif result.status == OperationResult.SKIPPED:
             self.skipped_count += 1
 
     @property
@@ -99,13 +94,13 @@ class DiagnosticSummary:
         return self.warning_count > 0 or self.error_count > 0
 
     @property
-    def overall_status(self) -> DiagnosticStatus:
+    def overall_status(self) -> Union[OperationResult, ValidationSeverity]:
         """Get overall system status."""
         if self.error_count > 0:
-            return DiagnosticStatus.ERROR
+            return ValidationSeverity.ERROR
         if self.warning_count > 0:
-            return DiagnosticStatus.WARNING
-        return DiagnosticStatus.OK
+            return ValidationSeverity.WARNING
+        return OperationResult.SUCCESS
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""

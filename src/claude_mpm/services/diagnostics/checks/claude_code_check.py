@@ -9,7 +9,8 @@ import json
 import subprocess
 from pathlib import Path
 
-from ..models import DiagnosticResult, DiagnosticStatus
+from ....core.enums import OperationResult, ValidationSeverity
+from ..models import DiagnosticResult
 from .base_check import BaseDiagnosticCheck
 
 
@@ -33,9 +34,9 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
             # Check if Claude Code CLI is installed
             install_result = self._check_installation()
             sub_results.append(install_result)
-            details["installed"] = install_result.status == DiagnosticStatus.OK
+            details["installed"] = install_result.status == OperationResult.SUCCESS
 
-            if install_result.status == DiagnosticStatus.OK:
+            if install_result.status == OperationResult.SUCCESS:
                 # Check version compatibility
                 version_result = self._check_version()
                 sub_results.append(version_result)
@@ -49,17 +50,17 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
                 # Check MCP integration
                 mcp_result = self._check_mcp_integration()
                 sub_results.append(mcp_result)
-                details["mcp_configured"] = mcp_result.status == DiagnosticStatus.OK
+                details["mcp_configured"] = mcp_result.status == OperationResult.SUCCESS
 
             # Determine overall status
-            if any(r.status == DiagnosticStatus.ERROR for r in sub_results):
-                status = DiagnosticStatus.ERROR
+            if any(r.status == ValidationSeverity.ERROR for r in sub_results):
+                status = ValidationSeverity.ERROR
                 message = "Claude Code CLI has critical issues"
-            elif any(r.status == DiagnosticStatus.WARNING for r in sub_results):
-                status = DiagnosticStatus.WARNING
+            elif any(r.status == ValidationSeverity.WARNING for r in sub_results):
+                status = ValidationSeverity.WARNING
                 message = "Claude Code CLI needs configuration"
             else:
-                status = DiagnosticStatus.OK
+                status = OperationResult.SUCCESS
                 message = "Claude Code CLI properly configured"
 
             return DiagnosticResult(
@@ -73,7 +74,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category=self.category,
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"Claude Code CLI check failed: {e!s}",
                 details={"error": str(e)},
             )
@@ -92,7 +93,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
             if result.returncode == 0:
                 return DiagnosticResult(
                     category="Claude Code CLI Installation",
-                    status=DiagnosticStatus.OK,
+                    status=OperationResult.SUCCESS,
                     message="Claude Code CLI is installed and accessible",
                     details={
                         "installed": True,
@@ -115,14 +116,14 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
             if path.exists() and path.is_file():
                 return DiagnosticResult(
                     category="Claude Code CLI Installation",
-                    status=DiagnosticStatus.OK,
+                    status=OperationResult.SUCCESS,
                     message=f"Claude Code CLI found at {path}",
                     details={"installed": True, "path": str(path)},
                 )
 
         return DiagnosticResult(
             category="Claude Code CLI Installation",
-            status=DiagnosticStatus.ERROR,
+            status=ValidationSeverity.ERROR,
             message="Claude Code CLI not found",
             details={"installed": False},
             fix_description="Install Claude Code CLI from https://claude.ai/code",
@@ -150,7 +151,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
                         break
 
             # Check minimum version requirement (1.0.60+)
-            status = DiagnosticStatus.OK
+            status = OperationResult.SUCCESS
             message = f"Version: {version}"
 
             return DiagnosticResult(
@@ -166,7 +167,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
         except subprocess.SubprocessError as e:
             return DiagnosticResult(
                 category="Claude Code CLI Version",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not determine version: {e}",
                 details={"version": "unknown", "error": str(e)},
             )
@@ -178,7 +179,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
         if not style_path.exists():
             return DiagnosticResult(
                 category="Output Style",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="Output style not deployed",
                 details={"deployed": False, "path": str(style_path)},
                 fix_command="claude-mpm deploy-style",
@@ -192,13 +193,13 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
                 if "Claude MPM Output Style" in content:
                     return DiagnosticResult(
                         category="Output Style",
-                        status=DiagnosticStatus.OK,
+                        status=OperationResult.SUCCESS,
                         message="Output style deployed",
                         details={"deployed": True, "path": str(style_path)},
                     )
                 return DiagnosticResult(
                     category="Output Style",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message="Output style outdated",
                     details={
                         "deployed": True,
@@ -211,7 +212,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="Output Style",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not check output style: {e!s}",
                 details={"error": str(e)},
             )
@@ -224,7 +225,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
         if not config_path.exists():
             return DiagnosticResult(
                 category="MCP Integration",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="Claude Code CLI config not found",
                 details={"configured": False, "config_path": str(config_path)},
                 fix_command="claude-mpm mcp install",
@@ -239,7 +240,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
                 if "claude-mpm-gateway" in mcp_servers or "claude-mpm" in mcp_servers:
                     return DiagnosticResult(
                         category="MCP Integration",
-                        status=DiagnosticStatus.OK,
+                        status=OperationResult.SUCCESS,
                         message="MCP server configured",
                         details={
                             "configured": True,
@@ -249,7 +250,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
                     )
                 return DiagnosticResult(
                     category="MCP Integration",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message="MCP server not configured",
                     details={
                         "configured": False,
@@ -263,7 +264,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="MCP Integration",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not check MCP configuration: {e!s}",
                 details={"error": str(e)},
             )

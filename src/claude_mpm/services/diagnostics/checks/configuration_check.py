@@ -11,7 +11,8 @@ from typing import Any, Dict
 
 import yaml
 
-from ..models import DiagnosticResult, DiagnosticStatus
+from ....core.enums import OperationResult, ValidationSeverity
+from ..models import DiagnosticResult
 from .base_check import BaseDiagnosticCheck
 
 
@@ -52,14 +53,14 @@ class ConfigurationCheck(BaseDiagnosticCheck):
             sub_results.append(perm_result)
 
             # Determine overall status
-            if any(r.status == DiagnosticStatus.ERROR for r in sub_results):
-                status = DiagnosticStatus.ERROR
+            if any(r.status == ValidationSeverity.ERROR for r in sub_results):
+                status = ValidationSeverity.ERROR
                 message = "Configuration has critical issues"
-            elif any(r.status == DiagnosticStatus.WARNING for r in sub_results):
-                status = DiagnosticStatus.WARNING
+            elif any(r.status == ValidationSeverity.WARNING for r in sub_results):
+                status = ValidationSeverity.WARNING
                 message = "Configuration has minor issues"
             else:
-                status = DiagnosticStatus.OK
+                status = OperationResult.SUCCESS
                 message = "Configuration is valid"
 
             return DiagnosticResult(
@@ -73,7 +74,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category=self.category,
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"Configuration check failed: {e!s}",
                 details={"error": str(e)},
             )
@@ -85,7 +86,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
         if not config_path.exists():
             return DiagnosticResult(
                 category="User Config",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="No user configuration (using defaults)",
                 details={"path": str(config_path), "exists": False},
             )
@@ -98,14 +99,14 @@ class ConfigurationCheck(BaseDiagnosticCheck):
             if issues:
                 return DiagnosticResult(
                     category="User Config",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message=f"User config has issues: {', '.join(issues)}",
                     details={"path": str(config_path), "issues": issues},
                 )
 
             return DiagnosticResult(
                 category="User Config",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="User configuration valid",
                 details={
                     "path": str(config_path),
@@ -117,7 +118,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
         except yaml.YAMLError as e:
             return DiagnosticResult(
                 category="User Config",
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message="User config has invalid YAML",
                 details={"path": str(config_path), "error": str(e)},
                 fix_description="Fix YAML syntax errors in the configuration file",
@@ -125,7 +126,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="User Config",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not read user config: {e!s}",
                 details={"path": str(config_path), "error": str(e)},
             )
@@ -137,7 +138,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
         if not config_path.exists():
             return DiagnosticResult(
                 category="Project Config",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="No project configuration (using defaults)",
                 details={"path": str(config_path), "exists": False},
             )
@@ -150,7 +151,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
             if issues:
                 return DiagnosticResult(
                     category="Project Config",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message=f"Project config has issues: {', '.join(issues)}",
                     details={"path": str(config_path), "issues": issues},
                 )
@@ -160,7 +161,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
             if deprecated:
                 return DiagnosticResult(
                     category="Project Config",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message=f"Using deprecated config keys: {', '.join(deprecated)}",
                     details={"path": str(config_path), "deprecated_keys": deprecated},
                     fix_description="Remove deprecated configuration keys",
@@ -168,7 +169,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
 
             return DiagnosticResult(
                 category="Project Config",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="Project configuration valid",
                 details={
                     "path": str(config_path),
@@ -180,7 +181,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
         except yaml.YAMLError as e:
             return DiagnosticResult(
                 category="Project Config",
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message="Project config has invalid YAML",
                 details={"path": str(config_path), "error": str(e)},
                 fix_description="Fix YAML syntax errors in the configuration file",
@@ -188,7 +189,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="Project Config",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not read project config: {e!s}",
                 details={"path": str(config_path), "error": str(e)},
             )
@@ -207,14 +208,14 @@ class ConfigurationCheck(BaseDiagnosticCheck):
         if not set_vars:
             return DiagnosticResult(
                 category="Environment Variables",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="No claude-mpm environment variables set",
                 details={"variables": {}},
             )
 
         return DiagnosticResult(
             category="Environment Variables",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message=f"{len(set_vars)} environment variable(s) configured",
             details={"variables": set_vars},
         )
@@ -245,7 +246,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
         if not paths_checked:
             return DiagnosticResult(
                 category="Config Permissions",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="No configuration files to check",
                 details={"paths_checked": []},
             )
@@ -253,7 +254,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
         if issues:
             return DiagnosticResult(
                 category="Config Permissions",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Permission issues: {', '.join(issues)}",
                 details={"issues": issues, "paths_checked": paths_checked},
                 fix_command="chmod 644 ~/.claude/claude-mpm.yaml",
@@ -262,7 +263,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
 
         return DiagnosticResult(
             category="Config Permissions",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message="Configuration file permissions are correct",
             details={"paths_checked": paths_checked},
         )

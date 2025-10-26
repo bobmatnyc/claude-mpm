@@ -8,7 +8,9 @@ formatting for terminal display and JSON export.
 import json
 import sys
 
-from .models import DiagnosticResult, DiagnosticStatus, DiagnosticSummary
+from claude_mpm.core.enums import OperationResult, ValidationSeverity
+
+from .models import DiagnosticResult, DiagnosticSummary
 
 
 class DoctorReporter:
@@ -20,10 +22,10 @@ class DoctorReporter:
 
     # Status symbols and colors
     STATUS_SYMBOLS = {
-        DiagnosticStatus.OK: "✅",
-        DiagnosticStatus.WARNING: "⚠️ ",
-        DiagnosticStatus.ERROR: "❌",
-        DiagnosticStatus.SKIPPED: "⏭️ ",
+        OperationResult.SUCCESS: "✅",
+        ValidationSeverity.WARNING: "⚠️ ",
+        ValidationSeverity.ERROR: "❌",
+        OperationResult.SKIPPED: "⏭️ ",
     }
 
     # ANSI color codes
@@ -94,11 +96,11 @@ class DoctorReporter:
         # Main result line
         line = f"{indent_str}{symbol} {result.category}: "
 
-        if result.status == DiagnosticStatus.OK:
+        if result.status == OperationResult.SUCCESS:
             line += self._color("OK", color)
-        elif result.status == DiagnosticStatus.WARNING:
+        elif result.status == ValidationSeverity.WARNING:
             line += self._color("Warning", color)
-        elif result.status == DiagnosticStatus.ERROR:
+        elif result.status == ValidationSeverity.ERROR:
             line += self._color("Error", color)
         else:
             line += self._color("Skipped", color)
@@ -163,9 +165,9 @@ class DoctorReporter:
 
         # Overall health
         overall = summary.overall_status
-        if overall == DiagnosticStatus.OK:
+        if overall == OperationResult.SUCCESS:
             print(self._color("\n✅ System is healthy!", "green"))
-        elif overall == DiagnosticStatus.WARNING:
+        elif overall == ValidationSeverity.WARNING:
             print(
                 self._color(
                     "\n⚠️  System has minor issues that should be addressed.", "yellow"
@@ -283,10 +285,10 @@ class DoctorReporter:
 
         # Overall Health Status
         overall = summary.overall_status
-        if overall == DiagnosticStatus.OK:
+        if overall == OperationResult.SUCCESS:
             print("### 🎉 Overall Status: **Healthy**")
             print("Your Claude MPM installation is functioning properly.\n")
-        elif overall == DiagnosticStatus.WARNING:
+        elif overall == ValidationSeverity.WARNING:
             print("### ⚠️ Overall Status: **Needs Attention**")
             print("Your installation has minor issues that should be addressed.\n")
         else:
@@ -344,13 +346,13 @@ class DoctorReporter:
         reset_code = self.COLORS["reset"]
         return f"{color_code}{text}{reset_code}"
 
-    def _get_status_color(self, status: DiagnosticStatus) -> str:
+    def _get_status_color(self, status) -> str:
         """Get color for a status."""
         color_map = {
-            DiagnosticStatus.OK: "green",
-            DiagnosticStatus.WARNING: "yellow",
-            DiagnosticStatus.ERROR: "red",
-            DiagnosticStatus.SKIPPED: "gray",
+            OperationResult.SUCCESS: "green",
+            ValidationSeverity.WARNING: "yellow",
+            ValidationSeverity.ERROR: "red",
+            OperationResult.SKIPPED: "gray",
         }
         return color_map.get(status, "reset")
 
@@ -475,12 +477,13 @@ class DoctorReporter:
         print(f"### {symbol} {result.category}\n")
 
         # Status badge
-        status_badge = {
-            DiagnosticStatus.OK: "![OK](https://img.shields.io/badge/status-OK-green)",
-            DiagnosticStatus.WARNING: "![Warning](https://img.shields.io/badge/status-Warning-yellow)",
-            DiagnosticStatus.ERROR: "![Error](https://img.shields.io/badge/status-Error-red)",
-            DiagnosticStatus.SKIPPED: "![Skipped](https://img.shields.io/badge/status-Skipped-gray)",
-        }.get(result.status, "")
+        status_badge_map = {
+            OperationResult.SUCCESS: "![OK](https://img.shields.io/badge/status-OK-green)",
+            ValidationSeverity.WARNING: "![Warning](https://img.shields.io/badge/status-Warning-yellow)",
+            ValidationSeverity.ERROR: "![Error](https://img.shields.io/badge/status-Error-red)",
+            OperationResult.SKIPPED: "![Skipped](https://img.shields.io/badge/status-Skipped-gray)",
+        }
+        status_badge = status_badge_map.get(result.status, "")
 
         print(f"{status_badge}")
         print(f"\n**Message:** {result.message}\n")
@@ -513,7 +516,7 @@ class DoctorReporter:
         for result in summary.results:
             if (
                 result.category == "Installation"
-                and result.status != DiagnosticStatus.OK
+                and result.status != OperationResult.SUCCESS
             ):
                 if "pipx" not in str(result.details.get("installation_method", "")):
                     recommendations.append(
@@ -532,7 +535,7 @@ class DoctorReporter:
 
             if (
                 result.category == "Claude Code"
-                and result.status == DiagnosticStatus.WARNING
+                and result.status == ValidationSeverity.WARNING
             ):
                 recommendations.append(
                     "Update Claude Code (CLI) to the latest version for best compatibility"

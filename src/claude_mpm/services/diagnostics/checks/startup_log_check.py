@@ -17,7 +17,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, ClassVar, Dict, Optional
 
-from ..models import DiagnosticResult, DiagnosticStatus
+from ....core.enums import OperationResult, ValidationSeverity
+from ..models import DiagnosticResult
 from .base_check import BaseDiagnosticCheck
 
 
@@ -94,7 +95,7 @@ class StartupLogCheck(BaseDiagnosticCheck):
             if not log_file:
                 return DiagnosticResult(
                     category=self.category,
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message="No startup logs found",
                     details={
                         "recommendation": "Startup logging will be created on next run"
@@ -135,7 +136,7 @@ class StartupLogCheck(BaseDiagnosticCheck):
                     sub_results.append(
                         DiagnosticResult(
                             category="Error",
-                            status=DiagnosticStatus.ERROR,
+                            status=ValidationSeverity.ERROR,
                             message=error_type,
                             details={"fix": fix},
                         )
@@ -153,7 +154,7 @@ class StartupLogCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category=self.category,
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"Startup log check failed: {e!s}",
                 details={"error": str(e)},
             )
@@ -280,13 +281,13 @@ class StartupLogCheck(BaseDiagnosticCheck):
 
         analysis["recommendations"] = recommendations
 
-    def _determine_status(self, analysis: Dict[str, Any]) -> DiagnosticStatus:
+    def _determine_status(self, analysis: Dict[str, Any]):
         """Determine overall status based on analysis."""
         if analysis["error_count"] > 0:
-            return DiagnosticStatus.ERROR
+            return ValidationSeverity.ERROR
         if analysis["warning_count"] > 3 or analysis["warning_count"] > 0:
-            return DiagnosticStatus.WARNING
-        return DiagnosticStatus.OK
+            return ValidationSeverity.WARNING
+        return OperationResult.SUCCESS
 
     def _create_message(self, analysis: Dict[str, Any]) -> str:
         """Create summary message based on analysis."""

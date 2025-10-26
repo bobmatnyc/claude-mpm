@@ -25,7 +25,9 @@ from .checks import (
     MonitorCheck,
     StartupLogCheck,
 )
-from .models import DiagnosticResult, DiagnosticStatus, DiagnosticSummary
+from claude_mpm.core.enums import ValidationSeverity
+
+from .models import DiagnosticResult, DiagnosticSummary
 
 logger = get_logger(__name__)
 
@@ -92,7 +94,7 @@ class DiagnosticRunner:
                 self.logger.error(f"Check {check_class.__name__} failed: {e}")
                 error_result = DiagnosticResult(
                     category=check_class.__name__.replace("Check", ""),
-                    status=DiagnosticStatus.ERROR,
+                    status=ValidationSeverity.ERROR,
                     message=f"Check failed: {e!s}",
                     details={"error": str(e)},
                 )
@@ -167,7 +169,7 @@ class DiagnosticRunner:
                     results.append(
                         DiagnosticResult(
                             category=check_class.__name__.replace("Check", ""),
-                            status=DiagnosticStatus.ERROR,
+                            status=ValidationSeverity.ERROR,
                             message=f"Check initialization failed: {e!s}",
                             details={"error": str(e)},
                         )
@@ -183,7 +185,7 @@ class DiagnosticRunner:
                     results.append(
                         DiagnosticResult(
                             category=check_name.replace("Check", ""),
-                            status=DiagnosticStatus.ERROR,
+                            status=ValidationSeverity.ERROR,
                             message=f"Check execution failed: {e!s}",
                             details={"error": str(e)},
                         )
@@ -238,7 +240,7 @@ class DiagnosticRunner:
                 self.logger.error(f"Check {name} failed: {e}")
                 error_result = DiagnosticResult(
                     category=check_class.__name__.replace("Check", ""),
-                    status=DiagnosticStatus.ERROR,
+                    status=ValidationSeverity.ERROR,
                     message=f"Check failed: {e!s}",
                     details={"error": str(e)},
                 )

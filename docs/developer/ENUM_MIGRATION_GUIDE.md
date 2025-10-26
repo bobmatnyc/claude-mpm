@@ -1,9 +1,9 @@
 # Enum Migration Guide
 
 **Status**: Living Document
-**Last Updated**: 2025-10-25
-**Phase**: Phase 3A In Progress (Batch 25 Complete: Enum Consolidation Initiative)
-**Recent**: Batch 25 completed enum consolidation (ConfigurationStatus + ValidationSeverity → Core Enums), 3 files migrated (configuration layer), clean semantic mappings with no new enum values, eliminated 2 duplicate enums from agent_config.py
+**Last Updated**: 2025-10-26
+**Phase**: Phase 3A In Progress (Batch 26 Complete: Enum Consolidation Initiative)
+**Recent**: Batch 26 completed enum consolidation (DiagnosticStatus → Core Enums), 14 files migrated (diagnostics system), clean semantic mappings using OperationResult + ValidationSeverity, eliminated DiagnosticStatus enum from models.py
 
 ## Table of Contents
 
@@ -399,6 +399,101 @@ class ServiceState(StrEnum):
 - Updated imports to use core enums throughout configuration layer
 
 **Impact**: Unified configuration operation results with core operation semantics, eliminated duplication in agent configuration layer. Configuration operations are general operations - the semantic alignment was natural.
+
+#### DiagnosticStatus → OperationResult + ValidationSeverity (Batch 26)
+
+**Date**: 2025-10-26
+**Status**: ✅ Complete
+
+**What Changed**:
+- Removed redundant `DiagnosticStatus` enum from `src/claude_mpm/services/diagnostics/models.py`
+- Migrated all diagnostic check operations to use core enums
+- Used semantic split: `OperationResult` for operation states (SUCCESS, SKIPPED) and `ValidationSeverity` for issue reporting (WARNING, ERROR)
+- Clean semantic mappings with no new enum values needed
+
+**Value Mapping**:
+- `DiagnosticStatus.OK` → `OperationResult.SUCCESS` (check completed successfully)
+- `DiagnosticStatus.WARNING` → `ValidationSeverity.WARNING` (check found issues, not critical)
+- `DiagnosticStatus.ERROR` → `ValidationSeverity.ERROR` (check found critical issues)
+- `DiagnosticStatus.SKIPPED` → `OperationResult.SKIPPED` (check intentionally skipped)
+
+**Type Updates**:
+```python
+# Before
+@dataclass
+class DiagnosticResult:
+    status: DiagnosticStatus
+    message: str
+    # ...
+
+# After
+@dataclass
+class DiagnosticResult:
+    status: Union[OperationResult, ValidationSeverity]  # Supports both operation and validation results
+    message: str
+    # ...
+```
+
+**Files Modified**: 14 files
+- `src/claude_mpm/services/diagnostics/models.py` (enum removal, DiagnosticResult + DiagnosticSummary updates)
+- `src/claude_mpm/services/diagnostics/checks/installation_check.py` (16 occurrences)
+- `src/claude_mpm/services/diagnostics/checks/mcp_check.py` (18 occurrences)
+- `src/claude_mpm/services/diagnostics/checks/mcp_services_check.py` (14 occurrences)
+- `src/claude_mpm/services/diagnostics/checks/instructions_check.py` (8 occurrences)
+- `src/claude_mpm/services/diagnostics/checks/startup_log_check.py` (6 occurrences)
+- `src/claude_mpm/services/diagnostics/checks/agent_check.py` (12 occurrences)
+- `src/claude_mpm/services/diagnostics/checks/claude_code_check.py` (10 occurrences)
+- `src/claude_mpm/services/diagnostics/checks/common_issues_check.py` (7 occurrences)
+- `src/claude_mpm/services/diagnostics/checks/configuration_check.py` (9 occurrences)
+- `src/claude_mpm/services/diagnostics/checks/monitor_check.py` (8 occurrences)
+- `src/claude_mpm/services/diagnostics/checks/filesystem_check.py` (11 occurrences)
+- `src/claude_mpm/services/diagnostics/diagnostic_runner.py` (3 occurrences)
+- `src/claude_mpm/services/diagnostics/doctor_reporter.py` (25 occurrences, including STATUS_SYMBOLS dict)
+- `src/claude_mpm/services/diagnostics/__init__.py` (removed DiagnosticStatus from exports)
+
+**Benefits**:
+- Unified diagnostic result semantics with core operation and validation patterns
+- Semantic clarity: operations vs. validation issues clearly distinguished
+- Improved type safety for diagnostic check results
+- Consistent status reporting across `claude-mpm doctor` command
+- Reduced duplicate enum definitions in diagnostics layer
+
+**Semantic Rationale**:
+The split between `OperationResult` and `ValidationSeverity` is intentional and semantic:
+- **OperationResult.SUCCESS/SKIPPED**: Describes the operation state (check ran and passed, or was intentionally skipped)
+- **ValidationSeverity.WARNING/ERROR**: Describes validation findings (issues discovered during the check)
+
+This dual-enum approach provides richer semantic information than a single status field.
+
+**Testing**:
+- Verified `claude-mpm doctor` command functionality in JSON, terminal, and markdown output modes
+- All diagnostic checks return correct status values
+- Status symbols and color mappings updated correctly in reporter
+- No import errors or type errors
+
+**Migration Pattern**:
+```python
+# Before (Duplicate Enum)
+from ..models import DiagnosticResult, DiagnosticStatus
+
+return DiagnosticResult(
+    category="Installation",
+    status=DiagnosticStatus.OK,
+    message="Installation is healthy"
+)
+
+# After (Consolidated Enums)
+from claude_mpm.core.enums import OperationResult, ValidationSeverity
+from ..models import DiagnosticResult
+
+return DiagnosticResult(
+    category="Installation",
+    status=OperationResult.SUCCESS,  # Operation completed successfully
+    message="Installation is healthy"
+)
+```
+
+**Impact**: Unified diagnostic status reporting with core enum semantics, eliminated duplication in diagnostics layer. The semantic split between operation results and validation severity provides clearer meaning than the original single-enum approach.
 
 ### Migration Notes
 - CRASHED→ERROR mapping is semantic: crashed processes are in an error state
