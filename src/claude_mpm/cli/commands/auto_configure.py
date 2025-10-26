@@ -26,12 +26,10 @@ try:
 except ImportError:
     RICH_AVAILABLE = False
 
+from ...core.enums import OperationResult
 from ...services.agents.auto_config_manager import AutoConfigManagerService
 from ...services.agents.observers import NullObserver
-from ...services.core.models.agent_config import (
-    ConfigurationResult,
-    ConfigurationStatus,
-)
+from ...services.core.models.agent_config import ConfigurationResult
 from ..shared import BaseCommand, CommandResult
 
 
@@ -419,7 +417,7 @@ class AutoConfigureCommand(BaseCommand):
             return self._display_result_plain(result)
 
         # Display summary
-        if result.status == ConfigurationStatus.SUCCESS:
+        if result.status == OperationResult.SUCCESS:
             panel = Panel(
                 f"✅ Auto-configuration completed successfully!\n\n"
                 f"Deployed {len(result.deployed_agents)} agent(s)",
@@ -436,7 +434,7 @@ class AutoConfigureCommand(BaseCommand):
 
             return CommandResult.success_result()
 
-        if result.status == ConfigurationStatus.PARTIAL_SUCCESS:
+        if result.status == OperationResult.WARNING:
             panel = Panel(
                 f"⚠️  Auto-configuration partially completed\n\n"
                 f"Deployed: {len(result.deployed_agents)}\n"
@@ -465,7 +463,7 @@ class AutoConfigureCommand(BaseCommand):
 
     def _display_result_plain(self, result: ConfigurationResult) -> CommandResult:
         """Display result in plain text (fallback)."""
-        if result.status == ConfigurationStatus.SUCCESS:
+        if result.status == OperationResult.SUCCESS:
             print("\n✅ Auto-configuration completed successfully!")
             print(f"Deployed {len(result.deployed_agents)} agent(s)")
 
@@ -476,7 +474,7 @@ class AutoConfigureCommand(BaseCommand):
 
             return CommandResult.success_result()
 
-        if result.status == ConfigurationStatus.PARTIAL_SUCCESS:
+        if result.status == OperationResult.WARNING:
             print("\n⚠️  Auto-configuration partially completed")
             print(f"Deployed: {len(result.deployed_agents)}")
             print(f"Failed: {len(result.failed_agents)}")
@@ -565,7 +563,7 @@ class AutoConfigureCommand(BaseCommand):
 
         print(json.dumps(output, indent=2))
 
-        if result.status == ConfigurationStatus.SUCCESS:
+        if result.status == OperationResult.SUCCESS:
             return CommandResult.success_result(data=output)
         return CommandResult.error_result(
             "Configuration failed or partial", exit_code=1, data=output

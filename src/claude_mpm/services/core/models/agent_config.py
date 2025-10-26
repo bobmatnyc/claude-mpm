@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from ....core.enums import OperationResult, ValidationSeverity
+
 
 class AgentSpecialization(str, Enum):
     """Agent specialization categories.
@@ -154,20 +156,6 @@ class AgentRecommendation:
         }
 
 
-class ConfigurationStatus(str, Enum):
-    """Status of configuration operation.
-
-    WHY: Configuration can succeed, fail, or partially succeed. This enum
-    provides a standardized way to communicate operation outcomes.
-    """
-
-    SUCCESS = "success"
-    PARTIAL_SUCCESS = "partial_success"
-    FAILURE = "failure"
-    VALIDATION_ERROR = "validation_error"
-    USER_CANCELLED = "user_cancelled"
-
-
 @dataclass
 class ConfigurationResult:
     """Result of automated configuration operation.
@@ -179,9 +167,17 @@ class ConfigurationResult:
     DESIGN DECISION: Separates successful and failed deployments to enable
     proper error handling. Includes validation results and user-facing
     messages for transparency.
+
+    NOTE: Uses core OperationResult enum (consolidated from ConfigurationStatus
+    in Phase 3A Batch 25). Mappings:
+    - SUCCESS → OperationResult.SUCCESS
+    - PARTIAL_SUCCESS → OperationResult.WARNING (partial success with issues)
+    - FAILURE → OperationResult.FAILED
+    - VALIDATION_ERROR → OperationResult.ERROR
+    - USER_CANCELLED → OperationResult.CANCELLED
     """
 
-    status: ConfigurationStatus
+    status: OperationResult
     deployed_agents: List[str] = field(default_factory=list)
     failed_agents: List[str] = field(default_factory=list)
     validation_warnings: List[str] = field(default_factory=list)
@@ -193,7 +189,7 @@ class ConfigurationResult:
     @property
     def is_successful(self) -> bool:
         """Check if configuration was completely successful."""
-        return self.status == ConfigurationStatus.SUCCESS
+        return self.status == OperationResult.SUCCESS
 
     @property
     def has_failures(self) -> bool:
@@ -221,18 +217,6 @@ class ConfigurationResult:
             "message": self.message,
             "deployment_count": self.deployment_count,
         }
-
-
-class ValidationSeverity(str, Enum):
-    """Severity level for validation issues.
-
-    WHY: Not all validation issues are equally critical. This enum enables
-    categorization of issues by severity to support appropriate handling.
-    """
-
-    ERROR = "error"  # Blocks deployment
-    WARNING = "warning"  # Should be reviewed but doesn't block
-    INFO = "info"  # Informational only
 
 
 @dataclass

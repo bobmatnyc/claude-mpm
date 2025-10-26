@@ -2,8 +2,8 @@
 
 **Status**: Living Document
 **Last Updated**: 2025-10-25
-**Phase**: Phase 3A In Progress (Batch 24 Complete: Enum Consolidation Initiative)
-**Recent**: Batch 24 completed enum consolidation (ProcessStatus → ServiceState), 2 helper methods added to ServiceState, 8 files migrated (process management layer), CRASHED→ERROR semantic mapping, Phase 3B Complete (AgentCategory validation), Phase 3C Complete (Enum expansions)
+**Phase**: Phase 3A In Progress (Batch 25 Complete: Enum Consolidation Initiative)
+**Recent**: Batch 25 completed enum consolidation (ConfigurationStatus + ValidationSeverity → Core Enums), 3 files migrated (configuration layer), clean semantic mappings with no new enum values, eliminated 2 duplicate enums from agent_config.py
 
 ## Table of Contents
 
@@ -360,25 +360,47 @@ class ServiceState(StrEnum):
 ```
 
 **Value Mapping**:
-- `ProcessStatus.STARTING` → `ServiceState.STARTING`
 - `ProcessStatus.RUNNING` → `ServiceState.RUNNING`
-- `ProcessStatus.STOPPING` → `ServiceState.STOPPING`
 - `ProcessStatus.STOPPED` → `ServiceState.STOPPED`
-- `ProcessStatus.CRASHED` → `ServiceState.ERROR` (semantic mapping - crashed processes are in error state)
+- `ProcessStatus.CRASHED` → `ServiceState.ERROR` (semantic mapping: crashed processes are in error state)
+- `ProcessStatus.STARTING` → `ServiceState.STARTING`
+- `ProcessStatus.STOPPING` → `ServiceState.STOPPING`
 - `ProcessStatus.UNKNOWN` → `ServiceState.UNKNOWN`
 
-**Files Modified** (8 total):
-1. `src/claude_mpm/services/local_ops/process_manager.py`
-2. `src/claude_mpm/services/local_ops/unified_manager.py`
-3. `src/claude_mpm/services/local_ops/state_manager.py`
-4. `src/claude_mpm/services/local_ops/__init__.py`
-5. `src/claude_mpm/services/core/interfaces/process.py`
-6. `src/claude_mpm/services/core/models/process.py`
-7. `src/claude_mpm/services/core/models/__init__.py`
-8. `src/claude_mpm/cli/commands/local_deploy.py`
+**Files Modified**: 8 files (process management layer)
 
-**Migration Notes**:
-- Process management is critical infrastructure - all state transitions tested
+**Impact**: Unified process and service state representation, eliminated duplication in process management layer.
+
+#### ConfigurationStatus → OperationResult (Batch 25)
+
+**Date**: 2025-10-25
+**Status**: ✅ Complete
+
+**What Changed**:
+- Removed redundant `ConfigurationStatus` enum from `src/claude_mpm/services/core/models/agent_config.py`
+- Removed duplicate `ValidationSeverity` enum from same file (already in core.enums)
+- Migrated all configuration operations to use core `OperationResult` enum
+- Clean semantic mappings with no new enum values needed
+
+**Value Mapping**:
+- `ConfigurationStatus.SUCCESS` → `OperationResult.SUCCESS`
+- `ConfigurationStatus.PARTIAL_SUCCESS` → `OperationResult.WARNING` (partial success with issues)
+- `ConfigurationStatus.FAILURE` → `OperationResult.FAILED`
+- `ConfigurationStatus.VALIDATION_ERROR` → `OperationResult.ERROR`
+- `ConfigurationStatus.USER_CANCELLED` → `OperationResult.CANCELLED`
+
+**Files Modified**: 3 files
+- `src/claude_mpm/cli/commands/auto_configure.py` (8 replacements)
+- `src/claude_mpm/services/agents/auto_config_manager.py` (10 replacements)
+- `src/claude_mpm/services/core/models/agent_config.py` (enum removal + type updates)
+
+**Additional Cleanup**:
+- Removed duplicate `ValidationSeverity` enum (ERROR, WARNING, INFO values already in core.enums)
+- Updated imports to use core enums throughout configuration layer
+
+**Impact**: Unified configuration operation results with core operation semantics, eliminated duplication in agent configuration layer. Configuration operations are general operations - the semantic alignment was natural.
+
+### Migration Notes
 - CRASHED→ERROR mapping is semantic: crashed processes are in an error state
 - Helper methods work correctly for all ServiceState values, not just process-related ones
 - Legacy "crashed" status in JSON files is automatically mapped to ERROR during deserialization
