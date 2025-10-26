@@ -7,7 +7,8 @@ properly configured and accessible for real-time updates.
 
 import socket
 
-from ..models import DiagnosticResult, DiagnosticStatus
+from ....core.enums import OperationResult, ValidationSeverity
+from ..models import DiagnosticResult
 from .base_check import BaseDiagnosticCheck
 
 
@@ -33,7 +34,7 @@ class MonitorCheck(BaseDiagnosticCheck):
             socketio_result = self._check_socketio()
             sub_results.append(socketio_result)
             details["socketio_available"] = (
-                socketio_result.status == DiagnosticStatus.OK
+                socketio_result.status == OperationResult.SUCCESS
             )
 
             # Check port availability
@@ -49,17 +50,17 @@ class MonitorCheck(BaseDiagnosticCheck):
             # Check hook service
             hook_result = self._check_hook_service()
             sub_results.append(hook_result)
-            details["hooks_enabled"] = hook_result.status == DiagnosticStatus.OK
+            details["hooks_enabled"] = hook_result.status == OperationResult.SUCCESS
 
             # Determine overall status
-            if any(r.status == DiagnosticStatus.ERROR for r in sub_results):
-                status = DiagnosticStatus.ERROR
+            if any(r.status == ValidationSeverity.ERROR for r in sub_results):
+                status = ValidationSeverity.ERROR
                 message = "Monitoring has critical issues"
-            elif any(r.status == DiagnosticStatus.WARNING for r in sub_results):
-                status = DiagnosticStatus.WARNING
+            elif any(r.status == ValidationSeverity.WARNING for r in sub_results):
+                status = ValidationSeverity.WARNING
                 message = "Monitoring has minor issues"
             else:
-                status = DiagnosticStatus.OK
+                status = OperationResult.SUCCESS
                 message = "Monitoring properly configured"
 
             return DiagnosticResult(
@@ -73,7 +74,7 @@ class MonitorCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category=self.category,
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"Monitor check failed: {e!s}",
                 details={"error": str(e)},
             )
@@ -85,7 +86,7 @@ class MonitorCheck(BaseDiagnosticCheck):
 
             return DiagnosticResult(
                 category="SocketIO",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="SocketIO library available",
                 details={
                     "available": True,
@@ -95,7 +96,7 @@ class MonitorCheck(BaseDiagnosticCheck):
         except ImportError:
             return DiagnosticResult(
                 category="SocketIO",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="SocketIO not installed",
                 details={"available": False},
                 fix_command="pip install python-socketio[asyncio]",
@@ -122,7 +123,7 @@ class MonitorCheck(BaseDiagnosticCheck):
             if not available_ports:
                 return DiagnosticResult(
                     category="Port Availability",
-                    status=DiagnosticStatus.ERROR,
+                    status=ValidationSeverity.ERROR,
                     message="No monitoring ports available (8765-8785)",
                     details={
                         "available": [],
@@ -137,7 +138,7 @@ class MonitorCheck(BaseDiagnosticCheck):
             if default_port not in available_ports:
                 return DiagnosticResult(
                     category="Port Availability",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message=f"Default port {default_port} in use, but alternatives available",
                     details={
                         "available": available_ports,
@@ -148,7 +149,7 @@ class MonitorCheck(BaseDiagnosticCheck):
 
             return DiagnosticResult(
                 category="Port Availability",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message=f"{len(available_ports)} monitoring port(s) available",
                 details={
                     "available": available_ports,
@@ -160,7 +161,7 @@ class MonitorCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="Port Availability",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not check ports: {e!s}",
                 details={"error": str(e)},
             )
@@ -209,7 +210,7 @@ class MonitorCheck(BaseDiagnosticCheck):
         if not response_logging_enabled:
             return DiagnosticResult(
                 category="Response Logging",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="Response logging disabled (default)",
                 details={"enabled": False},
             )
@@ -219,7 +220,7 @@ class MonitorCheck(BaseDiagnosticCheck):
         if not log_dir.exists():
             return DiagnosticResult(
                 category="Response Logging",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="Response logging enabled but directory missing",
                 details={"enabled": True, "path": str(log_dir), "exists": False},
                 fix_command=f"mkdir -p {log_dir}",
@@ -231,7 +232,7 @@ class MonitorCheck(BaseDiagnosticCheck):
         if not os.access(log_dir, os.W_OK):
             return DiagnosticResult(
                 category="Response Logging",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="Response logging directory not writable",
                 details={"enabled": True, "path": str(log_dir), "writable": False},
                 fix_command=f"chmod 755 {log_dir}",
@@ -240,7 +241,7 @@ class MonitorCheck(BaseDiagnosticCheck):
 
         return DiagnosticResult(
             category="Response Logging",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message="Response logging enabled and configured",
             details={
                 "enabled": True,
@@ -260,7 +261,7 @@ class MonitorCheck(BaseDiagnosticCheck):
 
             return DiagnosticResult(
                 category="Hook Service",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="Hook service available",
                 details={"available": True},
             )
@@ -268,14 +269,14 @@ class MonitorCheck(BaseDiagnosticCheck):
         except ImportError:
             return DiagnosticResult(
                 category="Hook Service",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="Hook service not available",
                 details={"available": False},
             )
         except Exception as e:
             return DiagnosticResult(
                 category="Hook Service",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Hook service error: {e!s}",
                 details={"available": False, "error": str(e)},
             )

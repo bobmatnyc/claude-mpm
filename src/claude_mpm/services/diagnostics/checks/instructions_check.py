@@ -11,7 +11,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict
 
-from ..models import DiagnosticResult, DiagnosticStatus
+from ....core.enums import OperationResult, ValidationSeverity
+from ..models import DiagnosticResult
 from .base_check import BaseDiagnosticCheck
 
 
@@ -77,14 +78,14 @@ class InstructionsCheck(BaseDiagnosticCheck):
             sub_results.append(separation_result)
 
             # Determine overall status
-            if any(r.status == DiagnosticStatus.ERROR for r in sub_results):
-                status = DiagnosticStatus.ERROR
+            if any(r.status == ValidationSeverity.ERROR for r in sub_results):
+                status = ValidationSeverity.ERROR
                 message = "Found critical issues with instruction files"
-            elif any(r.status == DiagnosticStatus.WARNING for r in sub_results):
-                status = DiagnosticStatus.WARNING
+            elif any(r.status == ValidationSeverity.WARNING for r in sub_results):
+                status = ValidationSeverity.WARNING
                 message = "Found minor issues with instruction files"
             else:
-                status = DiagnosticStatus.OK
+                status = OperationResult.SUCCESS
                 message = "Instruction files are properly configured"
 
             return DiagnosticResult(
@@ -98,7 +99,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category=self.category,
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"Instructions check failed: {e!s}",
                 details={"error": str(e)},
             )
@@ -146,7 +147,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
         if not claude_files:
             return DiagnosticResult(
                 category="CLAUDE.md Placement",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="No CLAUDE.md files found",
                 details={},
             )
@@ -170,7 +171,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
         if issues:
             return DiagnosticResult(
                 category="CLAUDE.md Placement",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Found {len(issues)} misplaced CLAUDE.md file(s)",
                 details={"issues": issues},
                 fix_description=(
@@ -181,7 +182,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
 
         return DiagnosticResult(
             category="CLAUDE.md Placement",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message="CLAUDE.md properly placed in project root",
             details={"count": len(claude_files)},
         )
@@ -191,7 +192,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
         if len(files) < 2:
             return DiagnosticResult(
                 category="Duplicate Content",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message="No duplicate content detected",
                 details={},
             )
@@ -226,7 +227,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
         if duplicates:
             return DiagnosticResult(
                 category="Duplicate Content",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Found {len(duplicates)} duplicate content block(s)",
                 details={"duplicates": duplicates[:5]},  # Limit to first 5
                 fix_description=(
@@ -238,7 +239,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
 
         return DiagnosticResult(
             category="Duplicate Content",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message="No significant duplicate content found",
             details={},
         )
@@ -280,7 +281,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
         if conflicts:
             return DiagnosticResult(
                 category="Conflicting Directives",
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"Found {len(conflicts)} potential conflict(s)",
                 details={"conflicts": conflicts},
                 fix_description=(
@@ -292,7 +293,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
 
         return DiagnosticResult(
             category="Conflicting Directives",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message="No conflicting directives detected",
             details={},
         )
@@ -330,7 +331,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
         if duplicates:
             return DiagnosticResult(
                 category="Agent Definitions",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Found {len(duplicates)} duplicate agent definition(s)",
                 details={"duplicates": duplicates},
                 fix_description=(
@@ -341,7 +342,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
 
         return DiagnosticResult(
             category="Agent Definitions",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message="Agent definitions are unique",
             details={"total_agents": len(agent_definitions)},
         )
@@ -396,7 +397,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
         if issues:
             return DiagnosticResult(
                 category="Separation of Concerns",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Found {len(issues)} separation of concerns issue(s)",
                 details={"issues": issues},
                 fix_description=(
@@ -409,7 +410,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
 
         return DiagnosticResult(
             category="Separation of Concerns",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message="Instruction files properly separated",
             details={},
         )

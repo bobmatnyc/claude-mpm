@@ -6,7 +6,8 @@ WHY: Verify that agents are properly deployed, up-to-date, and functioning corre
 
 from pathlib import Path
 
-from ..models import DiagnosticResult, DiagnosticStatus
+from ....core.enums import OperationResult, ValidationSeverity
+from ..models import DiagnosticResult
 from .base_check import BaseDiagnosticCheck
 
 
@@ -64,29 +65,29 @@ class AgentCheck(BaseDiagnosticCheck):
             available_count = details["available_count"]
 
             if deployed_count == 0:
-                status = DiagnosticStatus.ERROR
+                status = ValidationSeverity.ERROR
                 message = f"No agents deployed (0/{available_count} available)"
                 fix_command = "claude-mpm agents deploy"
                 fix_description = "Deploy all available agents"
             elif deployed_count < available_count:
-                status = DiagnosticStatus.WARNING
+                status = ValidationSeverity.WARNING
                 message = f"{deployed_count}/{available_count} agents deployed"
                 fix_command = "claude-mpm agents deploy"
                 fix_description = (
                     f"Deploy remaining {available_count - deployed_count} agents"
                 )
-            elif any(r.status == DiagnosticStatus.ERROR for r in sub_results):
-                status = DiagnosticStatus.ERROR
+            elif any(r.status == ValidationSeverity.ERROR for r in sub_results):
+                status = ValidationSeverity.ERROR
                 message = "Agents have critical issues"
                 fix_command = None
                 fix_description = None
-            elif any(r.status == DiagnosticStatus.WARNING for r in sub_results):
-                status = DiagnosticStatus.WARNING
+            elif any(r.status == ValidationSeverity.WARNING for r in sub_results):
+                status = ValidationSeverity.WARNING
                 message = "Agents have minor issues"
                 fix_command = None
                 fix_description = None
             else:
-                status = DiagnosticStatus.OK
+                status = OperationResult.SUCCESS
                 message = f"All {deployed_count} agents properly deployed"
                 fix_command = None
                 fix_description = None
@@ -104,7 +105,7 @@ class AgentCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category=self.category,
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"Agent check failed: {e!s}",
                 details={"error": str(e)},
             )
@@ -127,7 +128,7 @@ class AgentCheck(BaseDiagnosticCheck):
             # Neither exists, default to user directory for error message
             return DiagnosticResult(
                 category="Deployed Agents",
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message="No agents directory found (checked project and user)",
                 details={
                     "project_path": str(project_agents_dir),
@@ -144,7 +145,7 @@ class AgentCheck(BaseDiagnosticCheck):
         if not agent_files:
             return DiagnosticResult(
                 category="Deployed Agents",
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"No agents deployed in {location} directory",
                 details={"path": str(agents_dir), "location": location, "count": 0},
                 fix_command="claude-mpm agents deploy",
@@ -159,7 +160,7 @@ class AgentCheck(BaseDiagnosticCheck):
         if missing_core:
             return DiagnosticResult(
                 category="Deployed Agents",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Missing core agents in {location}: {', '.join(missing_core)}",
                 details={
                     "path": str(agents_dir),
@@ -174,7 +175,7 @@ class AgentCheck(BaseDiagnosticCheck):
 
         return DiagnosticResult(
             category="Deployed Agents",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message=f"{len(agent_files)} agents deployed ({location} level)",
             details={
                 "path": str(agents_dir),
@@ -205,7 +206,7 @@ class AgentCheck(BaseDiagnosticCheck):
             else:
                 return DiagnosticResult(
                     category="Agent Versions",
-                    status=DiagnosticStatus.SKIPPED,
+                    status=OperationResult.SKIPPED,
                     message="No agents to check",
                     details={},
                 )
@@ -224,7 +225,7 @@ class AgentCheck(BaseDiagnosticCheck):
             if outdated:
                 return DiagnosticResult(
                     category="Agent Versions",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message=f"{len(outdated)} agent(s) outdated",
                     details={"outdated": outdated, "checked": checked},
                     fix_command="claude-mpm agents update",
@@ -234,14 +235,14 @@ class AgentCheck(BaseDiagnosticCheck):
             if checked == 0:
                 return DiagnosticResult(
                     category="Agent Versions",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message="No agents to check",
                     details={"checked": 0},
                 )
 
             return DiagnosticResult(
                 category="Agent Versions",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message=f"All {checked} agents up-to-date",
                 details={"checked": checked},
             )
@@ -249,7 +250,7 @@ class AgentCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="Agent Versions",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not check versions: {e!s}",
                 details={"error": str(e)},
             )
@@ -273,7 +274,7 @@ class AgentCheck(BaseDiagnosticCheck):
             else:
                 return DiagnosticResult(
                     category="Agent Validation",
-                    status=DiagnosticStatus.SKIPPED,
+                    status=OperationResult.SKIPPED,
                     message="No agents to validate",
                     details={},
                 )
@@ -301,14 +302,14 @@ class AgentCheck(BaseDiagnosticCheck):
             if invalid:
                 return DiagnosticResult(
                     category="Agent Validation",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message=f"{len(invalid)} validation issue(s)",
                     details={"issues": invalid, "validated": validated},
                 )
 
             return DiagnosticResult(
                 category="Agent Validation",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message=f"All {validated} agents valid",
                 details={"validated": validated},
             )
@@ -316,7 +317,7 @@ class AgentCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="Agent Validation",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Validation failed: {e!s}",
                 details={"error": str(e)},
             )
@@ -358,14 +359,14 @@ class AgentCheck(BaseDiagnosticCheck):
         if issues:
             return DiagnosticResult(
                 category="Common Issues",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"{len(issues)} issue(s) found",
                 details={"issues": issues},
             )
 
         return DiagnosticResult(
             category="Common Issues",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message="No common issues detected",
             details={},
         )

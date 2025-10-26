@@ -14,7 +14,8 @@ from typing import Dict, List, Optional, Tuple
 
 from claude_mpm.core.logger import get_logger
 
-from ..models import DiagnosticResult, DiagnosticStatus
+from ....core.enums import OperationResult, ValidationSeverity
+from ..models import DiagnosticResult
 from .base_check import BaseDiagnosticCheck
 
 
@@ -116,7 +117,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 fix_result = DiagnosticResult(
                     category="MCP Service Fixes",
                     status=(
-                        DiagnosticStatus.OK if fix_success else DiagnosticStatus.WARNING
+                        OperationResult.SUCCESS if fix_success else ValidationSeverity.WARNING
                     ),
                     message=fix_message,
                     details={"auto_fix_applied": True},
@@ -134,9 +135,9 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 config_result = DiagnosticResult(
                     category="MCP Configuration Update",
                     status=(
-                        DiagnosticStatus.OK
+                        OperationResult.SUCCESS
                         if config_success
-                        else DiagnosticStatus.WARNING
+                        else ValidationSeverity.WARNING
                     ),
                     message=config_message,
                     details={"auto_config_applied": True},
@@ -191,32 +192,32 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             details["connected_count"] = connected_count
             details["total_services"] = total_services
             details["total_tools_discovered"] = total_tools
-            details["gateway_configured"] = gateway_result.status == DiagnosticStatus.OK
+            details["gateway_configured"] = gateway_result.status == OperationResult.SUCCESS
 
             # Determine overall status
-            errors = [r for r in sub_results if r.status == DiagnosticStatus.ERROR]
-            [r for r in sub_results if r.status == DiagnosticStatus.WARNING]
+            errors = [r for r in sub_results if r.status == ValidationSeverity.ERROR]
+            [r for r in sub_results if r.status == ValidationSeverity.WARNING]
 
             if errors:
-                status = DiagnosticStatus.ERROR
+                status = ValidationSeverity.ERROR
                 message = f"Critical issues with {len(errors)} MCP service(s)"
             elif installed_count == 0:
-                status = DiagnosticStatus.WARNING
+                status = ValidationSeverity.WARNING
                 message = "No MCP services installed"
             elif connected_count == total_services:
-                status = DiagnosticStatus.OK
+                status = OperationResult.SUCCESS
                 message = f"All {total_services} MCP services connected ({total_tools} tools available)"
             elif connected_count > 0:
-                status = DiagnosticStatus.WARNING
+                status = ValidationSeverity.WARNING
                 message = f"{connected_count}/{total_services} MCP services connected, {installed_count} installed"
             elif accessible_count < installed_count:
-                status = DiagnosticStatus.WARNING
+                status = ValidationSeverity.WARNING
                 message = f"{installed_count}/{total_services} services installed, {accessible_count} accessible"
             elif installed_count < total_services:
-                status = DiagnosticStatus.WARNING
+                status = ValidationSeverity.WARNING
                 message = f"{installed_count}/{total_services} MCP services installed"
             else:
-                status = DiagnosticStatus.WARNING
+                status = ValidationSeverity.WARNING
                 message = f"All {total_services} MCP services installed but connections not tested"
 
             return DiagnosticResult(
@@ -230,7 +231,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category=self.category,
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"MCP services check failed: {e!s}",
                 details={"error": str(e)},
             )
@@ -543,7 +544,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
         if not (pipx_installed or accessible):
             return DiagnosticResult(
                 category=f"MCP Service: {service_name}",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Not installed: {config['description']}",
                 details=details,
                 fix_command=f"pipx install {config['package']}",
@@ -565,16 +566,16 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 return DiagnosticResult(
                     category=f"MCP Service: {service_name}",
                     status=(
-                        DiagnosticStatus.OK
+                        OperationResult.SUCCESS
                         if connection_info.get("connected")
-                        else DiagnosticStatus.WARNING
+                        else ValidationSeverity.WARNING
                     ),
                     message=message,
                     details=details,
                 )
             return DiagnosticResult(
                 category=f"MCP Service: {service_name}",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="Installed via pipx but not in PATH",
                 details=details,
                 fix_command="pipx ensurepath",
@@ -588,14 +589,14 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 response_time = connection_info.get("response_time_ms")
                 tools_count = connection_info.get("tools_discovered", 0)
                 message = f"Installed, accessible, connection OK ({tools_count} tools, {response_time}ms)"
-                status = DiagnosticStatus.OK
+                status = OperationResult.SUCCESS
             else:
                 error = connection_info.get("error", "Unknown error")
                 message = f"Installed but connection failed: {error}"
-                status = DiagnosticStatus.WARNING
+                status = ValidationSeverity.WARNING
         else:
             message = "Installed and accessible"
-            status = DiagnosticStatus.OK
+            status = OperationResult.SUCCESS
 
         return DiagnosticResult(
             category=f"MCP Service: {service_name}",
@@ -826,7 +827,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 if fixed:
                     return DiagnosticResult(
                         category="kuzu-memory Configuration Fix",
-                        status=DiagnosticStatus.OK,
+                        status=OperationResult.SUCCESS,
                         message="Fixed kuzu-memory configuration to use correct args",
                         details={
                             "old_args": args,
@@ -837,7 +838,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                     )
                 return DiagnosticResult(
                     category="kuzu-memory Configuration",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message="kuzu-memory has incorrect configuration",
                     details={
                         "current_args": args,
@@ -931,7 +932,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             if not config_file.exists():
                 return DiagnosticResult(
                     category="MCP Gateway Configuration",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message="Claude configuration file not found",
                     details={"config_path": str(config_file), "exists": False},
                     fix_command="claude-mpm configure --mcp",
@@ -951,7 +952,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             if current_project not in projects:
                 return DiagnosticResult(
                     category="MCP Gateway Configuration",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message="Current project not configured in Claude",
                     details={
                         "config_path": str(config_file),
@@ -982,7 +983,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             if not configured_services:
                 return DiagnosticResult(
                     category="MCP Gateway Configuration",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message="No MCP services configured in gateway",
                     details=details,
                     fix_command="claude-mpm configure --mcp --add-services",
@@ -992,14 +993,14 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             if missing_services:
                 return DiagnosticResult(
                     category="MCP Gateway Configuration",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message=f"{len(configured_services)} services configured, {len(missing_services)} missing",
                     details=details,
                 )
 
             return DiagnosticResult(
                 category="MCP Gateway Configuration",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message=f"All {len(configured_services)} services configured",
                 details=details,
             )
@@ -1007,14 +1008,14 @@ class MCPServicesCheck(BaseDiagnosticCheck):
         except json.JSONDecodeError as e:
             return DiagnosticResult(
                 category="MCP Gateway Configuration",
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message="Invalid JSON in MCP configuration",
                 details={"error": str(e)},
             )
         except Exception as e:
             return DiagnosticResult(
                 category="MCP Gateway Configuration",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not check configuration: {e!s}",
                 details={"error": str(e)},
             )

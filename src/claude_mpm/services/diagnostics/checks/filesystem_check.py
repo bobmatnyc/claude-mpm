@@ -9,7 +9,8 @@ import os
 import shutil
 from pathlib import Path
 
-from ..models import DiagnosticResult, DiagnosticStatus
+from ....core.enums import OperationResult, ValidationSeverity
+from ..models import DiagnosticResult
 from .base_check import BaseDiagnosticCheck
 
 
@@ -46,14 +47,14 @@ class FilesystemCheck(BaseDiagnosticCheck):
             details["structure"] = structure_result.details
 
             # Determine overall status
-            if any(r.status == DiagnosticStatus.ERROR for r in sub_results):
-                status = DiagnosticStatus.ERROR
+            if any(r.status == ValidationSeverity.ERROR for r in sub_results):
+                status = ValidationSeverity.ERROR
                 message = "File system has critical issues"
-            elif any(r.status == DiagnosticStatus.WARNING for r in sub_results):
-                status = DiagnosticStatus.WARNING
+            elif any(r.status == ValidationSeverity.WARNING for r in sub_results):
+                status = ValidationSeverity.WARNING
                 message = "File system has minor issues"
             else:
-                status = DiagnosticStatus.OK
+                status = OperationResult.SUCCESS
                 message = "File system healthy"
 
             return DiagnosticResult(
@@ -67,7 +68,7 @@ class FilesystemCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category=self.category,
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"Filesystem check failed: {e!s}",
                 details={"error": str(e)},
             )
@@ -106,7 +107,7 @@ class FilesystemCheck(BaseDiagnosticCheck):
         if issues:
             return DiagnosticResult(
                 category="Permissions",
-                status=DiagnosticStatus.ERROR,
+                status=ValidationSeverity.ERROR,
                 message=f"{len(issues)} permission issue(s)",
                 details={"issues": issues, "checked": checked},
                 fix_command="chmod -R 755 .claude",
@@ -116,14 +117,14 @@ class FilesystemCheck(BaseDiagnosticCheck):
         if not checked:
             return DiagnosticResult(
                 category="Permissions",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="No project .claude directories found",
                 details={"checked": [], "missing": [str(d) for d in critical_dirs]},
             )
 
         return DiagnosticResult(
             category="Permissions",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message="All permissions valid",
             details={"checked": checked},
         )
@@ -150,7 +151,7 @@ class FilesystemCheck(BaseDiagnosticCheck):
             if free_gb < 0.1:  # Less than 100MB
                 return DiagnosticResult(
                     category="Disk Space",
-                    status=DiagnosticStatus.ERROR,
+                    status=ValidationSeverity.ERROR,
                     message=f"Critical: Only {free_gb:.2f}GB free",
                     details=details,
                     fix_description="Free up disk space immediately",
@@ -158,7 +159,7 @@ class FilesystemCheck(BaseDiagnosticCheck):
             if free_gb < 1:  # Less than 1GB
                 return DiagnosticResult(
                     category="Disk Space",
-                    status=DiagnosticStatus.WARNING,
+                    status=ValidationSeverity.WARNING,
                     message=f"Low disk space: {free_gb:.2f}GB free",
                     details=details,
                     fix_description="Consider freeing up disk space",
@@ -166,7 +167,7 @@ class FilesystemCheck(BaseDiagnosticCheck):
 
             return DiagnosticResult(
                 category="Disk Space",
-                status=DiagnosticStatus.OK,
+                status=OperationResult.SUCCESS,
                 message=f"{free_gb:.1f}GB available",
                 details=details,
             )
@@ -174,7 +175,7 @@ class FilesystemCheck(BaseDiagnosticCheck):
         except Exception as e:
             return DiagnosticResult(
                 category="Disk Space",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Could not check disk space: {e!s}",
                 details={"error": str(e)},
             )
@@ -196,7 +197,7 @@ class FilesystemCheck(BaseDiagnosticCheck):
         if not base_dir.exists():
             return DiagnosticResult(
                 category="Directory Structure",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message="Project .claude directory missing",
                 details={"base_dir": str(base_dir), "exists": False},
                 fix_command="mkdir -p .claude/{agents,responses,memory,logs}",
@@ -213,7 +214,7 @@ class FilesystemCheck(BaseDiagnosticCheck):
         if missing:
             return DiagnosticResult(
                 category="Directory Structure",
-                status=DiagnosticStatus.WARNING,
+                status=ValidationSeverity.WARNING,
                 message=f"Missing {len(missing)} subdirectory(s)",
                 details={
                     "base_dir": str(base_dir),
@@ -226,7 +227,7 @@ class FilesystemCheck(BaseDiagnosticCheck):
 
         return DiagnosticResult(
             category="Directory Structure",
-            status=DiagnosticStatus.OK,
+            status=OperationResult.SUCCESS,
             message="Directory structure complete",
             details={"base_dir": str(base_dir), "directories": present},
         )
