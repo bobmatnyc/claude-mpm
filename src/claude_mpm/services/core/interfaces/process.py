@@ -32,10 +32,10 @@ USAGE:
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
+from claude_mpm.core.enums import ServiceState
 from claude_mpm.services.core.models.process import (
     DeploymentState,
     ProcessInfo,
-    ProcessStatus,
     StartConfig,
 )
 
@@ -102,12 +102,12 @@ class IDeploymentStateManager(ABC):
         """
 
     @abstractmethod
-    def get_deployments_by_status(self, status: ProcessStatus) -> List[DeploymentState]:
+    def get_deployments_by_status(self, status: ServiceState) -> List[DeploymentState]:
         """
         Get all deployments with a specific status.
 
         Args:
-            status: ProcessStatus to filter by
+            status: ServiceState to filter by
 
         Returns:
             List of matching DeploymentState objects
@@ -168,14 +168,14 @@ class IDeploymentStateManager(ABC):
 
     @abstractmethod
     def update_deployment_status(
-        self, deployment_id: str, status: ProcessStatus
+        self, deployment_id: str, status: ServiceState
     ) -> bool:
         """
         Update the status of a deployment.
 
         Args:
             deployment_id: Unique deployment identifier
-            status: New ProcessStatus
+            status: New ServiceState
 
         Returns:
             True if updated, False if deployment not found
@@ -290,7 +290,7 @@ class ILocalProcessManager(ABC):
 
     @abstractmethod
     def list_processes(
-        self, status_filter: Optional[ProcessStatus] = None
+        self, status_filter: Optional[ServiceState] = None
     ) -> List[ProcessInfo]:
         """
         List all managed processes.

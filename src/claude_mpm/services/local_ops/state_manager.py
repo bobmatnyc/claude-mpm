@@ -30,9 +30,10 @@ from typing import Dict, List, Optional
 import psutil
 from filelock import FileLock
 
+from claude_mpm.core.enums import ServiceState
 from claude_mpm.services.core.base import SyncBaseService
 from claude_mpm.services.core.interfaces.process import IDeploymentStateManager
-from claude_mpm.services.core.models.process import DeploymentState, ProcessStatus
+from claude_mpm.services.core.models.process import DeploymentState
 
 
 class StateCorruptionError(Exception):
@@ -206,12 +207,12 @@ class DeploymentStateManager(SyncBaseService, IDeploymentStateManager):
         states = self.load_state()
         return list(states.values())
 
-    def get_deployments_by_status(self, status: ProcessStatus) -> List[DeploymentState]:
+    def get_deployments_by_status(self, status: ServiceState) -> List[DeploymentState]:
         """
         Get all deployments with a specific status.
 
         Args:
-            status: ProcessStatus to filter by
+            status: ServiceState to filter by
 
         Returns:
             List of matching DeploymentState objects
@@ -295,14 +296,14 @@ class DeploymentStateManager(SyncBaseService, IDeploymentStateManager):
             return False
 
     def update_deployment_status(
-        self, deployment_id: str, status: ProcessStatus
+        self, deployment_id: str, status: ServiceState
     ) -> bool:
         """
         Update the status of a deployment.
 
         Args:
             deployment_id: Unique deployment identifier
-            status: New ProcessStatus
+            status: New ServiceState
 
         Returns:
             True if updated, False if deployment not found

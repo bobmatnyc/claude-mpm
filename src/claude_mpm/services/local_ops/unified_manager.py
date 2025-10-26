@@ -45,12 +45,12 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
+from claude_mpm.core.enums import ServiceState
 from claude_mpm.services.core.base import SyncBaseService
 from claude_mpm.services.core.models.health import DeploymentHealth
 from claude_mpm.services.core.models.process import (
     DeploymentState,
     ProcessInfo,
-    ProcessStatus,
     StartConfig,
 )
 from claude_mpm.services.core.models.restart import RestartConfig, RestartHistory
@@ -384,7 +384,7 @@ class UnifiedLocalOpsManager(SyncBaseService):
 
     def list_deployments(
         self,
-        status_filter: Optional[ProcessStatus] = None,
+        status_filter: Optional[ServiceState] = None,
     ) -> List[DeploymentState]:
         """
         List all deployments.

@@ -42,6 +42,7 @@ from typing import List, Optional
 
 import psutil
 
+from claude_mpm.core.enums import ServiceState
 from claude_mpm.services.core.base import SyncBaseService
 from claude_mpm.services.core.interfaces.process import (
     IDeploymentStateManager,
@@ -50,7 +51,6 @@ from claude_mpm.services.core.interfaces.process import (
 from claude_mpm.services.core.models.process import (
     DeploymentState,
     ProcessInfo,
-    ProcessStatus,
     StartConfig,
     is_port_protected,
 )
@@ -203,7 +203,7 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
                 environment=config.environment,
                 port=allocated_port,
                 started_at=datetime.now(tz=timezone.utc),
-                status=ProcessStatus.RUNNING,
+                status=ServiceState.RUNNING,
                 metadata=config.metadata,
             )
 
@@ -248,13 +248,13 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
             # Process already dead, just update state
             self.log_info(f"Process {deployment.process_id} already dead")
             self.state_manager.update_deployment_status(
-                deployment_id, ProcessStatus.STOPPED
+                deployment_id, ServiceState.STOPPED
             )
             return True
 
         self.log_info(f"Stopping process {deployment.process_id} for {deployment_id}")
         self.state_manager.update_deployment_status(
-            deployment_id, ProcessStatus.STOPPING
+            deployment_id, ServiceState.STOPPING
         )
 
         try:
@@ -262,7 +262,7 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
                 # Force kill immediately
                 self._kill_process_group(process)
                 self.state_manager.update_deployment_status(
-                    deployment_id, ProcessStatus.STOPPED
+                    deployment_id, ServiceState.STOPPED
                 )
                 return True
 
@@ -275,7 +275,7 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
                 if not process.is_running():
                     self.log_info(f"Process {deployment.process_id} stopped gracefully")
                     self.state_manager.update_deployment_status(
-                        deployment_id, ProcessStatus.STOPPED
+                        deployment_id, ServiceState.STOPPED
                     )
                     return True
                 time.sleep(0.1)
@@ -286,14 +286,14 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
             )
             self._kill_process_group(process)
             self.state_manager.update_deployment_status(
-                deployment_id, ProcessStatus.STOPPED
+                deployment_id, ServiceState.STOPPED
             )
             return True
 
         except psutil.NoSuchProcess:
             # Process died during shutdown
             self.state_manager.update_deployment_status(
-                deployment_id, ProcessStatus.STOPPED
+                deployment_id, ServiceState.STOPPED
             )
             return True
 
@@ -370,9 +370,9 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
 
             # Determine status
             if process.is_running():
-                status = ProcessStatus.RUNNING
+                status = ServiceState.RUNNING
             else:
-                status = ProcessStatus.STOPPED
+                status = ServiceState.STOPPED
 
             return ProcessInfo(
                 deployment_id=deployment_id,
@@ -389,13 +389,13 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
             return ProcessInfo(
                 deployment_id=deployment_id,
                 process_id=deployment.process_id,
-                status=ProcessStatus.CRASHED,
+                status=ServiceState.ERROR,  # CRASHED semantically maps to ERROR state
                 port=deployment.port,
                 error_message="Process no longer exists",
             )
 
     def list_processes(
-        self, status_filter: Optional[ProcessStatus] = None
+        self, status_filter: Optional[ServiceState] = None
     ) -> List[ProcessInfo]:
         """
         List all managed processes.

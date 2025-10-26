@@ -32,9 +32,9 @@ USAGE:
         DeploymentStateManager,
         HealthCheckManager,
         StartConfig,
-        ProcessStatus,
         HealthStatus,
     )
+    from claude_mpm.core.enums import ServiceState
 
     # Initialize managers
     state_manager = DeploymentStateManager(".claude-mpm/deployment-state.json")
@@ -54,6 +54,8 @@ USAGE:
 
     # Start background monitoring
     health_manager.start_monitoring()
+
+Note: ProcessStatus has been consolidated into ServiceState (core.enums) as of Phase 3A Batch 24.
 """
 
 # Re-export data models and interfaces for convenience
@@ -84,7 +86,6 @@ from claude_mpm.services.core.models.process import (
     PROTECTED_PORT_RANGES,
     DeploymentState,
     ProcessInfo,
-    ProcessStatus,
     StartConfig,
     is_port_protected,
 )
@@ -147,7 +148,6 @@ __all__ = [
     "ProcessInfo",
     "ProcessSpawnError",
     # Data models - Process
-    "ProcessStatus",
     "ResourceMonitor",
     "ResourceUsage",
     "RestartAttempt",

@@ -23,8 +23,9 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from claude_mpm.core.enums import ServiceState
+
 from ...services.local_ops import (
-    ProcessStatus,
     StartConfig,
     UnifiedLocalOpsManager,
 )
@@ -298,7 +299,7 @@ class LocalDeployCommand(BaseCommand):
         try:
             status_filter_str = getattr(args, "status", None)
             status_filter = (
-                ProcessStatus(status_filter_str) if status_filter_str else None
+                ServiceState(status_filter_str) if status_filter_str else None
             )
 
             deployments = self.manager.list_deployments(status_filter=status_filter)

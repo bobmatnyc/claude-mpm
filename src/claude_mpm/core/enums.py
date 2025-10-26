@@ -124,10 +124,15 @@ class ServiceState(StrEnum):
     Service lifecycle states for all Claude MPM services.
 
     Replaces 150+ occurrences of service state strings.
-    Used in: Hook services, MCP servers, monitoring, health checks.
+    Used in: Hook services, MCP servers, monitoring, health checks, process management.
 
     Migration Priority: HIGH (Week 1)
     Coverage: ~7% of all magic strings
+
+    Notes:
+        - Consolidated with ProcessStatus enum (Phase 3A Batch 24)
+        - Process states are semantically equivalent to service states
+        - CRASHED processes map to ERROR state
     """
 
     UNINITIALIZED = "uninitialized"
@@ -165,6 +170,24 @@ class ServiceState(StrEnum):
 
     IDLE = "idle"
     """Service is running but not actively processing."""
+
+    def is_active(self) -> bool:
+        """
+        Check if state represents an active service/process.
+
+        Returns:
+            True if state is STARTING or RUNNING
+        """
+        return self in (ServiceState.STARTING, ServiceState.RUNNING)
+
+    def is_terminal(self) -> bool:
+        """
+        Check if state represents a terminal/stopped state.
+
+        Returns:
+            True if state is STOPPED or ERROR
+        """
+        return self in (ServiceState.STOPPED, ServiceState.ERROR)
 
 
 class ValidationSeverity(StrEnum):

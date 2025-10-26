@@ -3,56 +3,27 @@ Process Management Data Models for Claude MPM Framework
 ========================================================
 
 WHY: This module defines data structures for process management operations,
-including process status, deployment state, and runtime information.
+including deployment state and runtime information.
 
 DESIGN DECISION: Uses dataclasses for immutability and type safety. Provides
-serialization methods for state persistence.
+serialization methods for state persistence. Process status uses ServiceState
+enum from core.enums (consolidated in Phase 3A Batch 24).
 
 ARCHITECTURE:
-- ProcessStatus: Enum of process lifecycle states
 - DeploymentState: Complete deployment information for persistence
 - ProcessInfo: Runtime process information
 - StartConfig: Configuration for spawning new processes
+
+Note: ProcessStatus enum has been consolidated into ServiceState (core.enums).
 """
 
 import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-
-class ProcessStatus(Enum):
-    """
-    Process lifecycle status.
-
-    WHY: Explicit status tracking enables proper state machine management
-    and prevents invalid state transitions.
-
-    States:
-        STARTING: Process is being spawned
-        RUNNING: Process is actively running
-        STOPPING: Process is shutting down
-        STOPPED: Process has stopped cleanly
-        CRASHED: Process terminated unexpectedly
-        UNKNOWN: Process state cannot be determined
-    """
-
-    STARTING = "starting"
-    RUNNING = "running"
-    STOPPING = "stopping"
-    STOPPED = "stopped"
-    CRASHED = "crashed"
-    UNKNOWN = "unknown"
-
-    def is_active(self) -> bool:
-        """Check if status represents an active process."""
-        return self in (ProcessStatus.STARTING, ProcessStatus.RUNNING)
-
-    def is_terminal(self) -> bool:
-        """Check if status represents a terminal state."""
-        return self in (ProcessStatus.STOPPED, ProcessStatus.CRASHED)
+from claude_mpm.core.enums import ServiceState
 
 
 @dataclass
@@ -71,7 +42,7 @@ class DeploymentState:
         environment: Environment variables (beyond inherited ones)
         port: Primary port used by the process (if applicable)
         started_at: Timestamp when process was started
-        status: Current ProcessStatus
+        status: Current ServiceState (process lifecycle state)
         metadata: Additional deployment-specific information
     """
 
@@ -82,7 +53,7 @@ class DeploymentState:
     environment: Dict[str, str] = field(default_factory=dict)
     port: Optional[int] = None
     started_at: datetime = field(default_factory=datetime.now)
-    status: ProcessStatus = ProcessStatus.STARTING
+    status: ServiceState = ServiceState.STARTING
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -114,7 +85,14 @@ class DeploymentState:
 
         # Convert status string to enum
         if isinstance(data.get("status"), str):
-            data["status"] = ProcessStatus(data["status"])
+            status_value = data["status"]
+            # Handle legacy "crashed" status -> map to ERROR
+            if status_value == "crashed":
+                data["status"] = (
+                    ServiceState.ERROR
+                )  # CRASHED semantically maps to ERROR state
+            else:
+                data["status"] = ServiceState(status_value)
 
         return cls(**data)
 
@@ -153,18 +131,18 @@ class ProcessInfo:
     Attributes:
         deployment_id: Unique deployment identifier
         process_id: OS process ID
-        status: Current ProcessStatus
+        status: Current ServiceState (process lifecycle state)
         port: Port the process is using
         uptime_seconds: How long the process has been running
         memory_mb: Current memory usage in megabytes
         cpu_percent: Current CPU usage percentage
         is_responding: Whether the process responds to health checks
-        error_message: Error message if status is CRASHED
+        error_message: Error message if status is ERROR (crashed)
     """
 
     deployment_id: str
     process_id: int
-    status: ProcessStatus
+    status: ServiceState
     port: Optional[int] = None
     uptime_seconds: float = 0.0
     memory_mb: float = 0.0
@@ -252,7 +230,6 @@ __all__ = [
     "PROTECTED_PORT_RANGES",
     "DeploymentState",
     "ProcessInfo",
-    "ProcessStatus",
     "StartConfig",
     "is_port_protected",
 ]
