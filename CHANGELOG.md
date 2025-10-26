@@ -6,6 +6,12 @@
 
 ### Fixed
 
+## [4.15.1] - 2025-10-26
+
+### Changed
+- Batch 26 enum consolidation (refactoring improvements)
+- Enhanced OUTPUT_STYLE.md tone guidelines
+
 ## [4.15.0] - 2025-10-26
 
 ### 🎯 MCP Services Philosophy Change
