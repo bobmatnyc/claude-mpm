@@ -6,6 +6,83 @@
 
 ### Fixed
 
+## [4.15.0] - 2025-10-26
+
+### 🎯 MCP Services Philosophy Change
+
+**Why This Change?**
+
+External MCP services (mcp-vector-search, mcp-browser, kuzu-memory, mcp-ticketer) have matured into standalone projects with their own release cycles and communities. Rather than auto-installing and managing these services from Claude MPM, we now encourage users to install and integrate them directly from their source repositories.
+
+**Benefits**:
+- ✅ Users get the latest versions directly from source projects
+- ✅ Better separation of concerns (each tool manages its own lifecycle)
+- ✅ Reduced complexity in Claude MPM installation
+- ✅ More control for users over which services to enable
+- ✅ Cleaner dependency management
+
+**Migration Guide**:
+
+If you were relying on auto-installed MCP services, manually install them using pipx:
+
+```bash
+# Install optional MCP services as needed
+pipx install mcp-vector-search
+pipx install mcp-browser
+pipx install kuzu-memory
+pipx install mcp-ticketer
+```
+
+Then configure which services to enable in `.claude-mpm/configuration.yaml`:
+
+```yaml
+startup:
+  enabled_mcp_services:
+    - mcp-vector-search
+    - kuzu-memory
+    # Add only the services you need
+```
+
+### Breaking Changes
+- **BREAKING**: Removed MCP service auto-installation from Claude MPM
+  - MCP services must now be manually installed via pipx or pip
+  - Removed auto-installation prompts and dependency injection logic
+  - Services are now user-controlled, not package-managed
+
+### Changed
+- **MCP Health Checks**: Now configuration-aware and respect enabled_mcp_services
+  - Health checks only run for services listed in enabled_mcp_services config
+  - Prevents health check failures for intentionally disabled services
+  - Improved user experience by eliminating noise from unused services
+- **Logging Verbosity**: Reduced health check logging from INFO to DEBUG level
+  - MCP service health checks now log at DEBUG level by default
+  - Cleaner startup logs with less noise
+  - Only failed checks remain at WARNING/ERROR level for visibility
+
+### Fixed
+- **Test Suite**: Fixed 3 test failures from enum consolidation (Batches 21-26)
+  - Fixed test_deployment_status_format.py to use OperationResult enum
+  - Fixed test_delegation.py to use OperationResult enum
+  - Fixed test_session_handlers.py to use ServiceState enum
+  - All tests now passing after enum migration cleanup
+
+### Enhanced
+- **Project Organizer Agent**: Added PROJECT_ORGANIZATION.md support (v1.2.0)
+  - Agent now reads and follows PROJECT_ORGANIZATION.md standards when present
+  - Improved file organization aligned with project-specific conventions
+  - Better integration with existing project structure patterns
+  - Enhanced documentation awareness for organization tasks
+
+### Security
+- **Credential Protection**: Added detect-secrets pre-commit hook
+  - Automatic scanning for credentials before commits
+  - Prevents accidental exposure of API keys, tokens, and passwords
+  - Integrated into pre-commit hook workflow
+- **Git History Cleanup**: Cleaned exposed credentials from git history
+  - Removed accidentally committed credentials using git filter-branch
+  - Force-pushed cleaned history to all branches
+  - Updated all developers to re-clone or fetch cleaned history
+
 ## [4.14.9] - 2025-10-25
 
 ### Added
