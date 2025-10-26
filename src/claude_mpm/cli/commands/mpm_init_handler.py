@@ -53,7 +53,10 @@ def manage_mpm_init(args):
             )
 
             # Return appropriate exit code
-            if result.get("status") in ("success", "context_ready"):
+            if result.get("status") in (
+                OperationResult.SUCCESS,
+                OperationResult.CONTEXT_READY,
+            ):
                 return 0
             return 1
 
@@ -106,7 +109,7 @@ def manage_mpm_init(args):
         # Return appropriate exit code
         if result.get("status") == OperationResult.SUCCESS:
             return 0
-        if result.get("status") == "cancelled":
+        if result.get("status") == OperationResult.CANCELLED:
             return 130  # User cancelled
         return 1  # Error
 
