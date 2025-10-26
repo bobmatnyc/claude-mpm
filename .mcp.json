@@ -2,13 +2,15 @@
   "mcpServers": {
     "mcp-vector-search": {
       "type": "stdio",
-      "command": "/Users/masa/.local/pipx/venvs/mcp-vector-search/bin/python",
+      "command": "uv",
       "args": [
-        "-m",
-        "mcp_vector_search.mcp.server",
-        "/Users/masa/Projects/claude-mpm"
+        "run",
+        "mcp-vector-search",
+        "mcp"
       ],
-      "env": {}
+      "env": {
+        "MCP_ENABLE_FILE_WATCHING": "true"
+      }
     },
     "mcp-ticketer": {
       "type": "stdio",

@@ -1145,11 +1145,16 @@ class MCPConfigManager:
 
         # Check each service for issues
         for service_name in self.PIPX_SERVICES:
-            self.logger.info(f"🔍 Checking {service_name} for issues...")
+            # Check if service is enabled in config
+            if not self.should_enable_service(service_name):
+                self.logger.debug(f"Skipping {service_name} (disabled in config)")
+                continue
+
+            self.logger.debug(f"🔍 Checking {service_name} for issues...")
             issue_type = self._detect_service_issue(service_name)
             if issue_type:
                 services_to_fix.append((service_name, issue_type))
-                self.logger.info(f"  ⚠️  Found issue with {service_name}: {issue_type}")
+                self.logger.debug(f"  ⚠️  Found issue with {service_name}: {issue_type}")
             else:
                 self.logger.debug(f"  ✅ {service_name} is functioning correctly")
 
