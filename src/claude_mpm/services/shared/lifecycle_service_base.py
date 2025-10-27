@@ -4,23 +4,10 @@ Base class for services with complex lifecycle management.
 
 import time
 from abc import ABC, abstractmethod
-from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from ...core.enums import ServiceState
 from ...core.mixins import LoggerMixin
-
-
-class ServiceState(Enum):
-    """Standard service states."""
-
-    UNINITIALIZED = "uninitialized"
-    INITIALIZING = "initializing"
-    INITIALIZED = "initialized"
-    STARTING = "starting"
-    RUNNING = "running"
-    STOPPING = "stopping"
-    STOPPED = "stopped"
-    ERROR = "error"
 
 
 class LifecycleServiceBase(LoggerMixin, ABC):
