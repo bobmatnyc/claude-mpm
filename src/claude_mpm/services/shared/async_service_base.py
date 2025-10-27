@@ -4,21 +4,10 @@ Base class for asynchronous services to reduce duplication.
 
 import asyncio
 from abc import ABC, abstractmethod
-from enum import Enum
 from typing import Any, Dict, Optional
 
+from ...core.enums import ServiceState
 from ...core.mixins import LoggerMixin
-
-
-class AsyncServiceState(Enum):
-    """Standard states for async services."""
-
-    UNINITIALIZED = "uninitialized"
-    INITIALIZING = "initializing"
-    RUNNING = "running"
-    STOPPING = "stopping"
-    STOPPED = "stopped"
-    ERROR = "error"
 
 
 class AsyncServiceBase(LoggerMixin, ABC):
@@ -45,7 +34,7 @@ class AsyncServiceBase(LoggerMixin, ABC):
         self.config = config or {}
 
         # State management
-        self._state = AsyncServiceState.UNINITIALIZED
+        self._state = ServiceState.UNINITIALIZED
         self._state_lock = asyncio.Lock()
 
         # Background tasks
@@ -57,19 +46,19 @@ class AsyncServiceBase(LoggerMixin, ABC):
         self._error_count = 0
 
     @property
-    def state(self) -> AsyncServiceState:
+    def state(self) -> ServiceState:
         """Get current service state."""
         return self._state
 
     @property
     def is_running(self) -> bool:
         """Check if service is running."""
-        return self._state == AsyncServiceState.RUNNING
+        return self._state == ServiceState.RUNNING
 
     @property
     def is_healthy(self) -> bool:
         """Check if service is healthy."""
-        return self._state == AsyncServiceState.RUNNING and self._last_error is None
+        return self._state == ServiceState.RUNNING and self._last_error is None
 
     async def initialize(self) -> bool:
         """
@@ -79,22 +68,22 @@ class AsyncServiceBase(LoggerMixin, ABC):
             True if initialization successful
         """
         async with self._state_lock:
-            if self._state != AsyncServiceState.UNINITIALIZED:
+            if self._state != ServiceState.UNINITIALIZED:
                 self.logger.warning(f"Service {self.service_name} already initialized")
-                return self._state == AsyncServiceState.RUNNING
+                return self._state == ServiceState.RUNNING
 
-            self._state = AsyncServiceState.INITIALIZING
+            self._state = ServiceState.INITIALIZING
             self.logger.info(f"Initializing service: {self.service_name}")
 
             try:
                 success = await self._do_initialize()
                 if success:
-                    self._state = AsyncServiceState.RUNNING
+                    self._state = ServiceState.RUNNING
                     self.logger.info(
                         f"Service {self.service_name} initialized successfully"
                     )
                 else:
-                    self._state = AsyncServiceState.ERROR
+                    self._state = ServiceState.ERROR
                     self.logger.error(
                         f"Service {self.service_name} initialization failed"
                     )
@@ -102,7 +91,7 @@ class AsyncServiceBase(LoggerMixin, ABC):
                 return success
 
             except Exception as e:
-                self._state = AsyncServiceState.ERROR
+                self._state = ServiceState.ERROR
                 self._last_error = e
                 self._error_count += 1
                 self.logger.error(
@@ -114,10 +103,10 @@ class AsyncServiceBase(LoggerMixin, ABC):
     async def shutdown(self) -> None:
         """Shutdown the service gracefully."""
         async with self._state_lock:
-            if self._state in (AsyncServiceState.STOPPED, AsyncServiceState.STOPPING):
+            if self._state in (ServiceState.STOPPED, ServiceState.STOPPING):
                 return
 
-            self._state = AsyncServiceState.STOPPING
+            self._state = ServiceState.STOPPING
             self.logger.info(f"Shutting down service: {self.service_name}")
 
             try:
@@ -130,11 +119,11 @@ class AsyncServiceBase(LoggerMixin, ABC):
                 # Service-specific shutdown
                 await self._do_shutdown()
 
-                self._state = AsyncServiceState.STOPPED
+                self._state = ServiceState.STOPPED
                 self.logger.info(f"Service {self.service_name} shut down successfully")
 
             except Exception as e:
-                self._state = AsyncServiceState.ERROR
+                self._state = ServiceState.ERROR
                 self._last_error = e
                 self.logger.error(
                     f"Service {self.service_name} shutdown error: {e}", exc_info=True
@@ -146,7 +135,7 @@ class AsyncServiceBase(LoggerMixin, ABC):
         await self.shutdown()
 
         # Reset state for restart
-        self._state = AsyncServiceState.UNINITIALIZED
+        self._state = ServiceState.UNINITIALIZED
         self._shutdown_event.clear()
         self._last_error = None
 
