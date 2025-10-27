@@ -1145,8 +1145,217 @@ echo "✓ URL: http://localhost:$PORT"
 echo "✓ Monitor: claude-mpm local-deploy monitor $DEPLOYMENT_ID"
 ```
 
+## PM2 Monitoring Enhancements (v2.0.0+)
+
+The `local-deploy` CLI has been enhanced with advanced PM2 monitoring capabilities specifically optimized for Next.js deployments. These features are automatically enabled when deploying Node.js applications.
+
+### PM2 Memory Restart Configuration
+
+When deploying Next.js applications, the CLI automatically configures PM2 with production-ready memory management:
+
+**Configuration Applied**:
+- **Memory Limit**: 2G with automatic restart
+- **Max Restarts**: 10 with 3s minimum uptime
+- **Graceful Shutdown**: 5s kill timeout, 8s listen timeout
+
+**Example Deployment**:
+```bash
+# Next.js production with PM2 monitoring
+claude-mpm local-deploy start \
+  --command "npm start" \
+  --port 3000 \
+  --auto-restart
+
+# The CLI automatically executes:
+# pm2 start npm --name 'app' -- start \
+#   --max-memory-restart 2G \
+#   --max-restarts 10 \
+#   --min-uptime 3000
+```
+
+### Next.js Health Validation
+
+The CLI performs 3-step validation for Next.js deployments:
+
+1. **Endpoint Validation**: Tests `/api/health` and `/` endpoints
+2. **Build Artifact Verification**: Checks `.next/BUILD_ID` and `.next/routes-manifest.json`
+3. **Static Asset Checking**: Validates `/_next/static/chunks` directory
+
+**Health Check Output**:
+```bash
+$ claude-mpm local-deploy health deployment-20251027-a3f7b2
+
+Health Status: deployment-20251027-a3f7b2
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Overall Health: HEALTHY
+
+Individual Checks
+┏━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Check Type      ┃ Status    ┃ Details                       ┃
+┡━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ HTTP Endpoint   │ ✓ HEALTHY │ /api/health 200 OK (143ms)    │
+│ Build Artifacts │ ✓ HEALTHY │ BUILD_ID and routes present   │
+│ Static Assets   │ ✓ HEALTHY │ 47 chunks found               │
+└─────────────────┴───────────┴───────────────────────────────┘
+```
+
+### PM2 Metrics Extraction
+
+The CLI extracts real-time metrics from PM2 for monitoring and alerting:
+
+**Tracked Metrics**:
+- `restart_count`: Number of restarts since deployment
+- `uptime`: Process uptime in milliseconds
+- `memory_usage`: Current memory usage in MB
+- `cpu_percent`: Current CPU utilization percentage
+- `status`: Process status (online, stopped, errored)
+
+**Status Command Output**:
+```bash
+$ claude-mpm local-deploy status deployment-20251027-a3f7b2
+
+Deployment Status: deployment-20251027-a3f7b2
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PM2 Process Information
+┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Field            ┃ Value                    ┃
+┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ PM2 ID           │ 0                        │
+│ Status           │ online                   │
+│ Restarts         │ 2                        │
+│ Uptime           │ 2h 34m 12s               │
+│ Memory           │ 456 MB / 2048 MB (22%)   │
+│ CPU              │ 2.3%                     │
+└──────────────────┴──────────────────────────┘
+```
+
+### Smart Alerts
+
+The CLI provides intelligent alerting based on PM2 metrics:
+
+**Restart Alert** (threshold: 5 restarts):
+```
+⚠️  High restart count detected
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Deployment: deployment-20251027-a3f7b2
+Restarts:   7 (threshold: 5)
+Action:     Investigate logs and recent errors
+
+$ pm2 logs deployment-20251027-a3f7b2 --lines 50
+```
+
+**Memory Alert** (threshold: 1.8G / 90% of limit):
+```
+⚠️  Memory usage approaching limit
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Deployment: deployment-20251027-a3f7b2
+Memory:     1843 MB / 2048 MB (90%)
+Action:     Preemptive investigation recommended
+
+Trend:      +15 MB/min (memory leak possible)
+```
+
+### PM2 Command Integration
+
+The CLI integrates with PM2 commands for advanced monitoring:
+
+```bash
+# View PM2 process list in JSON format
+pm2 jlist
+
+# Get detailed process information
+pm2 describe deployment-20251027-a3f7b2
+
+# Show real-time metrics
+pm2 show deployment-20251027-a3f7b2
+
+# Monitor all processes
+pm2 monit
+```
+
+### Configuration
+
+PM2 monitoring can be customized in `.claude-mpm/local-ops-config.yaml`:
+
+```yaml
+pm2_monitoring:
+  metrics_extraction:
+    enabled: true
+    commands:
+      status: "pm2 jlist"
+      describe: "pm2 describe {app_name}"
+      metrics: "pm2 show {app_name}"
+
+  alerts:
+    restart_threshold: 5
+    memory_threshold_percent: 90
+    cpu_threshold_percent: 80
+
+deployment_strategies:
+  production:
+    nextjs:
+      pm2_options:
+        max_memory_restart: "2G"
+        max_restarts: 10
+        min_uptime: 3000
+        autorestart: true
+        kill_timeout: 5000
+        listen_timeout: 8000
+```
+
+### Troubleshooting PM2 Deployments
+
+**High Restart Count**:
+```bash
+# Check restart reasons
+pm2 describe <app_name> | grep "restart\|error"
+
+# View error logs
+pm2 logs <app_name> --err --lines 100
+
+# Increase restart threshold if needed
+# Edit .claude-mpm/local-ops-config.yaml
+pm2_monitoring:
+  alerts:
+    restart_threshold: 10
+```
+
+**Memory Issues**:
+```bash
+# Monitor memory in real-time
+pm2 monit
+
+# Check memory trend
+claude-mpm local-deploy status <deployment-id> | grep "Memory"
+
+# Increase memory limit
+# Edit .claude-mpm/local-ops-config.yaml
+deployment_strategies:
+  production:
+    nextjs:
+      pm2_options:
+        max_memory_restart: "3G"
+```
+
+### Benefits
+
+- **Automatic Configuration**: PM2 monitoring enabled automatically for Next.js
+- **Production Ready**: Memory restart and circuit breaker prevent crashes
+- **Real-time Visibility**: Live metrics and smart alerts
+- **Proactive Detection**: Alerts before critical thresholds are reached
+- **Easy Integration**: Works seamlessly with existing `local-deploy` commands
+
+For more details, see:
+- **[Local Ops Agent Documentation](../agents/LOCAL_OPS_AGENT.md)** - Complete PM2 monitoring guide
+- **[Next.js PM2 Monitoring](../agents/LOCAL_OPS_AGENT.md#nextjs-pm2-monitoring-enhancements-v200)** - Detailed feature documentation
+
+---
+
 ## Related Documentation
 
+- **[Local Ops Agent](../agents/LOCAL_OPS_AGENT.md)** - Complete agent documentation with PM2 monitoring
 - **[User Guide](../user/03-features/local-process-management.md)** - End-user documentation
 - **[Developer Guide](../developer/LOCAL_PROCESS_MANAGEMENT.md)** - Architecture and implementation
 - **[General CLI Reference](CLI_COMMANDS.md)** - Other Claude MPM commands
@@ -1154,4 +1363,4 @@ echo "✓ Monitor: claude-mpm local-deploy monitor $DEPLOYMENT_ID"
 
 ---
 
-This comprehensive CLI reference provides complete documentation for all `local-deploy` commands with examples, options, and configuration details for effective local process management.
+This comprehensive CLI reference provides complete documentation for all `local-deploy` commands with examples, options, and configuration details for effective local process management, including enhanced PM2 monitoring for production-ready deployments.

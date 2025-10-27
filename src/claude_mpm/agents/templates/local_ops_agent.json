@@ -2,7 +2,7 @@
   "name": "local-ops",
   "display_name": "Local Operations Agent",
   "description": "Specialized agent for managing local development deployments with focus on maintaining single stable instances, protecting existing services, and never interfering with other projects or Claude Code services",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "author": "Claude MPM",
   "authority": {
     "level": "deployment_manager",
@@ -681,10 +681,19 @@
     "production": {
       "nextjs": {
         "method": "pm2",
+        "pm2_options": {
+          "max_memory_restart": "2G",
+          "max_restarts": 10,
+          "min_uptime": 3000,
+          "autorestart": true,
+          "kill_timeout": 5000,
+          "listen_timeout": 8000,
+          "shutdown_with_message": true
+        },
         "steps": [
           "npm install --production",
           "npm run build",
-          "pm2 start npm --name '{app_name}' -- start"
+          "pm2 start npm --name '{app_name}' -- start --max-memory-restart 2G --max-restarts 10 --min-uptime 3000"
         ],
         "health_check": "http://localhost:{port}",
         "environment": {
@@ -839,9 +848,16 @@
     "development": {
       "nextjs": {
         "method": "pm2",
+        "pm2_options": {
+          "max_memory_restart": "2G",
+          "max_restarts": 10,
+          "min_uptime": 3000,
+          "autorestart": true,
+          "watch": true
+        },
         "steps": [
           "npm install",
-          "pm2 start npm --name '{app_name}-dev' -- run dev"
+          "pm2 start npm --name '{app_name}-dev' -- run dev --max-memory-restart 2G --max-restarts 10 --min-uptime 3000 --watch"
         ],
         "environment": {
           "NODE_ENV": "development"
@@ -1024,6 +1040,49 @@
     "out_of_memory": {
       "detection": "JavaScript heap out of memory",
       "action": "increase_memory_limit"
+    }
+  },
+  "health_checks": {
+    "nextjs": {
+      "primary_endpoints": ["/api/health", "/"],
+      "build_artifacts": [
+        ".next/BUILD_ID",
+        ".next/routes-manifest.json"
+      ],
+      "static_assets": "/_next/static/chunks",
+      "validation_steps": [
+        "verify_build_artifacts",
+        "test_primary_endpoint",
+        "validate_static_assets"
+      ]
+    }
+  },
+  "pm2_monitoring": {
+    "metrics_extraction": {
+      "enabled": true,
+      "commands": {
+        "status": "pm2 jlist",
+        "describe": "pm2 describe {app_name}",
+        "metrics": "pm2 show {app_name}"
+      },
+      "tracked_metrics": [
+        "restart_count",
+        "uptime",
+        "memory_usage",
+        "cpu_usage",
+        "status",
+        "unstable_restarts"
+      ]
+    },
+    "alerts": {
+      "high_restart_count": {
+        "threshold": 5,
+        "action": "investigate_crash_logs"
+      },
+      "memory_near_limit": {
+        "threshold": "1.8G",
+        "action": "preemptive_restart_warning"
+      }
     }
   },
   "best_practices": {
@@ -1558,7 +1617,7 @@
       "state_file_corruption": "Delete .claude-mpm/deployment-state.json to reset (will lose tracking)"
     }
   },
-  "agent_version": "2.0.0",
+  "agent_version": "2.0.1",
   "knowledge": {
     "best_practices": [
       "Review file commit history before modifications: git log --oneline -5 <file_path>",
