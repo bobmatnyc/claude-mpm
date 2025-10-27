@@ -7,17 +7,9 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
-
-class HealthStatus(Enum):
-    """Health status levels for monitoring."""
-
-    HEALTHY = "healthy"
-    WARNING = "warning"
-    CRITICAL = "critical"
-    UNKNOWN = "unknown"
+from ....core.enums import HealthStatus
 
 
 @dataclass
@@ -75,11 +67,11 @@ class HealthCheckResult:
             "healthy_metrics": len(
                 [m for m in self.metrics if m.status == HealthStatus.HEALTHY]
             ),
-            "warning_metrics": len(
-                [m for m in self.metrics if m.status == HealthStatus.WARNING]
+            "degraded_metrics": len(
+                [m for m in self.metrics if m.status == HealthStatus.DEGRADED]
             ),
-            "critical_metrics": len(
-                [m for m in self.metrics if m.status == HealthStatus.CRITICAL]
+            "unhealthy_metrics": len(
+                [m for m in self.metrics if m.status == HealthStatus.UNHEALTHY]
             ),
         }
 

@@ -251,6 +251,24 @@ class HealthStatus(StrEnum):
     TIMEOUT = "timeout"
     """Health check exceeded time limit."""
 
+    def is_operational(self) -> bool:
+        """
+        Check if health status indicates operational state.
+
+        Returns:
+            True if status is HEALTHY or DEGRADED
+        """
+        return self in (HealthStatus.HEALTHY, HealthStatus.DEGRADED)
+
+    def is_critical(self) -> bool:
+        """
+        Check if health status indicates critical failure.
+
+        Returns:
+            True if status is UNHEALTHY
+        """
+        return self == HealthStatus.UNHEALTHY
+
 
 class ModelTier(StrEnum):
     """

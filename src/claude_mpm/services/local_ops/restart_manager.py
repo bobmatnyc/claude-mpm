@@ -43,6 +43,7 @@ import time
 from pathlib import Path
 from typing import Optional, Set
 
+from claude_mpm.core.enums import HealthStatus
 from claude_mpm.services.core.base import SyncBaseService
 from claude_mpm.services.core.interfaces.health import IHealthCheckManager
 from claude_mpm.services.core.interfaces.process import ILocalProcessManager
@@ -51,7 +52,6 @@ from claude_mpm.services.core.interfaces.restart import (
     IRestartManager,
     IRestartPolicy,
 )
-from claude_mpm.services.core.models.health import HealthStatus
 from claude_mpm.services.core.models.restart import RestartHistory
 
 

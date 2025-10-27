@@ -26,10 +26,10 @@ import threading
 from collections import defaultdict
 from typing import Callable, Dict, List, Set
 
+from claude_mpm.core.enums import HealthStatus
 from claude_mpm.services.core.base import SyncBaseService
 from claude_mpm.services.core.interfaces.health import IHealthCheckManager
 from claude_mpm.services.core.interfaces.restart import ICrashDetector
-from claude_mpm.services.core.models.health import HealthStatus
 
 
 class CrashDetector(SyncBaseService, ICrashDetector):
