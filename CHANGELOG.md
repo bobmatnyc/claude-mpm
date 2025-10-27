@@ -6,6 +6,16 @@
 
 ### Fixed
 
+## [4.15.4] - 2025-10-27
+
+### Added
+- Enhanced PM2 monitoring for local-ops agent (v2.0.1)
+  - PM2 memory restart configuration (2G limit, 10 max restarts)
+  - Next.js-specific health checks (build artifacts, endpoints)
+  - Enhanced PM2 monitoring with metrics extraction and smart alerts
+  - Comprehensive agent documentation in docs/agents/LOCAL_OPS_AGENT.md
+  - Updated CLI commands reference with PM2 monitoring section
+
 ## [4.15.3] - 2025-10-27
 
 ### Changed
