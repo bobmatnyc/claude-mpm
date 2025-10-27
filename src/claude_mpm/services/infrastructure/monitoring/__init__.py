@@ -3,12 +3,12 @@
 Exports main monitoring components for backward compatibility.
 """
 
+from ....core.enums import HealthStatus
 from .aggregator import MonitoringAggregatorService
 from .base import (
     HealthChecker,
     HealthCheckResult,
     HealthMetric,
-    HealthStatus,
 )
 
 # Legacy exports for backward compatibility

@@ -5,7 +5,8 @@ Monitors system-wide resource usage including CPU, memory, and disk utilization.
 
 from typing import Dict, List, Optional
 
-from .base import BaseMonitoringService, HealthMetric, HealthStatus
+from ....core.enums import HealthStatus
+from .base import BaseMonitoringService, HealthMetric
 
 try:
     import psutil
@@ -53,7 +54,7 @@ class ResourceMonitorService(BaseMonitoringService):
                 HealthMetric(
                     name="psutil_availability",
                     value=False,
-                    status=HealthStatus.WARNING,
+                    status=HealthStatus.DEGRADED,
                     message="psutil not available for resource monitoring",
                 )
             )
@@ -182,9 +183,9 @@ class ResourceMonitorService(BaseMonitoringService):
                 # Load is concerning if > cpu_count
                 load_status = HealthStatus.HEALTHY
                 if load1 > cpu_count:
-                    load_status = HealthStatus.WARNING
+                    load_status = HealthStatus.DEGRADED
                 if load1 > cpu_count * 1.5:
-                    load_status = HealthStatus.CRITICAL
+                    load_status = HealthStatus.UNHEALTHY
 
                 metrics.append(
                     HealthMetric(
@@ -220,8 +221,8 @@ class ResourceMonitorService(BaseMonitoringService):
         if value < threshold:
             return HealthStatus.HEALTHY
         if value < threshold * 1.1:  # 10% above threshold
-            return HealthStatus.WARNING
-        return HealthStatus.CRITICAL
+            return HealthStatus.DEGRADED
+        return HealthStatus.UNHEALTHY
 
     def get_resource_summary(self) -> Optional[Dict[str, float]]:
         """Get quick resource summary without full health check.

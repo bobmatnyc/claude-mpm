@@ -6,7 +6,8 @@ Monitors service-specific metrics like client connections, event processing, and
 import time
 from typing import Any, Dict, List
 
-from .base import BaseMonitoringService, HealthMetric, HealthStatus
+from ....core.enums import HealthStatus
+from .base import BaseMonitoringService, HealthMetric
 
 
 class ServiceHealthService(BaseMonitoringService):
@@ -79,9 +80,9 @@ class ServiceHealthService(BaseMonitoringService):
 
             # Determine status based on thresholds
             if client_count > self.max_clients:
-                client_status = HealthStatus.CRITICAL
+                client_status = HealthStatus.UNHEALTHY
             elif client_count > self.max_clients * 0.8:
-                client_status = HealthStatus.WARNING
+                client_status = HealthStatus.DEGRADED
             else:
                 client_status = HealthStatus.HEALTHY
 
@@ -129,7 +130,7 @@ class ServiceHealthService(BaseMonitoringService):
                 # Determine status based on rate
                 rate_status = HealthStatus.HEALTHY
                 if event_rate == 0 and events_processed > 0:
-                    rate_status = HealthStatus.WARNING  # Processing stopped
+                    rate_status = HealthStatus.DEGRADED  # Processing stopped
 
                 metrics.append(
                     HealthMetric(
@@ -157,9 +158,9 @@ class ServiceHealthService(BaseMonitoringService):
                 queue_size = self.service_stats["event_queue_size"]
                 queue_status = HealthStatus.HEALTHY
                 if queue_size > 1000:
-                    queue_status = HealthStatus.WARNING
+                    queue_status = HealthStatus.DEGRADED
                 if queue_size > 5000:
-                    queue_status = HealthStatus.CRITICAL
+                    queue_status = HealthStatus.UNHEALTHY
 
                 metrics.append(
                     HealthMetric(
@@ -191,9 +192,9 @@ class ServiceHealthService(BaseMonitoringService):
 
             # Determine status based on rate
             if error_rate > self.max_error_rate:
-                error_status = HealthStatus.CRITICAL
+                error_status = HealthStatus.UNHEALTHY
             elif error_rate > self.max_error_rate * 0.5:
-                error_status = HealthStatus.WARNING
+                error_status = HealthStatus.DEGRADED
             else:
                 error_status = HealthStatus.HEALTHY
 
@@ -213,7 +214,7 @@ class ServiceHealthService(BaseMonitoringService):
                     name="total_errors",
                     value=errors,
                     status=(
-                        HealthStatus.HEALTHY if errors == 0 else HealthStatus.WARNING
+                        HealthStatus.HEALTHY if errors == 0 else HealthStatus.DEGRADED
                     ),
                 )
             )
@@ -228,7 +229,7 @@ class ServiceHealthService(BaseMonitoringService):
                         status=(
                             HealthStatus.HEALTHY
                             if recent_errors == 0
-                            else HealthStatus.WARNING
+                            else HealthStatus.DEGRADED
                         ),
                     )
                 )
@@ -263,9 +264,9 @@ class ServiceHealthService(BaseMonitoringService):
 
                 # Determine status based on staleness
                 if time_since_activity > self.stale_activity_seconds * 2:
-                    activity_status = HealthStatus.CRITICAL
+                    activity_status = HealthStatus.UNHEALTHY
                 elif time_since_activity > self.stale_activity_seconds:
-                    activity_status = HealthStatus.WARNING
+                    activity_status = HealthStatus.DEGRADED
                 else:
                     activity_status = HealthStatus.HEALTHY
 
@@ -282,7 +283,7 @@ class ServiceHealthService(BaseMonitoringService):
                     HealthMetric(
                         name="time_since_last_activity",
                         value=-1,
-                        status=HealthStatus.WARNING,
+                        status=HealthStatus.DEGRADED,
                         message="No last activity recorded",
                     )
                 )
@@ -307,9 +308,9 @@ class ServiceHealthService(BaseMonitoringService):
 
             # Determine status based on response time
             if avg_time > 1000:  # > 1 second
-                time_status = HealthStatus.CRITICAL
+                time_status = HealthStatus.UNHEALTHY
             elif avg_time > 500:  # > 500ms
-                time_status = HealthStatus.WARNING
+                time_status = HealthStatus.DEGRADED
             else:
                 time_status = HealthStatus.HEALTHY
 

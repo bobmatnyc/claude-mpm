@@ -59,6 +59,7 @@ Note: ProcessStatus has been consolidated into ServiceState (core.enums) as of P
 """
 
 # Re-export data models and interfaces for convenience
+from claude_mpm.core.enums import HealthStatus
 from claude_mpm.services.core.interfaces.health import (
     IHealthCheck,
     IHealthCheckManager,
@@ -80,7 +81,6 @@ from claude_mpm.services.core.interfaces.stability import (
 from claude_mpm.services.core.models.health import (
     DeploymentHealth,
     HealthCheckResult,
-    HealthStatus,
 )
 from claude_mpm.services.core.models.process import (
     PROTECTED_PORT_RANGES,

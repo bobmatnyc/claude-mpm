@@ -20,6 +20,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from .enums import HealthStatus
+
 
 # Service operation results
 @dataclass
@@ -230,15 +232,6 @@ class SocketMessage:
 
 
 # Health monitoring types
-class HealthStatus(Enum):
-    """Service health status levels."""
-
-    HEALTHY = "healthy"
-    DEGRADED = "degraded"
-    UNHEALTHY = "unhealthy"
-    UNKNOWN = "unknown"
-
-
 @dataclass
 class HealthCheck:
     """Health check result."""

@@ -6,8 +6,9 @@ Monitors individual process health including CPU, memory, file descriptors, and 
 from typing import List
 
 from claude_mpm.core.constants import ResourceLimits, TimeoutConfig
+from claude_mpm.core.enums import HealthStatus
 
-from .base import BaseMonitoringService, HealthMetric, HealthStatus
+from .base import BaseMonitoringService, HealthMetric
 
 try:
     import psutil
@@ -66,7 +67,7 @@ class ProcessHealthService(BaseMonitoringService):
                 HealthMetric(
                     name="psutil_availability",
                     value=False,
-                    status=HealthStatus.WARNING,
+                    status=HealthStatus.DEGRADED,
                     message="psutil not available for process monitoring",
                 )
             )
@@ -77,7 +78,7 @@ class ProcessHealthService(BaseMonitoringService):
                 HealthMetric(
                     name="process_exists",
                     value=False,
-                    status=HealthStatus.CRITICAL,
+                    status=HealthStatus.UNHEALTHY,
                     message=f"Process {self.pid} not found",
                 )
             )
@@ -90,7 +91,7 @@ class ProcessHealthService(BaseMonitoringService):
                     HealthMetric(
                         name="process_exists",
                         value=False,
-                        status=HealthStatus.CRITICAL,
+                        status=HealthStatus.UNHEALTHY,
                         message=f"Process {self.pid} is no longer running",
                     )
                 )
@@ -119,7 +120,7 @@ class ProcessHealthService(BaseMonitoringService):
                 HealthMetric(
                     name="process_exists",
                     value=False,
-                    status=HealthStatus.CRITICAL,
+                    status=HealthStatus.UNHEALTHY,
                     message=f"Process {self.pid} no longer exists",
                 )
             )
@@ -153,7 +154,7 @@ class ProcessHealthService(BaseMonitoringService):
                     status=(
                         HealthStatus.HEALTHY
                         if process_healthy
-                        else HealthStatus.CRITICAL
+                        else HealthStatus.UNHEALTHY
                     ),
                     message=f"Process status: {status}",
                 )
@@ -179,9 +180,9 @@ class ProcessHealthService(BaseMonitoringService):
             cpu_status = HealthStatus.HEALTHY
             if cpu_percent > self.cpu_threshold:
                 cpu_status = (
-                    HealthStatus.WARNING
+                    HealthStatus.DEGRADED
                     if cpu_percent < self.cpu_threshold * 1.2
-                    else HealthStatus.CRITICAL
+                    else HealthStatus.UNHEALTHY
                 )
 
             metrics.append(
@@ -213,9 +214,9 @@ class ProcessHealthService(BaseMonitoringService):
             memory_status = HealthStatus.HEALTHY
             if memory_mb > self.memory_threshold_mb:
                 memory_status = (
-                    HealthStatus.WARNING
+                    HealthStatus.DEGRADED
                     if memory_mb < self.memory_threshold_mb * 1.2
-                    else HealthStatus.CRITICAL
+                    else HealthStatus.UNHEALTHY
                 )
 
             metrics.append(
@@ -256,9 +257,9 @@ class ProcessHealthService(BaseMonitoringService):
                 fd_status = HealthStatus.HEALTHY
                 if fd_count > self.fd_threshold:
                     fd_status = (
-                        HealthStatus.WARNING
+                        HealthStatus.DEGRADED
                         if fd_count < self.fd_threshold * 1.2
-                        else HealthStatus.CRITICAL
+                        else HealthStatus.UNHEALTHY
                     )
 
                 metrics.append(

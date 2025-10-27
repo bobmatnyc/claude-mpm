@@ -29,10 +29,11 @@ import time
 import requests
 from requests.exceptions import ConnectionError, RequestException, Timeout
 
+from claude_mpm.core.enums import HealthStatus
 from claude_mpm.services.core.base import SyncBaseService
 from claude_mpm.services.core.interfaces.health import IHealthCheck
 from claude_mpm.services.core.interfaces.process import ILocalProcessManager
-from claude_mpm.services.core.models.health import HealthCheckResult, HealthStatus
+from claude_mpm.services.core.models.health import HealthCheckResult
 
 
 class HttpHealthCheck(SyncBaseService, IHealthCheck):

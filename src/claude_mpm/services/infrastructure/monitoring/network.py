@@ -6,7 +6,8 @@ Monitors network connectivity, port availability, and socket health.
 import socket
 from typing import Dict, List, Optional
 
-from .base import BaseMonitoringService, HealthMetric, HealthStatus
+from ....core.enums import HealthStatus
+from .base import BaseMonitoringService, HealthMetric
 
 
 class NetworkHealthService(BaseMonitoringService):
@@ -98,7 +99,7 @@ class NetworkHealthService(BaseMonitoringService):
                 HealthMetric(
                     name="socket_creation",
                     value=False,
-                    status=HealthStatus.CRITICAL,
+                    status=HealthStatus.UNHEALTHY,
                     message=f"Failed to create socket: {e}",
                 )
             )
@@ -142,11 +143,11 @@ class NetworkHealthService(BaseMonitoringService):
                     )
                 )
             else:
-                # Determine if this is critical or warning based on endpoint type
+                # Determine if this is unhealthy or degraded based on endpoint type
                 status = (
-                    HealthStatus.WARNING
+                    HealthStatus.DEGRADED
                     if "optional" in name.lower()
-                    else HealthStatus.CRITICAL
+                    else HealthStatus.UNHEALTHY
                 )
                 metrics.append(
                     HealthMetric(
@@ -161,7 +162,7 @@ class NetworkHealthService(BaseMonitoringService):
                 HealthMetric(
                     name=metric_name,
                     value=False,
-                    status=HealthStatus.WARNING,
+                    status=HealthStatus.DEGRADED,
                     message=f"Connection to {host}:{port} timed out after {timeout}s",
                 )
             )

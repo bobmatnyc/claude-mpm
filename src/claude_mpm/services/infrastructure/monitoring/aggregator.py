@@ -9,12 +9,12 @@ import time
 from collections import deque
 from typing import Any, Callable, Dict, List, Optional
 
+from ....core.enums import HealthStatus
 from .base import (
     BaseMonitoringService,
     HealthChecker,
     HealthCheckResult,
     HealthMetric,
-    HealthStatus,
 )
 
 
@@ -212,14 +212,14 @@ class MonitoringAggregatorService(BaseMonitoringService):
 
         total_metrics = len(metrics)
 
-        # Critical if any critical metrics
-        if status_counts[HealthStatus.CRITICAL] > 0:
-            return HealthStatus.CRITICAL
+        # Unhealthy if any unhealthy metrics
+        if status_counts[HealthStatus.UNHEALTHY] > 0:
+            return HealthStatus.UNHEALTHY
 
-        # Warning if >30% warning metrics
-        warning_ratio = status_counts[HealthStatus.WARNING] / total_metrics
-        if warning_ratio > 0.3:
-            return HealthStatus.WARNING
+        # Degraded if >30% degraded metrics
+        degraded_ratio = status_counts[HealthStatus.DEGRADED] / total_metrics
+        if degraded_ratio > 0.3:
+            return HealthStatus.DEGRADED
 
         # Unknown if >50% unknown metrics
         unknown_ratio = status_counts[HealthStatus.UNKNOWN] / total_metrics
@@ -375,10 +375,10 @@ class MonitoringAggregatorService(BaseMonitoringService):
         checks_count = len(recent_results)
 
         # Determine aggregated status
-        if status_counts[HealthStatus.CRITICAL] > 0:
-            aggregated_status = HealthStatus.CRITICAL
-        elif status_counts[HealthStatus.WARNING] > checks_count * 0.3:
-            aggregated_status = HealthStatus.WARNING
+        if status_counts[HealthStatus.UNHEALTHY] > 0:
+            aggregated_status = HealthStatus.UNHEALTHY
+        elif status_counts[HealthStatus.DEGRADED] > checks_count * 0.3:
+            aggregated_status = HealthStatus.DEGRADED
         elif status_counts[HealthStatus.UNKNOWN] > checks_count * 0.5:
             aggregated_status = HealthStatus.UNKNOWN
         else:

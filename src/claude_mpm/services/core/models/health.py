@@ -16,36 +16,9 @@ ARCHITECTURE:
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from enum import Enum
 from typing import Any, Dict, List
 
-
-class HealthStatus(Enum):
-    """
-    Health status levels.
-
-    WHY: Provides granular health states to distinguish between different
-    levels of service degradation.
-
-    States:
-        HEALTHY: All checks passing, process operating normally
-        DEGRADED: Process running but with issues (high resource usage, slow responses)
-        UNHEALTHY: Critical failure (process dead, crashed, or unresponsive)
-        UNKNOWN: Cannot determine health status
-    """
-
-    HEALTHY = "healthy"
-    DEGRADED = "degraded"
-    UNHEALTHY = "unhealthy"
-    UNKNOWN = "unknown"
-
-    def is_operational(self) -> bool:
-        """Check if status indicates operational service."""
-        return self in (HealthStatus.HEALTHY, HealthStatus.DEGRADED)
-
-    def is_critical(self) -> bool:
-        """Check if status indicates critical failure."""
-        return self == HealthStatus.UNHEALTHY
+from ....core.enums import HealthStatus
 
 
 @dataclass
