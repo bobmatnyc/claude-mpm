@@ -6,6 +6,16 @@
 
 ### Fixed
 
+## [4.15.3] - 2025-10-27
+
+### Changed
+- **Enum Consolidation Trilogy Complete** (Batches 27-29)
+  - Batch 27: ServiceState consolidation (2 duplicates removed)
+  - Batch 28: HealthStatus consolidation (3 duplicates removed, added helper methods)
+  - Batch 29: ValidationSeverity consolidation (1 duplicate removed)
+  - Total: 20 files modified, 6 duplicate enums eliminated
+  - All 67 enum tests + 230 core tests passing
+
 ## [4.15.2] - 2025-10-26
 
 ### Changed
