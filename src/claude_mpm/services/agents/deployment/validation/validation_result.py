@@ -1,17 +1,9 @@
 """Validation result classes for deployment validation."""
 
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any, Dict, List, Optional
 
-
-class ValidationSeverity(Enum):
-    """Severity levels for validation issues."""
-
-    INFO = "info"
-    WARNING = "warning"
-    ERROR = "error"
-    CRITICAL = "critical"
+from claude_mpm.core.enums import ValidationSeverity
 
 
 @dataclass
