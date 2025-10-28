@@ -9,6 +9,7 @@ A powerful orchestration framework for **Claude Code (CLI)** that enables multi-
 ## Features
 
 - 🤖 **Multi-Agent System**: 15 specialized agents for comprehensive project management
+- 🎯 **Skills System**: 15 bundled skills with auto-linking, three-tier organization (bundled/user/project), and interactive configuration
 - 🧠 **Persistent Knowledge System**: Project-specific kuzu-memory integration for intelligent context retention
 - 🔄 **Session Management**: Resume previous sessions with `--resume`
 - 📊 **Real-Time Monitoring**: Live dashboard with `--monitor` flag
@@ -157,6 +158,34 @@ Claude MPM includes 15 specialized agents:
 ### Agent Memory System
 Agents learn project-specific patterns using a simple list format and can update memories via JSON response fields (`remember` for incremental updates, `MEMORIES` for complete replacement). Initialize with `claude-mpm memory init`.
 
+### Skills System
+
+Claude MPM includes a powerful skills system that eliminates redundant agent guidance through reusable skill modules:
+
+**15 Bundled Skills** covering essential development workflows:
+- Git workflow, TDD, code review, systematic debugging
+- API documentation, refactoring patterns, performance profiling
+- Docker containerization, database migrations, security scanning
+- JSON/PDF/XLSX handling, async testing, ImageMagick operations
+
+**Three-Tier Organization:**
+- **Bundled**: Core skills included with Claude MPM (~4,700 lines of reusable guidance)
+- **User**: Custom skills in `~/.config/claude-mpm/skills/`
+- **Project**: Project-specific skills in `.claude-mpm/skills/`
+
+**Quick Access:**
+```bash
+# Interactive skills management
+claude-mpm configure
+# Choose option 2: Skills Management
+
+# Auto-link skills to agents based on their roles
+# Configure custom skill assignments
+# View current skill mappings
+```
+
+Skills are automatically injected into agent prompts, reducing template size by 85% while maintaining full capability coverage.
+
 ### MCP Gateway (Model Context Protocol)
 
 Claude MPM includes a powerful MCP Gateway that enables:
@@ -217,19 +246,19 @@ See [docs/MEMORY.md](docs/MEMORY.md) and [docs/developer/11-dashboard/README.md]
 - **Single Entry Point**: [docs/README.md](docs/README.md) is your navigation hub
 - **Clear User Paths**: Organized by user type and experience level
 - **Cross-Referenced**: Links between related topics and sections
-- **Up-to-Date**: Version 4.3.3 with current information
+- **Up-to-Date**: Version 4.16.0 with skills system and enhanced documentation
 
-## Recent Updates (v4.3.3)
+## Recent Updates (v4.16.0)
 
-**Enhanced PM Instructions**: PM2 deployment support and mandatory web-qa verification for quality assurance.
+**Skills System Integration**: 15 bundled skills with auto-linking, three-tier organization, and interactive configuration. Eliminates 85% of redundant guidance across agent templates (~4,700 lines of reusable content).
 
-**Improved Version Management**: Better version comparison logic and agent override warnings for smoother operations.
+**Enhanced Documentation**: Complete documentation suite with PDF guides, reorganized structure, and comprehensive design documents for skills integration.
 
-**Code Quality Improvements**: Auto-fix code formatting and import management with enhanced standard tools recognition.
+**Agent Template Improvements**: Cleaned agent templates with skills integration, removing redundant guidance while maintaining full capability coverage.
 
-**Documentation Overhaul**: Unified documentation architecture with single entry point and clear navigation paths.
+**Interactive Skills Management**: New skills wizard accessible via `claude-mpm configure` for viewing, configuring, and auto-linking skills to agents.
 
-**Performance Enhancements**: Continued 50-80% performance improvements through intelligent caching and lazy loading.
+**Bug Fixes**: Resolved agent template inconsistencies and improved configuration management.
 
 See [CHANGELOG.md](CHANGELOG.md) for full history and [docs/user/MIGRATION.md](docs/user/MIGRATION.md) for upgrade instructions.
 
