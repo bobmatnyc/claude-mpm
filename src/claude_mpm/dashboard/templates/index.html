@@ -33,7 +33,6 @@
     <link rel="stylesheet" href="/static/css/dashboard.css">
     <link rel="stylesheet" href="/static/css/connection-status.css">
     <link rel="stylesheet" href="/static/css/activity.css">
-    <link rel="stylesheet" href="/static/css/code-tree.css">
 
     <!-- Additional styles for file operations -->
     <style>
@@ -258,7 +257,6 @@
                         <a href="#tools" class="tab-button" data-tab="tools">🔧 Tools</a>
                         <a href="#files" class="tab-button" data-tab="files">📁 Files</a>
                         <a href="#activity" class="tab-button" data-tab="activity">🌳 Activity</a>
-                        <a href="#file_tree" class="tab-button" data-tab="claude-tree">📝 File Tree</a>
                     </div>
 
                     <!-- Events Tab -->
@@ -397,15 +395,6 @@
                         </div>
                     </div>
 
-                    <!-- File Tree Tab -->
-                    <div class="tab-content" id="claude-tree-tab">
-                        <div id="claude-tree-container" style="width: 100%; height: 100%; position: relative;">
-                            <!-- File activity tree will be rendered here by code-viewer.js -->
-                            <!-- This container is ISOLATED from other tabs -->
-                        </div>
-                    </div>
-
-
                 </div>
             </div>
         </div>
@@ -489,16 +478,12 @@
             });
         };
         
-        // Load shared services first, then tree modules, then components
+        // Load shared services first, then components
         // Load services sequentially to ensure dependencies are available
         loadModule('/static/js/shared/tooltip-service.js')
             .then(() => loadModule('/static/js/shared/dom-helpers.js'))
             .then(() => loadModule('/static/js/shared/event-bus.js'))
             .then(() => loadModule('/static/js/shared/logger.js'))
-            .then(() => loadModule('/static/js/components/code-tree/tree-utils.js'))
-            .then(() => loadModule('/static/js/components/code-tree/tree-constants.js'))
-            .then(() => loadModule('/static/js/components/code-tree/tree-search.js'))
-            .then(() => loadModule('/static/js/components/code-tree/tree-breadcrumb.js'))
             .then(() => {
                 // CRITICAL: Load socket-client.js FIRST (dependency of socket-manager)
                 return loadModule('/static/js/socket-client.js');
@@ -530,29 +515,15 @@
                 return Promise.all([
                     loadModule('/static/dist/dashboard.js'),  // Use dist version that requires above components
                     loadModule('/static/dist/components/activity-tree.js'),
-                    loadModule('/static/js/components/code-tree.js'),  // TEMPORARY: Direct source for debugging
-                    loadModule('/static/js/components/code-viewer.js').catch(err => {
-                        console.error('[CRITICAL] Failed to load code-viewer.js:', err);
-                        throw err;
-                    }),  // Code viewer now includes file change tracking
                     loadModule('/static/dist/components/file-viewer.js')  // File viewer for viewing file contents
                 ]);
             })
             .then(() => {
             console.log('All dashboard modules loaded successfully');
-            
-            // Debug: Check if CodeViewer loaded
-            if (window.CodeViewer) {
-                console.log('[DEBUG] CodeViewer is available on window object');
-            } else {
-                console.error('[ERROR] CodeViewer NOT FOUND on window object!');
-            }
-            
-            // CodeViewer will auto-initialize and handle tab switching internally
-            
+
             // Browser Log Viewer initialization is now handled by UIStateManager
             // This prevents duplicate event handlers and tab selection conflicts
-            
+
             // Load bulletproof tab isolation fix
             loadModule('/static/js/tab-isolation-fix.js')
                 .then(() => {
@@ -564,15 +535,6 @@
 
             // Hash navigation will handle default tab based on URL
             // If no hash, default will be 'events' as per hashToTab mapping
-            // To start with File Tree, we can set hash if not present
-            setTimeout(() => {
-                if (!window.location.hash) {
-                    console.log('No hash present, setting default to File Tree tab...');
-                    window.location.hash = '#file_tree';
-                } else {
-                    console.log('Hash present:', window.location.hash);
-                }
-            }, 500);
             })
             .catch(error => {
                 console.error('[CRITICAL] Error loading dashboard modules:', error);

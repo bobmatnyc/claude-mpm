@@ -267,14 +267,15 @@ class SocketIOServer(SocketIOServiceInterface):
             except Exception as e:
                 self.logger.error(f"Error during EventBus teardown: {e}")
 
-        # Stop code analysis handler
+        # Stop event handlers
         if self.event_registry:
-            from ..handlers import CodeAnalysisEventHandler, ConnectionEventHandler
+            from ..handlers import ConnectionEventHandler
 
-            # Stop analysis runner
-            analysis_handler = self.event_registry.get_handler(CodeAnalysisEventHandler)
-            if analysis_handler and hasattr(analysis_handler, "cleanup"):
-                analysis_handler.cleanup()
+            # DISABLED: File Tree interface removed from dashboard
+            # Stop analysis runner (code analysis handler is disabled)
+            # analysis_handler = self.event_registry.get_handler(CodeAnalysisEventHandler)
+            # if analysis_handler and hasattr(analysis_handler, "cleanup"):
+            #     analysis_handler.cleanup()
 
             # Stop health monitoring in connection handler
             conn_handler = self.event_registry.get_handler(ConnectionEventHandler)

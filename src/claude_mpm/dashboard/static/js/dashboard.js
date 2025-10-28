@@ -321,14 +321,6 @@ class Dashboard {
             // Process agent inference for new events
             this.agentInference.processAgentInference();
 
-            // Notify CodeViewer that file operations have been updated
-            // This ensures File Tree tab shows the same data as Files tab
-            if (window.CodeViewer && typeof window.CodeViewer.refreshFromFileToolTracker === 'function') {
-                setTimeout(() => {
-                    window.CodeViewer.refreshFromFileToolTracker();
-                }, 50);
-            }
-
             // Update agent hierarchy with new events
             this.agentHierarchy.updateWithNewEvents(events);
 
@@ -444,12 +436,6 @@ class Dashboard {
         switch (currentTab) {
             case 'events':
                 // Events tab is handled by EventViewer
-                break;
-            case 'claude-tree':
-                // File Tree tab - trigger CodeViewer rendering
-                if (window.CodeViewer && typeof window.CodeViewer.show === 'function') {
-                    window.CodeViewer.show();
-                }
                 break;
             case 'activity':
                 // Trigger Activity tab rendering through the component

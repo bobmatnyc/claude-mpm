@@ -61,6 +61,12 @@ class HookEventHandler(BaseEventHandler):
 
         hook_data = data.get("data", {})
 
+        # Log hook event processing
+        tool_name = hook_data.get("tool_name", "N/A")
+        self.logger.info(
+            f"Processing hook event: {hook_event} - tool: {tool_name}"
+        )
+
         # Create properly formatted event for history
         # Note: add_to_history expects the event data directly, not wrapped
         history_event = {
@@ -77,6 +83,10 @@ class HookEventHandler(BaseEventHandler):
 
         # Broadcast the original event to all connected clients
         # (preserves all original fields)
+        connected_clients = len(self.server.clients) if hasattr(self.server, 'clients') else 0
+        self.logger.info(
+            f"Broadcasting claude_event to {connected_clients} clients: {hook_event}"
+        )
         await self.broadcast_event("claude_event", data)
 
         # Track sessions based on hook events

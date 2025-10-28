@@ -1,163 +1,149 @@
-# Claude MPM Architecture Overview
+# Architecture
 
-This document provides a comprehensive overview of the Claude MPM (Multi-Agent Project Manager) architecture, highlighting the service-oriented design, dependency injection system, and interface-based contracts introduced in v3.8.2 and continuously improved through v4.7.3.
-
-**Last Updated**: 2025-10-07
-**Architecture Version**: 4.7.3  
-**Recent Improvements**: Socket.IO stability, script organization, documentation consolidation
+System design and core concepts for Claude MPM.
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Service Layer Architecture](#service-layer-architecture)
-- [Project Structure](#project-structure)
-- [Dependency Injection System](#dependency-injection-system)
-- [Interface-Based Design](#interface-based-design)
-- [Performance Features](#performance-features)
-- [Security Framework](#security-framework)
+- [Service-Oriented Architecture](#service-oriented-architecture)
+- [Core Systems](#core-systems)
+- [Three-Tier Agent System](#three-tier-agent-system)
+- [Hook System](#hook-system)
+- [Memory System](#memory-system)
 - [Communication Layer](#communication-layer)
-- [Event Emission Architecture](#event-emission-architecture)
+- [Security Framework](#security-framework)
+- [Performance Optimizations](#performance-optimizations)
 
 ## Overview
 
-Claude MPM is built on a service-oriented architecture with clear separation of concerns, dependency injection, and interface-based contracts. The framework enables multi-agent workflows with extensible capabilities, real-time communication, and intelligent memory management.
+Claude MPM is built on a service-oriented architecture with clear separation of concerns, dependency injection, and interface-based contracts.
 
-### Core Principles
+**Core Principles:**
+1. **Service-Oriented**: Business logic in specialized service domains
+2. **Interface-Based**: Well-defined contracts for components
+3. **Dependency Injection**: Loose coupling through DI container
+4. **Lazy Loading**: Deferred resource initialization
+5. **Extensibility**: Hook system and plugin architecture
+6. **Security First**: Input validation at all layers
 
-1. **Service-Oriented Architecture**: Business logic organized into specialized service domains
-2. **Interface-Based Contracts**: All major components implement well-defined interfaces
-3. **Dependency Injection**: Services are loosely coupled through dependency injection
-4. **Lazy Loading**: Performance optimization through deferred resource initialization
-5. **Extensibility**: Hook system and plugin architecture for customization
-6. **Security First**: Comprehensive input validation and sanitization framework
+**Architecture Benefits:**
+- **50-80% Performance Improvement**: Lazy loading and intelligent caching
+- **Enhanced Security**: Defense-in-depth with validation
+- **Better Testability**: Interface-based design enables easy mocking
+- **Improved Maintainability**: Clear separation of concerns
+- **Scalability**: Supports future growth and plugins
 
-### Architecture Benefits
+## Service-Oriented Architecture
 
-- **50-80% Performance Improvement**: Through lazy loading and intelligent caching
-- **Enhanced Security**: Defense-in-depth with input validation at all layers
-- **Better Testability**: Interface-based design enables easy mocking and testing
-- **Improved Maintainability**: Clear separation of concerns and service boundaries
-- **Scalability**: Service-oriented design supports future growth and plugin architecture
-
-## Service Layer Architecture
-
-The service layer is organized into five main domains, each with clear responsibilities:
+The service layer is organized into five domains:
 
 ### 1. Core Services (`/src/claude_mpm/services/core/`)
 
-**Purpose**: Foundation services providing base functionality and interfaces
+**Purpose**: Foundation services and interfaces
 
-**Key Components**:
-- `interfaces.py`: Comprehensive interface definitions for all service contracts
-- `base.py`: Base service classes (`BaseService`, `SyncBaseService`, `SingletonService`)
+**Key Components:**
+- `interfaces.py`: Service contract definitions
+- `base.py`: Base service classes
 
-**Key Interfaces**:
-- `IServiceContainer`: Dependency injection container
-- `IAgentRegistry`: Agent discovery and management
-- `IHealthMonitor`: Service health monitoring
-- `IConfigurationManager`: Configuration management
+**Key Interfaces:**
+```python
+IServiceContainer      # Dependency injection
+IAgentRegistry        # Agent discovery
+IHealthMonitor        # Service health
+IConfigurationManager # Configuration
+```
 
 ### 2. Agent Services (`/src/claude_mpm/services/agents/`)
 
-**Purpose**: Agent lifecycle management, deployment, and capabilities
+**Purpose**: Agent lifecycle and management
 
-**Key Components**:
-- `deployment.py`: Agent deployment and lifecycle management
-- `management.py`: Agent registry and service management
-- `registry.py`: Agent discovery and hierarchical loading
+**Key Components:**
+- `deployment.py`: Agent deployment and lifecycle
+- `management.py`: Agent registry and services
+- `registry.py`: Agent discovery and loading
 
-**Capabilities**:
+**Capabilities:**
 - Three-tier agent precedence (PROJECT > USER > SYSTEM)
-- Dynamic agent capabilities and schema validation
-- Agent versioning and semantic compatibility
-- Hot-reloading and configuration updates
+- Dynamic capabilities and schema validation
+- Agent versioning and compatibility
+- Hot-reloading and updates
 
 ### 3. Communication Services (`/src/claude_mpm/services/communication/`)
 
-**Purpose**: Real-time communication, WebSocket management, and event handling
+**Purpose**: Real-time communication and events
 
-**Key Components**:
-- `socketio.py`: SocketIO server and client management
-- `websocket.py`: WebSocket connection handling
+**Key Components:**
+- `socketio.py`: SocketIO server management
+- `websocket.py`: WebSocket connections
 
-**Features**:
+**Features:**
 - Real-time agent activity monitoring
-- File operation tracking and git diff viewer
-- Session management and state synchronization
-- Multi-client support with connection pooling
+- File operation tracking
+- Session state synchronization
+- Multi-client connection pooling
 
 ### 4. Project Services (`/src/claude_mpm/services/project/`)
 
-**Purpose**: Project analysis, workspace management, and context understanding
+**Purpose**: Project analysis and workspace management
 
-**Key Components**:
-- `analyzer.py`: Project structure and technology stack analysis
-- `registry.py`: Project-specific configuration and agent management
+**Key Components:**
+- `analyzer.py`: Stack and structure analysis
+- `registry.py`: Project configuration
 
-**Capabilities**:
+**Capabilities:**
 - Automatic technology stack detection
 - Architecture pattern recognition
-- Dynamic documentation discovery
-- Project-specific memory generation
+- Documentation discovery
+- Project-specific memory
 
 ### 5. Infrastructure Services (`/src/claude_mpm/services/infrastructure/`)
 
-**Purpose**: Cross-cutting concerns including logging, monitoring, and error handling
+**Purpose**: Cross-cutting concerns
 
-**Key Components**:
-- `logging.py`: Structured logging and session management
-- `monitoring.py`: Health monitoring and performance metrics
+**Key Components:**
+- `logging.py`: Structured logging
+- `monitoring.py`: Health and metrics
 
-**Features**:
-- Structured JSON logging with session correlation
-- Performance monitoring and metrics collection
-- Error handling and recovery mechanisms
-- Circuit breaker patterns for resilience
+**Features:**
+- Structured JSON logging
+- Performance metrics collection
+- Error handling and recovery
+- Circuit breaker patterns
 
-## Project Structure
+## Core Systems
 
-Claude MPM follows a standard Python project layout with clear separation of concerns:
+### Project Structure
 
 ```
 claude-mpm/
-├── .claude/                          # Claude-specific settings and hooks
-├── .claude-mpm/                      # Project-specific Claude MPM directory
-│   ├── agents/                       # PROJECT tier agent definitions (highest precedence)
-│   ├── config/                       # Project configuration
-│   ├── hooks/                        # Project-specific hooks
-│   └── memories/                     # Agent memory files
+├── .claude-mpm/              # Project-specific MPM directory
+│   ├── agents/               # PROJECT tier (highest precedence)
+│   ├── config/               # Project configuration
+│   ├── hooks/                # Project hooks
+│   └── memories/             # Agent memories
 │
-├── src/claude_mpm/                   # Main package source
-│   ├── core/                         # Core framework components
-│   ├── services/                     # Service layer (5 domains)
-│   ├── agents/                       # USER tier agents and instructions
-│   ├── hooks/                        # Hook system implementation
-│   ├── cli/                          # Command-line interface
-│   └── utils/                        # Utilities and helpers
+├── src/claude_mpm/           # Main package
+│   ├── core/                 # Core framework
+│   ├── services/             # Service layer (5 domains)
+│   ├── agents/               # USER tier agents
+│   ├── hooks/                # Hook system
+│   ├── cli/                  # Command-line interface
+│   └── utils/                # Utilities
 │
-├── docs/                             # Documentation
-│   ├── user/                         # User-facing documentation
-│   ├── developer/                    # Developer documentation
-│   ├── api/                          # API reference documentation
-│   └── archive/                      # Historical documentation
-│
-├── tests/                            # Test suite
-├── scripts/                          # Executable scripts and utilities
-└── examples/                         # Example implementations
+├── docs/                     # Documentation
+├── tests/                    # Test suite
+└── scripts/                  # Executable scripts
 ```
 
-### Key Directory Guidelines
+**Key Guidelines:**
+- Scripts: ALL in `/scripts/`, never in root
+- Tests: ALL in `/tests/`, never in root
+- Python modules: Always under `/src/claude_mpm/`
+- Agent precedence: PROJECT > USER > SYSTEM
 
-1. **Scripts**: ALL scripts go in `/scripts/`, NEVER in project root
-2. **Tests**: ALL tests go in `/tests/`, NEVER in project root
-3. **Python modules**: Always under `/src/claude_mpm/`
-4. **Agent precedence**: PROJECT (`.claude-mpm/agents/`) > USER (`src/claude_mpm/agents/`) > SYSTEM (built-in)
+### Dependency Injection
 
-## Dependency Injection System
-
-The framework uses a sophisticated dependency injection container for loose coupling and testability:
-
-### Service Container
+**Service Container:**
 
 ```python
 from claude_mpm.services.core.interfaces import IServiceContainer
@@ -170,25 +156,21 @@ container.register(IHealthMonitor, HealthMonitorService, singleton=True)
 agent_registry = container.resolve(IAgentRegistry)
 ```
 
-### Service Lifecycle
+**Service Lifecycle:**
+1. Registration: Services register interfaces
+2. Resolution: Container resolves dependencies
+3. Initialization: Services initialize with dependencies
+4. Lifecycle: Container manages singletons
 
-1. **Registration**: Services register their interfaces with the container
-2. **Resolution**: Container resolves dependencies automatically
-3. **Initialization**: Services initialize with their dependencies
-4. **Lifecycle Management**: Container manages singleton lifecycles
+**Best Practices:**
+- Define clear interfaces
+- Use constructor injection
+- Prefer singleton for stateless services
+- Implement proper cleanup
 
-### Best Practices
+### Interface-Based Design
 
-- Define clear interfaces for all services
-- Use constructor injection for dependencies
-- Prefer singleton registration for stateless services
-- Implement proper cleanup in service destructors
-
-## Interface-Based Design
-
-All major framework components implement explicit interfaces for better testing and maintainability:
-
-### Core Interface Pattern
+All major components implement explicit interfaces:
 
 ```python
 from abc import ABC, abstractmethod
@@ -196,203 +178,359 @@ from abc import ABC, abstractmethod
 class IAgentManager(ABC):
     @abstractmethod
     async def deploy_agent(self, agent_config: dict) -> bool:
-        """Deploy an agent with the given configuration."""
-        pass
-    
-    @abstractmethod
-    def get_agent_status(self, agent_id: str) -> AgentStatus:
-        """Get the current status of an agent."""
+        """Deploy an agent with configuration."""
         pass
 
-class AgentManager(BaseService, IAgentManager):
-    async def deploy_agent(self, agent_config: dict) -> bool:
-        # Implementation
-        pass
-    
-    def get_agent_status(self, agent_id: str) -> AgentStatus:
-        # Implementation
+    @abstractmethod
+    async def list_agents(self) -> List[AgentInfo]:
+        """List all available agents."""
         pass
 ```
 
-### Interface Compliance
+**Benefits:**
+- Clear contracts between components
+- Easy mocking for tests
+- Better documentation
+- Interface segregation
 
-- All services implement their corresponding interfaces
-- Interface compliance is verified through automated testing
-- Mock implementations are available for testing
+## Three-Tier Agent System
 
-## Performance Features
+Agent precedence: **PROJECT > USER > SYSTEM**
 
-### Lazy Loading
+### Agent Tiers
 
-Services and components are loaded only when needed:
+**PROJECT Tier** (`.claude-mpm/agents/`):
+- Highest priority
+- Project-specific customizations
+- Overrides USER and SYSTEM
+
+**USER Tier** (`~/.claude-agents/` or `src/claude_mpm/agents/`):
+- Personal customizations
+- Shared across projects
+- Overrides SYSTEM
+
+**SYSTEM Tier** (bundled):
+- Built-in default agents
+- Lowest priority
+- PM, Research, Engineer, QA, etc.
+
+### Agent Registry
+
+**Discovery Process:**
+1. Scan PROJECT tier (`.claude-mpm/agents/`)
+2. Scan USER tier (`~/.claude-agents/`)
+3. Load SYSTEM tier (built-in)
+4. Apply precedence rules
+5. Register with metadata
+
+**Metadata Includes:**
+- Agent name, version, tier
+- Capabilities and specializations
+- Model configuration
+- Instruction content
+
+### Agent Capabilities
+
+Agents define capabilities in frontmatter:
+
+```yaml
+---
+name: engineer
+model: claude-sonnet-4
+capabilities:
+  - code-implementation
+  - refactoring
+  - debugging
+specialization: engineering
+delegation: true
+---
+```
+
+**Routing**: PM agent routes tasks based on capabilities.
+
+## Hook System
+
+Event-driven hooks for pre/post execution customization.
+
+### Hook Types
+
+**Pre-execution hooks:**
+- Execute before agent invocation
+- Modify context or abort execution
+- Use cases: validation, logging, setup
+
+**Post-execution hooks:**
+- Execute after agent completion
+- Process results or trigger actions
+- Use cases: cleanup, notifications, metrics
+
+### Hook Registration
 
 ```python
-# Lazy import pattern
-from claude_mpm.core.lazy import lazy_import
+from claude_mpm.hooks import HookRegistry
 
-AgentManager = lazy_import('claude_mpm.services.agents.management', 'AgentManager')
+# Register pre-execution hook
+@HookRegistry.register("pre_execution")
+async def validate_input(context: HookContext) -> HookResult:
+    if not context.is_valid():
+        return HookResult(abort=True, reason="Invalid input")
+    return HookResult(success=True)
+
+# Register post-execution hook
+@HookRegistry.register("post_execution")
+async def log_completion(context: HookContext) -> HookResult:
+    logger.info(f"Task completed: {context.task_id}")
+    return HookResult(success=True)
 ```
 
-### Multi-Level Caching
+### Hook Configuration
 
-Intelligent caching with TTL and invalidation:
+In `.claude-mpm/config.yaml`:
 
-- **Memory Caches**: Fast in-memory caching for frequently accessed data
-- **File System Caches**: Persistent caching for expensive operations
-- **Cache Invalidation**: Smart invalidation based on file modifications and events
+```yaml
+hooks:
+  pre_execution:
+    enabled: true
+    hooks:
+      - validate_input
+      - check_permissions
+  post_execution:
+    enabled: true
+    hooks:
+      - log_completion
+      - update_metrics
+```
 
-### Connection Pooling
+### Performance
 
-WebSocket and database connections are pooled for efficiency:
+**v4.8.2+ Improvements:**
+- 91% latency reduction (108ms → 10ms)
+- Non-blocking execution
+- Thread pool for HTTP calls
+- Intelligent caching
 
-- **SocketIO Pool**: Reuse connections across sessions
-- **Database Pool**: Connection pooling for metadata storage
-- **Resource Management**: Automatic cleanup and resource limits
+## Memory System
 
-## Security Framework
+Persistent project-specific knowledge using graph storage.
 
-Comprehensive security measures implemented throughout the architecture:
+### Architecture
 
-### Input Validation
+**Storage**: KuzuDB graph database (`.claude-mpm/memory.db`)
 
-- **Schema Validation**: All inputs validated against JSON schemas
-- **Type Checking**: Runtime type checking with proper error handling
-- **Sanitization**: Input sanitization to prevent injection attacks
+**Memory Categories:**
+- Project Architecture
+- Implementation Guidelines
+- Current Technical Context
 
-### Path Security
+### Memory Updates
 
-- **Path Traversal Prevention**: All file operations validate against allowed paths
-- **Sandboxing**: Agent operations sandboxed to project directories
-- **Permission Checks**: File system operations require appropriate permissions
+Agents store learnings via JSON response fields:
 
-### Secure Operations
+```json
+{
+  "memory-update": {
+    "Project Architecture": ["Uses FastAPI with async endpoints"],
+    "Implementation Guidelines": ["Use Pydantic for validation"],
+    "Current Technical Context": ["Auth uses JWT tokens"]
+  }
+}
+```
 
-- **Credential Management**: Secure storage and handling of API credentials
-- **Audit Logging**: All security-relevant operations are logged
-- **Error Handling**: Security errors handled without information disclosure
+Simplified format:
+
+```json
+{
+  "remember": [
+    "API uses REST conventions",
+    "Tests use pytest fixtures"
+  ]
+}
+```
+
+### Memory Retrieval
+
+**Automatic**: Prompts enhanced with relevant memories
+
+**Manual**:
+```bash
+# Query memories
+claude-mpm recall "authentication"
+
+# View statistics
+claude-mpm stats
+```
+
+### Integration
+
+**MCP Tool**: `kuzu-memory` provides memory operations
+- `kuzu_enhance`: Enhance prompts with context
+- `kuzu_learn`: Store new learnings
+- `kuzu_recall`: Query memories
+- `kuzu_stats`: View statistics
 
 ## Communication Layer
 
-Real-time communication system built on WebSocket and SocketIO:
+Real-time communication via WebSocket and Socket.IO.
 
-### WebSocket Architecture
+### Socket.IO Architecture
 
-```
-Client (Dashboard) <-- WebSocket --> SocketIO Server <-- Events --> Agent System
-                                         │
-                                         ├── Session Management
-                                         ├── Real-time Updates
-                                         └── Connection Pooling
-```
+**Server**: Flask-SocketIO server on port 8765
 
-### Event Types
+**Events**:
+- `connect`: Client connection
+- `disconnect`: Client disconnection
+- `agent_started`: Agent begins task
+- `agent_completed`: Agent finishes task
+- `task_delegated`: PM delegates to specialist
+- `memory_updated`: New learning stored
+- `error_occurred`: Error during execution
 
-- **Agent Events**: Agent start, stop, delegation, completion
-- **File Events**: File creation, modification, git operations
-- **Session Events**: Session start, resume, pause, termination
-- **System Events**: Health status, performance metrics
+### Dashboard Features
 
-### Features
+**Real-time updates:**
+- Active agents and tasks
+- Delegation flow visualization
+- System metrics (memory, latency)
+- Session information
 
-- **Real-time Monitoring**: Live dashboard showing agent activity
-- **Session Persistence**: Sessions survive WebSocket disconnections
-- **Multi-client Support**: Multiple dashboard connections per session
-- **Event Filtering**: Configurable event filtering and routing
+**Connection Management:**
+- Multi-client support
+- Connection pooling
+- Automatic reconnection
+- Session correlation
 
-## Migration and Compatibility
-
-### Backward Compatibility
-
-The new architecture maintains backward compatibility through:
-
-- **Lazy Imports**: Existing import paths continue to work
-- **Legacy Service Wrappers**: Old service interfaces wrapped with new implementations
-- **Configuration Migration**: Automatic migration of configuration files
-
-### Migration Path
-
-1. **Gradual Migration**: Services can be migrated incrementally
-2. **Interface Adoption**: Existing services can adopt new interfaces progressively
-3. **Testing Strategy**: Comprehensive test suite ensures compatibility
-
-For detailed migration instructions, see [docs/MIGRATION.md](MIGRATION.md).
-
-## Related Documentation
-
-### User Documentation
-- [Quick Start Guide](../../QUICKSTART.md) - Get running in 5 minutes
-- [Memory System](MEMORY.md) - Agent memory documentation
-- [User Guide](user/) - Detailed usage documentation
-
-### Developer Documentation
-- [Service Layer Guide](developer/SERVICES.md) - Detailed service implementation guide
-- [API Reference](api/) - Complete API documentation
-- [Testing Guide](TESTING.md) - Testing strategies and patterns
-- [Performance Guide](PERFORMANCE.md) - Optimization and performance monitoring
-- [Security Guide](SECURITY.md) - Security framework and best practices
-
-### Technical Documentation
-- [Deployment Guide](DEPLOY.md) - Publishing and versioning
-- [Migration Guide](MIGRATION.md) - Upgrading from previous versions
-
-## Event Emission Architecture
-
-**Version**: 4.0.25+
-**Status**: Stable
-**Documentation**: [EVENT_EMISSION_ARCHITECTURE.md](EVENT_EMISSION_ARCHITECTURE.md)
-
-### Overview
-
-Claude MPM implements a **single-path event emission architecture** for hook events to eliminate duplicate events and improve performance. This architecture replaced the previous EventBus-based multi-path system.
-
-### Architecture Pattern
-
-```
-Hook Handler → ConnectionManager → Direct Socket.IO → Dashboard
-                                ↓ (fallback only)
-                              HTTP POST → Monitor Server → Dashboard
-```
-
-### Key Principles
-
-1. **Single Emission Path**: Events flow through ONE primary path with ONE fallback
-2. **No EventBus**: EventBus removed to prevent duplicate emissions
-3. **Direct Socket.IO**: Ultra-low latency direct async calls
-4. **HTTP Fallback**: Reliable cross-process communication when direct fails
-5. **Event Normalization**: Consistent event schema across all paths
-
-### Performance Characteristics
-
-- **Direct Path**: ~0.1ms latency, 10,000+ events/second
-- **Fallback Path**: ~2-5ms latency, 1,000+ events/second
-- **Memory Usage**: Minimal (no event buffering)
-- **Duplicate Rate**: 0% (eliminated by single-path design)
-
-### Implementation
-
-The `ConnectionManagerService` implements this architecture:
+### Event Emission
 
 ```python
-def emit_event(self, namespace: str, event: str, data: dict):
-    # PRIMARY: Direct Socket.IO
-    if self.connection_pool:
-        try:
-            self.connection_pool.emit("claude_event", event_data)
-            return  # Success - no fallback needed
-        except Exception:
-            pass  # Fall through to HTTP fallback
+from claude_mpm.services.communication import emit_event
 
-    # FALLBACK: HTTP POST
-    self._try_http_fallback(event_data)
+# Emit agent started event
+emit_event("agent_started", {
+    "agent_id": "engineer",
+    "task": "Implement authentication",
+    "timestamp": datetime.now().isoformat()
+})
+
+# Emit task delegated event
+emit_event("task_delegated", {
+    "from_agent": "pm",
+    "to_agent": "engineer",
+    "task": "Implement feature",
+    "reason": "Engineering expertise required"
+})
 ```
 
-### Stability Guidelines
+## Security Framework
 
-- **NEVER** add EventBus emission paths
-- **NEVER** add parallel emission paths
-- **ALWAYS** use single primary + single fallback pattern
-- **ALWAYS** reference EVENT_EMISSION_ARCHITECTURE.md for changes
+Comprehensive input validation and sanitization.
+
+### Validation Layers
+
+**Layer 1: Input Validation**
+- Type checking
+- Format validation
+- Range validation
+- Pattern matching
+
+**Layer 2: Sanitization**
+- Path sanitization
+- Command sanitization
+- String escaping
+- SQL injection prevention
+
+**Layer 3: Authorization**
+- Permission checks
+- Resource access control
+- Rate limiting
+
+### Filesystem Restrictions
+
+**Allowed Operations:**
+- Read: Within project directory
+- Write: To `.claude-mpm/` and project files
+- Execute: Whitelisted commands only
+
+**Blocked Operations:**
+- System file access
+- Parent directory traversal (`../`)
+- Absolute paths outside project
+- Dangerous commands (rm -rf, etc.)
+
+### Input Validation
+
+```python
+from claude_mpm.security import validate_input, sanitize_path
+
+# Validate file path
+if not validate_input(file_path, input_type="path"):
+    raise ValidationError("Invalid file path")
+
+# Sanitize path
+safe_path = sanitize_path(user_provided_path)
+```
+
+## Performance Optimizations
+
+**v4.8.2+ Improvements:**
+
+### Git Branch Caching
+
+**Before**: Every git operation queries branch (108ms)
+**After**: 5-minute TTL cache (10ms)
+
+**Implementation:**
+```python
+@cache_with_ttl(ttl=300)  # 5 minutes
+def get_current_branch() -> str:
+    return subprocess.check_output(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+    ).decode().strip()
+```
+
+### Lazy Loading
+
+**Strategy**: Defer initialization until needed
+
+**Examples:**
+- Agent loading: On-demand rather than startup
+- Service initialization: Lazy service resolution
+- Configuration: Load sections as accessed
+
+**Benefits:**
+- Faster startup (50-80% improvement)
+- Reduced memory footprint
+- Better resource utilization
+
+### Non-Blocking Operations
+
+**HTTP Fallback**: Thread pool for HTTP health checks
+
+**Before**: Blocking HTTP calls
+**After**: Non-blocking with timeout
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+
+executor = ThreadPoolExecutor(max_workers=4)
+future = executor.submit(requests.get, url, timeout=5)
+```
+
+### Intelligent Caching
+
+**Cache Strategy:**
+- LRU cache for frequently accessed data
+- TTL cache for time-sensitive data
+- Size-limited cache to prevent memory issues
+
+**Cached Operations:**
+- Git branch (5-minute TTL)
+- Agent metadata (until file change)
+- Configuration (until modification)
+- Project analysis (until structure change)
 
 ---
 
-**Note**: The former STRUCTURE.md content has been consolidated into this document. SERVICES.md provides detailed implementation guidance for developers.
+**Next Steps:**
+- Extending: See [extending.md](extending.md)
+- API Reference: See [api-reference.md](api-reference.md)
+- User Docs: See [../user/user-guide.md](../user/user-guide.md)
