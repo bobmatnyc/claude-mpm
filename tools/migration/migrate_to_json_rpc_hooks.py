@@ -27,7 +27,10 @@ def stop_hook_service():
     # Try to find and kill the process
     try:
         result = subprocess.run(
-            ["pgrep", "-f", "hook_service.py"], capture_output=True, text=True, check=False
+            ["pgrep", "-f", "hook_service.py"],
+            capture_output=True,
+            text=True,
+            check=False,
         )
 
         if result.returncode == 0:

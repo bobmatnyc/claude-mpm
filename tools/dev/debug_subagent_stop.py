@@ -53,7 +53,8 @@ def test_subagent_stop_events():
             cwd=Path(__file__).parent.parent,
             capture_output=True,
             text=True,
-            timeout=45, check=False,
+            timeout=45,
+            check=False,
         )
 
         # Look for SubagentStop in stderr (debug output)
@@ -123,7 +124,8 @@ def check_task_tool_correlation():
         cwd=Path(__file__).parent.parent,
         capture_output=True,
         text=True,
-        timeout=30, check=False,
+        timeout=30,
+        check=False,
     )
 
     print("\nLooking for correlation between:")

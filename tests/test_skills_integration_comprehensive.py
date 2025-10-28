@@ -16,12 +16,12 @@ from claude_mpm.skills import SkillManager, get_registry
 
 
 class Colors:
-    GREEN = '\033[92m'
-    RED = '\033[91m'
-    YELLOW = '\033[93m'
-    BLUE = '\033[94m'
-    RESET = '\033[0m'
-    BOLD = '\033[1m'
+    GREEN = "\033[92m"
+    RED = "\033[91m"
+    YELLOW = "\033[93m"
+    BLUE = "\033[94m"
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
 
 
 def print_test(name: str):
@@ -48,7 +48,7 @@ def test_1_bundled_skills_loading() -> bool:
 
     try:
         registry = get_registry()
-        bundled_skills = registry.list_skills(source='bundled')
+        bundled_skills = registry.list_skills(source="bundled")
 
         # Check count
         if len(bundled_skills) != 15:
@@ -61,9 +61,9 @@ def test_1_bundled_skills_loading() -> bool:
         print_info(f"Skills found: {', '.join(sorted(skill_names))}")
 
         required_skills = [
-            'test-driven-development',
-            'systematic-debugging',
-            'async-testing'
+            "test-driven-development",
+            "systematic-debugging",
+            "async-testing",
         ]
 
         for skill in required_skills:
@@ -84,6 +84,7 @@ def test_1_bundled_skills_loading() -> bool:
     except Exception as e:
         print_fail(f"Exception during test: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -96,7 +97,7 @@ def test_2_agent_skills_mapping() -> bool:
         manager = SkillManager()
 
         # Test Engineer skills
-        engineer_skills = manager.get_agent_skills('engineer')
+        engineer_skills = manager.get_agent_skills("engineer")
         if len(engineer_skills) < 8:
             print_fail(f"Engineer should have >= 8 skills, has {len(engineer_skills)}")
             return False
@@ -104,7 +105,7 @@ def test_2_agent_skills_mapping() -> bool:
         print_info(f"  Skills: {', '.join(s.name for s in engineer_skills)}")
 
         # Test QA skills
-        qa_skills = manager.get_agent_skills('qa')
+        qa_skills = manager.get_agent_skills("qa")
         if len(qa_skills) < 4:
             print_fail(f"QA should have >= 4 skills, has {len(qa_skills)}")
             return False
@@ -112,12 +113,14 @@ def test_2_agent_skills_mapping() -> bool:
         print_info(f"  Skills: {', '.join(s.name for s in qa_skills)}")
 
         # Test Ops skills
-        ops_skills = manager.get_agent_skills('ops')
+        ops_skills = manager.get_agent_skills("ops")
         skill_names = [s.name for s in ops_skills]
-        if 'docker-containerization' not in skill_names:
+        if "docker-containerization" not in skill_names:
             print_fail("Ops should have 'docker-containerization' skill")
             return False
-        print_pass(f"Ops has {len(ops_skills)} skills including docker-containerization")
+        print_pass(
+            f"Ops has {len(ops_skills)} skills including docker-containerization"
+        )
         print_info(f"  Skills: {', '.join(skill_names)}")
 
         # Test that different agents have different skills
@@ -135,6 +138,7 @@ def test_2_agent_skills_mapping() -> bool:
     except Exception as e:
         print_fail(f"Exception during test: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -147,22 +151,32 @@ def test_3_prompt_enhancement() -> bool:
         manager = SkillManager()
 
         base_prompt = "You are an engineer."
-        enhanced = manager.enhance_agent_prompt('engineer', base_prompt)
+        enhanced = manager.enhance_agent_prompt("engineer", base_prompt)
 
         # Check that prompt is significantly enhanced
         if len(enhanced) <= len(base_prompt) * 10:
-            print_fail(f"Enhanced prompt not significantly longer. Base: {len(base_prompt)}, Enhanced: {len(enhanced)}")
+            print_fail(
+                f"Enhanced prompt not significantly longer. Base: {len(base_prompt)}, Enhanced: {len(enhanced)}"
+            )
             return False
-        print_pass(f"Prompt enhanced from {len(base_prompt)} to {len(enhanced)} chars ({len(enhanced)/len(base_prompt):.1f}x)")
+        print_pass(
+            f"Prompt enhanced from {len(base_prompt)} to {len(enhanced)} chars ({len(enhanced)/len(base_prompt):.1f}x)"
+        )
 
         # Check that skill content is included
         enhanced_lower = enhanced.lower()
-        if 'test-driven-development' not in enhanced_lower and 'test driven development' not in enhanced_lower:
+        if (
+            "test-driven-development" not in enhanced_lower
+            and "test driven development" not in enhanced_lower
+        ):
             print_fail("Enhanced prompt missing 'test-driven-development' content")
             return False
         print_pass("Enhanced prompt contains test-driven-development content")
 
-        if 'systematic-debugging' not in enhanced_lower and 'systematic debugging' not in enhanced_lower:
+        if (
+            "systematic-debugging" not in enhanced_lower
+            and "systematic debugging" not in enhanced_lower
+        ):
             print_fail("Enhanced prompt missing 'systematic-debugging' content")
             return False
         print_pass("Enhanced prompt contains systematic-debugging content")
@@ -182,6 +196,7 @@ def test_3_prompt_enhancement() -> bool:
     except Exception as e:
         print_fail(f"Exception during test: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -198,11 +213,11 @@ def test_4_agent_version_bumps() -> bool:
 
         agent_files = list(agents_dir.glob("*.json"))
         # Filter out non-agent files
-        agent_files = [f for f in agent_files if not f.name.startswith('__')]
+        agent_files = [f for f in agent_files if not f.name.startswith("__")]
         print_info(f"Found {len(agent_files)} agent files")
 
         # Sample specific agents
-        sample_agents = ['engineer', 'python_engineer', 'qa', 'ops', 'product_owner']
+        sample_agents = ["engineer", "python_engineer", "qa", "ops", "product_owner"]
         versions: Dict[str, str] = {}
 
         for agent_name in sample_agents:
@@ -213,10 +228,10 @@ def test_4_agent_version_bumps() -> bool:
 
             with open(agent_file) as f:
                 data = json.load(f)
-                version = data.get('version', 'missing')
+                version = data.get("version", "missing")
                 versions[agent_name] = version
 
-                if version == 'missing':
+                if version == "missing":
                     print_fail(f"Agent '{agent_name}' missing version field")
                     return False
 
@@ -227,6 +242,7 @@ def test_4_agent_version_bumps() -> bool:
     except Exception as e:
         print_fail(f"Exception during test: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -239,7 +255,7 @@ def test_5_skills_field_in_templates() -> bool:
         agents_dir = Path("src/claude_mpm/agents/templates")
         agent_files = list(agents_dir.glob("*.json"))
         # Filter out non-agent files and __init__
-        agent_files = [f for f in agent_files if not f.name.startswith('__')]
+        agent_files = [f for f in agent_files if not f.name.startswith("__")]
 
         agents_with_skills = 0
         agents_without_skills = []
@@ -251,20 +267,22 @@ def test_5_skills_field_in_templates() -> bool:
             with open(agent_file) as f:
                 data = json.load(f)
 
-                if 'skills' in data:
+                if "skills" in data:
                     agents_with_skills += 1
 
                     # Verify it's a list
-                    if not isinstance(data['skills'], list):
+                    if not isinstance(data["skills"], list):
                         print_fail(f"Agent '{agent_name}' has non-list skills field")
                         return False
 
-                    skill_counts[agent_name] = len(data['skills'])
+                    skill_counts[agent_name] = len(data["skills"])
 
                     # Verify skills are strings
-                    for skill in data['skills']:
+                    for skill in data["skills"]:
                         if not isinstance(skill, str):
-                            print_fail(f"Agent '{agent_name}' has non-string skill: {skill}")
+                            print_fail(
+                                f"Agent '{agent_name}' has non-string skill: {skill}"
+                            )
                             return False
                 else:
                     agents_without_skills.append(agent_name)
@@ -273,7 +291,9 @@ def test_5_skills_field_in_templates() -> bool:
         print_info(f"Agents with skills: {agents_with_skills}/{len(agent_files)}")
 
         if agents_without_skills:
-            print_info(f"Agents without skills ({len(agents_without_skills)}): {', '.join(sorted(agents_without_skills))}")
+            print_info(
+                f"Agents without skills ({len(agents_without_skills)}): {', '.join(sorted(agents_without_skills))}"
+            )
 
         # Show skill distribution
         if skill_counts:
@@ -286,16 +306,21 @@ def test_5_skills_field_in_templates() -> bool:
         required_count = int(len(agent_files) * target_percentage)
 
         if agents_with_skills < required_count:
-            print_fail(f"Expected at least {required_count} agents with skills ({target_percentage*100}%), found {agents_with_skills}")
+            print_fail(
+                f"Expected at least {required_count} agents with skills ({target_percentage*100}%), found {agents_with_skills}"
+            )
             return False
 
-        print_pass(f"{agents_with_skills}/{len(agent_files)} agents have skills field ({agents_with_skills/len(agent_files)*100:.1f}%)")
+        print_pass(
+            f"{agents_with_skills}/{len(agent_files)} agents have skills field ({agents_with_skills/len(agent_files)*100:.1f}%)"
+        )
 
         return True
 
     except Exception as e:
         print_fail(f"Exception during test: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -308,7 +333,7 @@ def test_6_json_validity() -> bool:
         agents_dir = Path("src/claude_mpm/agents/templates")
         agent_files = list(agents_dir.glob("*.json"))
         # Filter out non-agent files
-        agent_files = [f for f in agent_files if not f.name.startswith('__')]
+        agent_files = [f for f in agent_files if not f.name.startswith("__")]
 
         invalid_files = []
 
@@ -332,6 +357,7 @@ def test_6_json_validity() -> bool:
     except Exception as e:
         print_fail(f"Exception during test: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -353,11 +379,11 @@ def test_7_skills_selector_presence() -> bool:
             content = f.read()
 
             required_items = [
-                'class SkillsWizard',
-                'def run_interactive_selection',
-                'def list_available_skills',
-                'AGENT_SKILL_MAPPING',
-                'def discover_and_link_runtime_skills'
+                "class SkillsWizard",
+                "def run_interactive_selection",
+                "def list_available_skills",
+                "AGENT_SKILL_MAPPING",
+                "def discover_and_link_runtime_skills",
             ]
 
             for item in required_items:
@@ -367,7 +393,11 @@ def test_7_skills_selector_presence() -> bool:
                 print_pass(f"Skills wizard has: {item}")
 
         # Verify auto-linking mappings
-        if 'ENGINEER_CORE_SKILLS' in content and 'OPS_SKILLS' in content and 'QA_SKILLS' in content:
+        if (
+            "ENGINEER_CORE_SKILLS" in content
+            and "OPS_SKILLS" in content
+            and "QA_SKILLS" in content
+        ):
             print_pass("Auto-linking skill mappings defined")
         else:
             print_fail("Missing auto-linking skill mappings")
@@ -378,18 +408,21 @@ def test_7_skills_selector_presence() -> bool:
         if config_file.exists():
             with open(config_file) as f:
                 content = f.read()
-                if 'skills' in content.lower():
+                if "skills" in content.lower():
                     print_pass("Configurator mentions skills")
                 else:
                     print_info("Configurator may not integrate skills (check manually)")
 
-        print_info("Note: Full CLI integration requires manual testing with 'claude-mpm configure'")
+        print_info(
+            "Note: Full CLI integration requires manual testing with 'claude-mpm configure'"
+        )
 
         return True
 
     except Exception as e:
         print_fail(f"Exception during test: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -419,6 +452,7 @@ def main():
         except Exception as e:
             print_fail(f"Unexpected error in {test_name}: {e}")
             import traceback
+
             traceback.print_exc()
             results[test_name] = False
 
@@ -431,7 +465,11 @@ def main():
     total = len(results)
 
     for test_name, result in results.items():
-        status = f"{Colors.GREEN}PASS{Colors.RESET}" if result else f"{Colors.RED}FAIL{Colors.RESET}"
+        status = (
+            f"{Colors.GREEN}PASS{Colors.RESET}"
+            if result
+            else f"{Colors.RED}FAIL{Colors.RESET}"
+        )
         print(f"{status} - {test_name}")
 
     print(f"\n{Colors.BOLD}Overall: {passed}/{total} tests passed{Colors.RESET}")
@@ -443,5 +481,5 @@ def main():
     return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

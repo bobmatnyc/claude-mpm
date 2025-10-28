@@ -433,9 +433,9 @@ class DocumentationAuditor:
                             continue
 
                         # Check internal links
-                        if (
-                            link_url.startswith(("./", "../")) or not link_url.startswith("/")
-                        ):
+                        if link_url.startswith(
+                            ("./", "../")
+                        ) or not link_url.startswith("/"):
                             target_path = (md_file.parent / link_url).resolve()
                             if not target_path.exists():
                                 self.add_issue(

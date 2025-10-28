@@ -13,12 +13,16 @@ def get_git_stats():
     try:
         # Get commits from last 7 days
         cmd = "git log --since='7 days ago' --pretty=format:'%h|%an|%s' --grep='monitor\\|dashboard\\|socketio\\|websocket'"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            cmd, shell=True, capture_output=True, text=True, check=False
+        )
         commits = result.stdout.strip().split("\n") if result.stdout else []
 
         # Get changed files
         cmd = "git diff --name-only HEAD~7 HEAD | grep -E '(monitor|dashboard|socketio|websocket)'"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            cmd, shell=True, capture_output=True, text=True, check=False
+        )
         changed_files = result.stdout.strip().split("\n") if result.stdout else []
 
         return {

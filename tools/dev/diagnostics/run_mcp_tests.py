@@ -20,7 +20,9 @@ def run_command(cmd, description):
     print("=" * 60)
 
     start_time = time.time()
-    result = subprocess.run(cmd, shell=True, cwd=Path(__file__).parent.parent, check=False)
+    result = subprocess.run(
+        cmd, shell=True, cwd=Path(__file__).parent.parent, check=False
+    )
     end_time = time.time()
 
     duration = end_time - start_time

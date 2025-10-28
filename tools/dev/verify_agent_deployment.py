@@ -8,7 +8,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
-
 def verify_deployment():
     """Verify agents are properly deployed with author field."""
 

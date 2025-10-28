@@ -334,9 +334,7 @@ Examples:
                 removed, space = cleaner.cleanup_old_logs(args.log_days, args.dry_run)
                 operations["logs"] = {"removed": removed, "space_mb": space}
                 if not args.quiet and not args.json:
-                    print(
-                        f"Logs: Removed {removed} files, freed {format_size(space)}"
-                    )
+                    print(f"Logs: Removed {removed} files, freed {format_size(space)}")
 
             if args.compress:
                 compressed, saved = cleaner.compress_old_logs(

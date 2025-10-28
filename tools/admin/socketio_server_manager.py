@@ -109,7 +109,10 @@ class ServerManager:
         )
 
     def start_server(
-        self, port: Optional[int] = None, server_id: Optional[str] = None, host: str = "localhost"
+        self,
+        port: Optional[int] = None,
+        server_id: Optional[str] = None,
+        host: str = "localhost",
     ) -> bool:
         """Start a standalone Socket.IO server with conflict detection."""
 
@@ -246,7 +249,9 @@ class ServerManager:
         )
         return False
 
-    def stop_server(self, port: Optional[int] = None, server_id: Optional[str] = None) -> bool:
+    def stop_server(
+        self, port: Optional[int] = None, server_id: Optional[str] = None
+    ) -> bool:
         """Stop a running Socket.IO server with daemon compatibility."""
 
         if port is None and server_id is None:
@@ -322,7 +327,9 @@ class ServerManager:
         )
         return False
 
-    def restart_server(self, port: Optional[int] = None, server_id: Optional[str] = None) -> bool:
+    def restart_server(
+        self, port: Optional[int] = None, server_id: Optional[str] = None
+    ) -> bool:
         """Restart a Socket.IO server."""
 
         # Stop the server first

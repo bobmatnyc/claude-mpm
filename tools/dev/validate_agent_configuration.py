@@ -144,7 +144,7 @@ def create_example_configs():
             "model": "gpt-4",  # Not a Claude model
             "tools": ["Read", "InvalidTool"],
             "resource_tier": "extreme",  # Not in enum
-        }
+        },
         # Missing required fields: agent_version, instructions
     }
 

@@ -49,7 +49,11 @@ def main():
         ]
 
         result = subprocess.run(
-            cmd, cwd=Path(__file__).parent.parent, capture_output=True, text=True, check=False
+            cmd,
+            cwd=Path(__file__).parent.parent,
+            capture_output=True,
+            text=True,
+            check=False,
         )
 
         if result.returncode == 0:

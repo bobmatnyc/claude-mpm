@@ -54,7 +54,8 @@ class PerformanceValidationSuite:
                 [sys.executable, script_path],
                 capture_output=True,
                 text=True,
-                timeout=300, check=False,
+                timeout=300,
+                check=False,
             )  # 5 minute timeout
             end_time = time.time()
 
@@ -350,13 +351,13 @@ class PerformanceValidationSuite:
         report_lines.extend(["RECOMMENDATIONS", "-" * 15])
 
         if metrics["overall_assessment"] == "EXCELLENT":
-            report_lines.append("✅ All performance improvements are working correctly.")
+            report_lines.append(
+                "✅ All performance improvements are working correctly."
+            )
             report_lines.append("✅ System is ready for production deployment.")
         elif metrics["overall_assessment"] == "GOOD":
             report_lines.append("✅ Most performance improvements are working.")
-            report_lines.append(
-                "⚠️  Monitor any failed tests and address minor issues."
-            )
+            report_lines.append("⚠️  Monitor any failed tests and address minor issues.")
         elif metrics["overall_assessment"] == "PARTIAL":
             report_lines.append("⚠️  Some performance improvements need attention.")
             report_lines.append("⚠️  Review failed tests before full deployment.")

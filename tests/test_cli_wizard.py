@@ -20,10 +20,10 @@ def test_skills_wizard_instantiation():
 
         # Verify it has required methods
         required_methods = [
-            'run_interactive_selection',
-            'list_available_skills',
-            '_auto_link_skills',
-            '_get_recommended_skills_for_agent'
+            "run_interactive_selection",
+            "list_available_skills",
+            "_auto_link_skills",
+            "_get_recommended_skills_for_agent",
         ]
 
         for method in required_methods:
@@ -50,8 +50,10 @@ def test_skills_wizard_instantiation():
     except Exception as e:
         print(f"❌ FAIL: Error testing wizard: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     success = test_skills_wizard_instantiation()

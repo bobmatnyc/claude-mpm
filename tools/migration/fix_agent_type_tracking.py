@@ -2,7 +2,6 @@
 """Fix agent type tracking between Task invocation and SubagentStop events."""
 
 
-
 def analyze_current_implementation():
     """Analyze the current implementation to understand the gap."""
     print("🔍 Analyzing Agent Type Tracking Issue")

@@ -286,12 +286,12 @@ class DataAnalyzer:
                     "task_name": task_data.get("name", "Unknown"),
                     "task_status": task_data.get("status", "Unknown"),
                     "assignees": ", ".join(task_data.get("assignees", [])),
-                    "time_estimate_hours": task_data.get("time_estimate", 0) / 3600000
-                    if task_data
-                    else 0,
-                    "time_spent_hours": task_data.get("time_spent", 0) / 3600000
-                    if task_data
-                    else 0,
+                    "time_estimate_hours": (
+                        task_data.get("time_estimate", 0) / 3600000 if task_data else 0
+                    ),
+                    "time_spent_hours": (
+                        task_data.get("time_spent", 0) / 3600000 if task_data else 0
+                    ),
                     "priority": task_data.get("priority", "none"),
                     "tags": ", ".join(task_data.get("tags", [])),
                 }
@@ -388,7 +388,6 @@ class DataAnalyzer:
             .value_counts()
             .to_dict(),
         }
-
 
 
 class Visualizer:

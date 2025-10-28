@@ -70,12 +70,21 @@ def debug_agent_data():
 
                         # Debug output
                         if agent_id == "engineer":
-                            print(f"\n  Engineer agent data keys: {list(agent_data.keys())}")
-                            print(f"  Has memory_routing: {'memory_routing' in agent_data}")
-                            if 'memory_routing' in agent_data:
-                                print(f"  Memory routing: {agent_data['memory_routing'].get('description', 'No desc')[:60]}...")
+                            print(
+                                f"\n  Engineer agent data keys: {list(agent_data.keys())}"
+                            )
+                            print(
+                                f"  Has memory_routing: {'memory_routing' in agent_data}"
+                            )
+                            if "memory_routing" in agent_data:
+                                print(
+                                    f"  Memory routing: {agent_data['memory_routing'].get('description', 'No desc')[:60]}..."
+                                )
 
-                        if agent_id not in all_agents or priority < all_agents[agent_id][1]:
+                        if (
+                            agent_id not in all_agents
+                            or priority < all_agents[agent_id][1]
+                        ):
                             all_agents[agent_id] = (agent_data, priority)
 
         # Extract deployed agents
@@ -83,7 +92,7 @@ def debug_agent_data():
 
         # Check engineer in deployed_agents
         for agent in deployed_agents:
-            if agent['id'] == 'engineer':
+            if agent["id"] == "engineer":
                 print("\n  Engineer in deployed_agents:")
                 print(f"    Keys: {list(agent.keys())}")
                 print(f"    Has memory_routing: {'memory_routing' in agent}")

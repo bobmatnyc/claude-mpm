@@ -117,7 +117,6 @@ def remove_ticketing_sections(content):
     return re.sub(r"\n{3,}$", "\n", content)
 
 
-
 # Process each agent template
 for agent_file in templates_dir.glob("*_agent.md"):
     content = agent_file.read_text()

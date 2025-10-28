@@ -153,7 +153,8 @@ def run_final_verification():
                 text=True,
                 capture_output=True,
                 env=env,
-                timeout=5, check=False,
+                timeout=5,
+                check=False,
             )
 
             if result.returncode == 0:

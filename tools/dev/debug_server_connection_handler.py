@@ -170,7 +170,9 @@ class DebugSocketIOServer(SocketIOServer):
                 self.logger.info(
                     f"🔧 DEBUG: - events count: {len(response_data['events'])}"
                 )
-                self.logger.info(f"🔧 DEBUG: - reported count: {response_data['count']}")
+                self.logger.info(
+                    f"🔧 DEBUG: - reported count: {response_data['count']}"
+                )
                 self.logger.info(
                     f"🔧 DEBUG: - total_available: {response_data['total_available']}"
                 )

@@ -21,7 +21,8 @@ def run_command(cmd, timeout=30):
             capture_output=True,
             text=True,
             timeout=timeout,
-            cwd=Path(__file__).parent.parent, check=False,
+            cwd=Path(__file__).parent.parent,
+            check=False,
         )
         return result.returncode == 0, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
@@ -73,9 +74,11 @@ def check_monitoring_health():
         {
             "name": "Dashboard File",
             "status": "✅ OK" if dashboard_exists else "❌ Missing",
-            "details": f"Size: {dashboard_path.stat().st_size} bytes"
-            if dashboard_exists
-            else "File not found",
+            "details": (
+                f"Size: {dashboard_path.stat().st_size} bytes"
+                if dashboard_exists
+                else "File not found"
+            ),
         }
     )
 
@@ -95,12 +98,14 @@ def check_monitoring_health():
     checks.append(
         {
             "name": "Test Scripts",
-            "status": "✅ OK"
-            if not missing_tests
-            else f"⚠️ {len(missing_tests)} missing",
-            "details": f"Missing: {', '.join(missing_tests)}"
-            if missing_tests
-            else "All test scripts present",
+            "status": (
+                "✅ OK" if not missing_tests else f"⚠️ {len(missing_tests)} missing"
+            ),
+            "details": (
+                f"Missing: {', '.join(missing_tests)}"
+                if missing_tests
+                else "All test scripts present"
+            ),
         }
     )
 

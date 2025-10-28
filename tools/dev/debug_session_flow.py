@@ -32,7 +32,8 @@ def analyze_session_data():
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             cwd=current_dir,
             capture_output=True,
-            text=True, check=False,
+            text=True,
+            check=False,
         )
         if result.returncode == 0:
             current_branch = result.stdout.strip()

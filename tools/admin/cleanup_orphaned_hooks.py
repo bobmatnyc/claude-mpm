@@ -48,9 +48,7 @@ def main():
         status = (
             "🟢 Recent"
             if proc["age_minutes"] < 5
-            else "🟡 Old"
-            if proc["age_minutes"] < 60
-            else "🔴 Orphaned"
+            else "🟡 Old" if proc["age_minutes"] < 60 else "🔴 Orphaned"
         )
         print(f"  {status} PID {proc['pid']}: {proc['age_minutes']:.1f} minutes old")
 

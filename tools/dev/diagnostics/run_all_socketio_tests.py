@@ -31,7 +31,8 @@ def run_test_script(script_name, description):
         result = subprocess.run(
             [sys.executable, str(script_path)],
             cwd=Path(__file__).parent.parent,
-            timeout=120, check=False,  # 2 minute timeout per test
+            timeout=120,
+            check=False,  # 2 minute timeout per test
         )
 
         end_time = time.time()

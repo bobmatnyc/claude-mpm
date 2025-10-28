@@ -96,7 +96,9 @@ async def demo_ticket_tools():
 
     print("\nResponse:")
     if result.success:
-        print(f"  ✅ Success! Created ticket: {result.data.get('ticket_id', 'Unknown')}")
+        print(
+            f"  ✅ Success! Created ticket: {result.data.get('ticket_id', 'Unknown')}"
+        )
         print(f"  Execution time: {result.execution_time:.2f}s")
     else:
         print(f"  ❌ Failed: {result.error}")

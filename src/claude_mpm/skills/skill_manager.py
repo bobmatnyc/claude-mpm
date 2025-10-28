@@ -26,7 +26,9 @@ class SkillManager:
         agent_templates_dir = Path(__file__).parent.parent / "agents" / "templates"
 
         if not agent_templates_dir.exists():
-            logger.warning(f"Agent templates directory not found: {agent_templates_dir}")
+            logger.warning(
+                f"Agent templates directory not found: {agent_templates_dir}"
+            )
             return
 
         mapping_count = 0
@@ -214,14 +216,10 @@ class SkillManager:
             tag in content_lower or tag in name_lower
             for tag in ["typescript", "javascript", "react", "next", "vue", "node"]
         ):
-            agents.extend(
-                ["typescript-engineer", "react-engineer", "nextjs-engineer"]
-            )
+            agents.extend(["typescript-engineer", "react-engineer", "nextjs-engineer"])
 
         # Go-related
-        if any(
-            tag in content_lower or tag in name_lower for tag in ["golang", "go "]
-        ):
+        if any(tag in content_lower or tag in name_lower for tag in ["golang", "go "]):
             agents.append("golang-engineer")
 
         # Ops-related

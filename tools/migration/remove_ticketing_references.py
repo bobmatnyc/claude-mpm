@@ -71,14 +71,15 @@ def remove_ticketing_references(content):
     content = re.sub(
         r"📋 Research Summary for Ticket ISS-\d+:.*?```", "", content, flags=re.DOTALL
     )
-    content = re.sub(r"🐛 Bug Found - Needs Ticket:.*?```", "", content, flags=re.DOTALL)
+    content = re.sub(
+        r"🐛 Bug Found - Needs Ticket:.*?```", "", content, flags=re.DOTALL
+    )
 
     # Remove aitrackdown references
     content = re.sub(r".*aitrackdown.*\n", "", content)
 
     # Clean up excessive newlines
     return re.sub(r"\n{4,}", "\n\n\n", content)
-
 
 
 # Process each agent template (except ticketing_agent.md which we'll delete)

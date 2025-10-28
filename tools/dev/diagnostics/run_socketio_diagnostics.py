@@ -165,7 +165,8 @@ class SocketIODiagnosticRunner:
                 [sys.executable, str(script_path)],
                 capture_output=True,
                 text=True,
-                timeout=60, check=False,
+                timeout=60,
+                check=False,
             )
 
             print("📋 Connection & Auth Test Output:")
@@ -218,7 +219,8 @@ class SocketIODiagnosticRunner:
                 [sys.executable, str(script_path), "--continuous", "10"],
                 capture_output=True,
                 text=True,
-                timeout=30, check=False,
+                timeout=30,
+                check=False,
             )
 
             print("📋 Hook Handler Test Output:")
@@ -272,7 +274,8 @@ class SocketIODiagnosticRunner:
                 [sys.executable, str(script_path), "--port", "8766", "--events", "5"],
                 capture_output=True,
                 text=True,
-                timeout=120, check=False,
+                timeout=120,
+                check=False,
             )
 
             print("📋 End-to-End Test Output:")

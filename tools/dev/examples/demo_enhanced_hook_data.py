@@ -47,12 +47,14 @@ def demonstrate_data_capture():
         "working_directory": user_prompt_event.get("cwd", ""),
         "is_command": prompt.startswith("/"),
         "contains_code": "```" in prompt or "python" in prompt.lower(),
-        "urgency": "high"
-        if any(
-            word in prompt.lower()
-            for word in ["urgent", "error", "bug", "fix", "broken"]
-        )
-        else "normal",
+        "urgency": (
+            "high"
+            if any(
+                word in prompt.lower()
+                for word in ["urgent", "error", "bug", "fix", "broken"]
+            )
+            else "normal"
+        ),
     }
 
     print("\n✨ Enhanced extracted data:")

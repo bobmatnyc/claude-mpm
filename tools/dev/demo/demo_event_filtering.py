@@ -28,23 +28,23 @@ class EventFilteringDemo:
                     "agent_name": "Project Manager",
                     "agent_type": "PM",
                     "status": "active",
-                    "message": "Analyzing project requirements"
-                }
+                    "message": "Analyzing project requirements",
+                },
             },
             {
                 "hook_event_name": "SubagentStart",
                 "data": {
                     "agent": "Engineer-{id}",
-                    "task": "Implementing feature #{task_id}"
-                }
+                    "task": "Implementing feature #{task_id}",
+                },
             },
             {
                 "type": "agent_inference",
                 "data": {
                     "agent_name": "QA Agent {id}",
                     "status": "running",
-                    "message": "Running test suite {suite}"
-                }
+                    "message": "Running test suite {suite}",
+                },
             },
             {
                 "type": "agent_complete",
@@ -52,9 +52,9 @@ class EventFilteringDemo:
                     "agent_id": "devops-{id}",
                     "agent_name": "DevOps Agent",
                     "status": "complete",
-                    "message": "Deployment successful"
-                }
-            }
+                    "message": "Deployment successful",
+                },
+            },
         ]
 
         self.tool_templates = [
@@ -63,23 +63,20 @@ class EventFilteringDemo:
                 "data": {
                     "tool": "Bash",
                     "command": "{command}",
-                    "description": "Executing: {command}"
-                }
+                    "description": "Executing: {command}",
+                },
             },
             {
                 "hook_event_name": "ToolStart",
-                "data": {
-                    "tool_name": "Read",
-                    "file_path": "/src/{file}"
-                }
+                "data": {"tool_name": "Read", "file_path": "/src/{file}"},
             },
             {
                 "type": "tool_execution",
                 "data": {
                     "tool": "WebFetch",
                     "url": "https://api.{service}.com/v1/data",
-                    "status": "running"
-                }
+                    "status": "running",
+                },
             },
             {
                 "type": "tool_complete",
@@ -87,17 +84,17 @@ class EventFilteringDemo:
                     "tool": "Grep",
                     "pattern": "{pattern}",
                     "status": "completed",
-                    "matches": random.randint(1, 50)
-                }
+                    "matches": random.randint(1, 50),
+                },
             },
             {
                 "type": "bash_command",
                 "data": {
                     "command": "git {git_cmd}",
                     "tool": "Bash",
-                    "status": "completed"
-                }
-            }
+                    "status": "completed",
+                },
+            },
         ]
 
         self.file_templates = [
@@ -105,38 +102,47 @@ class EventFilteringDemo:
                 "type": "file_read",
                 "data": {
                     "file_path": "/src/{module}/{file}.{ext}",
-                    "size": random.randint(100, 10000)
-                }
+                    "size": random.randint(100, 10000),
+                },
             },
             {
                 "hook_event_name": "FileWrite",
                 "data": {
                     "path": "/config/{config}.json",
                     "operation": "write",
-                    "size": random.randint(50, 5000)
-                }
+                    "size": random.randint(50, 5000),
+                },
             },
             {
                 "type": "file_edit",
                 "data": {
                     "file": "/src/components/{component}.jsx",
                     "operation": "edit",
-                    "lines_changed": random.randint(1, 100)
-                }
+                    "lines_changed": random.randint(1, 100),
+                },
             },
             {
                 "type": "file_delete",
-                "data": {
-                    "file_path": "/tmp/{temp_file}",
-                    "operation": "delete"
-                }
-            }
+                "data": {"file_path": "/tmp/{temp_file}", "operation": "delete"},
+            },
         ]
 
         # Random data for templates
-        self.commands = ["npm test", "npm build", "npm install", "yarn test", "make build"]
+        self.commands = [
+            "npm test",
+            "npm build",
+            "npm install",
+            "yarn test",
+            "make build",
+        ]
         self.git_commands = ["status", "diff", "log --oneline", "branch -a", "pull"]
-        self.patterns = ["TODO", "FIXME", "import.*from", "class.*extends", "function.*\\("]
+        self.patterns = [
+            "TODO",
+            "FIXME",
+            "import.*from",
+            "class.*extends",
+            "function.*\\(",
+        ]
         self.services = ["github", "npm", "pypi", "docker", "kubernetes"]
         self.modules = ["components", "utils", "services", "hooks", "stores"]
         self.files = ["index", "app", "main", "utils", "helpers", "config"]
@@ -149,7 +155,9 @@ class EventFilteringDemo:
         """Connect to the Socket.IO server"""
         try:
             print("🔌 Connecting to monitor server...")
-            self.sio.connect('http://localhost:8765', transports=['polling', 'websocket'])
+            self.sio.connect(
+                "http://localhost:8765", transports=["polling", "websocket"]
+            )
             time.sleep(1)
             if self.sio.connected:
                 print("✅ Connected successfully!")
@@ -181,7 +189,7 @@ class EventFilteringDemo:
                         ext=random.choice(self.extensions),
                         component=random.choice(self.components),
                         config=random.choice(self.configs),
-                        temp_file=random.choice(self.temp_files)
+                        temp_file=random.choice(self.temp_files),
                     )
 
         return event
@@ -194,8 +202,8 @@ class EventFilteringDemo:
         for _ in range(random.randint(1, 2)):
             template = random.choice(self.agent_templates)
             event = self.format_event(template, event_id)
-            self.sio.emit('claude_event', event)
-            event_type = event.get('type') or event.get('hook_event_name')
+            self.sio.emit("claude_event", event)
+            event_type = event.get("type") or event.get("hook_event_name")
             print(f"  📤 Agent: {event_type}")
             time.sleep(0.1)
 
@@ -203,8 +211,8 @@ class EventFilteringDemo:
         for _ in range(random.randint(2, 3)):
             template = random.choice(self.tool_templates)
             event = self.format_event(template, event_id + 1)
-            self.sio.emit('claude_event', event)
-            event_type = event.get('type') or event.get('hook_event_name')
+            self.sio.emit("claude_event", event)
+            event_type = event.get("type") or event.get("hook_event_name")
             print(f"  🔧 Tool: {event_type}")
             time.sleep(0.1)
 
@@ -212,8 +220,8 @@ class EventFilteringDemo:
         for _ in range(random.randint(1, 2)):
             template = random.choice(self.file_templates)
             event = self.format_event(template, event_id + 2)
-            self.sio.emit('claude_event', event)
-            event_type = event.get('type') or event.get('hook_event_name')
+            self.sio.emit("claude_event", event)
+            event_type = event.get("type") or event.get("hook_event_name")
             print(f"  📁 File: {event_type}")
             time.sleep(0.1)
 
@@ -225,7 +233,9 @@ class EventFilteringDemo:
 
         if not self.connect():
             print("\n⚠️  Make sure the monitor server is running:")
-            print('  python -c "from claude_mpm.services.monitor import UnifiedMonitorDaemon; d = UnifiedMonitorDaemon(); d.start()"')
+            print(
+                '  python -c "from claude_mpm.services.monitor import UnifiedMonitorDaemon; d = UnifiedMonitorDaemon(); d.start()"'
+            )
             return
 
         print("\n📺 OPEN THESE URLS IN YOUR BROWSER:")
@@ -268,6 +278,7 @@ class EventFilteringDemo:
                 self.sio.disconnect()
                 print("🔌 Disconnected from server")
 
+
 def main():
     import sys
 
@@ -281,6 +292,7 @@ def main():
 
     demo = EventFilteringDemo()
     demo.run_demo(duration)
+
 
 if __name__ == "__main__":
     main()

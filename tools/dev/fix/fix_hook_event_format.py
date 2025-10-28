@@ -7,10 +7,14 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+
 def patch_hook_handler():
     """Patch the hook handler to be more flexible with event formats."""
 
-    handler_path = Path(__file__).parent.parent / "src/claude_mpm/hooks/claude_hooks/hook_handler.py"
+    handler_path = (
+        Path(__file__).parent.parent
+        / "src/claude_mpm/hooks/claude_hooks/hook_handler.py"
+    )
 
     print("Patching hook handler to accept multiple event formats...")
 
@@ -63,10 +67,12 @@ def patch_hook_handler():
     print("⚠️ Could not find exact match, trying alternative patch...")
 
     # Try a simpler patch
-    lines = content.split('\n')
+    lines = content.split("\n")
     for i, line in enumerate(lines):
         if 'hook_type = event.get("hook_event_name", "unknown")' in line:
-            lines[i] = '''        # Try multiple field names for compatibility
+            lines[
+                i
+            ] = """        # Try multiple field names for compatibility
         hook_type = (
             event.get("hook_event_name") or
             event.get("event") or
@@ -74,25 +80,29 @@ def patch_hook_handler():
             event.get("event_type") or
             event.get("hook_event_type") or
             "unknown"
-        )'''
-            handler_path.write_text('\n'.join(lines))
+        )"""
+            handler_path.write_text("\n".join(lines))
             print("✅ Applied alternative patch")
             return True
 
     print("❌ Could not patch hook handler")
     return False
 
+
 def add_debug_logging():
     """Add more debug logging to capture actual event format."""
 
-    handler_path = Path(__file__).parent.parent / "src/claude_mpm/hooks/claude_hooks/hook_handler.py"
+    handler_path = (
+        Path(__file__).parent.parent
+        / "src/claude_mpm/hooks/claude_hooks/hook_handler.py"
+    )
     content = handler_path.read_text()
 
     # Add debug output right after reading event
-    old_parse = '''            return json.loads(event_data)
-        except (json.JSONDecodeError, ValueError) as e:'''
+    old_parse = """            return json.loads(event_data)
+        except (json.JSONDecodeError, ValueError) as e:"""
 
-    new_parse = '''            parsed = json.loads(event_data)
+    new_parse = """            parsed = json.loads(event_data)
             # Debug: Log the actual event format we receive
             if DEBUG:
                 print(f"Received event with keys: {list(parsed.keys())}", file=sys.stderr)
@@ -100,7 +110,7 @@ def add_debug_logging():
                     if key in parsed:
                         print(f"  {key} = '{parsed[key]}'", file=sys.stderr)
             return parsed
-        except (json.JSONDecodeError, ValueError) as e:'''
+        except (json.JSONDecodeError, ValueError) as e:"""
 
     if old_parse in content:
         content = content.replace(old_parse, new_parse)
@@ -109,6 +119,7 @@ def add_debug_logging():
         return True
 
     return False
+
 
 def main():
     """Main entry point."""
@@ -132,6 +143,7 @@ def main():
     else:
         print("\n❌ Failed to apply patches")
         print("Please check the hook handler manually")
+
 
 if __name__ == "__main__":
     main()

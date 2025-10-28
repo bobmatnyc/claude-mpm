@@ -8,6 +8,7 @@ from datetime import datetime
 # Log file
 log_file = "/tmp/claude-event-debug.log"
 
+
 def main():
     # Read from stdin
     try:
@@ -27,7 +28,13 @@ def main():
 
                 # Log key fields
                 f.write("\nKey fields detected:\n")
-                for key in ["hook_event_name", "hook_event_type", "type", "event", "event_type"]:
+                for key in [
+                    "hook_event_name",
+                    "hook_event_type",
+                    "type",
+                    "event",
+                    "event_type",
+                ]:
                     if key in parsed:
                         f.write(f"  {key}: {parsed[key]}\n")
             except (json.JSONDecodeError, ValueError, KeyError):
@@ -40,6 +47,7 @@ def main():
         with open(log_file, "a") as f:
             f.write(f"\nError: {e}\n")
         print('{"action": "continue"}')
+
 
 if __name__ == "__main__":
     main()

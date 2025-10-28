@@ -28,7 +28,10 @@ def demo_todowrite_function(*args, **kwargs):
     print(f"📝 TodoWrite called with {len(todos)} todos:")
     for i, todo in enumerate(todos, 1):
         # Highlight injected reminders
-        if any(keyword in todo["content"] for keyword in ["[TEST-REMINDER]", "[PM-INSTRUCTION]"]):
+        if any(
+            keyword in todo["content"]
+            for keyword in ["[TEST-REMINDER]", "[PM-INSTRUCTION]"]
+        ):
             print(f"   🔔 {i}. {todo['content']} (INJECTED)")
         else:
             print(f"   - {i}. {todo['content']}")
@@ -62,12 +65,60 @@ def main():
 
     # Simulate a series of PM TodoWrite calls
     demo_calls = [
-        {"todos": [{"content": "Analyze user requirements", "status": "pending", "activeForm": "Analyzing requirements"}]},
-        {"todos": [{"content": "Create project plan", "status": "pending", "activeForm": "Creating plan"}]},
-        {"todos": [{"content": "Delegate implementation to Engineer", "status": "pending", "activeForm": "Delegating work"}]},
-        {"todos": [{"content": "Review progress with QA team", "status": "pending", "activeForm": "Reviewing progress"}]},
-        {"todos": [{"content": "Coordinate deployment", "status": "pending", "activeForm": "Coordinating deployment"}]},
-        {"todos": [{"content": "Schedule team standup", "status": "pending", "activeForm": "Scheduling meeting"}]},
+        {
+            "todos": [
+                {
+                    "content": "Analyze user requirements",
+                    "status": "pending",
+                    "activeForm": "Analyzing requirements",
+                }
+            ]
+        },
+        {
+            "todos": [
+                {
+                    "content": "Create project plan",
+                    "status": "pending",
+                    "activeForm": "Creating plan",
+                }
+            ]
+        },
+        {
+            "todos": [
+                {
+                    "content": "Delegate implementation to Engineer",
+                    "status": "pending",
+                    "activeForm": "Delegating work",
+                }
+            ]
+        },
+        {
+            "todos": [
+                {
+                    "content": "Review progress with QA team",
+                    "status": "pending",
+                    "activeForm": "Reviewing progress",
+                }
+            ]
+        },
+        {
+            "todos": [
+                {
+                    "content": "Coordinate deployment",
+                    "status": "pending",
+                    "activeForm": "Coordinating deployment",
+                }
+            ]
+        },
+        {
+            "todos": [
+                {
+                    "content": "Schedule team standup",
+                    "status": "pending",
+                    "activeForm": "Scheduling meeting",
+                }
+            ]
+        },
     ]
 
     print("🚀 Simulating PM session with TodoWrite calls...\n")
@@ -81,8 +132,10 @@ def main():
 
         # Show current metrics
         metrics = get_instruction_reinforcement_metrics()
-        print(f"Metrics: {metrics['call_count']} calls, {metrics['injection_count']} injections, "
-              f"next injection in {metrics['next_injection_in']} calls")
+        print(
+            f"Metrics: {metrics['call_count']} calls, {metrics['injection_count']} injections, "
+            f"next injection in {metrics['next_injection_in']} calls"
+        )
         print()
 
     # Final summary

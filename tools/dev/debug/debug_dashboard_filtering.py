@@ -12,13 +12,16 @@ import socketio
 # Connect to the dashboard WebSocket
 sio = socketio.Client()
 
+
 @sio.event
 def connect():
     print("✅ Connected to dashboard WebSocket")
 
+
 @sio.event
 def disconnect():
     print("❌ Disconnected from dashboard WebSocket")
+
 
 def send_test_events():
     """Send a variety of event types to test filtering"""
@@ -32,18 +35,16 @@ def send_test_events():
             "tool_name": "Read",
             "tool_parameters": {"file_path": "/test/file1.txt"},
             "timestamp": datetime.now().isoformat(),
-            "session_id": "test-session-1"
+            "session_id": "test-session-1",
         },
-
         # Tool_use event (should work with new filtering)
         {
             "type": "tool_use",
             "tool_name": "Write",
             "tool_parameters": {"file_path": "/test/file2.txt", "content": "test"},
             "timestamp": datetime.now().isoformat(),
-            "session_id": "test-session-1"
+            "session_id": "test-session-1",
         },
-
         # Agent event with tool info (should work with new filtering)
         {
             "type": "agent",
@@ -52,18 +53,16 @@ def send_test_events():
             "tool_parameters": {"file_path": "/test/file3.txt"},
             "agent_type": "Engineer Agent",
             "timestamp": datetime.now().isoformat(),
-            "session_id": "test-session-1"
+            "session_id": "test-session-1",
         },
-
         # Response event with tool info (should work with new filtering)
         {
             "type": "response",
             "tool_name": "Bash",
             "tool_parameters": {"command": "ls -la"},
             "timestamp": datetime.now().isoformat(),
-            "session_id": "test-session-1"
+            "session_id": "test-session-1",
         },
-
         # Event with tool info in data field
         {
             "type": "custom",
@@ -72,26 +71,28 @@ def send_test_events():
                 "tool_parameters": {"pattern": "test", "path": "/test/"},
             },
             "timestamp": datetime.now().isoformat(),
-            "session_id": "test-session-1"
+            "session_id": "test-session-1",
         },
-
         # Event without type but with tool_name (edge case)
         {
             "tool_name": "Read",
             "tool_parameters": {"file_path": "/test/edge_case.txt"},
             "timestamp": datetime.now().isoformat(),
-            "session_id": "test-session-1"
-        }
+            "session_id": "test-session-1",
+        },
     ]
 
     print(f"\n📤 Sending {len(test_events)} test events with various structures...")
 
     for i, event in enumerate(test_events):
-        print(f"   Event {i+1}: type='{event.get('type', 'none')}', tool='{event.get('tool_name', event.get('data', {}).get('tool_name', 'none'))}'")
-        sio.emit('event', event)
+        print(
+            f"   Event {i+1}: type='{event.get('type', 'none')}', tool='{event.get('tool_name', event.get('data', {}).get('tool_name', 'none'))}'"
+        )
+        sio.emit("event", event)
         time.sleep(0.1)  # Small delay between events
 
     print("\n✅ All test events sent!")
+
 
 def main():
     print("=" * 60)
@@ -101,9 +102,11 @@ def main():
     try:
         # Connect to the dashboard WebSocket
         print("\n🔌 Connecting to dashboard WebSocket on port 8765...")
-        sio.connect('http://localhost:8765',
-                    socketio_path='/socket.io/',
-                    transports=['websocket', 'polling'])
+        sio.connect(
+            "http://localhost:8765",
+            socketio_path="/socket.io/",
+            transports=["websocket", "polling"],
+        )
 
         # Send test events
         send_test_events()
@@ -125,6 +128,7 @@ def main():
         print(f"❌ Error: {e}")
     finally:
         sio.disconnect()
+
 
 if __name__ == "__main__":
     main()

@@ -8,38 +8,64 @@ AGENTS_DIR = Path("/Users/masa/Projects/claude-mpm/src/claude_mpm/agents/templat
 
 # All agents that received skills field (using actual file names)
 AGENTS_WITH_SKILLS = [
-    "agent-manager", "agentic-coder-optimizer", "api_qa",
-    "clerk-ops", "code_analyzer", "content-agent", "dart_engineer",
-    "data_engineer", "documentation", "engineer", "gcp_ops_agent",
-    "golang_engineer", "imagemagick", "java_engineer", "local_ops_agent",
-    "nextjs_engineer", "ops", "php-engineer", "project_organizer",
-    "python_engineer", "qa", "react_engineer", "refactoring_engineer",
-    "ruby-engineer", "rust_engineer", "security", "ticketing",
-    "typescript_engineer", "vercel_ops_agent", "version_control", "web_ui"
+    "agent-manager",
+    "agentic-coder-optimizer",
+    "api_qa",
+    "clerk-ops",
+    "code_analyzer",
+    "content-agent",
+    "dart_engineer",
+    "data_engineer",
+    "documentation",
+    "engineer",
+    "gcp_ops_agent",
+    "golang_engineer",
+    "imagemagick",
+    "java_engineer",
+    "local_ops_agent",
+    "nextjs_engineer",
+    "ops",
+    "php-engineer",
+    "project_organizer",
+    "python_engineer",
+    "qa",
+    "react_engineer",
+    "refactoring_engineer",
+    "ruby-engineer",
+    "rust_engineer",
+    "security",
+    "ticketing",
+    "typescript_engineer",
+    "vercel_ops_agent",
+    "version_control",
+    "web_ui",
 ]
+
 
 def bump_patch_version(version_str):
     """Bump patch version (3.0.0 → 3.0.1)."""
-    parts = version_str.split('.')
+    parts = version_str.split(".")
     if len(parts) == 3:
         major, minor, patch = parts
         new_patch = str(int(patch) + 1)
         return f"{major}.{minor}.{new_patch}"
     return version_str
 
+
 def bump_agent_version(agent_file):
     """Bump version in agent JSON file."""
     with open(agent_file) as f:
         data = json.load(f)
 
-    old_version = data.get('version', '1.0.0')
+    old_version = data.get("version", "1.0.0")
     new_version = bump_patch_version(old_version)
-    data['version'] = new_version
+    data["version"] = new_version
 
-    with open(agent_file, 'w') as f:
+    with open(agent_file, "w") as f:
         json.dump(data, f, indent=2)
 
     return old_version, new_version
+
 
 def main():
     """Main execution function."""
@@ -72,6 +98,7 @@ def main():
             print(f"  - {agent}: {reason}")
 
     return bumped, failed
+
 
 if __name__ == "__main__":
     bumped, failed = main()

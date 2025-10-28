@@ -24,7 +24,9 @@ def check_socketio_server():
 
     # Check if port 8765 is in use
     print("\n2. Checking port 8765...")
-    result = subprocess.run(["lsof", "-i", ":8765"], capture_output=True, text=True, check=False)
+    result = subprocess.run(
+        ["lsof", "-i", ":8765"], capture_output=True, text=True, check=False
+    )
 
     if result.stdout:
         print("✅ Port 8765 is in use")
@@ -64,7 +66,10 @@ except Exception as e:
         f.write(test_script)
 
     result = subprocess.run(
-        [sys.executable, "/tmp/test_socketio.py"], capture_output=True, text=True, check=False
+        [sys.executable, "/tmp/test_socketio.py"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
     print(result.stdout)

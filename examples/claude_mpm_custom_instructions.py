@@ -37,7 +37,8 @@ def demonstrate_custom_instructions():
 
         # Create custom INSTRUCTIONS.md
         instructions_path = claude_mpm_dir / "INSTRUCTIONS.md"
-        instructions_path.write_text("""# Custom Project PM Instructions
+        instructions_path.write_text(
+            """# Custom Project PM Instructions
 
 ## Project-Specific Rules
 - Always prioritize security in this project
@@ -49,12 +50,14 @@ def demonstrate_custom_instructions():
 - Security reviews must go through Security agent first
 - All API changes require Documentation agent updates
 - Performance issues should involve both Engineer and Ops agents
-""")
+"""
+        )
         print("✓ Created custom INSTRUCTIONS.md")
 
         # Create custom WORKFLOW.md
         workflow_path = claude_mpm_dir / "WORKFLOW.md"
-        workflow_path.write_text("""# Custom Project Workflow
+        workflow_path.write_text(
+            """# Custom Project Workflow
 
 ## Phase 1: Security Analysis
 - Security agent reviews requirements
@@ -67,12 +70,14 @@ def demonstrate_custom_instructions():
 ## Phase 3: Performance Validation
 - Ops agent runs performance tests
 - Engineer optimizes if needed
-""")
+"""
+        )
         print("✓ Created custom WORKFLOW.md")
 
         # Create custom MEMORY.md
         memory_path = claude_mpm_dir / "MEMORY.md"
-        memory_path.write_text("""# Custom Memory Instructions
+        memory_path.write_text(
+            """# Custom Memory Instructions
 
 ## Memory Management Rules
 - Track all security decisions
@@ -85,14 +90,16 @@ def demonstrate_custom_instructions():
 2. Performance bottlenecks identified
 3. API breaking changes
 4. Customer-reported issues
-""")
+"""
+        )
         print("✓ Created custom MEMORY.md")
 
         # Create memories directory with PM memories
         memories_dir = claude_mpm_dir / "memories"
         memories_dir.mkdir()
         pm_memories_path = memories_dir / "PM_memories.md"
-        pm_memories_path.write_text("""# Project Manager Memories
+        pm_memories_path.write_text(
+            """# Project Manager Memories
 
 ## Project Context
 - This is a financial services application
@@ -110,7 +117,8 @@ def demonstrate_custom_instructions():
 - Legacy code in /src/old needs refactoring
 - API v1 will be deprecated in Q2
 - Performance issues with large datasets
-""")
+"""
+        )
         print("✓ Created PM memories")
 
         # Also create a .claude directory to demonstrate it's ignored
@@ -136,27 +144,43 @@ def demonstrate_custom_instructions():
             print("Loaded Custom Instructions:")
             print("-" * 30)
             if content.get("custom_instructions"):
-                print(f"✓ INSTRUCTIONS.md loaded from {content.get('custom_instructions_level', 'unknown')} level")
-                print(f"  First line: {content['custom_instructions'].split(chr(10))[0]}")
+                print(
+                    f"✓ INSTRUCTIONS.md loaded from {content.get('custom_instructions_level', 'unknown')} level"
+                )
+                print(
+                    f"  First line: {content['custom_instructions'].split(chr(10))[0]}"
+                )
             else:
                 print("✗ No custom instructions loaded")
 
             if content.get("workflow_instructions_level") == "project":
                 print("✓ WORKFLOW.md loaded from project level")
-                print(f"  First line: {content['workflow_instructions'].split(chr(10))[0]}")
+                print(
+                    f"  First line: {content['workflow_instructions'].split(chr(10))[0]}"
+                )
             else:
-                print(f"ℹ WORKFLOW.md using {content.get('workflow_instructions_level', 'system')} defaults")
+                print(
+                    f"ℹ WORKFLOW.md using {content.get('workflow_instructions_level', 'system')} defaults"
+                )
 
             if content.get("memory_instructions_level") == "project":
                 print("✓ MEMORY.md loaded from project level")
-                print(f"  First line: {content['memory_instructions'].split(chr(10))[0]}")
+                print(
+                    f"  First line: {content['memory_instructions'].split(chr(10))[0]}"
+                )
             else:
-                print(f"ℹ MEMORY.md using {content.get('memory_instructions_level', 'system')} defaults")
+                print(
+                    f"ℹ MEMORY.md using {content.get('memory_instructions_level', 'system')} defaults"
+                )
 
             if content.get("actual_memories"):
                 print("✓ PM memories loaded")
                 # Count memory items
-                memory_lines = [l for l in content['actual_memories'].split('\n') if l.strip().startswith('-')]
+                memory_lines = [
+                    l
+                    for l in content["actual_memories"].split("\n")
+                    if l.strip().startswith("-")
+                ]
                 print(f"  Found {len(memory_lines)} memory items")
 
             # Verify .claude/ directory was ignored
@@ -186,7 +210,8 @@ def demonstrate_custom_instructions():
             print(f"\n{'='*40}")
             print("Project Structure:")
             print(f"{'='*40}")
-            print(f"""
+            print(
+                f"""
 {project_dir}/
 ├── .claude-mpm/              ✓ LOADED
 │   ├── INSTRUCTIONS.md       ✓ Custom PM instructions
@@ -196,7 +221,8 @@ def demonstrate_custom_instructions():
 │       └── PM_memories.md    ✓ PM memories
 └── .claude/                   ✗ IGNORED
     └── INSTRUCTIONS.md        ✗ Not loaded (correct!)
-""")
+"""
+            )
 
         finally:
             os.chdir(original_cwd)

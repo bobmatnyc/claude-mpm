@@ -511,11 +511,19 @@ class ConfigureCommand(BaseCommand):
 
                 # Get list of enabled agents
                 agents = self.agent_manager.discover_agents()
-                enabled_agents = [a.name for a in agents if self.agent_manager.get_pending_state(a.name)]
+                enabled_agents = [
+                    a.name
+                    for a in agents
+                    if self.agent_manager.get_pending_state(a.name)
+                ]
 
                 if not enabled_agents:
-                    self.console.print("[yellow]No agents are currently enabled.[/yellow]")
-                    self.console.print("Please enable agents first in Agent Management.")
+                    self.console.print(
+                        "[yellow]No agents are currently enabled.[/yellow]"
+                    )
+                    self.console.print(
+                        "Please enable agents first in Agent Management."
+                    )
                     Prompt.ask("\nPress Enter to continue")
                     continue
 
@@ -527,7 +535,9 @@ class ConfigureCommand(BaseCommand):
                     manager.save_mappings_to_config()
                     self.console.print("\n[green]✓ Skills configuration saved![/green]")
                 else:
-                    self.console.print("\n[yellow]Skills configuration cancelled.[/yellow]")
+                    self.console.print(
+                        "\n[yellow]Skills configuration cancelled.[/yellow]"
+                    )
 
                 Prompt.ask("\nPress Enter to continue")
 
@@ -549,7 +559,9 @@ class ConfigureCommand(BaseCommand):
                     table.add_column("Skills", style="green")
 
                     for agent_id, skills in mappings.items():
-                        skills_str = ", ".join(skills) if skills else "[dim](none)[/dim]"
+                        skills_str = (
+                            ", ".join(skills) if skills else "[dim](none)[/dim]"
+                        )
                         table.add_row(agent_id, skills_str)
 
                     self.console.print(table)
@@ -565,11 +577,19 @@ class ConfigureCommand(BaseCommand):
 
                 # Get enabled agents
                 agents = self.agent_manager.discover_agents()
-                enabled_agents = [a.name for a in agents if self.agent_manager.get_pending_state(a.name)]
+                enabled_agents = [
+                    a.name
+                    for a in agents
+                    if self.agent_manager.get_pending_state(a.name)
+                ]
 
                 if not enabled_agents:
-                    self.console.print("[yellow]No agents are currently enabled.[/yellow]")
-                    self.console.print("Please enable agents first in Agent Management.")
+                    self.console.print(
+                        "[yellow]No agents are currently enabled.[/yellow]"
+                    )
+                    self.console.print(
+                        "Please enable agents first in Agent Management."
+                    )
                     Prompt.ask("\nPress Enter to continue")
                     continue
 

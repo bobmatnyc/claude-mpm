@@ -139,7 +139,10 @@ class MCPServiceMonitor:
             # Try using lsof as a fallback
             try:
                 result = subprocess.run(
-                    ["lsof", "-ti", f":{port}"], capture_output=True, text=True, check=False
+                    ["lsof", "-ti", f":{port}"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
                 )
                 if result.returncode == 0 and result.stdout.strip():
                     return int(result.stdout.strip().split("\n")[0])

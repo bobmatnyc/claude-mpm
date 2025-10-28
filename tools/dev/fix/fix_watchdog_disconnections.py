@@ -20,7 +20,9 @@ def create_patch():
     print("causing dashboard disconnections when using --monitor mode.\n")
 
     # Find the modification tracker file
-    tracker_file = Path("src/claude_mpm/services/agents/registry/modification_tracker.py")
+    tracker_file = Path(
+        "src/claude_mpm/services/agents/registry/modification_tracker.py"
+    )
 
     if not tracker_file.exists():
         print(f"❌ Could not find {tracker_file}")
@@ -77,27 +79,40 @@ def _should_enable_watchdog(self) -> bool:
             method_start = content.rfind("\n", 0, start_monitoring_idx)
             if method_start != -1:
                 # Insert the new method
-                content = content[:method_start] + "\n" + patch_content + content[method_start:]
+                content = (
+                    content[:method_start]
+                    + "\n"
+                    + patch_content
+                    + content[method_start:]
+                )
 
                 # Now modify start_monitoring to check the flag
                 # Find the observer.start() call
-                observer_start_idx = content.find("self.observer.start()", start_monitoring_idx)
+                observer_start_idx = content.find(
+                    "self.observer.start()", start_monitoring_idx
+                )
                 if observer_start_idx != -1:
                     # Find the line start
                     line_start = content.rfind("\n", 0, observer_start_idx) + 1
-                    indent = len(content[line_start:observer_start_idx]) - len(content[line_start:observer_start_idx].lstrip())
-                    indent_str = content[line_start:line_start + indent]
+                    indent = len(content[line_start:observer_start_idx]) - len(
+                        content[line_start:observer_start_idx].lstrip()
+                    )
+                    indent_str = content[line_start : line_start + indent]
 
                     # Replace the observer.start() with conditional check
-                    content[line_start:content.find("\n", observer_start_idx)]
-                    new_lines = f'''{indent_str}# Check if watchdog should be enabled
+                    content[line_start : content.find("\n", observer_start_idx)]
+                    new_lines = f"""{indent_str}# Check if watchdog should be enabled
 {indent_str}if self._should_enable_watchdog():
 {indent_str}    self.observer.start()
 {indent_str}    self.logger.info("File system monitoring started")
 {indent_str}else:
-{indent_str}    self.logger.info("File system monitoring disabled")'''
+{indent_str}    self.logger.info("File system monitoring disabled")"""
 
-                    content = content[:line_start] + new_lines + content[content.find("\n", observer_start_idx):]
+                    content = (
+                        content[:line_start]
+                        + new_lines
+                        + content[content.find("\n", observer_start_idx) :]
+                    )
 
                     print("✅ Patch created successfully!")
                 else:
@@ -111,14 +126,14 @@ def _should_enable_watchdog(self) -> bool:
         return False
 
     # Save backup
-    backup_file = tracker_file.with_suffix('.py.backup')
+    backup_file = tracker_file.with_suffix(".py.backup")
     print(f"\n📦 Creating backup at: {backup_file}")
-    with open(backup_file, 'w') as f, open(tracker_file) as orig:
+    with open(backup_file, "w") as f, open(tracker_file) as orig:
         f.write(orig.read())
 
     # Write patched file
     print(f"💾 Writing patched file to: {tracker_file}")
-    with open(tracker_file, 'w') as f:
+    with open(tracker_file, "w") as f:
         f.write(content)
 
     print("\n✅ Patch applied successfully!")
@@ -129,19 +144,19 @@ def _should_enable_watchdog(self) -> bool:
 def create_wrapper_script():
     """Create a wrapper script to run claude-mpm with watchdog disabled."""
 
-    wrapper_content = '''#!/bin/bash
+    wrapper_content = """#!/bin/bash
 # Wrapper script to run claude-mpm with watchdog disabled
 # This prevents dashboard disconnections when using --monitor
 
 export CLAUDE_MPM_NO_WATCH=1
 echo "🔧 Running claude-mpm with watchdog disabled (CLAUDE_MPM_NO_WATCH=1)"
 exec claude-mpm "$@"
-'''
+"""
 
     wrapper_file = Path("claude-mpm-no-watch")
     print(f"\n📝 Creating wrapper script: {wrapper_file}")
 
-    with open(wrapper_file, 'w') as f:
+    with open(wrapper_file, "w") as f:
         f.write(wrapper_content)
 
     # Make executable
@@ -186,7 +201,7 @@ def main():
     print("3. Provide testing instructions\n")
 
     response = input("Continue? (y/N): ").strip().lower()
-    if response != 'y':
+    if response != "y":
         print("Cancelled.")
         return
 
@@ -204,7 +219,9 @@ def main():
     print("\n✅ Fix complete!")
     print("\n⚠️  IMPORTANT: The fix modifies modification_tracker.py")
     print("   A backup was created at modification_tracker.py.backup")
-    print("   To revert: cp src/claude_mpm/services/agents/registry/modification_tracker.py.backup src/claude_mpm/services/agents/registry/modification_tracker.py")
+    print(
+        "   To revert: cp src/claude_mpm/services/agents/registry/modification_tracker.py.backup src/claude_mpm/services/agents/registry/modification_tracker.py"
+    )
 
 
 if __name__ == "__main__":

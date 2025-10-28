@@ -58,17 +58,14 @@ AGENT_SKILL_MAPPING = {
     "react-engineer": REACT_SKILLS,
     "nextjs-engineer": NEXTJS_SKILLS,
     "vue-engineer": VUE_SKILLS,
-
     # Ops agents
     "ops": OPS_SKILLS,
     "devops": OPS_SKILLS,
     "local-ops": OPS_SKILLS,
-
     # Documentation agents
     "docs": DOCUMENTATION_SKILLS,
     "documentation": DOCUMENTATION_SKILLS,
     "technical-writer": DOCUMENTATION_SKILLS,
-
     # QA agents
     "qa": QA_SKILLS,
     "web-qa": QA_SKILLS,
@@ -189,9 +186,7 @@ class SkillsWizard:
         # Fuzzy matching for common patterns
         if "python" in agent_id_lower:
             return PYTHON_SKILLS.copy()
-        if any(
-            js in agent_id_lower for js in ["typescript", "ts", "javascript", "js"]
-        ):
+        if any(js in agent_id_lower for js in ["typescript", "ts", "javascript", "js"]):
             return TYPESCRIPT_SKILLS.copy()
         if "react" in agent_id_lower:
             return REACT_SKILLS.copy()
@@ -247,7 +242,11 @@ class SkillsWizard:
         print("Available Bundled Skills:")
         print("=" * 60)
         for i, skill in enumerate(bundled_skills, 1):
-            description = skill.description[:60] + "..." if len(skill.description) > 60 else skill.description
+            description = (
+                skill.description[:60] + "..."
+                if len(skill.description) > 60
+                else skill.description
+            )
             print(f"  [{i:2d}] {skill.name}")
             print(f"       {description}")
         print()
@@ -307,9 +306,7 @@ class SkillsWizard:
         Returns:
             List of agent IDs
         """
-        agent_ids_input = input(
-            "\nEnter agent IDs (comma-separated): "
-        ).strip()
+        agent_ids_input = input("\nEnter agent IDs (comma-separated): ").strip()
         return [aid.strip() for aid in agent_ids_input.split(",") if aid.strip()]
 
     def _preview_final_configuration(self, mapping: Dict[str, List[str]]):
@@ -364,7 +361,11 @@ class SkillsWizard:
             for skill in sorted(bundled_skills, key=lambda s: s.name):
                 print(f"   • {skill.name}")
                 if skill.description:
-                    desc = skill.description[:80] + "..." if len(skill.description) > 80 else skill.description
+                    desc = (
+                        skill.description[:80] + "..."
+                        if len(skill.description) > 80
+                        else skill.description
+                    )
                     print(f"     {desc}")
 
         # User skills
@@ -374,7 +375,11 @@ class SkillsWizard:
             for skill in sorted(user_skills, key=lambda s: s.name):
                 print(f"   • {skill.name}")
                 if skill.description:
-                    desc = skill.description[:80] + "..." if len(skill.description) > 80 else skill.description
+                    desc = (
+                        skill.description[:80] + "..."
+                        if len(skill.description) > 80
+                        else skill.description
+                    )
                     print(f"     {desc}")
 
         # Project skills
@@ -384,7 +389,11 @@ class SkillsWizard:
             for skill in sorted(project_skills, key=lambda s: s.name):
                 print(f"   • {skill.name}")
                 if skill.description:
-                    desc = skill.description[:80] + "..." if len(skill.description) > 80 else skill.description
+                    desc = (
+                        skill.description[:80] + "..."
+                        if len(skill.description) > 80
+                        else skill.description
+                    )
                     print(f"     {desc}")
 
         print()
@@ -405,8 +414,9 @@ def discover_and_link_runtime_skills():
         registry.reload()
 
         # Get discovered skills (user and project)
-        discovered_skills = registry.list_skills(source='user') + \
-                           registry.list_skills(source='project')
+        discovered_skills = registry.list_skills(source="user") + registry.list_skills(
+            source="project"
+        )
 
         if not discovered_skills:
             logger.debug("No runtime skills discovered")
@@ -439,34 +449,43 @@ def _infer_agents_for_skill(skill) -> List[str]:
     name_lower = skill.name.lower()
 
     # Python-related
-    if any(tag in content_lower or tag in name_lower
-           for tag in ['python', 'django', 'flask', 'fastapi']):
-        agents.append('python-engineer')
+    if any(
+        tag in content_lower or tag in name_lower
+        for tag in ["python", "django", "flask", "fastapi"]
+    ):
+        agents.append("python-engineer")
 
     # TypeScript/JavaScript-related
-    if any(tag in content_lower or tag in name_lower
-           for tag in ['typescript', 'javascript', 'react', 'next', 'vue', 'node']):
-        agents.extend(['typescript-engineer', 'react-engineer', 'nextjs-engineer'])
+    if any(
+        tag in content_lower or tag in name_lower
+        for tag in ["typescript", "javascript", "react", "next", "vue", "node"]
+    ):
+        agents.extend(["typescript-engineer", "react-engineer", "nextjs-engineer"])
 
     # Go-related
-    if any(tag in content_lower or tag in name_lower
-           for tag in ['golang', 'go ']):
-        agents.append('golang-engineer')
+    if any(tag in content_lower or tag in name_lower for tag in ["golang", "go "]):
+        agents.append("golang-engineer")
 
     # Ops-related
-    if any(tag in content_lower or tag in name_lower
-           for tag in ['docker', 'kubernetes', 'deploy', 'devops', 'ops']):
-        agents.extend(['ops', 'devops', 'local-ops'])
+    if any(
+        tag in content_lower or tag in name_lower
+        for tag in ["docker", "kubernetes", "deploy", "devops", "ops"]
+    ):
+        agents.extend(["ops", "devops", "local-ops"])
 
     # Testing/QA-related
-    if any(tag in content_lower or tag in name_lower
-           for tag in ['test', 'qa', 'quality', 'assert']):
-        agents.extend(['qa', 'web-qa', 'api-qa'])
+    if any(
+        tag in content_lower or tag in name_lower
+        for tag in ["test", "qa", "quality", "assert"]
+    ):
+        agents.extend(["qa", "web-qa", "api-qa"])
 
     # Documentation-related
-    if any(tag in content_lower or tag in name_lower
-           for tag in ['documentation', 'docs', 'api doc', 'openapi']):
-        agents.extend(['docs', 'documentation', 'technical-writer'])
+    if any(
+        tag in content_lower or tag in name_lower
+        for tag in ["documentation", "docs", "api doc", "openapi"]
+    ):
+        agents.extend(["docs", "documentation", "technical-writer"])
 
     # Remove duplicates
     return list(set(agents))

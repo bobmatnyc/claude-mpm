@@ -7,17 +7,20 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+
 def fix_server_broadcasting():
     """Fix the server to properly normalize and broadcast events."""
 
-    server_path = Path(__file__).parent.parent / "src/claude_mpm/services/socketio/server/core.py"
+    server_path = (
+        Path(__file__).parent.parent / "src/claude_mpm/services/socketio/server/core.py"
+    )
 
     print("Fixing server event broadcasting...")
 
     content = server_path.read_text()
 
     # Find the api_events_handler section
-    old_handler = '''            try:
+    old_handler = """            try:
                 # Parse JSON payload
                 event_data = await request.json()
 
@@ -28,9 +31,9 @@ def fix_server_broadcasting():
                 # Broadcast to all connected dashboard clients via SocketIO
                 if self.sio:
                     # The event is already in claude_event format from the hook handler
-                    await self.sio.emit("claude_event", event_data)'''
+                    await self.sio.emit("claude_event", event_data)"""
 
-    new_handler = '''            try:
+    new_handler = """            try:
                 # Parse JSON payload
                 event_data = await request.json()
 
@@ -71,7 +74,7 @@ def fix_server_broadcasting():
                 # Broadcast to all connected dashboard clients via SocketIO
                 if self.sio:
                     # Now the event is properly normalized
-                    await self.sio.emit("claude_event", event_data)'''
+                    await self.sio.emit("claude_event", event_data)"""
 
     if old_handler in content:
         content = content.replace(old_handler, new_handler)
@@ -85,16 +88,18 @@ def fix_server_broadcasting():
 def add_debug_logging():
     """Add debug logging to see what's being broadcast."""
 
-    server_path = Path(__file__).parent.parent / "src/claude_mpm/services/socketio/server/core.py"
+    server_path = (
+        Path(__file__).parent.parent / "src/claude_mpm/services/socketio/server/core.py"
+    )
     content = server_path.read_text()
 
     # Add debug logging
-    old_emit = '''                # Broadcast to all connected dashboard clients via SocketIO
+    old_emit = """                # Broadcast to all connected dashboard clients via SocketIO
                 if self.sio:
                     # The event is already in claude_event format from the hook handler
-                    await self.sio.emit("claude_event", event_data)'''
+                    await self.sio.emit("claude_event", event_data)"""
 
-    new_emit = '''                # Broadcast to all connected dashboard clients via SocketIO
+    new_emit = """                # Broadcast to all connected dashboard clients via SocketIO
                 if self.sio:
                     # Debug: Log what we're broadcasting
                     self.logger.info(f"Broadcasting claude_event to {len(self.connected_clients)} clients")
@@ -102,7 +107,7 @@ def add_debug_logging():
 
                     # The event is already in claude_event format from the hook handler
                     await self.sio.emit("claude_event", event_data)
-                    self.logger.info(f"✅ Broadcast complete")'''
+                    self.logger.info(f"✅ Broadcast complete")"""
 
     if old_emit in content and new_emit not in content:
         content = content.replace(old_emit, new_emit)

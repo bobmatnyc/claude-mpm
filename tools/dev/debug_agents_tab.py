@@ -45,7 +45,8 @@ def test_direct_agent_delegation():
             cwd=Path(__file__).parent.parent,
             capture_output=True,
             text=True,
-            timeout=45, check=False,
+            timeout=45,
+            check=False,
         )
 
         # Check output for Task tool usage
@@ -98,7 +99,8 @@ Use the Task tool with:
         cwd=Path(__file__).parent.parent,
         capture_output=True,
         text=True,
-        timeout=60, check=False,
+        timeout=60,
+        check=False,
     )
 
     if result.returncode == 0:

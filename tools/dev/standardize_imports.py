@@ -176,9 +176,7 @@ class ImportStandardizer:
                         module = parts[0].strip()
                         import_clause = " import" + parts[1]
                         if module and not module.startswith((".", "claude_mpm")):
-                            return (
-                                f"{indent1}from claude_mpm.{module}{import_clause}"
-                            )
+                            return f"{indent1}from claude_mpm.{module}{import_clause}"
 
                 return f"{indent1}{import1}"
 

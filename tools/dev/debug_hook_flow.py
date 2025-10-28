@@ -181,7 +181,10 @@ def check_hook_installation():
     if os.path.exists(install_script):
         print("Running hook installation...")
         result = subprocess.run(
-            [sys.executable, install_script], capture_output=True, text=True, check=False
+            [sys.executable, install_script],
+            capture_output=True,
+            text=True,
+            check=False,
         )
         print(result.stdout)
         if result.stderr:

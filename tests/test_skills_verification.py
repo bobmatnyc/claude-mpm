@@ -26,9 +26,12 @@ def test_bundled_skills_count():
     for f in sorted(skill_files):
         print(f"  - {f.stem}")
 
-    assert len(skill_files) == 15, f"Expected 15 bundled skills, found {len(skill_files)}"
+    assert (
+        len(skill_files) == 15
+    ), f"Expected 15 bundled skills, found {len(skill_files)}"
     print("✅ PASS: Exactly 15 bundled skills found")
     return True
+
 
 def test_skills_registry_loading():
     """Test SkillsRegistry instantiation and skill loading"""
@@ -64,6 +67,7 @@ def test_skills_registry_loading():
     print("✅ PASS: All test skills retrieved successfully")
     return True
 
+
 def test_skill_model_structure():
     """Verify Skill objects have correct structure"""
     print("\n=== TEST 3: Skill Model Structure ===")
@@ -76,12 +80,14 @@ def test_skill_model_structure():
         return False
 
     # Verify required attributes
-    required_attrs = ['name', 'content', 'source', 'description']
+    required_attrs = ["name", "content", "source", "description"]
     for attr in required_attrs:
         if not hasattr(skill, attr):
             print(f"❌ FAIL: Skill missing attribute '{attr}'")
             return False
-        print(f"  - Has attribute '{attr}': {getattr(skill, attr)[:50] if isinstance(getattr(skill, attr), str) else type(getattr(skill, attr))}")
+        print(
+            f"  - Has attribute '{attr}': {getattr(skill, attr)[:50] if isinstance(getattr(skill, attr), str) else type(getattr(skill, attr))}"
+        )
 
     # Verify content is substantial
     if len(skill.content) < 100:
@@ -90,6 +96,7 @@ def test_skill_model_structure():
 
     print(f"✅ PASS: Skill structure valid (content: {len(skill.content)} chars)")
     return True
+
 
 def test_skill_manager():
     """Test SkillManager functionality"""
@@ -103,16 +110,24 @@ def test_skill_manager():
         return False
 
     # Test getting skills for specific agent types
-    agent_types = ["full-stack-engineer", "backend-engineer", "qa-engineer", "devops-engineer"]
+    agent_types = [
+        "full-stack-engineer",
+        "backend-engineer",
+        "qa-engineer",
+        "devops-engineer",
+    ]
 
     for agent_type in agent_types:
         skills = manager.get_agent_skills(agent_type)
         print(f"  - {agent_type}: {len(skills)} skills")
         if skills:
-            print(f"    Skills: {', '.join(s.name for s in skills[:3])}{'...' if len(skills) > 3 else ''}")
+            print(
+                f"    Skills: {', '.join(s.name for s in skills[:3])}{'...' if len(skills) > 3 else ''}"
+            )
 
     print("✅ PASS: SkillManager can retrieve agent-specific skills")
     return True
+
 
 def test_prompt_enhancement():
     """Test prompt enhancement with skills"""
@@ -142,6 +157,7 @@ def test_prompt_enhancement():
 
     print("✅ PASS: Prompt successfully enhanced with skills")
     return True
+
 
 def test_agent_skill_inference():
     """Test auto-linking of skills to agents"""
@@ -174,11 +190,13 @@ def test_agent_skill_inference():
 
     return True
 
+
 def test_agent_templates():
     """Verify agent templates have skills field"""
     print("\n=== TEST 7: Agent Template Verification ===")
 
     import json
+
     templates_dir = Path("src/claude_mpm/agents/templates")
 
     if not templates_dir.exists():
@@ -219,10 +237,14 @@ def test_agent_templates():
 
     # Verify key agents have correct skills
     expected_mappings = {
-        "full-stack-engineer": ["test-driven-development", "systematic-debugging", "git-workflow"],
+        "full-stack-engineer": [
+            "test-driven-development",
+            "systematic-debugging",
+            "git-workflow",
+        ],
         "backend-engineer": ["test-driven-development", "systematic-debugging"],
         "qa-engineer": ["test-driven-development", "systematic-debugging"],
-        "devops-engineer": ["docker-containerization", "git-workflow"]
+        "devops-engineer": ["docker-containerization", "git-workflow"],
     }
 
     mapping_pass = True
@@ -240,9 +262,12 @@ def test_agent_templates():
     if agents_with_skills >= 31:
         print(f"✅ PASS: {agents_with_skills} agents have skills configured")
     else:
-        print(f"⚠️  WARNING: Expected at least 31 agents with skills, found {agents_with_skills}")
+        print(
+            f"⚠️  WARNING: Expected at least 31 agents with skills, found {agents_with_skills}"
+        )
 
     return True
+
 
 def test_performance():
     """Test performance of skill loading"""
@@ -282,6 +307,7 @@ def test_performance():
     print("✅ PASS: Performance metrics collected")
     return True
 
+
 def run_all_tests():
     """Run all verification tests"""
     print("=" * 70)
@@ -296,7 +322,7 @@ def run_all_tests():
         test_prompt_enhancement,
         test_agent_skill_inference,
         test_agent_templates,
-        test_performance
+        test_performance,
     ]
 
     results = []
@@ -307,6 +333,7 @@ def run_all_tests():
         except Exception as e:
             print(f"\n❌ EXCEPTION in {test.__name__}: {e}")
             import traceback
+
             traceback.print_exc()
             results.append((test.__name__, False))
 
@@ -329,6 +356,7 @@ def run_all_tests():
         return 0
     print(f"\n⚠️  {total - passed} test(s) failed. Review output above.")
     return 1
+
 
 if __name__ == "__main__":
     sys.exit(run_all_tests())
