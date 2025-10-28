@@ -92,7 +92,9 @@ changelog_incremental = true
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = [ "F401", "F403",]
-"tests/*" = [ "F403", "F405",]
+"tests/*" = [ "F403", "F405", "C401",]
+"src/claude_mpm/cli/interactive/skills_wizard.py" = [ "RUF005",]
+"src/claude_mpm/skills/skill_manager.py" = [ "PTH123",]
 
 [tool.setuptools.package-data]
 claude_mpm = [ "VERSION", "BUILD_NUMBER", "scripts/*", "scripts/*.sh", "commands/*.md", "dashboard/*.html", "dashboard/templates/*.html", "dashboard/static/*.css", "dashboard/static/*.js", "dashboard/static/css/*.css", "dashboard/static/js/*.js", "dashboard/static/js/components/*.js", "agents/*.md", "agents/*.json", "agents/*.yaml", "agents/templates/*.json", "agents/schema/*.json", "hooks/**/*.py", "hooks/**/*.sh", "hooks/claude_hooks/*", "hooks/claude_hooks/**/*",]
