@@ -11,12 +11,7 @@ from playwright.async_api import async_playwright
 
 async def test_dashboard():
     """Test all dashboard tabs and capture console output"""
-    results = {
-        "connection": {},
-        "console_logs": [],
-        "tabs": {},
-        "errors": []
-    }
+    results = {"connection": {}, "console_logs": [], "tabs": {}, "errors": []}
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=False)
@@ -25,11 +20,7 @@ async def test_dashboard():
 
         # Capture console messages
         def handle_console(msg):
-            log_entry = {
-                "type": msg.type,
-                "text": msg.text,
-                "location": msg.location
-            }
+            log_entry = {"type": msg.type, "text": msg.text, "location": msg.location}
             results["console_logs"].append(log_entry)
             print(f"[CONSOLE {msg.type.upper()}] {msg.text}")
 
@@ -38,7 +29,9 @@ async def test_dashboard():
         # Navigate to dashboard
         print("\n=== ACCESSING DASHBOARD ===")
         try:
-            response = await page.goto("http://localhost:5001", wait_until="networkidle")
+            response = await page.goto(
+                "http://localhost:5001", wait_until="networkidle"
+            )
             results["connection"]["status"] = response.status
             results["connection"]["success"] = response.ok
             print(f"✓ Page loaded: HTTP {response.status}")
@@ -75,7 +68,7 @@ async def test_dashboard():
                 results["tabs"][tab_name] = {
                     "screenshot": screenshot_path,
                     "has_data": has_data,
-                    "timestamp": await page.evaluate("new Date().toISOString()")
+                    "timestamp": await page.evaluate("new Date().toISOString()"),
                 }
 
                 print(f"✓ {tab_name} tab: {'HAS DATA' if has_data else 'EMPTY'}")
@@ -89,7 +82,9 @@ async def test_dashboard():
         await asyncio.sleep(2)
 
         # Save results
-        with open("/Users/masa/Projects/claude-mpm/dashboard_test_results.json", "w") as f:
+        with open(
+            "/Users/masa/Projects/claude-mpm/dashboard_test_results.json", "w"
+        ) as f:
             json.dump(results, f, indent=2)
 
         print("\n=== TEST COMPLETE ===")
@@ -101,13 +96,14 @@ async def test_dashboard():
 
     return results
 
+
 if __name__ == "__main__":
     results = asyncio.run(test_dashboard())
 
     # Print summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("DASHBOARD VERIFICATION SUMMARY")
-    print("="*60)
+    print("=" * 60)
 
     # Connection
     print(f"\n✓ Connection: HTTP {results['connection'].get('status', 'N/A')}")
