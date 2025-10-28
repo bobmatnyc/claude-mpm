@@ -6,6 +6,21 @@
 
 ### Fixed
 
+## [4.15.5] - 2025-10-28
+
+### Changed
+- **Major Documentation Reorganization**
+  - Reduced from 364 files to 13 files (97% reduction)
+  - Clear structure: user/, developer/, agents/ directories
+  - All files <1000 lines with internal TOCs
+  - Zero broken links, all critical content preserved
+
+### Fixed
+- Monitor improvements: removed File Tree tab, unified default port to 8765
+- Streamlined 5-tab interface (Events, Agents, Tools, Files, Activity)
+- Quality gate fixes: all 230 tests passing, all linters passing
+- Security scan clean (zero secrets detected)
+
 ## [4.15.4] - 2025-10-27
 
 ### Added
