@@ -4,8 +4,7 @@ This module provides a step-by-step interactive wizard for selecting and configu
 skills for agents with user-friendly prompts and intelligent auto-linking.
 """
 
-from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.skills.registry import get_registry
@@ -190,25 +189,25 @@ class SkillsWizard:
         # Fuzzy matching for common patterns
         if "python" in agent_id_lower:
             return PYTHON_SKILLS.copy()
-        elif any(
+        if any(
             js in agent_id_lower for js in ["typescript", "ts", "javascript", "js"]
         ):
             return TYPESCRIPT_SKILLS.copy()
-        elif "react" in agent_id_lower:
+        if "react" in agent_id_lower:
             return REACT_SKILLS.copy()
-        elif "next" in agent_id_lower:
+        if "next" in agent_id_lower:
             return NEXTJS_SKILLS.copy()
-        elif "vue" in agent_id_lower:
+        if "vue" in agent_id_lower:
             return VUE_SKILLS.copy()
-        elif "go" in agent_id_lower or "golang" in agent_id_lower:
+        if "go" in agent_id_lower or "golang" in agent_id_lower:
             return GOLANG_SKILLS.copy()
-        elif any(ops in agent_id_lower for ops in ["ops", "devops", "deploy"]):
+        if any(ops in agent_id_lower for ops in ["ops", "devops", "deploy"]):
             return OPS_SKILLS.copy()
-        elif any(qa in agent_id_lower for qa in ["qa", "test", "quality"]):
+        if any(qa in agent_id_lower for qa in ["qa", "test", "quality"]):
             return QA_SKILLS.copy()
-        elif any(doc in agent_id_lower for doc in ["doc", "writer", "technical"]):
+        if any(doc in agent_id_lower for doc in ["doc", "writer", "technical"]):
             return DOCUMENTATION_SKILLS.copy()
-        elif "engineer" in agent_id_lower:
+        if "engineer" in agent_id_lower:
             return ENGINEER_CORE_SKILLS.copy()
 
         # Default
@@ -281,7 +280,7 @@ class SkillsWizard:
 
             if selection == "keep":
                 continue
-            elif selection == "none":
+            if selection == "none":
                 mapping[agent_id] = []
             elif selection == "all":
                 mapping[agent_id] = skill_list.copy()

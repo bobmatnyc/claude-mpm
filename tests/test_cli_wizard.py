@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from claude_mpm.cli.interactive.skills_wizard import SkillsWizard
 
+
 def test_skills_wizard_instantiation():
     """Test that SkillsWizard can be instantiated."""
     print("\n=== Testing CLI Skills Wizard ===")
@@ -35,7 +36,7 @@ def test_skills_wizard_instantiation():
         test_agents = ["engineer", "qa", "ops"]
         mapping = wizard._auto_link_skills(test_agents)
 
-        print(f"\n  Auto-linking test:")
+        print("\n  Auto-linking test:")
         for agent, skills in mapping.items():
             print(f"    {agent}: {len(skills)} skills")
 

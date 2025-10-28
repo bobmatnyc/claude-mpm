@@ -7,9 +7,10 @@ import json
 from pathlib import Path
 from typing import Dict, List
 
+
 def remove_duplicate_version(filepath: Path) -> Dict:
     """Remove standalone 'version' field from agent template."""
-    with open(filepath, 'r') as f:
+    with open(filepath) as f:
         data = json.load(f)
 
     result = {
@@ -39,7 +40,7 @@ def remove_duplicate_version(filepath: Path) -> Dict:
 def validate_json(filepath: Path) -> bool:
     """Validate that JSON is still valid after modification."""
     try:
-        with open(filepath, 'r') as f:
+        with open(filepath) as f:
             json.load(f)
         return True
     except json.JSONDecodeError:

@@ -4,15 +4,16 @@ Comprehensive Skills System Verification Test
 Tests all components of the skills integration system.
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from claude_mpm.skills.registry import SkillsRegistry, Skill
+from claude_mpm.skills.registry import Skill, SkillsRegistry
 from claude_mpm.skills.skill_manager import SkillManager
+
 
 def test_bundled_skills_count():
     """Verify exactly 15 bundled skills exist"""
@@ -169,7 +170,7 @@ def test_agent_skill_inference():
     if not found:
         print(f"⚠️  WARNING: Expected one of {expected_agents} in inferred agents")
     else:
-        print(f"✅ PASS: Correctly inferred devops-related agents")
+        print("✅ PASS: Correctly inferred devops-related agents")
 
     return True
 
@@ -195,7 +196,7 @@ def test_agent_templates():
         with open(agent_file) as f:
             agent_data = json.load(f)
 
-        if "skills" in agent_data and agent_data["skills"]:
+        if agent_data.get("skills"):
             agents_with_skills += 1
             skill_mappings[agent_file.stem] = agent_data["skills"]
         else:
@@ -326,9 +327,8 @@ def run_all_tests():
     if passed == total:
         print("\n🎉 ALL TESTS PASSED! Skills system is fully operational.")
         return 0
-    else:
-        print(f"\n⚠️  {total - passed} test(s) failed. Review output above.")
-        return 1
+    print(f"\n⚠️  {total - passed} test(s) failed. Review output above.")
+    return 1
 
 if __name__ == "__main__":
     sys.exit(run_all_tests())

@@ -15,7 +15,7 @@ from .skill_manager import SkillManager
 
 __all__ = [
     "Skill",
-    "SkillsRegistry",
     "SkillManager",
+    "SkillsRegistry",
     "get_registry",
 ]

@@ -90,7 +90,9 @@ def discover_and_link_runtime_skills():
     claude-mpm remains functional even if skills discovery fails.
     """
     try:
-        from ..cli.interactive.skills_wizard import discover_and_link_runtime_skills as discover_skills
+        from ..cli.interactive.skills_wizard import (
+            discover_and_link_runtime_skills as discover_skills,
+        )
 
         discover_skills()
     except Exception as e:

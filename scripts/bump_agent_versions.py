@@ -29,7 +29,7 @@ def bump_patch_version(version_str):
 
 def bump_agent_version(agent_file):
     """Bump version in agent JSON file."""
-    with open(agent_file, 'r') as f:
+    with open(agent_file) as f:
         data = json.load(f)
 
     old_version = data.get('version', '1.0.0')

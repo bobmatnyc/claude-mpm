@@ -32,7 +32,7 @@ class SkillManager:
         mapping_count = 0
         for template_file in agent_templates_dir.glob("*.json"):
             try:
-                with open(template_file, "r", encoding="utf-8") as f:
+                with open(template_file, encoding="utf-8") as f:
                     agent_data = json.load(f)
 
                 agent_id = agent_data.get("agent_id") or agent_data.get("agent_type")
@@ -284,7 +284,7 @@ class SkillManager:
             return
 
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 loaded_mappings = json.load(f)
 
             # Merge with existing mappings

@@ -271,7 +271,7 @@ def get_agent_type(filename: str, data: Dict) -> str:
 
 def process_agent_file(filepath: Path) -> Dict:
     """Process a single agent file to add skills field."""
-    with open(filepath, 'r') as f:
+    with open(filepath) as f:
         data = json.load(f)
 
     agent_type = get_agent_type(filepath.stem, data)
@@ -338,7 +338,7 @@ def main():
     # List agents that got skills added
     added = [r for r in results if r["skills_added"]]
     if added:
-        print(f"\nAgents updated with skills:")
+        print("\nAgents updated with skills:")
         for r in added:
             print(f"  - {r['filename']}: {r['skills_count']} skills")
 

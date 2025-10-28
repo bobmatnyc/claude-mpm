@@ -7,7 +7,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from claude_mpm.skills import get_registry, SkillManager
+from claude_mpm.skills import SkillManager, get_registry
 
 
 def test_skills_registry():
@@ -50,7 +50,7 @@ def test_skill_manager():
     enhanced_prompt = manager.enhance_agent_prompt("engineer", base_prompt)
 
     if "Available Skills" in enhanced_prompt:
-        print(f"\n✓ Agent prompt enhanced successfully")
+        print("\n✓ Agent prompt enhanced successfully")
         print(f"  Original length: {len(base_prompt)} chars")
         print(f"  Enhanced length: {len(enhanced_prompt)} chars")
         print(f"  Skills added: {enhanced_prompt.count('###')} sections")
@@ -61,7 +61,7 @@ def test_skill_manager():
     # Test listing agent skill mappings
     mappings = manager.list_agent_skill_mappings()
     if "engineer" in mappings:
-        print(f"\n✓ Agent skill mappings loaded:")
+        print("\n✓ Agent skill mappings loaded:")
         for agent_id, skills in mappings.items():
             print(f"  - {agent_id}: {len(skills)} skills")
     else:
@@ -148,9 +148,8 @@ def main():
     if passed == total:
         print("\n🎉 All tests passed!")
         return 0
-    else:
-        print(f"\n❌ {total - passed} test(s) failed")
-        return 1
+    print(f"\n❌ {total - passed} test(s) failed")
+    return 1
 
 
 if __name__ == "__main__":

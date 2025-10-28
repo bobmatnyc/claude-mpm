@@ -236,7 +236,7 @@ def get_agent_type(filename: str, data: Dict) -> str:
 
 def analyze_agent(filepath: Path) -> Dict:
     """Analyze an agent template file."""
-    with open(filepath, 'r') as f:
+    with open(filepath) as f:
         data = json.load(f)
 
     instructions = data.get("instructions", "")
@@ -431,7 +431,7 @@ def main():
             if result["skills_added"]:
                 print(f"  Skills Added: {result['skills_count']} skills")
             if result["instructions_changed"]:
-                print(f"  Instructions: Pruned")
+                print("  Instructions: Pruned")
 
     # Summary statistics
     total_lines_before = sum(r["lines_before"] for r in results)

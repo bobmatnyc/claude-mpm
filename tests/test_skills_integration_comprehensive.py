@@ -12,7 +12,7 @@ from typing import Dict, List, Set
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root / "src"))
 
-from claude_mpm.skills import get_registry, SkillManager
+from claude_mpm.skills import SkillManager, get_registry
 
 
 class Colors:
@@ -54,7 +54,7 @@ def test_1_bundled_skills_loading() -> bool:
         if len(bundled_skills) != 15:
             print_fail(f"Expected 15 bundled skills, found {len(bundled_skills)}")
             return False
-        print_pass(f"Found 15 bundled skills")
+        print_pass("Found 15 bundled skills")
 
         # Check key skills exist
         skill_names = [s.name for s in bundled_skills]
@@ -439,9 +439,8 @@ def main():
     if passed == total:
         print(f"{Colors.GREEN}{Colors.BOLD}✓ ALL TESTS PASSED{Colors.RESET}")
         return 0
-    else:
-        print(f"{Colors.RED}{Colors.BOLD}✗ SOME TESTS FAILED{Colors.RESET}")
-        return 1
+    print(f"{Colors.RED}{Colors.BOLD}✗ SOME TESTS FAILED{Colors.RESET}")
+    return 1
 
 
 if __name__ == '__main__':

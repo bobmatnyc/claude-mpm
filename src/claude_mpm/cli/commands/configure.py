@@ -478,11 +478,9 @@ class ConfigureCommand(BaseCommand):
     def _manage_skills(self) -> None:
         """Skills management interface."""
         from ...cli.interactive.skills_wizard import SkillsWizard
-        from ...skills.registry import get_registry
         from ...skills.skill_manager import get_manager
 
         wizard = SkillsWizard()
-        registry = get_registry()
         manager = get_manager()
 
         while True:
