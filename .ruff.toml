@@ -95,7 +95,10 @@ ignore = [
     "PTH114", # os.path.islink - too many to fix now
     "PTH117", # os.path.isabs - too many to fix now
     "PTH122", # os.path.splitext - too many to fix now
+    "PTH123", # open() should be replaced by Path.open() - too many to fix now
     "PTH202", # os.path.getsize - too many to fix now
+    "C401",   # Set comprehension suggestions - readability preference
+    "RUF005", # List concatenation suggestions - stylistic preference
     "RUF001", # Ambiguous unicode character - false positives
     "RUF006", # Store reference to asyncio task - intentional fire-and-forget
     "RUF012", # Mutable class attributes without ClassVar - too many to fix now
