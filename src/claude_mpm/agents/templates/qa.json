@@ -232,5 +232,11 @@
       "git"
     ],
     "optional": false
-  }
+  },
+  "skills": [
+    "test-driven-development",
+    "systematic-debugging",
+    "async-testing",
+    "performance-profiling"
+  ]
 }

@@ -2,7 +2,6 @@
   "name": "local-ops",
   "display_name": "Local Operations Agent",
   "description": "Specialized agent for managing local development deployments with focus on maintaining single stable instances, protecting existing services, and never interfering with other projects or Claude Code services",
-  "version": "2.0.1",
   "author": "Claude MPM",
   "authority": {
     "level": "deployment_manager",
@@ -26,7 +25,13 @@
         "status": {
           "syntax": "claude-mpm local-deploy status <deployment-id>",
           "description": "Get detailed deployment status including process info, health, and resource usage",
-          "provides": ["process_info", "health_status", "resource_usage", "uptime", "restart_count"]
+          "provides": [
+            "process_info",
+            "health_status",
+            "resource_usage",
+            "uptime",
+            "restart_count"
+          ]
         },
         "monitor": {
           "syntax": "claude-mpm local-deploy monitor <deployment-id> [--refresh 2]",
@@ -35,7 +40,11 @@
         "health": {
           "syntax": "claude-mpm local-deploy health <deployment-id>",
           "description": "Run comprehensive health checks (HTTP endpoint, process responsive, resource limits)",
-          "checks": ["http_endpoint", "process_responsive", "resource_limits"]
+          "checks": [
+            "http_endpoint",
+            "process_responsive",
+            "resource_limits"
+          ]
         },
         "stop": {
           "syntax": "claude-mpm local-deploy stop <deployment-id>",
@@ -1044,7 +1053,10 @@
   },
   "health_checks": {
     "nextjs": {
-      "primary_endpoints": ["/api/health", "/"],
+      "primary_endpoints": [
+        "/api/health",
+        "/"
+      ],
       "build_artifacts": [
         ".next/BUILD_ID",
         ".next/routes-manifest.json"
@@ -1089,7 +1101,11 @@
     "port_selection": {
       "description": "Recommended default ports by language and framework",
       "nodejs": {
-        "default_ports": [3000, 3001, 3002],
+        "default_ports": [
+          3000,
+          3001,
+          3002
+        ],
         "frameworks": {
           "express": 3000,
           "nextjs": 3000,
@@ -1097,7 +1113,11 @@
         }
       },
       "python": {
-        "default_ports": [8000, 5000, 8080],
+        "default_ports": [
+          8000,
+          5000,
+          8080
+        ],
         "frameworks": {
           "fastapi": 8000,
           "django": 8000,
@@ -1105,7 +1125,10 @@
         }
       },
       "rust": {
-        "default_ports": [8080, 3000],
+        "default_ports": [
+          8080,
+          3000
+        ],
         "frameworks": {
           "actix-web": 8080,
           "rocket": 8000,
@@ -1113,7 +1136,10 @@
         }
       },
       "go": {
-        "default_ports": [8080, 8000],
+        "default_ports": [
+          8080,
+          8000
+        ],
         "frameworks": {
           "gin": 8080,
           "echo": 1323,
@@ -1121,28 +1147,39 @@
         }
       },
       "java": {
-        "default_ports": [8080, 8443],
+        "default_ports": [
+          8080,
+          8443
+        ],
         "frameworks": {
           "spring-boot": 8080,
           "tomcat": 8080
         }
       },
       "ruby": {
-        "default_ports": [3000, 9292],
+        "default_ports": [
+          3000,
+          9292
+        ],
         "frameworks": {
           "rails": 3000,
           "sinatra": 4567
         }
       },
       "php": {
-        "default_ports": [8000, 8080],
+        "default_ports": [
+          8000,
+          8080
+        ],
         "frameworks": {
           "laravel": 8000,
           "symfony": 8000
         }
       },
       "dart": {
-        "default_ports": [8080],
+        "default_ports": [
+          8080
+        ],
         "frameworks": {
           "flutter-web": 8080,
           "shelf": 8080
@@ -1153,19 +1190,27 @@
       "description": "Framework-specific health check endpoints",
       "python_fastapi": {
         "primary": "/health",
-        "alternatives": ["/docs", "/openapi.json"],
+        "alternatives": [
+          "/docs",
+          "/openapi.json"
+        ],
         "expected_status": 200,
         "timeout": 5
       },
       "python_django": {
         "primary": "/health",
-        "alternatives": ["/admin"],
+        "alternatives": [
+          "/admin"
+        ],
         "expected_status": 200,
         "timeout": 5
       },
       "nodejs_express": {
         "primary": "/health",
-        "alternatives": ["/ping", "/ready"],
+        "alternatives": [
+          "/ping",
+          "/ready"
+        ],
         "expected_status": 200,
         "timeout": 5
       },
@@ -1186,7 +1231,9 @@
       },
       "go_gin": {
         "primary": "/ping",
-        "alternatives": ["/health"],
+        "alternatives": [
+          "/health"
+        ],
         "expected_status": 200,
         "timeout": 5
       },
@@ -1202,20 +1249,26 @@
       },
       "java_spring_boot": {
         "primary": "/actuator/health",
-        "alternatives": ["/actuator/info"],
+        "alternatives": [
+          "/actuator/info"
+        ],
         "expected_status": 200,
         "timeout": 10,
         "management_port": 8081
       },
       "ruby_rails": {
         "primary": "/up",
-        "alternatives": ["/health"],
+        "alternatives": [
+          "/health"
+        ],
         "expected_status": 200,
         "timeout": 5
       },
       "php_laravel": {
         "primary": "/health",
-        "alternatives": ["/api/health"],
+        "alternatives": [
+          "/api/health"
+        ],
         "expected_status": 200,
         "timeout": 5
       },
@@ -1242,31 +1295,67 @@
     "log_monitoring": {
       "description": "Framework-specific log patterns to monitor",
       "python": {
-        "error_patterns": ["ERROR", "CRITICAL", "Exception", "Traceback", "Failed to"],
+        "error_patterns": [
+          "ERROR",
+          "CRITICAL",
+          "Exception",
+          "Traceback",
+          "Failed to"
+        ],
         "action": "Trigger auto-restart on critical patterns"
       },
       "nodejs": {
-        "error_patterns": ["ERROR", "Error:", "Exception", "Unhandled", "ECONNREFUSED"],
+        "error_patterns": [
+          "ERROR",
+          "Error:",
+          "Exception",
+          "Unhandled",
+          "ECONNREFUSED"
+        ],
         "action": "Trigger auto-restart on critical patterns"
       },
       "rust": {
-        "error_patterns": ["ERROR", "FATAL", "panic", "thread .* panicked"],
+        "error_patterns": [
+          "ERROR",
+          "FATAL",
+          "panic",
+          "thread .* panicked"
+        ],
         "action": "Trigger auto-restart on critical patterns"
       },
       "go": {
-        "error_patterns": ["ERROR", "FATAL", "panic:", "runtime error"],
+        "error_patterns": [
+          "ERROR",
+          "FATAL",
+          "panic:",
+          "runtime error"
+        ],
         "action": "Trigger auto-restart on critical patterns"
       },
       "java": {
-        "error_patterns": ["ERROR", "SEVERE", "Exception", "java.lang.", "OutOfMemoryError"],
+        "error_patterns": [
+          "ERROR",
+          "SEVERE",
+          "Exception",
+          "java.lang.",
+          "OutOfMemoryError"
+        ],
         "action": "Trigger auto-restart on critical patterns"
       },
       "ruby": {
-        "error_patterns": ["ERROR", "FATAL", "Exception"],
+        "error_patterns": [
+          "ERROR",
+          "FATAL",
+          "Exception"
+        ],
         "action": "Trigger auto-restart on critical patterns"
       },
       "php": {
-        "error_patterns": ["Fatal error", "Parse error", "Exception"],
+        "error_patterns": [
+          "Fatal error",
+          "Parse error",
+          "Exception"
+        ],
         "action": "Trigger auto-restart on critical patterns"
       },
       "enabled": true
@@ -1682,14 +1771,38 @@
     "multi_language_support": {
       "description": "Support for multiple programming languages and frameworks",
       "languages": {
-        "python": ["FastAPI", "Django", "Flask"],
-        "nodejs": ["Express", "Next.js", "NestJS"],
-        "rust": ["Actix-web", "Rocket", "Axum"],
-        "go": ["Gin", "Echo", "Fiber"],
-        "java": ["Spring Boot"],
-        "ruby": ["Rails"],
-        "php": ["Laravel"],
-        "dart": ["Flutter Web"]
+        "python": [
+          "FastAPI",
+          "Django",
+          "Flask"
+        ],
+        "nodejs": [
+          "Express",
+          "Next.js",
+          "NestJS"
+        ],
+        "rust": [
+          "Actix-web",
+          "Rocket",
+          "Axum"
+        ],
+        "go": [
+          "Gin",
+          "Echo",
+          "Fiber"
+        ],
+        "java": [
+          "Spring Boot"
+        ],
+        "ruby": [
+          "Rails"
+        ],
+        "php": [
+          "Laravel"
+        ],
+        "dart": [
+          "Flutter Web"
+        ]
       },
       "detection_priority": [
         "1. Check for language-specific lock files (Cargo.lock, go.sum, pom.xml)",
@@ -1716,5 +1829,12 @@
         "report": "Show startup logs if health check fails"
       }
     }
-  }
+  },
+  "skills": [
+    "docker-containerization",
+    "database-migration",
+    "security-scanning",
+    "git-workflow",
+    "systematic-debugging"
+  ]
 }

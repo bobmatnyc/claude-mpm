@@ -6,6 +6,7 @@ Complete guide to Claude MPM features and workflows.
 
 - [Auto-Configuration](#auto-configuration)
 - [Agent System](#agent-system)
+- [Skills System](#skills-system)
 - [Memory System](#memory-system)
 - [Local Process Management](#local-process-management)
 - [Session Management](#session-management)
@@ -147,6 +148,100 @@ PM: Delegates to Documentation
 ↓
 Documentation: Updates API docs
 ```
+
+## Skills System
+
+**NEW in v4.15.0** - Enhance agent capabilities with reusable skill modules.
+
+### Overview
+
+Claude MPM includes 15 bundled skills providing specialized expertise: `git-workflow`, `test-driven-development`, `code-review`, `refactoring-patterns`, `security-scanning`, `database-migration`, `docker-containerization`, `api-documentation`, `performance-profiling`, `systematic-debugging`, `async-testing`, `json-data-handling`, `pdf`, `xlsx`, `imagemagick`.
+
+### Access Skills Management
+
+```bash
+claude-mpm configure
+# Select option [2] Skills Management
+```
+
+Interactive menu provides:
+- View bundled skills
+- Select skills for agents
+- Auto-link skills to agents
+- Manage custom skills
+
+### Auto-Linking (Recommended)
+
+Automatically maps skills to compatible agents based on agent type:
+
+```bash
+# In Skills Management menu
+# Select option [4] Auto-link skills
+```
+
+Maps skills intelligently:
+- `git-workflow` → version control agents
+- `test-driven-development` → QA and engineer agents
+- `security-scanning` → security and ops agents
+
+### Three-Tier System
+
+Skills follow the same hierarchy as agents:
+
+1. **BUNDLED**: 15 included skills (system-wide)
+2. **USER**: Personal skills in `~/.claude/skills/`
+3. **PROJECT**: Project-specific skills in `.claude/skills/`
+
+Priority: PROJECT > USER > BUNDLED (project skills override user, user overrides bundled)
+
+### Custom Skills
+
+Create markdown files in `.claude/skills/` for project-specific expertise:
+
+```bash
+mkdir -p .claude/skills
+cat > .claude/skills/custom-api-patterns.md << 'EOF'
+# Custom API Patterns
+
+## Project Guidelines
+- Use async handlers for all endpoints
+- Validate with Pydantic models
+- Return structured JSON responses
+EOF
+```
+
+Skills auto-discover on next run. Restart Claude Code session to activate.
+
+### Skill Selection
+
+Manually assign skills to specific agents:
+
+```bash
+# In Skills Management menu
+# Select option [2] Select skills for an agent
+# Choose agent, then select skills from list
+```
+
+Configuration saved to `.claude-mpm/config.yaml`:
+
+```yaml
+skills:
+  assignments:
+    engineer:
+      - git-workflow
+      - test-driven-development
+      - refactoring-patterns
+```
+
+### Best Practices
+
+**Use auto-linking for quick setup**: Covers most common scenarios efficiently.
+
+**Add project skills for domain expertise**: Store project-specific patterns, conventions, and guidelines in `.claude/skills/`.
+
+**Keep skills focused**: One skill per expertise area (e.g., separate database patterns from API patterns).
+
+**Update skills as patterns evolve**: Skills are living documentation of project best practices.
 
 ## Memory System
 

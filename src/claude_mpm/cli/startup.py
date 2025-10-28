@@ -79,6 +79,29 @@ def setup_configure_command_environment(args):
         logging.getLogger("claude_mpm").setLevel(logging.WARNING)
 
 
+def discover_and_link_runtime_skills():
+    """
+    Discover and link runtime skills from user/project directories.
+
+    WHY: Automatically discover and link skills added to .claude/skills/
+    without requiring manual configuration.
+
+    DESIGN DECISION: Failures are logged but don't block startup to ensure
+    claude-mpm remains functional even if skills discovery fails.
+    """
+    try:
+        from ..cli.interactive.skills_wizard import discover_and_link_runtime_skills as discover_skills
+
+        discover_skills()
+    except Exception as e:
+        # Import logger here to avoid circular imports
+        from ..core.logger import get_logger
+
+        logger = get_logger("cli")
+        logger.debug(f"Failed to discover runtime skills: {e}")
+        # Continue execution - skills discovery failure shouldn't block startup
+
+
 def run_background_services():
     """
     Initialize all background services on startup.
@@ -89,6 +112,7 @@ def run_background_services():
     check_mcp_auto_configuration()
     verify_mcp_gateway_startup()
     check_for_updates_async()
+    discover_and_link_runtime_skills()
 
 
 def setup_mcp_server_logging(args):

@@ -389,5 +389,11 @@
     ],
     "priority": 90,
     "retention": "session"
-  }
+  },
+  "skills": [
+    "test-driven-development",
+    "systematic-debugging",
+    "async-testing",
+    "performance-profiling"
+  ]
 }

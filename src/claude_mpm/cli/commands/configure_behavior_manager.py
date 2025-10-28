@@ -69,33 +69,33 @@ class BehaviorManager:
             self.console.print("\n[bold]Options:[/bold]")
 
             text_1 = Text("  ")
-            text_1.append("[1]", style="cyan bold")
+            text_1.append("[1]", style="bold blue")
             text_1.append(" Edit identity configuration")
             self.console.print(text_1)
 
             text_2 = Text("  ")
-            text_2.append("[2]", style="cyan bold")
+            text_2.append("[2]", style="bold blue")
             text_2.append(" Edit workflow configuration")
             self.console.print(text_2)
 
             text_3 = Text("  ")
-            text_3.append("[3]", style="cyan bold")
+            text_3.append("[3]", style="bold blue")
             text_3.append(" Import behavior file")
             self.console.print(text_3)
 
             text_4 = Text("  ")
-            text_4.append("[4]", style="cyan bold")
+            text_4.append("[4]", style="bold blue")
             text_4.append(" Export behavior file")
             self.console.print(text_4)
 
             text_b = Text("  ")
-            text_b.append("[b]", style="cyan bold")
+            text_b.append("[b]", style="bold blue")
             text_b.append(" Back to main menu")
             self.console.print(text_b)
 
             self.console.print()
 
-            choice = Prompt.ask("[bold cyan]Select an option[/bold cyan]", default="b")
+            choice = Prompt.ask("[bold blue]Select an option[/bold blue]", default="b")
 
             if choice == "b":
                 break
@@ -117,9 +117,9 @@ class BehaviorManager:
         Extracted from ConfigureCommand._display_behavior_files()
         """
         table = Table(title="Behavior Files", box=ROUNDED)
-        table.add_column("File", style="cyan", width=30)
+        table.add_column("File", style="bold blue", width=30)
         table.add_column("Size", style="dim", width=10)
-        table.add_column("Modified", style="white", width=20)
+        table.add_column("Modified", style="", width=20)
 
         identity_file = self.behaviors_dir / "identity.yaml"
         workflow_file = self.behaviors_dir / "workflow.yaml"

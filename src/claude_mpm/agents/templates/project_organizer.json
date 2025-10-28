@@ -129,5 +129,12 @@
       "token_usage": 8192,
       "success_rate": 0.9
     }
-  }
+  },
+  "skills": [
+    "docker-containerization",
+    "database-migration",
+    "security-scanning",
+    "git-workflow",
+    "systematic-debugging"
+  ]
 }

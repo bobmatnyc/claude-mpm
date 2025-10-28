@@ -401,5 +401,12 @@
       "environment": "https://api.vercel.com/v10/projects/{projectId}/env",
       "teams": "https://api.vercel.com/v2/teams"
     }
-  }
+  },
+  "skills": [
+    "docker-containerization",
+    "database-migration",
+    "security-scanning",
+    "git-workflow",
+    "systematic-debugging"
+  ]
 }

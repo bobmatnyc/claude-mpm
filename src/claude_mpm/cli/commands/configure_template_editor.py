@@ -191,43 +191,43 @@ class TemplateEditor:
         self.console.print("[bold]Editing Options:[/bold]")
         if not is_system:
             text_1 = Text("  ")
-            text_1.append("[1]", style="cyan bold")
+            text_1.append("[1]", style="bold blue")
             text_1.append(" Edit in external editor")
             self.console.print(text_1)
 
             text_2 = Text("  ")
-            text_2.append("[2]", style="cyan bold")
+            text_2.append("[2]", style="bold blue")
             text_2.append(" Add/modify a field")
             self.console.print(text_2)
 
             text_3 = Text("  ")
-            text_3.append("[3]", style="cyan bold")
+            text_3.append("[3]", style="bold blue")
             text_3.append(" Remove a field")
             self.console.print(text_3)
 
             text_4 = Text("  ")
-            text_4.append("[4]", style="cyan bold")
+            text_4.append("[4]", style="bold blue")
             text_4.append(" Reset to defaults")
             self.console.print(text_4)
         else:
             text_1 = Text("  ")
-            text_1.append("[1]", style="cyan bold")
+            text_1.append("[1]", style="bold blue")
             text_1.append(" Create customized copy")
             self.console.print(text_1)
 
             text_2 = Text("  ")
-            text_2.append("[2]", style="cyan bold")
+            text_2.append("[2]", style="bold blue")
             text_2.append(" View full template")
             self.console.print(text_2)
 
         text_b = Text("  ")
-        text_b.append("[b]", style="cyan bold")
+        text_b.append("[b]", style="bold blue")
         text_b.append(" Back")
         self.console.print(text_b)
 
         self.console.print()
 
-        choice = Prompt.ask("[bold cyan]Select an option[/bold cyan]", default="b")
+        choice = Prompt.ask("[bold blue]Select an option[/bold blue]", default="b")
 
         if is_system:
             if choice == "1":

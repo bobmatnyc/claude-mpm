@@ -175,5 +175,15 @@
       "token_usage": 10240,
       "success_rate": 0.95
     }
-  }
+  },
+  "skills": [
+    "test-driven-development",
+    "systematic-debugging",
+    "async-testing",
+    "performance-profiling",
+    "security-scanning",
+    "code-review",
+    "refactoring-patterns",
+    "git-workflow"
+  ]
 }

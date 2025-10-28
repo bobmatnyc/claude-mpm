@@ -178,8 +178,8 @@ class StartupManager:
             title="Current Startup Configuration", box=ROUNDED, show_lines=True
         )
 
-        table.add_column("Category", style="cyan", width=20)
-        table.add_column("Enabled Services", style="white", width=50)
+        table.add_column("Category", style="bold blue", width=20)
+        table.add_column("Enabled Services", style="", width=50)
         table.add_column("Count", style="dim", width=10)
 
         # MCP Services
@@ -236,9 +236,9 @@ class StartupManager:
         # Display services with checkboxes
         table = Table(box=ROUNDED, show_lines=True)
         table.add_column("ID", style="dim", width=5)
-        table.add_column("Service", style="cyan", width=25)
+        table.add_column("Service", style="bold blue", width=25)
         table.add_column("Status", width=15)
-        table.add_column("Description", style="white", width=45)
+        table.add_column("Description", style="", width=45)
 
         service_descriptions = {
             "kuzu-memory": "Graph-based memory system for agents",
@@ -261,17 +261,17 @@ class StartupManager:
         self.console.print("  Enter service IDs to toggle (e.g., '1,3' or '1-4')")
 
         text_a = Text("  ")
-        text_a.append("[a]", style="cyan bold")
+        text_a.append("[a]", style="bold blue")
         text_a.append(" Enable all")
         self.console.print(text_a)
 
         text_n = Text("  ")
-        text_n.append("[n]", style="cyan bold")
+        text_n.append("[n]", style="bold blue")
         text_n.append(" Disable all")
         self.console.print(text_n)
 
         text_b = Text("  ")
-        text_b.append("[b]", style="cyan bold")
+        text_b.append("[b]", style="bold blue")
         text_b.append(" Back to previous menu")
         self.console.print(text_b)
 
@@ -324,9 +324,9 @@ class StartupManager:
         # Display services with checkboxes
         table = Table(box=ROUNDED, show_lines=True)
         table.add_column("ID", style="dim", width=5)
-        table.add_column("Service", style="cyan", width=25)
+        table.add_column("Service", style="bold blue", width=25)
         table.add_column("Status", width=15)
-        table.add_column("Description", style="white", width=45)
+        table.add_column("Description", style="", width=45)
 
         for idx, (service, description) in enumerate(available_services, 1):
             status = (
@@ -341,17 +341,17 @@ class StartupManager:
         self.console.print("  Enter service IDs to toggle (e.g., '1,3' or '1-4')")
 
         text_a = Text("  ")
-        text_a.append("[a]", style="cyan bold")
+        text_a.append("[a]", style="bold blue")
         text_a.append(" Enable all")
         self.console.print(text_a)
 
         text_n = Text("  ")
-        text_n.append("[n]", style="cyan bold")
+        text_n.append("[n]", style="bold blue")
         text_n.append(" Disable all")
         self.console.print(text_n)
 
         text_b = Text("  ")
-        text_b.append("[b]", style="cyan bold")
+        text_b.append("[b]", style="bold blue")
         text_b.append(" Back to previous menu")
         self.console.print(text_b)
 
@@ -406,9 +406,9 @@ class StartupManager:
             # Display agents with checkboxes
             table = Table(box=ROUNDED, show_lines=True)
             table.add_column("ID", style="dim", width=5)
-            table.add_column("Agent", style="cyan", width=25)
+            table.add_column("Agent", style="bold blue", width=25)
             table.add_column("Status", width=15)
-            table.add_column("Description", style="bold cyan", width=45)
+            table.add_column("Description", style="bold", width=45)
 
             for idx, agent in enumerate(agents, 1):
                 # Agent is ENABLED if NOT in disabled list

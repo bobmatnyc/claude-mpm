@@ -6,6 +6,25 @@
 
 ### Fixed
 
+## [4.15.6] - 2025-10-28
+
+### Added
+- Skills system integration
+  - New skills module with 30+ reusable skill templates
+  - Skills selector in CLI configuration wizard
+  - Comprehensive skills documentation in user guide
+  - PDF documentation generated (claude-mpm-user-guide.pdf)
+
+### Fixed
+- Removed duplicate agent versions across 31 agent templates
+- Cleaned up agent configuration inconsistencies
+- Improved agent template structure and clarity
+
+### Changed
+- Enhanced CLI interactive configuration with skills wizard
+- Updated all agent templates to support skills integration
+- Improved documentation organization with skills section
+
 ## [4.15.5] - 2025-10-28
 
 ### Changed

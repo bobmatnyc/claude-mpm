@@ -211,19 +211,21 @@ class ConfigureCommand(BaseCommand):
                 if choice == "1":
                     self._manage_agents()
                 elif choice == "2":
-                    self._edit_templates()
+                    self._manage_skills()
                 elif choice == "3":
-                    self._manage_behaviors()
+                    self._edit_templates()
                 elif choice == "4":
+                    self._manage_behaviors()
+                elif choice == "5":
                     # If user saves and wants to proceed to startup, exit the configurator
                     if self._manage_startup_configuration():
                         self.console.print(
                             "\n[green]Configuration saved. Exiting configurator...[/green]"
                         )
                         break
-                elif choice == "5":
-                    self._switch_scope()
                 elif choice == "6":
+                    self._switch_scope()
+                elif choice == "7":
                     self._show_version_info_interactive()
                 elif choice == "l":
                     # Check for pending agent changes
@@ -296,33 +298,33 @@ class ConfigureCommand(BaseCommand):
 
             # Use Text objects to properly display shortcuts with styling
             text_t = Text("  ")
-            text_t.append("[t]", style="cyan bold")
+            text_t.append("[t]", style="bold blue")
             text_t.append(" Toggle agents (enable/disable multiple)")
             self.console.print(text_t)
 
             text_c = Text("  ")
-            text_c.append("[c]", style="cyan bold")
+            text_c.append("[c]", style="bold blue")
             text_c.append(" Customize agent template")
             self.console.print(text_c)
 
             text_v = Text("  ")
-            text_v.append("[v]", style="cyan bold")
+            text_v.append("[v]", style="bold blue")
             text_v.append(" View agent details")
             self.console.print(text_v)
 
             text_r = Text("  ")
-            text_r.append("[r]", style="cyan bold")
+            text_r.append("[r]", style="bold blue")
             text_r.append(" Reset agent to defaults")
             self.console.print(text_r)
 
             text_b = Text("  ")
-            text_b.append("[b]", style="cyan bold")
+            text_b.append("[b]", style="bold blue")
             text_b.append(" Back to main menu")
             self.console.print(text_b)
 
             self.console.print()
 
-            choice = Prompt.ask("[bold cyan]Select an option[/bold cyan]", default="b")
+            choice = Prompt.ask("[bold blue]Select an option[/bold blue]", default="b")
 
             if choice == "b":
                 break
@@ -361,32 +363,32 @@ class ConfigureCommand(BaseCommand):
             # Show menu
             self.console.print("\n[bold]Toggle Agent Status:[/bold]")
             text_toggle = Text("  ")
-            text_toggle.append("[t]", style="cyan bold")
+            text_toggle.append("[t]", style="bold blue")
             text_toggle.append(" Enter agent IDs to toggle (e.g., '1,3,5' or '1-4')")
             self.console.print(text_toggle)
 
             text_all = Text("  ")
-            text_all.append("[a]", style="cyan bold")
+            text_all.append("[a]", style="bold blue")
             text_all.append(" Enable all agents")
             self.console.print(text_all)
 
             text_none = Text("  ")
-            text_none.append("[n]", style="cyan bold")
+            text_none.append("[n]", style="bold blue")
             text_none.append(" Disable all agents")
             self.console.print(text_none)
 
             text_save = Text("  ")
-            text_save.append("[s]", style="green bold")
+            text_save.append("[s]", style="bold green")
             text_save.append(" Save changes and return")
             self.console.print(text_save)
 
             text_cancel = Text("  ")
-            text_cancel.append("[c]", style="yellow bold")
+            text_cancel.append("[c]", style="bold magenta")
             text_cancel.append(" Cancel (discard changes)")
             self.console.print(text_cancel)
 
             choice = (
-                Prompt.ask("[bold cyan]Select an option[/bold cyan]", default="s")
+                Prompt.ask("[bold blue]Select an option[/bold blue]", default="s")
                 .strip()
                 .lower()
             )
@@ -472,6 +474,134 @@ class ConfigureCommand(BaseCommand):
         # but doesn't display our header. We'll need to update BehaviorManager
         # to accept a header callback in the future. For now, just delegate.
         self.behavior_manager.manage_behaviors()
+
+    def _manage_skills(self) -> None:
+        """Skills management interface."""
+        from ...cli.interactive.skills_wizard import SkillsWizard
+        from ...skills.registry import get_registry
+        from ...skills.skill_manager import get_manager
+
+        wizard = SkillsWizard()
+        registry = get_registry()
+        manager = get_manager()
+
+        while True:
+            self.console.clear()
+            self._display_header()
+
+            self.console.print("\n[bold]Skills Management Options:[/bold]\n")
+            self.console.print("  [1] View Available Skills")
+            self.console.print("  [2] Configure Skills for Agents")
+            self.console.print("  [3] View Current Skill Mappings")
+            self.console.print("  [4] Auto-Link Skills to Agents")
+            self.console.print("  [b] Back to Main Menu")
+            self.console.print()
+
+            choice = Prompt.ask("[bold blue]Select an option[/bold blue]", default="b")
+
+            if choice == "1":
+                # View available skills
+                self.console.clear()
+                self._display_header()
+                wizard.list_available_skills()
+                Prompt.ask("\nPress Enter to continue")
+
+            elif choice == "2":
+                # Configure skills interactively
+                self.console.clear()
+                self._display_header()
+
+                # Get list of enabled agents
+                agents = self.agent_manager.discover_agents()
+                enabled_agents = [a.name for a in agents if self.agent_manager.get_pending_state(a.name)]
+
+                if not enabled_agents:
+                    self.console.print("[yellow]No agents are currently enabled.[/yellow]")
+                    self.console.print("Please enable agents first in Agent Management.")
+                    Prompt.ask("\nPress Enter to continue")
+                    continue
+
+                # Run skills wizard
+                success, mapping = wizard.run_interactive_selection(enabled_agents)
+
+                if success:
+                    # Save the configuration
+                    manager.save_mappings_to_config()
+                    self.console.print("\n[green]✓ Skills configuration saved![/green]")
+                else:
+                    self.console.print("\n[yellow]Skills configuration cancelled.[/yellow]")
+
+                Prompt.ask("\nPress Enter to continue")
+
+            elif choice == "3":
+                # View current mappings
+                self.console.clear()
+                self._display_header()
+
+                self.console.print("\n[bold]Current Skill Mappings:[/bold]\n")
+
+                mappings = manager.list_agent_skill_mappings()
+                if not mappings:
+                    self.console.print("[dim]No skill mappings configured yet.[/dim]")
+                else:
+                    from rich.table import Table
+
+                    table = Table(show_header=True, header_style="bold cyan")
+                    table.add_column("Agent", style="yellow")
+                    table.add_column("Skills", style="green")
+
+                    for agent_id, skills in mappings.items():
+                        skills_str = ", ".join(skills) if skills else "[dim](none)[/dim]"
+                        table.add_row(agent_id, skills_str)
+
+                    self.console.print(table)
+
+                Prompt.ask("\nPress Enter to continue")
+
+            elif choice == "4":
+                # Auto-link skills
+                self.console.clear()
+                self._display_header()
+
+                self.console.print("\n[bold]Auto-Linking Skills to Agents...[/bold]\n")
+
+                # Get enabled agents
+                agents = self.agent_manager.discover_agents()
+                enabled_agents = [a.name for a in agents if self.agent_manager.get_pending_state(a.name)]
+
+                if not enabled_agents:
+                    self.console.print("[yellow]No agents are currently enabled.[/yellow]")
+                    self.console.print("Please enable agents first in Agent Management.")
+                    Prompt.ask("\nPress Enter to continue")
+                    continue
+
+                # Auto-link
+                mapping = wizard._auto_link_skills(enabled_agents)
+
+                # Display preview
+                self.console.print("Auto-linked skills:\n")
+                for agent_id, skills in mapping.items():
+                    self.console.print(f"  [yellow]{agent_id}[/yellow]:")
+                    for skill in skills:
+                        self.console.print(f"    - {skill}")
+
+                # Confirm
+                confirm = Confirm.ask("\nApply this configuration?", default=True)
+
+                if confirm:
+                    wizard._apply_skills_configuration(mapping)
+                    manager.save_mappings_to_config()
+                    self.console.print("\n[green]✓ Auto-linking complete![/green]")
+                else:
+                    self.console.print("\n[yellow]Auto-linking cancelled.[/yellow]")
+
+                Prompt.ask("\nPress Enter to continue")
+
+            elif choice == "b":
+                break
+            else:
+                self.console.print("[red]Invalid choice. Please try again.[/red]")
+                Prompt.ask("\nPress Enter to continue")
 
     def _display_behavior_files(self) -> None:
         """Display current behavior files."""

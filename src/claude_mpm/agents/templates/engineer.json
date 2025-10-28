@@ -23,6 +23,19 @@
     }
   ],
   "agent_type": "engineer",
+  "skills": [
+    "test-driven-development",
+    "systematic-debugging",
+    "async-testing",
+    "performance-profiling",
+    "security-scanning",
+    "api-documentation",
+    "git-workflow",
+    "code-review",
+    "refactoring-patterns",
+    "database-migration",
+    "docker-containerization"
+  ],
   "metadata": {
     "name": "Engineer Agent",
     "description": "Clean architecture specialist with code reduction and dependency injection",

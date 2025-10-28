@@ -265,5 +265,12 @@
       "memory_usage": 500,
       "chunk_size": 200
     }
-  }
+  },
+  "skills": [
+    "refactoring-patterns",
+    "code-review",
+    "systematic-debugging",
+    "performance-profiling",
+    "test-driven-development"
+  ]
 }

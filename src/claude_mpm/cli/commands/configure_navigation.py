@@ -59,11 +59,11 @@ class ConfigNavigation:
 
         # Create header panel
         header_text = Text()
-        header_text.append("Claude MPM ", style="bold cyan")
-        header_text.append("Configuration Interface", style="bold white")
-        header_text.append(f"\nv{__version__}", style="dim cyan")
+        header_text.append("Claude MPM ", style="bold blue")
+        header_text.append("Configuration Interface", style="bold")
+        header_text.append(f"\nv{__version__}", style="dim blue")
 
-        scope_text = Text(f"Scope: {self.current_scope.upper()}", style="yellow")
+        scope_text = Text(f"Scope: {self.current_scope.upper()}", style="bold blue")
         dir_text = Text(f"Directory: {self.project_dir}", style="dim")
 
         header_content = Columns([header_text], align="center")
@@ -85,11 +85,12 @@ class ConfigNavigation:
 
         Displays main configuration menu with options:
         1. Agent Management
-        2. Template Editing
-        3. Behavior Files
-        4. Startup Configuration
-        5. Switch Scope
-        6. Version Info
+        2. Skills Management
+        3. Template Editing
+        4. Behavior Files
+        5. Startup Configuration
+        6. Switch Scope
+        7. Version Info
         l. Save & Launch
         q. Quit
 
@@ -98,23 +99,24 @@ class ConfigNavigation:
         """
         menu_items = [
             ("1", "Agent Management", "Enable/disable agents and customize settings"),
-            ("2", "Template Editing", "Edit agent JSON templates"),
-            ("3", "Behavior Files", "Manage identity and workflow configurations"),
+            ("2", "Skills Management", "Configure skills for agents"),
+            ("3", "Template Editing", "Edit agent JSON templates"),
+            ("4", "Behavior Files", "Manage identity and workflow configurations"),
             (
-                "4",
+                "5",
                 "Startup Configuration",
                 "Configure MCP services and agents to start",
             ),
-            ("5", "Switch Scope", f"Current: {self.current_scope}"),
-            ("6", "Version Info", "Display MPM and Claude versions"),
+            ("6", "Switch Scope", f"Current: {self.current_scope}"),
+            ("7", "Version Info", "Display MPM and Claude versions"),
             ("l", "Save & Launch", "Save all changes and start Claude MPM"),
             ("q", "Quit", "Exit without launching"),
         ]
 
         table = Table(show_header=False, box=None, padding=(0, 2))
-        table.add_column("Key", style="cyan bold", width=4)  # Bolder shortcuts
-        table.add_column("Option", style="bold white", width=24)  # Wider for titles
-        table.add_column("Description", style="white")  # Better contrast
+        table.add_column("Key", style="bold blue", width=4)  # Bolder shortcuts
+        table.add_column("Option", style="bold", width=24)  # Wider for titles
+        table.add_column("Description", style="")  # Use default terminal color
 
         for key, option, desc in menu_items:
             table.add_row(f"\\[{key}]", option, desc)
@@ -126,7 +128,7 @@ class ConfigNavigation:
         self.console.print(menu_panel)
         self.console.print()
 
-        choice = Prompt.ask("[bold cyan]Select an option[/bold cyan]", default="q")
+        choice = Prompt.ask("[bold blue]Select an option[/bold blue]", default="q")
         # Strip whitespace to handle leading/trailing spaces
         return choice.strip().lower()
 

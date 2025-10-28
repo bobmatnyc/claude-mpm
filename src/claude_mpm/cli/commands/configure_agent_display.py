@@ -72,9 +72,9 @@ class AgentDisplay:
         )
 
         table.add_column("ID", style="dim", width=3)
-        table.add_column("Name", style="cyan", width=22)
+        table.add_column("Name", style="bold blue", width=22)
         table.add_column("Status", width=12)
-        table.add_column("Description", style="bold cyan", width=45)
+        table.add_column("Description", style="bold", width=45)
         table.add_column("Model/Tools", style="dim", width=20)
 
         for idx, agent in enumerate(agents, 1):
@@ -135,10 +135,10 @@ class AgentDisplay:
             title += f" [yellow]({pending_count} change{'s' if pending_count != 1 else ''} pending)[/yellow]"
 
         table = Table(title=title, box=ROUNDED, show_lines=True, expand=True)
-        table.add_column("ID", justify="right", style="cyan", width=5)
+        table.add_column("ID", justify="right", style="bold blue", width=5)
         table.add_column("Name", style="bold", width=22)
         table.add_column("Status", width=20)
-        table.add_column("Description", style="bold cyan", width=45)
+        table.add_column("Description", style="bold", width=45)
 
         for idx, agent in enumerate(agents, 1):
             current_state = self.agent_manager.is_agent_enabled(agent.name)
@@ -164,7 +164,7 @@ class AgentDisplay:
                     if len(agent.description) > 42
                     else agent.description
                 ),
-                style="cyan",
+                style="",
             )
 
             table.add_row(str(idx), agent.name, status, desc_display)
@@ -247,7 +247,7 @@ class AgentDisplay:
                     detail_text.strip(),
                     title=f"[bold]{agent.name} Details[/bold]",
                     box=ROUNDED,
-                    style="cyan",
+                    style="blue",
                 )
 
                 self.console.print(panel)

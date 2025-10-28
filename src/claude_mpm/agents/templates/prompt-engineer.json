@@ -729,5 +729,9 @@
       "Write succinct commit messages explaining WHAT changed and WHY",
       "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
     ]
-  }
+  },
+  "skills": [
+    "systematic-debugging",
+    "code-review"
+  ]
 }
