@@ -6,6 +6,25 @@
 
 ### Fixed
 
+## [4.16.0] - 2025-10-28
+
+### Added
+- Skills system with 15 bundled skill modules providing specialized guidance
+- Skills selector in CLI configuration wizard for easy skill management
+- Auto-linking functionality for skills in agent templates
+- Three-tier skills organization (Core, Development, Operations)
+- Comprehensive skills documentation in README.md
+- PDF documentation suite for skills system
+
+### Changed
+- Updated 31 agent templates with skills field integration
+- Enhanced CLI configurator with skills wizard
+- Improved agent template structure for skills support
+
+### Fixed
+- Cleaned and validated all 31 agent templates
+- Removed temporary report files from repository
+
 ## [4.15.6] - 2025-10-28
 
 ### Added
