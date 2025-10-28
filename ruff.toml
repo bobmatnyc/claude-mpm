@@ -47,6 +47,8 @@ ignore = [
     "PLR2004", # Magic value used in comparison
     "PTH123", # open() should be replaced by Path.open() - too many to fix now
     "DTZ005", # datetime without timezone - too many to fix now
+    "RUF005", # List concatenation suggestions - stylistic preference
+    "C401",   # Set comprehension suggestions - readability preference
     "PLR0915", # Too many statements
     "PLR0911", # Too many return statements - too many to fix now
     "PLR0912", # Too many branches - too many to fix now
