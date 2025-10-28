@@ -5,7 +5,9 @@ Tests all tabs and captures console logs
 """
 import asyncio
 import json
+
 from playwright.async_api import async_playwright
+
 
 async def test_dashboard():
     """Test all dashboard tabs and capture console output"""
@@ -41,7 +43,7 @@ async def test_dashboard():
             results["connection"]["success"] = response.ok
             print(f"✓ Page loaded: HTTP {response.status}")
         except Exception as e:
-            results["errors"].append(f"Failed to load page: {str(e)}")
+            results["errors"].append(f"Failed to load page: {e!s}")
             print(f"✗ Failed to load: {e}")
             return results
 
@@ -80,7 +82,7 @@ async def test_dashboard():
 
             except Exception as e:
                 results["tabs"][tab_name] = {"error": str(e)}
-                results["errors"].append(f"{tab_name} tab error: {str(e)}")
+                results["errors"].append(f"{tab_name} tab error: {e!s}")
                 print(f"✗ {tab_name} tab error: {e}")
 
         # Wait a bit more to capture any delayed console messages
@@ -120,7 +122,7 @@ if __name__ == "__main__":
         print(f"  - {log_type}: {count}")
 
     # Tabs summary
-    print(f"\nTabs Status:")
+    print("\nTabs Status:")
     for tab_name, tab_data in results["tabs"].items():
         if "error" in tab_data:
             print(f"  ✗ {tab_name}: ERROR - {tab_data['error']}")
@@ -134,7 +136,7 @@ if __name__ == "__main__":
         for error in results["errors"]:
             print(f"  - {error}")
     else:
-        print(f"\n✓ No errors encountered")
+        print("\n✓ No errors encountered")
 
     print("\nResults saved to: dashboard_test_results.json")
     print("Screenshots saved to: dashboard_*_tab.png")
