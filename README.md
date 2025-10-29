@@ -9,7 +9,7 @@ A powerful orchestration framework for **Claude Code (CLI)** that enables multi-
 ## Features
 
 - 🤖 **Multi-Agent System**: 15 specialized agents for comprehensive project management
-- 🎯 **Skills System**: 19 bundled skills with auto-linking, three-tier organization (bundled/user/project), and interactive configuration
+- 🎯 **Skills System**: 20 bundled skills with auto-linking, three-tier organization (bundled/user/project), and interactive configuration
 - 🧠 **Persistent Knowledge System**: Project-specific kuzu-memory integration for intelligent context retention
 - 🔄 **Session Management**: Resume previous sessions with `--resume`
 - 📊 **Real-Time Monitoring**: Live dashboard with `--monitor` flag
@@ -162,12 +162,13 @@ Agents learn project-specific patterns using a simple list format and can update
 
 Claude MPM includes a powerful skills system that eliminates redundant agent guidance through reusable skill modules:
 
-**19 Bundled Skills** covering essential development workflows:
+**20 Bundled Skills** covering essential development workflows:
 - Git workflow, TDD, code review, systematic debugging
 - API documentation, refactoring patterns, performance profiling
 - Docker containerization, database migrations, security scanning
 - JSON/PDF/XLSX handling, async testing, ImageMagick operations
 - Local development servers: Next.js, FastAPI, Vite, Express
+- Web performance: Lighthouse metrics, Core Web Vitals optimization
 
 **Three-Tier Organization:**
 - **Bundled**: Core skills included with Claude MPM (~15,000 lines of reusable guidance)
@@ -247,13 +248,17 @@ See [docs/MEMORY.md](docs/MEMORY.md) and [docs/developer/11-dashboard/README.md]
 - **Single Entry Point**: [docs/README.md](docs/README.md) is your navigation hub
 - **Clear User Paths**: Organized by user type and experience level
 - **Cross-Referenced**: Links between related topics and sections
-- **Up-to-Date**: Version 4.16.1 with local development skills and enhanced documentation
+- **Up-to-Date**: Version 4.16.3 with web performance optimization skill
 
-## Recent Updates (v4.16.1)
+## Recent Updates (v4.16.3)
+
+**Web Performance Optimization**: New `web-performance-optimization` skill for Lighthouse metrics, Core Web Vitals (LCP, INP, CLS), and framework-specific optimization patterns.
+
+## Previous Updates (v4.16.1)
 
 **Local Development Skills**: Added 4 new toolchain-specific skills: `nextjs-local-dev`, `fastapi-local-dev`, `vite-local-dev`, and `express-local-dev` for professional local server management with PM2, HMR, and production-grade patterns.
 
-**Skills System Integration**: 19 bundled skills with auto-linking, three-tier organization, and interactive configuration. Eliminates 85% of redundant guidance across agent templates (~15,000 lines of reusable content).
+**Skills System Integration**: 20 bundled skills with auto-linking, three-tier organization, and interactive configuration. Eliminates 85% of redundant guidance across agent templates (~15,000 lines of reusable content).
 
 **Enhanced Documentation**: Complete documentation suite with PDF guides, reorganized structure, and comprehensive design documents for skills integration.
 
