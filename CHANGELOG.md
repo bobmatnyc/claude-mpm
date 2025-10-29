@@ -6,6 +6,20 @@
 
 ### Fixed
 
+## [4.16.3] - 2025-10-29
+
+### Added
+- New web-performance-optimization skill (6,206 words)
+  - Lighthouse metrics and Core Web Vitals (LCP, INP, CLS, FCP, TTFB)
+  - Framework-specific optimizations (Next.js, React, Vue, Vite)
+  - Modern 2024-2025 web performance techniques
+  - Image optimization, JavaScript optimization, CSS optimization
+  - Caching strategies and resource loading patterns
+
+### Changed
+- Updated bundled skills count from 19 to 20 in README.md
+- Updated bundled skills count from 19 to 20 in user guide
+
 ## [4.16.2] - 2025-10-29
 
 ### Changed
