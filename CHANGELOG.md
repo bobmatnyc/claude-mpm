@@ -6,6 +6,20 @@
 
 ### Fixed
 
+## [4.16.1] - 2025-10-29
+
+### Added
+- New toolchain-specific development skills:
+  - nextjs-local-dev: Next.js local development guidance (3,026 words)
+  - fastapi-local-dev: FastAPI local development guidance (2,827 words)
+  - vite-local-dev: Vite local development guidance (2,881 words)
+  - express-local-dev: Express.js local development guidance (2,724 words)
+- Total: 11,458 words of new skill content
+
+### Changed
+- Updated bundled skills count from 15 to 19 in README.md
+- Updated bundled skills count from 15 to 19 in user guide
+
 ## [4.16.0] - 2025-10-28
 
 ### Added

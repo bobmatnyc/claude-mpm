@@ -155,7 +155,7 @@ Documentation: Updates API docs
 
 ### Overview
 
-Claude MPM includes 15 bundled skills providing specialized expertise: `git-workflow`, `test-driven-development`, `code-review`, `refactoring-patterns`, `security-scanning`, `database-migration`, `docker-containerization`, `api-documentation`, `performance-profiling`, `systematic-debugging`, `async-testing`, `json-data-handling`, `pdf`, `xlsx`, `imagemagick`.
+Claude MPM includes 19 bundled skills providing specialized expertise: `git-workflow`, `test-driven-development`, `code-review`, `refactoring-patterns`, `security-scanning`, `database-migration`, `docker-containerization`, `api-documentation`, `performance-profiling`, `systematic-debugging`, `async-testing`, `json-data-handling`, `pdf`, `xlsx`, `imagemagick`, `nextjs-local-dev`, `fastapi-local-dev`, `vite-local-dev`, `express-local-dev`.
 
 ### Access Skills Management
 
@@ -188,7 +188,7 @@ Maps skills intelligently:
 
 Skills follow the same hierarchy as agents:
 
-1. **BUNDLED**: 15 included skills (system-wide)
+1. **BUNDLED**: 19 included skills (system-wide)
 2. **USER**: Personal skills in `~/.claude/skills/`
 3. **PROJECT**: Project-specific skills in `.claude/skills/`
 
