@@ -1,3 +1,11 @@
+---
+skill_id: json-data-handling
+skill_version: 0.1.0
+description: Working effectively with JSON data structures.
+updated_at: 2025-10-30T17:00:00Z
+tags: [json, data, parsing, serialization]
+---
+
 # JSON Data Handling
 
 Working effectively with JSON data structures.

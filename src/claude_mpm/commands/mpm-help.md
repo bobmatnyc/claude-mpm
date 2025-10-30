@@ -90,6 +90,9 @@ Available Commands:
 /mpm-monitor [start|stop|restart|status|port]
   Manage Socket.IO monitoring server and dashboard
 
+/mpm-version
+  Display comprehensive version information including project version, all agents with versions, and all skills with versions
+
 Use '/mpm-help <command>' for detailed help on a specific command.
 ```
 

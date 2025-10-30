@@ -9,7 +9,7 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.config.paths import paths
 from claude_mpm.core.base_service import BaseService
@@ -273,4 +273,104 @@ class VersionService(BaseService, VersionServiceInterface):
             "update_url": None,
             "message": "Update checking not implemented",
             "checked_at": None,
+        }
+
+    def get_agents_versions(self) -> Dict[str, List[Dict[str, str]]]:
+        """Get all agents grouped by tier with versions.
+
+        Returns:
+            Dict with keys: system, user, project
+            Each value is list of agent dicts with: name, version, id
+        """
+        from claude_mpm.core.unified_agent_registry import (
+            AgentTier,
+            get_agent_registry,
+        )
+
+        agents_by_tier = {"system": [], "user": [], "project": []}
+
+        try:
+            registry = get_agent_registry()
+            all_agents = registry.list_agents()
+
+            for agent in all_agents:
+                agent_info = {
+                    "name": agent.name,
+                    "version": agent.version,
+                    "id": agent.name,  # Use name as ID since agent_id doesn't exist
+                }
+                tier = agent.tier.value if hasattr(agent.tier, "value") else str(agent.tier)
+                if tier in agents_by_tier:
+                    agents_by_tier[tier].append(agent_info)
+                else:
+                    agents_by_tier["system"].append(agent_info)
+
+            # Sort each tier alphabetically by name
+            for tier in agents_by_tier:
+                agents_by_tier[tier].sort(key=lambda x: x["name"])
+
+        except Exception as e:
+            self.logger.error(f"Failed to get agent versions: {e}")
+
+        return agents_by_tier
+
+    def get_skills_versions(self) -> Dict[str, List[Dict[str, str]]]:
+        """Get all skills grouped by source with versions.
+
+        Returns:
+            Dict with keys: bundled, user, project
+            Each value is list of skill dicts with: name, version, description
+        """
+        from claude_mpm.skills.registry import get_registry
+
+        skills_by_source = {"bundled": [], "user": [], "project": []}
+
+        try:
+            registry = get_registry()
+
+            for skill in registry.list_skills():
+                skill_info = {
+                    "name": skill.name,
+                    "version": skill.version,
+                    "description": skill.description[:60] + "..."
+                    if len(skill.description) > 60
+                    else skill.description,
+                }
+                source = skill.source if skill.source in skills_by_source else "bundled"
+                skills_by_source[source].append(skill_info)
+
+            # Sort each source alphabetically by name
+            for source in skills_by_source:
+                skills_by_source[source].sort(key=lambda x: x["name"])
+
+        except Exception as e:
+            self.logger.error(f"Failed to get skill versions: {e}")
+
+        return skills_by_source
+
+    def get_version_summary(self) -> Dict:
+        """Get complete version summary.
+
+        Returns:
+            Dict with project_version, build, agents, skills, and counts
+        """
+        agents = self.get_agents_versions()
+        skills = self.get_skills_versions()
+        build = self.get_build_number()
+
+        return {
+            "project_version": self.get_base_version(),
+            "build": build,
+            "agents": agents,
+            "skills": skills,
+            "counts": {
+                "agents_total": sum(len(v) for v in agents.values()),
+                "agents_system": len(agents.get("system", [])),
+                "agents_user": len(agents.get("user", [])),
+                "agents_project": len(agents.get("project", [])),
+                "skills_total": sum(len(v) for v in skills.values()),
+                "skills_bundled": len(skills.get("bundled", [])),
+                "skills_user": len(skills.get("user", [])),
+                "skills_project": len(skills.get("project", [])),
+            },
         }

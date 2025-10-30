@@ -1,3 +1,11 @@
+---
+skill_id: security-scanning
+skill_version: 0.1.0
+description: Identify and fix common security vulnerabilities in code, eliminating redundant security guidance per agent.
+updated_at: 2025-10-30T17:00:00Z
+tags: [security, vulnerability, scanning, code-analysis]
+---
+
 # Security Scanning
 
 Identify and fix common security vulnerabilities in code. Eliminates ~150-200 lines of redundant security guidance per agent.

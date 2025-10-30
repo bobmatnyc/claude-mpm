@@ -16,7 +16,7 @@ from claude_mpm.skills.skill_manager import SkillManager
 
 
 def test_bundled_skills_count():
-    """Verify exactly 15 bundled skills exist"""
+    """Verify exactly 20 bundled skills exist"""
     print("\n=== TEST 1: Bundled Skills Count ===")
     bundled_dir = Path("src/claude_mpm/skills/bundled")
     skill_files = list(bundled_dir.glob("*.md"))
@@ -27,9 +27,9 @@ def test_bundled_skills_count():
         print(f"  - {f.stem}")
 
     assert (
-        len(skill_files) == 15
-    ), f"Expected 15 bundled skills, found {len(skill_files)}"
-    print("✅ PASS: Exactly 15 bundled skills found")
+        len(skill_files) == 20
+    ), f"Expected 20 bundled skills, found {len(skill_files)}"
+    print("✅ PASS: Exactly 20 bundled skills found")
     return True
 
 
@@ -48,9 +48,9 @@ def test_skills_registry_loading():
     all_skills = registry.list_skills()
     print(f"Loaded {len(all_skills)} total skills")
 
-    # Verify we have at least 15 bundled skills
-    if len(all_skills) < 15:
-        print(f"❌ FAIL: Expected at least 15 skills, got {len(all_skills)}")
+    # Verify we have at least 20 bundled skills
+    if len(all_skills) < 20:
+        print(f"❌ FAIL: Expected at least 20 skills, got {len(all_skills)}")
         return False
 
     print(f"✅ PASS: Registry loaded {len(all_skills)} skills")

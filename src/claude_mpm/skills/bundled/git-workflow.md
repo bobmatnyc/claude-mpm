@@ -1,3 +1,11 @@
+---
+skill_id: git-workflow
+skill_version: 0.1.0
+description: Essential Git patterns for effective version control, eliminating redundant Git guidance per agent.
+updated_at: 2025-10-30T17:00:00Z
+tags: [git, version-control, workflow, best-practices]
+---
+
 # Git Workflow
 
 Essential Git patterns for effective version control. Eliminates ~120-150 lines of redundant Git guidance per agent.

@@ -104,7 +104,7 @@ testpaths = [ "tests",]
 python_files = [ "test_*.py", "*_test.py",]
 python_classes = [ "Test*",]
 python_functions = [ "test_*",]
-addopts = [ "-v", "--tb=short", "--strict-markers", "--disable-warnings", "--asyncio-mode=auto",]
+addopts = [ "--tb=short", "--strict-markers", "--disable-warnings", "--asyncio-mode=auto",]
 markers = [ "unit: Unit tests", "integration: Integration tests", "e2e: End-to-end tests", "regression: Regression tests", "socketio: Socket.IO related tests", "hook: Hook system tests",]
 asyncio_mode = "auto"
 

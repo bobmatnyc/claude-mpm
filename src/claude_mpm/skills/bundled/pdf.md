@@ -1,3 +1,11 @@
+---
+skill_id: pdf
+skill_version: 0.1.0
+description: Common PDF operations and libraries across languages.
+updated_at: 2025-10-30T17:00:00Z
+tags: [pdf, document-processing, manipulation, media]
+---
+
 # PDF Manipulation
 
 Common PDF operations and libraries across languages.

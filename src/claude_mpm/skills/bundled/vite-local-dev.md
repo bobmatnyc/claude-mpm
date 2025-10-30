@@ -1,3 +1,11 @@
+---
+skill_id: vite-local-dev
+skill_version: 0.1.0
+description: Maximizing Vite's development server performance, managing HMR effectively, and avoiding process management pitfalls.
+updated_at: 2025-10-30T17:00:00Z
+tags: [vite, development, hmr, frontend, build-tool]
+---
+
 # Vite Local Development Server
 
 ## Overview

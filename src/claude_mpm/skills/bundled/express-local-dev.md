@@ -1,3 +1,11 @@
+---
+skill_id: express-local-dev
+skill_version: 0.1.0
+description: Running Express development servers with auto-reload tools like Nodemon, managing production deployments with PM2 clustering, and implementing graceful shutdown patterns.
+updated_at: 2025-10-30T17:00:00Z
+tags: [express, nodejs, development, server, backend]
+---
+
 # Express Local Development Server
 
 ## Overview

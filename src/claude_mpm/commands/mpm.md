@@ -8,6 +8,7 @@ Available MPM commands:
 - /mpm-help - Show command help
 - /mpm-status - Show MPM status
 - /mpm-config - Manage configuration
+- /mpm-version - Display version information for project, agents, and skills
 
 Claude MPM extends Claude Code with:
 - Multi-agent orchestration

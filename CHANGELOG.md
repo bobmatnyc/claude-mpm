@@ -1,10 +1,34 @@
 ## [Unreleased]
 
 ### Added
+- Skills versioning system with YAML frontmatter support
+  - All bundled skills now have version tracking (starting at 0.1.0)
+  - Skills support semantic versioning (MAJOR.MINOR.PATCH)
+  - Backward compatible: skills without frontmatter use default version "unknown"
+  - Added `skill_id`, `skill_version`, `updated_at`, and `tags` fields to Skill dataclass
+- New `/mpm-version` slash command to display comprehensive version information
+  - Shows project version and build number
+  - Lists all agents with versions (grouped by tier: system/user/project)
+  - Lists all skills with versions (grouped by source: bundled/user/project)
+  - Displays summary statistics with totals and counts
+- Extended VersionService with new methods:
+  - `get_agents_versions()` - Returns agents grouped by tier with counts
+  - `get_skills_versions()` - Returns skills grouped by source with counts
+  - `get_version_summary()` - Returns complete version information structure
 
 ### Changed
+- Reduced pytest startup verbosity by removing `-v` flag from default configuration
+  - Cleaner test output by default
+  - Verbose mode still available with explicit `-v` flag
+  - No impact on HTML reports or CI/CD pipelines
+- Changed skills loading logs from INFO to DEBUG level
+  - Skills no longer listed on startup (reduced console noise)
+  - Debug logging still available when needed for troubleshooting
 
 ### Fixed
+- Fixed 15 VersionService unit tests that were calling methods on wrong object
+  - Tests now correctly use version_service fixture instead of VersionService class
+  - All version-related tests now passing
 
 ## [4.16.3] - 2025-10-29
 

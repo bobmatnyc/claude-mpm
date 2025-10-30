@@ -1,3 +1,11 @@
+---
+skill_id: async-testing
+skill_version: 0.1.0
+description: Patterns for testing asynchronous code across languages, eliminating redundant async testing guidance per agent.
+updated_at: 2025-10-30T17:00:00Z
+tags: [testing, async, asynchronous, concurrency]
+---
+
 # Async Testing
 
 Patterns for testing asynchronous code across languages. Eliminates ~200-300 lines of redundant async testing guidance per agent.

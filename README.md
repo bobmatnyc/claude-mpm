@@ -162,7 +162,7 @@ Agents learn project-specific patterns using a simple list format and can update
 
 Claude MPM includes a powerful skills system that eliminates redundant agent guidance through reusable skill modules:
 
-**20 Bundled Skills** covering essential development workflows:
+**20 Bundled Skills** covering essential development workflows (all versioned starting at 0.1.0):
 - Git workflow, TDD, code review, systematic debugging
 - API documentation, refactoring patterns, performance profiling
 - Docker containerization, database migrations, security scanning
@@ -174,6 +174,11 @@ Claude MPM includes a powerful skills system that eliminates redundant agent gui
 - **Bundled**: Core skills included with Claude MPM (~15,000 lines of reusable guidance)
 - **User**: Custom skills in `~/.config/claude-mpm/skills/`
 - **Project**: Project-specific skills in `.claude-mpm/skills/`
+
+**Version Tracking:**
+- All skills support semantic versioning (MAJOR.MINOR.PATCH)
+- Check versions with `/mpm-version` command in Claude Code
+- See [Skills Versioning Guide](docs/user/skills-versioning.md) for details
 
 **Quick Access:**
 ```bash

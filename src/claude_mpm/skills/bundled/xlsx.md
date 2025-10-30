@@ -1,3 +1,11 @@
+---
+skill_id: xlsx
+skill_version: 0.1.0
+description: Working with Excel files programmatically.
+updated_at: 2025-10-30T17:00:00Z
+tags: [excel, xlsx, spreadsheet, data]
+---
+
 # Excel/XLSX Manipulation
 
 Working with Excel files programmatically.

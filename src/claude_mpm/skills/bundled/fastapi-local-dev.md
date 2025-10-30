@@ -1,3 +1,11 @@
+---
+skill_id: fastapi-local-dev
+skill_version: 0.1.0
+description: Running FastAPI development servers effectively using Uvicorn, managing production deployments with Gunicorn, and avoiding common pitfalls.
+updated_at: 2025-10-30T17:00:00Z
+tags: [fastapi, python, development, server, api]
+---
+
 # FastAPI Local Development Server
 
 ## Overview

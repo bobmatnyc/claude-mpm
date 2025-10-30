@@ -1,3 +1,11 @@
+---
+skill_id: test-driven-development
+skill_version: 0.1.0
+description: Comprehensive TDD patterns and practices for all programming languages, eliminating redundant testing guidance per agent.
+updated_at: 2025-10-30T17:00:00Z
+tags: [testing, tdd, best-practices, quality-assurance]
+---
+
 # Test-Driven Development (TDD)
 
 Comprehensive TDD patterns and practices for all programming languages. This skill eliminates ~500-800 lines of redundant testing guidance per agent.

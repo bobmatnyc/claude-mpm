@@ -1,3 +1,11 @@
+---
+skill_id: systematic-debugging
+skill_version: 0.1.0
+description: Structured approach to identifying and fixing bugs efficiently, eliminating redundant debugging guidance per agent.
+updated_at: 2025-10-30T17:00:00Z
+tags: [debugging, troubleshooting, problem-solving, best-practices]
+---
+
 # Systematic Debugging
 
 Structured approach to identifying and fixing bugs efficiently. Eliminates ~300-400 lines of redundant debugging guidance per agent.

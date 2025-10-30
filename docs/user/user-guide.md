@@ -243,6 +243,73 @@ skills:
 
 **Update skills as patterns evolve**: Skills are living documentation of project best practices.
 
+### Version Tracking
+
+All skills support semantic versioning (MAJOR.MINOR.PATCH) with YAML frontmatter:
+
+```markdown
+---
+skill_id: my-skill
+skill_version: 1.0.0
+updated_at: 2025-10-30
+tags:
+  - category
+  - topic
+---
+
+# My Skill
+
+Skill content here...
+```
+
+**Check versions with the `/mpm-version` command:**
+
+```
+/mpm-version
+```
+
+This displays:
+- Project version and build number
+- All agents with versions (grouped by tier: system/user/project)
+- All skills with versions (grouped by source: bundled/user/project)
+- Summary statistics with totals
+
+**Example output:**
+
+```
+Claude MPM Version Information
+==============================
+
+Project Version: 4.16.3
+Build: 481
+
+Agents (35 total)
+-----------------
+System Agents (30):
+  ├─ engineer (3.9.1)
+  ├─ pm (2.0.0)
+  └─ ... (28 more)
+
+Skills (20 total)
+-----------------
+Bundled Skills (20):
+  ├─ test-driven-development (0.1.0)
+  ├─ systematic-debugging (0.1.0)
+  └─ ... (18 more)
+
+Summary
+-------
+• Project: v4.16.3 (build 481)
+• Agents: 35 total (30 system, 3 user, 2 project)
+• Skills: 20 total (20 bundled, 0 user, 0 project)
+```
+
+**See [Skills Versioning Guide](skills-versioning.md) for complete documentation on:**
+- Creating versioned skills
+- Semantic versioning guidelines
+- Migration strategies
+- Best practices
+
 ## Memory System
 
 Persistent learning across sessions using project-specific knowledge graphs.

@@ -1,8 +1,11 @@
 """Skills registry - manages bundled and discovered skills."""
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
+
+import yaml
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -17,13 +20,27 @@ class Skill:
     path: Path
     content: str
     source: str  # 'bundled', 'user', or 'project'
+
+    # Version tracking fields
+    version: str = "0.1.0"
+    skill_id: str = ""  # defaults to name if not provided
+
+    # Existing fields
     description: str = ""
     agent_types: List[str] = None  # Which agent types can use this skill
 
+    # Optional metadata
+    updated_at: Optional[str] = None
+    tags: List[str] = None
+
     def __post_init__(self):
-        """Initialize agent_types list if not provided."""
+        """Initialize default values if not provided."""
         if self.agent_types is None:
             self.agent_types = []
+        if self.tags is None:
+            self.tags = []
+        if not self.skill_id:
+            self.skill_id = self.name
 
 
 class SkillsRegistry:
@@ -35,6 +52,28 @@ class SkillsRegistry:
         self._load_bundled_skills()
         self._load_user_skills()
         self._load_project_skills()
+
+    def _parse_skill_frontmatter(self, content: str) -> Dict[str, Any]:
+        """Parse YAML frontmatter from skill markdown file.
+
+        Returns:
+            Dict with frontmatter fields or empty dict if no frontmatter
+        """
+        # Check for YAML frontmatter
+        if not content.startswith("---"):
+            return {}
+
+        # Extract frontmatter (match: ---\n...yaml...\n---\nrest)
+        match = re.match(r"^---\n(.*?)\n---\n(.*)$", content, re.DOTALL)
+        if not match:
+            return {}
+
+        try:
+            frontmatter = yaml.safe_load(match.group(1))
+            return frontmatter or {}
+        except yaml.YAMLError as e:
+            logger.warning(f"Failed to parse skill frontmatter: {e}")
+            return {}
 
     def _load_bundled_skills(self):
         """Load skills bundled with MPM."""
@@ -49,21 +88,36 @@ class SkillsRegistry:
                 skill_name = skill_file.stem
                 content = skill_file.read_text(encoding="utf-8")
 
-                # Extract description from first paragraph if available
-                description = self._extract_description(content)
+                # Parse frontmatter
+                frontmatter = self._parse_skill_frontmatter(content)
+
+                # Extract version fields from frontmatter
+                version = frontmatter.get("skill_version", "0.1.0")
+                skill_id = frontmatter.get("skill_id", skill_name)
+                updated_at = frontmatter.get("updated_at")
+                tags = frontmatter.get("tags", [])
+
+                # Extract description (from frontmatter or fallback to content parsing)
+                description = frontmatter.get("description", "")
+                if not description:
+                    description = self._extract_description(content)
 
                 self.skills[skill_name] = Skill(
                     name=skill_name,
                     path=skill_file,
                     content=content,
                     source="bundled",
+                    version=version,
+                    skill_id=skill_id,
                     description=description,
+                    updated_at=updated_at,
+                    tags=tags,
                 )
                 skill_count += 1
             except Exception as e:
                 logger.error(f"Error loading bundled skill {skill_file}: {e}")
 
-        logger.info(f"Loaded {skill_count} bundled skills")
+        logger.debug(f"Loaded {skill_count} bundled skills")
 
     def _load_user_skills(self):
         """Load user-installed skills from ~/.claude/skills/"""
@@ -78,14 +132,31 @@ class SkillsRegistry:
                 skill_name = skill_file.stem
                 # User skills override bundled skills
                 content = skill_file.read_text(encoding="utf-8")
-                description = self._extract_description(content)
+
+                # Parse frontmatter
+                frontmatter = self._parse_skill_frontmatter(content)
+
+                # Extract version fields from frontmatter
+                version = frontmatter.get("skill_version", "0.1.0")
+                skill_id = frontmatter.get("skill_id", skill_name)
+                updated_at = frontmatter.get("updated_at")
+                tags = frontmatter.get("tags", [])
+
+                # Extract description (from frontmatter or fallback to content parsing)
+                description = frontmatter.get("description", "")
+                if not description:
+                    description = self._extract_description(content)
 
                 self.skills[skill_name] = Skill(
                     name=skill_name,
                     path=skill_file,
                     content=content,
                     source="user",
+                    version=version,
+                    skill_id=skill_id,
                     description=description,
+                    updated_at=updated_at,
+                    tags=tags,
                 )
                 skill_count += 1
                 logger.debug(f"User skill '{skill_name}' overrides bundled version")
@@ -93,7 +164,7 @@ class SkillsRegistry:
                 logger.error(f"Error loading user skill {skill_file}: {e}")
 
         if skill_count > 0:
-            logger.info(f"Loaded {skill_count} user skills")
+            logger.debug(f"Loaded {skill_count} user skills")
 
     def _load_project_skills(self):
         """Load project-specific skills from .claude/skills/"""
@@ -108,14 +179,31 @@ class SkillsRegistry:
                 skill_name = skill_file.stem
                 # Project skills override both user and bundled skills
                 content = skill_file.read_text(encoding="utf-8")
-                description = self._extract_description(content)
+
+                # Parse frontmatter
+                frontmatter = self._parse_skill_frontmatter(content)
+
+                # Extract version fields from frontmatter
+                version = frontmatter.get("skill_version", "0.1.0")
+                skill_id = frontmatter.get("skill_id", skill_name)
+                updated_at = frontmatter.get("updated_at")
+                tags = frontmatter.get("tags", [])
+
+                # Extract description (from frontmatter or fallback to content parsing)
+                description = frontmatter.get("description", "")
+                if not description:
+                    description = self._extract_description(content)
 
                 self.skills[skill_name] = Skill(
                     name=skill_name,
                     path=skill_file,
                     content=content,
                     source="project",
+                    version=version,
+                    skill_id=skill_id,
                     description=description,
+                    updated_at=updated_at,
+                    tags=tags,
                 )
                 skill_count += 1
                 logger.debug(f"Project skill '{skill_name}' overrides other versions")
@@ -123,7 +211,7 @@ class SkillsRegistry:
                 logger.error(f"Error loading project skill {skill_file}: {e}")
 
         if skill_count > 0:
-            logger.info(f"Loaded {skill_count} project skills")
+            logger.debug(f"Loaded {skill_count} project skills")
 
     def _extract_description(self, content: str) -> str:
         """Extract description from skill content (first paragraph or summary)."""

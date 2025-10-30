@@ -1,3 +1,11 @@
+---
+skill_id: api-documentation
+skill_version: 0.1.0
+description: Best practices for documenting APIs and code interfaces, eliminating redundant documentation guidance per agent.
+updated_at: 2025-10-30T17:00:00Z
+tags: [api, documentation, best-practices, interfaces]
+---
+
 # API Documentation
 
 Best practices for documenting APIs and code interfaces. Eliminates ~100-150 lines of redundant documentation guidance per agent.
