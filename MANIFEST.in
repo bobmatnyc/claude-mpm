@@ -18,6 +18,12 @@ recursive-include src/claude_mpm/agents *.md *.json
 recursive-include src/claude_mpm/agents/templates *.json
 recursive-include src/claude_mpm/framework *.md *.json
 
+# Include skills (bundled markdown files)
+recursive-include src/claude_mpm/skills/bundled *.md
+
+# Include all command files
+recursive-include src/claude_mpm/commands *.md
+
 # Include scripts
 include scripts/ticket
 include scripts/run_mpm.py

@@ -6,6 +6,16 @@
 
 ### Fixed
 
+## [4.17.1] - 2025-10-30
+
+### Fixed
+- **Critical:** Bundled skills markdown files now included in pip packages
+  - Updated MANIFEST.in to include `src/claude_mpm/skills/bundled/*.md`
+  - Updated pyproject.toml package-data configuration to include `"skills/bundled/*.md"`
+  - All 20 bundled skills now available in pip installations
+  - Fixes empty "Available Skills" sections in configuration interface
+  - Affects all users who installed v4.17.0 via pip
+
 ## [4.17.0] - 2025-10-30
 
 ### Added

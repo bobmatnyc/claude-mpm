@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-mpm"
-version = "4.17.0"
+version = "4.17.1"
 description = "Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation and ticket tracking"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -97,7 +97,7 @@ changelog_incremental = true
 "src/claude_mpm/skills/skill_manager.py" = [ "PTH123",]
 
 [tool.setuptools.package-data]
-claude_mpm = [ "VERSION", "BUILD_NUMBER", "scripts/*", "scripts/*.sh", "commands/*.md", "dashboard/*.html", "dashboard/templates/*.html", "dashboard/static/*.css", "dashboard/static/*.js", "dashboard/static/css/*.css", "dashboard/static/js/*.js", "dashboard/static/js/components/*.js", "agents/*.md", "agents/*.json", "agents/*.yaml", "agents/templates/*.json", "agents/schema/*.json", "hooks/**/*.py", "hooks/**/*.sh", "hooks/claude_hooks/*", "hooks/claude_hooks/**/*",]
+claude_mpm = [ "VERSION", "BUILD_NUMBER", "scripts/*", "scripts/*.sh", "commands/*.md", "skills/bundled/*.md", "dashboard/*.html", "dashboard/templates/*.html", "dashboard/static/*.css", "dashboard/static/*.js", "dashboard/static/css/*.css", "dashboard/static/js/*.js", "dashboard/static/js/components/*.js", "agents/*.md", "agents/*.json", "agents/*.yaml", "agents/templates/*.json", "agents/schema/*.json", "hooks/**/*.py", "hooks/**/*.sh", "hooks/claude_hooks/*", "hooks/claude_hooks/**/*",]
 
 [tool.pytest.ini_options]
 testpaths = [ "tests",]
