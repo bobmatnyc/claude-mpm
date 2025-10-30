@@ -152,7 +152,6 @@ class TestVersionService:
                 build_number = service.get_build_number()
                 assert build_number is None  # Should handle error gracefully
 
-
     def test_get_agents_versions(self, service):
         """Test getting agents grouped by tier."""
         # Mock the agent registry
@@ -300,7 +299,10 @@ class TestVersionService:
     def test_get_skills_versions_multiple_sources(self, service):
         """Test getting skills from multiple sources."""
         bundled_skill = Mock(
-            name="bundled-skill", version="0.1.0", description="Bundled", source="bundled"
+            name="bundled-skill",
+            version="0.1.0",
+            description="Bundled",
+            source="bundled",
         )
         user_skill = Mock(
             name="user-skill", version="0.2.0", description="User", source="user"
@@ -367,7 +369,10 @@ class TestVersionService:
         """Test getting complete version summary."""
         # Mock agents
         mock_agent = Mock(
-            name="test-agent", version="1.0.0", agent_id="test", tier=Mock(value="system")
+            name="test-agent",
+            version="1.0.0",
+            agent_id="test",
+            tier=Mock(value="system"),
         )
 
         # Mock skill

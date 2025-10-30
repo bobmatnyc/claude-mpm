@@ -296,7 +296,11 @@ class VersionService(BaseService, VersionServiceInterface):
                     "version": agent.version,
                     "id": agent.name,  # Use name as ID since agent_id doesn't exist
                 }
-                tier = agent.tier.value if hasattr(agent.tier, "value") else str(agent.tier)
+                tier = (
+                    agent.tier.value
+                    if hasattr(agent.tier, "value")
+                    else str(agent.tier)
+                )
                 if tier in agents_by_tier:
                     agents_by_tier[tier].append(agent_info)
                 else:
@@ -329,9 +333,11 @@ class VersionService(BaseService, VersionServiceInterface):
                 skill_info = {
                     "name": skill.name,
                     "version": skill.version,
-                    "description": skill.description[:60] + "..."
-                    if len(skill.description) > 60
-                    else skill.description,
+                    "description": (
+                        skill.description[:60] + "..."
+                        if len(skill.description) > 60
+                        else skill.description
+                    ),
                 }
                 source = skill.source if skill.source in skills_by_source else "bundled"
                 skills_by_source[source].append(skill_info)
