@@ -282,10 +282,7 @@ class VersionService(BaseService, VersionServiceInterface):
             Dict with keys: system, user, project
             Each value is list of agent dicts with: name, version, id
         """
-        from claude_mpm.core.unified_agent_registry import (
-            AgentTier,
-            get_agent_registry,
-        )
+        from claude_mpm.core.unified_agent_registry import get_agent_registry
 
         agents_by_tier = {"system": [], "user": [], "project": []}
 
@@ -306,8 +303,8 @@ class VersionService(BaseService, VersionServiceInterface):
                     agents_by_tier["system"].append(agent_info)
 
             # Sort each tier alphabetically by name
-            for tier in agents_by_tier:
-                agents_by_tier[tier].sort(key=lambda x: x["name"])
+            for tier, agents in agents_by_tier.items():
+                agents.sort(key=lambda x: x["name"])
 
         except Exception as e:
             self.logger.error(f"Failed to get agent versions: {e}")
@@ -340,8 +337,8 @@ class VersionService(BaseService, VersionServiceInterface):
                 skills_by_source[source].append(skill_info)
 
             # Sort each source alphabetically by name
-            for source in skills_by_source:
-                skills_by_source[source].sort(key=lambda x: x["name"])
+            for source, skills in skills_by_source.items():
+                skills.sort(key=lambda x: x["name"])
 
         except Exception as e:
             self.logger.error(f"Failed to get skill versions: {e}")
