@@ -1,6 +1,14 @@
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [4.17.0] - 2025-10-30
+
+### Added
 - Skills versioning system with YAML frontmatter support
   - All bundled skills now have version tracking (starting at 0.1.0)
   - Skills support semantic versioning (MAJOR.MINOR.PATCH)
