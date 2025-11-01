@@ -612,6 +612,11 @@ release-major: release-check release-test ## Create a major release (breaking ch
 	@echo "$(GREEN)✓ Major release prepared$(NC)"
 	@echo "$(BLUE)Next: Run 'make release-publish' to publish$(NC)"
 
+# Publish to PyPI using .env.local credentials
+publish-pypi: ## Publish package to PyPI using credentials from .env.local
+	@echo "$(YELLOW)📤 Publishing to PyPI with .env.local credentials...$(NC)"
+	@./scripts/publish_to_pypi.sh
+
 # Publish release to all channels
 release-publish: ## Publish release to PyPI, npm, and GitHub
 	@echo "$(YELLOW)🚀 Publishing release...$(NC)"

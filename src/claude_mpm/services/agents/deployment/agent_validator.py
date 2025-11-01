@@ -329,10 +329,26 @@ class AgentValidator:
             "type": "agent",  # Default type
         }
 
-        # Extract from YAML frontmatter
+        # Extract ONLY from YAML frontmatter (between --- markers)
         lines = content.split("\n")
+        in_frontmatter = False
+        frontmatter_ended = False
+
         for line in lines:
             stripped_line = line.strip()
+
+            # Track frontmatter boundaries
+            if stripped_line == "---":
+                if not in_frontmatter:
+                    in_frontmatter = True
+                    continue
+                frontmatter_ended = True
+                break  # Stop parsing after frontmatter ends
+
+            # Only parse within frontmatter
+            if not in_frontmatter or frontmatter_ended:
+                continue
+
             if stripped_line.startswith("name:"):
                 agent_info["name"] = stripped_line.split(":", 1)[1].strip().strip("\"'")
             elif stripped_line.startswith("description:"):
