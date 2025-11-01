@@ -544,7 +544,7 @@ class TestPerformance:
             json_size = saved_path.with_suffix(".json").stat().st_size
 
             # Report metrics (for manual verification)
-            print(f"\nPerformance Metrics:")
+            print("\nPerformance Metrics:")
             print(f"  Generation time: {generation_time*1000:.2f}ms")
             print(f"  Save time: {save_time*1000:.2f}ms")
             print(f"  Markdown file size: {md_size/1024:.2f}KB")

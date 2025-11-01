@@ -331,9 +331,8 @@ class SessionManager:
                 file_path = generator.save_resume_log(resume_log)
                 logger.info(f"Resume log generated and saved: {file_path}")
                 return file_path
-            else:
-                logger.warning("Resume log generation returned None")
-                return None
+            logger.warning("Resume log generation returned None")
+            return None
 
         except Exception as e:
             logger.error(f"Failed to generate resume log: {e}", exc_info=True)

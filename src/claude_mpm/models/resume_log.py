@@ -326,7 +326,7 @@ class ResumeLog:
         try:
             # For now, we just return the markdown content
             # In the future, could parse markdown back to structured data
-            markdown_content = file_path.read_text(encoding="utf-8")
+            _ = file_path.read_text(encoding="utf-8")
             logger.info(f"Resume log loaded: {file_path}")
 
             # Return a basic ResumeLog with the markdown content embedded
