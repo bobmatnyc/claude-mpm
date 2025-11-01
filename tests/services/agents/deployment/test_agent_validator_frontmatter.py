@@ -8,8 +8,10 @@ This test suite verifies that the fixed _extract_agent_info method:
 4. Handles edge cases gracefully
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from claude_mpm.services.agents.deployment.agent_validator import AgentValidator
 
 
@@ -280,7 +282,10 @@ class TestAgentValidatorRealWorldFiles:
         # NOT 'Deploy' from the GitHub Actions YAML example
         assert result["name"] == "vercel-ops-agent"
         assert result["name"] != "Deploy"
-        assert "vercel" in result["description"].lower() or "ops" in result["description"].lower()
+        assert (
+            "vercel" in result["description"].lower()
+            or "ops" in result["description"].lower()
+        )
 
     def test_gcp_ops_agent_parses_correctly(self):
         """Test: gcp_ops_agent.md should parse correctly if it exists"""
@@ -310,12 +315,12 @@ class TestAgentValidatorRealWorldFiles:
             pytest.skip("No agent files found")
 
         problematic_patterns = [
-            "Deploy",           # From GitHub Actions YAML
-            "z.string",         # From Zod schemas
-            "string;",          # From TypeScript interfaces
-            "interface",        # From code examples
-            "function",         # From code examples
-            "const",            # From code examples
+            "Deploy",  # From GitHub Actions YAML
+            "z.string",  # From Zod schemas
+            "string;",  # From TypeScript interfaces
+            "interface",  # From code examples
+            "function",  # From code examples
+            "const",  # From code examples
         ]
 
         for agent_file in agent_files:
