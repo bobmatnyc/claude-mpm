@@ -190,7 +190,10 @@ class TestResumeLogGenerator:
 
             # Test various stop reasons
             assert generator.should_generate(stop_reason="max_tokens") is True
-            assert generator.should_generate(stop_reason="model_context_window_exceeded") is True
+            assert (
+                generator.should_generate(stop_reason="model_context_window_exceeded")
+                is True
+            )
             assert generator.should_generate(stop_reason="end_turn") is False
 
     def test_should_generate_on_threshold(self):

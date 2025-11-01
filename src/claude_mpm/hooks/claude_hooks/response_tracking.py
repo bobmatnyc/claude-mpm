@@ -301,7 +301,10 @@ class ResponseTrackingManager:
                 if "stop_reason" in event:
                     metadata["stop_reason"] = event["stop_reason"]
                     if DEBUG:
-                        print(f"  - Captured stop_reason: {event['stop_reason']}", file=sys.stderr)
+                        print(
+                            f"  - Captured stop_reason: {event['stop_reason']}",
+                            file=sys.stderr,
+                        )
 
                 # Capture Claude API usage data if available
                 if "usage" in event:
@@ -309,12 +312,21 @@ class ResponseTrackingManager:
                     metadata["usage"] = {
                         "input_tokens": usage_data.get("input_tokens", 0),
                         "output_tokens": usage_data.get("output_tokens", 0),
-                        "cache_creation_input_tokens": usage_data.get("cache_creation_input_tokens", 0),
-                        "cache_read_input_tokens": usage_data.get("cache_read_input_tokens", 0),
+                        "cache_creation_input_tokens": usage_data.get(
+                            "cache_creation_input_tokens", 0
+                        ),
+                        "cache_read_input_tokens": usage_data.get(
+                            "cache_read_input_tokens", 0
+                        ),
                     }
                     if DEBUG:
-                        total_tokens = usage_data.get("input_tokens", 0) + usage_data.get("output_tokens", 0)
-                        print(f"  - Captured usage: {total_tokens} total tokens", file=sys.stderr)
+                        total_tokens = usage_data.get(
+                            "input_tokens", 0
+                        ) + usage_data.get("output_tokens", 0)
+                        print(
+                            f"  - Captured usage: {total_tokens} total tokens",
+                            file=sys.stderr,
+                        )
 
                 # Track the main Claude response
                 file_path = self.response_tracker.track_response(

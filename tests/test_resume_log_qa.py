@@ -343,9 +343,7 @@ class TestConfiguration:
         """Test with resume logs enabled/disabled."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Enabled
-            config_enabled = {
-                "context_management": {"resume_logs": {"enabled": True}}
-            }
+            config_enabled = {"context_management": {"resume_logs": {"enabled": True}}}
             generator_enabled = ResumeLogGenerator(
                 storage_dir=Path(tmpdir), config=config_enabled
             )
