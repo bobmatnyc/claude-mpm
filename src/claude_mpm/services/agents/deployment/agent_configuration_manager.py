@@ -71,7 +71,7 @@ class AgentConfigurationManager:
             # Cache the result
             self._base_agent_cache = (base_agent_data, base_agent_version)
 
-            self.logger.info(f"Loaded base agent from {self.base_agent_path}")
+            self.logger.debug(f"Loaded base agent from {self.base_agent_path}")
             return self._base_agent_cache
 
         except Exception as e:

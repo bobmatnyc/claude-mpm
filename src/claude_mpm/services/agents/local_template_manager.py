@@ -182,7 +182,7 @@ class LocalAgentTemplateManager:
             self._discover_templates_in_dir(self.user_agents_dir, "user")
 
         self._cache_valid = True
-        logger.info(f"Discovered {len(self._template_cache)} local agent templates")
+        logger.debug(f"Discovered {len(self._template_cache)} local agent templates")
 
         return self._template_cache
 

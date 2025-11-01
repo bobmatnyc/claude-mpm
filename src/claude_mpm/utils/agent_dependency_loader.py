@@ -85,7 +85,7 @@ class AgentDependencyLoader:
             deployed_agents[agent_id] = agent_file
             logger.debug(f"Found deployed agent: {agent_id}")
 
-        logger.info(f"Discovered {len(deployed_agents)} deployed agents")
+        logger.debug(f"Discovered {len(deployed_agents)} deployed agents")
         self.deployed_agents = deployed_agents
         return deployed_agents
 
@@ -121,7 +121,7 @@ class AgentDependencyLoader:
                         logger.warning(f"Failed to load config for {agent_id}: {e}")
 
         self.agent_dependencies = agent_dependencies
-        logger.info(f"Loaded dependencies for {len(agent_dependencies)} agents")
+        logger.debug(f"Loaded dependencies for {len(agent_dependencies)} agents")
         return agent_dependencies
 
     def check_python_dependency(self, package_spec: str) -> Tuple[bool, Optional[str]]:

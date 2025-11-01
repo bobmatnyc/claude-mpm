@@ -90,7 +90,7 @@ class LocalTemplateDeploymentService:
                 logger.error(f"Failed to deploy local template {agent_id}: {e}")
                 results["errors"].append(f"{agent_id}: {e}")
 
-        logger.info(
+        logger.debug(
             f"Local template deployment: deployed={len(results['deployed'])}, "
             f"updated={len(results['updated'])}, skipped={len(results['skipped'])}, "
             f"errors={len(results['errors'])}"

@@ -395,7 +395,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
                 shutil.copy2(artifact, dest)
                 deployed.append(dest)
 
-                self._logger.info(f"Deployed agent: {dest}")
+                self._logger.debug(f"Deployed agent: {dest}")
 
         return deployed
 

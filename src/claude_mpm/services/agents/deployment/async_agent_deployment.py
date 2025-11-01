@@ -224,7 +224,7 @@ class AsyncAgentDeploymentService:
 
         elapsed = (time.time() - start_time) * 1000
         self._metrics["time_saved_ms"] += max(0, (len(directories) * 75) - elapsed)
-        self.logger.info(f"Discovered agents in {elapsed:.1f}ms (parallel scan)")
+        self.logger.debug(f"Discovered agents in {elapsed:.1f}ms (parallel scan)")
 
         return discovered
 

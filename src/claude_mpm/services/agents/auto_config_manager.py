@@ -678,7 +678,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
                     agent_id, agent_name, success=True
                 )
                 deployed.append(agent_id)
-                self.logger.info(f"Successfully deployed agent: {agent_id}")
+                self.logger.debug(f"Successfully deployed agent: {agent_id}")
 
             except Exception as e:
                 self.logger.error(

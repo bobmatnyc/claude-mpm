@@ -210,7 +210,7 @@ class AgentLoader:
         self.registry.load_agents()
 
         init_time = (time.time() - start_time) * 1000
-        logger.info(
+        logger.debug(
             f"AgentLoader initialized in {init_time:.2f}ms with {len(self.registry._agent_registry)} agents"
         )
 
@@ -321,12 +321,12 @@ class AgentLoader:
         """
         Reload all agents from disk, clearing the registry.
         """
-        logger.info("Reloading agent system...")
+        logger.debug("Reloading agent system...")
 
         # Reload registry
         self.registry.reload()
 
-        logger.info(
+        logger.debug(
             f"Agent system reloaded with {len(self.registry._agent_registry)} agents"
         )
 
@@ -425,7 +425,7 @@ def reload_agents() -> None:
         # Clear the global instance to force reinitialization
         _loader = None
 
-    logger.info("Agent registry cleared, will reload on next access")
+    logger.debug("Agent registry cleared, will reload on next access")
 
 
 def get_agent_tier(agent_name: str) -> Optional[str]:

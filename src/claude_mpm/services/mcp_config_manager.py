@@ -1497,7 +1497,7 @@ class MCPConfigManager:
                 )
 
                 if result.returncode == 0:
-                    self.logger.info(f"    ✅ Successfully injected {dep}")
+                    self.logger.debug(f"    ✅ Successfully injected {dep}")
                 # Check if already injected (pipx will complain if package already exists)
                 elif (
                     "already satisfied" in result.stderr.lower()
@@ -1582,7 +1582,7 @@ class MCPConfigManager:
                     )
 
             # Verify the reinstall worked
-            self.logger.info(f"  → Verifying {service_name} installation...")
+            self.logger.debug(f"  → Verifying {service_name} installation...")
             issue = self._detect_service_issue(service_name)
 
             if issue is None:

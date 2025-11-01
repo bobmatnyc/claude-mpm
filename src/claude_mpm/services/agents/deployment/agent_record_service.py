@@ -107,7 +107,7 @@ class AgentRecordService(BaseService):
                     record = self._deserialize_record(record_data)
                     records[agent_name] = record
 
-                self.logger.info(f"Loaded {len(records)} agent records")
+                self.logger.debug(f"Loaded {len(records)} agent records")
             else:
                 self.logger.debug("No existing records file found")
 

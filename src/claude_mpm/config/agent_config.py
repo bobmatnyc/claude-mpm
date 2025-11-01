@@ -242,7 +242,7 @@ class AgentConfig:
                 Path.cwd() / get_path_manager().CONFIG_DIR / "agent_config.yaml"
             )
             if project_config.exists():
-                logger.info(f"Loading project agent config from {project_config}")
+                logger.debug(f"Loading project agent config from {project_config}")
                 file_config = cls.from_file(project_config)
                 # Merge with environment config (env takes precedence)
                 config = cls._merge_configs(config, file_config)
@@ -252,7 +252,7 @@ class AgentConfig:
             if user_config_dir:
                 user_config = user_config_dir / "agent_config.yaml"
                 if user_config.exists():
-                    logger.info(f"Loading user agent config from {user_config}")
+                    logger.debug(f"Loading user agent config from {user_config}")
                     file_config = cls.from_file(user_config)
                     config = cls._merge_configs(config, file_config)
 

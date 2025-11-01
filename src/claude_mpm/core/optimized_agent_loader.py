@@ -236,7 +236,7 @@ class OptimizedAgentLoader:
 
         self.metrics.total_time = time.time() - start_time
 
-        self.logger.info(
+        self.logger.debug(
             f"Loaded {self.metrics.loaded_agents}/{self.metrics.total_agents} agents "
             f"in {self.metrics.total_time:.2f}s "
             f"(cache hits: {self.metrics.cache_hits}, misses: {self.metrics.cache_misses})"
@@ -286,7 +286,7 @@ class OptimizedAgentLoader:
 
         self.metrics.total_time = time.time() - start_time
 
-        self.logger.info(
+        self.logger.debug(
             f"Async loaded {self.metrics.loaded_agents}/{self.metrics.total_agents} agents "
             f"in {self.metrics.total_time:.2f}s"
         )
@@ -418,7 +418,7 @@ class OptimizedAgentLoader:
         Args:
             agent_dirs: List of directories containing agents
         """
-        self.logger.info(f"Preloading agents from {len(agent_dirs)} directories")
+        self.logger.debug(f"Preloading agents from {len(agent_dirs)} directories")
 
         all_paths = []
         for dir_path in agent_dirs:

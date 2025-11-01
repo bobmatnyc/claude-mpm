@@ -281,7 +281,7 @@ class PathResolver(IPathResolver):
 
         if agents_dir and agents_dir.exists():
             discovered_agents_dir = agents_dir
-            self.logger.info(f"Using custom agents directory: {discovered_agents_dir}")
+            self.logger.debug(f"Using custom agents directory: {discovered_agents_dir}")
         elif framework_path and framework_path != Path("__PACKAGED__"):
             # Prioritize templates directory over main agents directory
             templates_dir = (

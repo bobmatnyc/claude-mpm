@@ -77,7 +77,7 @@ class AgentServiceFactory(ServiceFactory):
         if hasattr(service, "set_directories"):
             service.set_directories(framework_dir, project_dir)
 
-        logger.info("Created agent deployment service")
+        logger.debug("Created agent deployment service")
         return service
 
 
