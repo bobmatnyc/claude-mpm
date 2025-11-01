@@ -6,6 +6,15 @@
 
 ### Fixed
 
+## [4.18.1] - 2025-11-01
+
+### Fixed
+- Agent name parsing now correctly reads only YAML frontmatter (not entire file content)
+- Import ordering in agent validator tests
+
+### Changed
+- Documentation improvements for publishing automation
+
 ## [4.18.0] - 2025-11-01
 
 ### Added
