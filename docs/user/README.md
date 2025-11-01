@@ -6,6 +6,7 @@ Quick navigation for Claude MPM users.
 
 - **[Getting Started](getting-started.md)** - Installation, setup, first run, and essential commands
 - **[User Guide](user-guide.md)** - Features, workflows, best practices, and advanced usage
+- **[Skills Versioning Guide](skills-versioning.md)** - Understanding and using versioned skills
 - **[Troubleshooting](troubleshooting.md)** - Common issues, diagnostics, and solutions
 
 ## Quick Links

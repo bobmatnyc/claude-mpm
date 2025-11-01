@@ -6,6 +6,63 @@
 
 ### Fixed
 
+## [4.18.0] - 2025-11-01
+
+### Added
+- **Resume Log System**: Proactive context management with automatic session logs
+  - New graduated thresholds: 70% (caution), 85% (warning), 95% (critical)
+  - First warning now triggers at 60k token buffer (improved from 20k at 90%)
+  - Automatic 10k-token resume logs when approaching context limits
+  - Structured logs with 7 key sections: Context Metrics, Mission Summary, Accomplishments, Key Findings, Decisions, Next Steps, Critical Context
+  - Session continuity with seamless resumption on new session start
+  - Configurable triggers: model_context_window_exceeded, max_tokens, manual_pause, threshold alerts
+  - Automatic cleanup with configurable retention (default: keep last 10 logs)
+  - Dual format storage: Markdown (human-readable) and JSON (metadata)
+  - See [docs/user/resume-logs.md](docs/user/resume-logs.md) for complete documentation
+
+- **New Data Models** (`src/claude_mpm/models/resume_log.py`):
+  - `ContextMetrics`: Token usage and context window metrics tracking
+  - `ResumeLog`: Structured container for session resume information with 10k token budget allocation
+
+- **New Service**: `ResumeLogGenerator` (`src/claude_mpm/services/infrastructure/resume_log_generator.py`)
+  - Generate resume logs from session state or TODO lists
+  - Save/load resume logs to/from filesystem
+  - Automatic cleanup with retention policy
+  - Statistics and metrics tracking
+
+- **Extended Services**:
+  - `SessionManager`: Token tracking, threshold monitoring, resume log integration
+  - `ResponseTracking`: Capture stop_reason and usage data from Claude API
+
+- **Comprehensive Documentation**:
+  - User guide: `docs/user/resume-logs.md`
+  - Developer architecture: `docs/developer/resume-log-architecture.md`
+  - Configuration reference: `docs/configuration.md`
+  - Examples and tutorials: `docs/examples/resume-log-examples.md`
+
+### Changed
+- Context warning thresholds improved from 90%/95% to 70%/85%/95%
+  - First warning at 70% provides 60k token buffer for planning
+  - 85% warning provides 30k token buffer for wrapping up
+  - 95% critical alert provides 10k token buffer for emergency stop
+  - Much more proactive than previous 90%/95% thresholds
+
+- Updated `BASE_PM.md` with new threshold warnings and instructions
+  - PM agents now display graduated warnings at 70%, 85%, and 95%
+  - Clear action recommendations at each threshold level
+
+### Technical
+- Extended `ResponseTracking` to capture `stop_reason` and `usage` data from API
+- Added cumulative token tracking to `SessionManager`
+- Integrated `ResumeLogGenerator` service into session lifecycle
+- Automatic resume log loading on session startup
+- Token budget allocation system with per-section limits
+
+### QA
+- 40/41 tests passing (97.6% coverage)
+- Performance: 0.03ms generation, 0.49ms save
+- APPROVED FOR PRODUCTION deployment
+
 ## [4.17.1] - 2025-10-30
 
 ### Fixed

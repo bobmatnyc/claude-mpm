@@ -1,6 +1,6 @@
 # Claude MPM Documentation
 
-**Version 4.15.4** | Claude Multi-Agent Project Manager
+**Version 4.17.2** | Claude Multi-Agent Project Manager
 
 Welcome to Claude MPM - a powerful orchestration framework that extends Claude Code with multi-agent workflows, persistent memory, and real-time monitoring.
 
@@ -31,10 +31,13 @@ That's it! Auto-configuration detects your project's stack and deploys the right
 ### For Users
 - **[Getting Started](user/getting-started.md)** - Installation, setup, and first steps
 - **[User Guide](user/user-guide.md)** - Features, workflows, and best practices
+- **[Resume Log System](user/resume-logs.md)** - Proactive context management guide
+- **[Configuration Reference](configuration.md)** - Complete configuration options
 - **[Troubleshooting](user/troubleshooting.md)** - Common issues and solutions
 
 ### For Developers
-- **[Architecture](developer/architecture.md)** - System design and core concepts
+- **[Architecture](developer/ARCHITECTURE.md)** - System design and core concepts
+- **[Resume Log Architecture](developer/resume-log-architecture.md)** - Technical implementation details
 - **[Extending](developer/extending.md)** - Build custom agents, hooks, and services
 - **[API Reference](developer/api-reference.md)** - Complete API documentation
 
@@ -42,6 +45,9 @@ That's it! Auto-configuration detects your project's stack and deploys the right
 - **[PM Workflow](agents/pm-workflow.md)** - Project Manager agent patterns
 - **[Agent Patterns](agents/agent-patterns.md)** - Creating effective agents
 - **[Creating Agents](agents/creating-agents.md)** - Step-by-step agent development
+
+### Examples & Tutorials
+- **[Resume Log Examples](examples/resume-log-examples.md)** - Real-world resume log workflows and tutorials
 
 ## Key Features
 
@@ -65,6 +71,12 @@ That's it! Auto-configuration detects your project's stack and deploys the right
 - Auto-restart with exponential backoff
 - Memory leak detection and circuit breaker
 - Configuration-driven via YAML
+
+**Resume Log System (v4.17.2)**: Proactive context management
+- Graduated thresholds at 70%/85%/95% (60k token buffer)
+- Automatic 10k-token structured logs for session continuity
+- Seamless resumption with full context preservation
+- Zero-configuration automatic operation
 
 **Session Management**: Pause and resume with full context
 - Save state with `claude-mpm mpm-init pause`

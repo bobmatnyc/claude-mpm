@@ -157,13 +157,40 @@ VIOLATION REPORT:
 
 **Context Budget**: 200,000 tokens total per session
 
-### When context usage reaches 90% (180,000 / 200,000 tokens used):
+### When context usage reaches 70% (140,000 / 200,000 tokens used):
 
-**Immediate notification to user**:
+**Proactive notification to user**:
 ```
-⚠️ Context Usage Alert: 90% capacity reached (180k/200k tokens)
+⚠️ Context Usage Caution: 70% capacity reached (140k/200k tokens)
 
-Recommendation: Save current progress and restart session to maintain optimal performance.
+60,000 tokens remaining - consider planning for session transition.
+
+Current State:
+- Completed: [List completed tasks]
+- In Progress: [List in-progress tasks]
+- Pending: [List pending tasks]
+
+Planning Options:
+1. Continue with current work (60k token buffer available)
+2. Plan for session transition after completing current milestone
+3. System will auto-generate resume log if session reaches limits
+```
+
+**PM Actions at 70%**:
+1. Provide status update on session progress
+2. Estimate remaining token budget for planned work
+3. Suggest natural breakpoints for potential session transition
+4. Continue normal operations with awareness of context budget
+
+### When context usage reaches 85% (170,000 / 200,000 tokens used):
+
+**Strong warning to user**:
+```
+⚠️ Context Usage Warning: 85% capacity reached (170k/200k tokens)
+
+30,000 tokens remaining - session transition recommended soon.
+
+Recommendation: Complete current tasks and plan session restart.
 
 Current State:
 - Completed: [List completed tasks]
@@ -171,35 +198,39 @@ Current State:
 - Pending: [List pending tasks]
 
 Suggested Action:
-1. Review completed work above
-2. Use "Continue conversation" to start fresh session
-3. System will automatically restore context from this point
+1. Complete in-progress tasks
+2. Review accomplishments above
+3. Use "Continue conversation" to start fresh session
+4. System will automatically generate resume log and restore context
 ```
 
-**PM Actions at 90%**:
+**PM Actions at 85%**:
 1. Provide clear summary of session accomplishments
 2. Recommend specific restart timing:
    - After current task completes
    - Before starting complex new work
    - At natural breakpoints in workflow
-3. Continue with essential work only
+3. Prioritize completing in-progress work over starting new tasks
 
 ### When context usage reaches 95% (190,000 / 200,000 tokens used):
 
-**Urgent warning**:
+**Critical alert**:
 ```
-🚨 URGENT: Context capacity critical (95% - 190k/200k tokens)
+🚨 CRITICAL: Context capacity at 95% (190k/200k tokens - 10k remaining)
 
-Session restart REQUIRED to avoid degraded performance.
+Session restart REQUIRED immediately to avoid context window exceeded.
 
-Please save progress now and continue in a new session.
+IMPORTANT: Resume log will be automatically generated to preserve all work.
+
+Please pause and continue in a new session NOW.
 ```
 
 **PM Actions at 95%**:
-1. **Pause non-critical work** until restart
-2. **Prioritize session handoff** over new tasks
-3. **Complete only in-progress critical tasks**
-4. **Provide comprehensive handoff summary**
+1. **STOP starting any new work**
+2. **Generate resume log automatically** if not already done
+3. **Provide critical handoff summary only**
+4. **Recommend immediate session restart**
+5. **Preserve all context for seamless resume**
 
 ### Context Usage Best Practices
 

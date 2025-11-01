@@ -516,6 +516,255 @@ claude-mpm mpm-init resume
 - Verify branch context
 - Review todos
 
+## Resume Log System
+
+**NEW in v4.17.2** - Proactive context management for seamless session continuity.
+
+### Overview
+
+The Resume Log System automatically generates structured 10k-token logs when approaching Claude's context window limits, enabling you to resume work without losing important context.
+
+**Key Benefits:**
+- 🎯 Graduated warnings at 70%/85%/95% thresholds (60k token buffer at first warning)
+- 📋 10k-token structured logs with 7 key sections
+- 🔄 Automatic session resumption with full context
+- ⚙️ Zero-configuration automatic operation
+- 📁 Human-readable markdown format
+
+### How It Works
+
+**1. Automatic Token Tracking**
+```bash
+# Start session normally
+claude-mpm run --monitor
+
+# System tracks token usage automatically
+# No user intervention required
+```
+
+**2. Graduated Warnings**
+```
+At 70% (140k tokens used, 60k remaining):
+⚠️  Context Usage Caution: 70% capacity reached
+60,000 tokens remaining - consider planning for session transition.
+
+At 85% (170k tokens used, 30k remaining):
+⚠️  Context Usage Warning: 85% capacity reached
+30,000 tokens remaining - complete current task, avoid starting new work.
+
+At 95% (190k tokens used, 10k remaining):
+🚨 Context Usage Critical: 95% capacity reached
+10,000 tokens remaining - STOP new work immediately.
+Resume log will be generated automatically.
+```
+
+**3. Automatic Resume Log Generation**
+
+When you hit 95% or explicitly pause:
+```bash
+# Manual pause
+/pause
+
+# Or automatic at 95% threshold
+# Resume log generated: .claude-mpm/resume-logs/session-20251101_115000.md
+```
+
+**4. Seamless Resumption**
+
+Start new session - previous context automatically loaded:
+```bash
+claude-mpm run
+
+# You see:
+# 📋 Resuming from previous session (20251101_115000)...
+# Context: Implementing user authentication system
+# Last task: JWT token generation completed
+# Next: Create database migration
+```
+
+### Resume Log Structure
+
+Each resume log contains 7 key sections with intelligent token allocation:
+
+```markdown
+# Session Resume Log: 20251101_115000
+
+## Context Metrics (500 tokens)
+- Token usage, percentage, stop reason
+
+## Mission Summary (1,000 tokens)
+- Overall goal and purpose of the session
+
+## Accomplishments (2,000 tokens)
+- What was completed during the session
+
+## Key Findings (2,500 tokens)
+- Important discoveries and learnings
+
+## Decisions & Rationale (1,500 tokens)
+- Why certain choices were made
+
+## Next Steps (1,500 tokens)
+- Clear actions to continue work
+
+## Critical Context (1,000 tokens)
+- Essential state, IDs, paths, and data
+```
+
+### Configuration
+
+Resume logs work automatically with sensible defaults. Customize in `.claude-mpm/configuration.yaml`:
+
+```yaml
+context_management:
+  enabled: true
+  budget_total: 200000
+
+  thresholds:
+    caution: 0.70   # First warning - plan transition
+    warning: 0.85   # Strong warning - wrap up
+    critical: 0.95  # Urgent - stop new work
+
+  resume_logs:
+    enabled: true
+    auto_generate: true
+    max_tokens: 10000
+    storage_dir: ".claude-mpm/resume-logs"
+```
+
+### Usage Examples
+
+**Example 1: Long Implementation Session**
+```bash
+# Start working on feature
+claude-mpm run
+
+User: "Implement user authentication with JWT"
+
+# Work progresses...
+# At 70%: You get first warning, plan to wrap up soon
+# At 85%: Complete current subtask
+# At 95%: Resume log auto-generated
+
+# Next day - start new session
+claude-mpm run
+
+# Previous context automatically loaded
+# Continue seamlessly from where you left off
+```
+
+**Example 2: Multi-Day Project**
+```bash
+# Day 1: Research and Planning
+claude-mpm run
+User: "Research authentication best practices"
+# Work...
+User: "/pause"  # Manual pause at natural breakpoint
+
+# Day 2: Implementation
+claude-mpm run  # Previous research automatically loaded
+User: "Implement authentication based on our research"
+# Work...
+User: "/pause"
+
+# Day 3: Testing and Deployment
+claude-mpm run  # Full context from Days 1 and 2
+User: "Test and deploy authentication"
+```
+
+### Best Practices
+
+**When to Pause Manually:**
+- ✅ After completing a major feature
+- ✅ Before switching to different component
+- ✅ At end of work day
+- ✅ After major refactoring
+
+**How to Use Thresholds:**
+- **At 70%**: Note current task, plan transition
+- **At 85%**: Start wrapping up current subtask
+- **At 95%**: Stop new work, let resume log generate
+
+**Resume Log Quality:**
+- Clear mission statements
+- Specific accomplishments with file paths
+- Actionable next steps
+- Essential context (IDs, paths, environment variables)
+
+### Viewing Resume Logs
+
+```bash
+# List all resume logs
+ls -lh .claude-mpm/resume-logs/
+
+# View latest resume log
+cat .claude-mpm/resume-logs/session-*.md | tail -1
+
+# Open in editor
+code .claude-mpm/resume-logs/
+```
+
+### Advanced Features
+
+**Custom Token Allocation:**
+```yaml
+context_management:
+  resume_logs:
+    token_allocation:
+      context_metrics: 500
+      mission_summary: 1000
+      accomplishments: 2000
+      key_findings: 2500    # Emphasize discoveries
+      decisions: 1500
+      next_steps: 1500
+      critical_context: 1000
+```
+
+**Custom Triggers:**
+```yaml
+context_management:
+  resume_logs:
+    triggers:
+      - "model_context_window_exceeded"
+      - "manual_pause"
+      - "threshold_critical"
+      - "threshold_warning"  # Optional: generate at 85%
+```
+
+**Retention Policy:**
+```yaml
+context_management:
+  resume_logs:
+    cleanup:
+      enabled: true
+      keep_count: 10        # Keep last 10 logs
+      auto_cleanup: true    # Cleanup on session start
+```
+
+### Troubleshooting
+
+**Resume log not generated:**
+- Check configuration: `resume_logs.enabled: true`
+- Check triggers: Include appropriate triggers
+- Verify storage directory exists and is writable
+
+**Resume log not loading on startup:**
+- Check `auto_load: true` in configuration
+- Verify resume log files exist in storage directory
+- Check file permissions
+
+**Token usage not tracking:**
+- Ensure context management is enabled
+- Check response tracking is active
+- Verify hooks are properly configured
+
+### Related Documentation
+
+- **Detailed Guide**: [resume-logs.md](resume-logs.md) - Complete documentation
+- **Examples**: [../examples/resume-log-examples.md](../examples/resume-log-examples.md) - Tutorials and examples
+- **Configuration**: [../configuration.md](../configuration.md) - Configuration reference
+- **Architecture**: [../developer/resume-log-architecture.md](../developer/resume-log-architecture.md) - Technical details
+
 ## Real-Time Monitoring
 
 Live dashboard showing agent collaboration and system metrics.

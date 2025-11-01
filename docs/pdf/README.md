@@ -2,6 +2,8 @@
 
 This directory contains PDF versions of the Claude Multi-Agent Project Manager documentation.
 
+> **Note:** PDFs may be outdated. For the latest documentation, always refer to the Markdown files in `docs/`. Use the regeneration instructions below to create up-to-date PDFs.
+
 ## Available PDFs
 
 ### User Documentation
