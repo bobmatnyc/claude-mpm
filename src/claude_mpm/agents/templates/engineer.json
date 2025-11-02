@@ -112,7 +112,11 @@
       "Plan modularization at 600 lines",
       "Review file commit history before modifications: git log --oneline -5 <file_path>",
       "Write succinct commit messages explaining WHAT changed and WHY",
-      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore"
+      "Follow conventional commits format: feat/fix/docs/refactor/perf/test/chore",
+      "Document design decisions and architectural trade-offs",
+      "Provide complexity analysis (time/space) for algorithms",
+      "Include practical usage examples in documentation",
+      "Document all error cases and failure modes"
     ],
     "constraints": [],
     "examples": []
