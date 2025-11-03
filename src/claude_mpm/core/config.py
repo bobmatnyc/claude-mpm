@@ -578,6 +578,11 @@ class Config:
                     "[PM-REMINDER] Your role is coordination and management",
                 ],
             },
+            # Session management configuration
+            "session": {
+                "auto_save": True,  # Enable automatic session saving
+                "save_interval": 300,  # Auto-save interval in seconds (5 minutes)
+            },
         }
 
         # Apply defaults for missing keys
@@ -587,6 +592,9 @@ class Config:
 
         # Validate health and recovery configuration
         self._validate_health_recovery_config()
+
+        # Validate session configuration
+        self._validate_session_config()
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value."""
@@ -763,6 +771,40 @@ class Config:
 
         except Exception as e:
             logger.error(f"Error validating health/recovery configuration: {e}")
+
+    def _validate_session_config(self) -> None:
+        """Validate session management configuration."""
+        try:
+            session_config = self.get("session", {})
+
+            # Validate save_interval range (60-1800 seconds)
+            save_interval = session_config.get("save_interval", 300)
+            if not isinstance(save_interval, int):
+                logger.warning(
+                    f"Session save_interval must be integer, got {type(save_interval).__name__}, using default 300"
+                )
+                self.set("session.save_interval", 300)
+            elif save_interval < 60:
+                logger.warning(
+                    f"Session save_interval must be at least 60 seconds, got {save_interval}, using 60"
+                )
+                self.set("session.save_interval", 60)
+            elif save_interval > 1800:
+                logger.warning(
+                    f"Session save_interval must be at most 1800 seconds (30 min), got {save_interval}, using 1800"
+                )
+                self.set("session.save_interval", 1800)
+
+            # Validate auto_save is boolean
+            auto_save = session_config.get("auto_save", True)
+            if not isinstance(auto_save, bool):
+                logger.warning(
+                    f"Session auto_save must be boolean, got {type(auto_save).__name__}, using True"
+                )
+                self.set("session.auto_save", True)
+
+        except Exception as e:
+            logger.error(f"Error validating session configuration: {e}")
 
     def get_health_monitoring_config(self) -> Dict[str, Any]:
         """Get health monitoring configuration with defaults."""

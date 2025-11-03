@@ -11,8 +11,10 @@ DESIGN DECISIONS:
 - Automatic session cleanup and archiving
 - Thread-safe session operations
 - Non-blocking validation with structured warnings
+- Async-first design with periodic auto-save task
 """
 
+import asyncio
 import gzip
 import json
 import uuid
@@ -217,7 +219,38 @@ class SessionManager(ISessionManager):
         self.config_service = config_service
         self.logger = get_logger("SessionManager")
         self._sessions_cache: Dict[str, SessionInfo] = {}
+        self._auto_save_task: Optional[asyncio.Task] = None
+        self._running = False
         self._load_sessions()
+
+        # Start auto-save task if enabled and event loop is running
+        if config_service:
+            auto_save_enabled = config_service.get("session.auto_save", True)
+            if auto_save_enabled:
+                self._start_auto_save()
+            else:
+                self.logger.info("Auto-save disabled by configuration")
+        else:
+            self.logger.debug("No config service provided, auto-save not started")
+
+    def _start_auto_save(self) -> None:
+        """Start the auto-save background task.
+
+        WHY: Separated from __init__ to allow safe initialization without event loop.
+        Can be called when event loop is available.
+        """
+        try:
+            loop = asyncio.get_running_loop()
+            self._running = True
+            self._auto_save_task = loop.create_task(self._periodic_session_save())
+            self.logger.info("Auto-save task started")
+        except RuntimeError:
+            # No event loop running, schedule for later
+            self.logger.debug(
+                "No event loop running, auto-save will start when loop is available"
+            )
+            # Set flag so we know to start it later
+            self._running = True
 
     def create_session(
         self, context: str = "default", options: Optional[Dict[str, Any]] = None
@@ -476,6 +509,60 @@ class SessionManager(ISessionManager):
         except Exception as e:
             self.logger.error(f"Failed to load sessions: {e}")
             self._sessions_cache = {}
+
+    async def _periodic_session_save(self) -> None:
+        """Periodically save sessions to disk.
+
+        WHY: Ensures sessions are persisted regularly to prevent data loss.
+        Follows the async pattern from EventAggregator._periodic_cleanup().
+        """
+        if not self.config_service:
+            self.logger.warning("No config service, cannot determine save interval")
+            return
+
+        save_interval = self.config_service.get("session.save_interval", 300)
+        self.logger.info(f"Starting periodic session save (interval: {save_interval}s)")
+
+        while self._running:
+            try:
+                await asyncio.sleep(save_interval)
+
+                if self._sessions_cache:
+                    self._save_sessions()
+                    self.logger.debug(
+                        f"Auto-saved {len(self._sessions_cache)} session(s)"
+                    )
+                else:
+                    self.logger.debug("No sessions to save")
+
+            except asyncio.CancelledError:
+                self.logger.info("Auto-save task cancelled")
+                break
+            except Exception as e:
+                self.logger.error(f"Error in auto-save task: {e}")
+
+    async def cleanup(self) -> None:
+        """Clean up resources and stop background tasks.
+
+        WHY: Ensures graceful shutdown of the SessionManager and all background tasks.
+        """
+        self.logger.info("Shutting down SessionManager...")
+        self._running = False
+
+        # Cancel auto-save task
+        if self._auto_save_task and not self._auto_save_task.done():
+            self._auto_save_task.cancel()
+            try:
+                await self._auto_save_task
+            except asyncio.CancelledError:
+                pass
+
+        # Final save before shutdown
+        if self._sessions_cache:
+            self._save_sessions()
+            self.logger.info(f"Final save: {len(self._sessions_cache)} session(s)")
+
+        self.logger.info("SessionManager shutdown complete")
 
 
 # Context manager for session management

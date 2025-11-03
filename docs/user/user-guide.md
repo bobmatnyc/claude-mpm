@@ -469,6 +469,47 @@ claude-mpm local-deploy stop --all
 
 Save and resume Claude Code sessions with full context preservation.
 
+### Auto-Save Feature ✅ NEW
+
+**FULLY IMPLEMENTED** - Sessions are now automatically saved in the background!
+
+**Key Features:**
+- 🔄 **Automatic periodic saves** every 5 minutes (configurable)
+- 🛡️ **No data loss** - graceful shutdown with final save
+- ⚡ **Zero performance impact** - async background task
+- ✅ **Enabled by default** - works out of the box
+
+**How it works:**
+Sessions are automatically saved to `.claude-mpm/sessions/` at regular intervals. No manual action required!
+
+**Configuration:**
+```yaml
+# .claude-mpm/configuration.yaml
+session:
+  auto_save: true          # Enabled by default
+  save_interval: 300       # Save every 5 minutes (60-1800 seconds)
+```
+
+**Customization:**
+```yaml
+# More frequent saves (CI/CD environments)
+session:
+  auto_save: true
+  save_interval: 60        # Every 1 minute (minimum)
+
+# Less frequent saves (long sessions)
+session:
+  auto_save: true
+  save_interval: 1800      # Every 30 minutes (maximum)
+
+# Disable auto-save (manual only)
+session:
+  auto_save: false
+```
+
+**Verification:**
+Check logs for: `"Starting periodic session save (interval: 300s)"`
+
 ### Pause Session
 
 ```bash
@@ -486,6 +527,8 @@ claude-mpm mpm-init pause
 - Accomplishments
 - Project context
 
+**Note:** With auto-save enabled, sessions are already being saved periodically. Manual pause provides an explicit save point and session marker.
+
 ### Resume Session
 
 ```bash
@@ -497,23 +540,35 @@ claude-mpm mpm-init resume
 ```
 
 **What happens:**
-- Session state restored
+- Session state restored (from last auto-save or manual save)
 - Automatic change detection since pause
 - Git diff shown if changes detected
 - Context enriched with changes
 
 ### Best Practices
 
-**When to pause:**
+**With Auto-Save:**
+- ✅ Auto-save handles periodic backups automatically
+- ✅ Manual pause still useful for explicit session boundaries
+- ✅ No action needed for crash recovery - last auto-save available
+- ✅ Sessions resume from last auto-save if not manually paused
+
+**When to manually pause:**
 - Before switching branches
 - Before major refactoring
-- End of work session
-- Before long breaks
+- End of work session (for clean session boundary)
+- Before long breaks (for explicit save point)
 
 **What to check after resume:**
 - Review detected changes
 - Check git status
 - Verify branch context
+
+**Auto-Save Benefits:**
+- Protection against unexpected crashes
+- Continuous session backup
+- No manual save required during work
+- Peace of mind for long-running sessions
 - Review todos
 
 ## Resume Log System

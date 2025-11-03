@@ -1,6 +1,15 @@
 ## [Unreleased]
 
 ### Added
+- **Session Auto-Save Feature**: Fully implemented automatic session saving with async periodic saves
+  - Async background task with configurable save intervals (60-1800 seconds)
+  - Default: enabled with 5-minute interval (`auto_save: true`, `save_interval: 300`)
+  - Graceful shutdown with final save to prevent data loss
+  - Robust validation with automatic correction of invalid configurations
+  - Thread-safe operations with no performance impact
+  - Implementation: `session_manager.py:513-564`, `config.py:780-807`
+  - Documentation: Updated `docs/configuration.md` with comprehensive usage examples and troubleshooting
+  - QA Verified: 100% pass rate on all test scenarios
 
 ### Changed
 

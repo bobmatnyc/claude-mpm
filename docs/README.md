@@ -78,9 +78,11 @@ That's it! Auto-configuration detects your project's stack and deploys the right
 - Seamless resumption with full context preservation
 - Zero-configuration automatic operation
 
-**Session Management**: Pause and resume with full context
-- Save state with `claude-mpm mpm-init pause`
-- Resume with `claude-mpm mpm-init resume`
+**Session Management**: Automatic saving and manual pause/resume with full context
+- **NEW**: Auto-save every 5 minutes (configurable 60-1800s)
+- Graceful shutdown with final save - no data loss
+- Manual pause: `claude-mpm mpm-init pause`
+- Resume: `claude-mpm mpm-init resume`
 - Automatic change detection
 
 **Real-Time Monitoring**: Live dashboard shows agent collaboration
