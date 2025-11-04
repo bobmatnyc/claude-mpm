@@ -4,6 +4,35 @@
 
 ### Changed
 
+#### Agent Updates
+
+##### Rust Engineer (v1.1.0) - 2025-11-04
+- **Added comprehensive dependency injection patterns** with trait-based architecture
+  - Constructor injection with trait bounds for compile-time safety
+  - Trait objects (dyn Trait) for runtime polymorphism
+  - Repository pattern for data access abstraction
+  - Builder pattern for complex object construction
+- **Added decision criteria** for when to use DI/SOA vs simple code
+  - Use DI/SOA: Web services, microservices requiring testability, complex domain logic
+  - Use simple code: CLI tools, scripts, file processing utilities, quick prototypes
+- **Added anti-patterns section** warning against global state and concrete type coupling
+- **Documentation**: All patterns validated with production-ready code examples
+- **QA Status**: APPROVED for production use
+
+##### Python Engineer (v2.3.0) - 2025-11-04
+- **Added guidance distinguishing lightweight scripts from services**
+  - Clear decision tree for when to use DI/SOA patterns vs simple functions
+  - Service architecture with ABC interfaces for non-trivial applications
+  - Lightweight script patterns for automation and one-off tasks
+- **Added Pattern 6: Lightweight Script Pattern** with pandas example
+  - Direct, simple approach for scripts, CLI tools, notebooks
+  - No unnecessary abstraction for one-off tasks
+- **Clarified when NOT to use DI/SOA** for simple automation tasks
+  - Scripts: Keep it simple with direct function calls
+  - Applications: Use full service architecture with DI
+- **Documentation**: Decision criteria validated against real-world use cases
+- **QA Status**: APPROVED for production use
+
 ### Fixed
 
 ## [4.18.3] - 2025-11-03

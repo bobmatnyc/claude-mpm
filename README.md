@@ -133,10 +133,25 @@ Claude MPM includes 15 specialized agents:
 
 #### Core Development
 - **Engineer** - Software development and implementation
-- **Research** - Code analysis and research  
+- **Research** - Code analysis and research
 - **Documentation** - Documentation creation and maintenance
 - **QA** - Testing and quality assurance
 - **Security** - Security analysis and implementation
+
+#### Language-Specific Engineers
+- **Python Engineer (v2.3.0)** - Type-safe, async-first Python with SOA patterns for non-trivial applications
+  - Service-oriented architecture with ABC interfaces for applications
+  - Lightweight script patterns for automation and one-off tasks
+  - Clear decision criteria for when to use DI/SOA vs simple functions
+  - Dependency injection containers with auto-resolution
+  - Use for: Web applications, microservices, data pipelines (DI/SOA) or scripts, CLI tools, notebooks (simple functions)
+
+- **Rust Engineer (v1.1.0)** - Memory-safe, high-performance systems with trait-based service architecture
+  - Dependency injection with traits (constructor injection, trait objects)
+  - Service-oriented architecture patterns (repository, builder)
+  - Decision criteria for when to use DI/SOA vs simple code
+  - Async programming with tokio and zero-cost abstractions
+  - Use for: Web services, microservices (DI/SOA) or CLI tools, scripts (simple code)
 
 #### Operations & Infrastructure
 - **Ops** - Operations and deployment with advanced git commit authority and security verification (v2.2.2+)
