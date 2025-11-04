@@ -35,6 +35,16 @@
 
 ### Fixed
 
+## [4.18.4] - 2025-11-04
+
+### Added
+- **Comprehensive unit tests for SessionResumeHelper**: Complete test suite with 84 tests
+  - Achieved 100% line coverage and 99% branch coverage
+  - Fast test execution (0.40s) with no flaky behavior
+  - Covers all methods including edge cases and error scenarios
+  - Integration tests for full workflow validation
+  - Implementation: `tests/unit/services/cli/test_session_resume_helper.py`
+
 ## [4.18.3] - 2025-11-03
 
 ### Added
