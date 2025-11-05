@@ -21,7 +21,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from claude_mpm.core.logger import get_logger
 
@@ -265,7 +265,7 @@ class ResumeService:
             # Calculate time elapsed
             time_ago = self._calculate_time_ago(timestamp)
 
-            context = SessionContext(
+            return SessionContext(
                 session_id=session_id,
                 timestamp=timestamp,
                 time_ago=time_ago,
@@ -282,8 +282,6 @@ class ResumeService:
                 delegation_compliance=pm_data.get("delegation_compliance"),
                 response_files=[str(f) for f in response_files],
             )
-
-            return context
 
         except Exception as e:
             logger.error(f"Failed to build context from files: {e}")
@@ -437,7 +435,7 @@ class ResumeService:
 
             time_ago = self._calculate_time_ago(timestamp)
 
-            context = SessionContext(
+            return SessionContext(
                 session_id=session_id,
                 timestamp=timestamp,
                 time_ago=time_ago,
@@ -454,8 +452,6 @@ class ResumeService:
                 delegation_compliance=None,
                 response_files=[],
             )
-
-            return context
 
         except Exception as e:
             logger.error(f"Failed to parse resume log: {e}")
@@ -523,12 +519,11 @@ class ResumeService:
 
         if days > 0:
             return f"{days} day{'s' if days != 1 else ''} ago"
-        elif hours > 0:
+        if hours > 0:
             return f"{hours} hour{'s' if hours != 1 else ''} ago"
-        elif minutes > 0:
+        if minutes > 0:
             return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
-        else:
-            return "just now"
+        return "just now"
 
     def format_resume_display(self, context: SessionContext) -> str:
         """Format context for user display.

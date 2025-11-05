@@ -20,7 +20,6 @@ import pytest
 
 from claude_mpm.services.cli.session_resume_helper import SessionResumeHelper
 
-
 # ============================================================================
 # TEST FIXTURES
 # ============================================================================

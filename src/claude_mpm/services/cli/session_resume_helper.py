@@ -162,16 +162,15 @@ class SessionResumeHelper:
                 if days == 1:
                     return "1 day ago"
                 return f"{days} days ago"
-            elif hours > 0:
+            if hours > 0:
                 if hours == 1:
                     return "1 hour ago"
                 return f"{hours} hours ago"
-            elif minutes > 0:
+            if minutes > 0:
                 if minutes == 1:
                     return "1 minute ago"
                 return f"{minutes} minutes ago"
-            else:
-                return "just now"
+            return "just now"
 
         except Exception as e:
             logger.error(f"Failed to calculate time elapsed: {e}")
@@ -304,9 +303,8 @@ class SessionResumeHelper:
                     logger.debug(f"Cleared session checksum: {sha_file}")
 
                 return True
-            else:
-                logger.warning(f"Session file not found: {file_path}")
-                return False
+            logger.warning(f"Session file not found: {file_path}")
+            return False
 
         except Exception as e:
             logger.error(f"Failed to clear session: {e}")
