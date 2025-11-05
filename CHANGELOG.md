@@ -1,6 +1,18 @@
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+### Documentation
+
+## [4.20.0] - 2025-11-04
+
+### Added
 - **Automatic session resume on PM startup**: Detects paused sessions and displays context
   - Session resume hooks integrated into PM startup sequence
   - Automatic context restoration from resume logs
@@ -19,8 +31,20 @@
   - Displays resume context before beginning new work
 
 ### Fixed
-
-### Removed
+- **Security**: Upgraded 15 dependencies to resolve vulnerabilities (88% reduction)
+  - 4 CRITICAL vulnerabilities fixed: RCE, command injection, auth bypass, file overwrite
+  - 6 HIGH vulnerabilities fixed: DoS, HTTP smuggling, ReDoS
+  - 5 MEDIUM/LOW vulnerabilities fixed
+  - authlib: 1.6.1 → 1.6.5 (fixes 3 vulnerabilities)
+  - fastmcp: 2.10.6 → 2.13.0.2 (fixes 2 vulnerabilities)
+  - python-socketio: 5.13.0 → 5.14.3 (fixes 1 CRITICAL RCE)
+  - pip: 25.2 → 25.3 (fixes 1 CRITICAL file overwrite)
+  - gunicorn: 21.2.0 → 23.0.0 (fixes 2 HTTP smuggling)
+  - fastapi: 0.104.1 → 0.121.0 (fixes 1 ReDoS)
+  - starlette: 0.27.0 → 0.49.3 (fixes 2 DoS vulnerabilities)
+  - eventlet: 0.40.2 → 0.40.3
+  - h2: 4.2.0 → 4.3.0
+  - torch: 2.7.1 → 2.9.0
 
 ### Documentation
 - Added `docs/features/session-auto-resume.md`: Comprehensive feature documentation
@@ -54,8 +78,6 @@
   - Applications: Use full service architecture with DI
 - **Documentation**: Decision criteria validated against real-world use cases
 - **QA Status**: APPROVED for production use
-
-### Fixed
 
 ## [4.19.0] - 2025-11-04
 
