@@ -137,7 +137,9 @@ class ResumeService:
                 summaries.append(summary)
 
             except Exception as e:
-                logger.warning(f"Failed to create summary for session {session_id}: {e}")
+                logger.warning(
+                    f"Failed to create summary for session {session_id}: {e}"
+                )
                 continue
 
         # Sort by most recent first
@@ -198,7 +200,9 @@ class ResumeService:
 
         return None
 
-    def _get_context_from_response_logs(self, session_id: str) -> Optional[SessionContext]:
+    def _get_context_from_response_logs(
+        self, session_id: str
+    ) -> Optional[SessionContext]:
         """Get context from response logs for a session.
 
         Args:
@@ -312,7 +316,7 @@ class ResumeService:
             return result
 
         # Try to find JSON block in response
-        json_blocks = re.findall(r'```json\s*(\{.*?\})\s*```', response_text, re.DOTALL)
+        json_blocks = re.findall(r"```json\s*(\{.*?\})\s*```", response_text, re.DOTALL)
 
         for json_str in json_blocks:
             try:
@@ -358,8 +362,8 @@ class ResumeService:
 
         # Look for bullet lists with checkmarks
         for line in text.split("\n"):
-            if re.search(r'[✓✅☑]\s*(.+)', line):
-                match = re.search(r'[✓✅☑]\s*(.+)', line)
+            if re.search(r"[✓✅☑]\s*(.+)", line):
+                match = re.search(r"[✓✅☑]\s*(.+)", line)
                 if match:
                     tasks.append(match.group(1).strip())
 
@@ -371,9 +375,9 @@ class ResumeService:
 
         # Look for file paths (common patterns)
         patterns = [
-            r'`([^`]+\.(py|js|ts|md|json|yaml|yml|txt|sh))`',
-            r'File:\s*([^\s]+)',
-            r'Modified:\s*([^\s]+)',
+            r"`([^`]+\.(py|js|ts|md|json|yaml|yml|txt|sh))`",
+            r"File:\s*([^\s]+)",
+            r"Modified:\s*([^\s]+)",
         ]
 
         for pattern in patterns:
@@ -391,27 +395,27 @@ class ResumeService:
 
         # Look for "Next steps" section
         next_steps_section = re.search(
-            r'(?:Next [Ss]teps?|TODO|To [Dd]o):?\s*(.*?)(?:\n\n|\Z)',
-            text,
-            re.DOTALL
+            r"(?:Next [Ss]teps?|TODO|To [Dd]o):?\s*(.*?)(?:\n\n|\Z)", text, re.DOTALL
         )
 
         if next_steps_section:
             section_text = next_steps_section.group(1)
             for line in section_text.split("\n"):
                 # Look for bullet points or numbered items
-                if re.match(r'^\s*[-*•]\s*(.+)', line):
-                    match = re.match(r'^\s*[-*•]\s*(.+)', line)
+                if re.match(r"^\s*[-*•]\s*(.+)", line):
+                    match = re.match(r"^\s*[-*•]\s*(.+)", line)
                     if match:
                         steps.append(match.group(1).strip())
-                elif re.match(r'^\s*\d+[\.)]\s*(.+)', line):
-                    match = re.match(r'^\s*\d+[\.)]\s*(.+)', line)
+                elif re.match(r"^\s*\d+[\.)]\s*(.+)", line):
+                    match = re.match(r"^\s*\d+[\.)]\s*(.+)", line)
                     if match:
                         steps.append(match.group(1).strip())
 
         return steps[:10]  # Limit to 10
 
-    def _parse_resume_log(self, session_id: str, content: str) -> Optional[SessionContext]:
+    def _parse_resume_log(
+        self, session_id: str, content: str
+    ) -> Optional[SessionContext]:
         """Parse structured resume log markdown file.
 
         Args:
@@ -429,7 +433,7 @@ class ResumeService:
             next_steps = self._extract_list_items(content, "Next Steps")
 
             # Extract timestamp from header
-            timestamp_match = re.search(r'Session Resume:\s*(.+)', content)
+            timestamp_match = re.search(r"Session Resume:\s*(.+)", content)
             timestamp_str = timestamp_match.group(1) if timestamp_match else None
             timestamp = self._parse_timestamp(timestamp_str)
 
@@ -459,7 +463,7 @@ class ResumeService:
 
     def _extract_section(self, content: str, header: str) -> Optional[str]:
         """Extract content from a markdown section."""
-        pattern = rf'##\s+{header}\s*\n(.+?)(?=\n##|\Z)'
+        pattern = rf"##\s+{header}\s*\n(.+?)(?=\n##|\Z)"
         match = re.search(pattern, content, re.DOTALL)
         return match.group(1).strip() if match else None
 
@@ -471,8 +475,8 @@ class ResumeService:
 
         items = []
         for line in section.split("\n"):
-            if re.match(r'^\s*[-*•]\s*(.+)', line):
-                match = re.match(r'^\s*[-*•]\s*(.+)', line)
+            if re.match(r"^\s*[-*•]\s*(.+)", line):
+                match = re.match(r"^\s*[-*•]\s*(.+)", line)
                 if match:
                     items.append(match.group(1).strip())
 
@@ -541,16 +545,20 @@ class ResumeService:
         lines.append("")
 
         lines.append(f"Session ID: {context.session_id}")
-        lines.append(f"Ended: {context.timestamp.strftime('%Y-%m-%d %H:%M')} ({context.time_ago})")
+        lines.append(
+            f"Ended: {context.timestamp.strftime('%Y-%m-%d %H:%M')} ({context.time_ago})"
+        )
         lines.append(f"Stop Reason: {self._format_stop_reason(context.stop_reason)}")
 
         if context.token_usage > 0:
             usage_pct = (context.token_usage / 200000) * 100
-            lines.append(f"Token Usage: {context.token_usage:,} / 200,000 ({usage_pct:.0f}%)")
+            lines.append(
+                f"Token Usage: {context.token_usage:,} / 200,000 ({usage_pct:.0f}%)"
+            )
 
         lines.append("")
         lines.append("Working on:")
-        lines.append(f"  \"{context.request}\"")
+        lines.append(f'  "{context.request}"')
 
         if context.tasks_completed:
             lines.append("")

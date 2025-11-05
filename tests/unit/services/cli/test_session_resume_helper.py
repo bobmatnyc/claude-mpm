@@ -90,7 +90,9 @@ class TestInitialization:
         """Test initialization with explicit project path."""
         helper = SessionResumeHelper(project_path=temp_project_dir)
         assert helper.project_path == temp_project_dir
-        assert helper.pause_dir == temp_project_dir / ".claude-mpm" / "sessions" / "pause"
+        assert (
+            helper.pause_dir == temp_project_dir / ".claude-mpm" / "sessions" / "pause"
+        )
 
     def test_init_with_default_path(self):
         """Test initialization with default (current) path."""
@@ -220,7 +222,9 @@ class TestGetMostRecentSession:
         session_file = helper.pause_dir / "session-20251104-120000.json"
         session_file.write_text("{ invalid json }")
 
-        with patch("claude_mpm.services.cli.session_resume_helper.logger") as mock_logger:
+        with patch(
+            "claude_mpm.services.cli.session_resume_helper.logger"
+        ) as mock_logger:
             result = helper.get_most_recent_session()
             assert result is None
             mock_logger.error.assert_called_once()
@@ -249,7 +253,10 @@ class TestGetMostRecentSession:
         result = helper.get_most_recent_session()
         assert result is not None
         assert result["session_id"] == sample_session_data["session_id"]
-        assert result["conversation"]["summary"] == sample_session_data["conversation"]["summary"]
+        assert (
+            result["conversation"]["summary"]
+            == sample_session_data["conversation"]["summary"]
+        )
 
     def test_handles_file_permission_error(self, helper):
         """Test handles file permission errors gracefully."""
@@ -277,12 +284,12 @@ class TestGetGitChangesSincePause:
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = Mock(
-                returncode=0,
-                stdout=sample_git_log_output,
-                stderr=""
+                returncode=0, stdout=sample_git_log_output, stderr=""
             )
 
-            count, commits = helper.get_git_changes_since_pause(paused_at, recent_commits)
+            count, commits = helper.get_git_changes_since_pause(
+                paused_at, recent_commits
+            )
 
             assert count == 3
             assert len(commits) == 3
@@ -296,9 +303,7 @@ class TestGetGitChangesSincePause:
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = Mock(
-                returncode=0,
-                stdout="malformed|incomplete\nline",
-                stderr=""
+                returncode=0, stdout="malformed|incomplete\nline", stderr=""
             )
 
             count, commits = helper.get_git_changes_since_pause(paused_at, [])
@@ -313,12 +318,12 @@ class TestGetGitChangesSincePause:
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = Mock(
-                returncode=128,
-                stdout="",
-                stderr="fatal: not a git repository"
+                returncode=128, stdout="", stderr="fatal: not a git repository"
             )
 
-            with patch("claude_mpm.services.cli.session_resume_helper.logger") as mock_logger:
+            with patch(
+                "claude_mpm.services.cli.session_resume_helper.logger"
+            ) as mock_logger:
                 count, commits = helper.get_git_changes_since_pause(paused_at, [])
 
                 assert count == 0
@@ -331,9 +336,7 @@ class TestGetGitChangesSincePause:
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = Mock(
-                returncode=1,
-                stdout="",
-                stderr="not a git repository"
+                returncode=1, stdout="", stderr="not a git repository"
             )
 
             count, commits = helper.get_git_changes_since_pause(paused_at, [])
@@ -345,7 +348,9 @@ class TestGetGitChangesSincePause:
         paused_at = "2025-11-04T12:00:00.000000"
 
         with patch("subprocess.run", side_effect=Exception("Subprocess error")):
-            with patch("claude_mpm.services.cli.session_resume_helper.logger") as mock_logger:
+            with patch(
+                "claude_mpm.services.cli.session_resume_helper.logger"
+            ) as mock_logger:
                 count, commits = helper.get_git_changes_since_pause(paused_at, [])
 
                 assert count == 0
@@ -355,7 +360,9 @@ class TestGetGitChangesSincePause:
     def test_parses_commit_with_pipe_in_message(self, helper):
         """Test handles commit messages containing pipe characters."""
         paused_at = "2025-11-04T12:00:00.000000"
-        git_output = "abc123|John Doe|2025-11-04 13:00:00 -0500|feat: add feature|with|pipes"
+        git_output = (
+            "abc123|John Doe|2025-11-04 13:00:00 -0500|feat: add feature|with|pipes"
+        )
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = Mock(returncode=0, stdout=git_output, stderr="")
@@ -405,10 +412,12 @@ class TestGetGitChangesSincePause:
     def test_commit_counting_accuracy(self, helper):
         """Test accurate commit counting with multiple commits."""
         paused_at = "2025-11-04T12:00:00.000000"
-        git_output = "\n".join([
-            f"commit{i}|Author|2025-11-04 13:00:00 -0500|message {i}"
-            for i in range(10)
-        ])
+        git_output = "\n".join(
+            [
+                f"commit{i}|Author|2025-11-04 13:00:00 -0500|message {i}"
+                for i in range(10)
+            ]
+        )
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = Mock(returncode=0, stdout=git_output, stderr="")
@@ -422,7 +431,9 @@ class TestGetGitChangesSincePause:
         """Test handles invalid pause timestamp format."""
         paused_at = "invalid-timestamp"
 
-        with patch("claude_mpm.services.cli.session_resume_helper.logger") as mock_logger:
+        with patch(
+            "claude_mpm.services.cli.session_resume_helper.logger"
+        ) as mock_logger:
             count, commits = helper.get_git_changes_since_pause(paused_at, [])
 
             assert count == 0
@@ -514,7 +525,9 @@ class TestGetTimeElapsed:
         """Test handles invalid timestamp format."""
         paused_at = "invalid-timestamp"
 
-        with patch("claude_mpm.services.cli.session_resume_helper.logger") as mock_logger:
+        with patch(
+            "claude_mpm.services.cli.session_resume_helper.logger"
+        ) as mock_logger:
             result = helper.get_time_elapsed(paused_at)
 
             assert result == "unknown time ago"
@@ -549,7 +562,9 @@ class TestFormatResumePrompt:
     def test_complete_prompt_formatting(self, helper, sample_session_data):
         """Test formats complete prompt with all fields."""
         with patch.object(helper, "get_time_elapsed", return_value="2 hours ago"):
-            with patch.object(helper, "get_git_changes_since_pause", return_value=(0, [])):
+            with patch.object(
+                helper, "get_git_changes_since_pause", return_value=(0, [])
+            ):
                 result = helper.format_resume_prompt(sample_session_data)
 
                 assert "PAUSED SESSION FOUND" in result
@@ -561,9 +576,14 @@ class TestFormatResumePrompt:
     def test_formats_with_all_fields_populated(self, helper, sample_session_data):
         """Test formats correctly when all fields are populated."""
         with patch.object(helper, "get_time_elapsed", return_value="1 day ago"):
-            with patch.object(helper, "get_git_changes_since_pause", return_value=(2, [
-                {"sha": "abc123", "author": "John", "message": "feat: test"}
-            ])):
+            with patch.object(
+                helper,
+                "get_git_changes_since_pause",
+                return_value=(
+                    2,
+                    [{"sha": "abc123", "author": "John", "message": "feat: test"}],
+                ),
+            ):
                 result = helper.format_resume_prompt(sample_session_data)
 
                 assert "Completed:" in result
@@ -576,7 +596,9 @@ class TestFormatResumePrompt:
         session_data["conversation"]["accomplishments"] = []
 
         with patch.object(helper, "get_time_elapsed", return_value="1 hour ago"):
-            with patch.object(helper, "get_git_changes_since_pause", return_value=(0, [])):
+            with patch.object(
+                helper, "get_git_changes_since_pause", return_value=(0, [])
+            ):
                 result = helper.format_resume_prompt(session_data)
 
                 assert "Completed:" not in result
@@ -587,7 +609,9 @@ class TestFormatResumePrompt:
         session_data["conversation"]["next_steps"] = []
 
         with patch.object(helper, "get_time_elapsed", return_value="1 hour ago"):
-            with patch.object(helper, "get_git_changes_since_pause", return_value=(0, [])):
+            with patch.object(
+                helper, "get_git_changes_since_pause", return_value=(0, [])
+            ):
                 result = helper.format_resume_prompt(session_data)
 
                 assert "Next steps:" not in result
@@ -600,7 +624,9 @@ class TestFormatResumePrompt:
         ]
 
         with patch.object(helper, "get_time_elapsed", return_value="1 hour ago"):
-            with patch.object(helper, "get_git_changes_since_pause", return_value=(0, [])):
+            with patch.object(
+                helper, "get_git_changes_since_pause", return_value=(0, [])
+            ):
                 result = helper.format_resume_prompt(session_data)
 
                 assert "Item 0" in result
@@ -610,12 +636,12 @@ class TestFormatResumePrompt:
     def test_limits_next_steps_to_five(self, helper, sample_session_data):
         """Test limits next_steps display to 5 items."""
         session_data = sample_session_data.copy()
-        session_data["conversation"]["next_steps"] = [
-            f"Task {i}" for i in range(8)
-        ]
+        session_data["conversation"]["next_steps"] = [f"Task {i}" for i in range(8)]
 
         with patch.object(helper, "get_time_elapsed", return_value="1 hour ago"):
-            with patch.object(helper, "get_git_changes_since_pause", return_value=(0, [])):
+            with patch.object(
+                helper, "get_git_changes_since_pause", return_value=(0, [])
+            ):
                 result = helper.format_resume_prompt(session_data)
 
                 assert "Task 0" in result
@@ -630,7 +656,9 @@ class TestFormatResumePrompt:
         ]
 
         with patch.object(helper, "get_time_elapsed", return_value="1 hour ago"):
-            with patch.object(helper, "get_git_changes_since_pause", return_value=(2, commits)):
+            with patch.object(
+                helper, "get_git_changes_since_pause", return_value=(2, commits)
+            ):
                 result = helper.format_resume_prompt(sample_session_data)
 
                 assert "Git changes since pause: 2 commits" in result
@@ -640,7 +668,9 @@ class TestFormatResumePrompt:
     def test_formats_without_git_changes(self, helper, sample_session_data):
         """Test formats correctly without git changes."""
         with patch.object(helper, "get_time_elapsed", return_value="1 hour ago"):
-            with patch.object(helper, "get_git_changes_since_pause", return_value=(0, [])):
+            with patch.object(
+                helper, "get_git_changes_since_pause", return_value=(0, [])
+            ):
                 result = helper.format_resume_prompt(sample_session_data)
 
                 assert "No git changes since pause" in result
@@ -653,7 +683,9 @@ class TestFormatResumePrompt:
         ]
 
         with patch.object(helper, "get_time_elapsed", return_value="1 hour ago"):
-            with patch.object(helper, "get_git_changes_since_pause", return_value=(5, commits)):
+            with patch.object(
+                helper, "get_git_changes_since_pause", return_value=(5, commits)
+            ):
                 result = helper.format_resume_prompt(sample_session_data)
 
                 assert "sha0 - msg0 (Author0)" in result
@@ -665,7 +697,9 @@ class TestFormatResumePrompt:
         session_data = {"paused_at": "2025-11-04T12:00:00.000000"}
 
         with patch.object(helper, "get_time_elapsed", return_value="1 hour ago"):
-            with patch.object(helper, "get_git_changes_since_pause", return_value=(0, [])):
+            with patch.object(
+                helper, "get_git_changes_since_pause", return_value=(0, [])
+            ):
                 result = helper.format_resume_prompt(session_data)
 
                 assert "No summary available" in result
@@ -675,7 +709,9 @@ class TestFormatResumePrompt:
         session_data = {"paused_at": "invalid"}
 
         with patch.object(helper, "get_time_elapsed", side_effect=Exception("Error")):
-            with patch("claude_mpm.services.cli.session_resume_helper.logger") as mock_logger:
+            with patch(
+                "claude_mpm.services.cli.session_resume_helper.logger"
+            ) as mock_logger:
                 result = helper.format_resume_prompt(session_data)
 
                 assert "failed to format details" in result
@@ -688,7 +724,9 @@ class TestFormatResumePrompt:
         session_data["conversation"]["accomplishments"] = ["Added 日本語 support"]
 
         with patch.object(helper, "get_time_elapsed", return_value="1 hour ago"):
-            with patch.object(helper, "get_git_changes_since_pause", return_value=(0, [])):
+            with patch.object(
+                helper, "get_git_changes_since_pause", return_value=(0, [])
+            ):
                 result = helper.format_resume_prompt(session_data)
 
                 assert "🔐" in result
@@ -737,7 +775,9 @@ class TestClearSession:
         """Test handles missing file_path key."""
         session_data = {"session_id": "test"}
 
-        with patch("claude_mpm.services.cli.session_resume_helper.logger") as mock_logger:
+        with patch(
+            "claude_mpm.services.cli.session_resume_helper.logger"
+        ) as mock_logger:
             result = helper.clear_session(session_data)
 
             assert result is False
@@ -747,7 +787,9 @@ class TestClearSession:
         """Test handles invalid file_path type."""
         session_data = {"file_path": "string-not-path"}
 
-        with patch("claude_mpm.services.cli.session_resume_helper.logger") as mock_logger:
+        with patch(
+            "claude_mpm.services.cli.session_resume_helper.logger"
+        ) as mock_logger:
             result = helper.clear_session(session_data)
 
             assert result is False
@@ -757,7 +799,9 @@ class TestClearSession:
         """Test handles already-deleted file gracefully."""
         session_data = {"file_path": helper.pause_dir / "nonexistent.json"}
 
-        with patch("claude_mpm.services.cli.session_resume_helper.logger") as mock_logger:
+        with patch(
+            "claude_mpm.services.cli.session_resume_helper.logger"
+        ) as mock_logger:
             result = helper.clear_session(session_data)
 
             assert result is False
@@ -772,7 +816,9 @@ class TestClearSession:
         session_data["file_path"] = session_file
 
         with patch.object(Path, "unlink", side_effect=PermissionError("Access denied")):
-            with patch("claude_mpm.services.cli.session_resume_helper.logger") as mock_logger:
+            with patch(
+                "claude_mpm.services.cli.session_resume_helper.logger"
+            ) as mock_logger:
                 result = helper.clear_session(session_data)
 
                 assert result is False
@@ -1046,7 +1092,9 @@ class TestEdgeCases:
         ]
 
         with patch.object(helper, "get_time_elapsed", return_value="1 hour ago"):
-            with patch.object(helper, "get_git_changes_since_pause", return_value=(0, [])):
+            with patch.object(
+                helper, "get_git_changes_since_pause", return_value=(0, [])
+            ):
                 result = helper.format_resume_prompt(session_data)
 
                 # Should only show first 5
@@ -1062,7 +1110,9 @@ class TestEdgeCases:
         ]
 
         with patch.object(helper, "get_time_elapsed", return_value="1 hour ago"):
-            with patch.object(helper, "get_git_changes_since_pause", return_value=(1000, commits)):
+            with patch.object(
+                helper, "get_git_changes_since_pause", return_value=(1000, commits)
+            ):
                 result = helper.format_resume_prompt(sample_session_data)
 
                 assert "Git changes since pause: 1000 commits" in result
@@ -1082,7 +1132,9 @@ class TestEdgeCases:
         session_data = {}
 
         with patch.object(helper, "get_time_elapsed", return_value="unknown time ago"):
-            with patch.object(helper, "get_git_changes_since_pause", return_value=(0, [])):
+            with patch.object(
+                helper, "get_git_changes_since_pause", return_value=(0, [])
+            ):
                 result = helper.format_resume_prompt(session_data)
 
                 assert "PAUSED SESSION FOUND" in result

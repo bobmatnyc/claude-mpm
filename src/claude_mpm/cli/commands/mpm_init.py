@@ -2000,9 +2000,7 @@ def resume_command(list_sessions, session_id, last, project_path):
         if list_sessions:
             sessions = service.list_sessions()
             if not sessions:
-                console.print(
-                    "[yellow]No sessions found in response logs.[/yellow]"
-                )
+                console.print("[yellow]No sessions found in response logs.[/yellow]")
                 console.print(
                     "[dim]Sessions are stored in .claude-mpm/responses/[/dim]\n"
                 )
@@ -2012,7 +2010,9 @@ def resume_command(list_sessions, session_id, last, project_path):
             if last and last > 0:
                 sessions = sessions[:last]
 
-            console.print(f"\n[bold cyan]📋 Available Sessions ({len(sessions)})[/bold cyan]\n")
+            console.print(
+                f"\n[bold cyan]📋 Available Sessions ({len(sessions)})[/bold cyan]\n"
+            )
 
             from rich.table import Table
 
@@ -2025,7 +2025,11 @@ def resume_command(list_sessions, session_id, last, project_path):
 
             for session in sessions:
                 time_str = session.timestamp.strftime("%Y-%m-%d %H:%M")
-                tokens_str = f"{session.token_usage // 1000}k" if session.token_usage > 0 else "-"
+                tokens_str = (
+                    f"{session.token_usage // 1000}k"
+                    if session.token_usage > 0
+                    else "-"
+                )
 
                 table.add_row(
                     session.session_id,
@@ -2043,20 +2047,14 @@ def resume_command(list_sessions, session_id, last, project_path):
         if session_id:
             context = service.get_session_context(session_id)
             if not context:
-                console.print(
-                    f"[red]Session '{session_id}' not found.[/red]"
-                )
-                console.print(
-                    "[dim]Use --list to see available sessions.[/dim]\n"
-                )
+                console.print(f"[red]Session '{session_id}' not found.[/red]")
+                console.print("[dim]Use --list to see available sessions.[/dim]\n")
                 sys.exit(1)
         else:
             # Default: get latest session
             context = service.get_latest_session()
             if not context:
-                console.print(
-                    "[yellow]No sessions found in logs.[/yellow]"
-                )
+                console.print("[yellow]No sessions found in logs.[/yellow]")
                 console.print(
                     "[dim]Sessions are stored in .claude-mpm/responses/[/dim]\n"
                 )
@@ -2070,8 +2068,7 @@ def resume_command(list_sessions, session_id, last, project_path):
         from rich.prompt import Confirm
 
         should_continue = Confirm.ask(
-            "\n[bold]Would you like to continue this work?[/bold]",
-            default=True
+            "\n[bold]Would you like to continue this work?[/bold]", default=True
         )
 
         if should_continue:
@@ -2080,9 +2077,7 @@ def resume_command(list_sessions, session_id, last, project_path):
             )
             sys.exit(0)
         else:
-            console.print(
-                "\n[cyan]Starting fresh session instead.[/cyan]\n"
-            )
+            console.print("\n[cyan]Starting fresh session instead.[/cyan]\n")
             sys.exit(0)
 
     except KeyboardInterrupt:
