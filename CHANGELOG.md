@@ -1,8 +1,30 @@
 ## [Unreleased]
 
 ### Added
+- **Automatic session resume on PM startup**: Detects paused sessions and displays context
+  - Session resume hooks integrated into PM startup sequence
+  - Automatic context restoration from resume logs
+  - Implementation: `src/claude_mpm/hooks/__init__.py`
+- **Mandatory pause prompts at context thresholds**: Enforced pause at 70%, 85%, 95%
+  - User acknowledgment required before continuing
+  - Prevents accidental context overflow
+  - Implementation: `src/claude_mpm/agents/BASE_PM.md`
 
 ### Changed
+- **BASE_PM.md**: Enhanced context management with mandatory pause enforcement
+  - Pause prompts now require user acknowledgment
+  - Clear threshold rules and enforcement guidelines
+- **PM_INSTRUCTIONS.md**: Integrated automatic session resume into startup sequence
+  - PM now automatically checks for paused sessions on startup
+  - Displays resume context before beginning new work
+
+### Fixed
+
+### Removed
+
+### Documentation
+- Added `docs/features/session-auto-resume.md`: Comprehensive feature documentation
+- Added `IMPLEMENTATION_SUMMARY.md`: Implementation details for auto-resume functionality
 
 #### Agent Updates
 

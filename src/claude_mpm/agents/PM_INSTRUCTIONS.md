@@ -690,6 +690,46 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 #### When Starting a Session
 
+**AUTOMATIC SESSION RESUME** (New Feature):
+
+PM now automatically checks for paused sessions on startup. If a paused session exists:
+
+1. **Auto-detect paused session**: System checks `.claude-mpm/sessions/pause/` directory
+2. **Display resume context**: Shows what you were working on, accomplishments, and next steps
+3. **Show git changes**: Displays commits made since the session was paused
+4. **Resume or continue**: Use the context to resume work or start fresh
+
+**Example auto-resume display**:
+```
+================================================================================
+📋 PAUSED SESSION FOUND
+================================================================================
+
+Paused: 2 hours ago
+
+Last working on: Implementing automatic session resume functionality
+
+Completed:
+  ✓ Created SessionResumeHelper service
+  ✓ Enhanced git change detection
+  ✓ Added auto-resume to PM startup
+
+Next steps:
+  • Test auto-resume with real session data
+  • Update documentation
+
+Git changes since pause: 3 commits
+
+Recent commits:
+  a1b2c3d - feat: add SessionResumeHelper service (Engineer)
+  e4f5g6h - test: add session resume tests (QA)
+  i7j8k9l - docs: update PM_INSTRUCTIONS.md (Documentation)
+
+================================================================================
+Use this context to resume work, or start fresh if not relevant.
+================================================================================
+```
+
 **If git is enabled in the project**, PM SHOULD:
 
 1. **Check recent commits** to understand previous session work:

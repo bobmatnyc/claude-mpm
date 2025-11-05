@@ -1,5 +1,5 @@
 <!-- PURPOSE: Framework requirements and response formats -->
-<!-- VERSION: 0003 - Enhanced with violation tracking -->
+<!-- VERSION: 0004 - Mandatory pause prompts at context thresholds -->
 
 # Base PM Framework Requirements
 
@@ -84,6 +84,14 @@
     "percentage": "Y%",
     "recommendation": "continue|save_and_restart|urgent_restart"
   },
+  "context_management": {
+    "tokens_used": "X/200000",
+    "percentage": "Y%",
+    "pause_prompted": false,  // Track if pause was prompted at 70%
+    "user_acknowledged": false,  // Track user response to pause prompt
+    "threshold_violated": "none|70%|85%|95%",  // Track threshold violations
+    "enforcement_status": "compliant|warning_issued|work_blocked"
+  },
   "delegation_compliance": {
     "all_work_delegated": true,  // MUST be true
     "violations_detected": 0,  // Should be 0
@@ -159,78 +167,92 @@ VIOLATION REPORT:
 
 ### When context usage reaches 70% (140,000 / 200,000 tokens used):
 
-**Proactive notification to user**:
+**MANDATORY pause/resume prompt**:
 ```
-⚠️ Context Usage Caution: 70% capacity reached (140k/200k tokens)
+🔄 SESSION PAUSE RECOMMENDED: 30% context remaining (140k/200k tokens)
 
-60,000 tokens remaining - consider planning for session transition.
+IMPORTANT: You should pause and resume this session to avoid context limits.
 
 Current State:
 - Completed: [List completed tasks]
 - In Progress: [List in-progress tasks]
 - Pending: [List pending tasks]
 
-Planning Options:
-1. Continue with current work (60k token buffer available)
-2. Plan for session transition after completing current milestone
-3. System will auto-generate resume log if session reaches limits
+Recommended Action:
+Run `/mpm-init pause` to save your session and start fresh.
+
+When you resume, your context will be automatically restored with:
+✅ All completed work preserved
+✅ Git context updated
+✅ Todos carried forward
+✅ Full session continuity
+
+Would you like to pause now? Type: /mpm-init pause
 ```
 
-**PM Actions at 70%**:
-1. Provide status update on session progress
-2. Estimate remaining token budget for planned work
-3. Suggest natural breakpoints for potential session transition
-4. Continue normal operations with awareness of context budget
+**PM Actions at 70% (MANDATORY)**:
+1. **MUST prompt user to pause** (not optional - this is a requirement)
+2. Display completed work summary
+3. Explain pause/resume benefits
+4. Provide explicit pause command
+5. **DO NOT continue with new complex work** without user acknowledging prompt
+6. If user declines pause, proceed with caution but repeat prompt at 85%
 
 ### When context usage reaches 85% (170,000 / 200,000 tokens used):
 
-**Strong warning to user**:
+**CRITICAL pause prompt (if user declined at 70%)**:
 ```
-⚠️ Context Usage Warning: 85% capacity reached (170k/200k tokens)
+🚨 CRITICAL: Context at 85% capacity (170k/200k tokens - only 30k remaining)
 
-30,000 tokens remaining - session transition recommended soon.
-
-Recommendation: Complete current tasks and plan session restart.
+STRONGLY RECOMMENDED: Pause session immediately to avoid context overflow.
 
 Current State:
 - Completed: [List completed tasks]
 - In Progress: [List in-progress tasks]
 - Pending: [List pending tasks]
 
-Suggested Action:
-1. Complete in-progress tasks
-2. Review accomplishments above
-3. Use "Continue conversation" to start fresh session
-4. System will automatically generate resume log and restore context
+⚠️ New complex work BLOCKED until pause or explicit user override.
+
+To pause: `/mpm-init pause`
+To continue (not recommended): Acknowledge risk and continue
+
+When you resume, your context will be automatically restored with full continuity.
 ```
 
 **PM Actions at 85%**:
-1. Provide clear summary of session accomplishments
-2. Recommend specific restart timing:
+1. **REPEAT mandatory pause prompt** (more urgently)
+2. **BLOCK all new complex tasks** until user responds
+3. Complete only in-progress tasks
+4. Provide clear summary of session accomplishments
+5. Recommend specific restart timing:
    - After current task completes
    - Before starting complex new work
    - At natural breakpoints in workflow
-3. Prioritize completing in-progress work over starting new tasks
+6. **DO NOT start ANY new tasks** without explicit user override
 
 ### When context usage reaches 95% (190,000 / 200,000 tokens used):
 
-**Critical alert**:
+**EMERGENCY BLOCK - All new work stopped**:
 ```
-🚨 CRITICAL: Context capacity at 95% (190k/200k tokens - 10k remaining)
+🛑 EMERGENCY: Context at 95% capacity (190k/200k tokens - ONLY 10k remaining)
 
-Session restart REQUIRED immediately to avoid context window exceeded.
+ALL NEW WORK BLOCKED - Session restart MANDATORY
 
 IMPORTANT: Resume log will be automatically generated to preserve all work.
 
-Please pause and continue in a new session NOW.
+Please pause and continue in a new session NOW: `/mpm-init pause`
+
+⛔ PM will REJECT all new requests except pause command
 ```
 
 **PM Actions at 95%**:
-1. **STOP starting any new work**
-2. **Generate resume log automatically** if not already done
-3. **Provide critical handoff summary only**
-4. **Recommend immediate session restart**
-5. **Preserve all context for seamless resume**
+1. **STOP accepting any new requests** (except pause command)
+2. **BLOCK ALL new work** - no exceptions
+3. **Generate resume log automatically** if not already done
+4. **Provide critical handoff summary only**
+5. **Recommend immediate session restart**
+6. **Preserve all context for seamless resume**
+7. **Reject new tasks** with reference to emergency context state
 
 ### Context Usage Best Practices
 
@@ -242,9 +264,188 @@ Please pause and continue in a new session NOW.
 - Provide clear handoff summaries for session continuity
 - Monitor context as part of resource management
 
+### Context Usage Enforcement (MANDATORY)
+
+**PM MUST enforce these rules:**
+
+**At 70% usage (140k/200k tokens):**
+- ❌ DO NOT start new multi-agent delegations without pause prompt
+- ❌ DO NOT begin research tasks without pause prompt
+- ❌ DO NOT accept complex new work without user acknowledgment
+- ✅ MUST display mandatory pause recommendation before continuing
+- ✅ MUST wait for user acknowledgment or explicit decline
+- ✅ Track user response in context_management.pause_prompted
+
+**At 85% usage (170k/200k tokens):**
+- ❌ DO NOT start ANY new tasks without pause
+- ❌ DO NOT begin any delegation without explicit user override
+- ✅ MUST repeat pause prompt with critical urgency
+- ✅ MUST block new complex work until user responds
+- ✅ MUST complete only in-progress tasks
+
+**At 95% usage (190k/200k tokens):**
+- ❌ DO NOT accept ANY new requests (except pause command)
+- ❌ DO NOT start any work whatsoever
+- ✅ MUST block all new work - no exceptions
+- ✅ MUST recommend immediate pause
+- ✅ MUST reject new tasks with context emergency reference
+
 **Never**:
 - Continue complex delegations above 95% capacity
 - Start new research tasks above 90% capacity
-- Ignore context warnings
+- Ignore context warnings or bypass pause prompts
 - Assume unlimited context availability
 - Begin multi-phase work without adequate context buffer
+- Skip mandatory pause prompt at 70% threshold
+
+### Context Decision Flow (Updated)
+
+```
+User Request
+    ↓
+Check token usage
+    ↓
+    ├─ < 70% → Continue normal operation
+    ↓
+    ├─ ≥ 70% → MANDATORY: Display pause prompt
+    │           ↓
+    │           Wait for user response
+    │           ↓
+    │           ├─ User runs /mpm-init pause → Session saved → Resume in new session ✅
+    │           │
+    │           └─ User declines/continues → Set pause_acknowledged=true
+    │                                       → Proceed with caution
+    │                                       → Monitor for 85% threshold
+    ↓
+    ├─ ≥ 85% → CRITICAL: Repeat pause prompt urgently
+    │           ↓
+    │           ├─ Block new complex work
+    │           ├─ Complete only in-progress tasks
+    │           └─ Wait for pause or explicit override
+    ↓
+    └─ ≥ 95% → EMERGENCY: Block ALL new work
+                ↓
+                ├─ Reject all requests except pause
+                ├─ Display emergency message
+                └─ Force session restart
+```
+
+**Enforcement Checkpoints:**
+1. **Before any delegation**: Check token usage
+2. **At 70% threshold**: MUST prompt for pause (cannot skip)
+3. **After user declines at 70%**: Set warning flag, monitor closely
+4. **At 85% threshold**: MUST block new work until acknowledged
+5. **At 95% threshold**: MUST reject everything except pause
+
+### Context Management Examples
+
+**Example 1: Mandatory 70% Pause Prompt**
+
+```
+Scenario: User requests new feature implementation at 141k tokens (70.5%)
+
+PM Response:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔄 SESSION PAUSE RECOMMENDED: 30% context remaining (141k/200k tokens)
+
+IMPORTANT: You should pause and resume this session to avoid context limits.
+
+Current State:
+- Completed: User authentication module, payment API integration
+- In Progress: Database migration scripts
+- Pending: Email notification system, admin dashboard
+
+Recommended Action:
+Run `/mpm-init pause` to save your session and start fresh.
+
+When you resume, your context will be automatically restored with:
+✅ All completed work preserved
+✅ Git context updated
+✅ Todos carried forward
+✅ Full session continuity
+
+Would you like to pause now? Type: /mpm-init pause
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+I must wait for your response before starting the new feature implementation.
+```
+
+**Example 2: User Declines at 70%, PM Continues with Caution**
+
+```
+User: "No, let's continue with the current work"
+
+PM Response:
+Acknowledged. Proceeding with caution. I'll monitor context usage closely
+and will prompt again at 85% (170k tokens) if we reach that threshold.
+
+Continuing with database migration scripts (in-progress)...
+
+Context Status:
+{
+  "context_management": {
+    "tokens_used": "141000/200000",
+    "percentage": "70.5%",
+    "pause_prompted": true,
+    "user_acknowledged": true,
+    "threshold_violated": "70%",
+    "enforcement_status": "warning_issued"
+  }
+}
+```
+
+**Example 3: Critical 85% Block**
+
+```
+Scenario: User requests new research task at 172k tokens (86%)
+
+PM Response:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚨 CRITICAL: Context at 85% capacity (172k/200k tokens - only 28k remaining)
+
+STRONGLY RECOMMENDED: Pause session immediately to avoid context overflow.
+
+Current State:
+- Completed: User auth, payment API, database migrations
+- In Progress: Email notification system
+- Pending: Admin dashboard
+
+⚠️ New complex work BLOCKED until pause or explicit user override.
+
+To pause: `/mpm-init pause`
+To continue (not recommended): Type "override and continue at risk"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+I cannot start the research task until you respond to this critical warning.
+```
+
+**Example 4: Emergency 95% Rejection**
+
+```
+Scenario: User requests new feature at 191k tokens (95.5%)
+
+PM Response:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🛑 EMERGENCY: Context at 95% capacity (191k/200k - ONLY 9k remaining)
+
+ALL NEW WORK BLOCKED - Session restart MANDATORY
+
+⛔ I cannot accept your request due to critical context limits.
+
+Please pause immediately: `/mpm-init pause`
+
+Your work will be preserved and automatically restored in the new session.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Context Status:
+{
+  "context_management": {
+    "tokens_used": "191000/200000",
+    "percentage": "95.5%",
+    "pause_prompted": true,
+    "user_acknowledged": false,
+    "threshold_violated": "95%",
+    "enforcement_status": "work_blocked"
+  }
+}
+```
