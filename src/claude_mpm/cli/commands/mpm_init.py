@@ -1952,19 +1952,24 @@ def context_command(session_id, days, project_path):
         sys.exit(1)
 
 
-# Add deprecated 'resume' alias for backward compatibility
-@mpm_init.command(name="resume", hidden=True)
+# Resume command - NEW: reads from stop event logs
+@mpm_init.command(name="resume")
 @click.option(
-    "--session-id",
-    "-i",
-    type=str,
-    help="Unused (for compatibility) - will be removed in future version",
+    "--list",
+    "list_sessions",
+    is_flag=True,
+    help="List available sessions from logs",
 )
 @click.option(
-    "--days",
+    "--session-id",
+    "-s",
+    type=str,
+    help="Resume specific session by ID",
+)
+@click.option(
+    "--last",
     type=int,
-    default=7,
-    help="Number of days of git history to analyze (default: 7)",
+    help="Show last N sessions",
 )
 @click.argument(
     "project_path",
@@ -1972,35 +1977,120 @@ def context_command(session_id, days, project_path):
     required=False,
     default=".",
 )
-def resume_session(session_id, days, project_path):
+def resume_command(list_sessions, session_id, last, project_path):
     """
-    [DEPRECATED] Use 'context' instead.
+    Resume work from previous session using stop event logs.
 
-    This command is deprecated and will be removed in a future version.
-    Please use 'claude-mpm mpm-init context' instead.
+    Reads from:
+    - .claude-mpm/resume-logs/ (structured summaries, preferred)
+    - .claude-mpm/responses/ (raw conversation logs, fallback)
+
+    Examples:
+        claude-mpm mpm-init resume                    # Show latest session
+        claude-mpm mpm-init resume --list             # List all sessions
+        claude-mpm mpm-init resume --session-id ID    # Resume specific session
+        claude-mpm mpm-init resume --last 5           # Show last 5 sessions
     """
-    console.print(
-        "[yellow]⚠️  Warning: 'resume' is deprecated. Use 'context' instead.[/yellow]"
-    )
-    console.print("[dim]Run: claude-mpm mpm-init context[/dim]\n")
+    from claude_mpm.services.cli.resume_service import ResumeService
 
     try:
-        command = MPMInitCommand(Path(project_path))
-        result = command.handle_context(session_id=session_id, days=days)
+        service = ResumeService(Path(project_path))
 
-        if (
-            result["status"] == OperationResult.SUCCESS
-            or result["status"] == OperationResult.CONTEXT_READY
-        ):
+        # Handle --list flag
+        if list_sessions:
+            sessions = service.list_sessions()
+            if not sessions:
+                console.print(
+                    "[yellow]No sessions found in response logs.[/yellow]"
+                )
+                console.print(
+                    "[dim]Sessions are stored in .claude-mpm/responses/[/dim]\n"
+                )
+                sys.exit(1)
+
+            # Limit by --last if specified
+            if last and last > 0:
+                sessions = sessions[:last]
+
+            console.print(f"\n[bold cyan]📋 Available Sessions ({len(sessions)})[/bold cyan]\n")
+
+            from rich.table import Table
+
+            table = Table(show_header=True, header_style="bold magenta")
+            table.add_column("Session ID", style="cyan", width=25)
+            table.add_column("Time", style="yellow", width=20)
+            table.add_column("Agent", style="green", width=15)
+            table.add_column("Stop Reason", style="white", width=20)
+            table.add_column("Tokens", style="dim", width=10)
+
+            for session in sessions:
+                time_str = session.timestamp.strftime("%Y-%m-%d %H:%M")
+                tokens_str = f"{session.token_usage // 1000}k" if session.token_usage > 0 else "-"
+
+                table.add_row(
+                    session.session_id,
+                    time_str,
+                    session.last_agent,
+                    session.stop_reason,
+                    tokens_str,
+                )
+
+            console.print(table)
+            console.print()
+            sys.exit(0)
+
+        # Handle --session-id
+        if session_id:
+            context = service.get_session_context(session_id)
+            if not context:
+                console.print(
+                    f"[red]Session '{session_id}' not found.[/red]"
+                )
+                console.print(
+                    "[dim]Use --list to see available sessions.[/dim]\n"
+                )
+                sys.exit(1)
+        else:
+            # Default: get latest session
+            context = service.get_latest_session()
+            if not context:
+                console.print(
+                    "[yellow]No sessions found in logs.[/yellow]"
+                )
+                console.print(
+                    "[dim]Sessions are stored in .claude-mpm/responses/[/dim]\n"
+                )
+                sys.exit(1)
+
+        # Display context
+        display_text = service.format_resume_display(context)
+        console.print(display_text)
+
+        # Ask if user wants to continue
+        from rich.prompt import Confirm
+
+        should_continue = Confirm.ask(
+            "\n[bold]Would you like to continue this work?[/bold]",
+            default=True
+        )
+
+        if should_continue:
+            console.print(
+                "\n[green]✅ Great! Use this context to continue your work.[/green]\n"
+            )
             sys.exit(0)
         else:
-            sys.exit(1)
+            console.print(
+                "\n[cyan]Starting fresh session instead.[/cyan]\n"
+            )
+            sys.exit(0)
 
     except KeyboardInterrupt:
-        console.print("\n[yellow]Context analysis cancelled by user[/yellow]")
+        console.print("\n[yellow]Resume cancelled by user[/yellow]")
         sys.exit(130)
     except Exception as e:
-        console.print(f"[red]Context analysis failed: {e}[/red]")
+        logger.error(f"Resume failed: {e}")
+        console.print(f"[red]Resume failed: {e}[/red]")
         sys.exit(1)
 
 

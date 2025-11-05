@@ -9,6 +9,9 @@ Initialize or intelligently update your project for optimal use with Claude Code
 /mpm-init update               # Lightweight update based on recent git activity
 /mpm-init context              # Intelligent context analysis from git history
 /mpm-init context --days 14    # Analyze last 14 days of git history
+/mpm-init resume               # Resume from stop event logs (NEW)
+/mpm-init resume --list        # List all sessions from logs
+/mpm-init resume --session-id ID  # Resume specific session
 /mpm-init catchup              # Quick commit history display (no analysis)
 /mpm-init --review             # Review project state without changes
 /mpm-init --update             # Full update of existing CLAUDE.md
@@ -24,7 +27,9 @@ This command has two primary modes:
 - **Project initialization/updates**: Delegates to the Agentic Coder Optimizer agent for documentation, tooling, and workflow setup
 - **Context analysis** (context/catchup): Provides intelligent project context from git history for resuming work
 
-**Note**: The `resume` subcommand is deprecated. Use `context` instead. The `resume` command still works for backward compatibility but will be removed in a future version.
+**Resume Modes**: The command provides two resume capabilities:
+- `/mpm-init resume`: Reads stop event logs from `.claude-mpm/responses/` to help resume work
+- `/mpm-init context`: Analyzes git history for intelligent work resumption (delegates to Research agent)
 
 **Quick Update Mode**: Running `/mpm-init update` performs a lightweight update focused on recent git activity. It analyzes recent commits, generates an activity report, and updates documentation with minimal changes. Perfect for quick refreshes after development sprints.
 
@@ -87,8 +92,46 @@ Analyzes recent git commits to identify:
 
 **NOT session state**: This does NOT save/restore conversation state like Claude Code. Instead, it reconstructs project context from git history using conventional commits and commit message analysis.
 
-#### `/mpm-init resume` [DEPRECATED]
-Alias for `context`. Use `context` instead.
+#### `/mpm-init resume` (Stop Event Logs)
+```bash
+/mpm-init resume                    # Show latest session from logs
+/mpm-init resume --list             # List all sessions
+/mpm-init resume --session-id ID    # Resume specific session
+/mpm-init resume --last 5           # Show last 5 sessions
+```
+
+Reads from stop event logs to help resume work from previous sessions:
+
+**Data Sources** (two-tier strategy):
+1. **Resume logs** (preferred): `.claude-mpm/resume-logs/*.md` - Structured 10k-token summaries
+2. **Response logs** (fallback): `.claude-mpm/responses/*.json` - Raw conversation stop events
+
+**What it shows**:
+- When session ended (time ago)
+- What was being worked on (request)
+- Tasks completed (from PM responses)
+- Files modified (from PM tracking)
+- Next steps (from PM recommendations)
+- Stop reason (why session ended)
+- Token usage (context consumption)
+- Git context (branch, working directory)
+
+**How it works**:
+1. Scans response logs in `.claude-mpm/responses/`
+2. Groups by `session_id`
+3. Parses PM response JSON for context
+4. Extracts tasks, files, next steps from PM summaries
+5. Displays comprehensive resume context
+
+**Use Cases**:
+- Resume work after context threshold pause
+- Review what was accomplished in previous session
+- Understand why session stopped (max_tokens, end_turn, etc.)
+- See exact files and tasks from last session
+
+**Difference from `context`**:
+- **resume**: Reads actual stop event logs (what PM logged)
+- **context**: Analyzes git commits (what was committed)
 
 ### `/mpm-init catchup` (Simple Git History)
 ```bash
@@ -224,6 +267,66 @@ This provides intelligent analysis including:
 ```
 
 The old `resume` command redirects to `context` with a deprecation warning.
+
+### Resume from Stop Event Logs
+
+Display context from previous sessions using stop event logs:
+
+```bash
+/mpm-init resume                    # Show latest session
+/mpm-init resume --list             # List all available sessions
+/mpm-init resume --session-id abc123  # Resume specific session
+/mpm-init resume --last 10          # Show last 10 sessions
+```
+
+Shows comprehensive context including:
+- What was being worked on
+- Tasks completed (from PM tracking)
+- Files modified
+- Next steps recommended
+- Stop reason (context limit, completion, etc.)
+- Token usage
+- Time elapsed since session
+
+**Example Output:**
+```
+================================================================================
+📋 Resume Context - Session from 2 hours ago
+================================================================================
+
+Session ID: 20251104_143000
+Ended: 2024-11-04 14:30 (2 hours ago)
+Stop Reason: Context threshold reached (70%)
+Token Usage: 140,000 / 200,000 (70%)
+
+Working on:
+  "Implementing auto-pause and resume functionality"
+
+✅ Completed:
+  • Researched stop event logging system
+  • Found response logs in .claude-mpm/responses/
+  • Identified two-tier resume strategy
+
+📝 Files Modified:
+  • src/claude_mpm/services/cli/resume_service.py (new)
+  • src/claude_mpm/cli/commands/mpm_init.py (updated)
+
+🎯 Next Steps:
+  • Implement ResumeService class
+  • Add resume subcommand to mpm-init
+  • Test with real response logs
+
+Git Context:
+  Branch: main
+  Working Directory: /Users/masa/Projects/claude-mpm
+================================================================================
+```
+
+**Use Cases:**
+- Resume after hitting context limit
+- Review what was accomplished in last session
+- See exact next steps recommended by PM
+- Understand why session stopped
 
 ### Quick Git History (Catchup)
 
@@ -388,9 +491,12 @@ The command delegates to the Agentic Coder Optimizer agent which:
 ## Notes
 
 - **Quick Update vs Full Update**: Use `/mpm-init update` for fast activity-based updates (30 days), or `/mpm-init --update` for comprehensive doc refresh
-- **Context Analysis**: Use `/mpm-init context` to analyze git history and get intelligent resumption context from Research agent
-- **Quick History**: Use `/mpm-init catchup` for instant commit history display without analysis
-- **Deprecation Notice**: The `resume` command is deprecated. Use `context` instead. The old command still works but shows a warning.
+- **Resume Strategies**:
+  - **`/mpm-init resume`**: Read stop event logs (what PM tracked in last session)
+  - **`/mpm-init context`**: Analyze git history (intelligent work stream analysis via Research)
+  - **`/mpm-init catchup`**: Quick commit history display (no analysis)
+- **Stop Event Logs**: Response logs in `.claude-mpm/responses/` contain PM summaries with tasks, files, and next steps
+- **Two-Tier Resume**: Prefers structured resume logs (`.claude-mpm/resume-logs/`), falls back to response logs
 - **Smart Mode**: Automatically detects existing CLAUDE.md and offers update vs recreate
 - **Safe Updates**: Previous versions always archived before updating
 - **Custom Content**: Your project-specific sections are preserved by default
