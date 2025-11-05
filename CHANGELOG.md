@@ -35,6 +35,19 @@
 
 ### Fixed
 
+## [4.19.0] - 2025-11-04
+
+### Added
+- **`/mpm-init resume` command**: Read stop event logs to help resume work from previous sessions
+  - Created `ResumeService` for parsing response logs from `.claude-mpm/responses/`
+  - Added resume subcommand with `--list`, `--session-id`, `--last` options
+  - Parses PM responses for tasks, files, and next steps
+  - Two-tier strategy: prefers resume logs, falls back to response logs
+  - Displays comprehensive context with time calculations
+  - All 15 QA tests passed with 100% success rate
+  - Performance: <5ms for 69+ sessions
+  - Implementation: `src/claude_mpm/services/cli/resume_service.py`
+
 ## [4.18.4] - 2025-11-04
 
 ### Added
