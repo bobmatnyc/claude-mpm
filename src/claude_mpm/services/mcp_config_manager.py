@@ -1130,139 +1130,15 @@ class MCPConfigManager:
         """
         Detect and fix corrupted MCP service installations.
 
-        This method:
-        1. Tests each MCP service for import/execution errors
-        2. Automatically reinstalls corrupted services
-        3. Fixes missing dependencies (like mcp-ticketer's gql)
-        4. Validates fixes worked
+        NOTE: Proactive health checking has been disabled.
+        Each MCP service should stand on its own and handle its own issues.
+        This function now only returns success without checking services.
 
         Returns:
             Tuple of (success, message)
         """
-        services_to_fix = []
-        fixed_services = []
-        failed_services = []
-
-        # Check each service for issues
-        for service_name in self.PIPX_SERVICES:
-            # Check if service is enabled in config
-            if not self.should_enable_service(service_name):
-                self.logger.debug(f"Skipping {service_name} (disabled in config)")
-                continue
-
-            self.logger.debug(f"🔍 Checking {service_name} for issues...")
-            issue_type = self._detect_service_issue(service_name)
-            if issue_type:
-                services_to_fix.append((service_name, issue_type))
-                self.logger.debug(f"  ⚠️  Found issue with {service_name}: {issue_type}")
-            else:
-                self.logger.debug(f"  ✅ {service_name} is functioning correctly")
-
-        if not services_to_fix:
-            return True, "All MCP services are functioning correctly"
-
-        # Fix each problematic service
-        for service_name, issue_type in services_to_fix:
-            self.logger.info(f"🔧 Fixing {service_name}: {issue_type}")
-
-            if issue_type == "not_installed":
-                # Install the service
-                success, method = self._install_service_with_fallback(service_name)
-                if success:
-                    fixed_services.append(f"{service_name} (installed via {method})")
-                else:
-                    failed_services.append(f"{service_name} (installation failed)")
-
-            elif issue_type == "import_error":
-                # Reinstall to fix corrupted installation
-                self.logger.info(
-                    f"  Reinstalling {service_name} to fix import errors..."
-                )
-                success = self._reinstall_service(service_name)
-                if success:
-                    # NOTE: Removed automatic dependency injection workaround
-                    # Package maintainers should fix dependency declarations
-                    fixed_services.append(f"{service_name} (reinstalled)")
-                else:
-                    failed_services.append(f"{service_name} (reinstall failed)")
-
-            elif issue_type == "missing_dependency":
-                # Fix missing dependencies - try injection first, then reinstall if needed
-                self.logger.info(
-                    f"  {service_name} has missing dependencies - attempting fix..."
-                )
-
-                # First try to inject dependencies without reinstalling
-                injection_success = self._inject_missing_dependencies(service_name)
-
-                if injection_success:
-                    # Verify the fix worked
-                    issue_after_injection = self._detect_service_issue(service_name)
-                    if issue_after_injection is None:
-                        fixed_services.append(f"{service_name} (dependencies injected)")
-                        self.logger.info(
-                            f"  ✅ Fixed {service_name} with dependency injection"
-                        )
-                        continue  # Move to next service
-
-                # If injection alone didn't work, try full reinstall
-                self.logger.info(
-                    "  Dependency injection insufficient, trying full reinstall..."
-                )
-                success = self._auto_reinstall_mcp_service(service_name)
-                if success:
-                    fixed_services.append(
-                        f"{service_name} (auto-reinstalled with dependencies)"
-                    )
-                else:
-                    # Provide specific manual fix for known services
-                    if service_name == "mcp-ticketer":
-                        self.logger.warning(
-                            f"  Auto-fix failed for {service_name}. Manual fix: "
-                            f"pipx uninstall {service_name} && pipx install {service_name} && pipx inject {service_name} gql"
-                        )
-                    else:
-                        self.logger.warning(
-                            f"  Auto-reinstall failed for {service_name}. Manual fix: "
-                            f"pipx uninstall {service_name} && pipx install {service_name}"
-                        )
-                    failed_services.append(f"{service_name} (auto-reinstall failed)")
-
-            elif issue_type == "path_issue":
-                # Path issues are handled by config updates
-                self.logger.info(
-                    f"  Path issue for {service_name} will be fixed by config update"
-                )
-                fixed_services.append(f"{service_name} (config updated)")
-
-        # Build result message
-        messages = []
-        if fixed_services:
-            messages.append(f"✅ Fixed: {', '.join(fixed_services)}")
-        if failed_services:
-            messages.append(f"❌ Failed: {', '.join(failed_services)}")
-
-        # Return success if at least some services were fixed
-        success = len(fixed_services) > 0 or len(failed_services) == 0
-        message = " | ".join(messages) if messages else "No services needed fixing"
-
-        # Provide manual fix instructions if auto-fix failed
-        if failed_services:
-            message += "\n\n💡 Manual fix instructions:"
-            for failed in failed_services:
-                service = failed.split(" ")[0]
-                if service in self.SERVICE_MISSING_DEPENDENCIES:
-                    deps = " ".join(
-                        [
-                            f"&& pipx inject {service} {dep}"
-                            for dep in self.SERVICE_MISSING_DEPENDENCIES[service]
-                        ]
-                    )
-                    message += f"\n  • {service}: pipx uninstall {service} && pipx install {service} {deps}"
-                else:
-                    message += f"\n  • {service}: pipx uninstall {service} && pipx install {service}"
-
-        return success, message
+        # Services should stand on their own - no proactive health checking
+        return True, "MCP services managing their own health"
 
     def _detect_service_issue(self, service_name: str) -> Optional[str]:
         """
