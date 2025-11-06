@@ -10,6 +10,14 @@
 
 ### Documentation
 
+## [4.20.1] - 2025-11-05
+
+### Fixed
+- **MCP service health checks**: Removed noisy proactive health checking on startup
+  - Services now manage their own health independently
+  - Reduces startup noise by 124 lines of unnecessary checking
+  - Implementation: `src/claude_mpm/services/mcp_config_manager.py`
+
 ## [4.20.0] - 2025-11-04
 
 ### Added
