@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude MPM Dashboard - Visual Mockup</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding-bottom: 70px;
+        }
+
+        /* Header Styles */
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .header-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            color: #2d3748;
+            margin: 0;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-connected {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-disconnected {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .connection-quality {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quality-bar {
+            width: 60px;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .quality-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #48bb78, #38a169);
+            width: 80%;
+        }
+
+        .quality-text {
+            font-size: 12px;
+            color: #718096;
+            font-weight: 600;
+        }
+
+        .connection-latency {
+            font-size: 12px;
+            color: #718096;
+            font-weight: 600;
+            background: #f7fafc;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .metrics-widget {
+            display: flex;
+            gap: 12px;
+        }
+
+        .metric-mini {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+            padding: 10px 15px;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .metric-mini-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+            font-family: 'Courier New', monospace;
+        }
+
+        .metric-mini-label {
+            font-size: 11px;
+            color: #718096;
+            margin-top: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Main Controls */
+        .main-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .session-group, .working-dir-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        select, input[type="text"] {
+            padding: 8px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            background: white;
+        }
+
+        select {
+            cursor: pointer;
+        }
+
+        .working-dir-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .working-dir-path {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #2d3748;
+            background: #f7fafc;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .working-dir-path:hover {
+            background: #edf2f7;
+        }
+
+        .btn-icon {
+            background: #edf2f7;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-icon:hover {
+            background: #e2e8f0;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        .btn-secondary {
+            background: #cbd5e0;
+            color: #2d3748;
+        }
+
+        .btn-secondary:hover {
+            background: #a0aec0;
+        }
+
+        /* Split Container */
+        .split-container {
+            display: flex;
+            gap: 20px;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            min-height: 600px;
+        }
+
+        .module-viewer {
+            width: 350px;
+            border-right: 2px solid #e2e8f0;
+            padding-right: 20px;
+        }
+
+        .module-data-header {
+            margin-bottom: 15px;
+        }
+
+        .module-data-header h5 {
+            font-size: 16px;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .module-empty {
+            background: #f7fafc;
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            color: #718096;
+        }
+
+        .module-empty p {
+            margin-bottom: 8px;
+        }
+
+        .module-hint {
+            font-size: 12px;
+            color: #a0aec0;
+        }
+
+        /* Events Container */
+        .events-container {
+            flex: 1;
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .tab-button {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-size: 14px;
+            font-weight: 600;
+            color: #718096;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .tab-button:hover {
+            color: #4a5568;
+            border-bottom-color: #cbd5e0;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tab-filters input {
+            flex: 1;
+        }
+
+        .tab-filters select {
+            min-width: 150px;
+        }
+
+        .events-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .event-item {
+            background: #f7fafc;
+            border-left: 4px solid #4299e1;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .event-item:hover {
+            background: #edf2f7;
+            transform: translateX(2px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .event-item.agent {
+            border-left-color: #9f7aea;
+        }
+
+        .event-item.tool {
+            border-left-color: #ed8936;
+        }
+
+        .event-item.error {
+            border-left-color: #f56565;
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .event-type {
+            font-weight: 600;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .event-icon {
+            font-size: 16px;
+        }
+
+        .event-time {
+            font-size: 12px;
+            color: #a0aec0;
+        }
+
+        .event-details {
+            font-size: 13px;
+            color: #4a5568;
+            line-height: 1.5;
+        }
+
+        .event-details code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .no-events {
+            text-align: center;
+            padding: 60px 20px;
+            color: #a0aec0;
+            font-style: italic;
+        }
+
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(45, 55, 72, 0.95);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 12px 20px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .footer-content {
+            max-width: 1800px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 13px;
+        }
+
+        .footer-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .footer-label {
+            color: #a0aec0;
+        }
+
+        .footer-value {
+            color: white;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .footer-divider {
+            color: #4a5568;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        /* Activity Tree Mockup */
+        .activity-container {
+            padding: 20px;
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .activity-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .activity-stats {
+            display: flex;
+            gap: 15px;
+        }
+
+        .stat-item {
+            display: flex;
+            gap: 5px;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 13px;
+        }
+
+        .stat-value {
+            color: #2d3748;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .tree-mockup {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            color: #2d3748;
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+
+        .tree-node:hover {
+            background: #edf2f7;
+            border-radius: 4px;
+        }
+
+        .node-icon {
+            font-size: 14px;
+        }
+
+        .tree-legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <!-- Row 1: Title, Status, Metrics -->
+            <div class="header-row">
+                <div class="header-title">
+                    <h1>🚀 Claude MPM Monitor</h1>
+                    <div class="status-badge status-connected">
+                        <span>●</span> Connected
+                    </div>
+                    <div class="connection-quality">
+                        <div class="quality-bar">
+                            <div class="quality-fill"></div>
+                        </div>
+                        <span class="quality-text">80%</span>
+                    </div>
+                    <span class="connection-latency">45ms</span>
+                </div>
+                <div class="metrics-widget">
+                    <div class="metric-mini">
+                        <div class="metric-mini-value">127</div>
+                        <div class="metric-mini-label">Events</div>
+                    </div>
+                    <div class="metric-mini">
+                        <div class="metric-mini-value">42</div>
+                        <div class="metric-mini-label">Per Min</div>
+                    </div>
+                    <div class="metric-mini">
+                        <div class="metric-mini-value">8</div>
+                        <div class="metric-mini-label">Types</div>
+                    </div>
+                    <div class="metric-mini">
+                        <div class="metric-mini-value">0</div>
+                        <div class="metric-mini-label">Errors</div>
+                    </div>
+                    <div class="metric-mini" style="background: rgba(255,255,255,0.1);">
+                        <div class="metric-mini-value" style="color: #718096;">127</div>
+                        <div class="metric-mini-label">Received</div>
+                    </div>
+                    <div class="metric-mini" style="background: rgba(255,255,255,0.1);">
+                        <div class="metric-mini-value" style="color: #718096;">127</div>
+                        <div class="metric-mini-label">Rendered</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Main Controls -->
+            <div class="header-row main-controls">
+                <div class="session-group">
+                    <label>Session:</label>
+                    <select>
+                        <option>All Sessions</option>
+                        <option>Session abc123</option>
+                        <option>Session def456</option>
+                    </select>
+                </div>
+                <div class="working-dir-group">
+                    <label>Working Dir:</label>
+                    <div class="working-dir-display">
+                        <span class="working-dir-path">/Users/masa/Projects/claude-mpm</span>
+                        <button class="btn-icon">📁</button>
+                    </div>
+                </div>
+                <div style="margin-left: auto;">
+                    <button class="btn-success">Export</button>
+                    <button class="btn-secondary">Connection Settings</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="split-container">
+            <!-- Left Panel: Module Viewer -->
+            <div class="module-viewer">
+                <div class="module-data-header">
+                    <h5>📊 Structured Data</h5>
+                </div>
+                <div class="module-empty">
+                    <p>Click on an event to view structured data</p>
+                    <p class="module-hint">Data is organized by event type</p>
+                </div>
+            </div>
+
+            <!-- Right Panel: Tabbed Content -->
+            <div class="events-container">
+                <!-- Tab Navigation -->
+                <div class="tab-nav">
+                    <a href="#" class="tab-button active" onclick="switchTab(event, 'events')">📊 Events</a>
+                    <a href="#" class="tab-button" onclick="switchTab(event, 'agents')">🤖 Agents</a>
+                    <a href="#" class="tab-button" onclick="switchTab(event, 'tools')">🔧 Tools</a>
+                    <a href="#" class="tab-button" onclick="switchTab(event, 'files')">📁 Files</a>
+                    <a href="#" class="tab-button" onclick="switchTab(event, 'activity')">🌳 Activity</a>
+                </div>
+
+                <!-- Events Tab -->
+                <div class="tab-content active" id="events-tab">
+                    <div class="tab-filters">
+                        <input type="text" placeholder="Search events...">
+                        <select>
+                            <option>All Events</option>
+                            <option>Session Events</option>
+                            <option>Agent Events</option>
+                            <option>Tool Events</option>
+                        </select>
+                    </div>
+                    <div class="events-list">
+                        <div class="event-item">
+                            <div class="event-header">
+                                <div class="event-type">
+                                    <span class="event-icon">🔵</span>
+                                    Session Started
+                                </div>
+                                <div class="event-time">2 minutes ago</div>
+                            </div>
+                            <div class="event-details">
+                                Session ID: <code>abc123</code><br>
+                                Working Directory: <code>/Users/masa/Projects/claude-mpm</code>
+                            </div>
+                        </div>
+
+                        <div class="event-item agent">
+                            <div class="event-header">
+                                <div class="event-type">
+                                    <span class="event-icon">🤖</span>
+                                    Agent Delegated
+                                </div>
+                                <div class="event-time">1 minute ago</div>
+                            </div>
+                            <div class="event-details">
+                                Agent: <code>Research</code><br>
+                                Task: Find documentation for API endpoints
+                            </div>
+                        </div>
+
+                        <div class="event-item tool">
+                            <div class="event-header">
+                                <div class="event-type">
+                                    <span class="event-icon">🔧</span>
+                                    Tool Used: Read
+                                </div>
+                                <div class="event-time">45 seconds ago</div>
+                            </div>
+                            <div class="event-details">
+                                File: <code>/src/main.py</code><br>
+                                Lines Read: 245 lines
+                            </div>
+                        </div>
+
+                        <div class="event-item tool">
+                            <div class="event-header">
+                                <div class="event-type">
+                                    <span class="event-icon">✏️</span>
+                                    Tool Used: Edit
+                                </div>
+                                <div class="event-time">30 seconds ago</div>
+                            </div>
+                            <div class="event-details">
+                                File: <code>/src/config.json</code><br>
+                                Changes: Modified 3 lines
+                            </div>
+                        </div>
+
+                        <div class="event-item tool">
+                            <div class="event-header">
+                                <div class="event-type">
+                                    <span class="event-icon">🔍</span>
+                                    Tool Used: Grep
+                                </div>
+                                <div class="event-time">20 seconds ago</div>
+                            </div>
+                            <div class="event-details">
+                                Pattern: <code>def.*async</code><br>
+                                Found: 12 matches in 4 files
+                            </div>
+                        </div>
+
+                        <div class="event-item agent">
+                            <div class="event-header">
+                                <div class="event-type">
+                                    <span class="event-icon">✅</span>
+                                    Agent Completed
+                                </div>
+                                <div class="event-time">5 seconds ago</div>
+                            </div>
+                            <div class="event-details">
+                                Agent: <code>Research</code><br>
+                                Status: Successfully found 8 API endpoints
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Agents Tab -->
+                <div class="tab-content" id="agents-tab">
+                    <div class="tab-filters">
+                        <input type="text" placeholder="Search agents...">
+                        <select>
+                            <option>All Agents</option>
+                            <option>Research</option>
+                            <option>Engineer</option>
+                            <option>Project Manager</option>
+                            <option>Operations</option>
+                        </select>
+                    </div>
+                    <div class="events-list">
+                        <div class="event-item agent">
+                            <div class="event-header">
+                                <div class="event-type">
+                                    <span class="event-icon">🤖</span>
+                                    Agent: Research
+                                </div>
+                                <div class="event-time">1 minute ago</div>
+                            </div>
+                            <div class="event-details">
+                                Task: Find documentation for API endpoints<br>
+                                Status: Completed ✅
+                            </div>
+                        </div>
+
+                        <div class="event-item agent">
+                            <div class="event-header">
+                                <div class="event-type">
+                                    <span class="event-icon">🤖</span>
+                                    Agent: Engineer
+                                </div>
+                                <div class="event-time">3 minutes ago</div>
+                            </div>
+                            <div class="event-details">
+                                Task: Implement authentication middleware<br>
+                                Status: In Progress ⏳
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tools Tab -->
+                <div class="tab-content" id="tools-tab">
+                    <div class="tab-filters">
+                        <input type="text" placeholder="Search tools...">
+                        <select>
+                            <option>All Tools</option>
+                            <option>Read</option>
+                            <option>Write</option>
+                            <option>Edit</option>
+                            <option>Bash</option>
+                            <option>Grep</option>
+                            <option>Glob</option>
+                        </select>
+                    </div>
+                    <div class="events-list">
+                        <div class="event-item tool">
+                            <div class="event-header">
+                                <div class="event-type">
+                                    <span class="event-icon">📖</span>
+                                    Read
+                                </div>
+                                <div class="event-time">45 seconds ago</div>
+                            </div>
+                            <div class="event-details">
+                                <code>/src/main.py</code> (245 lines)
+                            </div>
+                        </div>
+
+                        <div class="event-item tool">
+                            <div class="event-header">
+                                <div class="event-type">
+                                    <span class="event-icon">✏️</span>
+                                    Edit
+                                </div>
+                                <div class="event-time">30 seconds ago</div>
+                            </div>
+                            <div class="event-details">
+                                <code>/src/config.json</code><br>
+                                Changed: 3 lines
+                            </div>
+                        </div>
+
+                        <div class="event-item tool">
+                            <div class="event-header">
+                                <div class="event-type">
+                                    <span class="event-icon">🔍</span>
+                                    Grep
+                                </div>
+                                <div class="event-time">20 seconds ago</div>
+                            </div>
+                            <div class="event-details">
+                                Pattern: <code>def.*async</code><br>
+                                12 matches in 4 files
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Files Tab -->
+                <div class="tab-content" id="files-tab">
+                    <div class="tab-filters">
+                        <input type="text" placeholder="Search files...">
+                        <select>
+                            <option>All Operations</option>
+                            <option>Read</option>
+                            <option>Write</option>
+                            <option>Edit</option>
+                            <option>Search</option>
+                        </select>
+                    </div>
+                    <div class="events-list">
+                        <div class="event-item">
+                            <div class="event-header">
+                                <div class="event-type">
+                                    <span class="event-icon">📄</span>
+                                    /src/main.py
+                                </div>
+                                <div class="event-time">2 minutes ago</div>
+                            </div>
+                            <div class="event-details">
+                                Operations: 📖 Read (5x) • ✏️ Edit (2x)<br>
+                                <small>▶ Click to see operation history</small>
+                            </div>
+                        </div>
+
+                        <div class="event-item">
+                            <div class="event-header">
+                                <div class="event-type">
+                                    <span class="event-icon">📄</span>
+                                    /config/settings.json
+                                </div>
+                                <div class="event-time">5 minutes ago</div>
+                            </div>
+                            <div class="event-details">
+                                Operations: 📖 Read (1x) • 💾 Write (1x)<br>
+                                <small>▶ Click to see operation history</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Tab -->
+                <div class="tab-content" id="activity-tab">
+                    <div class="activity-container">
+                        <div class="activity-header">
+                            <div class="activity-controls">
+                                <button class="btn-sm btn-secondary">Expand All</button>
+                                <button class="btn-sm btn-secondary">Collapse All</button>
+                                <select>
+                                    <option>All Time</option>
+                                    <option>Last Hour</option>
+                                    <option selected>Last 30 Minutes</option>
+                                    <option>Last 10 Minutes</option>
+                                </select>
+                                <input type="text" placeholder="Search nodes..." style="width: 200px;">
+                            </div>
+                            <div class="activity-stats">
+                                <span class="stat-item">
+                                    <span class="stat-label">Nodes:</span>
+                                    <span class="stat-value">45</span>
+                                </span>
+                                <span class="stat-item">
+                                    <span class="stat-label">Active:</span>
+                                    <span class="stat-value">3</span>
+                                </span>
+                                <span class="stat-item">
+                                    <span class="stat-label">Depth:</span>
+                                    <span class="stat-value">5</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="tree-mockup">
+                            <div class="tree-node"><span class="node-icon">📁</span> Project Root</div>
+                            <div class="tree-node" style="padding-left: 20px;"><span class="node-icon">🎯</span> PM Session (abc123)</div>
+                            <div class="tree-node" style="padding-left: 40px;"><span class="node-icon">📝</span> Todo: Implement feature</div>
+                            <div class="tree-node" style="padding-left: 60px;"><span class="node-icon">🤖</span> Agent: Engineer</div>
+                            <div class="tree-node" style="padding-left: 80px;"><span class="node-icon">🔧</span> Tool: Read → /src/main.py</div>
+                            <div class="tree-node" style="padding-left: 80px;"><span class="node-icon">🔧</span> Tool: Edit → /src/config.json</div>
+                            <div class="tree-node" style="padding-left: 80px;"><span class="node-icon">🔧</span> Tool: Write → /src/output.txt</div>
+                            <div class="tree-node" style="padding-left: 60px;"><span class="node-icon">🤖</span> Agent: Research</div>
+                            <div class="tree-node" style="padding-left: 80px;"><span class="node-icon">🔧</span> Tool: Grep → Pattern: "def.*async"</div>
+                            <div class="tree-node" style="padding-left: 80px;"><span class="node-icon">🔧</span> Tool: Glob → "**/*.py"</div>
+                            <div class="tree-node" style="padding-left: 40px;"><span class="node-icon">📝</span> Todo: Write tests</div>
+                            <div class="tree-node" style="padding-left: 60px;"><span class="node-icon">🤖</span> Agent: Engineer</div>
+                            <div class="tree-node" style="padding-left: 80px;"><span class="node-icon">🔧</span> Tool: Write → /tests/test_main.py</div>
+                        </div>
+                        <div class="tree-legend">
+                            <div class="legend-item">
+                                <span class="node-icon">📁</span>
+                                <span>Project Root</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="node-icon">🎯</span>
+                                <span>PM Session</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="node-icon">📝</span>
+                                <span>Todo Item</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="node-icon">🤖</span>
+                                <span>Agent</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="node-icon">🔧</span>
+                                <span>Tool</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="footer-content">
+            <div class="footer-item">
+                <span class="footer-label">Session:</span>
+                <span class="footer-value">abc123</span>
+            </div>
+            <span class="footer-divider">|</span>
+            <div class="footer-item">
+                <span class="footer-label">Directory:</span>
+                <span class="footer-value">/Users/masa/Projects/claude-mpm</span>
+            </div>
+            <span class="footer-divider">|</span>
+            <div class="footer-item">
+                <span class="footer-label">Branch:</span>
+                <span class="footer-value">main</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(event, tabName) {
+            event.preventDefault();
+
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
