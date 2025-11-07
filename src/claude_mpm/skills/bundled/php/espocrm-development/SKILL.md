@@ -1,8 +1,8 @@
 ---
-name: EspoCRM Development
+name: espocrm-development
 description: Comprehensive guide for developing on EspoCRM - metadata-driven CRM with service layer architecture
 version: 1.0.0
-category: php
+category: development
 author: Claude MPM Team
 license: MIT
 progressive_disclosure:
@@ -31,36 +31,15 @@ requires_tools: []
 
 ## Overview
 
-EspoCRM is a metadata-driven CRM platform where configuration lives in JSON files, business logic belongs in Services, and data access happens through ORM EntityManager.
-
-**Core principle:** Metadata for structure, Services for logic, EntityManager for data, Hooks for lifecycle events.
-
-This skill enforces EspoCRM architectural patterns to prevent common mistakes like passing Container dependencies, bypassing the service layer, or implementing business logic in hooks.
+EspoCRM is a metadata-driven CRM platform where configuration lives in JSON files, business logic belongs in Services, and data access happens through ORM EntityManager. This skill enforces architectural patterns to prevent common mistakes like passing Container dependencies, bypassing the service layer, or implementing business logic in hooks.
 
 ## When to Use This Skill
 
-Activate when:
-- Developing custom EspoCRM modules or extensions
-- Creating custom entities and relationships
-- Implementing business logic with hooks or services
-- Building custom API endpoints
-- Customizing frontend views or forms
-- Integrating external systems
-
-**Use this ESPECIALLY when:**
-- Working with the ORM (EntityManager is required)
-- Implementing business logic (belongs in Services)
-- Creating hooks (use interfaces, not base classes)
-- Modifying metadata (requires cache rebuild)
-- Building custom field types
+Activate when developing custom EspoCRM modules, entities, relationships, hooks, services, API endpoints, or integrations. **Use especially when:** working with ORM (EntityManager required), implementing business logic (belongs in Services), creating hooks (use interfaces), modifying metadata (requires cache rebuild), or building custom field types.
 
 ## The Iron Law
 
-```
-BUSINESS LOGIC IN SERVICES, NOT HOOKS
-DATA ACCESS VIA ENTITYMANAGER, NEVER DIRECT PDO
-NEVER PASS CONTAINER AS DEPENDENCY
-```
+**BUSINESS LOGIC IN SERVICES, NOT HOOKS | DATA ACCESS VIA ENTITYMANAGER, NEVER DIRECT PDO | NEVER PASS CONTAINER AS DEPENDENCY**
 
 If you're accessing Container directly or writing business logic in hooks, you're violating architecture.
 
@@ -75,10 +54,7 @@ If you're accessing Container directly or writing business logic in hooks, you'r
 
 ## Quick Start
 
-1. **Setup Development Environment**
-   - Use ext-template for extension development
-   - Work in `src/` directory (EspoCRM 7.4+)
-   - Understand metadata structure: `custom/Espo/Modules/{ModuleName}/Resources/metadata/`
+1. **Setup Development Environment** - Use ext-template, work in `src/` directory (EspoCRM 7.4+), understand metadata structure: `custom/Espo/Modules/{ModuleName}/Resources/metadata/`
 
 2. **Access Data with EntityManager**
    ```php
@@ -137,15 +113,7 @@ If you're accessing Container directly or writing business logic in hooks, you'r
 
 ## Hook Types (Interfaces)
 
-EspoCRM provides 7 hook types - ALWAYS use interfaces:
-
-- `BeforeSave` - Validation before entity saved
-- `AfterSave` - Side effects after save
-- `BeforeRemove` - Validation before delete
-- `AfterRemove` - Cleanup after delete
-- `AfterRelate` - React to relationship creation
-- `AfterUnrelate` - React to relationship removal
-- `AfterMassRelate` - React to bulk relationship operations
+EspoCRM provides 7 hook types - ALWAYS use interfaces: `BeforeSave` (validation before save), `AfterSave` (side effects after save), `BeforeRemove` (validation before delete), `AfterRemove` (cleanup after delete), `AfterRelate` (relationship creation), `AfterUnrelate` (relationship removal), `AfterMassRelate` (bulk relationship operations).
 
 ## Navigation
 
@@ -192,20 +160,6 @@ For detailed information:
 - **systematic-debugging**: Debug EspoCRM issues using logs and step debugging
 - **verification-before-completion**: Always test with cache rebuild before claiming complete
 - **test-driven-development**: Write unit tests for Services and hooks
-
-## Real-World Impact
-
-**Before understanding architecture:**
-- Container passed everywhere (tight coupling)
-- Business logic scattered in hooks
-- Direct database access bypassing ORM
-- Missing cache rebuilds causing confusion
-
-**After following patterns:**
-- Clean dependency injection
-- Business logic centralized in Services
-- Type-safe ORM operations
-- Predictable behavior after metadata changes
 
 ## The Bottom Line
 
