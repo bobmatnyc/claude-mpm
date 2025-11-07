@@ -352,6 +352,7 @@ quick-dev: setup-dev ## Alias for complete development setup
 
 .PHONY: lint-all lint-ruff lint-black lint-isort lint-flake8 lint-mypy lint-structure
 .PHONY: lint-fix quality pre-publish safe-release-build
+.PHONY: clean-system-files clean-test-artifacts clean-debug clean-deprecated clean-pre-publish
 
 # Individual linters
 lint-ruff: ## Run ruff linter (fast, catches most issues including imports)
@@ -458,7 +459,7 @@ lint-fix: ## Auto-fix linting issues (format, sort imports, fix ruff issues)
 quality: lint-all ## Alias for lint-all (run all quality checks)
 
 # Pre-publish quality gate
-pre-publish: ## Run all quality checks before publishing (required for releases)
+pre-publish: clean-pre-publish ## Run cleanup and all quality checks before publishing (required for releases)
 	@echo "$(BLUE)════════════════════════════════════════$(NC)"
 	@echo "$(BLUE)🚀 Pre-Publish Quality Gate$(NC)"
 	@echo "$(BLUE)════════════════════════════════════════$(NC)"
@@ -580,7 +581,51 @@ safe-release-build: ## Build release with mandatory quality checks
 	@echo "$(GREEN)✓ Package built successfully with quality assurance$(NC)"
 	@ls -la dist/
 
+# ============================================================================
+# Pre-Publish Cleanup Targets
+# ============================================================================
 
+clean-system-files: ## Remove system files (.DS_Store, __pycache__, *.pyc)
+	@echo "$(YELLOW)🧹 Cleaning system files...$(NC)"
+	@find . -name ".DS_Store" -not -path "*/venv/*" -not -path "*/.venv/*" -delete 2>/dev/null || true
+	@find . -type d -name "__pycache__" -not -path "*/venv/*" -not -path "*/.venv/*" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type f \( -name "*.pyc" -o -name "*.pyo" \) -not -path "*/venv/*" -not -path "*/.venv/*" -delete 2>/dev/null || true
+	@echo "$(GREEN)✓ System files cleaned$(NC)"
+
+clean-test-artifacts: ## Remove test artifacts (HTML, JSON reports in root)
+	@echo "$(YELLOW)🧹 Cleaning test artifacts from root...$(NC)"
+	@rm -f dashboard_test.html report_qa_test.html coverage.json 2>/dev/null || true
+	@echo "$(GREEN)✓ Test artifacts cleaned$(NC)"
+
+clean-debug: ## Remove debug scripts (requires confirmation)
+	@echo "$(YELLOW)🧹 This will remove debug scripts from tools/dev/ and scripts/development/$(NC)"
+	@echo "$(RED)⚠️  Debug scripts will be permanently deleted!$(NC)"
+	@read -p "Continue? [y/N] " -n 1 -r; \
+	echo ""; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		find tools/dev -name "debug_*.py" -delete 2>/dev/null || true; \
+		find scripts/development -name "debug_*.py" -delete 2>/dev/null || true; \
+		echo "$(GREEN)✓ Debug scripts removed$(NC)"; \
+	else \
+		echo "$(YELLOW)Debug cleanup cancelled$(NC)"; \
+	fi
+
+clean-deprecated: ## Remove explicitly deprecated files
+	@echo "$(YELLOW)🧹 Removing deprecated documentation...$(NC)"
+	@rm -f src/claude_mpm/agents/INSTRUCTIONS_OLD_DEPRECATED.md 2>/dev/null || true
+	@echo "$(GREEN)✓ Deprecated files removed$(NC)"
+
+clean-pre-publish: clean-system-files clean-test-artifacts clean-deprecated ## Complete pre-publish cleanup (safe automated cleanup)
+	@echo ""
+	@echo "$(GREEN)════════════════════════════════════════$(NC)"
+	@echo "$(GREEN)✅ Pre-publish cleanup complete!$(NC)"
+	@echo "$(GREEN)════════════════════════════════════════$(NC)"
+	@echo ""
+	@echo "$(YELLOW)💡 Manual review recommended for:$(NC)"
+	@echo "  • Debug scripts: make clean-debug"
+	@echo "  • Test memory directory: tests/test-temp-memory/"
+	@echo "  • Archived HTML tests: src/claude_mpm/dashboard/static/archive/"
+	@echo ""
 
 # Increment build number
 increment-build: ## Increment build number for code changes

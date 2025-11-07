@@ -25,18 +25,23 @@ Quick reference for publishing Claude MPM to PyPI.
 ### Standard Publish
 
 ```bash
-# 1. Build (with quality checks)
+# 1. Pre-publish cleanup and quality checks
+make pre-publish
+
+# 2. Build (with quality checks)
 make safe-release-build
 
-# 2. Publish to PyPI
+# 3. Publish to PyPI
 make publish-pypi
 ```
+
+**Note**: `make pre-publish` automatically runs cleanup to remove temporary files before publishing. See [Pre-Publish Cleanup](./pre-publish-cleanup.md) for details.
 
 ### Detailed Steps
 
 ```bash
-# 1. Quality checks (optional but recommended)
-make quality
+# 1. Pre-publish cleanup and quality checks
+make pre-publish
 
 # 2. Build distribution
 make safe-release-build
@@ -77,11 +82,22 @@ After publishing, verify at:
 
 ## Full Documentation
 
-For detailed instructions, see: [docs/developer/publishing.md](docs/developer/publishing.md)
+- **Publishing Guide**: [docs/developer/publishing.md](docs/developer/publishing.md)
+- **Pre-Publish Cleanup**: [docs/developer/pre-publish-cleanup.md](./pre-publish-cleanup.md)
+- **Publishing Setup**: [docs/developer/publishing-setup.md](./publishing-setup.md)
 
 ## Commands Reference
 
 ```bash
+# Pre-publish cleanup and quality checks
+make pre-publish
+
+# Individual cleanup targets
+make clean-pre-publish    # Automated cleanup only
+make clean-system-files   # Remove .DS_Store, __pycache__, *.pyc
+make clean-test-artifacts # Remove test HTML/JSON files
+make clean-deprecated     # Remove deprecated documentation
+
 # Verify setup (safe, read-only)
 ./scripts/verify_publish_setup.sh
 

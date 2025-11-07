@@ -311,32 +311,38 @@ Here's the recommended end-to-end workflow:
 ```bash
 # 1. Ensure code is ready
 git status  # Should be clean
-make quality  # All checks pass
 
-# 2. Build with quality checks
+# 2. Run pre-publish cleanup and quality checks
+make pre-publish  # Cleanup + all checks pass
+
+# 3. Build with quality checks
 make safe-release-build
 
-# 3. Verify build artifacts
+# 4. Verify build artifacts
 ls -lh dist/
 
-# 4. Publish to PyPI
+# 5. Publish to PyPI
 make publish-pypi
 # Or: ./scripts/publish_to_pypi.sh
 
-# 5. Verify publication
+# 6. Verify publication
 # Visit https://pypi.org/project/claude-mpm/
 
-# 6. Test installation
+# 7. Test installation
 pip install --upgrade claude-mpm
 claude-mpm --version
 
-# 7. Tag and push (if not already done)
+# 8. Tag and push (if not already done)
 git tag v4.18.0
 git push origin v4.18.0
 ```
 
+**Note**: The `make pre-publish` target automatically cleans up temporary files (`.DS_Store`, `__pycache__`, test artifacts) before running quality checks. See [Pre-Publish Cleanup](./pre-publish-cleanup.md) for details.
+
 ## Related Documentation
 
+- [Pre-Publish Cleanup](./pre-publish-cleanup.md) - Automated cleanup process
+- [Publishing Quick Start](./publishing-quickstart.md) - Quick reference guide
 - [Release Management](../RELEASE_PROCESS.md) - Complete release workflow
 - [Version Management](../VERSION_MANAGEMENT.md) - Version numbering scheme
 - [Quality Gates](../QUALITY_GATES.md) - Pre-release checks
