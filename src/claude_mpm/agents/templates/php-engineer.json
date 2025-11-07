@@ -276,6 +276,7 @@
     "security-scanning",
     "code-review",
     "refactoring-patterns",
-    "git-workflow"
+    "git-workflow",
+    "espocrm-development"
   ]
 }
