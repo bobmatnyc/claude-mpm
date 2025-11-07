@@ -10,6 +10,23 @@
 
 ### Documentation
 
+## [4.20.4] - 2025-11-07
+
+### Added
+- **EspoCRM Development Skill**: Comprehensive guide for PHP engineers developing on EspoCRM
+  - Progressive disclosure: 216-line entry point + 4,700 lines of reference documentation
+  - Covers metadata-driven architecture, ORM, hooks, service layer, frontend customization
+  - 6 detailed reference guides: architecture, development workflow, hooks/services, frontend, common tasks, testing/debugging
+  - 100+ code examples with best practices and anti-patterns
+  - Version support: EspoCRM 7.4+, 8.0+, 9.x
+  - Implementation: `src/claude_mpm/skills/bundled/php/espocrm-development/`
+
+### Changed
+- **PHP Engineer Agent**: Bumped to v2.1.0 with EspoCRM development skill
+  - Added `espocrm-development` to skills array
+  - Updated agent version and changelog
+  - Implementation: `src/claude_mpm/agents/templates/php-engineer.json`
+
 ## [4.20.3] - 2025-11-07
 
 ### Added
