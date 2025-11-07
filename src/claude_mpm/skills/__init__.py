@@ -30,13 +30,13 @@ from .skills_registry import SkillsRegistry as SkillsRegistryHelper
 from .skills_service import SkillsService
 
 __all__ = [
-    # New Skills Integration System
-    "SkillsService",
     "AgentSkillsInjector",
-    "SkillsRegistryHelper",
     # Legacy System
     "Skill",
     "SkillManager",
     "SkillsRegistry",
+    "SkillsRegistryHelper",
+    # New Skills Integration System
+    "SkillsService",
     "get_registry",
 ]

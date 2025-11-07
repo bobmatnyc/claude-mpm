@@ -62,7 +62,7 @@ def manage_mpm_init(args):
 
         if subcommand == "pause":
             # Handle pause subcommand
-            from datetime import datetime
+            from datetime import datetime, timezone
 
             from claude_mpm.services.cli.session_pause_manager import (
                 SessionPauseManager,
@@ -89,7 +89,7 @@ def manage_mpm_init(args):
             console.print()
             console.print(f"[cyan]Session ID:[/cyan] {session_id}")
             console.print(
-                f"[cyan]Paused At:[/cyan] {datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z')}"
+                f"[cyan]Paused At:[/cyan] {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z')}"
             )
             console.print(
                 f"[cyan]Location:[/cyan] .claude-mpm/sessions/pause/{session_id}.*"
@@ -104,7 +104,7 @@ def manage_mpm_init(args):
             )
             console.print(f"  • [dim]{session_id}.md[/dim] - Full documentation")
             console.print(
-                f"  • [dim]LATEST-SESSION.txt[/dim] - Quick reference pointer"
+                "  • [dim]LATEST-SESSION.txt[/dim] - Quick reference pointer"
             )
 
             # Git commit info
@@ -126,7 +126,7 @@ def manage_mpm_init(args):
             console.print()
             console.print("[yellow]Resume with:[/yellow] claude-mpm mpm-init context")
             console.print(
-                f"[yellow]Quick view:[/yellow] cat .claude-mpm/sessions/pause/LATEST-SESSION.txt"
+                "[yellow]Quick view:[/yellow] cat .claude-mpm/sessions/pause/LATEST-SESSION.txt"
             )
             console.print()
 

@@ -404,8 +404,7 @@ class SkillsManagementCommand(BaseCommand):
 
             # Parse SKILL.md metadata
             content = skill_md.read_text()
-            metadata = self.skills_service.parse_skill_metadata(content)
-            return metadata
+            return self.skills_service.parse_skill_metadata(content)
 
         except Exception:
             return None

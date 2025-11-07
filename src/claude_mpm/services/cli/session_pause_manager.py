@@ -11,12 +11,12 @@ DESIGN DECISIONS:
 - LATEST-SESSION.txt pointer for quick access
 """
 
-import json
 import subprocess
-import yaml
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
+
+import yaml
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.storage.state_storage import StateStorage
@@ -60,7 +60,7 @@ class SessionPauseManager:
         logger.info("Creating pause session")
 
         # Generate session ID
-        session_id = f"session-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        session_id = f"session-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
 
         # Capture state
         state = self._capture_state(session_id, message)
@@ -116,7 +116,7 @@ class SessionPauseManager:
         git_context = self._get_git_context()
 
         # Build state dictionary
-        state = {
+        return {
             "session_id": session_id,
             "paused_at": datetime.now(timezone.utc).isoformat(),
             "duration_hours": 0,  # Can be calculated if session start time known
@@ -141,7 +141,7 @@ class SessionPauseManager:
                 "quick_start": [
                     f"Read {session_id}.md for full context",
                     "Run: git status to check current state",
-                    f"Run: cat .claude-mpm/sessions/pause/LATEST-SESSION.txt",
+                    "Run: cat .claude-mpm/sessions/pause/LATEST-SESSION.txt",
                 ],
                 "files_to_review": [],
                 "validation_commands": {
@@ -157,7 +157,6 @@ class SessionPauseManager:
             "project_path": str(self.project_path),
         }
 
-        return state
 
     def _get_git_context(self) -> Dict[str, Any]:
         """Get git repository context.
@@ -289,23 +288,23 @@ class SessionPauseManager:
         active_context = state["active_context"]
 
         lines = [
-            f"# Claude MPM Session Pause Document",
-            f"",
-            f"## Session Metadata",
-            f"",
+            "# Claude MPM Session Pause Document",
+            "",
+            "## Session Metadata",
+            "",
             f"**Session ID**: `{session_id}`",
             f"**Paused At**: {paused_at}",
             f"**Project**: `{state['project_path']}`",
             f"**Version**: {state.get('version', 'unknown')}",
-            f"",
-            f"## What You Were Working On",
-            f"",
+            "",
+            "## What You Were Working On",
+            "",
             f"**Primary Task**: {conversation['primary_task']}",
             f"**Current Phase**: {conversation['current_phase']}",
-            f"",
-            f"**Summary**:",
+            "",
+            "**Summary**:",
             f"{conversation['summary']}",
-            f"",
+            "",
         ]
 
         # Accomplishments
@@ -407,7 +406,7 @@ class SessionPauseManager:
             [
                 "---",
                 "",
-                f"Resume with: `/mpm-init resume` or `cat .claude-mpm/sessions/pause/LATEST-SESSION.txt`",
+                "Resume with: `/mpm-init resume` or `cat .claude-mpm/sessions/pause/LATEST-SESSION.txt`",
                 "",
             ]
         )
@@ -423,7 +422,7 @@ class SessionPauseManager:
         try:
             latest_file = self.pause_dir / "LATEST-SESSION.txt"
             content = f"""Latest Session: {session_id}
-Paused At: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z')}
+Paused At: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z')}
 Project: {self.project_path}
 
 Files:
@@ -464,7 +463,7 @@ Validation:
             )
 
             # Build commit message
-            commit_msg = f"session: pause at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\nSession ID: {session_id}"
+            commit_msg = f"session: pause at {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}\n\nSession ID: {session_id}"
             if message:
                 commit_msg += f"\nContext: {message}"
 

@@ -316,8 +316,8 @@ class SkillsRegistry(LoggerMixin):
             'last_updated': self.data.get('last_updated', 'unknown'),
             'total_skills': len(skills_metadata),
             'total_agents': len(agent_skills),
-            'categories': sorted(list(categories)),
-            'sources': sorted(list(sources))
+            'categories': sorted(categories),
+            'sources': sorted(sources)
         }
 
     def search_skills(self, query: str) -> List[Dict[str, Any]]:
