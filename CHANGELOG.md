@@ -10,6 +10,35 @@
 
 ### Documentation
 
+## [4.20.3] - 2025-11-07
+
+### Added
+- **License attributions for bundled skills**: Generated LICENSE_ATTRIBUTIONS.md with attribution information for all 15 bundled skills
+  - Groups skills by license type (MIT, Complete terms)
+  - Includes author, source URLs, and descriptions
+  - Identifies 8 skills missing license information
+  - Implementation: `scripts/generate_license_attributions.py`, `src/claude_mpm/skills/bundled/LICENSE_ATTRIBUTIONS.md`
+
+### Changed
+- **Skills progressive disclosure (Tier 2)**: Refactored verification-before-completion skill
+  - Entry point reduced to 175 lines with quick start guide
+  - Created detailed reference documentation (861 lines across 3 files)
+  - Added progressive disclosure metadata to frontmatter
+  - Version bumped to 2.0.0
+  - Implementation: `src/claude_mpm/skills/bundled/debugging/verification-before-completion/`
+
+### Fixed
+- **Skills configuration cleanup**: Removed 8 non-existent skills from skills_sources.yaml
+  - Skills don't exist in their GitHub repositories (404 errors)
+  - Removed: git-worktrees, finishing-branches, elements-of-style, defense-in-depth, content-research-writer, file-organizer, csv-data-summarizer, playwright-browser-automation
+  - Cleaned up empty skill directories
+  - Updated configuration version to 1.0.1
+  - Implementation: `config/skills_sources.yaml`
+
+### Documentation
+- Added extensive reference documentation for verification-before-completion skill
+- Updated skills sources configuration with explanatory comments
+
 ## [4.20.2] - 2025-11-07
 
 ### Added
