@@ -10,6 +10,20 @@
 
 ### Documentation
 
+## [4.20.2] - 2025-11-07
+
+### Added
+- **Auto-configure default configuration fallback**: Provides sensible default agents when toolchain detection fails
+  - Default agents: engineer, research, qa, ops, documentation
+  - Moderate confidence (0.7) indicates fallback nature
+  - Clear reasoning explains why defaults were applied
+  - User-configurable (can disable or customize)
+  - Implementation: `src/claude_mpm/agents/configs/agent_capabilities.yaml`, `src/claude_mpm/agents/toolchain/recommender.py`
+
+### Documentation
+- Updated user guide with auto-configure fallback behavior
+- Enhanced mpm-auto-configure.md with fallback documentation
+
 ## [4.20.1] - 2025-11-05
 
 ### Fixed
