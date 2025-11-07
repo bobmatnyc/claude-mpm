@@ -1,5 +1,5 @@
 ---
-name: Verification Before Completion
+name: verification-before-completion
 description: Run verification commands and confirm output before claiming success
 version: 2.0.0
 category: debugging
@@ -14,7 +14,8 @@ progressive_disclosure:
   references:
     - gate-function.md
     - verification-patterns.md
-    - common-failures.md
+    - red-flags-and-failures.md
+    - integration-and-workflows.md
 context_limit: 800
 tags:
   - verification
@@ -38,23 +39,16 @@ This skill enforces mandatory verification before ANY completion claim, preventi
 
 ## When to Use This Skill
 
-Activate ALWAYS before:
-- ANY variation of success/completion claims
-- ANY expression of satisfaction ("Great!", "Done!", "Perfect!")
-- ANY positive statement about work state
+Activate ALWAYS before claiming:
+- Success, completion, or satisfaction ("Done!", "Fixed!", "Great!")
+- Tests pass, linter clean, build succeeds
 - Committing, pushing, creating PRs
-- Moving to next task
-- Marking tasks complete
-- Delegating to agents
-- Reporting status to users
+- Marking tasks complete or delegating to agents
 
 **Use this ESPECIALLY when:**
-- Under time pressure (makes skipping tempting)
-- Tired and wanting work over
-- "Quick fix" seems obvious
-- Confident in the solution
-- Agent reports success
-- Tests "should" pass
+- Under time pressure or tired
+- "Quick fix" seems obvious or you're confident
+- Agent reports success or tests "should" pass
 
 ## The Iron Law
 
@@ -85,29 +79,6 @@ The five-step gate function:
 
 Skip any step = lying, not verifying.
 
-## Common Failure Modes
-
-| Claim | Requires | Not Sufficient |
-|-------|----------|----------------|
-| Tests pass | Test command output: 0 failures | Previous run, "should pass" |
-| Linter clean | Linter output: 0 errors | Partial check, extrapolation |
-| Build succeeds | Build command: exit 0 | Linter passing, logs look good |
-| Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
-| Requirements met | Line-by-line checklist | Tests passing |
-
-## Red Flags - STOP Immediately
-
-If you catch yourself:
-- Using "should", "probably", "seems to"
-- Expressing satisfaction before verification
-- About to commit/push/PR without verification
-- Trusting agent success reports
-- Relying on partial verification
-- Thinking "just this once"
-- Tired and wanting work over
-
-**ALL of these mean: STOP. Run verification first.**
-
 ## Key Patterns
 
 **Correct Pattern:**
@@ -123,48 +94,33 @@ If you catch yourself:
 ❌ "I'm confident it works"
 ```
 
+## Red Flags - STOP Immediately
+
+If you catch yourself:
+- Using "should", "probably", "seems to"
+- Expressing satisfaction before verification
+- About to commit/push/PR without verification
+- Trusting agent success reports
+- Relying on partial verification
+
+**ALL of these mean: STOP. Run verification first.**
+
+## Why This Matters
+
+**Statistics from real-world failures:**
+- Verification cost: 2 minutes
+- Recovery cost: 120+ minutes (60x more expensive)
+- 40% of unverified "complete" claims required rework
+
+**Core violation:** "If you lie, you'll be replaced"
+
 ## Navigation
 
 For detailed information:
 - **[Gate Function](references/gate-function.md)**: Complete five-step verification process with decision trees
 - **[Verification Patterns](references/verification-patterns.md)**: Correct verification patterns for tests, builds, deployments, and more
-- **[Common Failures](references/common-failures.md)**: Red flags, rationalizations, and real-world failure examples
-
-## Why This Matters
-
-From real-world failures:
-- "I don't believe you" - trust broken with user
-- Undefined functions shipped - would crash in production
-- Missing requirements - incomplete features delivered
-- Time wasted on false completion → redirect → rework
-- Violates core value: "If you lie, you'll be replaced"
-
-**Statistics from 24 failure memories:**
-- Systematic verification: 15-30 minutes to confirm
-- Skipped verification: 2-3 hours debugging afterwards
-- Verification cost: 2 minutes
-- Recovery cost: 120+ minutes (60x more expensive)
-
-## Integration with Other Skills
-
-- **systematic-debugging**: Verify fix works before claiming bug fixed
-- **test-driven-development**: Verify red-green cycle before claiming test complete
-- **condition-based-waiting**: Verify conditions met before claiming ready
-- **root-cause-tracing**: Verify root cause identified before proposing fixes
-
-## Real-World Impact
-
-**Before this skill:**
-- 40% of "complete" claims required rework
-- Average 2-3 hours debugging false completions
-- Trust issues with stakeholders
-- Broken CI/CD pipelines
-
-**After this skill:**
-- 95% of completions verified accurate
-- Average 2 minutes verification time
-- High confidence in status reports
-- Clean CI/CD pipelines
+- **[Red Flags and Failures](references/red-flags-and-failures.md)**: Common failure modes, red flags, and real-world examples with time/cost data
+- **[Integration and Workflows](references/integration-and-workflows.md)**: Integration with other skills, CI/CD patterns, and agent delegation workflows
 
 ## The Bottom Line
 

@@ -273,6 +273,17 @@ GATE CHECK:
 5. CLAIM: "Agent completed X, verified by diff" OR "Agent attempted but Y issue found"
 ```
 
+### Before Deployment
+
+```
+GATE CHECK:
+1. IDENTIFY: Build, tests, smoke tests, health checks
+2. RUN: Full build + test suite
+3. READ: All outputs
+4. VERIFY: All pass, ready to deploy
+5. CLAIM: "Ready for deployment" OR report blockers
+```
+
 ## The Iron Law Explained
 
 ```

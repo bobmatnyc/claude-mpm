@@ -1,96 +1,184 @@
 ---
 name: webapp-testing
-description: Toolkit for interacting with and testing local web applications using Playwright. Supports verifying frontend functionality, debugging UI behavior, capturing browser screenshots, and viewing browser logs.
+version: 2.0.0
+category: testing
+description: Automated webapp testing with Playwright. Server management, UI testing, visual debugging, and reconnaissance-first approach.
 license: Complete terms in LICENSE.txt
+progressive_disclosure:
+  entry_point:
+    summary: "Reconnaissance before action: verify server state and page load before testing"
+    when_to_use: "When testing web applications with Playwright. Server verification, UI testing, frontend debugging."
+    quick_start: "1. Check server with lsof 2. Start with with_server.py 3. Wait for networkidle 4. Screenshot and verify"
+  references:
+    - playwright-patterns.md
+    - server-management.md
+    - reconnaissance-pattern.md
+    - decision-tree.md
+    - troubleshooting.md
 ---
 
-# Web Application Testing
+# Webapp Testing
 
-To test local web applications, write native Python Playwright scripts.
+## Overview
 
-**Helper Scripts Available**:
-- `scripts/with_server.py` - Manages server lifecycle (supports multiple servers)
+**Core Principle: Reconnaissance Before Action**
 
-**Always run scripts with `--help` first** to see usage. DO NOT read the source until you try running the script first and find that a customized solution is abslutely necessary. These scripts can be very large and thus pollute your context window. They exist to be called directly as black-box scripts rather than ingested into your context window.
+Automated webapp testing using Playwright with a focus on verifying system state (server status, page load, element presence) before taking any action. This ensures reliable, debuggable tests that fail for clear reasons.
 
-## Decision Tree: Choosing Your Approach
+**Key capabilities:**
+- Automated browser testing with Playwright
+- Server lifecycle management
+- Visual reconnaissance (screenshots, DOM inspection)
+- Network monitoring and debugging
 
-```
-User task → Is it static HTML?
-    ├─ Yes → Read HTML file directly to identify selectors
-    │         ├─ Success → Write Playwright script using selectors
-    │         └─ Fails/Incomplete → Treat as dynamic (below)
-    │
-    └─ No (dynamic webapp) → Is the server already running?
-        ├─ No → Run: python scripts/with_server.py --help
-        │        Then use the helper + write simplified Playwright script
-        │
-        └─ Yes → Reconnaissance-then-action:
-            1. Navigate and wait for networkidle
-            2. Take screenshot or inspect DOM
-            3. Identify selectors from rendered state
-            4. Execute actions with discovered selectors
-```
+## When to Use This Skill
 
-## Example: Using with_server.py
+- **Web application testing** - UI behavior, forms, navigation, integration testing
+- **Frontend debugging** - Screenshots, DOM inspection, console monitoring
+- **Regression testing** - Ensure changes don't break existing functionality
+- **Server verification** - Check servers are running and responding
 
-To start a server, run `--help` first, then use the helper:
+**Not suitable for:** Unit testing (use Jest/pytest), load testing, or API-only testing.
 
-**Single server:**
+## The Iron Law
+
+**RECONNAISSANCE BEFORE ACTION**
+
+Never execute test actions without first:
+1. **Verify server state** - `lsof -i :PORT` and `curl` checks
+2. **Wait for page ready** - `page.wait_for_load_state('networkidle')`
+3. **Visual confirmation** - Screenshot before actions
+4. **Read complete output** - Examine full results before claiming success
+
+**Why:** Tests fail mysteriously when servers aren't ready, selectors break when DOM is still building, and 5 seconds of reconnaissance saves 30 minutes of debugging.
+
+## Quick Start
+
+### Step 1: Verify Server State
+
 ```bash
-python scripts/with_server.py --server "npm run dev" --port 5173 -- python your_automation.py
+lsof -i :3000 -sTCP:LISTEN  # Check server listening
+curl -f http://localhost:3000/health  # Test response
 ```
 
-**Multiple servers (e.g., backend + frontend):**
+### Step 2: Start Server (If Needed)
+
 ```bash
+# Single server
+python scripts/with_server.py --server "npm run dev" --port 5173 -- python test.py
+
+# Multiple servers (backend + frontend)
 python scripts/with_server.py \
   --server "cd backend && python server.py" --port 3000 \
   --server "cd frontend && npm run dev" --port 5173 \
-  -- python your_automation.py
+  -- python test.py
 ```
 
-To create an automation script, include only Playwright logic (servers are managed automatically):
+### Step 3: Write Test with Reconnaissance
+
 ```python
 from playwright.sync_api import sync_playwright
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True) # Always launch chromium in headless mode
+    browser = p.chromium.launch(headless=True)
     page = browser.new_page()
-    page.goto('http://localhost:5173') # Server already running and ready
-    page.wait_for_load_state('networkidle') # CRITICAL: Wait for JS to execute
-    # ... your automation logic
+
+    # 1. Navigate and wait
+    page.goto('http://localhost:5173')
+    page.wait_for_load_state('networkidle')  # CRITICAL
+
+    # 2. Reconnaissance
+    page.screenshot(path='/tmp/before.png', full_page=True)
+    buttons = page.locator('button').all()
+    print(f"Found {len(buttons)} buttons")
+
+    # 3. Execute
+    page.click('button.submit')
+
+    # 4. Verify
+    page.wait_for_selector('.success-message')
+    page.screenshot(path='/tmp/after.png', full_page=True)
+
     browser.close()
 ```
 
-## Reconnaissance-Then-Action Pattern
+### Step 4: Verify Results
 
-1. **Inspect rendered DOM**:
-   ```python
-   page.screenshot(path='/tmp/inspect.png', full_page=True)
-   content = page.content()
-   page.locator('button').all()
-   ```
+Review console output, check for errors, verify state changes, examine screenshots.
 
-2. **Identify selectors** from inspection results
+## Key Patterns
 
-3. **Execute actions** using discovered selectors
+**Server Management** - Check → Start → Wait → Test → Cleanup
+- Use `with_server.py` for automatic lifecycle management
+- Check status with `lsof`, test with `curl`
+- Automatic cleanup on exit
 
-## Common Pitfall
+**Reconnaissance** - Inspect → Understand → Act → Verify
+- Screenshot current state
+- Inspect DOM for elements
+- Act on discovered selectors
+- Verify results visually
 
-❌ **Don't** inspect the DOM before waiting for `networkidle` on dynamic apps
-✅ **Do** wait for `page.wait_for_load_state('networkidle')` before inspection
+**Wait Strategy** - Load → Idle → Element → Action
+- Always wait for `networkidle` on dynamic apps
+- Wait for specific elements before interaction
+- Playwright auto-waits but explicit waits prevent race conditions
 
-## Best Practices
+**Selector Priority** - data-testid > role > text > CSS > XPath
+- `[data-testid="submit"]` - most stable
+- `role=button[name="Submit"]` - semantic
+- `text=Submit` - readable
+- `button.submit` - acceptable
+- XPath - last resort
 
-- **Use bundled scripts as black boxes** - To accomplish a task, consider whether one of the scripts available in `scripts/` can help. These scripts handle common, complex workflows reliably without cluttering the context window. Use `--help` to see usage, then invoke directly. 
-- Use `sync_playwright()` for synchronous scripts
-- Always close the browser when done
-- Use descriptive selectors: `text=`, `role=`, CSS selectors, or IDs
-- Add appropriate waits: `page.wait_for_selector()` or `page.wait_for_timeout()`
+## Common Pitfalls
 
-## Reference Files
+❌ **Testing without server verification** - Always check `lsof` and `curl` first
+❌ **Ignoring timeout errors** - TimeoutError means something is wrong, investigate
+❌ **Not waiting for networkidle** - Dynamic apps need full page load
+❌ **Poor selector strategies** - Use data-testid for stability
+❌ **Missing network verification** - Check API responses complete
+❌ **Incomplete cleanup** - Close browsers, stop servers properly
 
-- **examples/** - Examples showing common patterns:
-  - `element_discovery.py` - Discovering buttons, links, and inputs on a page
-  - `static_html_automation.py` - Using file:// URLs for local HTML
-  - `console_logging.py` - Capturing console logs during automation
+## Reference Documentation
+
+**[playwright-patterns.md](playwright-patterns.md)** - Complete Playwright reference
+Selectors, waits, interactions, assertions, test organization, network interception, screenshots, debugging
+
+**[server-management.md](server-management.md)** - Server lifecycle and operations
+with_server.py usage, manual management, port management, process control, environment config, health checks
+
+**[reconnaissance-pattern.md](reconnaissance-pattern.md)** - Philosophy and practice
+Why reconnaissance first, complete process, server checks, network diagnostics, DOM inspection, log analysis
+
+**[decision-tree.md](decision-tree.md)** - Flowcharts for every scenario
+New test decisions, server state paths, test failure diagnosis, debugging flows, selector/wait strategies
+
+**[troubleshooting.md](troubleshooting.md)** - Solutions to common problems
+Timeout issues, selector problems, server crashes, network errors, environment config, debugging workflow
+
+## Examples and Scripts
+
+**Examples** (`examples/` directory):
+- `element_discovery.py` - Discovering page elements
+- `static_html_automation.py` - Testing local HTML files
+- `console_logging.py` - Capturing console output
+
+**Scripts** (`scripts/` directory):
+- `with_server.py` - Server lifecycle management (run with `--help` first)
+
+## Integration with Other Skills
+
+**Mandatory:** verification-before-completion
+**Recommended:** systematic-debugging, test-driven-development
+**Related:** playwright-testing, selenium-automation
+
+## Bottom Line
+
+1. **Reconnaissance always comes first** - Verify before acting
+2. **Never skip server checks** - 5 seconds saves 30 minutes
+3. **Wait for networkidle** - Dynamic apps need time
+4. **Read complete output** - Verify before claiming success
+5. **Screenshot everything** - Visual evidence is invaluable
+
+The reconnaissance-then-action pattern is not optional - it's the foundation of reliable webapp testing.
