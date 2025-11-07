@@ -449,7 +449,7 @@ def format_terminal_output(result: Dict[str, Any], verbose: bool = False) -> str
 
     if result["errors"]:
         output.append(
-            f"\n{Colors.YELLOW}{Colors.BOLD}ERRORS " f"(Warning Issued):{Colors.RESET}"
+            f"\n{Colors.YELLOW}{Colors.BOLD}ERRORS (Warning Issued):{Colors.RESET}"
         )
         for issue in result["errors"]:
             output.append(
