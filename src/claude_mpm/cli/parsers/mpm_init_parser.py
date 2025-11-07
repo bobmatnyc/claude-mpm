@@ -265,5 +265,47 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
         help="Path to project directory (default: current directory)",
     )
 
+    # Pause subcommand - Create session pause documents
+    pause_parser = subcommands.add_parser(
+        "pause",
+        help="Pause current session and save state",
+        description="Create session pause documents for later resume. Captures git context, "
+        "conversation state, todos, and working directory state.\n\n"
+        "Creates three file formats:\n"
+        "  - JSON: Machine-readable structured data\n"
+        "  - YAML: Human-readable configuration style\n"
+        "  - Markdown: Full documentation format",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="Examples:\n"
+        "  claude-mpm mpm-init pause                          # Basic pause\n"
+        "  claude-mpm mpm-init pause -m 'End of day'         # With message\n"
+        "  claude-mpm mpm-init pause --no-commit             # Skip git commit\n"
+        "  claude-mpm mpm-init pause --export session.json   # Export copy",
+    )
+    pause_parser.add_argument(
+        "--message",
+        "-m",
+        type=str,
+        default=None,
+        help="Optional message describing pause reason or context",
+    )
+    pause_parser.add_argument(
+        "--no-commit",
+        action="store_true",
+        help="Skip git commit of session state",
+    )
+    pause_parser.add_argument(
+        "--export",
+        type=str,
+        default=None,
+        help="Export session state to custom location",
+    )
+    pause_parser.add_argument(
+        "project_path",
+        nargs="?",
+        default=".",
+        help="Path to project directory (default: current directory)",
+    )
+
     # Set the command handler
     mpm_init_parser.set_defaults(command="mpm-init")

@@ -60,6 +60,78 @@ def manage_mpm_init(args):
                 return 0
             return 1
 
+        if subcommand == "pause":
+            # Handle pause subcommand
+            from datetime import datetime
+
+            from claude_mpm.services.cli.session_pause_manager import (
+                SessionPauseManager,
+            )
+
+            # Get project path
+            project_path = (
+                Path(args.project_path) if hasattr(args, "project_path") else Path.cwd()
+            )
+
+            console.print("\n[cyan]Creating session pause...[/cyan]")
+
+            # Create pause session
+            pause_manager = SessionPauseManager(project_path)
+            session_id = pause_manager.create_pause_session(
+                message=getattr(args, "message", None),
+                skip_commit=getattr(args, "no_commit", False),
+                export_path=getattr(args, "export", None),
+            )
+
+            # Display success message
+            console.print()
+            console.print("[green]✅ Session Paused Successfully[/green]", style="bold")
+            console.print()
+            console.print(f"[cyan]Session ID:[/cyan] {session_id}")
+            console.print(
+                f"[cyan]Paused At:[/cyan] {datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z')}"
+            )
+            console.print(
+                f"[cyan]Location:[/cyan] .claude-mpm/sessions/pause/{session_id}.*"
+            )
+
+            # Show what was captured
+            console.print()
+            console.print("[blue]📝 Files Created:[/blue]")
+            console.print(f"  • [dim]{session_id}.json[/dim] - Machine-readable data")
+            console.print(
+                f"  • [dim]{session_id}.yaml[/dim] - Human-readable config"
+            )
+            console.print(f"  • [dim]{session_id}.md[/dim] - Full documentation")
+            console.print(
+                f"  • [dim]LATEST-SESSION.txt[/dim] - Quick reference pointer"
+            )
+
+            # Git commit info
+            if not getattr(args, "no_commit", False) and pause_manager._is_git_repo():
+                console.print()
+                console.print("[green]✓[/green] Git commit created")
+
+            # Export info
+            if getattr(args, "export", None):
+                console.print()
+                console.print(f"[green]✓[/green] Exported to: {args.export}")
+
+            # Show message if provided
+            if getattr(args, "message", None):
+                console.print()
+                console.print(f"[yellow]Context:[/yellow] {args.message}")
+
+            # Resume instructions
+            console.print()
+            console.print("[yellow]Resume with:[/yellow] claude-mpm mpm-init context")
+            console.print(
+                f"[yellow]Quick view:[/yellow] cat .claude-mpm/sessions/pause/LATEST-SESSION.txt"
+            )
+            console.print()
+
+            return 0
+
         # Handle special flags
         if getattr(args, "list_templates", False):
             # List available templates
