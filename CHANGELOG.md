@@ -10,6 +10,31 @@
 
 ### Documentation
 
+## [4.20.6] - 2025-11-07
+
+### Added
+- **Session Pause CLI Command**: New `/mpm-init pause` command for session management
+  - Creates comprehensive pause snapshots (JSON, YAML, Markdown formats)
+  - Captures git state, environment, configuration, and project context
+  - Automatic git commit creation with session metadata
+  - Export functionality for portable session archives
+  - Implementation: `src/claude_mpm/cli/commands/mpm_init.py`, `SessionPauseManager`
+
+### Changed
+- **Skills Progressive Disclosure (Tier 2)**: Refactored verification-before-completion skill
+  - Entry point reduced to 175 lines with streamlined quick start guide
+  - Detailed reference documentation moved to separate files
+  - Improved discoverability and reduced cognitive load
+  - Implementation: `src/claude_mpm/skills/bundled/testing/verification-before-completion/`
+
+### Fixed
+- **Code Quality**: Fixed linting violations across production codebase
+  - Timezone-aware datetime calls (DTZ005)
+  - Removed unused imports (F401)
+  - Fixed f-string formatting (F541, ISC001)
+  - Import ordering and Optional type hints
+  - All production code now passes ruff and black checks
+
 ## [4.20.5] - 2025-11-07
 
 ### Fixed
