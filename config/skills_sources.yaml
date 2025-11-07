@@ -17,32 +17,33 @@ sources:
         - finishing-branches
       testing:
         - test-driven-development
-        - async-testing
+        - condition-based-waiting  # async/conditional testing patterns
         - testing-anti-patterns
       debugging:
         - systematic-debugging
         - root-cause-tracing
-        - verification
+        - verification-before-completion
       collaboration:
         - brainstorming
-        - planning
-        - code-review
-        - parallel-agents
+        - writing-plans
+        - requesting-code-review
+        - receiving-code-review
+        - dispatching-parallel-agents
 
   # Anthropic Official Skills
+  # Skills are at repository root, so we use a parent URL
+  # Download constructs: base_url/{category}/{skill}
+  # With base_url ending at tree/, category becomes main/, skill is the folder name
   anthropic:
-    base_url: https://github.com/anthropics/skills/tree/main
+    base_url: https://github.com/anthropics/skills/tree
     license: MIT
     maintainer: Anthropic
     skills:
-      testing:
+      main:  # This becomes the "branch" part of the path
         - webapp-testing
-      development:
         - artifacts-builder
-      integration:
-        - mcp-server  # aka mcp-builder
+        - mcp-builder
         - skill-creator
-      documentation:
         - internal-comms
         - brand-guidelines
 
@@ -97,9 +98,9 @@ skill_descriptions:
       - typescript_engineer
       - qa
 
-  async-testing:
+  condition-based-waiting:
     category: testing
-    description: Patterns for testing asynchronous code
+    description: Patterns for testing asynchronous code and conditional waits
     priority: medium
     agents:
       - python_engineer
@@ -148,13 +149,17 @@ skill_descriptions:
       - research
       - code_analyzer
 
-  verification:
+  verification-before-completion:
     category: debugging
-    description: Validate fixes work as intended
+    description: Validate fixes work as intended before marking complete
     priority: medium
     agents:
       - qa
       - ops
+      - web_qa
+      - api_qa
+      - devops
+      - kubernetes
 
   # Development Skills
   git-worktrees:
@@ -182,9 +187,20 @@ skill_descriptions:
       - nextjs_engineer
 
   # Collaboration Skills
-  code-review:
+  requesting-code-review:
     category: collaboration
-    description: Structured code review process
+    description: Structured code review request process
+    priority: high
+    agents:
+      - engineer
+      - code_analyzer
+      - refactoring_engineer
+      - security
+      - documentation
+
+  receiving-code-review:
+    category: collaboration
+    description: Process code review feedback effectively
     priority: high
     agents:
       - engineer
@@ -198,16 +214,16 @@ skill_descriptions:
     agents:
       - PM
 
-  planning:
+  writing-plans:
     category: collaboration
-    description: Create implementation plans
+    description: Create detailed implementation plans
     priority: high
     agents:
       - PM
 
-  parallel-agents:
+  dispatching-parallel-agents:
     category: collaboration
-    description: Coordinate multiple agent workflows
+    description: Coordinate multiple agent workflows in parallel
     priority: low
     agents:
       - PM
