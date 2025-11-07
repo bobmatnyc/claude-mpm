@@ -20,6 +20,7 @@ from .mcp import manage_mcp
 from .memory import manage_memory
 from .monitor import manage_monitor
 from .run import run_session
+from .skills import manage_skills
 from .tickets import list_tickets, manage_tickets
 
 __all__ = [
@@ -36,6 +37,7 @@ __all__ = [
     "manage_mcp",
     "manage_memory",
     "manage_monitor",
+    "manage_skills",
     # 'run_guarded_session',  # Excluded from default exports (experimental)
     "manage_tickets",
     "run_doctor",

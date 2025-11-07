@@ -45,6 +45,7 @@ class CLICommands(str, Enum):
     DOCTOR = "doctor"
     DASHBOARD = "dashboard"
     UPGRADE = "upgrade"
+    SKILLS = "skills"
 
     def with_prefix(self, prefix: CLIPrefix = CLIPrefix.MPM) -> str:
         """Get command with prefix."""
@@ -156,6 +157,17 @@ class TicketCommands(str, Enum):
     SEARCH = "search"
     COMMENT = "comment"
     WORKFLOW = "workflow"
+
+
+class SkillsCommands(str, Enum):
+    """Skills subcommand constants."""
+
+    LIST = "list"
+    DEPLOY = "deploy"
+    VALIDATE = "validate"
+    UPDATE = "update"
+    INFO = "info"
+    CONFIG = "config"
 
 
 class CLIFlags(str, Enum):

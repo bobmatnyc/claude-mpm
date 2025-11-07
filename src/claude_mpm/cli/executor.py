@@ -26,6 +26,7 @@ from .commands import (
 )
 from .commands.analyze_code import manage_analyze_code
 from .commands.dashboard import manage_dashboard
+from .commands.skills import manage_skills
 from .commands.upgrade import upgrade
 
 
@@ -164,6 +165,7 @@ def execute_command(command: str, args) -> int:
         CLICommands.MCP.value: manage_mcp,
         CLICommands.DOCTOR.value: run_doctor,
         CLICommands.UPGRADE.value: upgrade,
+        CLICommands.SKILLS.value: manage_skills,
         "debug": manage_debug,  # Add debug command
         "mpm-init": None,  # Will be handled separately with lazy import
     }

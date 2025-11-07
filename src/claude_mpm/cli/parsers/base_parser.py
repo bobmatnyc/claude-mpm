@@ -404,6 +404,13 @@ def create_parser(
         pass
 
     try:
+        from .skills_parser import add_skills_subparser
+
+        add_skills_subparser(subparsers)
+    except ImportError:
+        pass
+
+    try:
         from .config_parser import add_config_subparser
 
         add_config_subparser(subparsers)

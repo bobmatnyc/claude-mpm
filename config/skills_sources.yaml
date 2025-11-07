@@ -1,0 +1,294 @@
+# Skills Sources Configuration
+# Defines GitHub repositories and skills to download for bundling with Claude MPM
+
+version: 1.0.0
+last_updated: 2025-11-07
+
+# Source repositories configuration
+sources:
+  # Superpowers Skills - Jesse Vincent's curated skills
+  superpowers:
+    base_url: https://github.com/obra/superpowers-skills/tree/main/skills
+    license: MIT
+    maintainer: Jesse Vincent
+    skills:
+      development:
+        - git-worktrees
+        - finishing-branches
+      testing:
+        - test-driven-development
+        - async-testing
+        - testing-anti-patterns
+      debugging:
+        - systematic-debugging
+        - root-cause-tracing
+        - verification
+      collaboration:
+        - brainstorming
+        - planning
+        - code-review
+        - parallel-agents
+
+  # Anthropic Official Skills
+  anthropic:
+    base_url: https://github.com/anthropics/skills/tree/main
+    license: MIT
+    maintainer: Anthropic
+    skills:
+      testing:
+        - webapp-testing
+      development:
+        - artifacts-builder
+      integration:
+        - mcp-server  # aka mcp-builder
+        - skill-creator
+      documentation:
+        - internal-comms
+        - brand-guidelines
+
+  # Superpowers Marketplace - Additional curated content
+  superpowers-marketplace:
+    base_url: https://github.com/obra/superpowers-marketplace/tree/main
+    license: MIT
+    maintainer: Jesse Vincent
+    skills:
+      documentation:
+        - elements-of-style  # aka writing-clearly-and-concisely
+
+  # BehiSecc Community Skills
+  behisecc:
+    base_url: https://github.com/BehiSecc/awesome-claude-skills/tree/main
+    license: Various
+    maintainer: BehiSecc Community
+    skills:
+      security:
+        - defense-in-depth
+      documentation:
+        - content-research-writer
+      organization:
+        - file-organizer
+      debugging:
+        - systematic-debugging  # Community version
+
+  # ComposioHQ Community Skills
+  composio:
+    base_url: https://github.com/ComposioHQ/awesome-claude-skills/tree/main
+    license: Various
+    maintainer: Composio Community
+    skills:
+      data:
+        - csv-data-summarizer
+      testing:
+        - playwright-browser-automation
+      meta:
+        - skill-seekers
+
+# Skill metadata and descriptions
+# Used for documentation and validation
+skill_descriptions:
+  # Testing Skills
+  test-driven-development:
+    category: testing
+    description: Enforces RED/GREEN/REFACTOR TDD cycle
+    priority: high
+    agents:
+      - engineer
+      - python_engineer
+      - typescript_engineer
+      - qa
+
+  async-testing:
+    category: testing
+    description: Patterns for testing asynchronous code
+    priority: medium
+    agents:
+      - python_engineer
+      - typescript_engineer
+      - qa
+
+  testing-anti-patterns:
+    category: testing
+    description: Identify and avoid common testing mistakes
+    priority: medium
+    agents:
+      - qa
+
+  webapp-testing:
+    category: testing
+    description: Test local web applications using Playwright
+    priority: high
+    agents:
+      - web_qa
+      - typescript_engineer
+      - nextjs_engineer
+
+  playwright-browser-automation:
+    category: testing
+    description: Model-invoked Playwright automation
+    priority: medium
+    agents:
+      - web_qa
+
+  # Debugging Skills
+  systematic-debugging:
+    category: debugging
+    description: Methodical debugging instead of random changes
+    priority: high
+    agents:
+      - engineer
+      - python_engineer
+      - qa
+      - research
+
+  root-cause-tracing:
+    category: debugging
+    description: Trace bugs backward through call stack
+    priority: medium
+    agents:
+      - research
+      - code_analyzer
+
+  verification:
+    category: debugging
+    description: Validate fixes work as intended
+    priority: medium
+    agents:
+      - qa
+      - ops
+
+  # Development Skills
+  git-worktrees:
+    category: development
+    description: Advanced git workflow management
+    priority: medium
+    agents:
+      - version_control
+      - engineer
+
+  finishing-branches:
+    category: development
+    description: Complete feature branches properly
+    priority: low
+    agents:
+      - version_control
+
+  artifacts-builder:
+    category: development
+    description: Build complex HTML artifacts with React/Tailwind
+    priority: high
+    agents:
+      - web_ui
+      - typescript_engineer
+      - nextjs_engineer
+
+  # Collaboration Skills
+  code-review:
+    category: collaboration
+    description: Structured code review process
+    priority: high
+    agents:
+      - engineer
+      - code_analyzer
+      - refactoring_engineer
+
+  brainstorming:
+    category: collaboration
+    description: Structured design refinement
+    priority: medium
+    agents:
+      - PM
+
+  planning:
+    category: collaboration
+    description: Create implementation plans
+    priority: high
+    agents:
+      - PM
+
+  parallel-agents:
+    category: collaboration
+    description: Coordinate multiple agent workflows
+    priority: low
+    agents:
+      - PM
+
+  # Integration Skills
+  mcp-server:
+    category: integration
+    description: Create high-quality MCP servers
+    priority: medium
+    agents: []
+
+  skill-creator:
+    category: meta
+    description: Interactive skill creation tool
+    priority: low
+    agents: []
+
+  # Documentation Skills
+  internal-comms:
+    category: documentation
+    description: Write status reports, newsletters, FAQs
+    priority: medium
+    agents:
+      - documentation
+
+  elements-of-style:
+    category: documentation
+    description: Writing guidance from Elements of Style
+    priority: low
+    agents:
+      - documentation
+
+  content-research-writer:
+    category: documentation
+    description: Research-backed content with citations
+    priority: medium
+    agents:
+      - documentation
+
+  # Security Skills
+  defense-in-depth:
+    category: security
+    description: Multi-layered testing and security
+    priority: high
+    agents:
+      - security
+      - qa
+
+  # Data Skills
+  csv-data-summarizer:
+    category: data
+    description: Automatic CSV analysis and visualization
+    priority: medium
+    agents:
+      - data_engineer
+
+  # Organization Skills
+  file-organizer:
+    category: organization
+    description: Intelligently organize files and folders
+    priority: low
+    agents:
+      - project_organizer
+
+# Download configuration
+download_config:
+  # Retry settings for failed downloads
+  max_retries: 3
+  retry_delay: 5  # seconds
+
+  # Rate limiting
+  requests_per_minute: 50
+  respect_rate_limit: true
+
+  # Validation
+  validate_after_download: true
+  require_skill_md: true
+
+# Priority levels for download order
+# Skills are downloaded in order: high → medium → low
+priority_order:
+  - high
+  - medium
+  - low

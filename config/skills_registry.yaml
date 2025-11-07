@@ -1,0 +1,419 @@
+# Claude MPM Skills Registry
+#
+# This is the source of truth for skill-to-agent mappings and skill metadata.
+# Version: 1.0.0
+# Last Updated: 2025-11-07
+#
+# Structure:
+# - skill_sources: Source repositories for skills
+# - agent_skills: Mapping of agent IDs to their assigned skills
+# - skills_metadata: Metadata for each skill (category, source, description, URL)
+
+version: 1.0.0
+last_updated: 2025-11-07
+
+# Skill source repositories
+skill_sources:
+  superpowers:
+    repo: https://github.com/obra/superpowers-skills
+    license: MIT
+    maintainer: Jesse Vincent
+
+  anthropic:
+    repo: https://github.com/anthropics/skills
+    license: MIT
+    maintainer: Anthropic
+
+  community:
+    repos:
+      - https://github.com/BehiSecc/awesome-claude-skills
+      - https://github.com/ComposioHQ/awesome-claude-skills
+    license: Various
+
+# Agent-to-skills mappings
+# Each agent has:
+# - required: Core skills (loaded first)
+# - optional: Additional skills (loaded when relevant)
+
+agent_skills:
+  # Development Agents
+  engineer:
+    required:
+      - test-driven-development
+      - systematic-debugging
+    optional:
+      - code-review
+      - git-worktrees
+
+  python_engineer:
+    required:
+      - test-driven-development
+      - systematic-debugging
+    optional:
+      - async-testing
+
+  typescript_engineer:
+    required:
+      - test-driven-development
+      - webapp-testing
+    optional:
+      - artifacts-builder
+
+  nextjs_engineer:
+    required:
+      - test-driven-development
+      - webapp-testing
+    optional:
+      - artifacts-builder
+
+  golang_engineer:
+    required:
+      - test-driven-development
+      - systematic-debugging
+
+  rust_engineer:
+    required:
+      - test-driven-development
+      - systematic-debugging
+
+  ruby_engineer:
+    required:
+      - test-driven-development
+      - systematic-debugging
+
+  php_engineer:
+    required:
+      - test-driven-development
+      - systematic-debugging
+
+  # Testing & QA Agents
+  qa:
+    required:
+      - test-driven-development
+      - verification
+    optional:
+      - testing-anti-patterns
+      - defense-in-depth
+
+  web_qa:
+    required:
+      - webapp-testing
+      - test-driven-development
+    optional:
+      - playwright-browser-automation
+
+  # Research & Analysis Agents
+  research:
+    required:
+      - root-cause-tracing
+      - systematic-debugging
+
+  code_analyzer:
+    required:
+      - code-review
+      - systematic-debugging
+    optional:
+      - root-cause-tracing
+
+  data_engineer:
+    required:
+      - csv-data-summarizer
+
+  # Operations Agents
+  ops:
+    required:
+      - systematic-debugging
+      - verification
+
+  version_control:
+    required:
+      - git-worktrees
+    optional:
+      - finishing-branches
+
+  # Collaboration & Planning Agents
+  pm:
+    required:
+      - brainstorming
+      - planning
+    optional:
+      - parallel-agents
+
+  # Documentation Agents
+  documentation:
+    required:
+      - internal-comms
+    optional:
+      - writing-clearly-and-concisely
+      - content-research-writer
+
+  # Specialized Agents
+  security:
+    required:
+      - defense-in-depth
+      - systematic-debugging
+
+  refactoring_engineer:
+    required:
+      - code-review
+      - systematic-debugging
+      - test-driven-development
+
+  web_ui:
+    required:
+      - artifacts-builder
+      - webapp-testing
+      - test-driven-development
+
+  memory_manager:
+    optional:
+      - file-organizer
+
+  project_organizer:
+    optional:
+      - file-organizer
+
+  # Integration Agent
+  integration_specialist:
+    required:
+      - mcp-builder
+    optional:
+      - skill-creator
+
+  # Additional Agents (from template analysis)
+  code_search:
+    required:
+      - root-cause-tracing
+      - systematic-debugging
+
+  devops:
+    required:
+      - systematic-debugging
+      - verification
+
+  kubernetes:
+    required:
+      - systematic-debugging
+      - verification
+
+  terraform:
+    required:
+      - systematic-debugging
+
+  ansible:
+    required:
+      - systematic-debugging
+
+  docker:
+    required:
+      - systematic-debugging
+
+  ci_cd:
+    required:
+      - systematic-debugging
+      - verification
+
+  api_engineer:
+    required:
+      - test-driven-development
+      - systematic-debugging
+
+  database_engineer:
+    required:
+      - test-driven-development
+      - systematic-debugging
+
+  frontend_engineer:
+    required:
+      - test-driven-development
+      - webapp-testing
+
+  backend_engineer:
+    required:
+      - test-driven-development
+      - systematic-debugging
+
+  fullstack_engineer:
+    required:
+      - test-driven-development
+      - webapp-testing
+      - systematic-debugging
+
+  mobile_engineer:
+    required:
+      - test-driven-development
+      - systematic-debugging
+
+  cloud_architect:
+    required:
+      - systematic-debugging
+
+  performance_engineer:
+    required:
+      - test-driven-development
+      - systematic-debugging
+
+  accessibility_specialist:
+    required:
+      - webapp-testing
+      - systematic-debugging
+
+  sre:
+    required:
+      - systematic-debugging
+      - verification
+
+# Skill metadata
+# Each skill has:
+# - category: Classification
+# - source: Source repository
+# - url: Source URL
+# - description: Brief description
+
+skills_metadata:
+  # Testing Skills
+  test-driven-development:
+    category: testing
+    source: superpowers
+    url: https://github.com/obra/superpowers-skills/tree/main/skills/testing/test-driven-development
+    description: "Enforces RED/GREEN/REFACTOR TDD cycle"
+
+  async-testing:
+    category: testing
+    source: superpowers
+    url: https://github.com/obra/superpowers-skills/tree/main/skills/testing/async-testing
+    description: "Patterns for testing asynchronous code"
+
+  testing-anti-patterns:
+    category: testing
+    source: superpowers
+    url: https://github.com/obra/superpowers-skills/tree/main/skills/testing/testing-anti-patterns
+    description: "Identify and avoid common testing mistakes"
+
+  webapp-testing:
+    category: testing
+    source: anthropic
+    url: https://github.com/anthropics/skills/tree/main/webapp-testing
+    description: "Test local web applications using Playwright"
+
+  playwright-browser-automation:
+    category: testing
+    source: community
+    url: https://github.com/ComposioHQ/awesome-claude-skills/tree/main/playwright-browser-automation
+    description: "Model-invoked Playwright automation"
+
+  # Debugging Skills
+  systematic-debugging:
+    category: debugging
+    source: superpowers
+    url: https://github.com/obra/superpowers-skills/tree/main/skills/debugging/systematic-debugging
+    description: "Methodical debugging instead of random changes"
+
+  root-cause-tracing:
+    category: debugging
+    source: superpowers
+    url: https://github.com/obra/superpowers-skills/tree/main/skills/debugging/root-cause-tracing
+    description: "Trace bugs backward through call stack"
+
+  verification:
+    category: debugging
+    source: superpowers
+    url: https://github.com/obra/superpowers-skills/tree/main/skills/debugging/verification
+    description: "Validate fixes work as intended"
+
+  # Collaboration Skills
+  code-review:
+    category: collaboration
+    source: superpowers
+    url: https://github.com/obra/superpowers-skills/tree/main/skills/collaboration/code-review
+    description: "Structured code review process"
+
+  brainstorming:
+    category: collaboration
+    source: superpowers
+    url: https://github.com/obra/superpowers-skills/tree/main/skills/collaboration/brainstorming
+    description: "Structured design refinement"
+
+  planning:
+    category: collaboration
+    source: superpowers
+    url: https://github.com/obra/superpowers-skills/tree/main/skills/collaboration/planning
+    description: "Create implementation plans"
+
+  parallel-agents:
+    category: collaboration
+    source: superpowers
+    url: https://github.com/obra/superpowers-skills/tree/main/skills/collaboration/parallel-agents
+    description: "Coordinate multiple agent workflows"
+
+  # Development Skills
+  git-worktrees:
+    category: development
+    source: superpowers
+    url: https://github.com/obra/superpowers-skills/tree/main/skills/development/git-worktrees
+    description: "Advanced git workflow management"
+
+  finishing-branches:
+    category: development
+    source: superpowers
+    url: https://github.com/obra/superpowers-skills/tree/main/skills/development/finishing-branches
+    description: "Complete feature branches properly"
+
+  artifacts-builder:
+    category: development
+    source: anthropic
+    url: https://github.com/anthropics/skills/tree/main/artifacts-builder
+    description: "Build complex HTML artifacts with React/Tailwind"
+
+  # Integration Skills
+  mcp-builder:
+    category: integration
+    source: anthropic
+    url: https://github.com/anthropics/skills/tree/main/mcp-server
+    description: "Create high-quality MCP servers"
+
+  skill-creator:
+    category: meta
+    source: anthropic
+    url: https://github.com/anthropics/skills/tree/main/skill-creator
+    description: "Interactive skill creation tool"
+
+  # Documentation Skills
+  internal-comms:
+    category: documentation
+    source: anthropic
+    url: https://github.com/anthropics/skills/tree/main/internal-comms
+    description: "Write status reports, newsletters, FAQs"
+
+  writing-clearly-and-concisely:
+    category: documentation
+    source: superpowers
+    url: https://github.com/obra/superpowers-marketplace/tree/main/elements-of-style
+    description: "Writing guidance from Elements of Style"
+
+  content-research-writer:
+    category: documentation
+    source: community
+    url: https://github.com/BehiSecc/awesome-claude-skills/tree/main/content-research-writer
+    description: "Research-backed content with citations"
+
+  # Data Skills
+  csv-data-summarizer:
+    category: data
+    source: community
+    url: https://github.com/ComposioHQ/awesome-claude-skills/tree/main/csv-data-summarizer
+    description: "Automatic CSV analysis and visualization"
+
+  # Security Skills
+  defense-in-depth:
+    category: security
+    source: community
+    url: https://github.com/BehiSecc/awesome-claude-skills/tree/main/defense-in-depth
+    description: "Multi-layered testing and security"
+
+  # Organization Skills
+  file-organizer:
+    category: organization
+    source: community
+    url: https://github.com/BehiSecc/awesome-claude-skills/tree/main/file-organizer
+    description: "Intelligently organize files and folders"

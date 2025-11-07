@@ -79,6 +79,62 @@ def setup_configure_command_environment(args):
         logging.getLogger("claude_mpm").setLevel(logging.WARNING)
 
 
+def deploy_bundled_skills():
+    """
+    Deploy bundled Claude Code skills on startup.
+
+    WHY: Automatically deploy skills from the bundled/ directory to .claude/skills/
+    to ensure skills are available for agents without manual intervention.
+
+    DESIGN DECISION: Deployment happens silently on startup with logging only.
+    Failures are logged but don't block startup to ensure claude-mpm remains
+    functional even if skills deployment fails. Respects auto_deploy config setting.
+    """
+    try:
+        # Check if auto-deploy is disabled in config
+        from ..config.config_loader import ConfigLoader
+
+        config_loader = ConfigLoader()
+        try:
+            config = config_loader.load_config()
+            skills_config = config.get("skills", {})
+            if not skills_config.get("auto_deploy", True):
+                # Auto-deploy disabled, skip silently
+                return
+        except Exception:
+            # If config loading fails, assume auto-deploy is enabled (default)
+            pass
+
+        # Import and run skills deployment
+        from ..skills.skills_service import SkillsService
+
+        skills_service = SkillsService()
+        deployment_result = skills_service.deploy_bundled_skills()
+
+        # Log results
+        from ..core.logger import get_logger
+
+        logger = get_logger("cli")
+
+        if deployment_result.get("deployed"):
+            logger.info(
+                f"Skills: Deployed {len(deployment_result['deployed'])} skill(s)"
+            )
+
+        if deployment_result.get("errors"):
+            logger.warning(
+                f"Skills: {len(deployment_result['errors'])} skill(s) failed to deploy"
+            )
+
+    except Exception as e:
+        # Import logger here to avoid circular imports
+        from ..core.logger import get_logger
+
+        logger = get_logger("cli")
+        logger.debug(f"Failed to deploy bundled skills: {e}")
+        # Continue execution - skills deployment failure shouldn't block startup
+
+
 def discover_and_link_runtime_skills():
     """
     Discover and link runtime skills from user/project directories.
@@ -114,6 +170,7 @@ def run_background_services():
     check_mcp_auto_configuration()
     verify_mcp_gateway_startup()
     check_for_updates_async()
+    deploy_bundled_skills()
     discover_and_link_runtime_skills()
 
 
