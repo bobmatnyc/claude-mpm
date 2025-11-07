@@ -201,6 +201,58 @@ Next steps:
 - docker-ops
 - local-ops-agent
 
+## Default Configuration Fallback
+
+When auto-configuration cannot detect your project's toolchain (e.g., a new or uncommon language/framework), it automatically falls back to a sensible set of default general-purpose agents instead of leaving your project unconfigured.
+
+### When Defaults are Applied
+
+Default agents are deployed when:
+- Primary language is detected as "Unknown"
+- No specific framework or toolchain can be identified
+- No agent recommendations can be generated from detected technologies
+
+### Default Agents
+
+The following general-purpose agents are recommended with moderate confidence (0.7):
+
+- **engineer**: General-purpose engineer for code implementation
+- **research**: Code exploration and analysis
+- **qa**: Testing and quality assurance
+- **ops**: Infrastructure and deployment operations
+- **documentation**: Documentation and technical writing
+
+All default recommendations will be marked with `is_default: True` in the metadata.
+
+### Disabling Default Fallback
+
+To disable the default configuration fallback, edit `.claude-mpm/config/agent_capabilities.yaml`:
+
+```yaml
+default_configuration:
+  enabled: false  # Disable default fallback
+```
+
+When disabled, auto-configuration will recommend zero agents if the toolchain cannot be detected.
+
+### Customizing Defaults
+
+You can customize which agents are deployed by default by editing the `default_configuration.agents` section in `.claude-mpm/config/agent_capabilities.yaml`:
+
+```yaml
+default_configuration:
+  enabled: true
+  min_confidence: 0.7  # Confidence score for default recommendations
+  agents:
+    - agent_id: engineer
+      reasoning: "General-purpose engineer for code implementation"
+      priority: 1
+    - agent_id: research
+      reasoning: "Code exploration and analysis"
+      priority: 2
+    # Add or remove agents as needed
+```
+
 ## Tips
 
 1. **Start with preview**: Always run with `--preview` first to see recommendations

@@ -226,6 +226,53 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
         if max_agents is not None:
             recommendations = recommendations[:max_agents]
 
+        # Check if toolchain is unknown and we have no recommendations
+        if not recommendations and toolchain.primary_language.lower() == "unknown":
+            self.logger.info("Toolchain unknown - applying default configuration")
+
+            # Get default configuration
+            default_config = self._capabilities_config.get("default_configuration", {})
+            if default_config.get("enabled", False):
+                default_agents = default_config.get("agents", [])
+                default_confidence = default_config.get("min_confidence", 0.7)
+
+                for default_agent in default_agents:
+                    agent_id = default_agent.get("agent_id")
+
+                    # Skip if agent doesn't exist in capabilities
+                    if agent_id not in agent_configs:
+                        self.logger.warning(f"Default agent not found: {agent_id}")
+                        continue
+
+                    agent_config = agent_configs[agent_id]
+                    capabilities = self.get_agent_capabilities(agent_id)
+
+                    recommendation = AgentRecommendation(
+                        agent_id=agent_id,
+                        agent_name=agent_config.get("name", agent_id),
+                        confidence_score=default_confidence,
+                        match_reasons=[
+                            "Default configuration applied - toolchain detection unsuccessful",
+                            default_agent.get("reasoning", "General-purpose agent"),
+                        ],
+                        concerns=[
+                            "Consider manually selecting specialized agents for better results"
+                        ],
+                        capabilities=capabilities,
+                        deployment_priority=default_agent.get("priority", 10),
+                        configuration_hints={"default_deployment": True},
+                        metadata={
+                            "is_default": True,
+                            "specialization": agent_config.get("specialization"),
+                            "auto_deploy": agent_config.get("auto_deploy", True),
+                        },
+                    )
+                    recommendations.append(recommendation)
+
+                self.logger.info(
+                    f"Applied {len(recommendations)} default agent recommendations"
+                )
+
         self.logger.info(
             f"Generated {len(recommendations)} agent recommendations "
             f"for project: {toolchain.project_path}"

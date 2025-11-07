@@ -286,6 +286,127 @@ agent_capabilities:
         - web
 
   # ===================================
+  # GENERAL-PURPOSE AGENTS (Language-Agnostic)
+  # ===================================
+
+  engineer:
+    name: "Engineer"
+    agent_id: "engineer"
+    specialization: "engineering"
+    description: "General-purpose software engineer for multi-language development"
+    supports:
+      languages:
+        - python
+        - javascript
+        - typescript
+        - go
+        - java
+        - ruby
+        - php
+        - rust
+      frameworks: []  # No specific framework requirements
+      build_tools: []  # Flexible build tool support
+      deployment:
+        - docker
+        - kubernetes
+        - aws
+        - gcp
+        - azure
+    confidence_weight: 0.6  # Lower than specialized agents
+    auto_deploy: false  # Only deploy when no better match
+    metadata:
+      template_file: "engineer.json"
+      category: "engineering"
+      tags:
+        - general
+        - multi-language
+        - engineering
+
+  research:
+    name: "Research Agent"
+    agent_id: "research"
+    specialization: "analysis"
+    description: "Code exploration, analysis, and research specialist"
+    supports:
+      languages:
+        - python
+        - javascript
+        - typescript
+        - go
+        - java
+        - ruby
+        - php
+        - rust
+      frameworks: []
+      build_tools: []
+      deployment: []
+    confidence_weight: 0.7
+    auto_deploy: false
+    metadata:
+      template_file: "research.json"
+      category: "analysis"
+      tags:
+        - research
+        - analysis
+        - exploration
+
+  qa:
+    name: "QA Agent"
+    agent_id: "qa"
+    specialization: "quality_assurance"
+    description: "Testing, quality assurance, and validation specialist"
+    supports:
+      languages:
+        - python
+        - javascript
+        - typescript
+        - go
+        - java
+        - ruby
+        - php
+        - rust
+      frameworks: []
+      build_tools: []
+      deployment: []
+    confidence_weight: 0.7
+    auto_deploy: false
+    metadata:
+      template_file: "qa.json"
+      category: "quality_assurance"
+      tags:
+        - qa
+        - testing
+        - quality
+
+  documentation:
+    name: "Documentation Agent"
+    agent_id: "documentation"
+    specialization: "documentation"
+    description: "Documentation, technical writing, and knowledge management"
+    supports:
+      languages:
+        - python
+        - javascript
+        - typescript
+        - go
+        - java
+        - ruby
+        - php
+        - rust
+      frameworks: []
+      build_tools: []
+      deployment: []
+    confidence_weight: 0.7
+    auto_deploy: false
+    metadata:
+      template_file: "documentation.json"
+      category: "documentation"
+      tags:
+        - documentation
+        - writing
+        - knowledge
+
+  # ===================================
   # DEVOPS AGENTS (Deployment-Specific)
   # ===================================
 
@@ -509,3 +630,29 @@ recommendation_rules:
     language_match: 0.5      # 50% weight on primary language
     framework_match: 0.3     # 30% weight on framework
     deployment_match: 0.2    # 20% weight on deployment target
+
+# ===================================
+# DEFAULT CONFIGURATION
+# ===================================
+# Fallback configuration when toolchain detection fails or returns "Unknown"
+# These agents provide a sensible baseline for projects with unrecognized toolchains
+default_configuration:
+  enabled: true
+  description: "Default agents to deploy when toolchain cannot be detected"
+  min_confidence: 0.7
+  agents:
+    - agent_id: engineer
+      reasoning: "General-purpose engineer for code implementation"
+      priority: 1
+    - agent_id: research
+      reasoning: "Code exploration and analysis"
+      priority: 2
+    - agent_id: qa
+      reasoning: "Testing and quality assurance"
+      priority: 3
+    - agent_id: ops
+      reasoning: "Infrastructure and deployment operations"
+      priority: 4
+    - agent_id: documentation
+      reasoning: "Documentation and technical writing"
+      priority: 5

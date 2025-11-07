@@ -773,5 +773,163 @@ def test_multi_language_recommendations(
     assert len(recommendations) >= 1
 
 
+def test_default_configuration_fallback_unknown_language(tmp_path: Path):
+    """Test default configuration fallback when language is Unknown."""
+    # Use the real configuration with default_configuration section
+    recommender = AgentRecommenderService()
+
+    # Create toolchain with Unknown language
+    lang_detection = LanguageDetection(
+        primary_language="Unknown", primary_confidence=ConfidenceLevel.LOW
+    )
+
+    toolchain = ToolchainAnalysis(
+        project_path=tmp_path,
+        language_detection=lang_detection,
+        frameworks=[],
+        build_tools=[],
+        deployment_target=None,
+    )
+
+    recommendations = recommender.recommend_agents(toolchain)
+
+    # Should have default recommendations
+    assert len(recommendations) == 5
+
+    # Check default agents are present
+    agent_ids = [rec.agent_id for rec in recommendations]
+    assert "engineer" in agent_ids
+    assert "research" in agent_ids
+    assert "qa" in agent_ids
+    assert "ops" in agent_ids
+    assert "documentation" in agent_ids
+
+    # Check all have default metadata
+    for rec in recommendations:
+        assert rec.metadata.get("is_default") is True
+        assert rec.confidence_score == 0.7
+        assert "Default configuration applied" in rec.match_reasons[0]
+        assert "Consider manually selecting specialized agents" in rec.concerns[0]
+
+
+def test_default_configuration_not_applied_with_recommendations(
+    tmp_path: Path,
+):
+    """Test default configuration is NOT applied when normal recommendations exist."""
+    # Use the real configuration
+    recommender = AgentRecommenderService()
+
+    # Create toolchain with Python + Django (should get normal recommendations)
+    lang_detection = LanguageDetection(
+        primary_language="Python",
+        primary_confidence=ConfidenceLevel.HIGH,
+    )
+
+    toolchain = ToolchainAnalysis(
+        project_path=tmp_path,
+        language_detection=lang_detection,
+        frameworks=[
+            Framework(name="Django", version="4.2", confidence=ConfidenceLevel.HIGH)
+        ],
+        build_tools=[],
+        deployment_target=None,
+    )
+
+    recommendations = recommender.recommend_agents(toolchain)
+
+    # Should have python_engineer, not default agents
+    assert len(recommendations) > 0
+    agent_ids = [rec.agent_id for rec in recommendations]
+    assert "python_engineer" in agent_ids
+
+    # None should be marked as default
+    for rec in recommendations:
+        assert rec.metadata.get("is_default", False) is False
+
+
+def test_default_configuration_with_disabled_flag(tmp_path: Path):
+    """Test default configuration respects enabled flag."""
+    # Create custom config with disabled default_configuration
+    config = {
+        "agent_capabilities": {
+            "test_agent": {
+                "name": "Test Agent",
+                "agent_id": "test_agent",
+                "specialization": "engineering",
+                "description": "Test",
+                "supports": {"languages": ["python"]},
+                "confidence_weight": 0.9,
+                "auto_deploy": True,
+                "metadata": {"template_file": "test.json"},
+            }
+        },
+        "recommendation_rules": {"min_confidence_threshold": 0.5},
+        "default_configuration": {
+            "enabled": False,  # Disabled
+            "agents": [{"agent_id": "test_agent", "reasoning": "Test", "priority": 1}],
+        },
+    }
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        yaml.dump(config, f)
+        config_path = Path(f.name)
+
+    try:
+        recommender = AgentRecommenderService(config_path=config_path)
+
+        lang_detection = LanguageDetection(
+            primary_language="Unknown", primary_confidence=ConfidenceLevel.LOW
+        )
+
+        toolchain = ToolchainAnalysis(
+            project_path=tmp_path,
+            language_detection=lang_detection,
+            frameworks=[],
+            build_tools=[],
+            deployment_target=None,
+        )
+
+        recommendations = recommender.recommend_agents(toolchain)
+
+        # Should have NO recommendations because default config is disabled
+        assert len(recommendations) == 0
+
+    finally:
+        config_path.unlink()
+
+
+def test_default_configuration_priority_ordering(tmp_path: Path):
+    """Test default agents are ordered by priority."""
+    recommender = AgentRecommenderService()
+
+    lang_detection = LanguageDetection(
+        primary_language="Unknown", primary_confidence=ConfidenceLevel.LOW
+    )
+
+    toolchain = ToolchainAnalysis(
+        project_path=tmp_path,
+        language_detection=lang_detection,
+        frameworks=[],
+        build_tools=[],
+        deployment_target=None,
+    )
+
+    recommendations = recommender.recommend_agents(toolchain)
+
+    # Check priority ordering
+    assert recommendations[0].agent_id == "engineer"  # priority 1
+    assert recommendations[1].agent_id == "research"  # priority 2
+    assert recommendations[2].agent_id == "qa"  # priority 3
+    assert recommendations[3].agent_id == "ops"  # priority 4
+    assert recommendations[4].agent_id == "documentation"  # priority 5
+
+    # Verify priorities are correct
+    assert recommendations[0].deployment_priority == 1
+    assert recommendations[1].deployment_priority == 2
+    assert recommendations[2].deployment_priority == 3
+    assert recommendations[3].deployment_priority == 4
+    assert recommendations[4].deployment_priority == 5
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

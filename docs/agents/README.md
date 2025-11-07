@@ -7,6 +7,7 @@ Documentation for agent creators and the PM workflow.
 - **[PM Workflow](pm-workflow.md)** - How the Project Manager agent orchestrates multi-agent workflows
 - **[Agent Patterns](agent-patterns.md)** - Effective patterns for creating specialized agents
 - **[Creating Agents](creating-agents.md)** - Step-by-step guide to agent development
+- **[Agent Capabilities Reference](agent-capabilities-reference.md)** - Comprehensive catalog of all specialized agents
 
 ## Quick Links
 
@@ -14,12 +15,14 @@ Documentation for agent creators and the PM workflow.
 1. Read [PM Workflow](pm-workflow.md) → Understand orchestration
 2. Study [Agent Patterns](agent-patterns.md) → Learn best practices
 3. Follow [Creating Agents](creating-agents.md) → Build your first agent
+4. Browse [Agent Capabilities Reference](agent-capabilities-reference.md) → See all available agents
 
 **Common Tasks:**
 - Understand PM delegation: [PM Workflow - Delegation](pm-workflow.md#delegation-workflow)
 - Learn agent structure: [Creating Agents - Structure](creating-agents.md#agent-structure)
 - See effective patterns: [Agent Patterns - Design Patterns](agent-patterns.md#design-patterns)
 - Create custom agent: [Creating Agents - Quick Start](creating-agents.md#quick-start)
+- Find the right agent: [Agent Capabilities Reference - Operations](agent-capabilities-reference.md#operations-agents)
 
 ## Agent System Overview
 
