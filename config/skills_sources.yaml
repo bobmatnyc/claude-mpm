@@ -1,8 +1,8 @@
 # Skills Sources Configuration
 # Defines GitHub repositories and skills to download for bundling with Claude MPM
 
-version: 1.0.0
-last_updated: 2025-11-07
+version: 1.0.1
+last_updated: 2025-11-07  # Removed 8 non-existent skills (404 errors)
 
 # Source repositories configuration
 sources:
@@ -12,9 +12,7 @@ sources:
     license: MIT
     maintainer: Jesse Vincent
     skills:
-      development:
-        - git-worktrees
-        - finishing-branches
+      # NOTE: 'development' category removed - git-worktrees and finishing-branches don't exist (404)
       testing:
         - test-driven-development
         - condition-based-waiting  # async/conditional testing patterns
@@ -47,42 +45,9 @@ sources:
         - internal-comms
         - brand-guidelines
 
-  # Superpowers Marketplace - Additional curated content
-  superpowers-marketplace:
-    base_url: https://github.com/obra/superpowers-marketplace/tree/main
-    license: MIT
-    maintainer: Jesse Vincent
-    skills:
-      documentation:
-        - elements-of-style  # aka writing-clearly-and-concisely
-
-  # BehiSecc Community Skills
-  behisecc:
-    base_url: https://github.com/BehiSecc/awesome-claude-skills/tree/main
-    license: Various
-    maintainer: BehiSecc Community
-    skills:
-      security:
-        - defense-in-depth
-      documentation:
-        - content-research-writer
-      organization:
-        - file-organizer
-      debugging:
-        - systematic-debugging  # Community version
-
-  # ComposioHQ Community Skills
-  composio:
-    base_url: https://github.com/ComposioHQ/awesome-claude-skills/tree/main
-    license: Various
-    maintainer: Composio Community
-    skills:
-      data:
-        - csv-data-summarizer
-      testing:
-        - playwright-browser-automation
-      meta:
-        - skill-seekers
+  # NOTE: superpowers-marketplace removed - elements-of-style doesn't exist (404)
+  # NOTE: behisecc removed - defense-in-depth, content-research-writer, file-organizer don't exist (404)
+  # NOTE: composio removed - csv-data-summarizer, playwright-browser-automation don't exist (404)
 
 # Skill metadata and descriptions
 # Used for documentation and validation
@@ -123,12 +88,7 @@ skill_descriptions:
       - typescript_engineer
       - nextjs_engineer
 
-  playwright-browser-automation:
-    category: testing
-    description: Model-invoked Playwright automation
-    priority: medium
-    agents:
-      - web_qa
+  # NOTE: playwright-browser-automation removed - doesn't exist in repository
 
   # Debugging Skills
   systematic-debugging:
@@ -162,20 +122,8 @@ skill_descriptions:
       - kubernetes
 
   # Development Skills
-  git-worktrees:
-    category: development
-    description: Advanced git workflow management
-    priority: medium
-    agents:
-      - version_control
-      - engineer
-
-  finishing-branches:
-    category: development
-    description: Complete feature branches properly
-    priority: low
-    agents:
-      - version_control
+  # NOTE: git-worktrees removed - doesn't exist in repository
+  # NOTE: finishing-branches removed - doesn't exist in repository
 
   artifacts-builder:
     category: development
@@ -249,44 +197,11 @@ skill_descriptions:
     agents:
       - documentation
 
-  elements-of-style:
-    category: documentation
-    description: Writing guidance from Elements of Style
-    priority: low
-    agents:
-      - documentation
-
-  content-research-writer:
-    category: documentation
-    description: Research-backed content with citations
-    priority: medium
-    agents:
-      - documentation
-
-  # Security Skills
-  defense-in-depth:
-    category: security
-    description: Multi-layered testing and security
-    priority: high
-    agents:
-      - security
-      - qa
-
-  # Data Skills
-  csv-data-summarizer:
-    category: data
-    description: Automatic CSV analysis and visualization
-    priority: medium
-    agents:
-      - data_engineer
-
-  # Organization Skills
-  file-organizer:
-    category: organization
-    description: Intelligently organize files and folders
-    priority: low
-    agents:
-      - project_organizer
+  # NOTE: elements-of-style removed - doesn't exist in repository
+  # NOTE: content-research-writer removed - doesn't exist in repository
+  # NOTE: defense-in-depth removed - doesn't exist in repository
+  # NOTE: csv-data-summarizer removed - doesn't exist in repository
+  # NOTE: file-organizer removed - doesn't exist in repository
 
 # Download configuration
 download_config:
