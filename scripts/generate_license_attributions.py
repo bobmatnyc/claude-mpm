@@ -42,7 +42,10 @@ class LicenseAttributionGenerator:
     def scan_skills(self) -> None:
         """Scan bundled directory for skills and extract metadata."""
         if not self.bundled_dir.exists():
-            print(f"Error: Bundled directory not found: {self.bundled_dir}", file=sys.stderr)
+            print(
+                f"Error: Bundled directory not found: {self.bundled_dir}",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         for category_dir in sorted(self.bundled_dir.iterdir()):
@@ -160,7 +163,11 @@ class LicenseAttributionGenerator:
                 name = skill["name"]
                 author = skill["author"]
                 category = skill["category"]
-                description = skill["description"][:60] + "..." if len(skill["description"]) > 60 else skill["description"]
+                description = (
+                    skill["description"][:60] + "..."
+                    if len(skill["description"]) > 60
+                    else skill["description"]
+                )
                 source = skill["source"]
 
                 # Format source as link if it's a URL
@@ -328,9 +335,7 @@ Examples:
         lines = content.count("\n")
         print(f"  Lines: {lines}")
         print(f"  Skills: {len(generator.skills)}")
-        print(
-            f"  Licenses: {len(set(skill['license'] for skill in generator.skills))}"
-        )
+        print(f"  Licenses: {len(set(skill['license'] for skill in generator.skills))}")
 
     sys.exit(0)
 

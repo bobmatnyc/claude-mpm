@@ -63,7 +63,9 @@ class SkillsService(LoggerMixin):
         self.bundled_skills_path: Path = Path(__file__).parent / "bundled"
         self.deployed_skills_path: Path = self.project_root / ".claude" / "skills"
         self.registry_path: Path = (
-            Path(__file__).parent.parent.parent.parent / "config" / "skills_registry.yaml"
+            Path(__file__).parent.parent.parent.parent
+            / "config"
+            / "skills_registry.yaml"
         )
 
         # Load registry
@@ -139,7 +141,7 @@ class SkillsService(LoggerMixin):
             return {}
 
         try:
-            with open(self.registry_path, encoding='utf-8') as f:
+            with open(self.registry_path, encoding="utf-8") as f:
                 registry = yaml.safe_load(f)
                 if not registry:
                     self.logger.warning(f"Empty registry file: {self.registry_path}")
@@ -176,11 +178,13 @@ class SkillsService(LoggerMixin):
         skills = []
 
         if not self.bundled_skills_path.exists():
-            self.logger.warning(f"Bundled skills path not found: {self.bundled_skills_path}")
+            self.logger.warning(
+                f"Bundled skills path not found: {self.bundled_skills_path}"
+            )
             return skills
 
         for category_dir in self.bundled_skills_path.iterdir():
-            if not category_dir.is_dir() or category_dir.name.startswith('.'):
+            if not category_dir.is_dir() or category_dir.name.startswith("."):
                 continue
 
             for skill_dir in category_dir.iterdir():
@@ -190,12 +194,14 @@ class SkillsService(LoggerMixin):
                 skill_md = skill_dir / "SKILL.md"
                 if skill_md.exists():
                     metadata = self._parse_skill_metadata(skill_md)
-                    skills.append({
-                        'name': skill_dir.name,
-                        'category': category_dir.name,
-                        'path': skill_dir,
-                        'metadata': metadata
-                    })
+                    skills.append(
+                        {
+                            "name": skill_dir.name,
+                            "category": category_dir.name,
+                            "path": skill_dir,
+                            "metadata": metadata,
+                        }
+                    )
 
         self.logger.info(f"Discovered {len(skills)} bundled skills")
         return skills
@@ -220,10 +226,10 @@ class SkillsService(LoggerMixin):
             Dict containing frontmatter metadata, or empty dict if parsing fails
         """
         try:
-            content = skill_md.read_text(encoding='utf-8')
+            content = skill_md.read_text(encoding="utf-8")
 
             # Match YAML frontmatter: ---\n...yaml...\n---
-            match = re.match(r'^---\n(.*?)\n---', content, re.DOTALL)
+            match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
 
             if not match:
                 self.logger.warning(f"No YAML frontmatter found in {skill_md}")
@@ -233,7 +239,9 @@ class SkillsService(LoggerMixin):
                 metadata = yaml.safe_load(match.group(1))
                 return metadata or {}
             except yaml.YAMLError as e:
-                self.logger.error(f"Failed to parse YAML frontmatter in {skill_md}: {e}")
+                self.logger.error(
+                    f"Failed to parse YAML frontmatter in {skill_md}: {e}"
+                )
                 return {}
         except Exception as e:
             self.logger.error(f"Failed to read skill file {skill_md}: {e}")
@@ -270,11 +278,11 @@ class SkillsService(LoggerMixin):
         for skill in skills:
             try:
                 # Create category directory in deployment location
-                target_category_dir = self.deployed_skills_path / skill['category']
+                target_category_dir = self.deployed_skills_path / skill["category"]
                 target_category_dir.mkdir(parents=True, exist_ok=True)
 
                 # Target path for this skill
-                target_dir = target_category_dir / skill['name']
+                target_dir = target_category_dir / skill["name"]
 
                 # SECURITY: Validate path is within deployed_skills_path
                 if not self._validate_safe_path(self.deployed_skills_path, target_dir):
@@ -282,15 +290,19 @@ class SkillsService(LoggerMixin):
 
                 # Check if already deployed
                 if target_dir.exists() and not force:
-                    skipped.append(skill['name'])
+                    skipped.append(skill["name"])
                     self.logger.debug(f"Skipped {skill['name']} (already deployed)")
                     continue
 
                 # Deploy skill
                 if target_dir.exists():
                     # SECURITY: Verify again before deletion and check for symlinks
-                    if not self._validate_safe_path(self.deployed_skills_path, target_dir):
-                        raise ValueError("Refusing to delete path outside skills directory")
+                    if not self._validate_safe_path(
+                        self.deployed_skills_path, target_dir
+                    ):
+                        raise ValueError(
+                            "Refusing to delete path outside skills directory"
+                        )
 
                     if target_dir.is_symlink():
                         self.logger.warning(f"Refusing to delete symlink: {target_dir}")
@@ -298,25 +310,21 @@ class SkillsService(LoggerMixin):
                     else:
                         shutil.rmtree(target_dir)
 
-                shutil.copytree(skill['path'], target_dir)
+                shutil.copytree(skill["path"], target_dir)
 
-                deployed.append(skill['name'])
+                deployed.append(skill["name"])
                 self.logger.debug(f"Deployed skill: {skill['name']}")
 
             except (ValueError, OSError) as e:
                 self.logger.error(f"Failed to deploy {skill['name']}: {e}")
-                errors.append({'skill': skill['name'], 'error': str(e)})
+                errors.append({"skill": skill["name"], "error": str(e)})
 
         self.logger.info(
             f"Skills deployment: {len(deployed)} deployed, "
             f"{len(skipped)} skipped, {len(errors)} errors"
         )
 
-        return {
-            'deployed': deployed,
-            'skipped': skipped,
-            'errors': errors
-        }
+        return {"deployed": deployed, "skipped": skipped, "errors": errors}
 
     def get_skills_for_agent(self, agent_id: str) -> List[str]:
         """Get list of skills assigned to specific agent.
@@ -334,14 +342,14 @@ class SkillsService(LoggerMixin):
             >>> skills = service.get_skills_for_agent('engineer')
             >>> # Returns: ['test-driven-development', 'systematic-debugging', ...]
         """
-        if 'agent_skills' not in self.registry:
+        if "agent_skills" not in self.registry:
             return []
 
-        agent_skills = self.registry['agent_skills'].get(agent_id, {})
+        agent_skills = self.registry["agent_skills"].get(agent_id, {})
 
         # Combine required and optional skills
-        required = agent_skills.get('required', [])
-        optional = agent_skills.get('optional', [])
+        required = agent_skills.get("required", [])
+        optional = agent_skills.get("optional", [])
 
         return required + optional
 
@@ -366,10 +374,7 @@ class SkillsService(LoggerMixin):
             - metadata: Parsed metadata (if valid)
         """
         # Find skill in deployed or bundled paths
-        skill_paths = [
-            self.deployed_skills_path,
-            self.bundled_skills_path
-        ]
+        skill_paths = [self.deployed_skills_path, self.bundled_skills_path]
 
         for base_path in skill_paths:
             if not base_path.exists():
@@ -384,9 +389,9 @@ class SkillsService(LoggerMixin):
                     return self._validate_skill_structure(skill_dir)
 
         return {
-            'valid': False,
-            'errors': [f"Skill not found: {skill_name}"],
-            'warnings': []
+            "valid": False,
+            "errors": [f"Skill not found: {skill_name}"],
+            "warnings": [],
         }
 
     def _validate_skill_structure(self, skill_dir: Path) -> Dict[str, Any]:
@@ -413,40 +418,40 @@ class SkillsService(LoggerMixin):
         skill_md = skill_dir / "SKILL.md"
         if not skill_md.exists():
             errors.append("Missing SKILL.md")
-            return {
-                'valid': False,
-                'errors': errors,
-                'warnings': warnings
-            }
+            return {"valid": False, "errors": errors, "warnings": warnings}
 
         # Parse and validate metadata
         metadata = self._parse_skill_metadata(skill_md)
 
         if not metadata:
             errors.append("Missing or invalid YAML frontmatter")
-            return {
-                'valid': False,
-                'errors': errors,
-                'warnings': warnings
-            }
+            return {"valid": False, "errors": errors, "warnings": warnings}
 
         # Rule 5: Required fields
-        required_fields = ['name', 'description', 'version', 'category', 'progressive_disclosure']
+        required_fields = [
+            "name",
+            "description",
+            "version",
+            "category",
+            "progressive_disclosure",
+        ]
         for field in required_fields:
             if field not in metadata:
                 errors.append(f"Missing required field: {field}")
 
         # Rule 6: Name format
-        if 'name' in metadata:
-            name = metadata['name']
-            if not re.match(r'^[a-z][a-z0-9-]*[a-z0-9]$', name):
+        if "name" in metadata:
+            name = metadata["name"]
+            if not re.match(r"^[a-z][a-z0-9-]*[a-z0-9]$", name):
                 errors.append(f"Invalid name format: {name}")
 
         # Rule 8: Description length
-        if 'description' in metadata:
-            desc_len = len(metadata['description'])
+        if "description" in metadata:
+            desc_len = len(metadata["description"])
             if desc_len < 10 or desc_len > 150:
-                errors.append(f"Description must be 10-150 characters (found {desc_len})")
+                errors.append(
+                    f"Description must be 10-150 characters (found {desc_len})"
+                )
 
         # Check for optional directories
         if (skill_dir / "scripts").exists():
@@ -456,10 +461,10 @@ class SkillsService(LoggerMixin):
             warnings.append("Contains references/ directory")
 
         return {
-            'valid': len(errors) == 0,
-            'errors': errors,
-            'warnings': warnings,
-            'metadata': metadata
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "warnings": warnings,
+            "metadata": metadata,
         }
 
     def check_for_updates(self) -> Dict[str, Any]:
@@ -477,7 +482,7 @@ class SkillsService(LoggerMixin):
             - not_deployed: List of skill names (in bundled, not deployed)
             - orphaned: List of skill names (in deployed, not bundled)
         """
-        bundled = {s['name']: s for s in self.discover_bundled_skills()}
+        bundled = {s["name"]: s for s in self.discover_bundled_skills()}
 
         # Discover deployed skills
         deployed = {}
@@ -494,10 +499,10 @@ class SkillsService(LoggerMixin):
                     if skill_md.exists():
                         metadata = self._parse_skill_metadata(skill_md)
                         deployed[skill_dir.name] = {
-                            'name': skill_dir.name,
-                            'category': category_dir.name,
-                            'path': skill_dir,
-                            'metadata': metadata
+                            "name": skill_dir.name,
+                            "category": category_dir.name,
+                            "path": skill_dir,
+                            "metadata": metadata,
                         }
 
         updates_available = []
@@ -507,19 +512,21 @@ class SkillsService(LoggerMixin):
 
         # Check for updates
         for name, bundled_skill in bundled.items():
-            bundled_version = bundled_skill['metadata'].get('version', '0.0.0')
+            bundled_version = bundled_skill["metadata"].get("version", "0.0.0")
 
             if name not in deployed:
                 not_deployed.append(name)
             else:
-                deployed_version = deployed[name]['metadata'].get('version', '0.0.0')
+                deployed_version = deployed[name]["metadata"].get("version", "0.0.0")
 
                 if deployed_version != bundled_version:
-                    updates_available.append({
-                        'name': name,
-                        'current_version': deployed_version,
-                        'new_version': bundled_version
-                    })
+                    updates_available.append(
+                        {
+                            "name": name,
+                            "current_version": deployed_version,
+                            "new_version": bundled_version,
+                        }
+                    )
                 else:
                     up_to_date.append(name)
 
@@ -529,10 +536,10 @@ class SkillsService(LoggerMixin):
                 orphaned.append(name)
 
         return {
-            'updates_available': updates_available,
-            'up_to_date': up_to_date,
-            'not_deployed': not_deployed,
-            'orphaned': orphaned
+            "updates_available": updates_available,
+            "up_to_date": up_to_date,
+            "not_deployed": not_deployed,
+            "orphaned": orphaned,
         }
 
     def update_skills(self, skill_names: Optional[List[str]] = None) -> Dict[str, Any]:
@@ -552,28 +559,29 @@ class SkillsService(LoggerMixin):
         if skill_names is None:
             # Get all skills with available updates
             check_result = self.check_for_updates()
-            skill_names = [s['name'] for s in check_result['updates_available']]
+            skill_names = [s["name"] for s in check_result["updates_available"]]
 
         if not skill_names:
             self.logger.info("No skills to update")
-            return {'updated': [], 'errors': []}
+            return {"updated": [], "errors": []}
 
         updated = []
         errors = []
 
-        bundled = {s['name']: s for s in self.discover_bundled_skills()}
+        bundled = {s["name"]: s for s in self.discover_bundled_skills()}
 
         for skill_name in skill_names:
             if skill_name not in bundled:
-                errors.append({
-                    'skill': skill_name,
-                    'error': 'Skill not found in bundled skills'
-                })
+                errors.append(
+                    {"skill": skill_name, "error": "Skill not found in bundled skills"}
+                )
                 continue
 
             try:
                 skill = bundled[skill_name]
-                target_dir = self.deployed_skills_path / skill['category'] / skill['name']
+                target_dir = (
+                    self.deployed_skills_path / skill["category"] / skill["name"]
+                )
 
                 # SECURITY: Validate path is within deployed_skills_path
                 if not self._validate_safe_path(self.deployed_skills_path, target_dir):
@@ -590,21 +598,20 @@ class SkillsService(LoggerMixin):
 
                 # Deploy new version
                 target_dir.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copytree(skill['path'], target_dir)
+                shutil.copytree(skill["path"], target_dir)
 
                 updated.append(skill_name)
                 self.logger.info(f"Updated skill: {skill_name}")
 
             except (ValueError, OSError) as e:
-                errors.append({'skill': skill_name, 'error': str(e)})
+                errors.append({"skill": skill_name, "error": str(e)})
                 self.logger.error(f"Failed to update {skill_name}: {e}")
 
-        return {
-            'updated': updated,
-            'errors': errors
-        }
+        return {"updated": updated, "errors": errors}
 
-    def install_updates(self, updates: List[Dict[str, Any]], force: bool = False) -> Dict[str, Any]:
+    def install_updates(
+        self, updates: List[Dict[str, Any]], force: bool = False
+    ) -> Dict[str, Any]:
         """Install skill updates from update check results.
 
         Args:
@@ -614,7 +621,7 @@ class SkillsService(LoggerMixin):
         Returns:
             Dict containing updated skills and errors
         """
-        skill_names = [update['skill'] for update in updates]
+        skill_names = [update["skill"] for update in updates]
         return self.update_skills(skill_names)
 
     def get_skill_path(self, skill_name: str) -> Optional[Path]:
@@ -647,20 +654,20 @@ class SkillsService(LoggerMixin):
             Dict with extracted metadata
         """
         metadata = {}
-        lines = content.split('\n')
+        lines = content.split("\n")
 
         for line in lines[:50]:  # Check first 50 lines for metadata
             line = line.strip()
 
             # Parse YAML-style metadata
-            if line.startswith('version:'):
-                metadata['version'] = line.split(':', 1)[1].strip()
-            elif line.startswith('description:'):
-                metadata['description'] = line.split(':', 1)[1].strip()
-            elif line.startswith('category:'):
-                metadata['category'] = line.split(':', 1)[1].strip()
-            elif line.startswith('source:'):
-                metadata['source'] = line.split(':', 1)[1].strip()
+            if line.startswith("version:"):
+                metadata["version"] = line.split(":", 1)[1].strip()
+            elif line.startswith("description:"):
+                metadata["description"] = line.split(":", 1)[1].strip()
+            elif line.startswith("category:"):
+                metadata["category"] = line.split(":", 1)[1].strip()
+            elif line.startswith("source:"):
+                metadata["source"] = line.split(":", 1)[1].strip()
 
         return metadata
 
@@ -676,10 +683,10 @@ class SkillsService(LoggerMixin):
         agents = []
         registry = self._load_registry()
 
-        agent_capabilities = registry.get('agent_capabilities', {})
+        agent_capabilities = registry.get("agent_capabilities", {})
         for agent_id, capabilities in agent_capabilities.items():
-            primary_workflows = capabilities.get('primary_workflows', [])
-            enhanced_capabilities = capabilities.get('enhanced_capabilities', [])
+            primary_workflows = capabilities.get("primary_workflows", [])
+            enhanced_capabilities = capabilities.get("enhanced_capabilities", [])
             all_skills = primary_workflows + enhanced_capabilities
 
             if skill_name in all_skills:
@@ -698,7 +705,11 @@ class SkillsService(LoggerMixin):
         """
         if scope == "system":
             # System-wide config (bundled)
-            return self.bundled_skills_path.parent.parent / "config" / "skills_registry.yaml"
+            return (
+                self.bundled_skills_path.parent.parent
+                / "config"
+                / "skills_registry.yaml"
+            )
         if scope == "user":
             # User config (~/.config/claude-mpm/)
             home = Path.home()
@@ -718,13 +729,11 @@ class SkillsService(LoggerMixin):
         config_path.parent.mkdir(parents=True, exist_ok=True)
 
         default_config = {
-            'version': '2.0.0',
-            'skills': {
-                'auto_deploy': True,
-                'update_check': True
-            }
+            "version": "2.0.0",
+            "skills": {"auto_deploy": True, "update_check": True},
         }
 
         import yaml
+
         config_path.write_text(yaml.dump(default_config, default_flow_style=False))
         self.logger.info(f"Created default config at {config_path}")

@@ -50,7 +50,11 @@ class SkillsRegistry(LoggerMixin):
 
         if registry_path is None:
             # Default to config/skills_registry.yaml
-            registry_path = Path(__file__).parent.parent.parent.parent / "config" / "skills_registry.yaml"
+            registry_path = (
+                Path(__file__).parent.parent.parent.parent
+                / "config"
+                / "skills_registry.yaml"
+            )
 
         self.registry_path: Path = registry_path
         self.data: Dict[str, Any] = self.load_registry(registry_path)
@@ -73,7 +77,7 @@ class SkillsRegistry(LoggerMixin):
             return {}
 
         try:
-            with open(registry_path, encoding='utf-8') as f:
+            with open(registry_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
                 return data if data is not None else {}
         except (OSError, yaml.YAMLError):
@@ -98,10 +102,10 @@ class SkillsRegistry(LoggerMixin):
             >>> print(skills)
             ['test-driven-development', 'systematic-debugging', 'code-review', 'git-worktrees']
         """
-        agent_skills = self.data.get('agent_skills', {}).get(agent_id, {})
+        agent_skills = self.data.get("agent_skills", {}).get(agent_id, {})
 
-        required = agent_skills.get('required', [])
-        optional = agent_skills.get('optional', [])
+        required = agent_skills.get("required", [])
+        optional = agent_skills.get("optional", [])
 
         return required + optional
 
@@ -126,7 +130,7 @@ class SkillsRegistry(LoggerMixin):
             >>> print(f"{metadata['category']}: {metadata['description']}")
             testing: Enforces RED/GREEN/REFACTOR TDD cycle
         """
-        return self.data.get('skills_metadata', {}).get(skill_name, {})
+        return self.data.get("skills_metadata", {}).get(skill_name, {})
 
     def list_all_skills(self) -> List[str]:
         """List all skills in the registry.
@@ -140,7 +144,7 @@ class SkillsRegistry(LoggerMixin):
             >>> print(f"Total skills: {len(all_skills)}")
             Total skills: 15
         """
-        return list(self.data.get('skills_metadata', {}).keys())
+        return list(self.data.get("skills_metadata", {}).keys())
 
     def list_all_agents(self) -> List[str]:
         """List all agents in the registry.
@@ -153,7 +157,7 @@ class SkillsRegistry(LoggerMixin):
             >>> agents = registry.list_all_agents()
             >>> print(f"Agents with skills: {len(agents)}")
         """
-        return list(self.data.get('agent_skills', {}).keys())
+        return list(self.data.get("agent_skills", {}).keys())
 
     def get_skills_by_category(self, category: str) -> List[str]:
         """Get all skills in a specific category.
@@ -171,8 +175,8 @@ class SkillsRegistry(LoggerMixin):
             ['test-driven-development', 'webapp-testing', 'async-testing', ...]
         """
         skills = []
-        for skill_name, metadata in self.data.get('skills_metadata', {}).items():
-            if metadata.get('category') == category:
+        for skill_name, metadata in self.data.get("skills_metadata", {}).items():
+            if metadata.get("category") == category:
                 skills.append(skill_name)
 
         return skills
@@ -192,8 +196,8 @@ class SkillsRegistry(LoggerMixin):
             >>> print(f"Skills from superpowers: {len(superpowers_skills)}")
         """
         skills = []
-        for skill_name, metadata in self.data.get('skills_metadata', {}).items():
-            if metadata.get('source') == source:
+        for skill_name, metadata in self.data.get("skills_metadata", {}).items():
+            if metadata.get("source") == source:
                 skills.append(skill_name)
 
         return skills
@@ -224,19 +228,19 @@ class SkillsRegistry(LoggerMixin):
         warnings = []
 
         # Check required top-level keys
-        required_keys = ['version', 'last_updated', 'agent_skills', 'skills_metadata']
+        required_keys = ["version", "last_updated", "agent_skills", "skills_metadata"]
         for key in required_keys:
             if key not in self.data:
                 errors.append(f"Missing required key: {key}")
 
         # Validate version format
-        version = self.data.get('version', '')
+        version = self.data.get("version", "")
         if not version or not isinstance(version, str):
             errors.append("Invalid or missing version field")
 
         # Check agent skill references
-        agent_skills = self.data.get('agent_skills', {})
-        skills_metadata = self.data.get('skills_metadata', {})
+        agent_skills = self.data.get("agent_skills", {})
+        skills_metadata = self.data.get("skills_metadata", {})
 
         for agent_id, agent_data in agent_skills.items():
             # Validate structure
@@ -245,7 +249,7 @@ class SkillsRegistry(LoggerMixin):
                 continue
 
             # Check skill references
-            all_skills = agent_data.get('required', []) + agent_data.get('optional', [])
+            all_skills = agent_data.get("required", []) + agent_data.get("optional", [])
 
             for skill in all_skills:
                 if skill not in skills_metadata:
@@ -256,27 +260,21 @@ class SkillsRegistry(LoggerMixin):
         # Check for orphaned skills (in metadata but not assigned to any agent)
         assigned_skills = set()
         for agent_data in agent_skills.values():
-            assigned_skills.update(agent_data.get('required', []))
-            assigned_skills.update(agent_data.get('optional', []))
+            assigned_skills.update(agent_data.get("required", []))
+            assigned_skills.update(agent_data.get("optional", []))
 
         for skill_name in skills_metadata:
             if skill_name not in assigned_skills:
                 warnings.append(f"Skill '{skill_name}' not assigned to any agent")
 
         # Validate skill metadata completeness
-        required_metadata_fields = ['category', 'source', 'description']
+        required_metadata_fields = ["category", "source", "description"]
         for skill_name, metadata in skills_metadata.items():
             for field in required_metadata_fields:
                 if field not in metadata or not metadata[field]:
-                    warnings.append(
-                        f"Skill '{skill_name}' missing {field} in metadata"
-                    )
+                    warnings.append(f"Skill '{skill_name}' missing {field} in metadata")
 
-        return {
-            'valid': len(errors) == 0,
-            'errors': errors,
-            'warnings': warnings
-        }
+        return {"valid": len(errors) == 0, "errors": errors, "warnings": warnings}
 
     def get_registry_info(self) -> Dict[str, Any]:
         """Get summary information about the registry.
@@ -296,28 +294,28 @@ class SkillsRegistry(LoggerMixin):
             >>> print(f"Registry v{info['version']}")
             >>> print(f"Total skills: {info['total_skills']}")
         """
-        skills_metadata = self.data.get('skills_metadata', {})
-        agent_skills = self.data.get('agent_skills', {})
+        skills_metadata = self.data.get("skills_metadata", {})
+        agent_skills = self.data.get("agent_skills", {})
 
         # Get unique categories
         categories = set()
         for metadata in skills_metadata.values():
-            if 'category' in metadata:
-                categories.add(metadata['category'])
+            if "category" in metadata:
+                categories.add(metadata["category"])
 
         # Get unique sources
         sources = set()
         for metadata in skills_metadata.values():
-            if 'source' in metadata:
-                sources.add(metadata['source'])
+            if "source" in metadata:
+                sources.add(metadata["source"])
 
         return {
-            'version': self.data.get('version', 'unknown'),
-            'last_updated': self.data.get('last_updated', 'unknown'),
-            'total_skills': len(skills_metadata),
-            'total_agents': len(agent_skills),
-            'categories': sorted(categories),
-            'sources': sorted(sources)
+            "version": self.data.get("version", "unknown"),
+            "last_updated": self.data.get("last_updated", "unknown"),
+            "total_skills": len(skills_metadata),
+            "total_agents": len(agent_skills),
+            "categories": sorted(categories),
+            "sources": sorted(sources),
         }
 
     def search_skills(self, query: str) -> List[Dict[str, Any]]:
@@ -338,14 +336,13 @@ class SkillsRegistry(LoggerMixin):
         query_lower = query.lower()
         results = []
 
-        for skill_name, metadata in self.data.get('skills_metadata', {}).items():
+        for skill_name, metadata in self.data.get("skills_metadata", {}).items():
             # Search in name and description
-            if (query_lower in skill_name.lower() or
-                query_lower in metadata.get('description', '').lower()):
+            if (
+                query_lower in skill_name.lower()
+                or query_lower in metadata.get("description", "").lower()
+            ):
 
-                results.append({
-                    'name': skill_name,
-                    **metadata
-                })
+                results.append({"name": skill_name, **metadata})
 
         return results

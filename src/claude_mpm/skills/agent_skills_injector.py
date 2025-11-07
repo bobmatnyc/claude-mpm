@@ -87,13 +87,13 @@ class AgentSkillsInjector(LoggerMixin):
             >>> assert 'required' in template['skills']
         """
         try:
-            with open(template_path, encoding='utf-8') as f:
+            with open(template_path, encoding="utf-8") as f:
                 template = json.load(f)
         except (OSError, json.JSONDecodeError) as e:
             self.logger.error(f"Failed to load template {template_path}: {e}")
             raise ValueError(f"Cannot load template {template_path}") from e
 
-        agent_id = template.get('agent_id')
+        agent_id = template.get("agent_id")
         if not agent_id:
             self.logger.error(f"Template missing agent_id: {template_path}")
             return template
@@ -106,10 +106,10 @@ class AgentSkillsInjector(LoggerMixin):
             required = skills[:2] if len(skills) > 2 else skills
             optional = skills[2:] if len(skills) > 2 else []
 
-            template['skills'] = {
-                'required': required,
-                'optional': optional,
-                'auto_load': True
+            template["skills"] = {
+                "required": required,
+                "optional": optional,
+                "auto_load": True,
             }
 
             self.logger.info(f"Enhanced {agent_id} with {len(skills)} skills")
@@ -151,37 +151,30 @@ class AgentSkillsInjector(LoggerMixin):
         """
         # Build frontmatter dict
         frontmatter = {
-            'name': agent_config.get('agent_id'),
-            'description': agent_config.get('metadata', {}).get('description'),
-            'version': agent_config.get('version'),
-            'tools': agent_config.get('capabilities', {}).get('tools', [])
+            "name": agent_config.get("agent_id"),
+            "description": agent_config.get("metadata", {}).get("description"),
+            "version": agent_config.get("version"),
+            "tools": agent_config.get("capabilities", {}).get("tools", []),
         }
 
         # Add skills if present
-        if 'skills' in agent_config:
-            skills_config = agent_config['skills']
-            required = skills_config.get('required', [])
-            optional = skills_config.get('optional', [])
+        if "skills" in agent_config:
+            skills_config = agent_config["skills"]
+            required = skills_config.get("required", [])
+            optional = skills_config.get("optional", [])
             all_skills = required + optional
 
             if all_skills:
-                frontmatter['skills'] = all_skills
+                frontmatter["skills"] = all_skills
 
         # Convert to YAML with clean formatting
         yaml_str = yaml.dump(
-            frontmatter,
-            default_flow_style=False,
-            sort_keys=False,
-            allow_unicode=True
+            frontmatter, default_flow_style=False, sort_keys=False, allow_unicode=True
         )
 
         return f"---\n{yaml_str}---\n"
 
-    def inject_skills_documentation(
-        self,
-        agent_content: str,
-        skills: List[str]
-    ) -> str:
+    def inject_skills_documentation(self, agent_content: str, skills: List[str]) -> str:
         """Inject skills documentation reference into agent instructions.
 
         Adds a "## Available Skills" section after the YAML frontmatter that
@@ -222,8 +215,8 @@ class AgentSkillsInjector(LoggerMixin):
         skills_section += "\nClaude will automatically read these skills when your task matches their descriptions.\n"
 
         # Insert after frontmatter
-        if '---' in agent_content:
-            parts = agent_content.split('---', 2)
+        if "---" in agent_content:
+            parts = agent_content.split("---", 2)
             if len(parts) >= 3:
                 # Reconstruct: frontmatter + skills section + rest
                 return f"{parts[0]}---{parts[1]}---{skills_section}{parts[2]}"
@@ -232,9 +225,7 @@ class AgentSkillsInjector(LoggerMixin):
         return agent_content + skills_section
 
     def enhance_agent_with_skills(
-        self,
-        agent_id: str,
-        template_content: str
+        self, agent_id: str, template_content: str
     ) -> Dict[str, Any]:
         """Convenience method to fully enhance an agent with skills.
 
@@ -267,19 +258,19 @@ class AgentSkillsInjector(LoggerMixin):
 
         if not skills:
             return {
-                'agent_id': agent_id,
-                'skills': [],
-                'frontmatter': '',
-                'content': template_content
+                "agent_id": agent_id,
+                "skills": [],
+                "frontmatter": "",
+                "content": template_content,
             }
 
         # Create config dict for frontmatter generation
         agent_config = {
-            'agent_id': agent_id,
-            'skills': {
-                'required': skills[:2] if len(skills) > 2 else skills,
-                'optional': skills[2:] if len(skills) > 2 else []
-            }
+            "agent_id": agent_id,
+            "skills": {
+                "required": skills[:2] if len(skills) > 2 else skills,
+                "optional": skills[2:] if len(skills) > 2 else [],
+            },
         }
 
         # Generate frontmatter
@@ -289,10 +280,10 @@ class AgentSkillsInjector(LoggerMixin):
         enhanced_content = self.inject_skills_documentation(template_content, skills)
 
         return {
-            'agent_id': agent_id,
-            'skills': skills,
-            'frontmatter': frontmatter,
-            'content': enhanced_content
+            "agent_id": agent_id,
+            "skills": skills,
+            "frontmatter": frontmatter,
+            "content": enhanced_content,
         }
 
     def get_skills_references_for_agent(self, agent_id: str) -> List[Dict[str, str]]:
@@ -320,12 +311,14 @@ class AgentSkillsInjector(LoggerMixin):
 
         skill_refs = []
         for skill_name in skills:
-            metadata = registry.get('skills_metadata', {}).get(skill_name, {})
+            metadata = registry.get("skills_metadata", {}).get(skill_name, {})
 
-            skill_refs.append({
-                'name': skill_name,
-                'category': metadata.get('category', 'unknown'),
-                'description': metadata.get('description', '')
-            })
+            skill_refs.append(
+                {
+                    "name": skill_name,
+                    "category": metadata.get("category", "unknown"),
+                    "description": metadata.get("description", ""),
+                }
+            )
 
         return skill_refs

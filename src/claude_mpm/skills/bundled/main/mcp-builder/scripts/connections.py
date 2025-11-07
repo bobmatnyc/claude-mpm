@@ -73,7 +73,12 @@ class MCPConnection(ABC):
 class MCPConnectionStdio(MCPConnection):
     """MCP connection using standard input/output."""
 
-    def __init__(self, command: str, args: Optional[list[str]] = None, env: Optional[dict[str, str]] = None):
+    def __init__(
+        self,
+        command: str,
+        args: Optional[list[str]] = None,
+        env: Optional[dict[str, str]] = None,
+    ):
         super().__init__()
         self.command = command
         self.args = args or []
@@ -147,4 +152,6 @@ def create_connection(
             raise ValueError("URL is required for http transport")
         return MCPConnectionHTTP(url=url, headers=headers)
 
-    raise ValueError(f"Unsupported transport type: {transport}. Use 'stdio', 'sse', or 'http'")
+    raise ValueError(
+        f"Unsupported transport type: {transport}. Use 'stdio', 'sse', or 'http'"
+    )

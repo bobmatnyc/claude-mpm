@@ -46,7 +46,13 @@ class SkillValidator:
     """Validates SKILL.md files against format specification."""
 
     # Validation constants
-    REQUIRED_FIELDS = ["name", "description", "version", "category", "progressive_disclosure"]
+    REQUIRED_FIELDS = [
+        "name",
+        "description",
+        "version",
+        "category",
+        "progressive_disclosure",
+    ]
     VALID_CATEGORIES = [
         "development",
         "testing",
@@ -209,9 +215,7 @@ class SkillValidator:
         # Rule 5: Required fields present
         for field in self.REQUIRED_FIELDS:
             if field not in metadata:
-                self.add_issue(
-                    5, Severity.CRITICAL, f"Missing required field: {field}"
-                )
+                self.add_issue(5, Severity.CRITICAL, f"Missing required field: {field}")
 
         # Rule 6: Name format
         if "name" in metadata:
@@ -262,9 +266,7 @@ class SkillValidator:
         if "version" in metadata:
             version = metadata["version"]
             if not self.VERSION_PATTERN.match(str(version)):
-                self.add_issue(
-                    9, Severity.ERROR, f"Invalid version format: {version}"
-                )
+                self.add_issue(9, Severity.ERROR, f"Invalid version format: {version}")
 
         # Rule 10: Category value
         if "category" in metadata:
@@ -373,7 +375,9 @@ class SkillValidator:
                 )
             except UnicodeDecodeError as e:
                 self.add_issue(
-                    15, Severity.ERROR, f"Invalid encoding in reference file {ref_file}: {e}"
+                    15,
+                    Severity.ERROR,
+                    f"Invalid encoding in reference file {ref_file}: {e}",
                 )
 
         # Rule 16: Circular references (simplified check)
@@ -434,16 +438,19 @@ def format_terminal_output(result: Dict[str, Any], verbose: bool = False) -> str
 
     # Issues by severity
     if result["critical"]:
-        output.append(f"\n{Colors.RED}{Colors.BOLD}CRITICAL ISSUES "
-                     f"(Deployment Blocked):{Colors.RESET}")
+        output.append(
+            f"\n{Colors.RED}{Colors.BOLD}CRITICAL ISSUES "
+            f"(Deployment Blocked):{Colors.RESET}"
+        )
         for issue in result["critical"]:
             output.append(
                 f"  {Colors.RED}[Rule {issue['rule']}]{Colors.RESET} {issue['message']}"
             )
 
     if result["errors"]:
-        output.append(f"\n{Colors.YELLOW}{Colors.BOLD}ERRORS "
-                     f"(Warning Issued):{Colors.RESET}")
+        output.append(
+            f"\n{Colors.YELLOW}{Colors.BOLD}ERRORS " f"(Warning Issued):{Colors.RESET}"
+        )
         for issue in result["errors"]:
             output.append(
                 f"  {Colors.YELLOW}[Rule {issue['rule']}]{Colors.RESET} "
@@ -451,8 +458,10 @@ def format_terminal_output(result: Dict[str, Any], verbose: bool = False) -> str
             )
 
     if result["warnings"]:
-        output.append(f"\n{Colors.BLUE}{Colors.BOLD}WARNINGS "
-                     f"(Optional Improvement):{Colors.RESET}")
+        output.append(
+            f"\n{Colors.BLUE}{Colors.BOLD}WARNINGS "
+            f"(Optional Improvement):{Colors.RESET}"
+        )
         for issue in result["warnings"]:
             output.append(
                 f"  {Colors.BLUE}[Rule {issue['rule']}]{Colors.RESET} "

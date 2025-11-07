@@ -75,8 +75,7 @@ class GitHubAPIDownloader:
         """
         try:
             response = self.session.get(
-                "https://api.github.com/rate_limit",
-                timeout=REQUEST_TIMEOUT
+                "https://api.github.com/rate_limit", timeout=REQUEST_TIMEOUT
             )
             response.raise_for_status()
             data = response.json()
@@ -113,9 +112,9 @@ class GitHubAPIDownloader:
         parsed = urlparse(url)
 
         # Validate URL scheme and host
-        if parsed.scheme not in ('http', 'https'):
+        if parsed.scheme not in ("http", "https"):
             raise ValueError(f"Invalid URL scheme: {parsed.scheme}")
-        if 'github.com' not in parsed.netloc:
+        if "github.com" not in parsed.netloc:
             raise ValueError(f"Not a GitHub URL: {url}")
 
         parts = parsed.path.strip("/").split("/")
@@ -286,10 +285,12 @@ def load_skills_sources(config_path: Path) -> Dict[str, Any]:
     # Check file size to prevent YAML bomb
     file_size = config_path.stat().st_size
     if file_size > MAX_YAML_SIZE:
-        raise ValueError(f"YAML file too large: {file_size} bytes (max {MAX_YAML_SIZE})")
+        raise ValueError(
+            f"YAML file too large: {file_size} bytes (max {MAX_YAML_SIZE})"
+        )
 
     try:
-        with open(config_path, encoding='utf-8') as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
             if not data:
                 raise ValueError(f"Empty configuration file: {config_path}")

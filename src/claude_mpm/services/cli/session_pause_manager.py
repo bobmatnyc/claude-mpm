@@ -100,9 +100,7 @@ class SessionPauseManager:
         logger.info(f"Pause session created: {session_id}")
         return session_id
 
-    def _capture_state(
-        self, session_id: str, message: Optional[str]
-    ) -> Dict[str, Any]:
+    def _capture_state(self, session_id: str, message: Optional[str]) -> Dict[str, Any]:
         """Capture current session state.
 
         Args:
@@ -156,7 +154,6 @@ class SessionPauseManager:
             "build": "current",
             "project_path": str(self.project_path),
         }
-
 
     def _get_git_context(self) -> Dict[str, Any]:
         """Get git repository context.
@@ -444,9 +441,7 @@ Validation:
         except Exception as e:
             logger.warning(f"Failed to update LATEST-SESSION.txt: {e}")
 
-    def _commit_pause_session(
-        self, session_id: str, message: Optional[str]
-    ) -> None:
+    def _commit_pause_session(self, session_id: str, message: Optional[str]) -> None:
         """Create git commit for pause session.
 
         Args:

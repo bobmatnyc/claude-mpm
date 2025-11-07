@@ -83,6 +83,7 @@ class SkillsManagementCommand(BaseCommand):
             self.logger.error(f"Skills command failed: {e}")
             if hasattr(args, "debug") and args.debug:
                 import traceback
+
                 traceback.print_exc()
             return CommandResult(
                 success=False, message=f"Skills command failed: {e}", exit_code=1
@@ -94,10 +95,14 @@ class SkillsManagementCommand(BaseCommand):
             # Get skills based on filter
             if hasattr(args, "agent") and args.agent:
                 skills = self.skills_service.get_skills_for_agent(args.agent)
-                console.print(f"\n[bold cyan]Skills for agent '{args.agent}':[/bold cyan]\n")
+                console.print(
+                    f"\n[bold cyan]Skills for agent '{args.agent}':[/bold cyan]\n"
+                )
 
                 if not skills:
-                    console.print(f"[yellow]No skills found for agent '{args.agent}'[/yellow]")
+                    console.print(
+                        f"[yellow]No skills found for agent '{args.agent}'[/yellow]"
+                    )
                     return CommandResult(success=True, exit_code=0)
 
                 for skill_name in skills:
@@ -105,7 +110,11 @@ class SkillsManagementCommand(BaseCommand):
                     skill_info = self._get_skill_metadata(skill_name)
                     if skill_info:
                         console.print(f"  [green]•[/green] {skill_name}")
-                        if hasattr(args, "verbose") and args.verbose and skill_info.get("description"):
+                        if (
+                            hasattr(args, "verbose")
+                            and args.verbose
+                            and skill_info.get("description")
+                        ):
                             console.print(f"    {skill_info['description']}")
                     else:
                         console.print(f"  [green]•[/green] {skill_name}")
@@ -117,7 +126,9 @@ class SkillsManagementCommand(BaseCommand):
                 # Filter by category if specified
                 if hasattr(args, "category") and args.category:
                     skills = [s for s in skills if s.get("category") == args.category]
-                    console.print(f"\n[bold cyan]Skills in category '{args.category}':[/bold cyan]\n")
+                    console.print(
+                        f"\n[bold cyan]Skills in category '{args.category}':[/bold cyan]\n"
+                    )
                 else:
                     console.print("\n[bold cyan]Available Skills:[/bold cyan]\n")
 
@@ -136,7 +147,9 @@ class SkillsManagementCommand(BaseCommand):
                 # Display by category
                 for category, category_skills in sorted(by_category.items()):
                     console.print(f"[bold yellow]{category}[/bold yellow]")
-                    for skill in sorted(category_skills, key=lambda s: s.get("name", "")):
+                    for skill in sorted(
+                        category_skills, key=lambda s: s.get("name", "")
+                    ):
                         name = skill.get("name", "unknown")
                         console.print(f"  [green]•[/green] {name}")
 
@@ -163,34 +176,43 @@ class SkillsManagementCommand(BaseCommand):
             console.print("\n[bold cyan]Deploying skills...[/bold cyan]\n")
 
             result = self.skills_service.deploy_bundled_skills(
-                force=force,
-                skill_names=specific_skills
+                force=force, skill_names=specific_skills
             )
 
             # Display results
             if result["deployed"]:
-                console.print(f"[green]✓ Deployed {len(result['deployed'])} skill(s):[/green]")
+                console.print(
+                    f"[green]✓ Deployed {len(result['deployed'])} skill(s):[/green]"
+                )
                 for skill in result["deployed"]:
                     console.print(f"  • {skill}")
                 console.print()
 
             if result["skipped"]:
-                console.print(f"[yellow]⊘ Skipped {len(result['skipped'])} skill(s) (already deployed):[/yellow]")
+                console.print(
+                    f"[yellow]⊘ Skipped {len(result['skipped'])} skill(s) (already deployed):[/yellow]"
+                )
                 for skill in result["skipped"]:
                     console.print(f"  • {skill}")
                 console.print("[dim]Use --force to redeploy[/dim]\n")
 
             if result["errors"]:
-                console.print(f"[red]✗ Failed to deploy {len(result['errors'])} skill(s):[/red]")
+                console.print(
+                    f"[red]✗ Failed to deploy {len(result['errors'])} skill(s):[/red]"
+                )
                 for skill, error in result["errors"].items():
                     console.print(f"  • {skill}: {error}")
                 console.print()
 
             # Summary
-            total = len(result["deployed"]) + len(result["skipped"]) + len(result["errors"])
-            console.print(f"[bold]Summary:[/bold] {len(result['deployed'])} deployed, "
-                         f"{len(result['skipped'])} skipped, {len(result['errors'])} errors "
-                         f"(Total: {total})\n")
+            total = (
+                len(result["deployed"]) + len(result["skipped"]) + len(result["errors"])
+            )
+            console.print(
+                f"[bold]Summary:[/bold] {len(result['deployed'])} deployed, "
+                f"{len(result['skipped'])} skipped, {len(result['errors'])} errors "
+                f"(Total: {total})\n"
+            )
 
             # Exit with error if any deployments failed
             exit_code = 1 if result["errors"] else 0
@@ -206,7 +228,9 @@ class SkillsManagementCommand(BaseCommand):
             skill_name = args.skill_name
             strict = getattr(args, "strict", False)
 
-            console.print(f"\n[bold cyan]Validating skill '{skill_name}'...[/bold cyan]\n")
+            console.print(
+                f"\n[bold cyan]Validating skill '{skill_name}'...[/bold cyan]\n"
+            )
 
             result = self.skills_service.validate_skill(skill_name)
 
@@ -214,14 +238,18 @@ class SkillsManagementCommand(BaseCommand):
                 console.print(f"[green]✓ {skill_name} is valid[/green]\n")
 
                 if result.get("warnings"):
-                    console.print(f"[yellow]Warnings ({len(result['warnings'])}):[/yellow]")
+                    console.print(
+                        f"[yellow]Warnings ({len(result['warnings'])}):[/yellow]"
+                    )
                     for warning in result["warnings"]:
                         console.print(f"  • {warning}")
                     console.print()
 
                     # Treat warnings as errors in strict mode
                     if strict:
-                        console.print("[red]Strict mode: treating warnings as errors[/red]")
+                        console.print(
+                            "[red]Strict mode: treating warnings as errors[/red]"
+                        )
                         return CommandResult(success=False, exit_code=1)
 
                 return CommandResult(success=True, exit_code=0)
@@ -259,7 +287,9 @@ class SkillsManagementCommand(BaseCommand):
                 return CommandResult(success=True, exit_code=0)
 
             # Display available updates
-            console.print(f"[yellow]Updates available for {len(result['updates_available'])} skill(s):[/yellow]")
+            console.print(
+                f"[yellow]Updates available for {len(result['updates_available'])} skill(s):[/yellow]"
+            )
             for update_info in result["updates_available"]:
                 skill_name = update_info["skill"]
                 current = update_info["current_version"]
@@ -268,7 +298,9 @@ class SkillsManagementCommand(BaseCommand):
             console.print()
 
             if check_only:
-                console.print("[dim]Run without --check-only to install updates[/dim]\n")
+                console.print(
+                    "[dim]Run without --check-only to install updates[/dim]\n"
+                )
                 return CommandResult(success=True, exit_code=0)
 
             # Install updates
@@ -278,16 +310,22 @@ class SkillsManagementCommand(BaseCommand):
             )
 
             if install_result["updated"]:
-                console.print(f"[green]✓ Updated {len(install_result['updated'])} skill(s)[/green]\n")
+                console.print(
+                    f"[green]✓ Updated {len(install_result['updated'])} skill(s)[/green]\n"
+                )
 
             if install_result.get("errors"):
-                console.print(f"[red]✗ Failed to update {len(install_result['errors'])} skill(s)[/red]")
+                console.print(
+                    f"[red]✗ Failed to update {len(install_result['errors'])} skill(s)[/red]"
+                )
                 for skill, error in install_result["errors"].items():
                     console.print(f"  • {skill}: {error}")
                 console.print()
 
             exit_code = 1 if install_result.get("errors") else 0
-            return CommandResult(success=not install_result.get("errors"), exit_code=exit_code)
+            return CommandResult(
+                success=not install_result.get("errors"), exit_code=exit_code
+            )
 
         except Exception as e:
             console.print(f"[red]Error updating skills: {e}[/red]")
@@ -323,9 +361,13 @@ class SkillsManagementCommand(BaseCommand):
             # Show agents using this skill
             agents_using = self.skills_service.get_agents_for_skill(skill_name)
             if agents_using:
-                info_text += f"\n[bold]Used by agents:[/bold] {', '.join(agents_using)}\n"
+                info_text += (
+                    f"\n[bold]Used by agents:[/bold] {', '.join(agents_using)}\n"
+                )
 
-            console.print(Panel(info_text, title="Skill Information", border_style="cyan"))
+            console.print(
+                Panel(info_text, title="Skill Information", border_style="cyan")
+            )
 
             # Show content if requested
             if show_content:
@@ -337,7 +379,9 @@ class SkillsManagementCommand(BaseCommand):
                     content = skill_md.read_text()
                     console.print(Markdown(content))
                 else:
-                    console.print(f"\n[yellow]SKILL.md not found at {skill_md}[/yellow]")
+                    console.print(
+                        f"\n[yellow]SKILL.md not found at {skill_md}[/yellow]"
+                    )
 
             return CommandResult(success=True, exit_code=0)
 
@@ -355,16 +399,22 @@ class SkillsManagementCommand(BaseCommand):
             config_path = self.skills_service.get_config_path(scope)
 
             if show_path:
-                console.print(f"\n[cyan]Configuration path ({scope}):[/cyan] {config_path}\n")
+                console.print(
+                    f"\n[cyan]Configuration path ({scope}):[/cyan] {config_path}\n"
+                )
                 return CommandResult(success=True, exit_code=0)
 
             if not config_path.exists():
-                console.print(f"\n[yellow]Configuration file does not exist: {config_path}[/yellow]")
+                console.print(
+                    f"\n[yellow]Configuration file does not exist: {config_path}[/yellow]"
+                )
                 console.print("[dim]Would you like to create it? (y/n):[/dim] ", end="")
 
-                if input().lower() == 'y':
+                if input().lower() == "y":
                     self.skills_service.create_default_config(scope)
-                    console.print(f"[green]Created default configuration at {config_path}[/green]\n")
+                    console.print(
+                        f"[green]Created default configuration at {config_path}[/green]\n"
+                    )
                 else:
                     return CommandResult(success=False, exit_code=1)
 
@@ -373,17 +423,22 @@ class SkillsManagementCommand(BaseCommand):
                 editor = os.environ.get("EDITOR", "nano")
                 try:
                     subprocess.run([editor, str(config_path)], check=True)
-                    console.print(f"\n[green]Configuration saved to {config_path}[/green]\n")
+                    console.print(
+                        f"\n[green]Configuration saved to {config_path}[/green]\n"
+                    )
                     return CommandResult(success=True, exit_code=0)
                 except subprocess.CalledProcessError as e:
                     console.print(f"[red]Error opening editor: {e}[/red]")
                     return CommandResult(success=False, exit_code=1)
             else:
                 # Display config
-                console.print(f"\n[bold cyan]Skills Configuration ({scope}):[/bold cyan]\n")
+                console.print(
+                    f"\n[bold cyan]Skills Configuration ({scope}):[/bold cyan]\n"
+                )
                 console.print(f"[dim]Path: {config_path}[/dim]\n")
 
                 import yaml
+
                 config = yaml.safe_load(config_path.read_text())
                 console.print(yaml.dump(config, default_flow_style=False))
 
