@@ -22,12 +22,12 @@ Legacy System (maintained for compatibility):
 
 # New Skills Integration System
 from .agent_skills_injector import AgentSkillsInjector
-from .skills_registry import SkillsRegistry as SkillsRegistryHelper
-from .skills_service import SkillsService
 
 # Legacy System (maintained for compatibility)
 from .registry import Skill, SkillsRegistry, get_registry
 from .skill_manager import SkillManager
+from .skills_registry import SkillsRegistry as SkillsRegistryHelper
+from .skills_service import SkillsService
 
 __all__ = [
     # New Skills Integration System

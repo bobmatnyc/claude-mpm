@@ -139,7 +139,7 @@ class SkillsService(LoggerMixin):
             return {}
 
         try:
-            with open(self.registry_path, 'r', encoding='utf-8') as f:
+            with open(self.registry_path, encoding='utf-8') as f:
                 registry = yaml.safe_load(f)
                 if not registry:
                     self.logger.warning(f"Empty registry file: {self.registry_path}")
@@ -290,7 +290,7 @@ class SkillsService(LoggerMixin):
                 if target_dir.exists():
                     # SECURITY: Verify again before deletion and check for symlinks
                     if not self._validate_safe_path(self.deployed_skills_path, target_dir):
-                        raise ValueError(f"Refusing to delete path outside skills directory")
+                        raise ValueError("Refusing to delete path outside skills directory")
 
                     if target_dir.is_symlink():
                         self.logger.warning(f"Refusing to delete symlink: {target_dir}")
@@ -699,14 +699,14 @@ class SkillsService(LoggerMixin):
         if scope == "system":
             # System-wide config (bundled)
             return self.bundled_skills_path.parent.parent / "config" / "skills_registry.yaml"
-        elif scope == "user":
+        if scope == "user":
             # User config (~/.config/claude-mpm/)
             home = Path.home()
             return home / ".config" / "claude-mpm" / "skills_registry.yaml"
-        else:  # project
-            # Project config (.claude/)
-            project_root = self._get_project_root()
-            return project_root / ".claude" / "skills_config.yaml"
+        # project
+        # Project config (.claude/)
+        project_root = self._get_project_root()
+        return project_root / ".claude" / "skills_config.yaml"
 
     def create_default_config(self, scope: str = "project") -> None:
         """Create a default configuration file.

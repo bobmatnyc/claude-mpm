@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
+
 # ANSI color codes for terminal output
 class Colors:
     RED = "\033[91m"

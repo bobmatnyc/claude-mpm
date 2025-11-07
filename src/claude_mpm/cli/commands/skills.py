@@ -14,18 +14,15 @@ DESIGN DECISIONS:
 
 import os
 import subprocess
-from pathlib import Path
 from typing import Optional
 
 from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
 from rich.markdown import Markdown
+from rich.panel import Panel
 
 from ...constants import SkillsCommands
 from ...skills.skills_service import SkillsService
 from ..shared import BaseCommand, CommandResult
-
 
 console = Console()
 
@@ -76,12 +73,11 @@ class SkillsManagementCommand(BaseCommand):
             handler = command_map.get(args.skills_command)
             if handler:
                 return handler(args)
-            else:
-                return CommandResult(
-                    success=False,
-                    message=f"Unknown skills command: {args.skills_command}",
-                    exit_code=1,
-                )
+            return CommandResult(
+                success=False,
+                message=f"Unknown skills command: {args.skills_command}",
+                exit_code=1,
+            )
 
         except Exception as e:
             self.logger.error(f"Skills command failed: {e}")
@@ -182,7 +178,7 @@ class SkillsManagementCommand(BaseCommand):
                 console.print(f"[yellow]⊘ Skipped {len(result['skipped'])} skill(s) (already deployed):[/yellow]")
                 for skill in result["skipped"]:
                     console.print(f"  • {skill}")
-                console.print(f"[dim]Use --force to redeploy[/dim]\n")
+                console.print("[dim]Use --force to redeploy[/dim]\n")
 
             if result["errors"]:
                 console.print(f"[red]✗ Failed to deploy {len(result['errors'])} skill(s):[/red]")
@@ -229,19 +225,18 @@ class SkillsManagementCommand(BaseCommand):
                         return CommandResult(success=False, exit_code=1)
 
                 return CommandResult(success=True, exit_code=0)
-            else:
-                console.print(f"[red]✗ {skill_name} has validation errors:[/red]")
-                for error in result.get("errors", []):
-                    console.print(f"  • {error}")
+            console.print(f"[red]✗ {skill_name} has validation errors:[/red]")
+            for error in result.get("errors", []):
+                console.print(f"  • {error}")
+            console.print()
+
+            if result.get("warnings"):
+                console.print("[yellow]Warnings:[/yellow]")
+                for warning in result["warnings"]:
+                    console.print(f"  • {warning}")
                 console.print()
 
-                if result.get("warnings"):
-                    console.print(f"[yellow]Warnings:[/yellow]")
-                    for warning in result["warnings"]:
-                        console.print(f"  • {warning}")
-                    console.print()
-
-                return CommandResult(success=False, exit_code=1)
+            return CommandResult(success=False, exit_code=1)
 
         except Exception as e:
             console.print(f"[red]Error validating skill: {e}[/red]")
@@ -365,7 +360,7 @@ class SkillsManagementCommand(BaseCommand):
 
             if not config_path.exists():
                 console.print(f"\n[yellow]Configuration file does not exist: {config_path}[/yellow]")
-                console.print(f"[dim]Would you like to create it? (y/n):[/dim] ", end="")
+                console.print("[dim]Would you like to create it? (y/n):[/dim] ", end="")
 
                 if input().lower() == 'y':
                     self.skills_service.create_default_config(scope)

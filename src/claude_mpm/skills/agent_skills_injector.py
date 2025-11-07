@@ -87,7 +87,7 @@ class AgentSkillsInjector(LoggerMixin):
             >>> assert 'required' in template['skills']
         """
         try:
-            with open(template_path, 'r', encoding='utf-8') as f:
+            with open(template_path, encoding='utf-8') as f:
                 template = json.load(f)
         except (OSError, json.JSONDecodeError) as e:
             self.logger.error(f"Failed to load template {template_path}: {e}")

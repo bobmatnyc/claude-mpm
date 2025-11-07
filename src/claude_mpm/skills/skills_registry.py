@@ -73,7 +73,7 @@ class SkillsRegistry(LoggerMixin):
             return {}
 
         try:
-            with open(registry_path, 'r', encoding='utf-8') as f:
+            with open(registry_path, encoding='utf-8') as f:
                 data = yaml.safe_load(f)
                 return data if data is not None else {}
         except (OSError, yaml.YAMLError):

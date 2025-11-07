@@ -208,8 +208,7 @@ class GitHubAPIDownloader:
             # Decode base64 content
             if "content" in data:
                 return base64.b64decode(data["content"])
-            else:
-                raise ValueError(f"No content in response for {path}")
+            raise ValueError(f"No content in response for {path}")
         except requests.RequestException as e:
             logger.error(f"Network error downloading {path}: {e}")
             raise
@@ -290,7 +289,7 @@ def load_skills_sources(config_path: Path) -> Dict[str, Any]:
         raise ValueError(f"YAML file too large: {file_size} bytes (max {MAX_YAML_SIZE})")
 
     try:
-        with open(config_path, 'r', encoding='utf-8') as f:
+        with open(config_path, encoding='utf-8') as f:
             data = yaml.safe_load(f)
             if not data:
                 raise ValueError(f"Empty configuration file: {config_path}")
@@ -341,7 +340,7 @@ def download_skill(
         # Validate SKILL.md exists
         skill_md = target_dir / "SKILL.md"
         if not skill_md.exists():
-            logger.error(f"  SKILL.md not found after download!")
+            logger.error("  SKILL.md not found after download!")
             return False
 
         logger.info(f"  ✓ Downloaded {files_downloaded} files")
