@@ -10,6 +10,15 @@
 
 ### Documentation
 
+## [4.20.5] - 2025-11-07
+
+### Fixed
+- **EspoCRM Skill Validation**: Fixed critical validation issues preventing skill loading
+  - Name mismatch: Changed `EspoCRM Development` → `espocrm-development` (matches directory)
+  - Invalid category: Changed `php` → `development` (valid category)
+  - Line limit: Reduced entry point from 217 → 170 lines (meets 200-line requirement)
+  - Skill now passes all critical validation rules and loads properly
+
 ## [4.20.4] - 2025-11-07
 
 ### Added
