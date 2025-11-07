@@ -10,13 +10,11 @@ A powerful orchestration framework for **Claude Code (CLI)** that enables multi-
 
 - 🤖 **Multi-Agent System**: 15 specialized agents for comprehensive project management
 - 🎯 **Skills System**: 20 bundled skills with auto-linking, three-tier organization (bundled/user/project), and interactive configuration
-- 🧠 **Persistent Knowledge System**: Project-specific kuzu-memory integration for intelligent context retention
 - 🔄 **Session Management**: Resume previous sessions with `--resume`
 - 📋 **Resume Log System**: Proactive context management with automatic 10k-token session logs at 70%/85%/95% thresholds
 - 📊 **Real-Time Monitoring**: Live dashboard with `--monitor` flag
-- 🔌 **Smart MCP Services**: Interactive auto-install for mcp-vector-search on first use (pip/pipx choice)
-- 🔍 **Semantic Code Search**: Optional vector search with graceful fallback to grep/glob
-- 📁 **Multi-Project Support**: Per-session working directories with persistent knowledge graphs
+- 🔌 **MCP Integration**: Full support for Model Context Protocol services
+- 📁 **Multi-Project Support**: Per-session working directories
 - 🔍 **Git Integration**: View diffs and track changes across projects
 - 🎯 **Smart Task Orchestration**: PM agent intelligently routes work to specialists
 - ⚡ **Simplified Architecture**: ~3,700 lines removed for better performance and maintainability
@@ -28,8 +26,8 @@ A powerful orchestration framework for **Claude Code (CLI)** that enables multi-
 # Basic installation
 pip install claude-mpm
 
-# Install with optional MCP services (recommended)
-pip install "claude-mpm[mcp]"
+# Install with monitoring dashboard (recommended)
+pip install "claude-mpm[monitor]"
 ```
 
 Or with pipx (recommended for isolated installation):
@@ -37,29 +35,86 @@ Or with pipx (recommended for isolated installation):
 # Basic installation
 pipx install claude-mpm
 
-# Install with optional MCP services (recommended)
-pipx install "claude-mpm[mcp]"
-
-# Install with all features
-pipx install "claude-mpm[mcp,monitor]"
-
-# Configure MCP for pipx users:
-claude-mpm mcp-pipx-config
+# Install with monitoring dashboard (recommended)
+pipx install "claude-mpm[monitor]"
 ```
 
 **💡 Optional Dependencies**:
-- `[mcp]` - Include MCP services (mcp-vector-search, mcp-browser, mcp-ticketer)
 - `[monitor]` - Full monitoring dashboard with Socket.IO and async web server components
-- **Combine both**: Use `"claude-mpm[mcp,monitor]"` to install all features
-- **Note**: kuzu-memory is now a required dependency, always included with Claude MPM
-- **Auto-Install**: mcp-vector-search offers interactive installation on first use (pip/pipx choice)
-- Without pre-installed MCP dependencies, services install on-demand with user confirmation
+- `[mcp]` - Additional MCP services (mcp-browser, mcp-ticketer) - most users won't need this
 
 **🎉 Pipx Support Now Fully Functional!** Recent improvements ensure complete compatibility:
 - ✅ Socket.IO daemon script path resolution (fixed)
-- ✅ Commands directory access (fixed) 
+- ✅ Commands directory access (fixed)
 - ✅ Resource files properly packaged for pipx environments
 - ✅ Python 3.13+ fully supported
+
+## 🤝 Recommended Partner Products
+
+Claude MPM works excellently with these complementary MCP tools. While optional, we **strongly recommend** installing them for enhanced capabilities:
+
+### kuzu-memory - Advanced Memory Management
+
+**What it does**: Provides persistent, project-specific knowledge graphs that enable agents to learn and retain context across sessions. Your agents will remember project patterns, architectural decisions, and important context automatically.
+
+**Installation:**
+```bash
+pipx install kuzu-memory
+```
+
+**Benefits with Claude MPM:**
+- 🧠 **Persistent Context**: Agents remember project-specific patterns and decisions across sessions
+- 🎯 **Intelligent Prompts**: Automatically enriches agent prompts with relevant historical context
+- 📊 **Knowledge Graphs**: Structured storage of project knowledge, not just flat memory
+- 🔄 **Seamless Integration**: Works transparently in the background with zero configuration
+- 💡 **Smart Learning**: Agents improve over time as they learn your project's patterns
+
+**Perfect for**: Long-running projects, teams needing consistent context, complex codebases with deep architectural patterns.
+
+**Learn more**: [kuzu-memory on PyPI](https://pypi.org/project/kuzu-memory/) | [GitHub Repository](https://github.com/bobmatnyc/kuzu-memory)
+
+---
+
+### mcp-vector-search - Semantic Code Search
+
+**What it does**: Enables semantic code search across your entire codebase using AI embeddings. Find code by what it *does*, not just what it's *named*. Search for "authentication logic" and find relevant functions even if they're named differently.
+
+**Installation:**
+```bash
+pipx install mcp-vector-search
+```
+
+**Benefits with Claude MPM:**
+- 🔍 **Semantic Discovery**: Find code by intent and functionality, not just keywords
+- 🎯 **Context-Aware**: Understand code relationships and similarities automatically
+- ⚡ **Fast Indexing**: Efficient vector embeddings for large codebases
+- 🔄 **Live Updates**: Automatically tracks code changes and updates index
+- 📊 **Pattern Recognition**: Discover similar code patterns and potential refactoring opportunities
+
+**Use with**: `/mpm-search "authentication logic"` command in Claude Code sessions or `claude-mpm search` CLI command.
+
+**Perfect for**: Large codebases, discovering existing functionality, finding similar implementations, architectural exploration.
+
+**Learn more**: [mcp-vector-search on PyPI](https://pypi.org/project/mcp-vector-search/) | [GitHub Repository](https://github.com/bobmatnyc/mcp-vector-search)
+
+---
+
+### Quick Setup - Both Tools
+
+Install both recommended tools in one go:
+
+```bash
+pipx install kuzu-memory
+pipx install mcp-vector-search
+```
+
+Then verify they're working:
+
+```bash
+claude-mpm verify
+```
+
+**That's it!** These tools integrate automatically with Claude MPM once installed. No additional configuration needed.
 
 **That's it!** See [QUICKSTART.md](QUICKSTART.md) for immediate usage or [docs/user/installation.md](docs/user/installation.md) for advanced options.
 
@@ -116,8 +171,7 @@ See [QUICKSTART.md](QUICKSTART.md) for complete usage examples.
 Following Phase 3 architectural simplification in v4.4.1, Claude MPM features:
 
 - **Streamlined Rich Interface**: Removed complex TUI system (~2,500 lines) for cleaner user experience
-- **Optional MCP Services**: mcp-vector-search and kuzu-memory with automatic fallback installation
-- **Persistent Knowledge System**: Project-specific kuzu-memory databases with intelligent prompt enrichment
+- **MCP Integration**: Full support for Model Context Protocol services with automatic detection
 - **Service-Oriented Architecture**: Simplified five specialized service domains
 - **Interface-Based Contracts**: All services implement explicit interfaces
 - **Enhanced Performance**: ~3,700 lines removed for better startup time and maintainability

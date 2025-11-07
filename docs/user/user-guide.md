@@ -923,34 +923,39 @@ MCP Gateway provides:
 
 ### Available MCP Tools
 
-**Included:**
-- `kuzu-memory`: Project-specific knowledge graphs (bundled)
+**Strongly Recommended (Install Separately):**
 
-**Optional:**
-- `mcp-vector-search`: Semantic code search (auto-install on first use)
+- **`kuzu-memory`**: Project-specific knowledge graphs for persistent context
+  - Installation: `pipx install kuzu-memory`
+  - Provides intelligent memory management across sessions
+  - See [Partner Products section in README](../../README.md#-recommended-partner-products)
 
-### MCP Tool Auto-Install
+- **`mcp-vector-search`**: Semantic code search capabilities
+  - Installation: `pipx install mcp-vector-search`
+  - Enables finding code by intent, not just keywords
+  - Falls back to grep/glob if not installed
+  - See [Partner Products section in README](../../README.md#-recommended-partner-products)
 
-When you first use semantic search features:
+**Other MCP Tools:**
+- `mcp-browser`: Browser automation (optional)
+- `mcp-ticketer`: Issue tracking integration (optional)
 
+### Quick Setup
+
+Install recommended tools:
+
+```bash
+pipx install kuzu-memory
+pipx install mcp-vector-search
 ```
-⚠️  mcp-vector-search not found
-This package enables semantic code search (optional feature).
 
-Installation options:
-  1. Install via pip (recommended for this project)
-  2. Install via pipx (isolated, system-wide)
-  3. Skip (use traditional grep/glob instead)
+Verify installation:
 
-Choose option (1/2/3) [3]:
+```bash
+claude-mpm verify
 ```
 
-**Recommendations:**
-- **Option 1 (pip)**: Best for project-specific work
-- **Option 2 (pipx)**: Best for system-wide availability
-- **Option 3 (skip)**: System continues with grep/glob
-
-After installation, vector search works seamlessly without prompts.
+After installation, these tools integrate automatically with Claude MPM. No additional configuration needed.
 
 ### Configuration
 
