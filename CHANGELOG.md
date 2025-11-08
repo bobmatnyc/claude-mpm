@@ -10,6 +10,26 @@
 
 ### Documentation
 
+## [4.20.7] - 2025-11-07
+
+### Added
+- **Rust Desktop Applications Skill**: Comprehensive guide for building cross-platform desktop applications
+  - Complete Tauri, Iced, Egui, and Slint framework coverage
+  - Architecture patterns, testing strategies, and distribution guides
+  - Reference documentation for GUI frameworks and native integrations
+  - Implementation: `src/claude_mpm/skills/bundled/languages/rust-desktop-applications/`
+
+### Changed
+- **Skills Progressive Disclosure (Tier 3 - Complete)**: Universal application of progressive disclosure pattern
+  - **Tier 3A**: Optimized 5 high-value skills (elixir-phoenix, react-advanced-patterns, etc.)
+  - **Tier 3B**: Refactored dispatching-parallel-agents skill (195→175 lines)
+  - **Tier 3C & 3D**: Optimized final skills (go-web-services, python-django, etc.)
+  - **skill-creator**: Applied to skill creation workflow itself (209→189 lines)
+  - **Project Totals**: 17/17 skills optimized (100% complete)
+  - **Documentation Impact**: 12,466 lines added, 25 new reference files created
+  - All skills now follow consistent structure with streamlined entry points
+  - Complete progressive disclosure pattern established across entire skill library
+
 ## [4.20.6] - 2025-11-07
 
 ### Added
