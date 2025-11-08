@@ -3,6 +3,10 @@ name: Brainstorming Ideas Into Designs
 description: Interactive idea refinement using Socratic method to develop fully-formed designs
 when_to_use: when partner describes any feature or project idea, before writing code or implementation plans
 version: 2.2.0
+progressive_disclosure:
+  level: 1
+  references: []
+  note: Already optimal at 75 lines - intentionally compact, no references needed
 ---
 
 # Brainstorming Ideas Into Designs

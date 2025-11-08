@@ -4,6 +4,25 @@ description: Replace arbitrary timeouts with condition polling for reliable asyn
 when_to_use: when tests have race conditions, timing dependencies, or inconsistent pass/fail behavior
 version: 1.1.0
 languages: all
+progressive_disclosure:
+  entry_point:
+    summary: "Replace arbitrary timeouts with condition polling for reliable async tests"
+    when_to_use: "Tests with setTimeout/sleep, flaky tests, or timing-dependent async operations"
+    quick_start: |
+      1. Identify arbitrary delays in tests (setTimeout, sleep, time.sleep())
+      2. Replace with condition-based waiting (waitFor pattern)
+      3. Use domain-specific helpers for common scenarios
+      See @example.ts for complete working implementation
+    core_pattern: |
+      // ❌ Guessing at timing
+      await new Promise(r => setTimeout(r, 50));
+
+      // ✅ Waiting for condition
+      await waitFor(() => getResult() !== undefined);
+  references:
+    - path: references/patterns-and-implementation.md
+      purpose: Detailed waiting patterns, implementation guide, and common mistakes
+      when_to_read: When implementing waitFor or debugging timing issues
 ---
 
 # Condition-Based Waiting
@@ -87,32 +106,9 @@ async function waitFor<T>(
 }
 ```
 
-See @example.ts for complete implementation with domain-specific helpers (`waitForEvent`, `waitForEventCount`, `waitForEventMatch`) from actual debugging session.
+See @example.ts for complete implementation with domain-specific helpers (`waitForEvent`, `waitForEventCount`, `waitForEventMatch`).
 
-## Common Mistakes
-
-**❌ Polling too fast:** `setTimeout(check, 1)` - wastes CPU
-**✅ Fix:** Poll every 10ms
-
-**❌ No timeout:** Loop forever if condition never met
-**✅ Fix:** Always include timeout with clear error
-
-**❌ Stale data:** Cache state before loop
-**✅ Fix:** Call getter inside loop for fresh data
-
-## When Arbitrary Timeout IS Correct
-
-```typescript
-// Tool ticks every 100ms - need 2 ticks to verify partial output
-await waitForEvent(manager, 'TOOL_STARTED'); // First: wait for condition
-await new Promise(r => setTimeout(r, 200));   // Then: wait for timed behavior
-// 200ms = 2 ticks at 100ms intervals - documented and justified
-```
-
-**Requirements:**
-1. First wait for triggering condition
-2. Based on known timing (not guessing)
-3. Comment explaining WHY
+For detailed patterns, implementation guide, and common mistakes, see @references/patterns-and-implementation.md
 
 ## Real-World Impact
 

@@ -2,7 +2,16 @@
 name: Requesting Code Review
 description: Dispatch code-reviewer subagent to review implementation against plan or requirements before proceeding
 when_to_use: when completing tasks, implementing major features, or before merging, to verify work meets requirements
-version: 1.1.0
+version: 1.2.0
+progressive_disclosure:
+  level: 1
+  references:
+    - path: references/code-reviewer-template.md
+      title: Code Reviewer Template
+      description: Complete subagent template with placeholders and review checklist
+    - path: references/review-examples.md
+      title: Review Examples & Workflows
+      description: Good vs bad reviews, severity guidelines, complete workflow examples
 ---
 
 # Requesting Code Review
@@ -23,7 +32,7 @@ Dispatch code-reviewer subagent to catch issues before they cascade.
 - Before refactoring (baseline check)
 - After fixing complex bug
 
-## How to Request
+## Quick Start
 
 **1. Get git SHAs:**
 ```bash
@@ -33,9 +42,9 @@ HEAD_SHA=$(git rev-parse HEAD)
 
 **2. Dispatch code-reviewer subagent:**
 
-Use Task tool with code-reviewer type, fill template at `code-reviewer.md`
+Use Task tool with code-reviewer type, fill template at [Code Reviewer Template](references/code-reviewer-template.md)
 
-**Placeholders:**
+**Required placeholders:**
 - `{WHAT_WAS_IMPLEMENTED}` - What you just built
 - `{PLAN_OR_REQUIREMENTS}` - What it should do
 - `{BASE_SHA}` - Starting commit
@@ -43,38 +52,14 @@ Use Task tool with code-reviewer type, fill template at `code-reviewer.md`
 - `{DESCRIPTION}` - Brief summary
 
 **3. Act on feedback:**
-- Fix Critical issues immediately
-- Fix Important issues before proceeding
-- Note Minor issues for later
-- Push back if reviewer is wrong (with reasoning)
 
-## Example
+| Severity | Action |
+|----------|--------|
+| **Critical** | Fix immediately, don't proceed |
+| **Important** | Fix before next major task |
+| **Minor** | Note for later, can proceed |
 
-```
-[Just completed Task 2: Add verification function]
-
-You: Let me request code review before proceeding.
-
-BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
-HEAD_SHA=$(git rev-parse HEAD)
-
-[Dispatch code-reviewer subagent]
-  WHAT_WAS_IMPLEMENTED: Verification and repair functions for conversation index
-  PLAN_OR_REQUIREMENTS: Task 2 from docs/plans/deployment-plan.md
-  BASE_SHA: a7981ec
-  HEAD_SHA: 3df7661
-  DESCRIPTION: Added verifyIndex() and repairIndex() with 4 issue types
-
-[Subagent returns]:
-  Strengths: Clean architecture, real tests
-  Issues:
-    Important: Missing progress indicators
-    Minor: Magic number (100) for reporting interval
-  Assessment: Ready to proceed
-
-You: [Fix progress indicators]
-[Continue to Task 3]
-```
+See [severity guidelines](references/review-examples.md#severity-guidelines) for details.
 
 ## Integration with Workflows
 
@@ -91,17 +76,37 @@ You: [Fix progress indicators]
 - Review before merge
 - Review when stuck
 
-## Red Flags
+## Pushing Back on Reviews
+
+**If reviewer wrong:**
+- Push back with technical reasoning
+- Show code/tests that prove it works
+- Reference plan requirements
+- Request clarification
+
+See [pushing back examples](references/review-examples.md#pushing-back-on-reviews)
+
+## Common Mistakes
 
 **Never:**
 - Skip review because "it's simple"
 - Ignore Critical issues
 - Proceed with unfixed Important issues
-- Argue with valid technical feedback
+- Argue without technical justification
 
-**If reviewer wrong:**
-- Push back with technical reasoning
-- Show code/tests that prove it works
-- Request clarification
+**Always:**
+- Provide full context in review request
+- Fix Critical issues immediately
+- Document why you disagree (if you do)
+- Re-review after fixing Critical issues
 
-See template at: skills/collaboration/requesting-code-review/code-reviewer.md
+## Examples
+
+**Need examples?** See [Review Examples & Workflows](references/review-examples.md) for:
+- Complete review output examples
+- Good vs bad review requests
+- Review workflows for different scenarios
+- How to act on different severity levels
+- When and how to push back
+
+**Need template?** See [Code Reviewer Template](references/code-reviewer-template.md) for the complete subagent dispatch template.

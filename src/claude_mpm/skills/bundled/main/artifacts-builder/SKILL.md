@@ -2,6 +2,18 @@
 name: artifacts-builder
 description: Suite of tools for creating elaborate, multi-component claude.ai HTML artifacts using modern frontend web technologies (React, Tailwind CSS, shadcn/ui). Use for complex artifacts requiring state management, routing, or shadcn/ui components - not for simple single-file HTML/JSX artifacts.
 license: Complete terms in LICENSE.txt
+progressive_disclosure:
+  entry_point:
+    summary: "Build complex React + TypeScript + shadcn/ui artifacts bundled to single HTML files"
+    when_to_use: "Complex artifacts requiring state management, routing, or shadcn/ui components (not simple HTML/JSX)"
+    quick_start: |
+      1. Initialize: bash scripts/init-artifact.sh <project-name>
+      2. Develop: Edit generated React/TypeScript files
+      3. Bundle: bash scripts/bundle-artifact.sh → creates bundle.html
+      4. Share bundled HTML as artifact with user
+      Stack: React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui
+    note: "Already optimal at 73 lines - scripts/ directory provides implementation details, no fragmentation needed"
+  references: []
 ---
 
 # Artifacts Builder
