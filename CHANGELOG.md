@@ -1,6 +1,18 @@
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+### Documentation
+
+## [4.21.0] - 2025-11-09
+
+### Added
 - **Automatic Session Resume at 70% Context**: Session resume files now automatically created at 70% context threshold
   - Monitors token usage (70% = 140k/200k tokens)
   - Automatically creates session resume file and prompts user
@@ -16,13 +28,16 @@
   - Documentation updated to reflect new location
 
 ### Fixed
-
-### Removed
+- **MCP Protocol**: Fixed print statements redirecting to stderr to prevent protocol pollution
+- **Import Cleanup**: Replaced wildcard imports with explicit imports and added backward compatibility
+- **Code Quality**: Fixed 9 Ruff linting errors
 
 ### Documentation
 - Updated `docs/features/session-auto-resume.md` with automatic 70% threshold behavior
 - Updated all examples to use new `.claude-mpm/sessions/` path
 - Added historical note to `docs/design/session-resume-implementation.md`
+- Added comprehensive session resume documentation for 2025-11-09
+- Added code review and refactoring session documentation
 
 ## [4.20.7] - 2025-11-07
 
