@@ -25,7 +25,7 @@ def manage_mpm_init(args):
     """
     try:
         # Import the command implementation
-        from .mpm_init import MPMInitCommand
+        from .mpm_init.core import MPMInitCommand
 
         # Handle context subcommands
         subcommand = getattr(args, "subcommand", None)

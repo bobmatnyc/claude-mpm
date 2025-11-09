@@ -149,8 +149,8 @@ class TestCatchupCommand:
         cmd = MPMInitCommand(tmp_path)
         data = cmd._catchup()
 
-        # Should not raise exception
-        with patch("claude_mpm.cli.commands.mpm_init.console") as mock_console:
+        # Should not raise exception - mock the instance console
+        with patch.object(cmd, "console") as mock_console:
             cmd._display_catchup(data)
             # Verify output was generated
             assert mock_console.print.call_count > 0
@@ -166,8 +166,8 @@ class TestCatchupCommand:
             "error": "Not a git repo",
         }
 
-        # Should not raise exception
-        with patch("claude_mpm.cli.commands.mpm_init.console") as mock_console:
+        # Should not raise exception - mock the instance console
+        with patch.object(cmd, "console") as mock_console:
             cmd._display_catchup(data)
             # Should display error panel
             assert mock_console.print.call_count > 0
