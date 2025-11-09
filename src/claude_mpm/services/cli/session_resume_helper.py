@@ -5,7 +5,8 @@ It detects paused sessions, calculates git changes since pause, and presents res
 context to users.
 
 DESIGN DECISIONS:
-- Project-specific session storage (.claude-mpm/sessions/pause/)
+- Project-specific session storage (.claude-mpm/sessions/)
+- Backward compatibility with legacy .claude-mpm/sessions/pause/ location
 - Non-blocking detection with graceful degradation
 - Git change detection for context updates
 - User-friendly prompts with time elapsed information
@@ -33,7 +34,10 @@ class SessionResumeHelper:
             project_path: Project root path (default: current directory)
         """
         self.project_path = project_path or Path.cwd()
-        self.pause_dir = self.project_path / ".claude-mpm" / "sessions" / "pause"
+        # Primary location: flattened structure
+        self.pause_dir = self.project_path / ".claude-mpm" / "sessions"
+        # Legacy location for backward compatibility
+        self.legacy_pause_dir = self.project_path / ".claude-mpm" / "sessions" / "pause"
 
     def has_paused_sessions(self) -> bool:
         """Check if there are any paused sessions.
@@ -41,11 +45,15 @@ class SessionResumeHelper:
         Returns:
             True if paused sessions exist, False otherwise
         """
-        if not self.pause_dir.exists():
-            return False
+        # Check both primary and legacy locations
+        session_files = []
 
-        # Look for session JSON files
-        session_files = list(self.pause_dir.glob("session-*.json"))
+        if self.pause_dir.exists():
+            session_files.extend(list(self.pause_dir.glob("session-*.json")))
+
+        if self.legacy_pause_dir.exists():
+            session_files.extend(list(self.legacy_pause_dir.glob("session-*.json")))
+
         return len(session_files) > 0
 
     def get_most_recent_session(self) -> Optional[Dict[str, Any]]:
@@ -54,11 +62,15 @@ class SessionResumeHelper:
         Returns:
             Session data dictionary or None if no sessions found
         """
-        if not self.pause_dir.exists():
-            return None
+        # Find all session files from both locations
+        session_files = []
 
-        # Find all session files
-        session_files = list(self.pause_dir.glob("session-*.json"))
+        if self.pause_dir.exists():
+            session_files.extend(list(self.pause_dir.glob("session-*.json")))
+
+        if self.legacy_pause_dir.exists():
+            session_files.extend(list(self.legacy_pause_dir.glob("session-*.json")))
+
         if not session_files:
             return None
 
@@ -316,10 +328,14 @@ class SessionResumeHelper:
         Returns:
             Number of paused sessions
         """
-        if not self.pause_dir.exists():
-            return 0
+        session_files = []
 
-        session_files = list(self.pause_dir.glob("session-*.json"))
+        if self.pause_dir.exists():
+            session_files.extend(list(self.pause_dir.glob("session-*.json")))
+
+        if self.legacy_pause_dir.exists():
+            session_files.extend(list(self.legacy_pause_dir.glob("session-*.json")))
+
         return len(session_files)
 
     def list_all_sessions(self) -> List[Dict[str, Any]]:
@@ -328,10 +344,14 @@ class SessionResumeHelper:
         Returns:
             List of session data dictionaries
         """
-        if not self.pause_dir.exists():
-            return []
+        session_files = []
 
-        session_files = list(self.pause_dir.glob("session-*.json"))
+        if self.pause_dir.exists():
+            session_files.extend(list(self.pause_dir.glob("session-*.json")))
+
+        if self.legacy_pause_dir.exists():
+            session_files.extend(list(self.legacy_pause_dir.glob("session-*.json")))
+
         if not session_files:
             return []
 

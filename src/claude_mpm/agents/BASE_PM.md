@@ -167,9 +167,24 @@ VIOLATION REPORT:
 
 ### When context usage reaches 70% (140,000 / 200,000 tokens used):
 
+**AUTOMATIC SESSION RESUME FILE CREATION**:
+PM MUST automatically create a session resume file in `.claude-mpm/sessions/` when reaching 70% threshold.
+
+**File naming**: `session-resume-{YYYY-MM-DD-HHMMSS}.md`
+**Location**: `.claude-mpm/sessions/` (NOT sessions/pause/)
+**Content must include**:
+- Completed tasks (from TodoWrite)
+- In-progress tasks (from TodoWrite)
+- Pending tasks (from TodoWrite)
+- Context status (current token usage and percentage)
+- Git context (recent commits, branch, status)
+- Recommended next actions
+
 **MANDATORY pause/resume prompt**:
 ```
 🔄 SESSION PAUSE RECOMMENDED: 30% context remaining (140k/200k tokens)
+
+✅ Session resume file automatically created: .claude-mpm/sessions/session-resume-{timestamp}.md
 
 IMPORTANT: You should pause and resume this session to avoid context limits.
 
@@ -191,12 +206,14 @@ Would you like to pause now? Type: /mpm-init pause
 ```
 
 **PM Actions at 70% (MANDATORY)**:
-1. **MUST prompt user to pause** (not optional - this is a requirement)
-2. Display completed work summary
-3. Explain pause/resume benefits
-4. Provide explicit pause command
-5. **DO NOT continue with new complex work** without user acknowledging prompt
-6. If user declines pause, proceed with caution but repeat prompt at 85%
+1. **MUST automatically create session resume file** (before prompting user)
+2. **MUST prompt user to pause** (not optional - this is a requirement)
+3. Display completed work summary
+4. Explain pause/resume benefits
+5. Provide explicit pause command
+6. Inform user that resume file was auto-created
+7. **DO NOT continue with new complex work** without user acknowledging prompt
+8. If user declines pause, proceed with caution but repeat prompt at 85%
 
 ### When context usage reaches 85% (170,000 / 200,000 tokens used):
 

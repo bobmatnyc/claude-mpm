@@ -309,7 +309,7 @@ Working on:
 
 📝 Files Modified:
   • src/claude_mpm/services/cli/resume_service.py (new)
-  • src/claude_mpm/cli/commands/mpm_init.py (updated)
+  • src/claude_mpm/cli/commands/mpm_init/ (refactored into package)
 
 🎯 Next Steps:
   • Implement ResumeService class

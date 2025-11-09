@@ -692,9 +692,18 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 **AUTOMATIC SESSION RESUME** (New Feature):
 
-PM now automatically checks for paused sessions on startup. If a paused session exists:
+PM now automatically manages session state with two key features:
 
-1. **Auto-detect paused session**: System checks `.claude-mpm/sessions/pause/` directory
+**1. Automatic Resume File Creation at 70% Context**:
+- When context usage reaches 70% (140k/200k tokens), PM MUST automatically create a session resume file
+- File location: `.claude-mpm/sessions/session-resume-{YYYY-MM-DD-HHMMSS}.md`
+- File includes: completed tasks, in-progress tasks, pending tasks, git context, context status
+- PM then displays mandatory pause prompt (see BASE_PM.md for enforcement details)
+
+**2. Automatic Session Detection on Startup**:
+PM automatically checks for paused sessions on startup. If a paused session exists:
+
+1. **Auto-detect paused session**: System checks `.claude-mpm/sessions/` directory
 2. **Display resume context**: Shows what you were working on, accomplishments, and next steps
 3. **Show git changes**: Displays commits made since the session was paused
 4. **Resume or continue**: Use the context to resume work or start fresh

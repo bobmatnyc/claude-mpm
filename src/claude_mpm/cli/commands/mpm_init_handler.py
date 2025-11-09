@@ -92,7 +92,7 @@ def manage_mpm_init(args):
                 f"[cyan]Paused At:[/cyan] {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z')}"
             )
             console.print(
-                f"[cyan]Location:[/cyan] .claude-mpm/sessions/pause/{session_id}.*"
+                f"[cyan]Location:[/cyan] .claude-mpm/sessions/{session_id}.*"
             )
 
             # Show what was captured
@@ -122,7 +122,7 @@ def manage_mpm_init(args):
             console.print()
             console.print("[yellow]Resume with:[/yellow] claude-mpm mpm-init context")
             console.print(
-                "[yellow]Quick view:[/yellow] cat .claude-mpm/sessions/pause/LATEST-SESSION.txt"
+                "[yellow]Quick view:[/yellow] cat .claude-mpm/sessions/LATEST-SESSION.txt"
             )
             console.print()
 

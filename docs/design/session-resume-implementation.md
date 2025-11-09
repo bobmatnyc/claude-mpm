@@ -1,5 +1,12 @@
 # Automatic Session Resume Implementation Summary
 
+> **📝 Historical Design Document**: This document reflects the original implementation design. For current behavior and updated paths, see [session-auto-resume.md](../features/session-auto-resume.md).
+>
+> **Recent Updates (2025-11-09)**:
+> - ✅ Automatic session creation at 70% context threshold (140k/200k tokens)
+> - ✅ Session files now stored in `.claude-mpm/sessions/` (legacy `sessions/pause/` still supported)
+> - ✅ Backward compatibility maintained for existing session files
+
 ## Overview
 
 Successfully implemented automatic session resume functionality for Claude MPM, enabling seamless work continuation with full context restoration on PM startup.

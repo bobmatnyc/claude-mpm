@@ -34,7 +34,8 @@ class SessionPauseManager:
             project_path: Project root path (default: current directory)
         """
         self.project_path = (project_path or Path.cwd()).resolve()
-        self.pause_dir = self.project_path / ".claude-mpm" / "sessions" / "pause"
+        # Use flattened structure: .claude-mpm/sessions/ instead of sessions/pause/
+        self.pause_dir = self.project_path / ".claude-mpm" / "sessions"
         self.pause_dir.mkdir(parents=True, exist_ok=True)
         self.storage = StateStorage(self.pause_dir)
 
@@ -139,12 +140,12 @@ class SessionPauseManager:
                 "quick_start": [
                     f"Read {session_id}.md for full context",
                     "Run: git status to check current state",
-                    "Run: cat .claude-mpm/sessions/pause/LATEST-SESSION.txt",
+                    "Run: cat .claude-mpm/sessions/LATEST-SESSION.txt",
                 ],
                 "files_to_review": [],
                 "validation_commands": {
                     "check_git": "git status && git log -1 --stat",
-                    "check_session": f"cat .claude-mpm/sessions/pause/{session_id}.md",
+                    "check_session": f"cat .claude-mpm/sessions/{session_id}.md",
                 },
             },
             "open_questions": [],
@@ -403,7 +404,7 @@ class SessionPauseManager:
             [
                 "---",
                 "",
-                "Resume with: `/mpm-init resume` or `cat .claude-mpm/sessions/pause/LATEST-SESSION.txt`",
+                "Resume with: `/mpm-init resume` or `cat .claude-mpm/sessions/LATEST-SESSION.txt`",
                 "",
             ]
         )
@@ -431,7 +432,7 @@ Quick Resume:
   /mpm-init resume
 
 Full Context:
-  cat .claude-mpm/sessions/pause/{session_id}.md
+  cat .claude-mpm/sessions/{session_id}.md
 
 Validation:
   git status && git log -1 --stat
@@ -451,7 +452,7 @@ Validation:
         try:
             # Add session files
             subprocess.run(
-                ["git", "add", ".claude-mpm/sessions/pause/"],
+                ["git", "add", ".claude-mpm/sessions/"],
                 cwd=self.project_path,
                 check=True,
                 capture_output=True,

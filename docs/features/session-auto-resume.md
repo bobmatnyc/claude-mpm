@@ -2,19 +2,35 @@
 
 ## Overview
 
-Claude MPM now automatically detects and displays paused sessions when PM starts, helping you seamlessly continue your work with full context restoration.
+Claude MPM automatically manages session continuity through two key features:
+
+1. **Automatic Session Creation**: When context usage reaches 70% (140k/200k tokens), the system automatically creates a session resume file to preserve your work context
+2. **Automatic Session Detection**: When PM starts, it detects and displays paused sessions, helping you seamlessly continue your work with full context restoration
+
+This ensures you never lose progress and can work across multiple sessions without missing a beat.
 
 ## How It Works
 
-### 1. Session Detection
+### 1. Automatic Session Creation
+
+**NEW**: Sessions are now automatically created when context usage reaches **70% (140k/200k tokens)**.
+
+The system monitors token usage and:
+- **At 70%**: Automatically creates a session resume file and prompts you to review
+- **At 85%**: Blocks new work until session is managed
+- **At 95%**: Emergency threshold - requires immediate action
+
+This ensures you never lose context and can seamlessly resume work across sessions.
+
+### 2. Session Detection
 
 When PM starts, the system automatically:
-- Checks for paused sessions in `<project>/.claude-mpm/sessions/pause/`
+- Checks for paused sessions in `<project>/.claude-mpm/sessions/` (also checks legacy sessions/pause/ location for backward compatibility)
 - Identifies the most recent paused session
 - Calculates git changes since the session was paused
 - Displays resume context to the user
 
-### 2. Resume Context Display
+### 3. Resume Context Display
 
 The auto-resume prompt shows:
 - **Time elapsed**: How long ago the session was paused
@@ -24,7 +40,7 @@ The auto-resume prompt shows:
 - **Git changes**: Commits made since the session was paused
 - **Time context**: When the session was paused
 
-### 3. Example Display
+### 4. Example Display
 
 ```
 ================================================================================
@@ -83,7 +99,7 @@ When multiple paused sessions exist:
 
 ## Session Pause Document Format
 
-Sessions are stored in `<project>/.claude-mpm/sessions/pause/session-YYYYMMDD-HHMMSS.json`:
+Sessions are stored in `<project>/.claude-mpm/sessions/session-YYYYMMDD-HHMMSS.json`:
 
 ```json
 {
@@ -127,7 +143,7 @@ Sessions are stored in `<project>/.claude-mpm/sessions/pause/session-YYYYMMDD-HH
 
 Sessions are stored per-project in:
 ```
-<project-root>/.claude-mpm/sessions/pause/
+<project-root>/.claude-mpm/sessions/
 ```
 
 This ensures:
@@ -135,6 +151,8 @@ This ensures:
 - ✓ No cross-project contamination
 - ✓ Easy cleanup (delete .claude-mpm directory)
 - ✓ Git-ignorable by default
+
+**Note**: The system also checks the legacy `sessions/pause/` location for backward compatibility with older session files.
 
 ### File Permissions
 
@@ -195,14 +213,14 @@ manager.pause_session('Working on feature X')
 ### List Paused Sessions
 
 ```bash
-ls -la .claude-mpm/sessions/pause/
+ls -la .claude-mpm/sessions/
 ```
 
 ### Clear Paused Sessions
 
 ```bash
 # Remove all paused sessions
-rm .claude-mpm/sessions/pause/session-*.json
+rm .claude-mpm/sessions/session-*.json
 ```
 
 ### Clear Specific Session
@@ -278,7 +296,7 @@ The system gracefully degrades:
 
 1. Create a test session:
    ```bash
-   mkdir -p .claude-mpm/sessions/pause
+   mkdir -p .claude-mpm/sessions
    # Copy an existing session or create manually
    ```
 
@@ -321,9 +339,9 @@ Potential improvements:
 **Problem**: No resume prompt appears despite paused sessions existing
 
 **Solutions**:
-1. Check session directory exists: `ls .claude-mpm/sessions/pause/`
-2. Verify JSON files are valid: `python -m json.tool session-*.json`
-3. Check file permissions: `ls -la .claude-mpm/sessions/pause/`
+1. Check session directory exists: `ls .claude-mpm/sessions/`
+2. Verify JSON files are valid: `python -m json.tool .claude-mpm/sessions/session-*.json`
+3. Check file permissions: `ls -la .claude-mpm/sessions/`
 4. Review logs: `tail -f .claude-mpm/logs/claude-mpm.log`
 
 ### Git Changes Not Showing

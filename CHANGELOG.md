@@ -1,14 +1,28 @@
 ## [Unreleased]
 
 ### Added
+- **Automatic Session Resume at 70% Context**: Session resume files now automatically created at 70% context threshold
+  - Monitors token usage (70% = 140k/200k tokens)
+  - Automatically creates session resume file and prompts user
+  - Enforcement thresholds: 70% (auto-create + prompt), 85% (block work), 95% (emergency)
+  - Ensures seamless work continuation without losing context
+  - Implementation: PM agent instructions updated with automatic threshold enforcement
 
 ### Changed
+- **Session File Location**: Session files now stored in `.claude-mpm/sessions/` instead of `.claude-mpm/sessions/pause/`
+  - Simplified directory structure
+  - Backward compatibility maintained (legacy location still checked)
+  - All 32 existing session files migrated successfully
+  - Documentation updated to reflect new location
 
 ### Fixed
 
 ### Removed
 
 ### Documentation
+- Updated `docs/features/session-auto-resume.md` with automatic 70% threshold behavior
+- Updated all examples to use new `.claude-mpm/sessions/` path
+- Added historical note to `docs/design/session-resume-implementation.md`
 
 ## [4.20.7] - 2025-11-07
 
