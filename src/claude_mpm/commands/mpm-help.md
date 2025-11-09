@@ -87,6 +87,9 @@ Available Commands:
 /mpm-init [update]
   Initialize or update project documentation
 
+/mpm-resume
+  Create session resume files for easy work resumption
+
 /mpm-monitor [start|stop|restart|status|port]
   Manage Socket.IO monitoring server and dashboard
 
