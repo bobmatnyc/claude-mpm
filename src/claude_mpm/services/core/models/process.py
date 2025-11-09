@@ -25,6 +25,9 @@ from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.enums import ServiceState
 
+# Backward compatibility alias (consolidated in Phase 3A Batch 24)
+ProcessStatus = ServiceState
+
 
 @dataclass
 class DeploymentState:
@@ -230,6 +233,7 @@ __all__ = [
     "PROTECTED_PORT_RANGES",
     "DeploymentState",
     "ProcessInfo",
+    "ProcessStatus",  # Backward compatibility alias for ServiceState
     "StartConfig",
     "is_port_protected",
 ]

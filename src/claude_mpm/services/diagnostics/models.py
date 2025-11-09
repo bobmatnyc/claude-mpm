@@ -6,9 +6,30 @@ consistency across all checks and reporting.
 """
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
 from ...core.enums import OperationResult, ValidationSeverity
+
+
+class DiagnosticStatus(str, Enum):
+    """Backward compatibility wrapper for diagnostic status values.
+
+    WHY: Provides backward compatibility for tests and code that use
+    DiagnosticStatus instead of the consolidated OperationResult/ValidationSeverity.
+
+    DESIGN DECISION: Maps to the appropriate consolidated enum values:
+    - OK → OperationResult.SUCCESS
+    - WARNING → ValidationSeverity.WARNING
+    - ERROR → ValidationSeverity.ERROR
+
+    Note: This is a compatibility layer. New code should use OperationResult
+    and ValidationSeverity directly.
+    """
+
+    OK = "success"  # Maps to OperationResult.SUCCESS
+    WARNING = "warning"  # Maps to ValidationSeverity.WARNING
+    ERROR = "error"  # Maps to ValidationSeverity.ERROR
 
 
 @dataclass

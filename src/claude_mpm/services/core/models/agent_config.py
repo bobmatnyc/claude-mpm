@@ -19,6 +19,9 @@ from typing import Any, Dict, List, Optional
 
 from ....core.enums import OperationResult, ValidationSeverity
 
+# Backward compatibility alias (consolidated in Phase 3A Batch 25)
+ConfigurationStatus = OperationResult
+
 
 class AgentSpecialization(str, Enum):
     """Agent specialization categories.

@@ -86,6 +86,7 @@ from claude_mpm.services.core.models.process import (
     PROTECTED_PORT_RANGES,
     DeploymentState,
     ProcessInfo,
+    ProcessStatus,
     StartConfig,
     is_port_protected,
 )
@@ -147,6 +148,7 @@ __all__ = [
     "PortConflictError",
     "ProcessInfo",
     "ProcessSpawnError",
+    "ProcessStatus",
     # Data models - Process
     "ResourceMonitor",
     "ResourceUsage",
