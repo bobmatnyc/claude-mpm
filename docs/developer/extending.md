@@ -1,3 +1,10 @@
+---
+title: Extending Claude MPM
+version: 4.21.1
+last_updated: 2025-11-09
+status: current
+---
+
 # Extending Claude MPM
 
 Build custom agents, hooks, services, and MCP tools.

@@ -347,8 +347,8 @@ ls -la .claude-mpm/resume-logs/
 
 ## Future Enhancements
 
-Potential improvements:
-- [ ] Automatic TODO list extraction from conversations
+Potential improvements for future versions:
+- [ ] **Automatic TODO list extraction** - Extract TODO items from conversation history
 - [ ] Smart content prioritization (ML-based token budget allocation)
 - [ ] Resume log compression for large sessions
 - [ ] Cross-session learning (patterns from previous resume logs)

@@ -1,3 +1,10 @@
+---
+title: Architecture
+version: 4.21.1
+last_updated: 2025-11-09
+status: current
+---
+
 # Architecture
 
 System design and core concepts for Claude MPM.

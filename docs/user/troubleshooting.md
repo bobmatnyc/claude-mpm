@@ -1,3 +1,10 @@
+---
+title: Troubleshooting
+version: 4.21.1
+last_updated: 2025-11-09
+status: current
+---
+
 # Troubleshooting
 
 Common issues and solutions for Claude MPM.

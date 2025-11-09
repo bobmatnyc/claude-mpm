@@ -1,3 +1,10 @@
+---
+title: Getting Started
+version: 4.21.1
+last_updated: 2025-11-09
+status: current
+---
+
 # Getting Started
 
 Get Claude MPM running in under 5 minutes.
