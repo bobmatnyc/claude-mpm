@@ -10,6 +10,22 @@
 
 ### Documentation
 
+## [4.21.1] - 2025-11-09
+
+### Added
+- **New `/mpm-resume` Slash Command**: Instant session pause and resume file generation
+  - One-command operation for session management (<1 second execution)
+  - Automatically captures todos, git context, and context usage
+  - Generates two files: comprehensive session-resume and quick SESSION_SUMMARY
+  - Perfect for managing context limits and work continuity
+  - Implementation: Complete command specification with usage examples
+
+### Documentation
+- Added comprehensive `/mpm-resume` command documentation
+- Included usage examples and demo scenarios
+- Documented implementation guidelines and user instructions
+- Enhanced session management workflow documentation
+
 ## [4.21.0] - 2025-11-09
 
 ### Added
