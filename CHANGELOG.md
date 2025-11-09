@@ -10,6 +10,21 @@
 
 ### Documentation
 
+## [4.21.2] - 2025-11-09
+
+### Documentation
+- **Publishing Documentation Consolidation**: Streamlined 4 files into 2 comprehensive guides
+  - New unified `publishing-guide.md` with complete workflow
+  - Enhanced `pre-publish-checklist.md` with detailed validation
+- **Session Archive**: Moved completed session documents to `docs/_archive/2025-11-sessions/`
+- **Metadata Standardization**: Added headers to 5 documentation files
+- **Documentation Tracking**: New `DOCUMENTATION_STATUS.md` for maintenance
+
+### Technical Details
+- 25 files changed: +1,172 insertions, -10,339 deletions
+- Net reduction: 9,167 lines (documentation cleanup)
+- All 230 tests passing
+
 ## [4.21.1] - 2025-11-09
 
 ### Added
