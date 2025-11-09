@@ -11,13 +11,13 @@ from typing import Any, Dict, Optional
 from claude_mpm.utils.display_helper import DisplayHelper
 
 __all__ = [
-    "display_documentation_status",
-    "display_review_report",
-    "display_catchup",
     "display_activity_report",
+    "display_catchup",
+    "display_documentation_status",
     "display_results",
-    "show_update_plan",
+    "display_review_report",
     "show_initialization_plan",
+    "show_update_plan",
 ]
 
 

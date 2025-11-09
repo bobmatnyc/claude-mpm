@@ -26,11 +26,11 @@ from claude_mpm.utils.display_helper import DisplayHelper
 from . import display, git_activity
 
 __all__ = [
-    "prompt_update_action",
-    "run_review_mode",
-    "run_quick_update_mode",
-    "run_dry_run_mode",
     "handle_update_post_processing",
+    "prompt_update_action",
+    "run_dry_run_mode",
+    "run_quick_update_mode",
+    "run_review_mode",
 ]
 
 

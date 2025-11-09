@@ -41,14 +41,14 @@ from .core import MPMInitCommand
 __all__ = [
     # Main command class
     "MPMInitCommand",
-    # Click CLI command (imported via __getattr__ to avoid circular import)
-    "mpm_init",
+    "core",
     # Internal modules (for internal package use)
     "display",
     "git_activity",
-    "prompts",
     "modes",
-    "core",
+    # Click CLI command (imported via __getattr__ to avoid circular import)
+    "mpm_init",
+    "prompts",
 ]
 
 

@@ -11,8 +11,8 @@ from typing import Any, Dict, Optional
 
 __all__ = [
     "build_initialization_prompt",
-    "build_update_prompt",
     "build_research_context_prompt",
+    "build_update_prompt",
 ]
 
 

@@ -19,10 +19,10 @@ from . import prompts
 console = Console()
 
 __all__ = [
-    "catchup",
-    "generate_activity_report",
-    "export_activity_report",
     "append_activity_notes",
+    "catchup",
+    "export_activity_report",
+    "generate_activity_report",
     "handle_context",
 ]
 

@@ -169,19 +169,19 @@ def migrate_session_files(
 
     # Check if pause directory exists
     if not pause_dir.exists():
-        print(f"\n✅ No migration needed - pause directory does not exist")
+        print("\n✅ No migration needed - pause directory does not exist")
         return 0
 
     # Find all session files
     session_files = find_session_files(pause_dir)
 
     if not session_files:
-        print(f"\n✅ No session files found in pause directory")
+        print("\n✅ No session files found in pause directory")
         if not dry_run:
             # Remove empty pause directory
             try:
                 pause_dir.rmdir()
-                print(f"  ✅ Removed empty pause directory")
+                print("  ✅ Removed empty pause directory")
             except Exception as e:
                 print(f"  ⚠️  Could not remove pause directory: {e}")
         return 0
@@ -219,7 +219,7 @@ def migrate_session_files(
             remaining_files = list(pause_dir.glob("*"))
             if not remaining_files:
                 pause_dir.rmdir()
-                print(f"\n  ✅ Removed empty pause directory")
+                print("\n  ✅ Removed empty pause directory")
             else:
                 print(f"\n  ⚠️  Pause directory not empty ({len(remaining_files)} files remain)")
         except Exception as e:
