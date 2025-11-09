@@ -161,12 +161,12 @@ class ExternalMCPService(BaseToolAdapter):
 
             if interactive:
                 # Show user-friendly installation prompt
-                print(f"\n⚠️  {self.package_name} not found")
-                print("This package enables enhanced functionality (optional).")
-                print("\nInstallation options:")
-                print("1. Install via pip (recommended for this project)")
-                print("2. Install via pipx (isolated, system-wide)")
-                print("3. Skip (continue without this package)")
+                print(f"\n⚠️  {self.package_name} not found", file=sys.stderr)
+                print("This package enables enhanced functionality (optional).", file=sys.stderr)
+                print("\nInstallation options:", file=sys.stderr)
+                print("1. Install via pip (recommended for this project)", file=sys.stderr)
+                print("2. Install via pipx (isolated, system-wide)", file=sys.stderr)
+                print("3. Skip (continue without this package)", file=sys.stderr)
 
                 try:
                     choice = input("\nChoose option (1/2/3) [1]: ").strip() or "1"
@@ -180,7 +180,7 @@ class ExternalMCPService(BaseToolAdapter):
                         )
                         return False
                 except (EOFError, KeyboardInterrupt):
-                    print("\nInstallation cancelled")
+                    print("\nInstallation cancelled", file=sys.stderr)
                     return False
             else:
                 # Non-interactive: default to pip
@@ -201,7 +201,7 @@ class ExternalMCPService(BaseToolAdapter):
     async def _install_via_pip(self) -> bool:
         """Install package via pip."""
         try:
-            print(f"\n📦 Installing {self.package_name} via pip...")
+            print(f"\n📦 Installing {self.package_name} via pip...", file=sys.stderr)
             result = subprocess.run(
                 [sys.executable, "-m", "pip", "install", self.package_name],
                 capture_output=True,
@@ -211,21 +211,21 @@ class ExternalMCPService(BaseToolAdapter):
             )
 
             if result.returncode == 0:
-                print(f"✓ Successfully installed {self.package_name}")
+                print(f"✓ Successfully installed {self.package_name}", file=sys.stderr)
                 self.logger.info(f"Successfully installed {self.package_name} via pip")
                 return True
 
             error_msg = result.stderr.strip() if result.stderr else "Unknown error"
-            print(f"✗ Installation failed: {error_msg}")
+            print(f"✗ Installation failed: {error_msg}", file=sys.stderr)
             self.logger.error(f"Failed to install {self.package_name}: {error_msg}")
             return False
 
         except subprocess.TimeoutExpired:
-            print("✗ Installation timed out")
+            print("✗ Installation timed out", file=sys.stderr)
             self.logger.error(f"Installation of {self.package_name} timed out")
             return False
         except Exception as e:
-            print(f"✗ Installation error: {e}")
+            print(f"✗ Installation error: {e}", file=sys.stderr)
             self.logger.error(f"Error installing {self.package_name}: {e}")
             return False
 
@@ -242,12 +242,12 @@ class ExternalMCPService(BaseToolAdapter):
             )
 
             if pipx_check.returncode != 0:
-                print("✗ pipx is not installed")
-                print("Install pipx first: python -m pip install pipx")
+                print("✗ pipx is not installed", file=sys.stderr)
+                print("Install pipx first: python -m pip install pipx", file=sys.stderr)
                 self.logger.error("pipx not available for installation")
                 return False
 
-            print(f"\n📦 Installing {self.package_name} via pipx...")
+            print(f"\n📦 Installing {self.package_name} via pipx...", file=sys.stderr)
             result = subprocess.run(
                 ["pipx", "install", self.package_name],
                 capture_output=True,
@@ -257,26 +257,26 @@ class ExternalMCPService(BaseToolAdapter):
             )
 
             if result.returncode == 0:
-                print(f"✓ Successfully installed {self.package_name}")
+                print(f"✓ Successfully installed {self.package_name}", file=sys.stderr)
                 self.logger.info(f"Successfully installed {self.package_name} via pipx")
                 return True
 
             error_msg = result.stderr.strip() if result.stderr else "Unknown error"
-            print(f"✗ Installation failed: {error_msg}")
+            print(f"✗ Installation failed: {error_msg}", file=sys.stderr)
             self.logger.error(f"Failed to install {self.package_name}: {error_msg}")
             return False
 
         except FileNotFoundError:
-            print("✗ pipx command not found")
-            print("Install pipx first: python -m pip install pipx")
+            print("✗ pipx command not found", file=sys.stderr)
+            print("Install pipx first: python -m pip install pipx", file=sys.stderr)
             self.logger.error("pipx command not found")
             return False
         except subprocess.TimeoutExpired:
-            print("✗ Installation timed out")
+            print("✗ Installation timed out", file=sys.stderr)
             self.logger.error(f"Installation of {self.package_name} timed out")
             return False
         except Exception as e:
-            print(f"✗ Installation error: {e}")
+            print(f"✗ Installation error: {e}", file=sys.stderr)
             self.logger.error(f"Error installing {self.package_name}: {e}")
             return False
 

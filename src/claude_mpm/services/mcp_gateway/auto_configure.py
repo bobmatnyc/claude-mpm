@@ -163,17 +163,17 @@ class MCPAutoConfigurator:
         Returns:
             True if user agrees, False if declines, None if timeout
         """
-        print("\n" + "=" * 60)
-        print("🔧 MCP Gateway Configuration")
-        print("=" * 60)
-        print("\nClaude MPM can automatically configure MCP Gateway for")
-        print("Claude Code integration. This enables advanced features:")
-        print("  • File analysis and summarization")
-        print("  • System diagnostics")
-        print("  • Ticket management")
-        print("  • And more...")
-        print("\nWould you like to configure it now? (y/n)")
-        print(f"(Auto-declining in {timeout} seconds)")
+        print("\n" + "=" * 60, file=sys.stderr)
+        print("🔧 MCP Gateway Configuration", file=sys.stderr)
+        print("=" * 60, file=sys.stderr)
+        print("\nClaude MPM can automatically configure MCP Gateway for", file=sys.stderr)
+        print("Claude Code integration. This enables advanced features:", file=sys.stderr)
+        print("  • File analysis and summarization", file=sys.stderr)
+        print("  • System diagnostics", file=sys.stderr)
+        print("  • Ticket management", file=sys.stderr)
+        print("  • And more...", file=sys.stderr)
+        print("\nWould you like to configure it now? (y/n)", file=sys.stderr)
+        print(f"(Auto-declining in {timeout} seconds)", file=sys.stderr)
 
         # Use threading for cross-platform timeout support
         # Python 3.7+ has queue built-in - no need to check, we require 3.10+
@@ -203,7 +203,7 @@ class MCPAutoConfigurator:
 
         if input_thread.is_alive():
             # Timed out
-            print("\n(Timed out - declining)")
+            print("\n(Timed out - declining)", file=sys.stderr)
             return None
         # Got input
         return user_input in ["y", "yes"]
@@ -220,7 +220,7 @@ class MCPAutoConfigurator:
             if self.claude_config_path.exists():
                 backup_path = self._create_backup()
                 if backup_path:
-                    print(f"✅ Backup created: {backup_path}")
+                    print(f"✅ Backup created: {backup_path}", file=sys.stderr)
 
             # Load or create configuration
             config = self._load_or_create_config()
@@ -232,7 +232,7 @@ class MCPAutoConfigurator:
             # Find claude-mpm executable
             executable = self._find_claude_mpm_executable()
             if not executable:
-                print("❌ Could not find claude-mpm executable")
+                print("❌ Could not find claude-mpm executable", file=sys.stderr)
                 return False
 
             # Configure MCP server
@@ -246,20 +246,20 @@ class MCPAutoConfigurator:
             with self.claude_config_path.open("w") as f:
                 json.dump(config, f, indent=2)
 
-            print(f"✅ Configuration saved to: {self.claude_config_path}")
-            print("\n🎉 MCP Gateway configured successfully!")
-            print("\nNext steps:")
-            print("1. Restart Claude Code (if running)")
-            print("2. Look for the MCP icon in the interface")
-            print("3. Try @claude-mpm-gateway in a conversation")
+            print(f"✅ Configuration saved to: {self.claude_config_path}", file=sys.stderr)
+            print("\n🎉 MCP Gateway configured successfully!", file=sys.stderr)
+            print("\nNext steps:", file=sys.stderr)
+            print("1. Restart Claude Code (if running)", file=sys.stderr)
+            print("2. Look for the MCP icon in the interface", file=sys.stderr)
+            print("3. Try @claude-mpm-gateway in a conversation", file=sys.stderr)
 
             return True
 
         except Exception as e:
             self.logger.error(f"Auto-configuration failed: {e}")
-            print(f"❌ Configuration failed: {e}")
-            print("\nYou can configure manually with:")
-            print("  claude-mpm mcp install")
+            print(f"❌ Configuration failed: {e}", file=sys.stderr)
+            print("\nYou can configure manually with:", file=sys.stderr)
+            print("  claude-mpm mcp install", file=sys.stderr)
             return False
 
     def _create_backup(self) -> Optional[Path]:
@@ -344,8 +344,8 @@ class MCPAutoConfigurator:
         if user_choice:
             return self.auto_configure()
         if user_choice is False:  # User explicitly said no
-            print("\n📝 You can configure MCP later with:")
-            print("  claude-mpm mcp install")
+            print("\n📝 You can configure MCP later with:", file=sys.stderr)
+            print("  claude-mpm mcp install", file=sys.stderr)
         # If timeout (None), don't show additional message
         return False
 
