@@ -56,9 +56,7 @@ def prompt_update_action(console: Console) -> str:
     for key, (_, desc) in choices.items():
         console.print(f"  [{key}] {desc}")
 
-    choice = Prompt.ask(
-        "\nSelect option", choices=list(choices.keys()), default="1"
-    )
+    choice = Prompt.ask("\nSelect option", choices=list(choices.keys()), default="1")
     return choices[choice][0]
 
 
@@ -97,9 +95,7 @@ def run_review_mode(
         # Analyze documentation
         task = progress.add_task("[cyan]Analyzing documentation...", total=None)
         doc_analysis = doc_manager.analyze_existing_content()
-        progress.update(
-            task, description="[green]✓ Documentation analysis complete"
-        )
+        progress.update(task, description="[green]✓ Documentation analysis complete")
 
         # Analyze git history
         if analyzer.is_git_repo:
@@ -116,7 +112,12 @@ def run_review_mode(
 
     # Display comprehensive report
     display.display_review_report(
-        display_helper, console, structure_report, doc_analysis, git_analysis, project_state
+        display_helper,
+        console,
+        structure_report,
+        doc_analysis,
+        git_analysis,
+        project_state,
     )
 
     return {
@@ -200,9 +201,7 @@ def run_quick_update_mode(
         progress.update(task, description="[green]✓ Git analysis complete")
 
         # Analyze current documentation
-        task = progress.add_task(
-            "[cyan]Checking documentation status...", total=None
-        )
+        task = progress.add_task("[cyan]Checking documentation status...", total=None)
         doc_analysis = doc_manager.analyze_existing_content()
         progress.update(task, description="[green]✓ Documentation analyzed")
 
@@ -391,9 +390,7 @@ def handle_update_post_processing(
 
             if not comparison.get("identical"):
                 console.print("\n[bold cyan]📊 Update Summary[/bold cyan]")
-                console.print(
-                    f"  Lines changed: {comparison.get('lines_added', 0):+d}"
-                )
+                console.print(f"  Lines changed: {comparison.get('lines_added', 0):+d}")
                 console.print(
                     f"  Size change: {comparison.get('size_change', 0):+,} characters"
                 )

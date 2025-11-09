@@ -61,11 +61,13 @@ def __getattr__(name):
     if name == "mpm_init":
         # Lazy import the Click command group
         from ..mpm_init_cli import mpm_init as _mpm_init
+
         return _mpm_init
 
     # For internal module imports, import them directly
     if name in ("display", "git_activity", "prompts", "modes", "core"):
         import importlib
+
         return importlib.import_module(f".{name}", __package__)
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

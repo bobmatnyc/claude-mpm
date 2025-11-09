@@ -385,6 +385,7 @@ def resume_command(list_sessions, session_id, last, project_path):
         sys.exit(130)
     except Exception as e:
         from claude_mpm.core.logging_utils import get_logger
+
         logger = get_logger(__name__)
         logger.error(f"Resume failed: {e}")
         console.print(f"[red]Resume failed: {e}[/red]")

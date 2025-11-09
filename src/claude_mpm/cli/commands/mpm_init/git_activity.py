@@ -185,9 +185,7 @@ def generate_activity_report(
     return report
 
 
-def export_activity_report(
-    project_path: Path, report: Dict, export_path: str
-) -> Path:
+def export_activity_report(project_path: Path, report: Dict, export_path: str) -> Path:
     """Export activity report to a markdown file.
 
     Args:
@@ -320,7 +318,9 @@ def append_activity_notes(claude_md_path: Path, report: Dict) -> None:
     if recent_commits:
         activity_section += "\n### Recent Commits\n"
         for commit in recent_commits[:5]:
-            activity_section += f"- `{commit['hash']}` {commit['message'][:60]} ({commit['author']})\n"
+            activity_section += (
+                f"- `{commit['hash']}` {commit['message'][:60]} ({commit['author']})\n"
+            )
 
     # Add hot files
     hot_files = report.get("hot_files", [])

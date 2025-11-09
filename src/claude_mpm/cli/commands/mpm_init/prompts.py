@@ -305,9 +305,7 @@ preserving valuable project-specific information while refreshing standard secti
     return prompt
 
 
-def build_research_context_prompt(
-    git_analysis: Dict[str, Any], days: int
-) -> str:
+def build_research_context_prompt(git_analysis: Dict[str, Any], days: int) -> str:
     """
     Build structured Research agent delegation prompt from git analysis.
 
@@ -392,7 +390,9 @@ Analyze git history to answer these questions for PM:
         )
         for name, info in sorted_contributors[:5]:
             commit_count = info.get("commits", 0)
-            prompt += f"- {name}: {commit_count} commit{'s' if commit_count != 1 else ''}\n"
+            prompt += (
+                f"- {name}: {commit_count} commit{'s' if commit_count != 1 else ''}\n"
+            )
 
     # Add analysis instructions
     prompt += """

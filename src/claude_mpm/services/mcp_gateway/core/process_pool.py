@@ -888,14 +888,23 @@ def _prompt_kuzu_update(current: str, latest: str) -> None:
         else:
             # User declined update
             print("\n  To skip this version permanently, run:", file=sys.stderr)
-            print(f"    claude-mpm config set-skip-version kuzu-memory {latest}", file=sys.stderr)
+            print(
+                f"    claude-mpm config set-skip-version kuzu-memory {latest}",
+                file=sys.stderr,
+            )
             print("  To disable update checks for kuzu-memory:", file=sys.stderr)
-            print("    claude-mpm config disable-update-checks kuzu-memory", file=sys.stderr)
+            print(
+                "    claude-mpm config disable-update-checks kuzu-memory",
+                file=sys.stderr,
+            )
 
             # Ask if user wants to skip this version
             if confirm_operation("\n  Skip this version in future checks?"):
                 UpdatePreferences.set_skip_version("kuzu-memory", latest)
-                print(f"  Version {latest} will be skipped in future checks.", file=sys.stderr)
+                print(
+                    f"  Version {latest} will be skipped in future checks.",
+                    file=sys.stderr,
+                )
     except (KeyboardInterrupt, EOFError):
         # User interrupted or input not available
         pass

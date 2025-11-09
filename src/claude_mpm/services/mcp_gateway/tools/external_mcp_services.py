@@ -162,9 +162,14 @@ class ExternalMCPService(BaseToolAdapter):
             if interactive:
                 # Show user-friendly installation prompt
                 print(f"\n⚠️  {self.package_name} not found", file=sys.stderr)
-                print("This package enables enhanced functionality (optional).", file=sys.stderr)
+                print(
+                    "This package enables enhanced functionality (optional).",
+                    file=sys.stderr,
+                )
                 print("\nInstallation options:", file=sys.stderr)
-                print("1. Install via pip (recommended for this project)", file=sys.stderr)
+                print(
+                    "1. Install via pip (recommended for this project)", file=sys.stderr
+                )
                 print("2. Install via pipx (isolated, system-wide)", file=sys.stderr)
                 print("3. Skip (continue without this package)", file=sys.stderr)
 

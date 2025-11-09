@@ -44,8 +44,14 @@ def find_session_files(pause_dir: Path) -> List[Path]:
     session_files = []
 
     # Find all session-related files
-    for pattern in ["session-*.json", "session-*.yaml", "session-*.md",
-                    ".session-*.sha256", "LATEST-SESSION.txt", "*.md"]:
+    for pattern in [
+        "session-*.json",
+        "session-*.yaml",
+        "session-*.md",
+        ".session-*.sha256",
+        "LATEST-SESSION.txt",
+        "*.md",
+    ]:
         session_files.extend(list(pause_dir.glob(pattern)))
 
     return session_files
@@ -69,7 +75,9 @@ def create_backup(pause_dir: Path) -> Path:
     return backup_dir
 
 
-def move_files(source_files: List[Path], target_dir: Path, dry_run: bool = False) -> Tuple[int, int]:
+def move_files(
+    source_files: List[Path], target_dir: Path, dry_run: bool = False
+) -> Tuple[int, int]:
     """Move files from pause/ to sessions/.
 
     Args:
@@ -123,8 +131,7 @@ def update_latest_session_txt(sessions_dir: Path, dry_run: bool = False):
 
         # Replace references to pause/ subdirectory
         updated_content = content.replace(
-            ".claude-mpm/sessions/pause/",
-            ".claude-mpm/sessions/"
+            ".claude-mpm/sessions/pause/", ".claude-mpm/sessions/"
         )
 
         if content != updated_content:
@@ -138,9 +145,7 @@ def update_latest_session_txt(sessions_dir: Path, dry_run: bool = False):
 
 
 def migrate_session_files(
-    project_path: Path,
-    dry_run: bool = False,
-    create_backup_flag: bool = True
+    project_path: Path, dry_run: bool = False, create_backup_flag: bool = True
 ) -> int:
     """Main migration function.
 
@@ -221,7 +226,9 @@ def migrate_session_files(
                 pause_dir.rmdir()
                 print("\n  ✅ Removed empty pause directory")
             else:
-                print(f"\n  ⚠️  Pause directory not empty ({len(remaining_files)} files remain)")
+                print(
+                    f"\n  ⚠️  Pause directory not empty ({len(remaining_files)} files remain)"
+                )
         except Exception as e:
             print(f"\n  ⚠️  Could not remove pause directory: {e}")
 
@@ -253,34 +260,30 @@ Examples:
 
   # Migrate without backup (not recommended)
   python scripts/migrate_session_files.py --no-backup
-        """
+        """,
     )
 
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Show what would be moved without actually moving files"
+        help="Show what would be moved without actually moving files",
     )
 
     parser.add_argument(
         "--project-path",
         type=Path,
         default=Path.cwd(),
-        help="Path to project root (default: current directory)"
+        help="Path to project root (default: current directory)",
     )
 
     parser.add_argument(
         "--backup",
         action="store_true",
         default=True,
-        help="Create backup before migration (default)"
+        help="Create backup before migration (default)",
     )
 
-    parser.add_argument(
-        "--no-backup",
-        action="store_true",
-        help="Skip backup creation"
-    )
+    parser.add_argument("--no-backup", action="store_true", help="Skip backup creation")
 
     args = parser.parse_args()
 
@@ -298,7 +301,7 @@ Examples:
     return migrate_session_files(
         project_path=project_path,
         dry_run=args.dry_run,
-        create_backup_flag=create_backup_flag
+        create_backup_flag=create_backup_flag,
     )
 
 

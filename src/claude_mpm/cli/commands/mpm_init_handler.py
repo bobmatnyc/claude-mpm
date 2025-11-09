@@ -91,9 +91,7 @@ def manage_mpm_init(args):
             console.print(
                 f"[cyan]Paused At:[/cyan] {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z')}"
             )
-            console.print(
-                f"[cyan]Location:[/cyan] .claude-mpm/sessions/{session_id}.*"
-            )
+            console.print(f"[cyan]Location:[/cyan] .claude-mpm/sessions/{session_id}.*")
 
             # Show what was captured
             console.print()

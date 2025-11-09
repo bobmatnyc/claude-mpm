@@ -92,13 +92,9 @@ def display_review_report(
 
         if git.get("branch_info"):
             branch_info = git["branch_info"]
-            git_metrics["Current branch"] = branch_info.get(
-                "current_branch", "unknown"
-            )
+            git_metrics["Current branch"] = branch_info.get("current_branch", "unknown")
 
-        display.display_metrics_section(
-            "📈 Recent Activity (30 days)", git_metrics
-        )
+        display.display_metrics_section("📈 Recent Activity (30 days)", git_metrics)
 
         if git.get("branch_info", {}).get("has_uncommitted_changes"):
             display.display_metric_row(
@@ -152,9 +148,7 @@ def display_catchup(display: DisplayHelper, console: Any, data: Dict[str, Any]) 
             f"\n[bold cyan]📝 Last {data['total_commits']} Commits[/bold cyan]"
         )
 
-        table = Table(
-            show_header=True, header_style="bold magenta", border_style="dim"
-        )
+        table = Table(show_header=True, header_style="bold magenta", border_style="dim")
         table.add_column("#", style="dim", width=3)
         table.add_column("Hash", style="yellow", width=8)
         table.add_column("Author", style="green", width=20)
@@ -186,9 +180,7 @@ def display_catchup(display: DisplayHelper, console: Any, data: Dict[str, Any]) 
     console.print("  • Use this context to inform current work priorities\n")
 
 
-def display_activity_report(
-    display: DisplayHelper, report: Dict[str, Any]
-) -> None:
+def display_activity_report(display: DisplayHelper, report: Dict[str, Any]) -> None:
     """
     Display the activity report in a formatted manner.
 
@@ -260,15 +252,11 @@ def display_results(
 
         # Display files created
         if result.get("files_created"):
-            display.display_files_list(
-                "Files Created:", result["files_created"]
-            )
+            display.display_files_list("Files Created:", result["files_created"])
 
         # Display files updated
         if result.get("files_updated"):
-            display.display_files_list(
-                "Files Updated:", result["files_updated"]
-            )
+            display.display_files_list("Files Updated:", result["files_updated"])
 
         # Display next steps
         if result.get("next_steps"):
@@ -289,9 +277,7 @@ def display_results(
         display.display_success_panel("Success", success_content)
 
 
-def show_update_plan(
-    console: Any, ast_analysis: bool, preserve_custom: bool
-) -> None:
+def show_update_plan(console: Any, ast_analysis: bool, preserve_custom: bool) -> None:
     """
     Show update mode plan.
 
@@ -311,11 +297,7 @@ def show_update_plan(
             + "• Priority-based reorganization (🔴🟡🟢⚪)\n"
             "• Updated single-path workflows\n"
             "• Refreshed tool configurations\n"
-            + (
-                "• AST analysis for enhanced documentation\n"
-                if ast_analysis
-                else ""
-            )
+            + ("• AST analysis for enhanced documentation\n" if ast_analysis else "")
             + "• Automatic archival of previous version\n"
             + "• Holistic review and optimization\n"
             + "\n[dim]Previous version will be archived in docs/_archive/[/dim]",

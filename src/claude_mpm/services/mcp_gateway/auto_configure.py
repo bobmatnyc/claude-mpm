@@ -166,8 +166,12 @@ class MCPAutoConfigurator:
         print("\n" + "=" * 60, file=sys.stderr)
         print("🔧 MCP Gateway Configuration", file=sys.stderr)
         print("=" * 60, file=sys.stderr)
-        print("\nClaude MPM can automatically configure MCP Gateway for", file=sys.stderr)
-        print("Claude Code integration. This enables advanced features:", file=sys.stderr)
+        print(
+            "\nClaude MPM can automatically configure MCP Gateway for", file=sys.stderr
+        )
+        print(
+            "Claude Code integration. This enables advanced features:", file=sys.stderr
+        )
         print("  • File analysis and summarization", file=sys.stderr)
         print("  • System diagnostics", file=sys.stderr)
         print("  • Ticket management", file=sys.stderr)
@@ -246,7 +250,9 @@ class MCPAutoConfigurator:
             with self.claude_config_path.open("w") as f:
                 json.dump(config, f, indent=2)
 
-            print(f"✅ Configuration saved to: {self.claude_config_path}", file=sys.stderr)
+            print(
+                f"✅ Configuration saved to: {self.claude_config_path}", file=sys.stderr
+            )
             print("\n🎉 MCP Gateway configured successfully!", file=sys.stderr)
             print("\nNext steps:", file=sys.stderr)
             print("1. Restart Claude Code (if running)", file=sys.stderr)
