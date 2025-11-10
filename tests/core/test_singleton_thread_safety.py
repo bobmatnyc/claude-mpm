@@ -110,7 +110,7 @@ class TestSingletonManagerThreadSafety:
         # All instances should have the same value (whichever thread won the race)
         values = {instance.value for instance in instances}
         assert len(values) == 1, "All instances should have the same value"
-        assert 0 <= list(values)[0] <= 9, "Value should be from one of the threads"
+        assert 0 <= next(iter(values)) <= 9, "Value should be from one of the threads"
 
         # Cleanup
         SingletonManager.clear_instance(ConfigurableClass)
