@@ -11,7 +11,7 @@ separating it from directory traversal and caching concerns.
 
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 from ...core.logging_config import get_logger
 from .cache import CacheManager
