@@ -59,7 +59,7 @@ async def test_claude_code_compatibility():
         print(f"Meets Minimum: {compat['meets_minimum']}")
         print(f"Is Recommended: {compat['is_recommended']}")
         print(f"Status: {compat['status']}")
-        print(f"\nMessage:")
+        print("\nMessage:")
         print(f"   {compat['message']}")
     else:
         print(f"Message: {compat['message']}")
@@ -79,7 +79,7 @@ async def test_update_check():
     update_info = await service.check_for_update()
 
     if update_info:
-        print(f"✓ Check completed successfully")
+        print("✓ Check completed successfully")
         print(f"  Current: {update_info['current']}")
         print(f"  Latest: {update_info['latest']}")
         print(f"  Update Available: {update_info['update_available']}")
@@ -150,9 +150,9 @@ async def test_full_startup_check():
     )
 
     if result:
-        print(f"\n✓ Startup check completed with update available")
+        print("\n✓ Startup check completed with update available")
     else:
-        print(f"\n✓ Startup check completed - no updates needed")
+        print("\n✓ Startup check completed - no updates needed")
 
     print()
 

@@ -367,7 +367,7 @@ class SelfUpgradeService:
         latest = update_info["latest"]
         command = update_info.get("upgrade_command", "pip install --upgrade claude-mpm")
 
-        print("\nℹ️  Update available: v{} → v{}".format(current, latest))
+        print(f"\nℹ️  Update available: v{current} → v{latest}")
         print(f"   Run: {command}")
         print(f"   Release notes: https://github.com/bobmatnyc/claude-mpm/releases/tag/v{latest}")
         print()

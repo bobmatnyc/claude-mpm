@@ -248,10 +248,10 @@ class LoggingHook(PreToolUseHook):
     ) -> Optional[Dict[str, Any]]:
         """Log the tool call."""
         try:
-            import datetime
+            from datetime import datetime, timezone
 
             log_entry = {
-                "timestamp": datetime.datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "tool_name": tool_name,
                 "session_id": event.get("session_id", ""),
                 "cwd": event.get("cwd", ""),

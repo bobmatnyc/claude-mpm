@@ -518,7 +518,6 @@ def check_for_updates_async():
             # Get configuration values
             check_claude_code = updates_config.get("check_claude_code", True)
             auto_upgrade = updates_config.get("auto_upgrade", False)
-            cache_ttl = updates_config.get("cache_ttl", 86400)
 
             # Check and prompt for upgrade if available (non-blocking)
             loop.run_until_complete(
