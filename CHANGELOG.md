@@ -10,6 +10,25 @@
 
 ### Documentation
 
+## [4.21.4] - 2025-11-10
+
+### Added
+- Pre-tool-use hooks system with comprehensive templates
+- Update checking service with self-upgrade capabilities
+- PM file tracking enforcement (BLOCKING requirement)
+
+### Changed
+- PM workflow now requires IMMEDIATE file tracking after agent work
+- File tracking is BLOCKING (cannot mark todos complete without tracking)
+
+### Fixed
+- PM workflow timing violations now properly detected
+- Circuit breaker enforcement for file tracking violations
+
+### Documentation
+- Added pretool-use-hooks.md, why-not-a-plugin.md, update-checking.md
+- Updated installation and troubleshooting guides
+
 ## [4.21.3] - 2025-11-10
 
 ### Added
