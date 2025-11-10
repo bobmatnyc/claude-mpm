@@ -583,6 +583,14 @@ class Config:
                 "auto_save": True,  # Enable automatic session saving
                 "save_interval": 300,  # Auto-save interval in seconds (5 minutes)
             },
+            # Update checking configuration
+            "updates": {
+                "check_enabled": True,  # Enable automatic update checks
+                "check_frequency": "daily",  # Options: "always", "daily", "weekly", "never"
+                "check_claude_code": True,  # Check Claude Code version compatibility
+                "auto_upgrade": False,  # Automatically upgrade without prompting (use with caution)
+                "cache_ttl": 86400,  # Cache update check results (24 hours)
+            },
         }
 
         # Apply defaults for missing keys

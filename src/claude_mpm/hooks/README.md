@@ -16,6 +16,16 @@ Earlier versions of Claude Code do not support the matcher-based hook configurat
 - You'll see a clear message about the version requirement
 - To enable monitoring, upgrade Claude Code to 1.0.92+
 
+**Claude Code 2.0.30 or higher is required for PreToolUse input modification.**
+
+This advanced feature allows hooks to modify tool inputs before execution, enabling:
+- Context injection into file operations
+- Security guards that validate and block dangerous operations
+- Parameter enhancement with default values
+- Logging and auditing of tool invocations
+
+See [PreToolUse Hook Documentation](../../docs/developer/pretool-use-hooks.md) for details.
+
 ## Architecture (v4.1.8+)
 
 Claude MPM uses a **deployment-root hook architecture** where Claude Code directly calls a script within the claude-mpm installation. See [HOOK_ARCHITECTURE.md](../../docs/developer/HOOK_ARCHITECTURE.md) for details.
@@ -34,6 +44,10 @@ hooks/
 │       ├── connection_manager.py     # SocketIO/HTTP connections
 │       ├── state_manager.py          # State and delegation tracking
 │       └── subagent_processor.py     # Subagent response processing
+├── templates/                         # Hook script templates
+│   ├── pre_tool_use_template.py      # Comprehensive PreToolUse template
+│   ├── pre_tool_use_simple.py        # Simple PreToolUse template
+│   └── README.md                     # Template documentation
 └── scripts/
     └── claude-hook-handler.sh        # Deployment-root hook script (called by Claude Code)
 ```

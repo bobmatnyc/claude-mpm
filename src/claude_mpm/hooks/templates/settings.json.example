@@ -1,0 +1,147 @@
+{
+  "// NOTE": "This is an example configuration for Claude Code PreToolUse hooks",
+  "// FILE": "Copy relevant sections to ~/.claude/settings.json",
+  "// VERSION": "Requires Claude Code 2.0.30+ for input modification",
+
+  "hooks": {
+    "// PreToolUse with input modification (v2.0.30+)": {
+      "description": "Hooks that can modify tool inputs before execution",
+      "examples": [
+        "Context injection: Add project context to file operations",
+        "Security guards: Block operations on sensitive files",
+        "Parameter enhancement: Add default parameters",
+        "Logging: Track all tool invocations"
+      ]
+    },
+
+    "PreToolUse": [
+      {
+        "// Matcher": "Use '*' for all tools or specify tool name",
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "// IMPORTANT": "Replace YOUR_USERNAME with your actual username",
+            "command": "/Users/YOUR_USERNAME/.claude-mpm/hooks/my_hook.py",
+            "// modifyInput": "Set to true to enable input modification (v2.0.30+)",
+            "modifyInput": true
+          }
+        ]
+      }
+    ],
+
+    "// Tool-specific examples": {
+      "description": "Target specific tools instead of all tools"
+    },
+
+    "// Example: Security guard for Edit operations": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/YOUR_USERNAME/.claude-mpm/hooks/edit-guard.py",
+            "modifyInput": true
+          }
+        ]
+      }
+    ],
+
+    "// Example: Add timeout to all Bash commands": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/YOUR_USERNAME/.claude-mpm/hooks/bash-timeout.py",
+            "modifyInput": true
+          }
+        ]
+      }
+    ],
+
+    "// Example: Log all Grep operations": [
+      {
+        "matcher": "Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/YOUR_USERNAME/.claude-mpm/hooks/grep-logger.py",
+            "modifyInput": true
+          }
+        ]
+      }
+    ],
+
+    "// Example: Multiple hooks in sequence": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/YOUR_USERNAME/.claude-mpm/hooks/logger.py",
+            "modifyInput": true,
+            "// note": "First hook: Log the operation"
+          },
+          {
+            "type": "command",
+            "command": "/Users/YOUR_USERNAME/.claude-mpm/hooks/guard.py",
+            "modifyInput": true,
+            "// note": "Second hook: Validate and potentially block"
+          },
+          {
+            "type": "command",
+            "command": "/Users/YOUR_USERNAME/.claude-mpm/hooks/enhancer.py",
+            "modifyInput": true,
+            "// note": "Third hook: Add default parameters"
+          }
+        ]
+      }
+    ],
+
+    "// Legacy hooks (v1.0.92+) still work": {
+      "UserPromptSubmit": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "/Users/YOUR_USERNAME/.claude-mpm/hooks/claude-hook-handler.sh"
+            }
+          ]
+        }
+      ],
+      "PostToolUse": [
+        {
+          "matcher": "*",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "/Users/YOUR_USERNAME/.claude-mpm/hooks/claude-hook-handler.sh"
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "// Quick Setup Instructions": {
+    "1": "Copy a template from src/claude_mpm/hooks/templates/",
+    "2": "Make it executable: chmod +x ~/.claude-mpm/hooks/my_hook.py",
+    "3": "Copy the relevant configuration section above to ~/.claude/settings.json",
+    "4": "Replace YOUR_USERNAME with your actual username",
+    "5": "Test: echo '{...}' | python3 ~/.claude-mpm/hooks/my_hook.py"
+  },
+
+  "// Documentation": {
+    "Quick Start": "docs/user/pretool-use-quick-start.md",
+    "Developer Guide": "docs/developer/pretool-use-hooks.md",
+    "Templates": "src/claude_mpm/hooks/templates/",
+    "Examples": "src/claude_mpm/hooks/templates/pre_tool_use_template.py"
+  },
+
+  "// Version Requirements": {
+    "Hooks": "Claude Code 1.0.92+",
+    "Input Modification": "Claude Code 2.0.30+",
+    "Check Version": "claude --version"
+  }
+}

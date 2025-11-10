@@ -471,7 +471,7 @@ def check_for_updates_async():
 
     DESIGN DECISION: This is non-blocking and non-critical - failures are logged
     but don't prevent startup. Only runs for pip/pipx/npm installations, skips
-    editable/development installations.
+    editable/development installations. Respects user configuration settings.
     """
 
     def run_update_check():
@@ -480,10 +480,26 @@ def check_for_updates_async():
         try:
             import asyncio
 
+            from ..core.config import Config
             from ..core.logger import get_logger
             from ..services.self_upgrade_service import SelfUpgradeService
 
             logger = get_logger("upgrade_check")
+
+            # Load configuration
+            config = Config()
+            updates_config = config.get("updates", {})
+
+            # Check if update checking is enabled
+            if not updates_config.get("check_enabled", True):
+                logger.debug("Update checking disabled in configuration")
+                return
+
+            # Check frequency setting
+            frequency = updates_config.get("check_frequency", "daily")
+            if frequency == "never":
+                logger.debug("Update checking frequency set to 'never'")
+                return
 
             # Create new event loop for this thread
             loop = asyncio.new_event_loop()
@@ -499,8 +515,17 @@ def check_for_updates_async():
                 logger.debug("Skipping version check for editable installation")
                 return
 
+            # Get configuration values
+            check_claude_code = updates_config.get("check_claude_code", True)
+            auto_upgrade = updates_config.get("auto_upgrade", False)
+            cache_ttl = updates_config.get("cache_ttl", 86400)
+
             # Check and prompt for upgrade if available (non-blocking)
-            loop.run_until_complete(upgrade_service.check_and_prompt_on_startup())
+            loop.run_until_complete(
+                upgrade_service.check_and_prompt_on_startup(
+                    auto_upgrade=auto_upgrade, check_claude_code=check_claude_code
+                )
+            )
 
         except Exception as e:
             # Non-critical - log but don't fail startup

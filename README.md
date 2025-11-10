@@ -2,9 +2,15 @@
 
 A powerful orchestration framework for **Claude Code (CLI)** that enables multi-agent workflows, session management, and real-time monitoring through a streamlined Rich-based interface.
 
-> **⚠️ Important**: Claude MPM extends **Claude Code (CLI)**, not Claude Desktop (app). All MCP integrations work with Claude Code's CLI interface only.
+> **⚠️ Important**: Claude MPM **requires Claude Code CLI** (v1.0.92+), not Claude Desktop (app). All MCP integrations work with Claude Code's CLI interface only.
+>
+> **Don't have Claude Code?** Install from: https://docs.anthropic.com/en/docs/claude-code
+>
+> **Version Requirements:**
+> - Minimum: v1.0.92 (hooks support)
+> - Recommended: v2.0.30+ (latest features)
 
-> **Quick Start**: See [QUICKSTART.md](QUICKSTART.md) to get running in 5 minutes!
+> **Quick Start**: See [docs/user/getting-started.md](docs/user/getting-started.md) to get running in 5 minutes!
 
 ## Features
 
@@ -22,6 +28,23 @@ A powerful orchestration framework for **Claude Code (CLI)** that enables multi-
 
 ## Quick Installation
 
+### Prerequisites
+
+**Before installing Claude MPM**, ensure you have:
+
+1. **Python 3.8+** (3.11+ recommended)
+2. **Claude Code CLI v1.0.92+** (required!)
+
+```bash
+# Verify Claude Code is installed
+claude --version
+
+# If not installed, get it from:
+# https://docs.anthropic.com/en/docs/claude-code
+```
+
+### Install Claude MPM
+
 ```bash
 # Basic installation
 pip install claude-mpm
@@ -37,6 +60,17 @@ pipx install claude-mpm
 
 # Install with monitoring dashboard (recommended)
 pipx install "claude-mpm[monitor]"
+```
+
+### Verify Installation
+
+```bash
+# Check versions
+claude-mpm --version
+claude --version
+
+# Run diagnostics (checks Claude Code compatibility)
+claude-mpm doctor
 ```
 
 **💡 Optional Dependencies**:
@@ -116,7 +150,7 @@ claude-mpm verify
 
 **That's it!** These tools integrate automatically with Claude MPM once installed. No additional configuration needed.
 
-**That's it!** See [QUICKSTART.md](QUICKSTART.md) for immediate usage or [docs/user/installation.md](docs/user/installation.md) for advanced options.
+**That's it!** See [docs/user/getting-started.md](docs/user/getting-started.md) for immediate usage.
 
 ## Quick Usage
 
@@ -161,9 +195,14 @@ claude-mpm verify --json
 
 # Manage memory for large conversation histories
 claude-mpm cleanup-memory
+
+# Check for updates (including Claude Code compatibility)
+claude-mpm doctor --checks updates
 ```
 
-See [QUICKSTART.md](QUICKSTART.md) for complete usage examples.
+**💡 Update Checking**: Claude MPM automatically checks for updates and verifies Claude Code compatibility on startup. Configure in `~/.claude-mpm/configuration.yaml` or see [docs/update-checking.md](docs/update-checking.md).
+
+See [docs/user/getting-started.md](docs/user/getting-started.md) for complete usage examples.
 
 
 ## Architecture (v4.4.1)

@@ -21,13 +21,32 @@ Get Claude MPM running in under 5 minutes.
 ## Prerequisites
 
 **Required:**
-- Python 3.8 or higher
-- Claude Code CLI (not Claude Desktop app)
-- Install Claude Code from https://claude.ai/code
+
+### 1. Python Environment
+- **Python 3.8 or higher** (3.11+ recommended)
+- Check version: `python --version`
+
+### 2. Claude Code (CLI)
+
+Claude MPM **requires** Claude Code CLI (not Claude Desktop app). Claude Code is Anthropic's official command-line interface that enables terminal-based AI interactions.
+
+**Version Requirements:**
+- **Minimum**: v1.0.92 (for hooks support)
+- **Recommended**: v2.0.30+ (for latest features and stability)
+
+**Installation:**
+- Install from: https://docs.anthropic.com/en/docs/claude-code
+- After installation, verify: `claude --version`
+
+**Why Claude Code is Required:**
+- Claude MPM extends Claude Code's CLI capabilities
+- Provides multi-agent orchestration layer
+- Integrates with Claude Code's command system
+- All MCP integrations work through Claude Code
 
 **Recommended:**
-- pipx for isolated installation
-- Git for version control features
+- **pipx** for isolated installation
+- **Git** for version control features
 
 ## Installation
 
@@ -72,6 +91,32 @@ pip install -e ".[dev,monitor]"
 # Verify installation
 claude-mpm --version
 ```
+
+### Verify Installation
+
+After installing Claude MPM, verify both Claude MPM and Claude Code are properly set up:
+
+```bash
+# Check Claude MPM version
+claude-mpm --version
+
+# Check Claude Code version (must be v1.0.92+)
+claude --version
+
+# Run comprehensive diagnostics
+claude-mpm doctor
+
+# Check for available updates
+claude-mpm doctor --checks updates
+```
+
+**Expected Output:**
+- Claude MPM version should be v4.21.1 or higher
+- Claude Code version should be v1.0.92 or higher (v2.0.30+ recommended)
+- Doctor command should report no critical issues
+
+**If Claude Code is Missing:**
+See [Troubleshooting - Claude Code Issues](#claude-code-issues) below.
 
 ## First Run
 
@@ -189,6 +234,80 @@ claude-mpm local-deploy start --command "npm run dev"
 claude-mpm local-deploy list
 claude-mpm local-deploy stop <deployment-id>
 ```
+
+## Claude Code Issues
+
+### Claude Code Not Installed
+
+**Problem:** `claude: command not found` or `claude-mpm doctor` reports Claude Code missing.
+
+**Solution:**
+
+```bash
+# Install Claude Code from Anthropic
+# Visit: https://docs.anthropic.com/en/docs/claude-code
+
+# After installation, verify
+claude --version
+
+# Ensure it's in PATH (add to ~/.bashrc or ~/.zshrc if needed)
+export PATH="$PATH:/path/to/claude/bin"
+source ~/.bashrc  # or ~/.zshrc
+
+# Re-run diagnostics
+claude-mpm doctor
+```
+
+### Claude Code Version Too Old
+
+**Problem:** Claude Code version is below v1.0.92.
+
+**Solution:**
+
+```bash
+# Check current version
+claude --version
+
+# Update Claude Code (method depends on installation)
+# For Homebrew (macOS):
+brew upgrade claude
+
+# For other methods, download latest from:
+# https://docs.anthropic.com/en/docs/claude-code
+
+# Verify update
+claude --version  # Should show v1.0.92 or higher
+
+# Check Claude MPM compatibility
+claude-mpm doctor --checks updates
+```
+
+### Update Checking
+
+Claude MPM automatically checks for updates on startup and verifies Claude Code compatibility.
+
+**Configure Update Checking:**
+
+Edit `~/.claude-mpm/configuration.yaml`:
+
+```yaml
+updates:
+  check_enabled: true          # Enable/disable update checks
+  check_frequency: "daily"     # always|daily|weekly|never
+  check_claude_code: true      # Verify Claude Code compatibility
+  auto_upgrade: false          # Auto-upgrade (use with caution)
+```
+
+**Disable Temporarily:**
+
+```bash
+# Skip update check for single command
+CLAUDE_MPM_SKIP_UPDATE_CHECK=1 claude-mpm run
+```
+
+**See Also:**
+- [Update Checking Documentation](../../docs/update-checking.md)
+- [Troubleshooting Guide](troubleshooting.md)
 
 ## What's Next
 

@@ -38,7 +38,7 @@ PM Red Flags are automatic violation indicators based on language patterns. Thes
 | **Implementation** | "Let me fix...", "Let me create..." | PM doing work instead of delegating | "I'll delegate to Engineer..." |
 | **Assertion** | "It works", "It's fixed" | PM claiming without evidence | "Based on [Agent]'s verification..." |
 | **Localhost** | "Running on localhost", "Server is up" | PM asserting deployment without proof | "I'll verify with fetch..." or "Ops verified..." |
-| **File Tracking** | "I'll let the agent track that..." | PM avoiding tracking responsibility | "Running git status to check..." |
+| **File Tracking** | "I'll track it later...", "Marking complete..." | PM batching/delaying tracking | "Tracking NOW before marking complete..." |
 
 ---
 
@@ -126,24 +126,42 @@ Process started ≠ Service accessible. PM must verify with actual fetch/curl te
 
 ## File Tracking Red Flags
 
-**Rule**: PM MUST track all new files created during sessions. This is PM's QA responsibility.
+**🚨 NEW RULE**: PM MUST track files IMMEDIATELY after agent creates them - NOT at session end. File tracking is BLOCKING requirement before marking todo complete.
 
-### Violation Phrases
+### Timing Violation Phrases (NEW - CRITICAL)
+- "I'll track it later..." → **VIOLATION**: Track NOW before marking complete
+- "I'll commit at end of session..." → **VIOLATION**: Batching violates immediate tracking
+- "Marking this todo complete..." (without git status) → **VIOLATION**: BLOCKING requirement
+- "Agent finished, moving on..." → **VIOLATION**: Must check files FIRST
+- "That's done, next task..." → **VIOLATION**: Files must be tracked before "done"
+- "Todo complete!" (no file tracking) → **VIOLATION**: Check files before completing
+
+### Delegation Violation Phrases
 - "I'll let the agent track that..." → **VIOLATION**: PM QA responsibility
+- "I'll have version-control track it..." → **VIOLATION**: PM responsibility
+- "Agent will handle git..." → **VIOLATION**: PM must verify tracking
+- "Engineer can commit their changes..." → **VIOLATION**: PM tracks ALL files
+
+### Avoidance Violation Phrases
 - "We can commit that later..." → **VIOLATION**: Track immediately
 - "That file doesn't need tracking..." → **VIOLATION**: Verify .gitignore first
 - "The file is created, we're done..." → **VIOLATION**: Must verify git tracking
-- "I'll have version-control track it..." → **VIOLATION**: PM responsibility
-- "Agent will handle git..." → **VIOLATION**: PM must verify tracking
+- "It's in /tmp/, skip it..." → **VIOLATION**: Must verify decision matrix
 
 ### Why It's a Violation
-File tracking is PM's quality assurance duty and cannot be delegated. All new files must be verified and tracked (unless in .gitignore or /tmp/) before session ends.
+File tracking is PM's quality assurance duty and CANNOT be delegated OR delayed. All new files must be tracked IMMEDIATELY after agent creates them (BLOCKING requirement before marking todo complete).
 
-**Required Actions**:
-1. Run `git status` to check for untracked files
-2. Verify files against .gitignore
-3. Track all appropriate files with `git add`
+**🚨 CRITICAL TIMING CHANGE**:
+- ❌ OLD: Track files "before ending session"
+- ✅ NEW: Track files IMMEDIATELY after agent creates them
+
+**Required Actions (BLOCKING - BEFORE marking todo complete)**:
+1. Agent returns → IMMEDIATELY run `git status` to check for new files
+2. Check decision matrix (deliverable vs temp/ignored)
+3. Track all deliverable files with `git add`
 4. Commit with proper context using Claude MPM branding
+5. Verify tracking with `git status`
+6. ONLY THEN mark todo as complete
 
 ---
 
@@ -167,11 +185,13 @@ File tracking is PM's quality assurance duty and cannot be delegated. All new fi
 - "[Agent] reported..."
 - "[Agent] verified..."
 
-### File Tracking Phrases
-- "Running git status to check for new files..."
-- "All new files verified and tracked in git"
-- "Committing new files with proper context..."
-- "Verified files against .gitignore"
+### File Tracking Phrases (IMMEDIATE ENFORCEMENT)
+- "Agent returned → Running git status NOW to check for new files..."
+- "Found new files → Tracking IMMEDIATELY before marking complete..."
+- "Running git add + commit BEFORE marking todo complete..."
+- "All new files tracked → NOW marking todo as complete"
+- "Verified files against .gitignore decision matrix"
+- "No new deliverable files found → Safe to mark complete"
 
 ### Verification Phrases
 - "I'll verify the deployment with curl..."
@@ -215,10 +235,12 @@ File tracking is PM's quality assurance duty and cannot be delegated. All new fi
 - "Server is running" → "Ops confirmed server is running at localhost:3000"
 - "Bug is fixed" → "Engineer fixed the bug and QA confirmed with regression tests"
 
-**Pattern**: File tracking avoidance → **Replace with**: PM file tracking actions
-- "Agent will commit" → "Running git status to verify tracking..."
-- "No need to track" → "Verified file is in .gitignore"
-- "Later" → "Tracking immediately with git add"
+**Pattern**: File tracking avoidance → **Replace with**: PM immediate file tracking actions
+- "Agent will commit" → "Agent returned → Running git status NOW..."
+- "I'll track later" → "Tracking IMMEDIATELY before marking complete..."
+- "Marking complete" → "First checking files → git status → track → THEN mark complete"
+- "No need to track" → "Verified file is in .gitignore decision matrix"
+- "Later" → "BLOCKING: Tracking immediately with git add before proceeding"
 
 ### Integration with Circuit Breakers
 

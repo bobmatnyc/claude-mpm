@@ -12,15 +12,93 @@ Common issues and solutions for Claude MPM.
 ## Table of Contents
 
 - [Installation Issues](#installation-issues)
+  - [Claude Code Not Installed](#claude-code-not-installed)
+  - [Claude Code Version Outdated](#claude-code-version-outdated)
+  - [Command Not Found](#command-not-found-claude-mpm)
+  - [Monitor Dashboard Issues](#monitor-dashboard-wont-load)
+  - [Python Version Mismatch](#python-version-mismatch)
+  - [Dependency Conflicts](#dependency-conflicts)
 - [Agent Issues](#agent-issues)
 - [Monitoring Issues](#monitoring-issues)
 - [Local Deployment Issues](#local-deployment-issues)
 - [Memory Issues](#memory-issues)
 - [Session Issues](#session-issues)
 - [Performance Issues](#performance-issues)
+- [Update Checking Issues](#update-checking-issues)
+  - [Update Checks Not Running](#update-checks-not-running)
+  - [False Update Notifications](#false-update-available-notifications)
+  - [Update Check Timeouts](#update-check-timeouts)
+  - [Claude Code Compatibility Warnings](#claude-code-compatibility-warnings)
 - [Diagnostics](#diagnostics)
 
 ## Installation Issues
+
+### Claude Code Not Installed
+
+**Problem**: `claude: command not found` or Claude MPM reports Claude Code missing.
+
+**Why This Matters**: Claude MPM requires Claude Code CLI (v1.0.92+) to function. It's not the same as Claude Desktop.
+
+**Solutions:**
+
+```bash
+# 1. Check if Claude Code is installed
+which claude
+claude --version
+
+# 2. Install Claude Code if missing
+# Visit: https://docs.anthropic.com/en/docs/claude-code
+# Download and install for your platform
+
+# 3. Verify Claude Code is in PATH
+# Add to ~/.bashrc or ~/.zshrc if needed:
+export PATH="$PATH:$HOME/.local/bin"  # Adjust path as needed
+source ~/.bashrc  # or ~/.zshrc
+
+# 4. Verify installation
+claude --version  # Should show v1.0.92 or higher
+
+# 5. Run Claude MPM diagnostics
+claude-mpm doctor
+```
+
+**Version Requirements:**
+- **Minimum**: v1.0.92 (hooks support)
+- **Recommended**: v2.0.30+ (latest features)
+
+### Claude Code Version Outdated
+
+**Problem**: Claude Code version is below v1.0.92.
+
+**Solutions:**
+
+```bash
+# Check current version
+claude --version
+
+# Update Claude Code
+# Method depends on installation method:
+
+# Homebrew (macOS):
+brew upgrade claude
+
+# Manual installation:
+# Download latest from https://docs.anthropic.com/en/docs/claude-code
+
+# Verify update
+claude --version
+
+# Confirm compatibility
+claude-mpm doctor --checks updates
+```
+
+**Feature Availability by Version:**
+
+| Feature | Minimum Version | Recommended Version |
+|---------|----------------|---------------------|
+| Basic hooks support | v1.0.92 | v2.0.30+ |
+| Full MCP integration | v2.0.12 | v2.0.30+ |
+| Update checking | v1.0.92 | v2.0.30+ |
 
 ### "command not found: claude-mpm"
 
@@ -479,6 +557,114 @@ claude-mpm run --monitor
 
 # Review hook implementations
 cat .claude-mpm/hooks/*
+```
+
+## Update Checking Issues
+
+### Update Checks Not Running
+
+**Problem**: No update notifications appear on startup.
+
+**Solutions:**
+
+```bash
+# 1. Check configuration
+cat ~/.claude-mpm/configuration.yaml | grep -A 6 "updates:"
+
+# 2. Verify not disabled via environment variable
+echo $CLAUDE_MPM_SKIP_UPDATE_CHECK
+
+# 3. Check cache status
+ls -la ~/.cache/claude-mpm/version-checks/
+
+# 4. Clear cache and retry
+rm -rf ~/.cache/claude-mpm/version-checks/
+claude-mpm run
+
+# 5. Enable debug mode to see update check logs
+claude-mpm --debug run 2>&1 | grep -i "update\|upgrade"
+```
+
+**Configuration:**
+
+Edit `~/.claude-mpm/configuration.yaml`:
+
+```yaml
+updates:
+  check_enabled: true          # Must be true
+  check_frequency: "daily"     # Try "always" for testing
+  check_claude_code: true      # Enable Claude Code checks
+```
+
+### False "Update Available" Notifications
+
+**Problem**: Update notification shows but version is already latest.
+
+**Solutions:**
+
+```bash
+# 1. Clear version cache
+rm -rf ~/.cache/claude-mpm/version-checks/
+
+# 2. Verify installed version
+claude-mpm --version
+pip show claude-mpm | grep Version
+
+# 3. Check PyPI for actual latest version
+curl -s https://pypi.org/pypi/claude-mpm/json | grep -o '"version":"[^"]*"' | head -1
+
+# 4. Reinstall if versions don't match
+pipx reinstall claude-mpm
+# or
+pip install --force-reinstall claude-mpm
+```
+
+### Update Check Timeouts
+
+**Problem**: Slow startup due to update checks.
+
+**Solutions:**
+
+```bash
+# 1. Reduce check frequency
+# Edit ~/.claude-mpm/configuration.yaml:
+updates:
+  check_frequency: "weekly"  # Instead of "daily" or "always"
+
+# 2. Increase cache TTL (check less often)
+updates:
+  cache_ttl: 604800  # 7 days in seconds
+
+# 3. Disable temporarily
+CLAUDE_MPM_SKIP_UPDATE_CHECK=1 claude-mpm run
+
+# 4. Disable permanently (not recommended)
+updates:
+  check_enabled: false
+```
+
+### Claude Code Compatibility Warnings
+
+**Problem**: Warnings about Claude Code version on every startup.
+
+**Solutions:**
+
+```bash
+# 1. Update Claude Code (recommended)
+brew upgrade claude  # macOS with Homebrew
+# or download from https://docs.anthropic.com/en/docs/claude-code
+
+# 2. Verify version meets requirements
+claude --version  # Should be v1.0.92+, ideally v2.0.30+
+
+# 3. Disable Claude Code checking (not recommended)
+# Edit ~/.claude-mpm/configuration.yaml:
+updates:
+  check_claude_code: false
+
+# 4. Check for PATH issues
+which claude
+echo $PATH | grep -o '[^:]*claude[^:]*'
 ```
 
 ## Diagnostics

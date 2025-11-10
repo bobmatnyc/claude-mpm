@@ -192,6 +192,8 @@ main "$@"
 
     # Minimum Claude Code version required for hook monitoring
     MIN_CLAUDE_VERSION = "1.0.92"
+    # Minimum version for PreToolUse input modification support
+    MIN_PRETOOL_MODIFY_VERSION = "2.0.30"
 
     def __init__(self):
         """Initialize the hook installer."""
@@ -291,6 +293,42 @@ main "$@"
                 break
 
         return (True, f"Claude Code {version} is compatible with hook monitoring.")
+
+    def supports_pretool_modify(self) -> bool:
+        """
+        Check if the installed Claude Code version supports PreToolUse input modification.
+
+        PreToolUse input modification was added in Claude Code v2.0.30.
+
+        Returns:
+            True if version supports input modification, False otherwise
+        """
+        version = self.get_claude_version()
+
+        if version is None:
+            return False
+
+        def parse_version(v: str) -> List[int]:
+            """Parse semantic version string to list of integers."""
+            try:
+                return [int(x) for x in v.split(".")]
+            except (ValueError, AttributeError):
+                return [0]
+
+        current = parse_version(version)
+        required = parse_version(self.MIN_PRETOOL_MODIFY_VERSION)
+
+        # Compare versions
+        for i in range(max(len(current), len(required))):
+            curr_part = current[i] if i < len(current) else 0
+            req_part = required[i] if i < len(required) else 0
+
+            if curr_part < req_part:
+                return False
+            if curr_part > req_part:
+                return True
+
+        return True
 
     def get_hook_script_path(self) -> Path:
         """Get the path to the hook handler script based on installation method.
@@ -677,6 +715,7 @@ main "$@"
         # Check version compatibility
         claude_version = self.get_claude_version()
         is_compatible, version_message = self.is_version_compatible()
+        pretool_modify_supported = self.supports_pretool_modify()
 
         is_valid, issues = self.verify_hooks()
 
@@ -701,6 +740,12 @@ main "$@"
             "version_compatible": is_compatible,
             "version_message": version_message,
             "deployment_type": "deployment-root",  # New field to indicate new architecture
+            "pretool_modify_supported": pretool_modify_supported,  # v2.0.30+ feature
+            "pretool_modify_message": (
+                f"PreToolUse input modification supported (v{claude_version})"
+                if pretool_modify_supported
+                else f"PreToolUse input modification requires Claude Code {self.MIN_PRETOOL_MODIFY_VERSION}+ (current: {claude_version or 'unknown'})"
+            ),
         }
 
         # Check Claude settings for hook configuration

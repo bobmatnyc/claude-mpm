@@ -311,11 +311,12 @@ class ClaudeHookHandler:
                     )
 
             # Route event to appropriate handler
-            self._route_event(event)
+            # Handlers can optionally return modified input for PreToolUse events
+            modified_input = self._route_event(event)
 
             # Always continue execution (only if not already sent)
             if not _continue_sent:
-                self._continue_execution()
+                self._continue_execution(modified_input)
                 _continue_sent = True
 
         except Exception:
@@ -376,7 +377,7 @@ class ClaudeHookHandler:
                 print(f"Error reading hook event: {e}", file=sys.stderr)
             return None
 
-    def _route_event(self, event: dict) -> None:
+    def _route_event(self, event: dict) -> Optional[dict]:
         """
         Route event to appropriate handler based on type.
 
@@ -385,6 +386,9 @@ class ClaudeHookHandler:
 
         Args:
             event: Hook event dictionary
+
+        Returns:
+            Modified input for PreToolUse events (v2.0.30+), None otherwise
         """
         # Try multiple field names for compatibility
         hook_type = (
@@ -416,23 +420,36 @@ class ClaudeHookHandler:
         handler = event_handlers.get(hook_type)
         if handler:
             try:
-                handler(event)
+                # Handlers can optionally return modified input
+                result = handler(event)
+                # Only PreToolUse handlers should return modified input
+                if hook_type == "PreToolUse" and result is not None:
+                    return result
             except Exception as e:
                 if DEBUG:
                     print(f"Error handling {hook_type}: {e}", file=sys.stderr)
+
+        return None
 
     def handle_subagent_stop(self, event: dict):
         """Delegate subagent stop processing to the specialized processor."""
         self.subagent_processor.process_subagent_stop(event)
 
-    def _continue_execution(self) -> None:
+    def _continue_execution(self, modified_input: Optional[dict] = None) -> None:
         """
-        Send continue action to Claude.
+        Send continue action to Claude with optional input modification.
 
         WHY: Centralized response ensures consistent format
         and makes it easier to add response modifications.
+
+        Args:
+            modified_input: Modified tool parameters for PreToolUse hooks (v2.0.30+)
         """
-        print(json.dumps({"action": "continue"}))
+        if modified_input is not None:
+            # Claude Code v2.0.30+ supports modifying PreToolUse tool inputs
+            print(json.dumps({"action": "continue", "tool_input": modified_input}))
+        else:
+            print(json.dumps({"action": "continue"}))
 
     # Delegation methods for compatibility with event_handlers
     def _track_delegation(self, session_id: str, agent_type: str, request_data=None):

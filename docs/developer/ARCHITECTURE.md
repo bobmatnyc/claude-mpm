@@ -30,7 +30,7 @@ Claude MPM is built on a service-oriented architecture with clear separation of 
 2. **Interface-Based**: Well-defined contracts for components
 3. **Dependency Injection**: Loose coupling through DI container
 4. **Lazy Loading**: Deferred resource initialization
-5. **Extensibility**: Hook system and plugin architecture
+5. **Extensibility**: Hook system and MCP integration
 6. **Security First**: Input validation at all layers
 
 **Architecture Benefits:**
@@ -38,7 +38,7 @@ Claude MPM is built on a service-oriented architecture with clear separation of 
 - **Enhanced Security**: Defense-in-depth with validation
 - **Better Testability**: Interface-based design enables easy mocking
 - **Improved Maintainability**: Clear separation of concerns
-- **Scalability**: Supports future growth and plugins
+- **Scalability**: Supports future growth and extensions
 
 ## Service-Oriented Architecture
 
