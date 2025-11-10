@@ -267,6 +267,199 @@ You can explicitly pause and resume:
 # Work continues seamlessly
 ```
 
+### Session Auto-Resume on Startup
+
+**NEW in v4.19.0**: Claude MPM automatically detects and displays paused sessions when you start PM, helping you seamlessly continue your work with full context restoration.
+
+#### How Auto-Resume Works
+
+When PM starts, the system automatically:
+
+1. **Checks for paused sessions** in `<project>/.claude-mpm/sessions/` (also checks legacy `sessions/pause/` location for backward compatibility)
+2. **Identifies the most recent** paused session based on file modification time
+3. **Calculates git changes** since the session was paused
+4. **Displays resume context** to help you pick up where you left off
+
+#### Resume Context Display
+
+The auto-resume prompt shows:
+
+```
+================================================================================
+📋 PAUSED SESSION FOUND
+================================================================================
+
+Paused: 2 hours ago
+
+Last working on: Implementing automatic session resume functionality
+
+Completed:
+  ✓ Created SessionResumeHelper service
+  ✓ Enhanced git change detection
+  ✓ Added auto-resume to PM startup
+
+Next steps:
+  • Test auto-resume with real session data
+  • Update documentation
+
+Git changes since pause: 3 commits
+
+Recent commits:
+  a1b2c3d - feat: add SessionResumeHelper service (Engineer)
+  e4f5g6h - test: add session resume tests (QA)
+  i7j8k9l - docs: update PM_INSTRUCTIONS.md (Documentation)
+
+================================================================================
+Use this context to resume work, or start fresh if not relevant.
+================================================================================
+```
+
+#### What Information Is Shown
+
+- **Time elapsed**: Human-readable time since pause ("2 hours ago", "3 days ago")
+- **Work summary**: What you were working on
+- **Accomplishments**: What was completed in that session
+- **Next steps**: Planned actions from the paused session
+- **Git changes**: Commits made since the session was paused
+- **Recent commits**: Detailed commit history with authors
+
+#### Session Storage Format
+
+Sessions are stored as JSON files in `<project>/.claude-mpm/sessions/session-YYYYMMDD-HHMMSS.json`:
+
+```json
+{
+  "session_id": "session-YYYYMMDD-HHMMSS",
+  "paused_at": "ISO-8601 timestamp",
+  "conversation": {
+    "summary": "What user was working on",
+    "accomplishments": ["list of completed items"],
+    "next_steps": ["list of planned next actions"]
+  },
+  "git_context": {
+    "is_git_repo": true,
+    "branch": "current branch name",
+    "recent_commits": [
+      {
+        "sha": "commit hash",
+        "author": "author name",
+        "timestamp": "commit timestamp",
+        "message": "commit message"
+      }
+    ],
+    "status": {
+      "clean": true,
+      "modified_files": [],
+      "untracked_files": []
+    }
+  },
+  "todos": {
+    "active": [{"status": "in_progress", "content": "task", "activeForm": "doing task"}],
+    "completed": [{"status": "completed", "content": "done task"}]
+  },
+  "version": "claude-mpm version",
+  "build": "build number",
+  "project_path": "absolute path"
+}
+```
+
+#### Storage Location
+
+**Project-Specific Sessions:**
+
+Sessions are stored per-project in:
+```
+<project-root>/.claude-mpm/sessions/
+```
+
+This ensures:
+- ✓ Sessions are project-specific
+- ✓ No cross-project contamination
+- ✓ Easy cleanup (delete `.claude-mpm` directory)
+- ✓ Git-ignorable by default
+
+**Note**: The system also checks the legacy `sessions/pause/` location for backward compatibility with older session files.
+
+**File Permissions:**
+
+Session files are created with `0600` permissions (user read/write only) for security.
+
+#### Benefits of Auto-Resume
+
+**1. Seamless Work Continuation**
+
+- **Context restoration**: Immediately understand where you left off
+- **Git awareness**: See what changed while you were away
+- **Next steps clarity**: Know what to work on next
+
+**2. Team Collaboration**
+
+- **Handoff support**: Team members can see what was being worked on
+- **Progress tracking**: Clear record of accomplishments
+- **Work stream visibility**: Git changes show team activity
+
+**3. Long Breaks**
+
+- **Memory aid**: Recall context after days or weeks
+- **Work reconstruction**: Understand project state evolution
+- **Decision tracking**: See what decisions were made
+
+#### Managing Sessions
+
+**List Paused Sessions:**
+```bash
+ls -la .claude-mpm/sessions/
+```
+
+**Clear Paused Sessions:**
+```bash
+# Remove all paused sessions
+rm .claude-mpm/sessions/session-*.json
+```
+
+**Clear Specific Session:**
+```python
+from claude_mpm.services.cli.session_resume_helper import SessionResumeHelper
+
+helper = SessionResumeHelper()
+session = helper.get_most_recent_session()
+
+if session:
+    helper.clear_session(session)
+```
+
+#### Troubleshooting Auto-Resume
+
+**Session Not Detected**
+
+**Problem**: No resume prompt appears despite paused sessions existing
+
+**Solutions**:
+1. Check session directory exists: `ls .claude-mpm/sessions/`
+2. Verify JSON files are valid: `python -m json.tool .claude-mpm/sessions/session-*.json`
+3. Check file permissions: `ls -la .claude-mpm/sessions/`
+4. Review logs: `tail -f .claude-mpm/logs/claude-mpm.log`
+
+**Git Changes Not Showing**
+
+**Problem**: Git changes since pause shows 0 commits
+
+**Solutions**:
+1. Verify git repository: `git status`
+2. Check pause timestamp: Look at `paused_at` in session JSON
+3. Ensure commits are after pause time
+4. Check git log: `git log --since="<pause_timestamp>"`
+
+**Incorrect Time Elapsed**
+
+**Problem**: Time elapsed shows wrong value
+
+**Solutions**:
+1. Check system timezone configuration
+2. Verify `paused_at` timestamp format (ISO-8601)
+3. Ensure timezone information is included
+4. Review server time vs local time
+
 ### Viewing Resume Logs
 
 Resume logs are stored in `.claude-mpm/resume-logs/`:
