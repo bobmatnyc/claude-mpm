@@ -10,6 +10,44 @@
 
 ### Documentation
 
+## [4.21.3] - 2025-11-10
+
+### Added
+- **CLAUDE.md**: 755-line comprehensive development guide
+  - Distinguishes three environments (dev, installed product, end-user projects)
+  - Documents critical architecture principles for contributors
+  - Includes file locations reference and workflow guidance
+- **Makefile target**: `make deploy-commands` for testing command deployment during development
+
+### Fixed
+- **Command Deployment Architecture**: Commands now properly deploy to `~/.claude/commands/` (user-level)
+  - Removed incorrect symlinks to source files in project `.claude/commands/`
+  - System correctly uses COPY deployment, not symlinks
+  - Development environment now properly simulates production behavior
+- **Thread Safety**: 3 singleton implementations now use double-checked locking
+  - `failure_tracker.py`: Added thread-safe singleton
+  - `relay.py`: Fixed concurrent access issues
+  - `base.py` (SingletonService): Base class thread safety
+- **Linting Errors**: Resolved code_tree_analyzer package issues
+  - Fixed RUF022 violations (alphabetical __all__ sorting)
+  - Removed F401 unused imports
+  - Optimized RUF015 iteration patterns
+
+### Refactored
+- **code_tree_analyzer Package**: Modularized 1,825-line monolith into 10 focused modules
+  - Improved maintainability (avg ~228 lines per module)
+  - Enhanced testability and extensibility
+  - 100% backward compatibility maintained
+- **Priority 2 Tasks**: Thread safety and /mpm-resume command fixes
+  - Achieved 100% thread-safe singletons (up from 81%)
+  - Corrected /mpm-resume to load state (not create files)
+
+### Documentation
+- **CONTRIBUTING.md**: Updated to reference CLAUDE.md in Getting Help section
+- **Thread Safety Reports**: Comprehensive audit documentation added
+  - thread-safety-audit-report.md (617 lines)
+  - thread-safety-audit-summary.md (402 lines)
+
 ## [4.21.2] - 2025-11-09
 
 ### Documentation
