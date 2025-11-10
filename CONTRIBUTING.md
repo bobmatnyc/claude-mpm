@@ -181,8 +181,9 @@ We maintain 85%+ test coverage across:
 
 ### Getting Help
 
+- **Development Guidelines**: **Read [CLAUDE.md](CLAUDE.md) first** - Critical guide to the three environments and deployment architecture
 - **Documentation**: Comprehensive guides in [docs/](docs/)
-- **Architecture**: Review [CLAUDE.md](CLAUDE.md) for development guidelines
+- **Architecture**: [docs/developer/ARCHITECTURE.md](docs/developer/ARCHITECTURE.md) for service architecture
 - **Quality Issues**: See [docs/reference/DEPLOY.md#quality-gates](docs/reference/DEPLOY.md#quality-gates)
 
 ## Project Overview

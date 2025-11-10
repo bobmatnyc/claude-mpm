@@ -7,7 +7,7 @@
 #   make install  - Install claude-mpm globally
 #   make setup    - Complete setup (install + shell config)
 
-.PHONY: help install install-pipx install-global install-local setup-shell uninstall update clean check-pipx detect-shell backup-shell test-installation setup-pre-commit format lint type-check pre-commit-run dev-complete deprecation-check deprecation-apply cleanup all
+.PHONY: help install install-pipx install-global install-local setup-shell uninstall update clean check-pipx detect-shell backup-shell test-installation setup-pre-commit format lint type-check pre-commit-run dev-complete deprecation-check deprecation-apply cleanup all deploy-commands
 .PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify release-dry-run release-test-pypi release release-full release-help release-test
 .PHONY: release-build-current release-publish-current
 .PHONY: auto-patch auto-minor auto-major auto-build auto-help sync-versions
@@ -261,6 +261,10 @@ info: ## Show installation information
 # Development targets
 dev-install: install-dev ## Alias for install-dev
 dev-setup: setup-dev ## Alias for setup-dev
+
+deploy-commands: ## Force deploy commands to ~/.claude/commands/ for testing
+	@echo "$(YELLOW)Deploying commands for local testing...$(NC)"
+	@python -c "from claude_mpm.services.command_deployment_service import deploy_commands_on_startup; deploy_commands_on_startup(force=True); print('$(GREEN)✅ Commands deployed to ~/.claude/commands/$(NC)')"
 
 setup-pre-commit: ## Set up pre-commit hooks for code formatting and quality
 	@echo "$(YELLOW)Setting up pre-commit hooks...$(NC)"
