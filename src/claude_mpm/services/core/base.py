@@ -9,6 +9,7 @@ and lifecycle management.
 Part of TSK-0046: Service Layer Architecture Reorganization
 """
 
+import threading
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
@@ -221,29 +222,43 @@ class SingletonService(SyncBaseService):
     """
     Base class for singleton services.
 
-    Ensures only one instance of the service exists.
+    Ensures only one instance of the service exists with thread-safe initialization.
+    Uses double-checked locking pattern to prevent race conditions.
     """
 
     _instances: Dict[type, "SingletonService"] = {}
+    _lock = threading.Lock()
 
     def __new__(cls, *args, **kwargs):
-        """Ensure only one instance exists."""
+        """Ensure only one instance exists with thread-safe initialization."""
+        # Fast path - check without lock
         if cls not in cls._instances:
-            cls._instances[cls] = super().__new__(cls)
+            # Slow path - acquire lock and double-check
+            with cls._lock:
+                if cls not in cls._instances:
+                    cls._instances[cls] = super().__new__(cls)
         return cls._instances[cls]
 
     @classmethod
     def get_instance(cls) -> "SingletonService":
-        """Get the singleton instance."""
+        """Get the singleton instance with thread-safe initialization."""
+        # Fast path - check without lock
         if cls not in cls._instances:
-            cls._instances[cls] = cls()
+            # Slow path - acquire lock and double-check
+            with cls._lock:
+                if cls not in cls._instances:
+                    cls._instances[cls] = cls()
         return cls._instances[cls]
 
     @classmethod
     def clear_instance(cls) -> None:
-        """Clear the singleton instance (useful for testing)."""
-        if cls in cls._instances:
-            instance = cls._instances[cls]
-            if hasattr(instance, "shutdown") and not instance.is_shutdown:
-                instance.shutdown()
-            del cls._instances[cls]
+        """Clear the singleton instance (useful for testing).
+
+        Thread-safe implementation ensures proper cleanup.
+        """
+        with cls._lock:
+            if cls in cls._instances:
+                instance = cls._instances[cls]
+                if hasattr(instance, "shutdown") and not instance.is_shutdown:
+                    instance.shutdown()
+                del cls._instances[cls]

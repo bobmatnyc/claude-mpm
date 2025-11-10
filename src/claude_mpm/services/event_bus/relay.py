@@ -9,6 +9,7 @@ WHY separate relay component:
 """
 
 import os
+import threading
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
@@ -271,10 +272,14 @@ class SocketIORelay:
 
 # Global relay instance
 _relay_instance: Optional[SocketIORelay] = None
+_relay_lock = threading.Lock()
 
 
 def get_relay(port: Optional[int] = None) -> SocketIORelay:
     """Get or create the global SocketIO relay instance.
+
+    Thread-safe implementation using double-checked locking pattern to
+    prevent race conditions during concurrent initialization.
 
     Args:
         port: Optional port number
@@ -283,9 +288,16 @@ def get_relay(port: Optional[int] = None) -> SocketIORelay:
         SocketIORelay: The relay instance
     """
     global _relay_instance
-    if _relay_instance is None:
-        _relay_instance = SocketIORelay(port)
-    return _relay_instance
+
+    # Fast path - check without lock
+    if _relay_instance is not None:
+        return _relay_instance
+
+    # Slow path - acquire lock and double-check
+    with _relay_lock:
+        if _relay_instance is None:
+            _relay_instance = SocketIORelay(port)
+        return _relay_instance
 
 
 def start_relay(port: Optional[int] = None) -> SocketIORelay:
@@ -303,8 +315,12 @@ def start_relay(port: Optional[int] = None) -> SocketIORelay:
 
 
 def stop_relay() -> None:
-    """Stop the global SocketIO relay."""
+    """Stop the global SocketIO relay.
+
+    Thread-safe implementation ensures proper cleanup.
+    """
     global _relay_instance
-    if _relay_instance:
-        _relay_instance.stop()
-        _relay_instance = None
+    with _relay_lock:
+        if _relay_instance:
+            _relay_instance.stop()
+            _relay_instance = None

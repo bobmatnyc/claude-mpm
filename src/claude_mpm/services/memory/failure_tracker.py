@@ -29,6 +29,7 @@ Example flow:
 
 import logging
 import re
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
@@ -536,6 +537,7 @@ class FailureTracker:
 
 # Singleton instance for session-level tracking
 _tracker_instance: Optional[FailureTracker] = None
+_tracker_lock = threading.Lock()
 
 
 def get_failure_tracker() -> FailureTracker:
@@ -544,13 +546,23 @@ def get_failure_tracker() -> FailureTracker:
     WHY: Session-level tracking requires a singleton to maintain state
     across multiple hook invocations during the same session.
 
+    Thread-safe implementation using double-checked locking pattern to
+    prevent race conditions during concurrent initialization.
+
     Returns:
         The FailureTracker singleton instance
     """
     global _tracker_instance
-    if _tracker_instance is None:
-        _tracker_instance = FailureTracker()
-    return _tracker_instance
+
+    # Fast path - check without lock
+    if _tracker_instance is not None:
+        return _tracker_instance
+
+    # Slow path - acquire lock and double-check
+    with _tracker_lock:
+        if _tracker_instance is None:
+            _tracker_instance = FailureTracker()
+        return _tracker_instance
 
 
 def reset_failure_tracker() -> None:
@@ -558,6 +570,9 @@ def reset_failure_tracker() -> None:
 
     WHY: Tests need to reset state between runs. Also useful for
     explicitly starting a new tracking session.
+
+    Thread-safe implementation ensures proper cleanup.
     """
     global _tracker_instance
-    _tracker_instance = None
+    with _tracker_lock:
+        _tracker_instance = None
