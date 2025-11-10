@@ -82,7 +82,9 @@ class PreToolUseHook:
             self.log_debug(f"Error reading event: {e}")
             return None
 
-    def continue_execution(self, modified_input: Optional[Dict[str, Any]] = None) -> None:
+    def continue_execution(
+        self, modified_input: Optional[Dict[str, Any]] = None
+    ) -> None:
         """Continue execution with optional modified input."""
         response = {"action": "continue"}
         if modified_input is not None:
@@ -144,7 +146,9 @@ class PreToolUseHook:
             tool_name = event.get("tool_name", "")
             tool_input = event.get("tool_input", {})
 
-            self.log_debug(f"Processing {tool_name} with input: {list(tool_input.keys())}")
+            self.log_debug(
+                f"Processing {tool_name} with input: {list(tool_input.keys())}"
+            )
 
             # Check if execution should be blocked
             should_block, reason = self.should_block(tool_name, tool_input, event)

@@ -346,7 +346,9 @@ class SelfUpgradeService:
         print(f"   Method:  {method}")
         print()
         print(f"   Upgrade: {update_info['upgrade_command']}")
-        print(f"   Release: https://github.com/bobmatnyc/claude-mpm/releases/tag/v{latest}")
+        print(
+            f"   Release: https://github.com/bobmatnyc/claude-mpm/releases/tag/v{latest}"
+        )
         print("=" * 70)
 
         try:
@@ -369,7 +371,9 @@ class SelfUpgradeService:
 
         print(f"\nℹ️  Update available: v{current} → v{latest}")
         print(f"   Run: {command}")
-        print(f"   Release notes: https://github.com/bobmatnyc/claude-mpm/releases/tag/v{latest}")
+        print(
+            f"   Release notes: https://github.com/bobmatnyc/claude-mpm/releases/tag/v{latest}"
+        )
         print()
 
     def perform_upgrade(self, update_info: Dict[str, any]) -> Tuple[bool, str]:
