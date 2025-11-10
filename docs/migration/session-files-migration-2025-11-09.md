@@ -66,7 +66,7 @@ This document describes the migration from the nested session file structure (`.
   - Updated example auto-resume display
 
 #### Documentation
-- **`docs/features/session-auto-resume.md`**
+- **`docs/user/resume-logs.md`** (Session Auto-Resume section)
   - Updated session detection to reference new location
   - Added note about backward compatibility
   - Added reference to automatic creation at 70% threshold
@@ -258,7 +258,7 @@ In a future version (after all users have migrated), we may remove the legacy lo
 
 ## Related Documentation
 
-- [Session Auto-Resume Feature](../features/session-auto-resume.md)
+- [Session Auto-Resume Feature](../user/resume-logs.md#session-auto-resume-on-startup)
 - [Session Resume Implementation Design](../design/session-resume-implementation.md)
 - [PM Instructions - Context Management](../../src/claude_mpm/agents/PM_INSTRUCTIONS.md#session-resume-capability)
 - [Base PM Framework - Context Management](../../src/claude_mpm/agents/BASE_PM.md#context-management-protocol)
