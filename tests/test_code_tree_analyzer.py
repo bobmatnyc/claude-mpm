@@ -203,21 +203,21 @@ class TestCodeTreeBuilder(unittest.TestCase):
 
     def test_gitignore_parsing(self):
         """Test .gitignore pattern matching."""
-        from claude_mpm.tools.code_tree_builder import GitignoreParser
+        from claude_mpm.tools.code_tree_analyzer import GitignoreManager
 
-        parser = GitignoreParser(self.test_dir)
+        manager = GitignoreManager()
 
         # Test that node_modules is ignored
-        self.assertTrue(parser.should_ignore(self.test_dir / "node_modules"))
+        self.assertTrue(manager.should_ignore(self.test_dir / "node_modules", self.test_dir))
         self.assertTrue(
-            parser.should_ignore(self.test_dir / "node_modules" / "package.js")
+            manager.should_ignore(self.test_dir / "node_modules" / "package.js", self.test_dir)
         )
 
         # Test that pyc files are ignored
-        self.assertTrue(parser.should_ignore(self.test_dir / "test.pyc"))
+        self.assertTrue(manager.should_ignore(self.test_dir / "test.pyc", self.test_dir))
 
         # Test that py files are not ignored
-        self.assertFalse(parser.should_ignore(self.test_dir / "test.py"))
+        self.assertFalse(manager.should_ignore(self.test_dir / "test.py", self.test_dir))
 
 
 class TestCodeTreeAnalyzer(unittest.TestCase):
