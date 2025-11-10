@@ -67,7 +67,9 @@ class TestSingletonManagerThreadSafety:
         # Verify: All instances should be the same object
         assert len(instances) == 20
         unique_ids = {id(instance) for instance in instances}
-        assert len(unique_ids) == 1, f"Expected 1 unique instance, got {len(unique_ids)}"
+        assert (
+            len(unique_ids) == 1
+        ), f"Expected 1 unique instance, got {len(unique_ids)}"
 
         # Cleanup
         SingletonManager.clear_instance(TestClass)
@@ -284,7 +286,9 @@ class TestConfigThreadSafety:
             # Note: __init__ might be called multiple times, but the guard prevents
             # actual reinitialization (check the guard logic works)
             # This verifies the _initialized flag works correctly
-            assert init_count["count"] >= 1, "Config should be initialized at least once"
+            assert (
+                init_count["count"] >= 1
+            ), "Config should be initialized at least once"
 
         finally:
             # Restore original __init__

@@ -137,9 +137,7 @@ class FileAnalyzer:
         """
         return [self._node_to_dict(n) for n in nodes if not self._is_internal_node(n)]
 
-    def _filter_and_emit_nodes(
-        self, nodes: List[CodeNode], path: Path
-    ) -> List[dict]:
+    def _filter_and_emit_nodes(self, nodes: List[CodeNode], path: Path) -> List[dict]:
         """Filter nodes and emit events for each.
 
         Args:
@@ -200,7 +198,11 @@ class FileAnalyzer:
         return elements
 
     def _build_result(
-        self, file_path: str, language: str, final_nodes: List[dict], elements: List[dict]
+        self,
+        file_path: str,
+        language: str,
+        final_nodes: List[dict],
+        elements: List[dict],
     ) -> dict:
         """Build final result dictionary.
 

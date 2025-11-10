@@ -208,16 +208,24 @@ class TestCodeTreeBuilder(unittest.TestCase):
         manager = GitignoreManager()
 
         # Test that node_modules is ignored
-        self.assertTrue(manager.should_ignore(self.test_dir / "node_modules", self.test_dir))
         self.assertTrue(
-            manager.should_ignore(self.test_dir / "node_modules" / "package.js", self.test_dir)
+            manager.should_ignore(self.test_dir / "node_modules", self.test_dir)
+        )
+        self.assertTrue(
+            manager.should_ignore(
+                self.test_dir / "node_modules" / "package.js", self.test_dir
+            )
         )
 
         # Test that pyc files are ignored
-        self.assertTrue(manager.should_ignore(self.test_dir / "test.pyc", self.test_dir))
+        self.assertTrue(
+            manager.should_ignore(self.test_dir / "test.pyc", self.test_dir)
+        )
 
         # Test that py files are not ignored
-        self.assertFalse(manager.should_ignore(self.test_dir / "test.py", self.test_dir))
+        self.assertFalse(
+            manager.should_ignore(self.test_dir / "test.py", self.test_dir)
+        )
 
 
 class TestCodeTreeAnalyzer(unittest.TestCase):
