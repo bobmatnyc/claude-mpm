@@ -10,6 +10,15 @@
 
 ### Documentation
 
+## [4.21.5] - 2025-11-11
+
+### Documentation
+- Enhanced CLAUDE.md with prominent CONTRIBUTING.md reference
+- Added Quick Development Commands section (lint-fix, quality, safe-release-build)
+- Added Project Organization section with file placement rules
+- Updated project-organizer agent to use CONTRIBUTING.md as primary reference
+- Created bidirectional link between CLAUDE.md and CONTRIBUTING.md
+
 ## [4.21.4] - 2025-11-10
 
 ### Added
