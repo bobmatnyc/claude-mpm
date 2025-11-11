@@ -14,8 +14,8 @@ A powerful orchestration framework for **Claude Code (CLI)** that enables multi-
 
 ## Features
 
-- 🤖 **Multi-Agent System**: 15 specialized agents for comprehensive project management
-- 🎯 **Skills System**: 20 bundled skills with auto-linking, three-tier organization (bundled/user/project), and interactive configuration
+- 🤖 **Multi-Agent System**: 37 specialized agents for comprehensive project management
+- 🎯 **Skills System**: 21 bundled skills with auto-linking, three-tier organization (bundled/user/project), and interactive configuration
 - 🔄 **Session Management**: Resume previous sessions with `--resume`
 - 📋 **Resume Log System**: Proactive context management with automatic 10k-token session logs at 70%/85%/95% thresholds
 - 📊 **Real-Time Monitoring**: Live dashboard with `--monitor` flag
