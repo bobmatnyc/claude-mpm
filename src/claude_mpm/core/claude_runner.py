@@ -42,8 +42,19 @@ class ClaudeRunner:
         launch_method: str = "exec",  # "exec" or "subprocess"
         enable_websocket: bool = False,
         websocket_port: int = 8765,
+        use_native_agents: bool = False,  # Use --agents flag instead of file deployment
     ):
-        """Initialize the Claude runner."""
+        """Initialize the Claude runner.
+
+        Args:
+            enable_tickets: Enable ticket extraction (deprecated)
+            log_level: Logging level
+            claude_args: Additional arguments for Claude CLI
+            launch_method: "exec" or "subprocess" launch mode
+            enable_websocket: Enable WebSocket server
+            websocket_port: WebSocket server port
+            use_native_agents: Use --agents CLI flag instead of .claude/agents/ deployment
+        """
         self.logger = get_logger(__name__)
 
         # Initialize configuration service
@@ -75,6 +86,7 @@ class ClaudeRunner:
             launch_method=launch_method,
             enable_websocket=enable_websocket,
             websocket_port=websocket_port,
+            use_native_agents=use_native_agents,
         )
 
         # Set configuration attributes
@@ -84,6 +96,7 @@ class ClaudeRunner:
         self.launch_method = config_data["launch_method"]
         self.enable_websocket = config_data["enable_websocket"]
         self.websocket_port = config_data["websocket_port"]
+        self.use_native_agents = config_data.get("use_native_agents", False)
         self.config = config_data["config"]
 
         # Initialize project logger using the service

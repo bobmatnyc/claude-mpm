@@ -168,6 +168,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             "launch_method": kwargs.get("launch_method", "exec"),
             "enable_websocket": kwargs.get("enable_websocket", False),
             "websocket_port": kwargs.get("websocket_port", 8765),
+            "use_native_agents": kwargs.get("use_native_agents", False),
         }
 
         # Initialize main configuration using ConfigLoader

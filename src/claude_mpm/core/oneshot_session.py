@@ -268,7 +268,46 @@ class OneshotSession:
         if self.runner.claude_args:
             cmd.extend(self.runner.claude_args)
 
+        # Add --agents flag if native agents mode is enabled
+        if getattr(self.runner, "use_native_agents", False):
+            agents_flag = self._build_agents_flag()
+            if agents_flag:
+                cmd.extend(agents_flag)
+                self.logger.info("✓ Native agents mode: Using --agents CLI flag")
+
         return cmd
+
+    def _build_agents_flag(self) -> Optional[list]:
+        """Build --agents flag with all MPM agents.
+
+        Returns:
+            List with ["--agents", "<json>"] or None if conversion fails
+        """
+        try:
+            from claude_mpm.services.native_agent_converter import NativeAgentConverter
+
+            converter = NativeAgentConverter()
+            agents = converter.load_agents_from_templates()
+
+            if not agents:
+                self.logger.warning("No agents loaded for native mode")
+                return None
+
+            # Generate JSON for --agents flag
+            agents_json = converter.generate_agents_json(agents)
+            summary = converter.get_conversion_summary(agents)
+
+            self.logger.info(
+                f"Native agents: {summary['total_agents']} agents, "
+                f"{summary['json_size_kb']} KB JSON"
+            )
+
+            # Return as list: ["--agents", "<json>"]
+            return ["--agents", agents_json]
+
+        except Exception as e:
+            self.logger.error(f"Failed to build --agents flag: {e}", exc_info=True)
+            return None
 
     def _handle_successful_response(self, response: str, prompt: str) -> None:
         """Process a successful Claude response."""
