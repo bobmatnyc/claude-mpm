@@ -37,7 +37,13 @@ def sample_mpm_agent():
 @pytest.fixture
 def real_engineer_agent():
     """Load real engineer agent from templates."""
-    templates_dir = Path(__file__).parent.parent.parent / "src" / "claude_mpm" / "agents" / "templates"
+    templates_dir = (
+        Path(__file__).parent.parent.parent
+        / "src"
+        / "claude_mpm"
+        / "agents"
+        / "templates"
+    )
     engineer_file = templates_dir / "engineer.json"
 
     if engineer_file.exists():
@@ -219,7 +225,13 @@ class TestNativeAgentConverter:
 
     def test_load_agents_from_templates(self, converter):
         """Test loading agents from templates directory."""
-        templates_dir = Path(__file__).parent.parent.parent / "src" / "claude_mpm" / "agents" / "templates"
+        templates_dir = (
+            Path(__file__).parent.parent.parent
+            / "src"
+            / "claude_mpm"
+            / "agents"
+            / "templates"
+        )
 
         if not templates_dir.exists():
             pytest.skip("Templates directory not available")
@@ -238,7 +250,13 @@ class TestNativeAgentConverter:
 
     def test_all_agents_conversion(self, converter):
         """Test converting all 37 MPM agents."""
-        templates_dir = Path(__file__).parent.parent.parent / "src" / "claude_mpm" / "agents" / "templates"
+        templates_dir = (
+            Path(__file__).parent.parent.parent
+            / "src"
+            / "claude_mpm"
+            / "agents"
+            / "templates"
+        )
 
         if not templates_dir.exists():
             pytest.skip("Templates directory not available")
@@ -256,12 +274,16 @@ class TestNativeAgentConverter:
 
         # Check JSON size is reasonable (not too large for CLI)
         # After optimization: 37 agents = ~45KB (was 448KB before optimization)
-        assert summary["json_size"] < 100000, f"JSON too large: {summary['json_size']} bytes"
+        assert (
+            summary["json_size"] < 100000
+        ), f"JSON too large: {summary['json_size']} bytes"
 
         # Log size for visibility
-        print(f"\nAgent conversion summary:")
+        print("\nAgent conversion summary:")
         print(f"  Total agents: {summary['total_agents']}")
-        print(f"  JSON size: {summary['json_size']} bytes ({summary['json_size_kb']} KB)")
+        print(
+            f"  JSON size: {summary['json_size']} bytes ({summary['json_size_kb']} KB)"
+        )
 
         # Verify all agents converted successfully
         agents_json = converter.generate_agents_json(agents)
@@ -292,12 +314,17 @@ class TestNativeAgentConverter:
         # Create many agents to exceed size limit
         agents = []
         for i in range(100):
-            agents.append({
-                "agent_id": f"agent-{i}",
-                "description": f"Agent {i} " * 100,  # Make description large
-                "instructions": f"Instructions for agent {i} " * 100,
-                "capabilities": {"model": "sonnet", "tools": ["Read", "Write", "Edit"]},
-            })
+            agents.append(
+                {
+                    "agent_id": f"agent-{i}",
+                    "description": f"Agent {i} " * 100,  # Make description large
+                    "instructions": f"Instructions for agent {i} " * 100,
+                    "capabilities": {
+                        "model": "sonnet",
+                        "tools": ["Read", "Write", "Edit"],
+                    },
+                }
+            )
 
         with caplog.at_level("WARNING"):
             result = converter.build_agents_flag(agents)

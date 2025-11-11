@@ -196,7 +196,10 @@ class NativeAgentConverter:
             return self.MODEL_TIER_MAP.get(model_tier.lower(), "sonnet")
 
         # Check metadata.model_preference
-        if "metadata" in agent_config and "model_preference" in agent_config["metadata"]:
+        if (
+            "metadata" in agent_config
+            and "model_preference" in agent_config["metadata"]
+        ):
             model_tier = agent_config["metadata"]["model_preference"]
             return self.MODEL_TIER_MAP.get(model_tier.lower(), "sonnet")
 
@@ -280,7 +283,9 @@ class NativeAgentConverter:
         agents = []
         json_files = list(templates_dir.glob("*.json"))
 
-        self.logger.info(f"Loading {len(json_files)} agent templates from {templates_dir}")
+        self.logger.info(
+            f"Loading {len(json_files)} agent templates from {templates_dir}"
+        )
 
         for json_file in json_files:
             try:
