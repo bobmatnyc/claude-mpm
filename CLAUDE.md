@@ -34,6 +34,38 @@ Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation an
 - Flask
 
 ## Development Guidelines
+
+**📚 IMPORTANT: Read [CONTRIBUTING.md](CONTRIBUTING.md) first for complete development guidelines.**
+
+CONTRIBUTING.md is your primary guide for:
+- **Quality Workflow**: `make lint-fix`, `make quality`, `make safe-release-build`
+- **Code Structure**: Where files belong (scripts, tests, modules)
+- **Commit Guidelines**: Conventional commits format (feat:, fix:, docs:, etc.)
+- **Testing Requirements**: 85%+ coverage, comprehensive test suites
+- **Architecture Standards**: Service-oriented architecture, interface contracts
+
+### Quick Development Commands
+
+```bash
+# During development - auto-fix issues
+make lint-fix
+
+# Before every commit - comprehensive checks
+make quality
+
+# For releases - quality gate + build
+make safe-release-build
+```
+
+### Project Organization
+
+- See [CONTRIBUTING.md](CONTRIBUTING.md) for complete file placement rules
+- ALL scripts go in `/scripts/`, NEVER in project root
+- ALL tests go in `/tests/`, NEVER in project root
+- Python modules always under `/src/claude_mpm/`
+
+### Memory Integration (KuzuMemory)
+
 - Use kuzu-memory enhance for all AI interactions
 - Store important decisions with kuzu-memory learn
 - Query context with kuzu-memory recall when needed
