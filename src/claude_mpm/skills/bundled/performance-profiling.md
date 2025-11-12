@@ -433,6 +433,12 @@ def sort_items(items):
 
 ### Load Testing
 
+> **Note:** Locust is an optional dependency. Install it separately if you need load testing capabilities:
+> ```bash
+> pip install "claude-mpm[agents-load-testing]"
+> ```
+> Or install locust directly: `pip install locust>=2.15.0`
+
 ```python
 # Using locust for load testing
 from locust import HttpUser, task, between
