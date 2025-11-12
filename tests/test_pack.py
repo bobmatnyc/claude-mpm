@@ -160,7 +160,7 @@ class TestPack(TestBase):
             (self.packfile_v2_2, self.packindexfile_v2),
             (self.packfile_v2_3_ascii, self.packindexfile_v2_3_ascii),
         ):
-            packfile, version, size = packinfo
+            packfile, _version, size = packinfo
             indexfile, _version, size = indexinfo
             entity = PackEntity(packfile)
             assert entity.pack().path() == packfile

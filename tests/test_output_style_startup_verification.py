@@ -148,7 +148,7 @@ def test_settings_file_scenarios(logger):
         settings_file.write_text(json.dumps(test_settings, indent=2))
         logger.info("Created test settings with other-style active")
 
-        returncode, stdout, stderr = run_claude_mpm_startup()
+        _returncode, stdout, stderr = run_claude_mpm_startup()
         output = stdout + stderr
 
         other_active = "other-style" in output and "expected: claude-mpm" in output
@@ -197,7 +197,7 @@ def test_output_style_file_scenarios(logger):
         output_style_path.write_text("# Test Output Style\nTest content")
         logger.info("Created test output style file")
 
-        returncode, stdout, stderr = run_claude_mpm_startup()
+        _returncode, stdout, stderr = run_claude_mpm_startup()
         output = stdout + stderr
 
         file_exists_detected = "Output style file exists:" in output
