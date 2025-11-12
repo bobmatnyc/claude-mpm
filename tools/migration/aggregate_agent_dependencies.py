@@ -136,7 +136,9 @@ class DependencyAggregator:
             logger.warning(f"Failed to load agent config {file_path}: {e}")
             return None
 
-    def extract_dependencies(self, config: Dict[str, Any]) -> List[str]:
+    def extract_dependencies(
+        self, config: Dict[str, Any]
+    ) -> Tuple[List[str], List[str]]:
         """
         Extract Python dependencies from an agent configuration.
 
@@ -144,18 +146,25 @@ class DependencyAggregator:
             config: Agent configuration dictionary
 
         Returns:
-            List of dependency strings with version specifiers
+            Tuple of (required_dependencies, optional_dependencies) with version specifiers
         """
-        dependencies = []
+        required_dependencies = []
+        optional_dependencies = []
 
         # Check for dependencies section
         deps_section = config.get("dependencies", {})
         if isinstance(deps_section, dict):
+            # Required Python dependencies
             python_deps = deps_section.get("python", [])
             if isinstance(python_deps, list):
-                dependencies.extend(python_deps)
+                required_dependencies.extend(python_deps)
 
-        return dependencies
+            # Optional Python dependencies
+            python_optional_deps = deps_section.get("python_optional", [])
+            if isinstance(python_optional_deps, list):
+                optional_dependencies.extend(python_optional_deps)
+
+        return required_dependencies, optional_dependencies
 
     def normalize_dependency(self, dep_string: str) -> Optional[Tuple[str, str]]:
         """
@@ -228,17 +237,18 @@ class DependencyAggregator:
 
         return resolved
 
-    def aggregate_dependencies(self) -> Dict[str, str]:
+    def aggregate_dependencies(self) -> Tuple[Dict[str, str], Dict[str, str]]:
         """
         Aggregate all dependencies from agent files.
 
         Returns:
-            Dict mapping package names to version specifiers
+            Tuple of (required_dependencies, optional_dependencies) mapping package names to version specifiers
         """
         logger.info("Starting dependency aggregation...")
 
         agent_files = self.scan_agent_files()
-        all_dependencies = {}  # package_name -> [version_specs]
+        all_required_deps = {}  # package_name -> [version_specs]
+        all_optional_deps = {}  # package_name -> [version_specs]
 
         for file_path in agent_files:
             logger.debug(f"Processing agent file: {file_path}")
@@ -247,29 +257,48 @@ class DependencyAggregator:
             if not config:
                 continue
 
-            deps = self.extract_dependencies(config)
-            if not deps:
-                continue
+            required_deps, optional_deps = self.extract_dependencies(config)
 
-            logger.debug(f"Found {len(deps)} dependencies in {file_path.name}")
+            total_deps = len(required_deps) + len(optional_deps)
+            if total_deps > 0:
+                logger.debug(
+                    f"Found {len(required_deps)} required and {len(optional_deps)} optional dependencies in {file_path.name}"
+                )
 
-            for dep in deps:
+            # Process required dependencies
+            for dep in required_deps:
                 normalized = self.normalize_dependency(dep)
                 if not normalized:
                     continue
 
                 package_name, version_spec = normalized
-                if package_name not in all_dependencies:
-                    all_dependencies[package_name] = []
+                if package_name not in all_required_deps:
+                    all_required_deps[package_name] = []
 
-                if version_spec and version_spec not in all_dependencies[package_name]:
-                    all_dependencies[package_name].append(version_spec)
+                if version_spec and version_spec not in all_required_deps[package_name]:
+                    all_required_deps[package_name].append(version_spec)
+
+            # Process optional dependencies
+            for dep in optional_deps:
+                normalized = self.normalize_dependency(dep)
+                if not normalized:
+                    continue
+
+                package_name, version_spec = normalized
+                if package_name not in all_optional_deps:
+                    all_optional_deps[package_name] = []
+
+                if version_spec and version_spec not in all_optional_deps[package_name]:
+                    all_optional_deps[package_name].append(version_spec)
 
         # Resolve version conflicts
-        resolved_deps = self.resolve_version_conflicts(all_dependencies)
+        resolved_required = self.resolve_version_conflicts(all_required_deps)
+        resolved_optional = self.resolve_version_conflicts(all_optional_deps)
 
-        logger.info(f"Aggregated {len(resolved_deps)} unique dependencies")
-        return resolved_deps
+        logger.info(
+            f"Aggregated {len(resolved_required)} required and {len(resolved_optional)} optional dependencies"
+        )
+        return resolved_required, resolved_optional
 
     def load_pyproject_toml(self) -> Dict[str, Any]:
         """
@@ -295,12 +324,15 @@ class DependencyAggregator:
             logger.error(f"Failed to load pyproject.toml: {e}")
             raise
 
-    def update_pyproject_toml(self, agent_dependencies: Dict[str, str]) -> None:
+    def update_pyproject_toml(
+        self, required_dependencies: Dict[str, str], optional_dependencies: Dict[str, str]
+    ) -> None:
         """
         Update pyproject.toml with agent dependencies.
 
         Args:
-            agent_dependencies: Dict of package names to version specifiers
+            required_dependencies: Dict of required package names to version specifiers
+            optional_dependencies: Dict of optional package names to version specifiers
         """
         logger.info("Updating pyproject.toml with agent dependencies...")
 
@@ -315,21 +347,37 @@ class DependencyAggregator:
         if "optional-dependencies" not in content["project"]:
             content["project"]["optional-dependencies"] = {}
 
-        # Format dependencies for TOML
-        formatted_deps = []
-        for package, version_spec in sorted(agent_dependencies.items()):
+        # Format required dependencies for TOML
+        formatted_required = []
+        for package, version_spec in sorted(required_dependencies.items()):
             if version_spec:
-                formatted_deps.append(f"{package}{version_spec}")
+                formatted_required.append(f"{package}{version_spec}")
             else:
-                formatted_deps.append(package)
+                formatted_required.append(package)
 
-        # Update agents section
-        content["project"]["optional-dependencies"]["agents"] = formatted_deps
+        # Format optional dependencies for TOML
+        formatted_optional = []
+        for package, version_spec in sorted(optional_dependencies.items()):
+            if version_spec:
+                formatted_optional.append(f"{package}{version_spec}")
+            else:
+                formatted_optional.append(package)
+
+        # Update agents section (required dependencies)
+        content["project"]["optional-dependencies"]["agents"] = formatted_required
+
+        # Update agents-load-testing section (optional dependencies for performance/load testing)
+        if formatted_optional:
+            content["project"]["optional-dependencies"]["agents-load-testing"] = (
+                formatted_optional
+            )
 
         if self.dry_run:
             logger.info("DRY RUN: Would update pyproject.toml with:")
             logger.info("  [project.optional-dependencies]")
-            logger.info(f"  agents = {formatted_deps}")
+            logger.info(f"  agents = {formatted_required}")
+            if formatted_optional:
+                logger.info(f"  agents-load-testing = {formatted_optional}")
             return
 
         # Write back to file
@@ -337,6 +385,13 @@ class DependencyAggregator:
             with open(self.pyproject_path, "w", encoding="utf-8") as f:
                 toml.dump(content, f)
             logger.info(f"Successfully updated {self.pyproject_path}")
+            logger.info(
+                f"  - agents: {len(formatted_required)} required dependencies"
+            )
+            if formatted_optional:
+                logger.info(
+                    f"  - agents-load-testing: {len(formatted_optional)} optional dependencies"
+                )
 
         except Exception as e:
             logger.error(f"Failed to write pyproject.toml: {e}")
@@ -379,19 +434,23 @@ class DependencyAggregator:
             logger.info("Starting agent dependency aggregation...")
 
             # Aggregate dependencies
-            agent_deps = self.aggregate_dependencies()
+            required_deps, optional_deps = self.aggregate_dependencies()
 
-            if not agent_deps:
+            if not required_deps and not optional_deps:
                 logger.info("No agent dependencies found")
                 return True
 
             # Validate dependencies
-            if not self.validate_dependencies(agent_deps):
-                logger.error("Dependency validation failed")
+            if required_deps and not self.validate_dependencies(required_deps):
+                logger.error("Required dependency validation failed")
+                return False
+
+            if optional_deps and not self.validate_dependencies(optional_deps):
+                logger.error("Optional dependency validation failed")
                 return False
 
             # Update pyproject.toml
-            self.update_pyproject_toml(agent_deps)
+            self.update_pyproject_toml(required_deps, optional_deps)
 
             logger.info("Agent dependency aggregation completed successfully")
             return True

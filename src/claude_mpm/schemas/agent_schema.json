@@ -159,6 +159,14 @@
           "description": "Python packages required (pip installable) with optional version specifiers",
           "examples": [["tree-sitter>=0.21.0", "pandas>=2.0.0"]]
         },
+        "python_optional": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional Python packages that enhance agent functionality but are not required for core operations",
+          "examples": [["locust>=2.15.0", "selenium>=4.0.0"]]
+        },
         "system": {
           "type": "array",
           "items": {

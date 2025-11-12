@@ -160,9 +160,11 @@
     "python": [
       "pytest>=7.4.0",
       "requests>=2.25.0",
-      "locust>=2.15.0",
       "jsonschema>=4.17.0",
       "pyjwt>=2.8.0"
+    ],
+    "python_optional": [
+      "locust>=2.15.0"
     ],
     "system": [
       "python3>=3.8",
