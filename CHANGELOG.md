@@ -10,6 +10,35 @@
 
 ### Documentation
 
+## [4.22.0] - 2025-11-12
+
+### Added
+- **Stacked PR & Git Worktree Framework**: New skills for advanced PR workflows
+  - `stacked-prs.md` (252 lines): Complete stacked PR workflow documentation
+  - `git-worktrees.md` (318 lines): Parallel development guide using git worktrees
+- **Version-Control Agent**: Enhanced with comprehensive PR workflow guidance
+  - 5 CRITICAL warnings about branch bases
+  - Decision framework for choosing PR strategy (main-based vs stacked)
+  - Rebase chain management guidance
+- **PM Instructions**: PR Workflow Delegation section (183 lines)
+  - Quick Delegation Matrix updated with PR workflow entries
+  - Strategy recommendations for when to use each approach
+  - Git worktrees delegation template
+
+### Changed
+- **Default PR Strategy**: Main-based PRs (simpler) with opt-in for stacked PRs (advanced)
+- **11 Anti-Patterns**: Documented to prevent common PR workflow mistakes
+
+### Fixed
+- Fixed 148 RUF059 linting errors (unused unpacked variables)
+- Resolved dependency aggregation issues
+- Cleaned up obsolete files (.mcp.backup, QA_SUMMARY.txt)
+
+### Documentation
+- Clarified locust as optional dependency (agents-load-testing group)
+- Added installation instructions for load testing features
+- Updated performance profiling skill documentation
+
 ## [4.21.5] - 2025-11-11
 
 ### Documentation
