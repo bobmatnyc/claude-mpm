@@ -67,7 +67,7 @@ def test_server_multiple_cycles():
                 return False
 
         # Run with stderr capture
-        success, stderr_output = capture_stderr(run_cycle)
+        _success, stderr_output = capture_stderr(run_cycle)
 
         # Check for the specific error we're fixing
         if "I/O operation on closed kqueue object" in stderr_output:

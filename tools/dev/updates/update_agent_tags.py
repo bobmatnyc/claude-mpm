@@ -45,7 +45,7 @@ def update_agent_tags_format(file_path: Path) -> bool:
             return False
 
         # Extract tags and content
-        tags, original_content = extract_yaml_list_tags(content)
+        tags, _original_content = extract_yaml_list_tags(content)
 
         if not tags:
             print(f"  No tags extracted from {file_path.name}")

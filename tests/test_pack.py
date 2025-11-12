@@ -161,7 +161,7 @@ class TestPack(TestBase):
             (self.packfile_v2_3_ascii, self.packindexfile_v2_3_ascii),
         ):
             packfile, version, size = packinfo
-            indexfile, version, size = indexinfo
+            indexfile, _version, size = indexinfo
             entity = PackEntity(packfile)
             assert entity.pack().path() == packfile
             assert entity.index().path() == indexfile

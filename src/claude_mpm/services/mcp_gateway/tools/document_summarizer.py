@@ -73,7 +73,7 @@ class LRUCache:
             if not self.cache:
                 break
             # Remove least recently used item
-            removed_key, removed_value = self.cache.popitem(last=False)
+            _removed_key, removed_value = self.cache.popitem(last=False)
             self.current_memory -= removed_value.get("size_bytes", 0)
 
         # Add new item

@@ -194,7 +194,7 @@ def test_crash_recovery():
     )
     time.sleep(5)
 
-    initial_server_pid, supervisor_pid, port = get_daemon_info()
+    initial_server_pid, supervisor_pid, _port = get_daemon_info()
 
     if initial_server_pid == 0:
         log_test("Recovery test setup", False, "Could not start daemon")
@@ -217,7 +217,7 @@ def test_crash_recovery():
     print("Waiting for recovery...")
     time.sleep(10)
 
-    new_server_pid, new_supervisor_pid, new_port = get_daemon_info()
+    new_server_pid, _new_supervisor_pid, new_port = get_daemon_info()
 
     if new_server_pid > 0 and new_server_pid != initial_server_pid:
         log_test("Automatic recovery", True, f"New server PID: {new_server_pid}")

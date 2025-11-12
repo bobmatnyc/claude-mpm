@@ -230,7 +230,7 @@ async def main():
 
             # First check - current state
             print("=== CHECKING CURRENT DASHBOARD STATE ===")
-            has_hooks, screenshot = await capture_dashboard_state(context)
+            has_hooks, _screenshot = await capture_dashboard_state(context)
 
             if not has_hooks:
                 print(
@@ -244,7 +244,7 @@ async def main():
                     await asyncio.sleep(3)
 
                     print("\n=== RE-CHECKING AFTER SENDING TEST EVENT ===")
-                    has_hooks_after, screenshot_after = await capture_dashboard_state(
+                    has_hooks_after, _screenshot_after = await capture_dashboard_state(
                         context
                     )
 

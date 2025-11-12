@@ -436,7 +436,7 @@ def _cleanup_memory_original(args):
 
     # Analyze current state
     print("\n📊 Analyzing current conversation history...")
-    stats, issues = analyze_claude_json(claude_json)
+    stats, _issues = analyze_claude_json(claude_json)
 
     # Display current status
     print(f"\n📁 File: {claude_json}")

@@ -304,7 +304,7 @@ class ResourceMonitor(SyncBaseService, IResourceMonitor):
             return 0
 
         try:
-            soft_limit, hard_limit = resource_module.getrlimit(
+            soft_limit, _hard_limit = resource_module.getrlimit(
                 resource_module.RLIMIT_NOFILE
             )
             return soft_limit

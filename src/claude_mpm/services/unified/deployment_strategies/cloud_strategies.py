@@ -64,7 +64,7 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
 
     def prepare(self, context: DeploymentContext) -> List[Path]:
         """Prepare Railway artifacts."""
-        artifact_path, metadata = prepare_deployment_artifact(
+        artifact_path, _metadata = prepare_deployment_artifact(
             context.source, "directory", context.config
         )
         return [artifact_path]

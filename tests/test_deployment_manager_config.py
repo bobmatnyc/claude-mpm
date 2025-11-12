@@ -47,7 +47,7 @@ class TestDeploymentManagerConfig:
             # Use INSTRUCTIONS.md format to bypass validation
             content = "<!-- FRAMEWORK_VERSION: 1.0.0 -->\n# Claude Multi-Agent Project Manager Instructions\nTest"
 
-            success, message = manager.deploy_to_parent(content, test_path, force=True)
+            success, _message = manager.deploy_to_parent(content, test_path, force=True)
 
             assert success
             assert (test_path / "CUSTOM.md").exists()

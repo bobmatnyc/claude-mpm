@@ -344,7 +344,7 @@ class MPMInitCommand:
         warnings = []
 
         # Run comprehensive project readiness check
-        ready, actions = self.organizer.ensure_project_ready(
+        _ready, actions = self.organizer.ensure_project_ready(
             auto_organize=organize_files,
             safe_mode=True,  # Only perform safe operations by default
         )

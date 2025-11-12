@@ -37,13 +37,13 @@ def demo_scenario_1():
     )
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        agents_dir, cleanup = setup_demo_environment(tmpdir)
+        _agents_dir, cleanup = setup_demo_environment(tmpdir)
         try:
             loader = AgentDependencyLoader()
             smart_checker = SmartDependencyChecker()
 
             print("\n🔍 Checking if agents have changed...")
-            has_changed, deployment_hash = loader.has_agents_changed()
+            has_changed, _deployment_hash = loader.has_agents_changed()
             print(f"   → Agents changed: {has_changed} (first run, no previous state)")
 
             print("\n📦 Checking dependencies...")
@@ -69,7 +69,7 @@ def demo_scenario_2():
     print("\nContext: User runs claude-mpm again without changing any agents")
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        agents_dir, cleanup = setup_demo_environment(tmpdir)
+        _agents_dir, cleanup = setup_demo_environment(tmpdir)
         try:
             loader = AgentDependencyLoader()
             smart_checker = SmartDependencyChecker()
@@ -77,7 +77,7 @@ def demo_scenario_2():
             # First run to establish baseline
             print("\n📝 Initial run to establish baseline...")
             loader.has_agents_changed()
-            results1, _ = smart_checker.get_or_check_dependencies(loader)
+            _results1, _ = smart_checker.get_or_check_dependencies(loader)
 
             # Second run - should use cache
             print("\n🔄 Running again (no changes)...")
@@ -110,7 +110,7 @@ def demo_scenario_3():
 
             # Initial check
             print("\n📝 Initial check...")
-            has_changed1, hash1 = loader.has_agents_changed()
+            _has_changed1, hash1 = loader.has_agents_changed()
             smart_checker.get_or_check_dependencies(loader)
 
             # Modify an agent
@@ -128,7 +128,7 @@ def demo_scenario_3():
 
             if has_changed2:
                 print("\n📦 Re-checking dependencies due to changes...")
-                results, was_cached = smart_checker.get_or_check_dependencies(loader)
+                _results, was_cached = smart_checker.get_or_check_dependencies(loader)
                 print(f"   → Fresh check performed (cached: {was_cached})")
         finally:
             cleanup()
@@ -183,7 +183,7 @@ def demo_scenario_5():
     print("\nContext: Comparing startup time with and without smart checking")
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        agents_dir, cleanup = setup_demo_environment(tmpdir, num_agents=10)
+        _agents_dir, cleanup = setup_demo_environment(tmpdir, num_agents=10)
         try:
             loader = AgentDependencyLoader()
             smart_checker = SmartDependencyChecker()

@@ -236,7 +236,7 @@ def check_active_sessions():
         print("ℹ️ No Socket.IO server currently running")
 
     # Check for dashboard connections
-    success, stdout, stderr = run_command("lsof -i :8765 | grep LISTEN")
+    success, stdout, _stderr = run_command("lsof -i :8765 | grep LISTEN")
     if success and stdout.strip():
         print("✅ Port 8765 is in use (monitoring active)")
     else:

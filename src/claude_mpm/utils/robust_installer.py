@@ -768,7 +768,7 @@ def install_with_retry(
         logging.getLogger().setLevel(logging.DEBUG)
 
     installer = RobustPackageInstaller(max_retries=max_retries)
-    successful, failed, errors = installer.install_packages(packages)
+    _successful, failed, errors = installer.install_packages(packages)
 
     if verbose:
         print(installer.get_report())

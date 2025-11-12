@@ -792,7 +792,7 @@ class GitEventHandler(BaseEventHandler):
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE,
                     )
-                    diff_output, diff_error = await diff_proc.communicate()
+                    diff_output, _diff_error = await diff_proc.communicate()
 
                     if diff_proc.returncode == 0:
                         return {

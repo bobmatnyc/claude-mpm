@@ -47,7 +47,7 @@ class TestTemplateDiscovery(TestAgentDeploymentService):
         # Create mock config
         mock_config = Mock()
 
-        templates, sources, cleanup = service._get_multi_source_templates(
+        templates, sources, _cleanup = service._get_multi_source_templates(
             excluded_agents=["excluded_agent"],
             config=mock_config,
             agents_dir=tmp_path / ".claude" / "agents",
@@ -105,7 +105,7 @@ class TestTemplateDiscovery(TestAgentDeploymentService):
             "new_agents": [],
         }
 
-        templates, sources, cleanup = service._get_multi_source_templates(
+        templates, _sources, _cleanup = service._get_multi_source_templates(
             excluded_agents=[],
             config=Mock(),
             agents_dir=agents_dir,
@@ -134,7 +134,7 @@ class TestTemplateDiscovery(TestAgentDeploymentService):
             {"removed": []},
         )
 
-        templates, sources, cleanup = service._get_multi_source_templates(
+        templates, _sources, _cleanup = service._get_multi_source_templates(
             excluded_agents=[], config=Mock(), agents_dir=agents_dir, force_rebuild=True
         )
 

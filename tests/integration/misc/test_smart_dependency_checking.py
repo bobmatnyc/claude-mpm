@@ -279,7 +279,7 @@ def test_integration():
             smart_checker = SmartDependencyChecker()
 
             # 2. Check if dependencies need checking
-            has_changed, deployment_hash = loader.has_agents_changed()
+            has_changed, _deployment_hash = loader.has_agents_changed()
             print(f"\n1. Agent changes detected: {has_changed}")
 
             # 3. Check environment for prompting
@@ -305,7 +305,7 @@ def test_integration():
 
             # 5. Simulate second run (should use cache)
             print("\n4. Second run (should use cache):")
-            results2, was_cached2 = smart_checker.get_or_check_dependencies(
+            _results2, was_cached2 = smart_checker.get_or_check_dependencies(
                 loader=loader, force_check=False
             )
             print(f"   Results cached: {was_cached2}")

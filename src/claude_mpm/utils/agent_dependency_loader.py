@@ -678,7 +678,7 @@ class AgentDependencyLoader:
             logger.info(
                 f"Auto-installing {len(results['summary']['missing_python'])} missing dependencies..."
             )
-            success, error = self.install_missing_dependencies(
+            success, _error = self.install_missing_dependencies(
                 results["summary"]["missing_python"]
             )
             if success:
@@ -777,7 +777,7 @@ class AgentDependencyLoader:
             import sys
 
             if sys.version_info >= (3, 13):
-                compatible, incompatible = self.check_python_compatibility(
+                _compatible, incompatible = self.check_python_compatibility(
                     summary["missing_python"]
                 )
                 if incompatible:
@@ -949,7 +949,7 @@ class AgentDependencyLoader:
         Returns:
             Cached results or None if not available/valid.
         """
-        has_changed, current_hash = self.has_agents_changed()
+        has_changed, _current_hash = self.has_agents_changed()
 
         if not has_changed:
             state = self.load_deployment_state()

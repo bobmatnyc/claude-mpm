@@ -9,14 +9,12 @@ This script:
 4. Generates a migration report
 """
 
-import ast
-import os
 import re
 import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Tuple
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -63,7 +61,6 @@ class CodeMigrator:
             Tuple of (modified content, number of changes)
         """
         content = file_path.read_text()
-        original_content = content
         changes = 0
 
         # Pattern 1: import logging + logger = logging.getLogger

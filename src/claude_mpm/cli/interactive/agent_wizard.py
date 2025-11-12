@@ -55,7 +55,7 @@ class AgentWizard:
             model = self._get_model_choice()
 
             # Step 5: Inheritance Option
-            parent_agent, base_template = self._get_inheritance_option()
+            parent_agent, _base_template = self._get_inheritance_option()
 
             # Step 6: Capabilities Configuration
             capabilities = self._get_capabilities_configuration()
@@ -196,7 +196,7 @@ class AgentWizard:
                         print(f"\n{message}")
                     continue  # Return to main menu
                 elif choice_num == len(templates) + 4:
-                    success, message = self._interactive_export()
+                    _success, message = self._interactive_export()
                     if message:
                         # Message already has emoji from the function
                         print(f"\n{message}")

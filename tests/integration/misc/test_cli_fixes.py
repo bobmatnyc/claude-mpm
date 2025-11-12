@@ -109,7 +109,7 @@ def main():
 
     # Test 6: Agent services imports
     tests_run += 1
-    success, stdout, stderr = run_subcommand(
+    success, stdout, _stderr = run_subcommand(
         "python -c \"from claude_mpm.services.agents.deployment import AgentDeploymentService; from claude_mpm.services.agents.registry import AgentRegistry; print('Agent services imports OK')\"",
         "Agent services imports",
     )

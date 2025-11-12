@@ -177,7 +177,7 @@ class ResourceMonitorService(BaseMonitoringService):
         # Load average (Unix only)
         try:
             if hasattr(psutil, "getloadavg"):
-                load1, load5, load15 = psutil.getloadavg()
+                load1, load5, _load15 = psutil.getloadavg()
                 cpu_count = psutil.cpu_count()
 
                 # Load is concerning if > cpu_count

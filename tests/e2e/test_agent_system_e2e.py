@@ -660,7 +660,7 @@ class TestAgentSystemE2E:
         (
             research_prompt,
             research_model,
-            research_config,
+            _research_config,
         ) = get_agent_prompt_with_model_info(
             "research_test",
             task_description="Analyze codebase for optimization opportunities",
@@ -678,7 +678,7 @@ class TestAgentSystemE2E:
         (
             engineer_prompt,
             engineer_model,
-            engineer_config,
+            _engineer_config,
         ) = get_agent_prompt_with_model_info(
             "engineer_test",
             task_description="Implement performance optimizations identified by research",
@@ -693,7 +693,7 @@ class TestAgentSystemE2E:
         )
 
         # Step 3: QA agent validates implementation
-        qa_prompt, qa_model, qa_config = get_agent_prompt_with_model_info(
+        qa_prompt, qa_model, _qa_config = get_agent_prompt_with_model_info(
             "qa_test",
             task_description="Validate performance improvements and test coverage",
             context_size=3000,

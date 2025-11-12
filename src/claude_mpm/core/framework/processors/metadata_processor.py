@@ -127,7 +127,7 @@ class MetadataProcessor:
             True if cache is valid, False otherwise
         """
         try:
-            data, cache_time = cached_data
+            _data, cache_time = cached_data
             current_time = time.time()
 
             # Check TTL

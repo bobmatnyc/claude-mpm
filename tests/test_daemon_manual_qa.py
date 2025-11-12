@@ -260,7 +260,7 @@ def test_crash_recovery():
             log_test("Recovery setup", False, "Could not start daemon")
             return
 
-        initial_server_pid, supervisor_pid, port = manager.get_daemon_info()
+        initial_server_pid, supervisor_pid, _port = manager.get_daemon_info()
         print(
             f"Initial: Server PID {initial_server_pid}, Supervisor PID {supervisor_pid}"
         )
@@ -282,7 +282,7 @@ def test_crash_recovery():
 
         while time.time() - start_time < recovery_timeout:
             time.sleep(2)
-            new_server_pid, new_supervisor_pid, new_port = manager.get_daemon_info()
+            new_server_pid, _new_supervisor_pid, new_port = manager.get_daemon_info()
 
             if new_server_pid > 0 and new_server_pid != initial_server_pid:
                 log_test(

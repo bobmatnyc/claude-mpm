@@ -192,7 +192,7 @@ def main():
     analyze_current_implementation()
 
     # Create fixed implementation
-    fixed_handler, pre_tool_addition, subagent_stop_fix = create_fixed_hook_handler()
+    _fixed_handler, _pre_tool_addition, _subagent_stop_fix = create_fixed_hook_handler()
 
     # Show implementation plan
     show_implementation_plan()

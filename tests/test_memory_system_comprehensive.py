@@ -396,7 +396,7 @@ class MemorySystemTester:
         print("=" * 60)
 
         # Setup test environment
-        project_dir, user_dir = self.setup_test_environment()
+        _project_dir, _user_dir = self.setup_test_environment()
 
         try:
             # Run all tests

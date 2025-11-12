@@ -580,7 +580,7 @@ class TestRollbackScenarios:
 
     def test_manual_rollback_capability(self):
         """Test manual rollback capability and verification."""
-        deployment_service, target_dir = self
+        _deployment_service, target_dir = self
 
         # Create backup directory to simulate rollback source
         backup_dir = target_dir.parent / "backup"

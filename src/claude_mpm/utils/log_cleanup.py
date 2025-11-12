@@ -496,15 +496,15 @@ class LogCleanupUtility:
         }
 
         # Cleanup operations
-        sessions_removed, sessions_space = self.cleanup_old_sessions(
+        _sessions_removed, _sessions_space = self.cleanup_old_sessions(
             session_max_age_days, dry_run
         )
 
-        archives_removed, archives_space = self.cleanup_archived_logs(
+        _archives_removed, _archives_space = self.cleanup_archived_logs(
             archive_max_age_days, dry_run
         )
 
-        logs_removed, logs_space = self.cleanup_old_logs(log_max_age_days, dry_run)
+        _logs_removed, _logs_space = self.cleanup_old_logs(log_max_age_days, dry_run)
 
         # Optional compression
         if compress_age_days is not None:

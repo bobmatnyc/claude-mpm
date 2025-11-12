@@ -586,7 +586,7 @@ class TestOrphanDetectionIntegration(unittest.TestCase):
         self.assertEqual(len(orphans), 1)
 
         # 2. Cleanup orphan
-        success, message = self.service.cleanup_orphan(orphans[0])
+        success, _message = self.service.cleanup_orphan(orphans[0])
         self.assertTrue(success)
 
         # 3. Verify cleanup

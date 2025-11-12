@@ -618,7 +618,7 @@ def test_integration():
         print("Testing restart command...")
 
         if manager.start_daemon_background():
-            initial_server_pid, _, initial_port = manager.get_daemon_info()
+            initial_server_pid, _, _initial_port = manager.get_daemon_info()
 
             # Restart daemon
             subprocess.run(
@@ -631,7 +631,7 @@ def test_integration():
 
             time.sleep(5)  # Wait for restart
 
-            new_server_pid, _, new_port = manager.get_daemon_info()
+            new_server_pid, _, _new_port = manager.get_daemon_info()
 
             if new_server_pid > 0 and new_server_pid != initial_server_pid:
                 log_test(

@@ -17,11 +17,10 @@ Options:
 """
 
 import argparse
-import ast
 import re
 import shutil
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 # Mapping of old services to new strategies
 SERVICE_MIGRATION_MAP = {

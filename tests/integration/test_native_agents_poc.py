@@ -83,7 +83,7 @@ def main():
     delegation_worked = "Task(" in output or "delegat" in output.lower()
 
     # Test 4: Multi-agent delegation
-    success, output, _ = run_test(
+    _success, output, _ = run_test(
         "Multi-Agent Delegation",
         '''python scripts/launch_with_agents.py --non-interactive "Please delegate these tasks:
 1. engineer: Create a factorial function

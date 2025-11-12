@@ -138,7 +138,7 @@ class SkillValidator:
         lines = content.split("\n")
 
         # Rule 2 & 3: Frontmatter presence and format
-        frontmatter, body = self._extract_frontmatter(content)
+        frontmatter, _body = self._extract_frontmatter(content)
         if frontmatter is None:
             return self._result()
 

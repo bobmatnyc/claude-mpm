@@ -140,7 +140,7 @@ class ConnectionBenchmark:
 
                 while server_running.is_set():
                     try:
-                        client_socket, address = server_socket.accept()
+                        client_socket, _address = server_socket.accept()
                         # Simulate some processing delay
                         time.sleep(random.uniform(0.01, 0.05))
                         client_socket.close()
@@ -295,7 +295,7 @@ class ConnectionBenchmark:
 
             try:
                 # Get connection from pool
-                connection, reused = await get_pooled_connection()
+                connection, _reused = await get_pooled_connection()
 
                 if connection is None:
                     return False, 0, "pool_exhausted"

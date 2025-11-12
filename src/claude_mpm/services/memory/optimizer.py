@@ -618,7 +618,7 @@ class MemoryOptimizer(LoggerMixin):
                     )
 
                 # Check for similar items
-                consolidated, consolidated_count = self._consolidate_similar_items(
+                _consolidated, consolidated_count = self._consolidate_similar_items(
                     unique_points
                 )
                 if consolidated_count > 0:

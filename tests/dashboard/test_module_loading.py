@@ -195,7 +195,7 @@ class TestDashboardModuleLoading:
         # Get the registered route and handler
         calls = mock_app.router.add_get.call_args_list
         assert len(calls) == 1
-        route, handler = calls[0][0]
+        route, _handler = calls[0][0]
         assert route == "/"
 
     @patch("claude_mpm.services.socketio.server.core.SOCKETIO_AVAILABLE", True)

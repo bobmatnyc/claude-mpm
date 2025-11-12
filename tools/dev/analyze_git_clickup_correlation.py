@@ -422,7 +422,7 @@ class Visualizer:
         week_labels = [f"{y}-W{w}" for y, w in pivot_data.index]
 
         # Create stacked area chart
-        fig, ax = plt.subplots(figsize=(14, 8))
+        _fig, ax = plt.subplots(figsize=(14, 8))
         pivot_data.plot.area(ax=ax, stacked=True, alpha=0.7)
 
         ax.set_xlabel("Week", fontsize=12)
@@ -449,7 +449,7 @@ class Visualizer:
         )
 
         # Create grouped bar chart
-        fig, ax = plt.subplots(figsize=(14, 8))
+        _fig, ax = plt.subplots(figsize=(14, 8))
         pivot_data.plot(kind="bar", ax=ax, width=0.8)
 
         ax.set_xlabel("Developer", fontsize=12)
@@ -472,10 +472,10 @@ class Visualizer:
         """Create pie chart for overall project distribution."""
         project_counts = analysis_data["project"].value_counts()
 
-        fig, ax = plt.subplots(figsize=(10, 10))
+        _fig, ax = plt.subplots(figsize=(10, 10))
         colors = sns.color_palette("husl", len(project_counts))
 
-        wedges, texts, autotexts = ax.pie(
+        _wedges, texts, autotexts = ax.pie(
             project_counts.values,
             labels=project_counts.index,
             autopct="%1.1f%%",
@@ -510,7 +510,7 @@ class Visualizer:
             .reset_index(name="commit_count")
         )
 
-        fig, ax = plt.subplots(figsize=(16, 8))
+        _fig, ax = plt.subplots(figsize=(16, 8))
 
         # Plot each project separately
         for project in timeline_data["project"].unique():

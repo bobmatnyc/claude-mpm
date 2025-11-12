@@ -88,7 +88,7 @@ class StartupBenchmark:
             )
 
             # Monitor process until completion
-            stdout, stderr = process.communicate(timeout=timeout)
+            _stdout, stderr = process.communicate(timeout=timeout)
 
             end_time = time.time()
             final_memory = psutil.virtual_memory().used

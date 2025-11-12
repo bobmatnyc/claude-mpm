@@ -171,7 +171,7 @@ def test_deployment_integration():
     """Test that the main deployment service uses multi-source correctly."""
     print("\n=== Testing Deployment Service Integration ===\n")
 
-    temp_base, system_dir, project_base, user_base = setup_test_directories()
+    temp_base, system_dir, project_base, _user_base = setup_test_directories()
 
     try:
         # Create deployment target directory

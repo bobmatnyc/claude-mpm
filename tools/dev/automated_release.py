@@ -122,7 +122,7 @@ def run_quality_checks(project_root: Path, skip_checks: bool = False) -> None:
     print("=" * 50)
 
     # Run pre-publish checks via make
-    returncode, stdout, stderr = run_command(
+    returncode, _stdout, _stderr = run_command(
         "make pre-publish", cwd=project_root, check=False
     )
 
@@ -141,7 +141,7 @@ def run_quality_checks(project_root: Path, skip_checks: bool = False) -> None:
 def increment_build_number(project_root: Path) -> None:
     """Increment build number if code changes are detected."""
     print("Checking for build number increment...")
-    returncode, stdout, stderr = run_command(
+    returncode, _stdout, _stderr = run_command(
         "python scripts/increment_build.py --all-changes", cwd=project_root, check=False
     )
 
@@ -157,7 +157,7 @@ def commit_and_tag(project_root: Path, version: str, is_version_bump: bool) -> N
     run_command("git add .", cwd=project_root)
 
     # Check if there are changes to commit
-    returncode, stdout, stderr = run_command(
+    returncode, _stdout, _stderr = run_command(
         "git diff --cached --quiet", cwd=project_root, check=False
     )
 

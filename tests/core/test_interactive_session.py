@@ -77,7 +77,7 @@ class TestInteractiveSession:
         ), patch("os.getcwd", return_value="/test/cwd"):
             mock_uuid.return_value.__str__ = Mock(return_value="ws-session-id")
 
-            success, error = interactive_session.initialize_interactive_session()
+            success, _error = interactive_session.initialize_interactive_session()
 
             assert success is True
             mock_proxy.start.assert_called_once()
@@ -135,7 +135,7 @@ class TestInteractiveSession:
         with patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid:
             mock_uuid.return_value.__str__ = Mock(return_value="test-session-id")
 
-            success, error = interactive_session.initialize_interactive_session()
+            success, _error = interactive_session.initialize_interactive_session()
 
             assert success is True
             interactive_session.runner.project_logger.log_system.assert_called_once_with(
@@ -188,7 +188,7 @@ class TestInteractiveSession:
         ), patch.object(
             interactive_session, "_change_to_user_directory"
         ):
-            success, env = interactive_session.setup_interactive_environment()
+            success, _env = interactive_session.setup_interactive_environment()
 
             assert success is True
             captured = capsys.readouterr()
@@ -796,7 +796,7 @@ class TestInteractiveSessionIntegration:
             mock_uuid.return_value.__str__ = Mock(return_value="integration-session-id")
 
             # Initialize session
-            success, error = session.initialize_interactive_session()
+            success, _error = session.initialize_interactive_session()
             assert success is True
             assert session.session_id == "integration-session-id"
 
@@ -841,7 +841,7 @@ class TestInteractiveSessionIntegration:
             mock_uuid.return_value.__str__ = Mock(return_value="ws-integration-session")
 
             # Full workflow
-            success, error = session.initialize_interactive_session()
+            success, _error = session.initialize_interactive_session()
             assert success is True
 
             env_success, environment = session.setup_interactive_environment()
@@ -875,7 +875,7 @@ class TestInteractiveSessionIntegration:
             mock_uuid.return_value.__str__ = Mock(return_value="error-session")
 
             # Initialize should still succeed
-            success, error = session.initialize_interactive_session()
+            success, _error = session.initialize_interactive_session()
             assert success is True
 
             # Environment setup should handle agent failure gracefully

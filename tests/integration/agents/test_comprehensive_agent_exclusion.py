@@ -228,7 +228,7 @@ agent_deployment:
 
         # Test --include-all override
         cmd = [str(project_root / "claude-mpm"), "agents", "deploy", "--include-all"]
-        exit_code, stdout, stderr = run_subcommand(cmd, cwd=str(project_root))
+        _exit_code, stdout, _stderr = run_subcommand(cmd, cwd=str(project_root))
 
         if (
             "Including all agents" in stdout

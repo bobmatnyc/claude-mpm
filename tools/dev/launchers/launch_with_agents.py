@@ -65,7 +65,7 @@ def main():
     print("\n" + "=" * 60)
     print("STEP 1: Agent Deployment")
     print("=" * 60)
-    deployed, skipped = deploy_agents(force_redeploy)
+    _deployed, _skipped = deploy_agents(force_redeploy)
 
     # Step 2: Set environment
     print("\n" + "=" * 60)
@@ -175,7 +175,7 @@ The agents are loaded from .claude/agents/ and have specialized capabilities.
         for key, value in env.items():
             os.environ[key] = value
 
-        stdout, stderr, returncode = launcher.launch_oneshot(
+        stdout, stderr, _returncode = launcher.launch_oneshot(
             message=full_message, use_stdin=True, timeout=120
         )
 

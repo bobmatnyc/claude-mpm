@@ -187,7 +187,7 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
             # Check if process is still running
             if process.poll() is not None:
                 # Process died immediately
-                stdout, stderr = process.communicate()
+                _stdout, stderr = process.communicate()
                 error_msg = stderr.decode("utf-8", errors="replace") if stderr else ""
                 raise ProcessSpawnError(
                     f"Process died immediately. Exit code: {process.returncode}. "

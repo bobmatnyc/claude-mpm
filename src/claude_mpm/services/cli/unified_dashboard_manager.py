@@ -392,7 +392,7 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
             port = self.find_available_port()
 
         # Use force_restart to ensure we're using the latest code
-        success, browser_opened = self.start_dashboard(
+        success, _browser_opened = self.start_dashboard(
             port=port, background=True, open_browser=False, force_restart=force_restart
         )
 

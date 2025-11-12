@@ -285,12 +285,12 @@ def check_mcp_auto_configuration():
         mcp_manager = MCPConfigManager()
 
         # Fix any corrupted installations first
-        fix_success, fix_message = mcp_manager.fix_mcp_service_issues()
+        _fix_success, fix_message = mcp_manager.fix_mcp_service_issues()
         if fix_message and "Fixed:" in fix_message:
             logger.info(f"MCP service fixes applied: {fix_message}")
 
         # Ensure all services are configured correctly
-        config_success, config_message = mcp_manager.ensure_mcp_services_configured()
+        _config_success, config_message = mcp_manager.ensure_mcp_services_configured()
         if config_message and "Added MCP services" in config_message:
             logger.info(f"MCP services configured: {config_message}")
 

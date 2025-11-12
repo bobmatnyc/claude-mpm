@@ -32,7 +32,7 @@ def increment_minor_version(version) -> str:
             print(f"Warning: Invalid version format '{version}', skipping")
             return str(version)
 
-        major, minor, patch = parts
+        major, minor, _patch = parts
         new_minor = int(minor) + 1
         return f"{major}.{new_minor}.0"
     except (ValueError, IndexError) as e:

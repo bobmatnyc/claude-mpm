@@ -72,7 +72,7 @@ class TestMCPServerSecurity:
 
                 # Verify that the command was split safely
                 mock_exec.assert_called_once()
-                args, kwargs = mock_exec.call_args
+                args, _kwargs = mock_exec.call_args
 
                 # The first argument should be "echo"
                 assert args[0] == "echo"
@@ -101,7 +101,7 @@ class TestMCPServerSecurity:
 
             # Verify that quoted arguments are parsed correctly
             mock_exec.assert_called_once()
-            args, kwargs = mock_exec.call_args
+            args, _kwargs = mock_exec.call_args
 
             # Should be: ("echo", "hello world", "test")
             assert args == ("echo", "hello world", "test")
@@ -147,7 +147,7 @@ class TestMCPServerSecurity:
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
-                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=1)
+                _stdout, _stderr = await asyncio.wait_for(proc.communicate(), timeout=1)
                 raise AssertionError("Expected TimeoutError")
             except asyncio.TimeoutError:
                 # This is expected behavior
@@ -198,7 +198,7 @@ class TestMCPServerSecurity:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await proc.communicate()
+            _stdout, stderr = await proc.communicate()
 
             # Verify subprocess was called and returned error
             mock_exec.assert_called_once()

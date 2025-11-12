@@ -425,8 +425,8 @@ class MemorySystemQATest:
 
         try:
             # Run all tests
-            test1_success, test1_data = self.test_memory_init_different_directories()
-            test2_success, test2_data = self.test_memory_directory_location()
+            test1_success, _test1_data = self.test_memory_init_different_directories()
+            test2_success, _test2_data = self.test_memory_directory_location()
             test3_success = self.test_memory_commands_functionality()
             test4_success = self.test_backward_compatibility()
             test5_success = self.test_edge_cases()

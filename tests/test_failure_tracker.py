@@ -186,7 +186,7 @@ class TestFixDetection:
         fix_result = self.tracker.detect_fix("Bash", fix_output, exit_code=0)
 
         assert fix_result is not None
-        fix_event, matched_failure = fix_result
+        _fix_event, matched_failure = fix_result
         assert matched_failure.task_id == failure.task_id
         assert matched_failure.fixed
         assert matched_failure.fix_timestamp is not None

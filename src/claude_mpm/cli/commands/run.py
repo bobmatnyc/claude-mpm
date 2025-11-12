@@ -361,7 +361,7 @@ class RunCommand(BaseCommand):
                 loader = AgentDependencyLoader(auto_install=False)
 
                 # Check if agents have changed
-                has_changed, deployment_hash = loader.has_agents_changed()
+                _has_changed, deployment_hash = loader.has_agents_changed()
 
                 # Determine if we should check dependencies
                 should_check, check_reason = smart_checker.should_check_dependencies(
@@ -443,7 +443,7 @@ class RunCommand(BaseCommand):
             else:
                 # Find available port and start server
                 websocket_port = dashboard_manager.find_available_port(8765)
-                success, server_info = dashboard_manager.start_server(
+                success, _server_info = dashboard_manager.start_server(
                     port=websocket_port
                 )
 
@@ -820,7 +820,7 @@ def run_session_legacy(args):
                 loader = AgentDependencyLoader(auto_install=False)
 
                 # Check if agents have changed
-                has_changed, deployment_hash = loader.has_agents_changed()
+                _has_changed, deployment_hash = loader.has_agents_changed()
 
                 # Determine if we should check dependencies
                 should_check, check_reason = smart_checker.should_check_dependencies(

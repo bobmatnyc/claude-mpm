@@ -326,5 +326,5 @@ def validate_api_keys(config: Optional[Dict] = None, strict: bool = True) -> boo
         ValueError: If strict=True and any validation fails
     """
     validator = APIKeyValidator(config)
-    success, errors, warnings = validator.validate_all_keys(strict=strict)
+    success, _errors, _warnings = validator.validate_all_keys(strict=strict)
     return success

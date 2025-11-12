@@ -94,7 +94,7 @@ class TestOneshotSession:
         oneshot_session.runner.enable_websocket = True
 
         with patch.object(oneshot_session, "_setup_websocket") as mock_setup:
-            success, error = oneshot_session.initialize_session("test")
+            success, _error = oneshot_session.initialize_session("test")
 
             assert success is True
             mock_setup.assert_called_once()
@@ -103,7 +103,7 @@ class TestOneshotSession:
         """Test session initialization with project logger."""
         oneshot_session.runner.project_logger = Mock()
 
-        success, error = oneshot_session.initialize_session("test prompt")
+        success, _error = oneshot_session.initialize_session("test prompt")
 
         assert success is True
         oneshot_session.runner.project_logger.log_system.assert_called_once_with(
@@ -766,7 +766,7 @@ class TestOneshotSessionIntegration:
             mock_uuid.return_value.__str__ = Mock(return_value="test-session-id")
 
             # Initialize session
-            success, error = session.initialize_session(prompt)
+            success, _error = session.initialize_session(prompt)
             assert success is True
 
             # Deploy agents
@@ -813,7 +813,7 @@ class TestOneshotSessionIntegration:
             mock_uuid.return_value.__str__ = Mock(return_value="test-session-id")
 
             # Initialize session
-            success, error = session.initialize_session(prompt)
+            success, _error = session.initialize_session(prompt)
             assert success is True
 
             # Deploy agents
@@ -860,14 +860,14 @@ class TestOneshotSessionIntegration:
             mock_uuid.return_value.__str__ = Mock(return_value="ws-session-id")
 
             # Full workflow
-            success, error = session.initialize_session(prompt)
+            success, _error = session.initialize_session(prompt)
             assert success is True
 
             deploy_success = session.deploy_agents()
             assert deploy_success is True
 
             infrastructure = session.setup_infrastructure()
-            exec_success, response = session.execute_command(
+            exec_success, _response = session.execute_command(
                 prompt, None, infrastructure
             )
             assert exec_success is True

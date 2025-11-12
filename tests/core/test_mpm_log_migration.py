@@ -434,8 +434,8 @@ class TestMPMLogManagerIntegration:
 
                 return prompt_file, startup_dir, mpm_dir, startup_exists, mpm_exists
 
-            prompt_file, startup_dir, mpm_dir, startup_exists, mpm_exists = asyncio.run(
-                test_all_logging()
+            prompt_file, _startup_dir, mpm_dir, startup_exists, mpm_exists = (
+                asyncio.run(test_all_logging())
             )
 
             # Verify all functionality works

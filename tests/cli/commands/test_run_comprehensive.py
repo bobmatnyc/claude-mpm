@@ -248,7 +248,7 @@ class TestSessionManagement:
 
         args = Namespace(mpm_resume="last")
 
-        manager, session_id, context = command._setup_session_management(args)
+        _manager, session_id, context = command._setup_session_management(args)
 
         assert session_id == "session-123"
         assert context == "test-context"
@@ -264,7 +264,7 @@ class TestSessionManagement:
 
         args = Namespace(mpm_resume="session-456")
 
-        manager, session_id, context = command._setup_session_management(args)
+        _manager, session_id, context = command._setup_session_management(args)
 
         assert session_id == "session-456"
         assert context == "specific-context"
@@ -658,7 +658,7 @@ class TestErrorHandling:
             args = Namespace(mpm_resume=None)
 
             # Should still work with fallback import
-            manager, session_id, context = command._setup_session_management(args)
+            manager, _session_id, _context = command._setup_session_management(args)
 
             assert manager is not None
 

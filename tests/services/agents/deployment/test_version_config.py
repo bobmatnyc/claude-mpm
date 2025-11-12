@@ -19,7 +19,7 @@ class TestVersionAndConfiguration(TestAgentDeploymentService):
         target_file = tmp_path / "agent.md"
         template_file = tmp_path / "agent.json"
 
-        needs_update, is_migration, reason = service._check_update_status(
+        needs_update, is_migration, _reason = service._check_update_status(
             target_file=target_file,
             template_file=template_file,
             base_agent_version=(1, 0, 0),
@@ -38,7 +38,7 @@ class TestVersionAndConfiguration(TestAgentDeploymentService):
         target_file.write_text("---\nname: agent\n---\nContent")
         template_file = tmp_path / "agent.json"
 
-        needs_update, is_migration, reason = service._check_update_status(
+        needs_update, _is_migration, _reason = service._check_update_status(
             target_file=target_file,
             template_file=template_file,
             base_agent_version=(1, 0, 0),
@@ -86,7 +86,7 @@ class TestVersionAndConfiguration(TestAgentDeploymentService):
             "version current",
         )
 
-        needs_update, is_migration, reason = service._check_update_status(
+        needs_update, is_migration, _reason = service._check_update_status(
             target_file=target_file,
             template_file=template_file,
             base_agent_version=(1, 0, 0),

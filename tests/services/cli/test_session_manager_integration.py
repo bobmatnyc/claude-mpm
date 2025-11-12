@@ -125,7 +125,7 @@ class TestSessionManagerIntegration(unittest.TestCase):
             args.mpm_resume = "last"
 
             # Test session setup
-            session_manager, resume_id, resume_context = cmd._setup_session_management(
+            _session_manager, resume_id, resume_context = cmd._setup_session_management(
                 args
             )
 
@@ -151,7 +151,7 @@ class TestSessionManagerIntegration(unittest.TestCase):
             args.mpm_resume = test_session.id
 
             # Test session setup
-            session_manager, resume_id, resume_context = cmd._setup_session_management(
+            _session_manager, resume_id, resume_context = cmd._setup_session_management(
                 args
             )
 

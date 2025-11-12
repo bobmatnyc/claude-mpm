@@ -68,7 +68,7 @@ class FileAnalyzer:
             self.event_manager.emit_cache_hit(path)
             filtered_nodes = self._filter_nodes(cached_nodes)
         else:
-            nodes, filtered_nodes, duration = self._analyze_and_cache_file(
+            _nodes, filtered_nodes, duration = self._analyze_and_cache_file(
                 path, language, cache_key
             )
             self.event_manager.emit_analysis_complete(path, filtered_nodes, duration)

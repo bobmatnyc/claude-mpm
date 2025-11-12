@@ -164,7 +164,7 @@ class ResumeTestRunner:
         # Test 1: Check if --resume alone tries to go to Claude CLI (should timeout/error)
         print("   Testing --resume alone (should timeout indicating Claude CLI)")
         cmd = [str(self.project_root / "scripts" / "claude-mpm"), "--resume"]
-        returncode, stdout, stderr = self.run_subcommand(cmd, timeout=3)
+        returncode, _stdout, stderr = self.run_subcommand(cmd, timeout=3)
 
         # If it times out, shows claude CLI errors, or fails with Claude-specific errors, it's passing through correctly
         passed_through_1 = (
@@ -186,7 +186,7 @@ class ResumeTestRunner:
         # Test 2: Check the wrapper logic by examining what would happen with unknown command
         print("   Testing unknown command to verify passthrough logic")
         cmd2 = [str(self.project_root / "scripts" / "claude-mpm"), "some-unknown-cmd"]
-        returncode2, stdout2, stderr2 = self.run_subcommand(cmd2, timeout=3)
+        returncode2, _stdout2, stderr2 = self.run_subcommand(cmd2, timeout=3)
 
         passed_through_2 = (
             returncode2 == -1  # timeout
