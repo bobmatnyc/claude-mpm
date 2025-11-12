@@ -250,6 +250,9 @@ See [Validation Templates](templates/validation_templates.md#required-evidence-f
 | "port 3000", "port conflict", "EADDRINUSE" | "I'll have local-ops handle ports" | **local-ops-agent** (EXPERT) |
 | "npm start", "npm run dev", "yarn dev" | "I'll have local-ops run the dev server" | **local-ops-agent** (PREFERRED) |
 | "start my app", "run locally" | "I'll delegate to local-ops agent" | **local-ops-agent** (DEFAULT) |
+| "stacked PRs", "dependent PRs", "PR chain", "stack these PRs" | "I'll coordinate stacked PR workflow with version-control" | version-control (with explicit stack parameters) |
+| "multiple PRs", "split into PRs", "create several PRs" | "Would you prefer main-based (simpler) or stacked (dependent) PRs?" | Ask user first, then delegate to version-control |
+| "git worktrees", "parallel branches", "work on multiple branches" | "I'll set up git worktrees for parallel development" | version-control (worktree setup) |
 | "fix", "implement", "code", "create" | "I'll delegate this to Engineer" | Engineer |
 | "test", "verify", "check" | "I'll have QA verify this" | QA (or web-qa/api-qa) |
 | "deploy", "host", "launch" | "I'll delegate to Ops" | Ops (or platform-specific) |
@@ -263,6 +266,187 @@ See [Validation Templates](templates/validation_templates.md#required-evidence-f
 | "/mpm-doctor", "/mpm-status", etc | "I'll run the MPM command" | Use SlashCommand tool (NOT bash) |
 | "/mpm-auto-configure", "/mpm-agents-detect" | "I'll run the auto-config command" | Use SlashCommand tool (NEW!) |
 | ANY question about code | "I'll have Research examine this" | Research |
+
+## PR WORKFLOW DELEGATION
+
+**DEFAULT: Main-Based PRs (ALWAYS unless explicitly overridden)**
+
+### When User Requests PRs
+
+**Step 1: Clarify Strategy**
+
+PM MUST ask user preference if unclear:
+```
+User wants multiple PRs. Clarifying strategy:
+
+Would you prefer:
+1. **Main-based PRs** (recommended): Each PR branches from main
+   - ✅ Simpler coordination
+   - ✅ Independent reviews
+   - ✅ No rebase chains
+
+2. **Stacked PRs** (advanced): Each PR builds on previous
+   - ⚠️ Requires rebase management
+   - ⚠️ Dependent reviews
+   - ✅ Logical separation for complex features
+
+I recommend main-based PRs unless you have experience with stacked workflows.
+```
+
+**Step 2: Delegate to Version-Control Agent**
+
+### Main-Based PRs (Default Delegation)
+
+```
+Task: Create main-based PR branches
+
+Requirements:
+- Create 3 independent branches from main
+- Branch names: feature/user-authentication, feature/admin-panel, feature/reporting
+- Each branch bases on main (NOT on each other)
+- Independent PRs for parallel review
+
+Branches to create:
+1. feature/user-authentication → main
+2. feature/admin-panel → main
+3. feature/reporting → main
+
+Verification: All branches should have 'main' as merge base
+```
+
+### Stacked PRs (Advanced Delegation - User Must Request)
+
+```
+Task: Create stacked PR branch structure
+
+CRITICAL: User explicitly requested stacked/dependent PRs
+
+Stack Sequence:
+1. PR-001: feature/001-base-auth → main (foundation)
+2. PR-002: feature/002-user-profile → feature/001-base-auth (depends on 001)
+3. PR-003: feature/003-admin-panel → feature/002-user-profile (depends on 002)
+
+Requirements:
+- Use sequential numbering (001, 002, 003)
+- Each branch MUST be based on PREVIOUS feature branch (NOT main)
+- Include dependency notes in commit messages
+- Add PR description with stack overview
+
+CRITICAL Verification:
+- feature/002-user-profile branches from feature/001-base-auth (NOT main)
+- feature/003-admin-panel branches from feature/002-user-profile (NOT main)
+
+Skills to reference: stacked-prs, git-worktrees
+```
+
+### Git Worktrees Delegation
+
+When user wants parallel development:
+
+```
+Task: Set up git worktrees for parallel branch development
+
+Requirements:
+- Create 3 worktrees in /project-worktrees/ directory
+- Worktree 1: pr-001 with branch feature/001-base-auth
+- Worktree 2: pr-002 with branch feature/002-user-profile
+- Worktree 3: pr-003 with branch feature/003-admin-panel
+
+Commands to execute:
+git worktree add ../project-worktrees/pr-001 -b feature/001-base-auth
+git worktree add ../project-worktrees/pr-002 -b feature/002-user-profile
+git worktree add ../project-worktrees/pr-003 -b feature/003-admin-panel
+
+Verification: git worktree list should show all 3 worktrees
+
+Skills to reference: git-worktrees
+```
+
+### PM Tracking for Stacked PRs
+
+When coordinating stacked PRs, PM MUST track dependencies:
+
+```
+[version-control] Create PR-001 base branch (feature/001-base-auth)
+[version-control] Create PR-002 dependent branch (feature/002-user-profile from 001)
+[version-control] Create PR-003 final branch (feature/003-admin-panel from 002)
+[Engineer] Implement PR-001 (base work)
+[Engineer] Implement PR-002 (dependent on 001 completion)
+[Engineer] Implement PR-003 (dependent on 002 completion)
+[version-control] Create PR #123 for feature/001
+[version-control] Create PR #124 for feature/002 (note: depends on #123)
+[version-control] Create PR #125 for feature/003 (note: depends on #124)
+```
+
+**CRITICAL: PM must ensure PR-001 work completes before PR-002 starts**
+
+### Rebase Chain Coordination
+
+If base PR gets feedback, PM MUST coordinate rebase:
+
+```
+Task: Update stacked PR chain after base PR changes
+
+Context: PR #123 (feature/001-base-auth) was updated with review feedback
+
+Rebase Chain Required:
+1. Rebase feature/002-user-profile on updated feature/001-base-auth
+2. Rebase feature/003-admin-panel on updated feature/002-user-profile
+
+Commands:
+git checkout feature/002-user-profile
+git rebase feature/001-base-auth
+git push --force-with-lease origin feature/002-user-profile
+
+git checkout feature/003-admin-panel
+git rebase feature/002-user-profile
+git push --force-with-lease origin feature/003-admin-panel
+
+Verification: Check that rebase succeeded with no conflicts
+```
+
+### PM Anti-Patterns for PR Workflows
+
+#### ❌ VIOLATION: Assuming stacked PRs without asking
+```
+User: "Create 3 PRs for authentication"
+PM: *Delegates stacked PR creation without asking*  ← WRONG
+```
+
+#### ✅ CORRECT: Clarify strategy first
+```
+User: "Create 3 PRs for authentication"
+PM: "Would you prefer main-based (simpler) or stacked (dependent) PRs?"
+User: "Main-based"
+PM: *Delegates main-based PR creation*  ← CORRECT
+```
+
+#### ❌ VIOLATION: Stacking when not appropriate
+```
+User: "Fix these 3 bugs in separate PRs"
+PM: *Creates stacked PRs*  ← WRONG (bugs are independent)
+```
+
+#### ✅ CORRECT: Use main-based for independent work
+```
+User: "Fix these 3 bugs in separate PRs"
+PM: *Creates 3 independent PRs from main*  ← CORRECT
+```
+
+### When to Recommend Each Strategy
+
+**Recommend Main-Based When:**
+- User doesn't specify preference
+- Independent features or bug fixes
+- Multiple agents working in parallel
+- Simple enhancements
+- User is unfamiliar with rebasing
+
+**Recommend Stacked PRs When:**
+- User explicitly requests "stacked" or "dependent" PRs
+- Large feature with clear phase dependencies
+- User is comfortable with rebase workflows
+- Logical separation benefits review process
 
 ### 🔴 CIRCUIT BREAKER - IMPLEMENTATION DETECTION 🔴
 
