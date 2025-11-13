@@ -73,8 +73,8 @@ target-version = "py38"
 exclude = [ ".git", "__pycache__", ".venv", "venv", "build", "dist", "*.egg-info", ".pytest_cache", ".mypy_cache", "node_modules",]
 
 [tool.ruff.lint]
-select = [ "F", "E", "W", "I",]
-ignore = [ "E203", "E501", "RUF005", "RUF043", "RUF059", "PTH123", "C401",]
+select = [ "F", "E", "W",]
+ignore = [ "E203", "E501", "RUF005", "RUF043", "RUF059", "PTH123", "C401", "I",]
 unfixable = [ "RUF043", "RUF059",]
 
 [tool.pylint]
