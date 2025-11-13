@@ -6,6 +6,7 @@ Provides functionality to increment versions and manage build numbers.
 """
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 from typing import Tuple
@@ -94,6 +95,60 @@ def display_current_info(project_root: Path) -> None:
     print(f"Full Version: v{current_version}-build.{current_build}")
 
 
+def update_homebrew_tap(version: str, dry_run: bool = False) -> bool:
+    """
+    Trigger Homebrew tap update after version bump.
+
+    Args:
+        version: New version number
+        dry_run: If True, only simulate the update
+
+    Returns:
+        True if successful, False otherwise (non-blocking)
+    """
+    project_root = get_project_root()
+    script_path = project_root / "scripts" / "update_homebrew_tap.sh"
+
+    if not script_path.exists():
+        print(
+            f"⚠️  Homebrew update script not found at {script_path} (skipping)",
+            file=sys.stderr,
+        )
+        return False
+
+    cmd = [str(script_path), version]
+    if dry_run:
+        cmd.append("--dry-run")
+
+    try:
+        print(f"🍺 Triggering Homebrew tap update for version {version}...")
+        result = subprocess.run(
+            cmd, check=False, capture_output=True, text=True, timeout=300
+        )
+
+        if result.returncode == 0:
+            print(f"✅ Homebrew tap updated successfully for version {version}")
+            if result.stdout:
+                print(result.stdout)
+            return True
+        print(
+            f"⚠️  Homebrew tap update failed (non-blocking): {result.stderr}",
+            file=sys.stderr,
+        )
+        print("Manual fallback instructions provided in output above.")
+        return False
+
+    except subprocess.TimeoutExpired:
+        print(
+            "⚠️  Homebrew tap update timed out after 5 minutes (non-blocking)",
+            file=sys.stderr,
+        )
+        return False
+    except Exception as e:
+        print(f"⚠️  Homebrew tap update error (non-blocking): {e}", file=sys.stderr)
+        return False
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Version management for claude-mpm")
@@ -110,9 +165,22 @@ def main():
         choices=["major", "minor", "patch"],
         help="Version component to increment",
     )
+    inc_parser.add_argument(
+        "--update-homebrew",
+        action="store_true",
+        help="Also trigger Homebrew tap update (optional)",
+    )
 
     # Increment build only
     subparsers.add_parser("build", help="Increment build number only")
+
+    # Update Homebrew tap
+    brew_parser = subparsers.add_parser(
+        "update-homebrew", help="Update Homebrew tap for current version"
+    )
+    brew_parser.add_argument(
+        "--dry-run", action="store_true", help="Simulate update without changes"
+    )
 
     args = parser.parse_args()
 
@@ -139,11 +207,30 @@ def main():
 
             print(f"✅ Version updated to {new_version} (build {new_build})")
 
+            # Optionally update Homebrew tap
+            if hasattr(args, "update_homebrew") and args.update_homebrew:
+                print("")
+                update_homebrew_tap(new_version, dry_run=False)
+
         elif args.command == "build":
             old_build, new_build = increment_build_number(project_root)
             current_version = get_current_version(project_root)
             print(f"Build number incremented: {old_build} → {new_build}")
             print(f"Current version: v{current_version}-build.{new_build}")
+
+        elif args.command == "update-homebrew":
+            current_version = get_current_version(project_root)
+            dry_run = hasattr(args, "dry_run") and args.dry_run
+
+            if dry_run:
+                print(
+                    f"🍺 Testing Homebrew tap update for version {current_version} (dry run)"
+                )
+            else:
+                print(f"🍺 Updating Homebrew tap for version {current_version}")
+
+            success = update_homebrew_tap(current_version, dry_run=dry_run)
+            return 0 if success else 1
 
         return 0
 

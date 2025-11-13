@@ -11,6 +11,7 @@
 .PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify release-dry-run release-test-pypi release release-full release-help release-test
 .PHONY: release-build-current release-publish-current
 .PHONY: auto-patch auto-minor auto-major auto-build auto-help sync-versions
+.PHONY: update-homebrew-tap update-homebrew-tap-dry-run
 
 # Default shell
 SHELL := /bin/bash
@@ -666,8 +667,31 @@ publish-pypi: ## Publish package to PyPI using credentials from .env.local
 	@echo "$(YELLOW)📤 Publishing to PyPI with .env.local credentials...$(NC)"
 	@./scripts/publish_to_pypi.sh
 
+# Update Homebrew tap formula (non-blocking)
+update-homebrew-tap: ## Update Homebrew tap formula after PyPI publish (non-blocking)
+	@echo "$(YELLOW)🍺 Updating Homebrew tap...$(NC)"
+	@VERSION=$$(cat VERSION); \
+	if [ -f "scripts/update_homebrew_tap.sh" ]; then \
+		./scripts/update_homebrew_tap.sh "$$VERSION" || { \
+			echo "$(YELLOW)⚠️  Homebrew tap update failed (non-blocking)$(NC)"; \
+			echo "$(YELLOW)Manual fallback: cd homebrew-claude-mpm && ./scripts/update_formula.sh $$VERSION$(NC)"; \
+		}; \
+	else \
+		echo "$(YELLOW)⚠️  Homebrew update script not found (skipping)$(NC)"; \
+	fi
+
+update-homebrew-tap-dry-run: ## Test Homebrew tap update without making changes
+	@echo "$(YELLOW)🍺 Testing Homebrew tap update (dry run)...$(NC)"
+	@VERSION=$$(cat VERSION); \
+	if [ -f "scripts/update_homebrew_tap.sh" ]; then \
+		./scripts/update_homebrew_tap.sh "$$VERSION" --dry-run; \
+	else \
+		echo "$(RED)✗ Homebrew update script not found$(NC)"; \
+		exit 1; \
+	fi
+
 # Publish release to all channels
-release-publish: ## Publish release to PyPI, npm, and GitHub
+release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 	@echo "$(YELLOW)🚀 Publishing release...$(NC)"
 	@VERSION=$$(cat VERSION); \
 	echo "Publishing version: $$VERSION"; \
@@ -684,6 +708,10 @@ release-publish: ## Publish release to PyPI, npm, and GitHub
 		echo "$(RED)✗ twine not found. Install with: pip install twine$(NC)"; \
 		exit 1; \
 	fi
+	@echo ""
+	@echo "$(YELLOW)🍺 Updating Homebrew tap (non-blocking)...$(NC)"
+	@$(MAKE) update-homebrew-tap || echo "$(YELLOW)⚠️  Homebrew update failed, continuing with release$(NC)"
+	@echo ""
 	@echo "$(YELLOW)📤 Publishing to npm...$(NC)"
 	@if command -v npm >/dev/null 2>&1; then \
 		npm publish || echo "$(YELLOW)⚠ npm publish failed, continuing...$(NC)"; \

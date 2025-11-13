@@ -194,6 +194,49 @@ Evidence Required:
   - GitHub release URL
 ```
 
+#### Phase 5.5: Update Homebrew Tap (Ops Agent) - NON-BLOCKING
+
+**Agent**: local-ops-agent
+**Purpose**: Update Homebrew formula with new version (automated)
+**Trigger**: Automatically after PyPI publish (Phase 5)
+**Template**:
+```
+Task: Update Homebrew tap for new release
+Requirements:
+  - Wait for PyPI package to be available (retry with backoff)
+  - Fetch SHA256 from PyPI for version {version}
+  - Update formula in homebrew-claude-mpm repository
+  - Update version and checksum in Formula/claude-mpm.rb
+  - Run formula tests locally (syntax check, brew audit)
+  - Commit changes with conventional commit message
+  - Push changes to homebrew-claude-mpm repository (with confirmation)
+Success Criteria: Formula updated and committed, or graceful failure logged
+Evidence Required: Git commit SHA in homebrew-claude-mpm or error log
+```
+
+**Decision**:
+- Success → Continue to GitHub release (Phase 5 continued)
+- Failure → Log warning with manual fallback instructions, continue anyway (NON-BLOCKING)
+
+**IMPORTANT**: Homebrew tap update failures do NOT block PyPI releases. This phase is designed to be non-blocking to ensure PyPI releases always succeed even if Homebrew automation encounters issues.
+
+**Manual Fallback** (if automation fails):
+```bash
+cd /path/to/homebrew-claude-mpm
+./scripts/update_formula.sh {version}
+git add Formula/claude-mpm.rb
+git commit -m "feat: update to v{version}"
+git push origin main
+```
+
+**Automation Details**:
+- Script: `scripts/update_homebrew_tap.sh`
+- Makefile target: `make update-homebrew-tap`
+- Integrated into: `make release-publish`
+- Retry logic: 10 attempts with exponential backoff
+- Timeout: 5 minutes maximum
+- Phase: Semi-automated (requires push confirmation in Phase 1)
+
 #### Phase 6: Post-Release Verification (Ops Agent) - MANDATORY
 
 **Agent**: Same ops agent that published
@@ -233,6 +276,7 @@ Evidence: Platform logs, HTTP response, deployment status
 | Security scan | Security | - | - |
 | Version increment | local-ops-agent | Ops (generic) | local-ops-agent |
 | PyPI publish | local-ops-agent | Ops (generic) | local-ops-agent |
+| Homebrew tap update | local-ops-agent (automated) | Manual fallback | local-ops-agent |
 | npm publish | local-ops-agent | Ops (generic) | local-ops-agent |
 | GitHub release | local-ops-agent | Ops (generic) | local-ops-agent |
 | Vercel deploy | vercel-ops-agent | - | vercel-ops-agent |
@@ -247,6 +291,10 @@ PM MUST verify these with agents before claiming release complete:
 - [ ] Quality gate passed (QA evidence: `make pre-publish` output)
 - [ ] Security scan clean (Security evidence: scan results)
 - [ ] Version incremented (Ops evidence: new version number)
+- [ ] PyPI package published (Ops evidence: PyPI URL)
+- [ ] Homebrew tap updated (Ops evidence: commit SHA or logged warning)
+- [ ] GitHub release created (Ops evidence: release URL)
+- [ ] Installation verified (Ops evidence: version check from PyPI/Homebrew)
 - [ ] Changes pushed to origin (Ops evidence: git push output)
 - [ ] Built successfully (Ops evidence: build logs)
 - [ ] Published to PyPI (Ops evidence: PyPI URL)
