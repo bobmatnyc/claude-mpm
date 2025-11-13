@@ -70,9 +70,12 @@ disallow_untyped_defs = true
 [tool.ruff]
 line-length = 88
 target-version = "py38"
-select = [ "F", "E", "W", "I", "F401", "F811", "F821", "F823",]
-ignore = [ "E203", "E501", "RUF005", "RUF043", "RUF059", "PTH123", "C401",]
 exclude = [ ".git", "__pycache__", ".venv", "venv", "build", "dist", "*.egg-info", ".pytest_cache", ".mypy_cache", "node_modules",]
+
+[tool.ruff.lint]
+select = [ "F", "E", "W", "I",]
+ignore = [ "E203", "E501", "RUF005", "RUF043", "RUF059", "PTH123", "C401",]
+unfixable = [ "RUF043", "RUF059",]
 
 [tool.pylint]
 max-line-length = 88
