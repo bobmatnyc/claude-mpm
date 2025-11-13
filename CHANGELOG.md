@@ -10,6 +10,18 @@
 
 ### Documentation
 
+## [4.22.1] - 2025-11-13
+
+### Fixed
+- Ruff linter configuration now properly ignores import sorting rules (I001) using `--extend-ignore` flag
+- Test script now checks if pytest module is importable instead of just checking for pytest binary
+- Test script now uses `python3` instead of `python` for compatibility with macOS and modern Python installations
+- Structure linter now uses `python3` instead of `python` command
+
+### Changed
+- Makefile lint-ruff target updated to use `--extend-ignore=RUF043,RUF059,I` format for better rule exclusion
+- Test execution now properly skips pytest tests when module is not available instead of failing
+
 ## [4.22.0] - 2025-11-12
 
 ### Added
