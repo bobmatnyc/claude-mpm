@@ -15,7 +15,7 @@ export PYTHONPATH="$PROJECT_ROOT/src:$PYTHONPATH"
 cd "$PROJECT_ROOT"
 
 echo "1. Running core functionality tests..."
-if command -v pytest >/dev/null 2>&1; then
+if python3 -c "import pytest" >/dev/null 2>&1; then
     python3 -m pytest tests/core/ -v --tb=short
     PYTEST_EXIT_CODE=$?
 else
