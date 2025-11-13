@@ -579,9 +579,9 @@ safe-release-build: ## Build release with mandatory quality checks
 	@echo ""
 	@echo "$(YELLOW)📦 Building package after quality checks...$(NC)"
 	@echo "$(YELLOW)🔢 Incrementing build number...$(NC)"
-	@python scripts/increment_build.py --all-changes
+	@python3 scripts/increment_build.py --all-changes
 	@rm -rf dist/ build/ *.egg-info
-	@python -m build
+	@python3 -m build
 	@echo "$(GREEN)✓ Package built successfully with quality assurance$(NC)"
 	@ls -la dist/
 
