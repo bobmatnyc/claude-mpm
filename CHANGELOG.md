@@ -10,6 +10,21 @@
 
 ### Documentation
 
+## [4.22.2] - 2025-11-13
+
+### Added
+- **Test Quality Inspector Skill**: Comprehensive test inspection capability for QA agents
+  - 5-phase inspection framework (Intent, Setup, Execution, Assertion, Failure analysis)
+  - Assertion quality guide with 6-level strength spectrum
+  - Red flags detection with severity matrix (CRITICAL/HIGH/MEDIUM/LOW)
+  - Mental debugging techniques and inspection checklist
+  - Detailed example inspection report with before/after test improvements
+  - Integrated into all QA agents (qa, web_qa, api_qa)
+
+### Fixed
+- Pre-commit hook now properly detects detect-secrets-hook from venv/virtualenv
+- Updated secrets baseline to include new skill files
+
 ## [4.22.1] - 2025-11-13
 
 ### Fixed
