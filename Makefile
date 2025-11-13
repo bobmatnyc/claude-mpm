@@ -410,7 +410,7 @@ lint-mypy: ## Run mypy type checker
 lint-structure: ## Check project structure compliance
 	@echo "$(YELLOW)🏗️ Checking project structure...$(NC)"
 	@if [ -f "tools/dev/structure_linter.py" ]; then \
-		python tools/dev/structure_linter.py || exit 1; \
+		python3 tools/dev/structure_linter.py || exit 1; \
 		echo "$(GREEN)✓ Structure check passed$(NC)"; \
 	else \
 		echo "$(RED)✗ Structure linter not found$(NC)"; \
