@@ -177,6 +177,7 @@
     "test-driven-development",
     "systematic-debugging",
     "async-testing",
-    "performance-profiling"
+    "performance-profiling",
+    "test-quality-inspector"
   ]
 }
