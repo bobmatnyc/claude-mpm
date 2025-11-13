@@ -226,6 +226,7 @@
     "optional": false
   },
   "skills": [
+    "flexlayout-react",
     "test-driven-development",
     "systematic-debugging",
     "async-testing",
