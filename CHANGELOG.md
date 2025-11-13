@@ -1,6 +1,16 @@
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [4.22.3] - 2025-11-13
+
+### Added
 - **env-manager skill**: Comprehensive environment variable validation, security scanning, and management
   - Framework-specific validation (Next.js, Vite, React, Node.js, Flask)
   - Security-first design with secret detection in client-exposed variables (NEXT_PUBLIC_, VITE_, REACT_APP_)
