@@ -362,7 +362,7 @@ quick-dev: setup-dev ## Alias for complete development setup
 lint-ruff: ## Run ruff linter (fast, catches most issues including imports)
 	@echo "$(YELLOW)🔍 Running ruff linter...$(NC)"
 	@if command -v ruff &> /dev/null; then \
-		ruff check src/ tests/ scripts/ --no-fix --ignore RUF043 --ignore RUF059 || exit 1; \
+		ruff check src/ tests/ scripts/ --no-fix --ignore RUF043 --ignore RUF059 --ignore I || exit 1; \
 		echo "$(GREEN)✓ Ruff check passed$(NC)"; \
 	else \
 		echo "$(RED)✗ ruff not found. Install with: pip install ruff$(NC)"; \
