@@ -8,6 +8,20 @@
 
 ### Removed
 
+## [4.23.0] - 2025-11-13
+
+### Changed
+- **Ticketing Agent v2.5.0**: Updated to prefer mcp-ticketer MCP server as PRIMARY integration with automatic fallback to aitrackdown CLI
+- Added 4-step MCP detection workflow for intelligent integration selection
+- Documented all 6 mcp-ticketer MCP tools with comprehensive examples
+- Enhanced ticketing agent with graceful degradation and user preference support
+
+### Documentation
+- Updated ticketing agent template with MCP-first architecture
+- Enhanced agent capabilities reference with ticketing integration details
+- Added comprehensive MCP vs CLI usage guidance across 4 documentation files
+- Created detailed verification report for ticketing agent updates
+
 ## [4.22.3] - 2025-11-13
 
 ### Added
