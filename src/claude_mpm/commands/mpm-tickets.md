@@ -1,10 +1,32 @@
 # mpm-tickets
 
-Create and manage tickets using aitrackdown
+Create and manage tickets using mcp-ticketer MCP server (primary) or aitrackdown CLI (fallback)
 
 ## Usage
 
-Use this command to create and manage tickets (epics, issues, tasks) through aitrackdown CLI integration.
+Use this command to create and manage tickets (epics, issues, tasks) through intelligent MCP-first integration with automatic CLI fallback.
+
+## Integration Methods
+
+### PRIMARY: mcp-ticketer MCP Server (Preferred)
+
+When available, ticketing operations use the mcp-ticketer MCP server for:
+- Unified interface across ticketing backends (Jira, GitHub, Linear)
+- Better error handling and validation
+- Automatic backend detection
+- Enhanced features and reliability
+
+**MCP Tools**:
+- `mcp__mcp-ticketer__create_ticket` - Create epics, issues, tasks
+- `mcp__mcp-ticketer__list_tickets` - List tickets with filters
+- `mcp__mcp-ticketer__get_ticket` - View ticket details
+- `mcp__mcp-ticketer__update_ticket` - Update status, priority
+- `mcp__mcp-ticketer__search_tickets` - Search by keywords
+- `mcp__mcp-ticketer__add_comment` - Add comments
+
+### SECONDARY: aitrackdown CLI (Fallback)
+
+When mcp-ticketer is not available, operations fall back to aitrackdown CLI for direct ticket management.
 
 ## Commands
 
@@ -93,10 +115,37 @@ aitrackdown create task "Design OAuth flow" --issue ISS-0001
 aitrackdown create task "Implement Google client" --issue ISS-0001
 ```
 
+## MCP vs CLI Usage
+
+### Using MCP Tools (Preferred)
+```
+# Create issue with MCP
+mcp__mcp-ticketer__create_ticket(
+  type="issue",
+  title="Fix login bug",
+  priority="high"
+)
+
+# List tickets
+mcp__mcp-ticketer__list_tickets(status="open")
+```
+
+### Using CLI Fallback
+```bash
+# Create issue with CLI
+aitrackdown create issue "Fix login bug" --priority high
+
+# List tickets
+aitrackdown status
+```
+
 ## Tips
 
-- Always use aitrackdown directly (not claude-mpm tickets)
-- Check ticket exists with `show` before updating
-- Add comments to document progress
-- Use `--severity` for bugs, `--priority` for features
-- Associate tasks with issues using `--issue`
+- **MCP-first**: Prefer mcp-ticketer MCP tools when available
+- **Automatic fallback**: System gracefully falls back to aitrackdown CLI
+- **Check availability**: Detection happens automatically
+- **Always use aitrackdown directly** (not claude-mpm tickets) for CLI operations
+- **Check ticket exists** with `get_ticket` (MCP) or `show` (CLI) before updating
+- **Add comments** to document progress
+- **Use `--severity`** for bugs, `--priority` for features
+- **Associate tasks** with issues using `parent_id` (MCP) or `--issue` (CLI)

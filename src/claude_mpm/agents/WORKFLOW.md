@@ -309,9 +309,34 @@ PM MUST verify these with agents before claiming release complete:
 
 **When user mentions**: ticket, epic, issue, task tracking
 
+**Architecture**: MCP-first with CLI fallback (v2.5.0+)
+
 **Process**:
-Use the mcp-ticketer MCP service for ticket management.
-Ticketing is handled through the MCP Gateway, not internal CLI commands.
+
+### PRIMARY: mcp-ticketer MCP Server (Preferred)
+When mcp-ticketer MCP tools are available, use them for all ticket operations:
+- `mcp__mcp-ticketer__create_ticket` - Create epics, issues, tasks
+- `mcp__mcp-ticketer__list_tickets` - List tickets with filters
+- `mcp__mcp-ticketer__get_ticket` - View ticket details
+- `mcp__mcp-ticketer__update_ticket` - Update status, priority
+- `mcp__mcp-ticketer__search_tickets` - Search by keywords
+- `mcp__mcp-ticketer__add_comment` - Add ticket comments
+
+### SECONDARY: aitrackdown CLI (Fallback)
+When mcp-ticketer is NOT available, fall back to aitrackdown CLI:
+- `aitrackdown create {epic|issue|task} "Title" --description "Details"`
+- `aitrackdown show {TICKET_ID}`
+- `aitrackdown transition {TICKET_ID} {status}`
+- `aitrackdown status tasks`
+- `aitrackdown comment {TICKET_ID} "Comment"`
+
+### Detection Workflow
+1. **Check MCP availability** - Attempt MCP tool use first
+2. **Graceful fallback** - If MCP unavailable, use CLI
+3. **User override** - Honor explicit user preferences
+4. **Error handling** - If both unavailable, inform user with setup instructions
+
+**Agent**: Delegate to `ticketing-agent` for all ticket operations
 
 ## Structural Delegation Format
 

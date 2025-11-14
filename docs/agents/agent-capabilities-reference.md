@@ -300,6 +300,181 @@ See [agent-patterns.md](agent-patterns.md) for detailed documentation.
 
 ---
 
+## Ticketing Agents
+
+### Ticketing Agent
+
+**Agent ID**: `ticketing-agent`
+**Model**: Sonnet
+**Authority**: documentation
+**Version**: 2.5.0
+**Priority**: 80
+
+#### Description
+
+Use this agent when you need to create, update, or manage project tickets through intelligent ticket management with Epic → Issue → Task hierarchy. This agent specializes in interfacing with ticketing systems using a MCP-first architecture with CLI fallback.
+
+#### Core Capabilities
+
+- **MCP-First Integration** (primary)
+  - mcp-ticketer MCP server integration
+  - Unified interface across ticketing backends
+  - Automatic backend detection (Jira, GitHub, Linear)
+  - Enhanced error handling and validation
+
+- **CLI Fallback** (secondary)
+  - aitrackdown CLI integration
+  - Direct ticket creation and management
+  - Workflow state transitions
+  - Comment and status updates
+
+- **Ticket Hierarchy Management**
+  - Epic → Issue → Task relationships
+  - Parent-child ticket associations
+  - Automatic prefix assignment (EP-, ISS-, TSK-)
+  - Smart classification of work items
+
+- **Workflow Management**
+  - Status transitions (open → in-progress → ready → tested → done)
+  - Priority and severity classification
+  - Tag and label management
+  - Comment history tracking
+
+- **External Platform Support**
+  - JIRA API integration
+  - GitHub Issues integration
+  - Linear GraphQL API integration
+  - Environment-based credential detection
+
+#### When to Use
+
+- Creating epics, issues, or tasks
+- Managing ticket status and workflow
+- Searching and filtering tickets
+- Adding comments or updates to tickets
+- Integrating with external PM systems
+- Breaking down features into trackable work
+- Managing sprint planning and backlog
+
+#### Routing Configuration
+
+**Keywords**:
+- ticket, tickets, ticketing, epic, epics
+- issue, issues, bug, bugs
+- task, tasks, todo, todos
+- backlog, sprint, workflow
+- jira, github-issues, linear
+- aitrackdown, mcp-ticketer
+
+**File Paths**:
+- `.tickets/`
+- `tickets/`
+- `.aitrackdown/`
+
+**Message Patterns**:
+- `create.*ticket`
+- `update.*issue`
+- `manage.*task`
+- `ticket.*status`
+- `epic.*breakdown`
+
+**Priority**: 80 (high priority for ticket management)
+
+#### MCP-First Architecture (v2.5.0+)
+
+**PRIMARY Integration**: mcp-ticketer MCP Server
+```
+Available Tools:
+- mcp__mcp-ticketer__create_ticket
+- mcp__mcp-ticketer__list_tickets
+- mcp__mcp-ticketer__get_ticket
+- mcp__mcp-ticketer__update_ticket
+- mcp__mcp-ticketer__search_tickets
+- mcp__mcp-ticketer__add_comment
+```
+
+**SECONDARY Integration**: aitrackdown CLI (fallback)
+```
+Commands:
+- aitrackdown create {epic|issue|task}
+- aitrackdown show {TICKET_ID}
+- aitrackdown transition {TICKET_ID} {status}
+- aitrackdown status tasks
+- aitrackdown comment {TICKET_ID}
+```
+
+**Detection Workflow**:
+1. Check MCP tool availability first
+2. Use MCP if available (preferred path)
+3. Fall back to CLI if MCP unavailable
+4. Honor user preference overrides
+5. Inform user if both unavailable
+
+#### Memory Routing
+
+The agent stores and retrieves context about:
+- Ticket creation patterns and templates
+- Workflow state conventions
+- Team-specific ticket classifications
+- Sprint planning decisions
+- Backlog prioritization strategies
+- Integration configurations
+- Common ticket hierarchies
+- Platform-specific API patterns
+
+#### Example Usage
+
+**Scenario**: Creating a bug ticket with investigation tasks
+
+```
+User: "Create a ticket for the login timeout bug and break it into investigation tasks"
+
+PM: "I'll use the ticketing-agent to create the issue and related tasks."
+
+[Delegates to ticketing-agent]
+
+Ticketing-Agent:
+  1. Checks MCP tool availability
+  2. Uses mcp__mcp-ticketer__create_ticket (if available) or aitrackdown CLI
+  3. Creates issue: ISS-0042 "Login timeout bug"
+  4. Creates task: TSK-0101 "Investigate login bug root cause"
+  5. Creates task: TSK-0102 "Fix regex in login validation"
+  6. Links tasks to parent issue
+  7. Returns ticket IDs and summary
+```
+
+**Why this agent?**:
+- Specializes in ticket lifecycle management
+- Understands Epic → Issue → Task hierarchy
+- Knows workflow state transitions
+- MCP-first approach with automatic fallback
+- Platform-agnostic ticket operations
+
+#### Dependencies
+
+**Required**:
+- `python3`
+- `git`
+
+**MCP Integration** (primary):
+- `mcp-ticketer` MCP server
+
+**CLI Integration** (fallback):
+- `aitrackdown` CLI package
+
+**Optional**:
+- `jira` CLI (for JIRA integration)
+- `gh` CLI (for GitHub Issues)
+- External API credentials (JIRA_API_TOKEN, GITHUB_TOKEN, LINEAR_API_KEY)
+
+#### Related Agents
+
+- **pm-agent**: Project management and delegation
+- **documentation-agent**: Documentation for ticket templates
+- **engineer**: Implementation of ticket work items
+
+---
+
 ## Routing Priority Reference
 
 Agents are selected based on priority scores:
@@ -357,8 +532,12 @@ This reference informs routing decisions:
 ---
 
 **Version History**:
-- **1.0.0** (2025-11-06): Initial reference with secrets-ops-agent
-- Added comprehensive secrets-ops-agent documentation
-- Established reference format for future agents
+- **4.22.3** (2025-11-13): Added ticketing-agent with MCP-first architecture
+  - Documented v2.5.0 ticketing agent with mcp-ticketer integration
+  - Added MCP detection workflow and CLI fallback patterns
+  - Comprehensive ticketing capabilities reference
+- **4.20.1** (2025-11-06): Initial reference with secrets-ops-agent
+  - Added comprehensive secrets-ops-agent documentation
+  - Established reference format for future agents
 
 **Maintained By**: Claude MPM Team
