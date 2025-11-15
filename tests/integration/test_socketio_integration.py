@@ -25,6 +25,7 @@ import contextlib
 import socketio
 
 from claude_mpm.services.socketio.server.main import SocketIOServer
+from tests.utils.test_helpers import wait_for_condition, wait_for_condition_async
 
 
 class TestEndToEndEventFlow:
@@ -46,7 +47,11 @@ class TestEndToEndEventFlow:
         server_thread.start()
 
         # Wait for server to be ready
-        await asyncio.sleep(0.5)
+        assert await wait_for_condition_async(
+            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            timeout=2,
+            message="Server did not start within timeout"
+        )
 
         yield server
 
@@ -88,10 +93,13 @@ class TestEndToEndEventFlow:
         server.broadcast_event("hook_event", hook_event)
 
         # Wait for event propagation
-        await asyncio.sleep(0.1)
+        assert await wait_for_condition_async(
+            lambda: len(received_events) > 0,
+            timeout=1,
+            message="Hook event not received"
+        )
 
         # Verify event received
-        assert len(received_events) > 0
         assert received_events[0]["source"] == "hook"
         assert received_events[0]["data"]["file"] == "/test/file.py"
 
@@ -132,8 +140,12 @@ class TestEndToEndEventFlow:
             # Trigger event through EventBus relay
             server.broadcast_event("system_event", eventbus_event)
 
-        # Wait for propagation
-        await asyncio.sleep(0.1)
+            # Wait for propagation
+            await wait_for_condition_async(
+                lambda: len(received_events) > 0,
+                timeout=1,
+                interval=0.05
+            )
 
         # Note: May not receive if EventBus not configured
         if received_events:
@@ -166,18 +178,35 @@ class TestEndToEndEventFlow:
 
         # Session start
         server.session_started(session_id, "exec", "/test/dir")
-        await asyncio.sleep(0.05)
+
+        # Wait for session started event
+        assert await wait_for_condition_async(
+            lambda: any(e.get("event_type") == "session_started" for e in session_events),
+            timeout=1,
+            message="Session started event not received"
+        )
 
         # Agent delegation
         server.agent_delegated("test_agent", "Test task", "started")
-        await asyncio.sleep(0.05)
+
+        # Wait for agent delegated event
+        assert await wait_for_condition_async(
+            lambda: any(e.get("event_type") == "agent_delegated" for e in session_events),
+            timeout=1,
+            message="Agent delegated event not received"
+        )
 
         # Session end
         server.session_ended()
-        await asyncio.sleep(0.05)
+
+        # Wait for session ended event
+        assert await wait_for_condition_async(
+            lambda: len(session_events) >= 3,
+            timeout=1,
+            message="Not all session events received"
+        )
 
         # Verify events received in order
-        assert len(session_events) >= 3
 
         # Check event sequence
         event_types = [e.get("event_type") for e in session_events]
@@ -206,7 +235,12 @@ class TestMultipleClientConnections:
         server_thread.daemon = True
         server_thread.start()
 
-        await asyncio.sleep(0.5)
+        # Wait for server to be ready
+        assert await wait_for_condition_async(
+            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            timeout=2,
+            message="Server did not start"
+        )
 
         # Create multiple clients
         clients = []
@@ -253,8 +287,12 @@ class TestMultipleClientConnections:
 
         server.broadcast_event("broadcast_test", test_event)
 
-        # Wait for propagation
-        await asyncio.sleep(0.2)
+        # Wait for all clients to receive event
+        assert await wait_for_condition_async(
+            lambda: all(len(events) > 0 for events in client_events.values()),
+            timeout=2,
+            message="Not all clients received broadcast"
+        )
 
         # Verify all clients received the event
         for i, events in client_events.items():
@@ -295,7 +333,13 @@ class TestMultipleClientConnections:
 
         # Broadcast should reach all
         server.broadcast_event("targeted_message", {"target": "all"})
-        await asyncio.sleep(0.1)
+
+        # Wait for targeted events
+        await wait_for_condition_async(
+            lambda: len(targeted_events) > 0,
+            timeout=1,
+            interval=0.05
+        )
 
         # Both should have received
         assert len(targeted_events) > 0
@@ -319,7 +363,12 @@ class TestMultipleClientConnections:
         server_thread.daemon = True
         server_thread.start()
 
-        await asyncio.sleep(0.5)
+        # Wait for server to be ready
+        assert await wait_for_condition_async(
+            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            timeout=2,
+            message="Server did not start"
+        )
 
         clients = []
         connection_results = []
@@ -366,7 +415,12 @@ class TestEventOrdering:
         server_thread.daemon = True
         server_thread.start()
 
-        await asyncio.sleep(0.5)
+        # Wait for server to be ready
+        assert await wait_for_condition_async(
+            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            timeout=2,
+            message="Server did not start"
+        )
 
         try:
             client = socketio.AsyncClient()
@@ -383,7 +437,11 @@ class TestEventOrdering:
                 server.broadcast_event("ordered_event", {"sequence": i})
 
             # Wait for all events
-            await asyncio.sleep(0.3)
+            assert await wait_for_condition_async(
+                lambda: len(received_events) >= 10,
+                timeout=2,
+                message="Not all events received"
+            )
 
             # Check order
             for i, event in enumerate(received_events):
@@ -409,7 +467,12 @@ class TestEventOrdering:
         server_thread.daemon = True
         server_thread.start()
 
-        await asyncio.sleep(0.5)
+        # Wait for server to be ready
+        assert await wait_for_condition_async(
+            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            timeout=2,
+            message="Server did not start"
+        )
 
         try:
             # Clear any connected clients to trigger buffering
@@ -432,8 +495,12 @@ class TestEventOrdering:
 
             await client.connect(f"http://localhost:{server.port}")
 
-            # Brief wait for buffer flush
-            await asyncio.sleep(0.2)
+            # Wait for potential buffer flush
+            await wait_for_condition_async(
+                lambda: len(received) > 0,
+                timeout=1,
+                interval=0.05
+            )
 
             # Should receive buffered events
             # Note: Actual delivery depends on implementation
@@ -463,7 +530,12 @@ class TestPerformanceUnderLoad:
         server_thread.daemon = True
         server_thread.start()
 
-        await asyncio.sleep(0.5)
+        # Wait for server to be ready
+        assert await wait_for_condition_async(
+            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            timeout=2,
+            message="Server did not start"
+        )
 
         try:
             client = socketio.AsyncClient()
@@ -483,8 +555,12 @@ class TestPerformanceUnderLoad:
             for i in range(event_count):
                 server.broadcast_event("perf_event", {"index": i})
 
-            # Wait for processing
-            await asyncio.sleep(1)
+            # Wait for all events to be received
+            assert await wait_for_condition_async(
+                lambda: received_count >= event_count * 0.95,  # Allow for 95% delivery
+                timeout=3,
+                message="Events not received in time"
+            )
 
             elapsed = time.time() - start_time
 
@@ -516,7 +592,12 @@ class TestPerformanceUnderLoad:
         server_thread.daemon = True
         server_thread.start()
 
-        await asyncio.sleep(0.5)
+        # Wait for server to be ready
+        assert await wait_for_condition_async(
+            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            timeout=2,
+            message="Server did not start"
+        )
 
         try:
             client = socketio.AsyncClient()
@@ -534,7 +615,7 @@ class TestPerformanceUnderLoad:
                     server.broadcast_event(
                         "concurrent_event", {"source": source_id, "index": i}
                     )
-                    await asyncio.sleep(0.01)  # Small delay
+                    await asyncio.sleep(0.01)  # Keep small delay to prevent overwhelming the queue
 
             # Run sources concurrently
             tasks = [
@@ -545,11 +626,14 @@ class TestPerformanceUnderLoad:
 
             await asyncio.gather(*tasks)
 
-            # Wait for all events
-            await asyncio.sleep(0.5)
+            # Wait for all events to be received
+            assert await wait_for_condition_async(
+                lambda: len(received_events) == 60,
+                timeout=3,
+                message="Not all concurrent events received"
+            )
 
             # Verify all events received
-            assert len(received_events) == 60
 
             # Check events from all sources
             sources = {e["source"] for e in received_events}
@@ -580,7 +664,12 @@ class TestPerformanceUnderLoad:
         server_thread.daemon = True
         server_thread.start()
 
-        time.sleep(0.5)
+        # Wait for server to be ready (sync version)
+        assert wait_for_condition(
+            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            timeout=2,
+            message="Server did not start"
+        )
 
         try:
             # Generate load
@@ -593,7 +682,8 @@ class TestPerformanceUnderLoad:
                 server.connected_clients.add(f"client_{cycle}")
                 server.connected_clients.clear()
 
-                time.sleep(0.1)
+                # Brief pause between cycles to allow processing
+                time.sleep(0.05)
 
             # Force garbage collection
             gc.collect()
@@ -627,7 +717,12 @@ class TestGracefulDegradation:
         server_thread.daemon = True
         server_thread.start()
 
-        await asyncio.sleep(0.5)
+        # Wait for server to be ready
+        assert await wait_for_condition_async(
+            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            timeout=2,
+            message="Server did not start"
+        )
 
         try:
             client = socketio.AsyncClient()
@@ -647,8 +742,12 @@ class TestGracefulDegradation:
             # Simulate network error by disconnecting
             await client.disconnect()
 
-            # Wait a moment
-            await asyncio.sleep(0.2)
+            # Wait for disconnect to complete
+            await wait_for_condition_async(
+                lambda: "disconnected" in connection_events,
+                timeout=1,
+                interval=0.05
+            )
 
             # Reconnect
             await client.connect(f"http://localhost:{server.port}")
@@ -678,7 +777,12 @@ class TestGracefulDegradation:
         server_thread.daemon = True
         server_thread.start()
 
-        await asyncio.sleep(0.5)
+        # Wait for server to be ready
+        assert await wait_for_condition_async(
+            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            timeout=2,
+            message="Server did not start"
+        )
 
         try:
             # Create healthy client
@@ -698,10 +802,14 @@ class TestGracefulDegradation:
             for i in range(5):
                 server.broadcast_event("test_event", {"index": i})
 
-            await asyncio.sleep(0.2)
+            # Wait for events to be received
+            assert await wait_for_condition_async(
+                lambda: len(good_events) == 5,
+                timeout=2,
+                message="Good client did not receive all events"
+            )
 
             # Good client should still receive events
-            assert len(good_events) == 5
 
             await good_client.disconnect()
 
@@ -745,7 +853,12 @@ def test_full_system_integration(integration_server):
     server_thread.daemon = True
     server_thread.start()
 
-    time.sleep(0.5)
+    # Wait for server to be ready (sync version)
+    assert wait_for_condition(
+        lambda: server.is_running() if hasattr(server, 'is_running') else True,
+        timeout=2,
+        message="Server did not start"
+    )
 
     try:
         # Simulate complete workflow
