@@ -68,6 +68,9 @@ class EventBus:
         # Track async handler tasks to prevent garbage collection
         self._handler_tasks: Set[asyncio.Task] = set()
 
+        # Track handler wrappers for removal
+        self._handler_wrappers: Dict[tuple, Callable] = {}
+
         logger.info("EventBus initialized")
 
     @classmethod
@@ -266,8 +269,20 @@ class EventBus:
 
             logger.debug(f"Registered wildcard handler for: {event_type}")
         else:
-            # Regular event registration
-            self._emitter.on(event_type, handler)
+            # Wrap handler to catch exceptions and prevent them from stopping other handlers
+            def safe_handler(data):
+                try:
+                    handler(data)
+                except Exception as e:
+                    if self._debug:
+                        logger.debug(f"Handler error for {event_type}: {e}")
+
+            # Store mapping for later removal
+            wrapper_key = (event_type, handler)
+            self._handler_wrappers[wrapper_key] = safe_handler
+
+            # Regular event registration with wrapped handler
+            self._emitter.on(event_type, safe_handler)
             logger.debug(f"Registered handler for: {event_type}")
 
     def once(self, event_type: str, handler: Callable) -> None:
@@ -287,7 +302,17 @@ class EventBus:
             event_type: The event type
             handler: The handler to remove
         """
-        self._emitter.remove_listener(event_type, handler)
+        # Check if we have a wrapped version of this handler
+        wrapper_key = (event_type, handler)
+        if wrapper_key in self._handler_wrappers:
+            # Remove the wrapped handler from pyee
+            wrapped_handler = self._handler_wrappers[wrapper_key]
+            self._emitter.remove_listener(event_type, wrapped_handler)
+            # Remove from our tracking dict
+            del self._handler_wrappers[wrapper_key]
+        else:
+            # No wrapper, remove directly (e.g., for wildcard handlers or direct registrations)
+            self._emitter.remove_listener(event_type, handler)
         logger.debug(f"Removed handler for: {event_type}")
 
     def remove_all_listeners(self, event_type: Optional[str] = None) -> None:
@@ -298,9 +323,15 @@ class EventBus:
         """
         if event_type:
             self._emitter.remove_all_listeners(event_type)
+            # Clean up wrappers for this event type
+            wrappers_to_remove = [key for key in self._handler_wrappers.keys() if key[0] == event_type]
+            for key in wrappers_to_remove:
+                del self._handler_wrappers[key]
             logger.debug(f"Removed all handlers for: {event_type}")
         else:
             self._emitter.remove_all_listeners()
+            # Clean up all wrappers
+            self._handler_wrappers.clear()
             logger.debug("Removed all event handlers")
 
     def _record_event(self, event_type: str, data: Any) -> None:

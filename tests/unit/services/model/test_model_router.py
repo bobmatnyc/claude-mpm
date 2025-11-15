@@ -782,7 +782,10 @@ class TestEdgeCases:
             # Should pass model parameter to provider
             mock_analyze.assert_called_once()
             call_args = mock_analyze.call_args
-            assert call_args[1].get("model") == "specific-model"
+            # Model should be passed (either as positional arg or keyword arg)
+            # Check if it's in args[2] or kwargs["model"]
+            model_value = call_args.args[2] if len(call_args.args) > 2 else call_args.kwargs.get("model")
+            assert model_value == "specific-model"
 
     @pytest.mark.asyncio
     async def test_routing_with_kwargs(self, router_auto, sample_content, mock_success_response):

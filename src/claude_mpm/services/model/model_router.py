@@ -266,7 +266,7 @@ class ModelRouter(BaseService, IModelRouter):
 
         # Route based on strategy
         if self.strategy == RoutingStrategy.CLAUDE_ONLY:
-            return await self._route_to_claude(content, task, model, **kwargs)
+            return await self._route_to_claude(content, task, model=model, **kwargs)
 
         if self.strategy in (
             RoutingStrategy.OLLAMA_ONLY,
@@ -275,13 +275,13 @@ class ModelRouter(BaseService, IModelRouter):
             return await self._route_to_ollama(
                 content,
                 task,
-                model,
+                model=model,
                 require_success=True,
                 **kwargs,
             )
 
         # AUTO strategy
-        return await self._route_auto(content, task, model, **kwargs)
+        return await self._route_auto(content, task, model=model, **kwargs)
 
     async def _route_auto(
         self,
@@ -308,7 +308,7 @@ class ModelRouter(BaseService, IModelRouter):
             response = await self._route_to_ollama(
                 content,
                 task,
-                model,
+                model=model,
                 require_success=False,
                 **kwargs,
             )
@@ -325,7 +325,7 @@ class ModelRouter(BaseService, IModelRouter):
         # Ollama unavailable or failed - fallback to Claude
         if self.fallback_enabled:
             self.log_info("Falling back to Claude")
-            return await self._route_to_claude(content, task, model, **kwargs)
+            return await self._route_to_claude(content, task, model=model, **kwargs)
         return self._create_error_response(
             task,
             model,
@@ -368,7 +368,7 @@ class ModelRouter(BaseService, IModelRouter):
         self._route_count["ollama"] += 1
 
         return await self.ollama_provider.analyze_content(
-            content, task, model, **kwargs
+            content, task, model=model, **kwargs
         )
 
     async def _route_to_claude(
@@ -394,7 +394,7 @@ class ModelRouter(BaseService, IModelRouter):
         self._route_count["claude"] += 1
 
         return await self.claude_provider.analyze_content(
-            content, task, model, **kwargs
+            content, task, model=model, **kwargs
         )
 
     def _create_error_response(
