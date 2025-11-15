@@ -393,7 +393,7 @@ See [docs/user/resume-logs.md](docs/user/resume-logs.md) for complete documentat
 ### Real-Time Monitoring
 The `--monitor` flag opens a web dashboard showing live agent activity, file operations, and session management.
 
-See [docs/MEMORY.md](docs/MEMORY.md) and [docs/developer/11-dashboard/README.md](docs/developer/11-dashboard/README.md) for details.
+See [docs/reference/MEMORY.md](docs/reference/MEMORY.md) and [docs/developer/11-dashboard/README.md](docs/developer/11-dashboard/README.md) for details.
 
 
 ## 📚 Documentation
@@ -406,7 +406,7 @@ See [docs/MEMORY.md](docs/MEMORY.md) and [docs/developer/11-dashboard/README.md]
 - **[🚀 5-Minute Quick Start](docs/user/quickstart.md)** - Get running immediately
 - **[📦 Installation Guide](docs/user/installation.md)** - All installation methods
 - **[📖 User Guide](docs/user/README.md)** - Complete user documentation
-- **[❓ FAQ](docs/user/faq.md)** - Common questions answered
+- **[❓ FAQ](docs/guides/FAQ.md)** - Common questions answered
 
 #### 💻 For Developers
 - **[🏗️ Architecture Overview](docs/developer/ARCHITECTURE.md)** - Service-oriented system design
@@ -473,7 +473,7 @@ The project uses automated code formatting and quality checks:
 See [docs/developer/CODE_FORMATTING.md](docs/developer/CODE_FORMATTING.md) for details.
 
 ### Contributing
-Contributions are welcome! Please see our [project structure guide](docs/STRUCTURE.md) and follow the established patterns.
+Contributions are welcome! Please see our [project structure guide](docs/reference/STRUCTURE.md) and follow the established patterns.
 
 **Development Workflow**:
 1. Run `make dev-complete` to set up your environment
@@ -481,7 +481,7 @@ Contributions are welcome! Please see our [project structure guide](docs/STRUCTU
 3. All code must pass quality checks before merging
 
 ### Project Structure
-See [docs/STRUCTURE.md](docs/STRUCTURE.md) for codebase organization.
+See [docs/reference/STRUCTURE.md](docs/reference/STRUCTURE.md) for codebase organization.
 
 ### License
 MIT License - see [LICENSE](LICENSE) file.
