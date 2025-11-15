@@ -29,6 +29,7 @@ import pytest
 
 from claude_mpm.services.core.models.stability import LogPatternMatch
 from claude_mpm.services.local_ops.log_monitor import LogMonitor
+from tests.utils.test_helpers import wait_for_condition
 
 # ============================================================================
 # Log Monitor Tests
@@ -143,8 +144,12 @@ class TestLogMonitor:
         # Start monitoring
         monitor.start_monitoring(str(log_file), deployment_id)
 
-        # Give observer time to start
-        time.sleep(0.5)
+        # Wait for observer to start
+        assert wait_for_condition(
+            lambda: deployment_id in monitor._handlers,
+            timeout=2,
+            message="Monitor did not start"
+        )
 
         # Append error line - use explicit file operations for test reliability
         with open(log_file, "a") as f:
@@ -155,8 +160,12 @@ class TestLogMonitor:
 
             os.fsync(f.fileno())
 
-        # Add extra delay for watchdog to detect and process file change
-        time.sleep(2.0)
+        # Wait for watchdog to detect and process file change
+        wait_for_condition(
+            lambda: len(matches) > 0,
+            timeout=3,
+            interval=0.1
+        )
 
         # WORKAROUND: Watchdog events don't fire reliably in test environments on macOS.
         # Manually trigger the file handler to process changes.
@@ -191,7 +200,12 @@ class TestLogMonitor:
         monitor.register_match_callback(match_callback)
         monitor.start_monitoring(str(log_file), deployment_id)
 
-        time.sleep(0.5)
+        # Wait for monitor to start
+        wait_for_condition(
+            lambda: deployment_id in monitor._handlers,
+            timeout=2,
+            message="Monitor did not start"
+        )
 
         # Append multiple error types
         with open(log_file, "a") as f:
@@ -200,8 +214,12 @@ class TestLogMonitor:
             f.write("Exception: Second error\n")
             f.flush()
 
-        # Wait for detection - increased time for watchdog
-        time.sleep(1.5)
+        # Wait for detection
+        wait_for_condition(
+            lambda: len(matches) >= 2,
+            timeout=3,
+            interval=0.1
+        )
 
         # WORKAROUND: Manually trigger watchdog event if needed (macOS test environment issue)
         if len(matches) < 2 and deployment_id in monitor._handlers:
