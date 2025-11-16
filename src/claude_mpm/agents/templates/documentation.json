@@ -1,9 +1,14 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "documentation-agent",
-  "agent_version": "3.4.1",
+  "agent_version": "3.4.2",
   "template_version": "2.4.0",
   "template_changelog": [
+    {
+      "version": "3.4.2",
+      "date": "2025-11-15",
+      "description": "Added thorough reorganization capability for comprehensive documentation restructuring"
+    },
     {
       "version": "2.4.0",
       "date": "2025-11-15",
