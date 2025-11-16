@@ -564,7 +564,9 @@ def create_temp_file(tmp_path, filename: str, content: str = "") -> Any:
     return file_path
 
 
-def create_temp_directory(tmp_path, dirname: str, files: Dict[str, str] = None):
+def create_temp_directory(
+    tmp_path, dirname: str, files: Optional[Dict[str, str]] = None
+):
     """Create temporary directory with files.
 
     Args:
