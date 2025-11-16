@@ -1,5 +1,3 @@
-import pytest
-
 #!/usr/bin/env python3
 """
 Test the unified ticket tool through the MCP Gateway.
@@ -12,6 +10,8 @@ tool registration and invocation through the gateway.
 import asyncio
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add the project root to Python path
 project_root = Path(__file__).parent.parent

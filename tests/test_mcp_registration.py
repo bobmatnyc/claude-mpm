@@ -1,5 +1,3 @@
-import pytest
-
 #!/usr/bin/env python3
 """
 Test script to verify MCP server tool registration.
@@ -11,6 +9,8 @@ showing which tools get registered.
 import asyncio
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add project root to path
 project_root = Path(__file__).parent.parent

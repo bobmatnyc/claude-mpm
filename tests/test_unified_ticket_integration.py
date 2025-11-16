@@ -1,5 +1,3 @@
-import pytest
-
 #!/usr/bin/env python3
 """
 Integration test for the unified ticket tool.
@@ -12,6 +10,8 @@ parameter validation correctly.
 import asyncio
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add the project root to Python path
 project_root = Path(__file__).parent.parent
