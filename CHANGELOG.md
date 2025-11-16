@@ -8,6 +8,11 @@
 
 ### Removed
 
+## [4.23.1] - 2025-11-15
+
+### Changed
+- **Documentation Agent v3.4.2**: Added thorough reorganization capability for comprehensive documentation restructuring
+
 ## [4.23.0] - 2025-11-13
 
 ### Changed
