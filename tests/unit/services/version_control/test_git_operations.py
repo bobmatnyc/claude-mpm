@@ -16,17 +16,16 @@ import logging
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch, call
+from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 
 from claude_mpm.services.version_control.git_operations import (
-    GitOperationsManager,
     GitBranchInfo,
-    GitOperationResult,
     GitOperationError,
+    GitOperationResult,
+    GitOperationsManager,
 )
-
 
 # ============================================================================
 # TEST FIXTURES
@@ -163,7 +162,9 @@ class TestGitCommandExecution:
     """Tests for Git command execution."""
 
     @patch("subprocess.run")
-    def test_run_git_command_success(self, mock_run, git_manager, mock_subprocess_success):
+    def test_run_git_command_success(
+        self, mock_run, git_manager, mock_subprocess_success
+    ):
         """Test successful Git command execution."""
         # Arrange
         mock_run.return_value = mock_subprocess_success
@@ -213,7 +214,9 @@ class TestGitCommandExecution:
             git_manager._run_git_command(["status"])
 
     @patch("subprocess.run")
-    def test_run_git_command_uses_custom_cwd(self, mock_run, git_manager, mock_subprocess_success):
+    def test_run_git_command_uses_custom_cwd(
+        self, mock_run, git_manager, mock_subprocess_success
+    ):
         """Test Git command uses custom working directory."""
         # Arrange
         mock_run.return_value = mock_subprocess_success
@@ -331,8 +334,7 @@ class TestBranchOperations:
         """Test getting list of modified files."""
         # Arrange
         mock_run.return_value = Mock(
-            returncode=0,
-            stdout=" M file1.py\n A file2.py\nD  file3.py\n"
+            returncode=0, stdout=" M file1.py\n A file2.py\nD  file3.py\n"
         )
 
         # Act
@@ -627,9 +629,7 @@ class TestMergeOperations:
         ]
 
         # Act
-        result = git_manager.merge_branch(
-            "feature-branch", "main", delete_source=False
-        )
+        result = git_manager.merge_branch("feature-branch", "main", delete_source=False)
 
         # Assert
         assert result.success is True
@@ -810,10 +810,7 @@ class TestGitOperationError:
         """Test GitOperationError with all fields."""
         # Arrange & Act
         error = GitOperationError(
-            "Test error",
-            command="git status",
-            output="output text",
-            error="error text"
+            "Test error", command="git status", output="output text", error="error text"
         )
 
         # Assert
@@ -854,7 +851,7 @@ class TestGitBranchInfo:
             last_commit_message="Initial commit",
             ahead=2,
             behind=0,
-            modified_files=["file.py"]
+            modified_files=["file.py"],
         )
 
         # Assert
@@ -877,7 +874,7 @@ class TestGitOperationResult:
             output="Created branch",
             branch_before="main",
             branch_after="feature",
-            execution_time=1.5
+            execution_time=1.5,
         )
 
         # Assert

@@ -148,7 +148,7 @@ class TestLogMonitor:
         assert wait_for_condition(
             lambda: deployment_id in monitor._handlers,
             timeout=2,
-            message="Monitor did not start"
+            message="Monitor did not start",
         )
 
         # Append error line - use explicit file operations for test reliability
@@ -161,11 +161,7 @@ class TestLogMonitor:
             os.fsync(f.fileno())
 
         # Wait for watchdog to detect and process file change
-        wait_for_condition(
-            lambda: len(matches) > 0,
-            timeout=3,
-            interval=0.1
-        )
+        wait_for_condition(lambda: len(matches) > 0, timeout=3, interval=0.1)
 
         # WORKAROUND: Watchdog events don't fire reliably in test environments on macOS.
         # Manually trigger the file handler to process changes.
@@ -204,7 +200,7 @@ class TestLogMonitor:
         wait_for_condition(
             lambda: deployment_id in monitor._handlers,
             timeout=2,
-            message="Monitor did not start"
+            message="Monitor did not start",
         )
 
         # Append multiple error types
@@ -215,11 +211,7 @@ class TestLogMonitor:
             f.flush()
 
         # Wait for detection
-        wait_for_condition(
-            lambda: len(matches) >= 2,
-            timeout=3,
-            interval=0.1
-        )
+        wait_for_condition(lambda: len(matches) >= 2, timeout=3, interval=0.1)
 
         # WORKAROUND: Manually trigger watchdog event if needed (macOS test environment issue)
         if len(matches) < 2 and deployment_id in monitor._handlers:

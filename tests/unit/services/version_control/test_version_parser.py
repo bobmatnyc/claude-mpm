@@ -16,17 +16,16 @@ import json
 import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, mock_open, patch
 
 import pytest
 
 from claude_mpm.services.version_control.version_parser import (
     EnhancedVersionParser,
-    VersionSource,
     VersionMetadata,
+    VersionSource,
     get_version_parser,
 )
-
 
 # ============================================================================
 # TEST FIXTURES
@@ -56,7 +55,7 @@ def sample_version_metadata():
         release_date=datetime.now(timezone.utc),
         commit_hash="abc123",
         author="Test Author",
-        message="Release v1.2.3"
+        message="Release v1.2.3",
     )
 
 
@@ -120,7 +119,7 @@ class TestVersionMetadataClass:
             commit_hash="abc123",
             author="Test Author",
             message="Release notes",
-            changes=changes
+            changes=changes,
         )
 
         # Assert
@@ -380,7 +379,9 @@ class TestFileVersionParsing:
         assert metadata.version == "1.2.3"
         assert metadata.source == VersionSource.PACKAGE_JSON
 
-    def test_get_version_from_package_json_invalid(self, version_parser, temp_project_dir):
+    def test_get_version_from_package_json_invalid(
+        self, version_parser, temp_project_dir
+    ):
         """Test getting version from invalid package.json."""
         # Arrange
         package_json = temp_project_dir / "package.json"
@@ -406,7 +407,9 @@ class TestFileVersionParsing:
         assert metadata.version == "1.2.3"
         assert metadata.source == VersionSource.PYPROJECT_TOML
 
-    def test_get_version_from_pyproject_poetry_section(self, version_parser, temp_project_dir):
+    def test_get_version_from_pyproject_poetry_section(
+        self, version_parser, temp_project_dir
+    ):
         """Test getting version from pyproject.toml poetry section."""
         # Arrange
         pyproject = temp_project_dir / "pyproject.toml"
@@ -449,7 +452,9 @@ class TestChangelogVersionParsing:
         assert versions[0].version == "1.2.3"
         assert versions[1].version == "1.2.2"
 
-    def test_get_versions_from_changelog_with_changes(self, version_parser, temp_project_dir):
+    def test_get_versions_from_changelog_with_changes(
+        self, version_parser, temp_project_dir
+    ):
         """Test extracting changes from changelog."""
         # Arrange
         changelog = temp_project_dir / "CHANGELOG.md"
@@ -468,7 +473,9 @@ class TestChangelogVersionParsing:
         assert "Added feature X" in versions[0].changes[0]
         assert "Fixed bug Y" in versions[0].changes[1]
 
-    def test_get_versions_from_changelog_alternate_path(self, version_parser, temp_project_dir):
+    def test_get_versions_from_changelog_alternate_path(
+        self, version_parser, temp_project_dir
+    ):
         """Test getting versions from docs/CHANGELOG.md."""
         # Arrange
         docs_dir = temp_project_dir / "docs"
@@ -529,7 +536,9 @@ class TestCurrentVersionDetection:
         assert metadata.version == "1.2.3"
         assert metadata.source == VersionSource.GIT_TAGS
 
-    def test_get_current_version_from_file_fallback(self, version_parser, temp_project_dir):
+    def test_get_current_version_from_file_fallback(
+        self, version_parser, temp_project_dir
+    ):
         """Test getting current version falls back to VERSION file."""
         # Arrange
         version_file = temp_project_dir / "VERSION"
@@ -542,7 +551,9 @@ class TestCurrentVersionDetection:
         assert metadata is not None
         assert metadata.version == "1.2.3"
 
-    def test_get_current_version_with_preferred_source(self, version_parser, temp_project_dir):
+    def test_get_current_version_with_preferred_source(
+        self, version_parser, temp_project_dir
+    ):
         """Test getting current version with preferred source."""
         # Arrange
         version_file = temp_project_dir / "VERSION"
@@ -600,7 +611,9 @@ class TestVersionHistory:
         assert versions[0].version == "1.2.3"
         assert versions[1].version == "1.2.2"
 
-    def test_get_version_history_excludes_prereleases(self, version_parser, temp_project_dir):
+    def test_get_version_history_excludes_prereleases(
+        self, version_parser, temp_project_dir
+    ):
         """Test version history excludes prereleases by default."""
         # Arrange
         changelog = temp_project_dir / "CHANGELOG.md"
@@ -616,7 +629,9 @@ class TestVersionHistory:
         assert len(versions) == 1
         assert versions[0].version == "1.2.3"
 
-    def test_get_version_history_includes_prereleases(self, version_parser, temp_project_dir):
+    def test_get_version_history_includes_prereleases(
+        self, version_parser, temp_project_dir
+    ):
         """Test version history includes prereleases when requested."""
         # Arrange
         changelog = temp_project_dir / "CHANGELOG.md"
@@ -757,7 +772,9 @@ class TestConvenienceFunctions:
         # Assert
         assert parser1 is parser2
 
-    def test_get_version_for_release_prefers_git(self, version_parser, temp_project_dir):
+    def test_get_version_for_release_prefers_git(
+        self, version_parser, temp_project_dir
+    ):
         """Test get_version_for_release prefers git tags."""
         # Arrange
         (temp_project_dir / "VERSION").write_text("1.0.0\n")
@@ -774,7 +791,9 @@ class TestConvenienceFunctions:
         # Assert
         assert version == "1.2.3"
 
-    def test_get_version_for_release_falls_back_to_file(self, version_parser, temp_project_dir):
+    def test_get_version_for_release_falls_back_to_file(
+        self, version_parser, temp_project_dir
+    ):
         """Test get_version_for_release falls back to VERSION file."""
         # Arrange
         (temp_project_dir / "VERSION").write_text("1.2.3\n")

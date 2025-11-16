@@ -11,14 +11,14 @@ Coverage targets:
 - Wildcard patterns tested
 """
 
-import pytest
 import asyncio
 import threading
-from unittest.mock import Mock, MagicMock, patch, call
 from datetime import datetime
+from unittest.mock import MagicMock, Mock, call, patch
+
+import pytest
 
 from claude_mpm.services.event_bus.event_bus import EventBus
-
 
 # ============================================================================
 # TEST FIXTURES
@@ -51,7 +51,7 @@ def sample_event_data():
     return {
         "message": "Test event",
         "timestamp": datetime.now().isoformat(),
-        "user": "test_user"
+        "user": "test_user",
     }
 
 
@@ -149,7 +149,7 @@ class TestInitialization:
 
         # Assert
         assert event_bus._emitter is not None
-        assert hasattr(event_bus._emitter, 'emit')
+        assert hasattr(event_bus._emitter, "emit")
 
 
 # ============================================================================
@@ -728,6 +728,7 @@ class TestErrorHandling:
 
     def test_handler_exception_does_not_stop_other_handlers(self, event_bus):
         """Test exception in one handler doesn't stop others."""
+
         # Arrange
         def failing_handler(data):
             raise Exception("Handler error")

@@ -12,12 +12,12 @@ Coverage targets:
 - All provider interactions tested
 """
 
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch, AsyncMock
 
 from claude_mpm.services.core.interfaces.model import ModelCapability, ModelResponse
 from claude_mpm.services.model.model_router import ModelRouter, RoutingStrategy
-
 
 # ============================================================================
 # TEST FIXTURES
@@ -98,7 +98,7 @@ def mock_success_response():
         provider="test",
         model="test-model",
         task="test",
-        result="Test result"
+        result="Test result",
     )
 
 
@@ -111,7 +111,7 @@ def mock_error_response():
         model="test-model",
         task="test",
         result="",
-        error="Test error"
+        error="Test error",
     )
 
 
@@ -166,7 +166,7 @@ class TestInitialization:
     def test_init_with_invalid_strategy(self):
         """Test initialization with invalid strategy falls back to AUTO."""
         # Arrange & Act
-        with patch('claude_mpm.services.model.model_router.get_logger'):
+        with patch("claude_mpm.services.model.model_router.get_logger"):
             router = ModelRouter(config={"strategy": "invalid"})
 
         # Assert
@@ -196,7 +196,7 @@ class TestInitialization:
         config = {
             "strategy": "auto",
             "ollama_config": {"host": "http://localhost:11434"},
-            "claude_config": {"api_key": "test-key"}
+            "claude_config": {"api_key": "test-key"},
         }
 
         # Act
@@ -219,8 +219,11 @@ class TestInitializeMethod:
     async def test_initialize_auto_strategy(self, router_auto):
         """Test initialize with AUTO strategy initializes both providers."""
         # Arrange
-        with patch.object(router_auto.ollama_provider, 'initialize', return_value=True) as mock_ollama, \
-             patch.object(router_auto.claude_provider, 'initialize', return_value=True) as mock_claude:
+        with patch.object(
+            router_auto.ollama_provider, "initialize", return_value=True
+        ) as mock_ollama, patch.object(
+            router_auto.claude_provider, "initialize", return_value=True
+        ) as mock_claude:
 
             # Act
             result = await router_auto.initialize()
@@ -235,8 +238,11 @@ class TestInitializeMethod:
     async def test_initialize_ollama_only_strategy(self, router_ollama):
         """Test initialize with OLLAMA_ONLY initializes only Ollama."""
         # Arrange
-        with patch.object(router_ollama.ollama_provider, 'initialize', return_value=True) as mock_ollama, \
-             patch.object(router_ollama.claude_provider, 'initialize', return_value=True) as mock_claude:
+        with patch.object(
+            router_ollama.ollama_provider, "initialize", return_value=True
+        ) as mock_ollama, patch.object(
+            router_ollama.claude_provider, "initialize", return_value=True
+        ) as mock_claude:
 
             # Act
             result = await router_ollama.initialize()
@@ -250,8 +256,11 @@ class TestInitializeMethod:
     async def test_initialize_claude_only_strategy(self, router_claude):
         """Test initialize with CLAUDE_ONLY initializes only Claude."""
         # Arrange
-        with patch.object(router_claude.ollama_provider, 'initialize', return_value=True) as mock_ollama, \
-             patch.object(router_claude.claude_provider, 'initialize', return_value=True) as mock_claude:
+        with patch.object(
+            router_claude.ollama_provider, "initialize", return_value=True
+        ) as mock_ollama, patch.object(
+            router_claude.claude_provider, "initialize", return_value=True
+        ) as mock_claude:
 
             # Act
             result = await router_claude.initialize()
@@ -265,8 +274,9 @@ class TestInitializeMethod:
     async def test_initialize_fails_when_no_providers(self, router_auto):
         """Test initialize fails when no providers initialize successfully."""
         # Arrange
-        with patch.object(router_auto.ollama_provider, 'initialize', return_value=False), \
-             patch.object(router_auto.claude_provider, 'initialize', return_value=False):
+        with patch.object(
+            router_auto.ollama_provider, "initialize", return_value=False
+        ), patch.object(router_auto.claude_provider, "initialize", return_value=False):
 
             # Act
             result = await router_auto.initialize()
@@ -279,8 +289,9 @@ class TestInitializeMethod:
     async def test_initialize_succeeds_with_one_provider(self, router_auto):
         """Test initialize succeeds if at least one provider initializes."""
         # Arrange
-        with patch.object(router_auto.ollama_provider, 'initialize', return_value=True), \
-             patch.object(router_auto.claude_provider, 'initialize', return_value=False):
+        with patch.object(
+            router_auto.ollama_provider, "initialize", return_value=True
+        ), patch.object(router_auto.claude_provider, "initialize", return_value=False):
 
             # Act
             result = await router_auto.initialize()
@@ -302,8 +313,11 @@ class TestShutdownMethod:
     async def test_shutdown_calls_all_providers(self, router_auto):
         """Test shutdown calls shutdown on all providers."""
         # Arrange
-        with patch.object(router_auto.ollama_provider, 'shutdown') as mock_ollama, \
-             patch.object(router_auto.claude_provider, 'shutdown') as mock_claude:
+        with patch.object(
+            router_auto.ollama_provider, "shutdown"
+        ) as mock_ollama, patch.object(
+            router_auto.claude_provider, "shutdown"
+        ) as mock_claude:
 
             # Act
             await router_auto.shutdown()
@@ -332,17 +346,23 @@ class TestAutoRouting:
     """Tests for AUTO routing strategy."""
 
     @pytest.mark.asyncio
-    async def test_routes_to_ollama_when_available(self, router_auto, sample_content, mock_success_response):
+    async def test_routes_to_ollama_when_available(
+        self, router_auto, sample_content, mock_success_response
+    ):
         """Test AUTO routes to Ollama when available."""
         # Arrange
         await router_auto.initialize()
-        with patch.object(router_auto.ollama_provider, 'is_available', return_value=True), \
-             patch.object(router_auto.ollama_provider, 'analyze_content', return_value=mock_success_response) as mock_analyze:
+        with patch.object(
+            router_auto.ollama_provider, "is_available", return_value=True
+        ), patch.object(
+            router_auto.ollama_provider,
+            "analyze_content",
+            return_value=mock_success_response,
+        ) as mock_analyze:
 
             # Act
             response = await router_auto.analyze_content(
-                content=sample_content,
-                task=ModelCapability.SEO_ANALYSIS
+                content=sample_content, task=ModelCapability.SEO_ANALYSIS
             )
 
             # Assert
@@ -352,18 +372,27 @@ class TestAutoRouting:
             assert router_auto._active_provider == "ollama"
 
     @pytest.mark.asyncio
-    async def test_falls_back_to_claude_when_ollama_fails(self, router_auto, sample_content, mock_error_response, mock_success_response):
+    async def test_falls_back_to_claude_when_ollama_fails(
+        self, router_auto, sample_content, mock_error_response, mock_success_response
+    ):
         """Test AUTO falls back to Claude when Ollama fails."""
         # Arrange
         await router_auto.initialize()
-        with patch.object(router_auto.ollama_provider, 'is_available', return_value=True), \
-             patch.object(router_auto.ollama_provider, 'analyze_content', return_value=mock_error_response), \
-             patch.object(router_auto.claude_provider, 'analyze_content', return_value=mock_success_response) as mock_claude:
+        with patch.object(
+            router_auto.ollama_provider, "is_available", return_value=True
+        ), patch.object(
+            router_auto.ollama_provider,
+            "analyze_content",
+            return_value=mock_error_response,
+        ), patch.object(
+            router_auto.claude_provider,
+            "analyze_content",
+            return_value=mock_success_response,
+        ) as mock_claude:
 
             # Act
             response = await router_auto.analyze_content(
-                content=sample_content,
-                task=ModelCapability.GRAMMAR
+                content=sample_content, task=ModelCapability.GRAMMAR
             )
 
             # Assert
@@ -373,17 +402,23 @@ class TestAutoRouting:
             assert router_auto._active_provider == "claude"
 
     @pytest.mark.asyncio
-    async def test_routes_to_claude_when_ollama_unavailable(self, router_auto, sample_content, mock_success_response):
+    async def test_routes_to_claude_when_ollama_unavailable(
+        self, router_auto, sample_content, mock_success_response
+    ):
         """Test AUTO routes to Claude when Ollama unavailable."""
         # Arrange
         await router_auto.initialize()
-        with patch.object(router_auto.ollama_provider, 'is_available', return_value=False), \
-             patch.object(router_auto.claude_provider, 'analyze_content', return_value=mock_success_response) as mock_claude:
+        with patch.object(
+            router_auto.ollama_provider, "is_available", return_value=False
+        ), patch.object(
+            router_auto.claude_provider,
+            "analyze_content",
+            return_value=mock_success_response,
+        ) as mock_claude:
 
             # Act
             response = await router_auto.analyze_content(
-                content=sample_content,
-                task=ModelCapability.READABILITY
+                content=sample_content, task=ModelCapability.READABILITY
             )
 
             # Assert
@@ -397,12 +432,11 @@ class TestAutoRouting:
         # Arrange
         router = ModelRouter(config={"strategy": "auto", "fallback_enabled": False})
         await router.initialize()
-        with patch.object(router.ollama_provider, 'is_available', return_value=False):
+        with patch.object(router.ollama_provider, "is_available", return_value=False):
 
             # Act
             response = await router.analyze_content(
-                content=sample_content,
-                task=ModelCapability.GENERAL
+                content=sample_content, task=ModelCapability.GENERAL
             )
 
             # Assert
@@ -419,17 +453,23 @@ class TestOllamaOnlyRouting:
     """Tests for OLLAMA_ONLY routing strategy."""
 
     @pytest.mark.asyncio
-    async def test_routes_to_ollama_when_available(self, router_ollama, sample_content, mock_success_response):
+    async def test_routes_to_ollama_when_available(
+        self, router_ollama, sample_content, mock_success_response
+    ):
         """Test OLLAMA_ONLY routes to Ollama when available."""
         # Arrange
         await router_ollama.initialize()
-        with patch.object(router_ollama.ollama_provider, 'is_available', return_value=True), \
-             patch.object(router_ollama.ollama_provider, 'analyze_content', return_value=mock_success_response) as mock_analyze:
+        with patch.object(
+            router_ollama.ollama_provider, "is_available", return_value=True
+        ), patch.object(
+            router_ollama.ollama_provider,
+            "analyze_content",
+            return_value=mock_success_response,
+        ) as mock_analyze:
 
             # Act
             response = await router_ollama.analyze_content(
-                content=sample_content,
-                task=ModelCapability.SENTIMENT
+                content=sample_content, task=ModelCapability.SENTIMENT
             )
 
             # Assert
@@ -441,12 +481,13 @@ class TestOllamaOnlyRouting:
         """Test OLLAMA_ONLY fails when Ollama unavailable."""
         # Arrange
         await router_ollama.initialize()
-        with patch.object(router_ollama.ollama_provider, 'is_available', return_value=False):
+        with patch.object(
+            router_ollama.ollama_provider, "is_available", return_value=False
+        ):
 
             # Act
             response = await router_ollama.analyze_content(
-                content=sample_content,
-                task=ModelCapability.GENERAL
+                content=sample_content, task=ModelCapability.GENERAL
             )
 
             # Assert
@@ -454,18 +495,25 @@ class TestOllamaOnlyRouting:
             assert "not available" in response.error.lower()
 
     @pytest.mark.asyncio
-    async def test_never_routes_to_claude(self, router_ollama, sample_content, mock_error_response):
+    async def test_never_routes_to_claude(
+        self, router_ollama, sample_content, mock_error_response
+    ):
         """Test OLLAMA_ONLY never routes to Claude even on failure."""
         # Arrange
         await router_ollama.initialize()
-        with patch.object(router_ollama.ollama_provider, 'is_available', return_value=True), \
-             patch.object(router_ollama.ollama_provider, 'analyze_content', return_value=mock_error_response), \
-             patch.object(router_ollama.claude_provider, 'analyze_content') as mock_claude:
+        with patch.object(
+            router_ollama.ollama_provider, "is_available", return_value=True
+        ), patch.object(
+            router_ollama.ollama_provider,
+            "analyze_content",
+            return_value=mock_error_response,
+        ), patch.object(
+            router_ollama.claude_provider, "analyze_content"
+        ) as mock_claude:
 
             # Act
             response = await router_ollama.analyze_content(
-                content=sample_content,
-                task=ModelCapability.SEO_ANALYSIS
+                content=sample_content, task=ModelCapability.SEO_ANALYSIS
             )
 
             # Assert
@@ -483,16 +531,21 @@ class TestClaudeOnlyRouting:
     """Tests for CLAUDE_ONLY routing strategy."""
 
     @pytest.mark.asyncio
-    async def test_always_routes_to_claude(self, router_claude, sample_content, mock_success_response):
+    async def test_always_routes_to_claude(
+        self, router_claude, sample_content, mock_success_response
+    ):
         """Test CLAUDE_ONLY always routes to Claude."""
         # Arrange
         await router_claude.initialize()
-        with patch.object(router_claude.claude_provider, 'analyze_content', return_value=mock_success_response) as mock_claude:
+        with patch.object(
+            router_claude.claude_provider,
+            "analyze_content",
+            return_value=mock_success_response,
+        ) as mock_claude:
 
             # Act
             response = await router_claude.analyze_content(
-                content=sample_content,
-                task=ModelCapability.GRAMMAR
+                content=sample_content, task=ModelCapability.GRAMMAR
             )
 
             # Assert
@@ -501,17 +554,23 @@ class TestClaudeOnlyRouting:
             assert router_claude._route_count["claude"] == 1
 
     @pytest.mark.asyncio
-    async def test_never_routes_to_ollama(self, router_claude, sample_content, mock_success_response):
+    async def test_never_routes_to_ollama(
+        self, router_claude, sample_content, mock_success_response
+    ):
         """Test CLAUDE_ONLY never routes to Ollama."""
         # Arrange
         await router_claude.initialize()
-        with patch.object(router_claude.ollama_provider, 'analyze_content') as mock_ollama, \
-             patch.object(router_claude.claude_provider, 'analyze_content', return_value=mock_success_response):
+        with patch.object(
+            router_claude.ollama_provider, "analyze_content"
+        ) as mock_ollama, patch.object(
+            router_claude.claude_provider,
+            "analyze_content",
+            return_value=mock_success_response,
+        ):
 
             # Act
             await router_claude.analyze_content(
-                content=sample_content,
-                task=ModelCapability.READABILITY
+                content=sample_content, task=ModelCapability.READABILITY
             )
 
             # Assert
@@ -527,17 +586,23 @@ class TestPrivacyFirstRouting:
     """Tests for PRIVACY_FIRST routing strategy."""
 
     @pytest.mark.asyncio
-    async def test_routes_to_ollama_only(self, router_privacy, sample_content, mock_success_response):
+    async def test_routes_to_ollama_only(
+        self, router_privacy, sample_content, mock_success_response
+    ):
         """Test PRIVACY_FIRST routes to Ollama only."""
         # Arrange
         await router_privacy.initialize()
-        with patch.object(router_privacy.ollama_provider, 'is_available', return_value=True), \
-             patch.object(router_privacy.ollama_provider, 'analyze_content', return_value=mock_success_response) as mock_analyze:
+        with patch.object(
+            router_privacy.ollama_provider, "is_available", return_value=True
+        ), patch.object(
+            router_privacy.ollama_provider,
+            "analyze_content",
+            return_value=mock_success_response,
+        ) as mock_analyze:
 
             # Act
             response = await router_privacy.analyze_content(
-                content=sample_content,
-                task=ModelCapability.ACCESSIBILITY
+                content=sample_content, task=ModelCapability.ACCESSIBILITY
             )
 
             # Assert
@@ -549,17 +614,21 @@ class TestPrivacyFirstRouting:
         """Test PRIVACY_FIRST provides privacy-focused error message."""
         # Arrange
         await router_privacy.initialize()
-        with patch.object(router_privacy.ollama_provider, 'is_available', return_value=False):
+        with patch.object(
+            router_privacy.ollama_provider, "is_available", return_value=False
+        ):
 
             # Act
             response = await router_privacy.analyze_content(
-                content=sample_content,
-                task=ModelCapability.GENERAL
+                content=sample_content, task=ModelCapability.GENERAL
             )
 
             # Assert
             assert response.success is False
-            assert "privacy" in response.error.lower() or "not sending to cloud" in response.error.lower()
+            assert (
+                "privacy" in response.error.lower()
+                or "not sending to cloud" in response.error.lower()
+            )
 
 
 # ============================================================================
@@ -575,11 +644,19 @@ class TestProviderStatus:
         """Test get_provider_status with AUTO strategy."""
         # Arrange
         await router_auto.initialize()
-        with patch.object(router_auto.ollama_provider, 'is_available', return_value=True), \
-             patch.object(router_auto.ollama_provider, 'get_available_models', return_value=["model1", "model2"]), \
-             patch.object(router_auto.ollama_provider, 'get_metrics', return_value={}), \
-             patch.object(router_auto.claude_provider, 'is_available', return_value=True), \
-             patch.object(router_auto.claude_provider, 'get_metrics', return_value={}):
+        with patch.object(
+            router_auto.ollama_provider, "is_available", return_value=True
+        ), patch.object(
+            router_auto.ollama_provider,
+            "get_available_models",
+            return_value=["model1", "model2"],
+        ), patch.object(
+            router_auto.ollama_provider, "get_metrics", return_value={}
+        ), patch.object(
+            router_auto.claude_provider, "is_available", return_value=True
+        ), patch.object(
+            router_auto.claude_provider, "get_metrics", return_value={}
+        ):
 
             # Act
             status = await router_auto.get_provider_status()
@@ -599,11 +676,17 @@ class TestProviderStatus:
         router_auto._route_count = {"ollama": 5, "claude": 3}
         router_auto._fallback_count = 2
 
-        with patch.object(router_auto.ollama_provider, 'is_available', return_value=True), \
-             patch.object(router_auto.ollama_provider, 'get_available_models', return_value=[]), \
-             patch.object(router_auto.ollama_provider, 'get_metrics', return_value={}), \
-             patch.object(router_auto.claude_provider, 'is_available', return_value=True), \
-             patch.object(router_auto.claude_provider, 'get_metrics', return_value={}):
+        with patch.object(
+            router_auto.ollama_provider, "is_available", return_value=True
+        ), patch.object(
+            router_auto.ollama_provider, "get_available_models", return_value=[]
+        ), patch.object(
+            router_auto.ollama_provider, "get_metrics", return_value={}
+        ), patch.object(
+            router_auto.claude_provider, "is_available", return_value=True
+        ), patch.object(
+            router_auto.claude_provider, "get_metrics", return_value={}
+        ):
 
             # Act
             status = await router_auto.get_provider_status()
@@ -676,12 +759,19 @@ class TestGetActiveProvider:
         assert active is None
 
     @pytest.mark.asyncio
-    async def test_get_active_provider_after_routing(self, router_auto, sample_content, mock_success_response):
+    async def test_get_active_provider_after_routing(
+        self, router_auto, sample_content, mock_success_response
+    ):
         """Test active provider is set after routing."""
         # Arrange
         await router_auto.initialize()
-        with patch.object(router_auto.ollama_provider, 'is_available', return_value=True), \
-             patch.object(router_auto.ollama_provider, 'analyze_content', return_value=mock_success_response):
+        with patch.object(
+            router_auto.ollama_provider, "is_available", return_value=True
+        ), patch.object(
+            router_auto.ollama_provider,
+            "analyze_content",
+            return_value=mock_success_response,
+        ):
 
             # Act
             await router_auto.analyze_content(sample_content, ModelCapability.GENERAL)
@@ -706,8 +796,7 @@ class TestErrorHandling:
 
         # Act
         response = await router_auto.analyze_content(
-            content=sample_content,
-            task=ModelCapability.GENERAL
+            content=sample_content, task=ModelCapability.GENERAL
         )
 
         # Assert
@@ -724,8 +813,7 @@ class TestErrorHandling:
         # Content validation happens in providers
         # Router should pass it through
         response = await router_auto.analyze_content(
-            content=None,
-            task=ModelCapability.GENERAL
+            content=None, task=ModelCapability.GENERAL
         )
 
         # Assert
@@ -741,20 +829,31 @@ class TestEdgeCases:
     """Tests for edge cases and boundary conditions."""
 
     @pytest.mark.asyncio
-    async def test_concurrent_routing_requests(self, router_auto, sample_content, mock_success_response):
+    async def test_concurrent_routing_requests(
+        self, router_auto, sample_content, mock_success_response
+    ):
         """Test handles concurrent routing requests."""
         # Arrange
         await router_auto.initialize()
         import asyncio
 
-        with patch.object(router_auto.ollama_provider, 'is_available', return_value=True), \
-             patch.object(router_auto.ollama_provider, 'analyze_content', return_value=mock_success_response):
+        with patch.object(
+            router_auto.ollama_provider, "is_available", return_value=True
+        ), patch.object(
+            router_auto.ollama_provider,
+            "analyze_content",
+            return_value=mock_success_response,
+        ):
 
             # Act
             tasks = [
-                router_auto.analyze_content(sample_content, ModelCapability.SEO_ANALYSIS),
+                router_auto.analyze_content(
+                    sample_content, ModelCapability.SEO_ANALYSIS
+                ),
                 router_auto.analyze_content(sample_content, ModelCapability.GRAMMAR),
-                router_auto.analyze_content(sample_content, ModelCapability.READABILITY),
+                router_auto.analyze_content(
+                    sample_content, ModelCapability.READABILITY
+                ),
             ]
             results = await asyncio.gather(*tasks)
 
@@ -764,18 +863,25 @@ class TestEdgeCases:
             assert router_auto._route_count["ollama"] == 3
 
     @pytest.mark.asyncio
-    async def test_routing_with_specific_model(self, router_auto, sample_content, mock_success_response):
+    async def test_routing_with_specific_model(
+        self, router_auto, sample_content, mock_success_response
+    ):
         """Test routing with specific model parameter."""
         # Arrange
         await router_auto.initialize()
-        with patch.object(router_auto.ollama_provider, 'is_available', return_value=True), \
-             patch.object(router_auto.ollama_provider, 'analyze_content', return_value=mock_success_response) as mock_analyze:
+        with patch.object(
+            router_auto.ollama_provider, "is_available", return_value=True
+        ), patch.object(
+            router_auto.ollama_provider,
+            "analyze_content",
+            return_value=mock_success_response,
+        ) as mock_analyze:
 
             # Act
             await router_auto.analyze_content(
                 content=sample_content,
                 task=ModelCapability.GENERAL,
-                model="specific-model"
+                model="specific-model",
             )
 
             # Assert
@@ -784,23 +890,34 @@ class TestEdgeCases:
             call_args = mock_analyze.call_args
             # Model should be passed (either as positional arg or keyword arg)
             # Check if it's in args[2] or kwargs["model"]
-            model_value = call_args.args[2] if len(call_args.args) > 2 else call_args.kwargs.get("model")
+            model_value = (
+                call_args.args[2]
+                if len(call_args.args) > 2
+                else call_args.kwargs.get("model")
+            )
             assert model_value == "specific-model"
 
     @pytest.mark.asyncio
-    async def test_routing_with_kwargs(self, router_auto, sample_content, mock_success_response):
+    async def test_routing_with_kwargs(
+        self, router_auto, sample_content, mock_success_response
+    ):
         """Test routing passes kwargs to provider."""
         # Arrange
         await router_auto.initialize()
-        with patch.object(router_auto.ollama_provider, 'is_available', return_value=True), \
-             patch.object(router_auto.ollama_provider, 'analyze_content', return_value=mock_success_response) as mock_analyze:
+        with patch.object(
+            router_auto.ollama_provider, "is_available", return_value=True
+        ), patch.object(
+            router_auto.ollama_provider,
+            "analyze_content",
+            return_value=mock_success_response,
+        ) as mock_analyze:
 
             # Act
             await router_auto.analyze_content(
                 content=sample_content,
                 task=ModelCapability.GENERAL,
                 temperature=0.5,
-                max_tokens=2048
+                max_tokens=2048,
             )
 
             # Assert

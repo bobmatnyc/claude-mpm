@@ -16,18 +16,17 @@ import logging
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch, mock_open
+from unittest.mock import MagicMock, Mock, mock_open, patch
 
 import pytest
 
 from claude_mpm.services.version_control.semantic_versioning import (
+    ChangeAnalysis,
     SemanticVersion,
     SemanticVersionManager,
     VersionBumpType,
     VersionMetadata,
-    ChangeAnalysis,
 )
-
 
 # ============================================================================
 # TEST FIXTURES
@@ -303,10 +302,7 @@ class TestVersionMetadata:
         release_date = datetime.now(timezone.utc)
 
         # Act
-        metadata = VersionMetadata(
-            version=version,
-            release_date=release_date
-        )
+        metadata = VersionMetadata(version=version, release_date=release_date)
 
         # Assert
         assert metadata.version == version
@@ -336,7 +332,7 @@ class TestVersionMetadata:
             changes=changes,
             breaking_changes=breaking_changes,
             contributors=contributors,
-            notes="Important release notes"
+            notes="Important release notes",
         )
 
         # Assert
@@ -625,7 +621,9 @@ class TestVersionBumping:
     def test_bump_version_major(self, version_manager, sample_version):
         """Test bumping major version."""
         # Arrange & Act
-        new_version = version_manager.bump_version(sample_version, VersionBumpType.MAJOR)
+        new_version = version_manager.bump_version(
+            sample_version, VersionBumpType.MAJOR
+        )
 
         # Assert
         assert new_version.major == 2
@@ -635,7 +633,9 @@ class TestVersionBumping:
     def test_bump_version_minor(self, version_manager, sample_version):
         """Test bumping minor version."""
         # Arrange & Act
-        new_version = version_manager.bump_version(sample_version, VersionBumpType.MINOR)
+        new_version = version_manager.bump_version(
+            sample_version, VersionBumpType.MINOR
+        )
 
         # Assert
         assert new_version.major == 1
@@ -645,7 +645,9 @@ class TestVersionBumping:
     def test_bump_version_patch(self, version_manager, sample_version):
         """Test bumping patch version."""
         # Arrange & Act
-        new_version = version_manager.bump_version(sample_version, VersionBumpType.PATCH)
+        new_version = version_manager.bump_version(
+            sample_version, VersionBumpType.PATCH
+        )
 
         # Assert
         assert new_version.major == 1
@@ -689,7 +691,9 @@ class TestChangelogGeneration:
         assert "Add feature X" in entry
         assert "Fix bug Y" in entry
 
-    def test_generate_changelog_entry_categorizes_changes(self, version_manager, sample_version):
+    def test_generate_changelog_entry_categorizes_changes(
+        self, version_manager, sample_version
+    ):
         """Test changelog categorizes changes."""
         # Arrange
         changes = [
@@ -706,7 +710,9 @@ class TestChangelogGeneration:
         assert "Features" in entry
         assert "Bug Fixes" in entry
 
-    def test_generate_changelog_entry_with_metadata(self, version_manager, sample_version):
+    def test_generate_changelog_entry_with_metadata(
+        self, version_manager, sample_version
+    ):
         """Test generating changelog with metadata."""
         # Arrange
         changes = ["Add feature"]
@@ -714,40 +720,52 @@ class TestChangelogGeneration:
             version=sample_version,
             release_date=datetime.now(timezone.utc),
             commit_hash="abc123",
-            contributors=["John Doe"]
+            contributors=["John Doe"],
         )
 
         # Act
-        entry = version_manager.generate_changelog_entry(sample_version, changes, metadata)
+        entry = version_manager.generate_changelog_entry(
+            sample_version, changes, metadata
+        )
 
         # Assert
         assert "abc123" in entry
         assert "John Doe" in entry
 
-    def test_update_changelog_creates_new_file(self, version_manager, sample_version, temp_project_dir):
+    def test_update_changelog_creates_new_file(
+        self, version_manager, sample_version, temp_project_dir
+    ):
         """Test updating changelog creates new file if it doesn't exist."""
         # Arrange
         changes = ["Add feature X"]
         changelog_path = "CHANGELOG.md"
 
         # Act
-        result = version_manager.update_changelog(sample_version, changes, changelog_path)
+        result = version_manager.update_changelog(
+            sample_version, changes, changelog_path
+        )
 
         # Assert
         assert result is True
         changelog_file = temp_project_dir / changelog_path
         assert changelog_file.exists()
 
-    def test_update_changelog_appends_to_existing(self, version_manager, sample_version, temp_project_dir):
+    def test_update_changelog_appends_to_existing(
+        self, version_manager, sample_version, temp_project_dir
+    ):
         """Test updating changelog appends to existing file."""
         # Arrange
         changelog_path = "CHANGELOG.md"
         changelog_file = temp_project_dir / changelog_path
-        changelog_file.write_text("# Changelog\n\n## [1.0.0] - 2023-01-01\n- Initial release\n")
+        changelog_file.write_text(
+            "# Changelog\n\n## [1.0.0] - 2023-01-01\n- Initial release\n"
+        )
         changes = ["Add feature X"]
 
         # Act
-        result = version_manager.update_changelog(sample_version, changes, changelog_path)
+        result = version_manager.update_changelog(
+            sample_version, changes, changelog_path
+        )
 
         # Assert
         assert result is True

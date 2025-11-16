@@ -48,9 +48,9 @@ class TestEndToEndEventFlow:
 
         # Wait for server to be ready
         assert await wait_for_condition_async(
-            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            lambda: server.is_running() if hasattr(server, "is_running") else True,
             timeout=2,
-            message="Server did not start within timeout"
+            message="Server did not start within timeout",
         )
 
         yield server
@@ -96,7 +96,7 @@ class TestEndToEndEventFlow:
         assert await wait_for_condition_async(
             lambda: len(received_events) > 0,
             timeout=1,
-            message="Hook event not received"
+            message="Hook event not received",
         )
 
         # Verify event received
@@ -142,9 +142,7 @@ class TestEndToEndEventFlow:
 
             # Wait for propagation
             await wait_for_condition_async(
-                lambda: len(received_events) > 0,
-                timeout=1,
-                interval=0.05
+                lambda: len(received_events) > 0, timeout=1, interval=0.05
             )
 
         # Note: May not receive if EventBus not configured
@@ -181,9 +179,11 @@ class TestEndToEndEventFlow:
 
         # Wait for session started event
         assert await wait_for_condition_async(
-            lambda: any(e.get("event_type") == "session_started" for e in session_events),
+            lambda: any(
+                e.get("event_type") == "session_started" for e in session_events
+            ),
             timeout=1,
-            message="Session started event not received"
+            message="Session started event not received",
         )
 
         # Agent delegation
@@ -191,9 +191,11 @@ class TestEndToEndEventFlow:
 
         # Wait for agent delegated event
         assert await wait_for_condition_async(
-            lambda: any(e.get("event_type") == "agent_delegated" for e in session_events),
+            lambda: any(
+                e.get("event_type") == "agent_delegated" for e in session_events
+            ),
             timeout=1,
-            message="Agent delegated event not received"
+            message="Agent delegated event not received",
         )
 
         # Session end
@@ -203,7 +205,7 @@ class TestEndToEndEventFlow:
         assert await wait_for_condition_async(
             lambda: len(session_events) >= 3,
             timeout=1,
-            message="Not all session events received"
+            message="Not all session events received",
         )
 
         # Verify events received in order
@@ -237,9 +239,9 @@ class TestMultipleClientConnections:
 
         # Wait for server to be ready
         assert await wait_for_condition_async(
-            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            lambda: server.is_running() if hasattr(server, "is_running") else True,
             timeout=2,
-            message="Server did not start"
+            message="Server did not start",
         )
 
         # Create multiple clients
@@ -291,7 +293,7 @@ class TestMultipleClientConnections:
         assert await wait_for_condition_async(
             lambda: all(len(events) > 0 for events in client_events.values()),
             timeout=2,
-            message="Not all clients received broadcast"
+            message="Not all clients received broadcast",
         )
 
         # Verify all clients received the event
@@ -336,9 +338,7 @@ class TestMultipleClientConnections:
 
         # Wait for targeted events
         await wait_for_condition_async(
-            lambda: len(targeted_events) > 0,
-            timeout=1,
-            interval=0.05
+            lambda: len(targeted_events) > 0, timeout=1, interval=0.05
         )
 
         # Both should have received
@@ -365,9 +365,9 @@ class TestMultipleClientConnections:
 
         # Wait for server to be ready
         assert await wait_for_condition_async(
-            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            lambda: server.is_running() if hasattr(server, "is_running") else True,
             timeout=2,
-            message="Server did not start"
+            message="Server did not start",
         )
 
         clients = []
@@ -417,9 +417,9 @@ class TestEventOrdering:
 
         # Wait for server to be ready
         assert await wait_for_condition_async(
-            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            lambda: server.is_running() if hasattr(server, "is_running") else True,
             timeout=2,
-            message="Server did not start"
+            message="Server did not start",
         )
 
         try:
@@ -440,7 +440,7 @@ class TestEventOrdering:
             assert await wait_for_condition_async(
                 lambda: len(received_events) >= 10,
                 timeout=2,
-                message="Not all events received"
+                message="Not all events received",
             )
 
             # Check order
@@ -469,9 +469,9 @@ class TestEventOrdering:
 
         # Wait for server to be ready
         assert await wait_for_condition_async(
-            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            lambda: server.is_running() if hasattr(server, "is_running") else True,
             timeout=2,
-            message="Server did not start"
+            message="Server did not start",
         )
 
         try:
@@ -497,9 +497,7 @@ class TestEventOrdering:
 
             # Wait for potential buffer flush
             await wait_for_condition_async(
-                lambda: len(received) > 0,
-                timeout=1,
-                interval=0.05
+                lambda: len(received) > 0, timeout=1, interval=0.05
             )
 
             # Should receive buffered events
@@ -532,9 +530,9 @@ class TestPerformanceUnderLoad:
 
         # Wait for server to be ready
         assert await wait_for_condition_async(
-            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            lambda: server.is_running() if hasattr(server, "is_running") else True,
             timeout=2,
-            message="Server did not start"
+            message="Server did not start",
         )
 
         try:
@@ -559,7 +557,7 @@ class TestPerformanceUnderLoad:
             assert await wait_for_condition_async(
                 lambda: received_count >= event_count * 0.95,  # Allow for 95% delivery
                 timeout=3,
-                message="Events not received in time"
+                message="Events not received in time",
             )
 
             elapsed = time.time() - start_time
@@ -594,9 +592,9 @@ class TestPerformanceUnderLoad:
 
         # Wait for server to be ready
         assert await wait_for_condition_async(
-            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            lambda: server.is_running() if hasattr(server, "is_running") else True,
             timeout=2,
-            message="Server did not start"
+            message="Server did not start",
         )
 
         try:
@@ -615,7 +613,9 @@ class TestPerformanceUnderLoad:
                     server.broadcast_event(
                         "concurrent_event", {"source": source_id, "index": i}
                     )
-                    await asyncio.sleep(0.01)  # Keep small delay to prevent overwhelming the queue
+                    await asyncio.sleep(
+                        0.01
+                    )  # Keep small delay to prevent overwhelming the queue
 
             # Run sources concurrently
             tasks = [
@@ -630,7 +630,7 @@ class TestPerformanceUnderLoad:
             assert await wait_for_condition_async(
                 lambda: len(received_events) == 60,
                 timeout=3,
-                message="Not all concurrent events received"
+                message="Not all concurrent events received",
             )
 
             # Verify all events received
@@ -666,9 +666,9 @@ class TestPerformanceUnderLoad:
 
         # Wait for server to be ready (sync version)
         assert wait_for_condition(
-            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            lambda: server.is_running() if hasattr(server, "is_running") else True,
             timeout=2,
-            message="Server did not start"
+            message="Server did not start",
         )
 
         try:
@@ -719,9 +719,9 @@ class TestGracefulDegradation:
 
         # Wait for server to be ready
         assert await wait_for_condition_async(
-            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            lambda: server.is_running() if hasattr(server, "is_running") else True,
             timeout=2,
-            message="Server did not start"
+            message="Server did not start",
         )
 
         try:
@@ -744,9 +744,7 @@ class TestGracefulDegradation:
 
             # Wait for disconnect to complete
             await wait_for_condition_async(
-                lambda: "disconnected" in connection_events,
-                timeout=1,
-                interval=0.05
+                lambda: "disconnected" in connection_events, timeout=1, interval=0.05
             )
 
             # Reconnect
@@ -779,9 +777,9 @@ class TestGracefulDegradation:
 
         # Wait for server to be ready
         assert await wait_for_condition_async(
-            lambda: server.is_running() if hasattr(server, 'is_running') else True,
+            lambda: server.is_running() if hasattr(server, "is_running") else True,
             timeout=2,
-            message="Server did not start"
+            message="Server did not start",
         )
 
         try:
@@ -806,7 +804,7 @@ class TestGracefulDegradation:
             assert await wait_for_condition_async(
                 lambda: len(good_events) == 5,
                 timeout=2,
-                message="Good client did not receive all events"
+                message="Good client did not receive all events",
             )
 
             # Good client should still receive events
@@ -855,9 +853,9 @@ def test_full_system_integration(integration_server):
 
     # Wait for server to be ready (sync version)
     assert wait_for_condition(
-        lambda: server.is_running() if hasattr(server, 'is_running') else True,
+        lambda: server.is_running() if hasattr(server, "is_running") else True,
         timeout=2,
-        message="Server did not start"
+        message="Server did not start",
     )
 
     try:

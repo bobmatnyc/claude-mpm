@@ -324,7 +324,9 @@ class EventBus:
         if event_type:
             self._emitter.remove_all_listeners(event_type)
             # Clean up wrappers for this event type
-            wrappers_to_remove = [key for key in self._handler_wrappers.keys() if key[0] == event_type]
+            wrappers_to_remove = [
+                key for key in self._handler_wrappers if key[0] == event_type
+            ]
             for key in wrappers_to_remove:
                 del self._handler_wrappers[key]
             logger.debug(f"Removed all handlers for: {event_type}")

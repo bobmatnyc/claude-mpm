@@ -21,9 +21,8 @@ Usage:
 
 import asyncio
 import time
-from typing import Callable, Any, Optional, List, Dict
 from functools import wraps
-
+from typing import Any, Callable, Dict, List, Optional
 
 # ============================================================================
 # SYNCHRONIZATION HELPERS (Replaces sleep())
@@ -34,7 +33,7 @@ def wait_for_condition(
     predicate: Callable[[], bool],
     timeout: float = 5.0,
     interval: float = 0.1,
-    message: str = "Condition not met within timeout"
+    message: str = "Condition not met within timeout",
 ) -> bool:
     """Wait for a condition to become true with timeout.
 
@@ -77,7 +76,7 @@ async def wait_for_condition_async(
     predicate: Callable[[], bool],
     timeout: float = 5.0,
     interval: float = 0.1,
-    message: str = "Condition not met within timeout"
+    message: str = "Condition not met within timeout",
 ) -> bool:
     """Async version of wait_for_condition.
 
@@ -109,7 +108,7 @@ def wait_for_value(
     getter: Callable[[], Any],
     expected_value: Any,
     timeout: float = 5.0,
-    interval: float = 0.1
+    interval: float = 0.1,
 ) -> bool:
     """Wait for a getter to return expected value.
 
@@ -134,14 +133,12 @@ def wait_for_value(
         lambda: getter() == expected_value,
         timeout=timeout,
         interval=interval,
-        message=f"Value did not become {expected_value}"
+        message=f"Value did not become {expected_value}",
     )
 
 
 def wait_for_event(
-    event_checker: Callable[[], bool],
-    timeout: float = 5.0,
-    event_name: str = "event"
+    event_checker: Callable[[], bool], timeout: float = 5.0, event_name: str = "event"
 ) -> bool:
     """Wait for an event to occur.
 
@@ -170,9 +167,7 @@ def wait_for_event(
         )
     """
     return wait_for_condition(
-        event_checker,
-        timeout=timeout,
-        message=f"Event '{event_name}' did not occur"
+        event_checker, timeout=timeout, message=f"Event '{event_name}' did not occur"
     )
 
 
@@ -182,9 +177,7 @@ def wait_for_event(
 
 
 def assert_eventually(
-    predicate: Callable[[], bool],
-    timeout: float = 5.0,
-    message: Optional[str] = None
+    predicate: Callable[[], bool], timeout: float = 5.0, message: Optional[str] = None
 ) -> None:
     """Assert that condition becomes true eventually.
 
@@ -206,9 +199,7 @@ def assert_eventually(
         )
     """
     result = wait_for_condition(
-        predicate,
-        timeout=timeout,
-        message=message or "Condition not met"
+        predicate, timeout=timeout, message=message or "Condition not met"
     )
 
     if not result:
@@ -216,9 +207,7 @@ def assert_eventually(
 
 
 def assert_dict_contains(
-    actual: Dict,
-    expected: Dict,
-    message: Optional[str] = None
+    actual: Dict, expected: Dict, message: Optional[str] = None
 ) -> None:
     """Assert that actual dict contains all expected key-value pairs.
 
@@ -236,9 +225,7 @@ def assert_dict_contains(
     """
     for key, value in expected.items():
         if key not in actual:
-            raise AssertionError(
-                message or f"Key '{key}' not found in actual dict"
-            )
+            raise AssertionError(message or f"Key '{key}' not found in actual dict")
         if actual[key] != value:
             raise AssertionError(
                 message or f"Key '{key}': expected {value}, got {actual[key]}"
@@ -246,9 +233,7 @@ def assert_dict_contains(
 
 
 def assert_list_contains_items(
-    actual: List,
-    expected_items: List,
-    message: Optional[str] = None
+    actual: List, expected_items: List, message: Optional[str] = None
 ) -> None:
     """Assert that list contains all expected items.
 
@@ -266,16 +251,11 @@ def assert_list_contains_items(
     """
     for item in expected_items:
         if item not in actual:
-            raise AssertionError(
-                message or f"Item '{item}' not found in list"
-            )
+            raise AssertionError(message or f"Item '{item}' not found in list")
 
 
 def assert_called_with_eventually(
-    mock_obj,
-    *args,
-    timeout: float = 5.0,
-    **kwargs
+    mock_obj, *args, timeout: float = 5.0, **kwargs
 ) -> None:
     """Assert that mock was called with specific args eventually.
 
@@ -298,6 +278,7 @@ def assert_called_with_eventually(
             timeout=2
         )
     """
+
     def check_called():
         try:
             mock_obj.assert_called_with(*args, **kwargs)
@@ -306,9 +287,7 @@ def assert_called_with_eventually(
             return False
 
     result = wait_for_condition(
-        check_called,
-        timeout=timeout,
-        message="Mock not called with expected args"
+        check_called, timeout=timeout, message="Mock not called with expected args"
     )
 
     if not result:
@@ -393,7 +372,7 @@ class PerformanceAssertion:
         self,
         max_duration: float,
         operation: str = "operation",
-        min_duration: Optional[float] = None
+        min_duration: Optional[float] = None,
     ):
         """Initialize performance assertion.
 
@@ -431,10 +410,7 @@ class PerformanceAssertion:
 
 
 def assert_completes_quickly(
-    func: Callable,
-    max_duration: float = 1.0,
-    *args,
-    **kwargs
+    func: Callable, max_duration: float = 1.0, *args, **kwargs
 ) -> Any:
     """Assert that function completes within time limit.
 
@@ -484,10 +460,7 @@ def run_async_test(async_func: Callable, *args, **kwargs) -> Any:
     return asyncio.run(async_func(*args, **kwargs))
 
 
-async def gather_with_timeout(
-    *tasks,
-    timeout: float = 10.0
-) -> List[Any]:
+async def gather_with_timeout(*tasks, timeout: float = 10.0) -> List[Any]:
     """Gather async tasks with timeout.
 
     Args:
@@ -508,10 +481,7 @@ async def gather_with_timeout(
             timeout=5.0
         )
     """
-    return await asyncio.wait_for(
-        asyncio.gather(*tasks),
-        timeout=timeout
-    )
+    return await asyncio.wait_for(asyncio.gather(*tasks), timeout=timeout)
 
 
 # ============================================================================
@@ -545,8 +515,7 @@ def assert_mock_call_order(mock_obj, expected_calls: List[str]) -> None:
 
     if actual_call_names != expected_calls:
         raise AssertionError(
-            f"Expected call order: {expected_calls}, "
-            f"but got: {actual_call_names}"
+            f"Expected call order: {expected_calls}, but got: {actual_call_names}"
         )
 
 
@@ -560,7 +529,7 @@ def reset_all_mocks(*mocks) -> None:
         reset_all_mocks(mock1, mock2, mock3)
     """
     for mock in mocks:
-        if hasattr(mock, 'reset_mock'):
+        if hasattr(mock, "reset_mock"):
             mock.reset_mock()
 
 

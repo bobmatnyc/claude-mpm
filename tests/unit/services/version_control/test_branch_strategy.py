@@ -20,14 +20,13 @@ from unittest.mock import Mock, patch
 import pytest
 
 from claude_mpm.services.version_control.branch_strategy import (
+    BranchLifecycleRule,
+    BranchNamingRule,
     BranchStrategyManager,
     BranchStrategyType,
     BranchType,
-    BranchNamingRule,
-    BranchLifecycleRule,
     BranchWorkflow,
 )
-
 
 # ============================================================================
 # TEST FIXTURES
@@ -100,7 +99,7 @@ class TestDataClasses:
             pattern=r"^feature/.*$",
             required_fields=["ticket_id"],
             max_length=50,
-            description="Feature branches"
+            description="Feature branches",
         )
 
         # Assert
@@ -119,7 +118,7 @@ class TestDataClasses:
             auto_delete_after_merge=True,
             requires_qa_approval=True,
             requires_review=True,
-            merge_message_template="Merge {branch_name}"
+            merge_message_template="Merge {branch_name}",
         )
 
         # Assert
@@ -137,7 +136,7 @@ class TestDataClasses:
             naming_rules=[],
             lifecycle_rules=[],
             merge_targets={"feature/*": "main"},
-            quality_gates=["testing", "review"]
+            quality_gates=["testing", "review"],
         )
 
         # Assert
@@ -175,7 +174,10 @@ class TestBranchStrategyManagerInitialization:
         """Test that default strategy is set."""
         # Arrange & Act & Assert
         assert strategy_manager.current_strategy is not None
-        assert strategy_manager.current_strategy.strategy_type == BranchStrategyType.ISSUE_DRIVEN
+        assert (
+            strategy_manager.current_strategy.strategy_type
+            == BranchStrategyType.ISSUE_DRIVEN
+        )
 
 
 # ============================================================================
@@ -323,7 +325,10 @@ class TestStrategyManagement:
 
         # Assert
         assert result is True
-        assert strategy_manager.current_strategy.strategy_type == BranchStrategyType.GITFLOW
+        assert (
+            strategy_manager.current_strategy.strategy_type
+            == BranchStrategyType.GITFLOW
+        )
 
     def test_set_strategy_invalid_type(self, strategy_manager, mock_logger):
         """Test setting invalid strategy type."""
@@ -372,7 +377,7 @@ class TestBranchNameGeneration:
         branch_name = strategy_manager.generate_branch_name(
             BranchType.FEATURE,
             ticket_id="PROJ-123",
-            description="Add User Authentication"
+            description="Add User Authentication",
         )
 
         # Assert
@@ -385,7 +390,7 @@ class TestBranchNameGeneration:
         branch_name = strategy_manager.generate_branch_name(
             BranchType.FEATURE,
             ticket_id="PROJ-123",
-            description="Fix: Bug with @special chars!"
+            description="Fix: Bug with @special chars!",
         )
 
         # Assert
@@ -399,9 +404,7 @@ class TestBranchNameGeneration:
 
         # Act
         branch_name = strategy_manager.generate_branch_name(
-            BranchType.FEATURE,
-            ticket_id="PROJ-123",
-            description=long_description
+            BranchType.FEATURE, ticket_id="PROJ-123", description=long_description
         )
 
         # Assert
@@ -412,8 +415,7 @@ class TestBranchNameGeneration:
         """Test generating branch name without ticket ID."""
         # Arrange & Act
         branch_name = strategy_manager.generate_branch_name(
-            BranchType.FEATURE,
-            description="new-feature"
+            BranchType.FEATURE, description="new-feature"
         )
 
         # Assert
@@ -440,7 +442,9 @@ class TestBranchNameValidation:
     def test_validate_branch_name_valid_feature(self, strategy_manager):
         """Test validating valid feature branch name."""
         # Arrange & Act
-        is_valid, message = strategy_manager.validate_branch_name("feature/PROJ-123-description")
+        is_valid, message = strategy_manager.validate_branch_name(
+            "feature/PROJ-123-description"
+        )
 
         # Assert
         assert is_valid is True
@@ -589,8 +593,7 @@ class TestMergeMessageGeneration:
         """Test generating merge message with template."""
         # Arrange & Act
         message = strategy_manager.generate_merge_message(
-            "issue/PROJ-123",
-            ticket_title="Fix login bug"
+            "issue/PROJ-123", ticket_title="Fix login bug"
         )
 
         # Assert

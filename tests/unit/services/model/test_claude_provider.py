@@ -10,12 +10,12 @@ Coverage targets:
 - All configuration options covered
 """
 
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch, AsyncMock
 
 from claude_mpm.services.core.interfaces.model import ModelCapability, ModelResponse
 from claude_mpm.services.model.claude_provider import ClaudeProvider
-
 
 # ============================================================================
 # TEST FIXTURES
@@ -115,7 +115,7 @@ class TestInitialization:
         # Arrange & Act (provider from fixture)
 
         # Assert
-        assert hasattr(provider, 'provider_name')
+        assert hasattr(provider, "provider_name")
         # The provider name is set in BaseModelProvider.__init__
 
     def test_init_with_none_config(self):
@@ -178,7 +178,7 @@ class TestInitializeMethod:
     async def test_initialize_logs_info(self, provider):
         """Test initialization logs appropriate messages."""
         # Arrange
-        with patch.object(provider, 'log_info') as mock_log:
+        with patch.object(provider, "log_info") as mock_log:
             # Act
             await provider.initialize()
 
@@ -248,7 +248,7 @@ class TestShutdownMethod:
     async def test_shutdown_logs_info(self, provider):
         """Test shutdown logs appropriate messages."""
         # Arrange
-        with patch.object(provider, 'log_info') as mock_log:
+        with patch.object(provider, "log_info") as mock_log:
             # Act
             await provider.shutdown()
 
@@ -397,8 +397,7 @@ class TestAnalyzeContent:
 
         # Act
         response = await provider.analyze_content(
-            content=sample_content,
-            task=ModelCapability.SEO_ANALYSIS
+            content=sample_content, task=ModelCapability.SEO_ANALYSIS
         )
 
         # Assert
@@ -417,9 +416,7 @@ class TestAnalyzeContent:
 
         # Act
         response = await provider.analyze_content(
-            content=sample_content,
-            task=ModelCapability.GRAMMAR,
-            model=specific_model
+            content=sample_content, task=ModelCapability.GRAMMAR, model=specific_model
         )
 
         # Assert
@@ -434,8 +431,7 @@ class TestAnalyzeContent:
 
         # Act
         response = await provider.analyze_content(
-            content=sample_content,
-            task=ModelCapability.READABILITY
+            content=sample_content, task=ModelCapability.READABILITY
         )
 
         # Assert
@@ -461,8 +457,7 @@ class TestAnalyzeContent:
         # Act & Assert
         for capability in capabilities:
             response = await provider.analyze_content(
-                content=sample_content,
-                task=capability
+                content=sample_content, task=capability
             )
             assert response.success is True
             assert response.task == capability.value
@@ -475,8 +470,7 @@ class TestAnalyzeContent:
 
         # Act
         response = await provider.analyze_content(
-            content="",  # Empty content
-            task=ModelCapability.SEO_ANALYSIS
+            content="", task=ModelCapability.SEO_ANALYSIS  # Empty content
         )
 
         # Assert
@@ -492,8 +486,7 @@ class TestAnalyzeContent:
 
         # Act
         response = await provider.analyze_content(
-            content=long_content,
-            task=ModelCapability.SUMMARIZATION
+            content=long_content, task=ModelCapability.SUMMARIZATION
         )
 
         # Assert
@@ -501,14 +494,15 @@ class TestAnalyzeContent:
         assert response.success is True
 
     @pytest.mark.asyncio
-    async def test_analyze_content_without_initialization(self, provider, sample_content):
+    async def test_analyze_content_without_initialization(
+        self, provider, sample_content
+    ):
         """Test analysis auto-initializes if not initialized."""
         # Arrange (not initialized)
 
         # Act
         response = await provider.analyze_content(
-            content=sample_content,
-            task=ModelCapability.GENERAL
+            content=sample_content, task=ModelCapability.GENERAL
         )
 
         # Assert
@@ -526,7 +520,7 @@ class TestAnalyzeContent:
             content=sample_content,
             task=ModelCapability.SEO_ANALYSIS,
             temperature=0.5,
-            max_tokens=2048
+            max_tokens=2048,
         )
 
         # Assert
@@ -540,8 +534,7 @@ class TestAnalyzeContent:
 
         # Act
         response = await provider.analyze_content(
-            content=sample_content,
-            task=ModelCapability.SENTIMENT
+            content=sample_content, task=ModelCapability.SENTIMENT
         )
 
         # Assert
@@ -715,8 +708,7 @@ class TestEdgeCases:
 
         # Act
         response = await provider.analyze_content(
-            content=special_content,
-            task=ModelCapability.GENERAL
+            content=special_content, task=ModelCapability.GENERAL
         )
 
         # Assert
@@ -734,8 +726,7 @@ class TestEdgeCases:
 
         # Act
         response = await provider.analyze_content(
-            content=multiline,
-            task=ModelCapability.READABILITY
+            content=multiline, task=ModelCapability.READABILITY
         )
 
         # Assert
@@ -749,8 +740,7 @@ class TestEdgeCases:
 
         # Act
         response = await provider.analyze_content(
-            content="   \n  \t  ",
-            task=ModelCapability.GENERAL
+            content="   \n  \t  ", task=ModelCapability.GENERAL
         )
 
         # Assert
@@ -765,8 +755,7 @@ class TestEdgeCases:
 
         # Act
         response = await provider.analyze_content(
-            content="Hi",
-            task=ModelCapability.SENTIMENT
+            content="Hi", task=ModelCapability.SENTIMENT
         )
 
         # Assert
@@ -808,8 +797,7 @@ class TestErrorHandling:
 
         # Act
         response = await provider.analyze_content(
-            content=None,
-            task=ModelCapability.GENERAL
+            content=None, task=ModelCapability.GENERAL
         )
 
         # Assert
@@ -823,7 +811,7 @@ class TestErrorHandling:
         provider = ClaudeProvider()
 
         # Mock initialization to fail
-        with patch.object(provider, 'log_error'):
+        with patch.object(provider, "log_error"):
             # Phase 1: Initialize always succeeds
             # This test is for future Phase 2 implementation
             pass
@@ -837,8 +825,7 @@ class TestErrorHandling:
 
         # Act
         response = await provider.analyze_content(
-            content=sample_content,
-            task=ModelCapability.GENERAL
+            content=sample_content, task=ModelCapability.GENERAL
         )
 
         # Assert
