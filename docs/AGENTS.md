@@ -32,7 +32,7 @@ Agents are loaded with the following precedence (highest to lowest):
 2. **USER** (`~/.claude-agents/`) - Personal customizations
 3. **SYSTEM** (bundled) - Default agents included with Claude MPM
 
-## Core Agents (15 Specialized Agents)
+## Core Agents (16 Specialized Agents)
 
 ### Core Development
 - **Engineer** - Software development and implementation
@@ -46,6 +46,16 @@ Agents are loaded with the following precedence (highest to lowest):
   - Service-oriented architecture with ABC interfaces for applications
   - Lightweight script patterns for automation and one-off tasks
   - Dependency injection containers with auto-resolution
+
+- **JavaScript Engineer (v1.0.0)** - Vanilla JavaScript specialist
+  - Node.js backend frameworks (Express, Fastify, Koa, Hapi)
+  - Browser extensions (Chrome, Firefox) with Manifest V3
+  - Web Components (Custom Elements, Shadow DOM)
+  - Modern ESM patterns and CommonJS interop
+  - Build tooling (Vite, esbuild, Rollup, Webpack)
+  - Testing with Vitest, Jest, Mocha
+  - **When to Use**: Backend APIs without TypeScript, browser extensions, Web Components, CLI tools, legacy jQuery modernization
+  - **Routing**: Priority 80, triggers on `express`, `fastify`, `browser extension`, `web components`, vanilla JS file patterns
 
 - **Rust Engineer (v1.1.0)** - Memory-safe, high-performance systems
   - Trait-based service architecture
