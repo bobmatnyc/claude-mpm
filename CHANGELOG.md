@@ -1,6 +1,16 @@
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [4.24.0] - 2025-11-17
+
+### Added
 - **JavaScript Engineer Agent (v1.0.0)**: Vanilla JavaScript specialist for Node.js backends, browser extensions, Web Components, and modern ESM patterns
   - Node.js backend frameworks: Express, Fastify, Koa, Hapi
   - Browser extensions with Manifest V3 support
@@ -8,12 +18,6 @@
   - Modern ESM patterns and build tooling (Vite, esbuild, Rollup)
   - Comprehensive testing with Vitest/Jest
   - Priority 80 routing with 21 trigger keywords
-
-### Changed
-
-### Fixed
-
-### Removed
 
 ## [4.23.1] - 2025-11-15
 
