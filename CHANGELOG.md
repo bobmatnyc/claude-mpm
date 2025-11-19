@@ -8,6 +8,12 @@
 
 ### Removed
 
+## [4.24.1] - 2025-11-19
+
+### Added
+- Enhanced startup banner with teal robots and launch message
+- Claude Code-style presentation for startup banner
+
 ## [4.24.0] - 2025-11-17
 
 ### Added
