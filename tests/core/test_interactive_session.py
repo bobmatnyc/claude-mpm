@@ -459,7 +459,7 @@ class TestInteractiveSession:
         ), patch.object(
             interactive_session,
             "_build_agents_flag",
-            return_value=["--agents", "simple context"]
+            return_value=["--agents", "simple context"],
         ):
             result = interactive_session._build_claude_command()
 
@@ -485,7 +485,7 @@ class TestInteractiveSession:
         ), patch.object(
             interactive_session,
             "_build_agents_flag",
-            return_value=["--agents", "simple context"]
+            return_value=["--agents", "simple context"],
         ):
             result = interactive_session._build_claude_command()
 
@@ -516,7 +516,7 @@ class TestInteractiveSession:
         ), patch.object(
             interactive_session,
             "_build_agents_flag",
-            return_value=["--agents", "simple context"]
+            return_value=["--agents", "simple context"],
         ):
             result = interactive_session._build_claude_command()
 

@@ -533,7 +533,7 @@ class TestOneshotSession:
         with patch.object(
             oneshot_session,
             "_build_agents_flag",
-            return_value=["--agents", "simple context"]
+            return_value=["--agents", "simple context"],
         ):
             result = oneshot_session._build_command()
 
@@ -553,7 +553,7 @@ class TestOneshotSession:
         with patch.object(
             oneshot_session,
             "_build_agents_flag",
-            return_value=["--agents", "simple context"]
+            return_value=["--agents", "simple context"],
         ):
             result = oneshot_session._build_command()
 
