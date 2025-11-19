@@ -22,7 +22,7 @@ class TestHookErrorMemory:
     @pytest.fixture
     def temp_memory_file(self):
         """Create temporary memory file for testing."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             temp_path = Path(f.name)
         yield temp_path
         # Cleanup
@@ -51,7 +51,10 @@ class TestHookErrorMemory:
         assert error_info is not None
         # Could match either eval_error or file_not_found depending on pattern order
         assert error_info["type"] in ["eval_error", "file_not_found"]
-        assert "/path/to/missing/file.sh" in error_info["details"] or "no such file" in error_info["details"]
+        assert (
+            "/path/to/missing/file.sh" in error_info["details"]
+            or "no such file" in error_info["details"]
+        )
 
     def test_detect_command_not_found_error(self, error_memory):
         """Test detection of command not found errors."""
@@ -365,7 +368,7 @@ class TestErrorDetectionPatterns:
     @pytest.fixture
     def error_memory(self):
         """Create fresh error memory for each test."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             temp_path = Path(f.name)
         memory = HookErrorMemory(memory_file=temp_path)
         yield memory
@@ -404,19 +407,11 @@ Line 4: After error
     def test_error_in_stdout_vs_stderr(self, error_memory):
         """Test that errors are detected in both stdout and stderr."""
         # Error in stdout
-        error_info1 = error_memory.detect_error(
-            "Error: command not found: test",
-            "",
-            1
-        )
+        error_info1 = error_memory.detect_error("Error: command not found: test", "", 1)
         assert error_info1 is not None
 
         # Error in stderr
-        error_info2 = error_memory.detect_error(
-            "",
-            "Error: command not found: test",
-            1
-        )
+        error_info2 = error_memory.detect_error("", "Error: command not found: test", 1)
         assert error_info2 is not None
 
 
@@ -426,7 +421,7 @@ class TestErrorMemoryIntegration:
     @pytest.fixture
     def error_memory(self):
         """Create error memory with temp file."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             temp_path = Path(f.name)
         memory = HookErrorMemory(memory_file=temp_path)
         yield memory
@@ -437,9 +432,7 @@ class TestErrorMemoryIntegration:
         """Test complete error lifecycle: detect -> record -> skip -> clear -> retry."""
         # 1. Detect error
         error_info = error_memory.detect_error(
-            "",
-            "no such file or directory: /test.sh",
-            1
+            "", "no such file or directory: /test.sh", 1
         )
         assert error_info is not None
 

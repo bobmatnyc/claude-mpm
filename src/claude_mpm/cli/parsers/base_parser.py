@@ -564,7 +564,8 @@ def create_parser(
             help="Filter by specific hook type",
         )
         hook_errors_parser.add_argument(
-            "-y", "--yes",
+            "-y",
+            "--yes",
             action="store_true",
             help="Skip confirmation prompts",
         )

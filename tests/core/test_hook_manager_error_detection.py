@@ -25,7 +25,7 @@ class TestHookManagerErrorDetection:
     @pytest.fixture
     def temp_memory_file(self):
         """Create temporary memory file for testing."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             temp_path = Path(f.name)
         yield temp_path
         if temp_path.exists():
@@ -49,7 +49,7 @@ class TestHookManagerErrorDetection:
 
     def test_error_detection_on_file_not_found(self, hook_manager):
         """Test that file not found errors are detected and recorded."""
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             # Simulate file not found error
             mock_result = Mock()
             mock_result.returncode = 1
@@ -60,7 +60,7 @@ class TestHookManagerErrorDetection:
             # Execute hook that will fail
             hook_data = {
                 "hook_type": "PreToolUse",
-                "event_data": {"tool_name": "TestTool"}
+                "event_data": {"tool_name": "TestTool"},
             }
             hook_manager._execute_hook_sync(hook_data)
 
@@ -72,7 +72,7 @@ class TestHookManagerErrorDetection:
 
     def test_hook_skipped_after_repeated_failures(self, hook_manager):
         """Test that hooks are skipped after failing multiple times."""
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             # Simulate repeated failures
             mock_result = Mock()
             mock_result.returncode = 1
@@ -82,7 +82,7 @@ class TestHookManagerErrorDetection:
 
             hook_data = {
                 "hook_type": "PreToolUse",
-                "event_data": {"tool_name": "TestTool"}
+                "event_data": {"tool_name": "TestTool"},
             }
 
             # First execution - should run
@@ -101,7 +101,7 @@ class TestHookManagerErrorDetection:
 
     def test_different_hook_types_tracked_separately(self, hook_manager):
         """Test that errors for different hook types are tracked separately."""
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             # Simulate error
             mock_result = Mock()
             mock_result.returncode = 1
@@ -112,7 +112,7 @@ class TestHookManagerErrorDetection:
             # Fail PreToolUse twice
             pre_hook_data = {
                 "hook_type": "PreToolUse",
-                "event_data": {"tool_name": "TestTool"}
+                "event_data": {"tool_name": "TestTool"},
             }
             hook_manager._execute_hook_sync(pre_hook_data)
             hook_manager._execute_hook_sync(pre_hook_data)
@@ -126,7 +126,7 @@ class TestHookManagerErrorDetection:
             # PostToolUse should still execute
             post_hook_data = {
                 "hook_type": "PostToolUse",
-                "event_data": {"tool_name": "TestTool"}
+                "event_data": {"tool_name": "TestTool"},
             }
             pre_count = mock_run.call_count
             hook_manager._execute_hook_sync(post_hook_data)
@@ -135,7 +135,7 @@ class TestHookManagerErrorDetection:
 
     def test_successful_execution_not_recorded_as_error(self, hook_manager):
         """Test that successful hook execution doesn't record errors."""
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             # Simulate success
             mock_result = Mock()
             mock_result.returncode = 0
@@ -145,7 +145,7 @@ class TestHookManagerErrorDetection:
 
             hook_data = {
                 "hook_type": "PreToolUse",
-                "event_data": {"tool_name": "TestTool"}
+                "event_data": {"tool_name": "TestTool"},
             }
             hook_manager._execute_hook_sync(hook_data)
 
@@ -154,7 +154,7 @@ class TestHookManagerErrorDetection:
 
     def test_error_memory_persistence(self, hook_manager, temp_memory_file):
         """Test that errors persist across HookManager instances."""
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             # Simulate error
             mock_result = Mock()
             mock_result.returncode = 1
@@ -164,7 +164,7 @@ class TestHookManagerErrorDetection:
 
             hook_data = {
                 "hook_type": "PreToolUse",
-                "event_data": {"tool_name": "TestTool"}
+                "event_data": {"tool_name": "TestTool"},
             }
 
             # Record errors with first instance
@@ -191,13 +191,13 @@ class TestHookManagerErrorDetection:
         """Test that timeout errors are logged but not recorded in error memory."""
         from subprocess import TimeoutExpired
 
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             # Simulate timeout
             mock_run.side_effect = TimeoutExpired("cmd", 5)
 
             hook_data = {
                 "hook_type": "PreToolUse",
-                "event_data": {"tool_name": "TestTool"}
+                "event_data": {"tool_name": "TestTool"},
             }
             hook_manager._execute_hook_sync(hook_data)
 
@@ -207,7 +207,7 @@ class TestHookManagerErrorDetection:
 
     def test_multiple_error_types_recorded(self, hook_manager):
         """Test that different error types are recorded separately."""
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             # First error type: file not found
             mock_result1 = Mock()
             mock_result1.returncode = 1
@@ -222,23 +222,21 @@ class TestHookManagerErrorDetection:
 
             # Execute with different errors
             mock_run.return_value = mock_result1
-            hook_manager._execute_hook_sync({
-                "hook_type": "PreToolUse",
-                "event_data": {"tool_name": "TestTool1"}
-            })
+            hook_manager._execute_hook_sync(
+                {"hook_type": "PreToolUse", "event_data": {"tool_name": "TestTool1"}}
+            )
 
             mock_run.return_value = mock_result2
-            hook_manager._execute_hook_sync({
-                "hook_type": "PreToolUse",
-                "event_data": {"tool_name": "TestTool2"}
-            })
+            hook_manager._execute_hook_sync(
+                {"hook_type": "PreToolUse", "event_data": {"tool_name": "TestTool2"}}
+            )
 
             # Should have recorded both errors
             assert len(hook_manager.error_memory.errors) >= 2
 
     def test_error_summary_accessible(self, hook_manager):
         """Test that error summary can be accessed."""
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             # Simulate error
             mock_result = Mock()
             mock_result.returncode = 1
@@ -249,7 +247,7 @@ class TestHookManagerErrorDetection:
             # Record some errors
             hook_data = {
                 "hook_type": "PreToolUse",
-                "event_data": {"tool_name": "TestTool"}
+                "event_data": {"tool_name": "TestTool"},
             }
             hook_manager._execute_hook_sync(hook_data)
             hook_manager._execute_hook_sync(hook_data)
@@ -268,7 +266,7 @@ class TestHookManagerErrorRecovery:
     @pytest.fixture
     def temp_memory_file(self):
         """Create temporary memory file."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             temp_path = Path(f.name)
         yield temp_path
         if temp_path.exists():
@@ -290,7 +288,7 @@ class TestHookManagerErrorRecovery:
 
     def test_clear_errors_allows_retry(self, hook_manager):
         """Test that clearing errors allows hooks to be retried."""
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             # Simulate repeated failures
             mock_result = Mock()
             mock_result.returncode = 1
@@ -300,7 +298,7 @@ class TestHookManagerErrorRecovery:
 
             hook_data = {
                 "hook_type": "PreToolUse",
-                "event_data": {"tool_name": "TestTool"}
+                "event_data": {"tool_name": "TestTool"},
             }
 
             # Fail twice to trigger skip
@@ -321,7 +319,7 @@ class TestHookManagerErrorRecovery:
 
     def test_partial_error_clear(self, hook_manager):
         """Test clearing errors for specific hook type."""
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             # Simulate error
             mock_result = Mock()
             mock_result.returncode = 1
@@ -333,7 +331,7 @@ class TestHookManagerErrorRecovery:
             for hook_type in ["PreToolUse", "PostToolUse"]:
                 hook_data = {
                     "hook_type": hook_type,
-                    "event_data": {"tool_name": "TestTool"}
+                    "event_data": {"tool_name": "TestTool"},
                 }
                 hook_manager._execute_hook_sync(hook_data)
                 hook_manager._execute_hook_sync(hook_data)
@@ -356,7 +354,7 @@ class TestRealWorldScenarios:
     @pytest.fixture
     def temp_memory_file(self):
         """Create temporary memory file."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             temp_path = Path(f.name)
         yield temp_path
         if temp_path.exists():
@@ -378,7 +376,7 @@ class TestRealWorldScenarios:
 
     def test_issue_example_error(self, hook_manager):
         """Test the exact error from the issue description."""
-        with patch('subprocess.run') as mock_run:
+        with patch("subprocess.run") as mock_run:
             # Simulate the exact error from the issue
             mock_result = Mock()
             mock_result.returncode = 1
@@ -388,7 +386,7 @@ class TestRealWorldScenarios:
 
             hook_data = {
                 "hook_type": "PreToolUse",
-                "event_data": {"tool_name": "TestTool"}
+                "event_data": {"tool_name": "TestTool"},
             }
 
             # First execution - should run and record error

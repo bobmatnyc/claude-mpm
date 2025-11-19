@@ -153,9 +153,7 @@ class HookManager:
 
             # Detect errors in the output
             error_info = self.error_memory.detect_error(
-                result.stdout or "",
-                result.stderr or "",
-                result.returncode
+                result.stdout or "", result.stderr or "", result.returncode
             )
 
             if error_info:
@@ -166,9 +164,7 @@ class HookManager:
                 suggestion = self.error_memory.suggest_fix(error_info)
 
                 # Log error with suggestion
-                self.logger.warning(
-                    f"Hook {hook_type} error detected:\n{suggestion}"
-                )
+                self.logger.warning(f"Hook {hook_type} error detected:\n{suggestion}")
             elif result.returncode != 0:
                 # Non-zero return without detected pattern
                 self.logger.debug(f"Hook {hook_type} returned code {result.returncode}")

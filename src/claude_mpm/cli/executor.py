@@ -150,25 +150,25 @@ def execute_command(command: str, args) -> int:
     if command == "hook-errors":
         # Lazy import to avoid loading unless needed
         from .commands.hook_errors import (
-            list_errors,
-            show_summary,
             clear_errors,
             diagnose_errors,
+            list_errors,
             show_status,
+            show_summary,
         )
 
         # Get subcommand
-        subcommand = getattr(args, 'hook_errors_command', 'status')
+        subcommand = getattr(args, "hook_errors_command", "status")
         if not subcommand:
-            subcommand = 'status'
+            subcommand = "status"
 
         # Map subcommands to functions
         handlers = {
-            'list': list_errors,
-            'summary': show_summary,
-            'clear': clear_errors,
-            'diagnose': diagnose_errors,
-            'status': show_status,
+            "list": list_errors,
+            "summary": show_summary,
+            "clear": clear_errors,
+            "diagnose": diagnose_errors,
+            "status": show_status,
         }
 
         # Get handler and invoke
@@ -176,16 +176,17 @@ def execute_command(command: str, args) -> int:
         if handler:
             # Build Click context programmatically
             import click
+
             ctx = click.Context(command=handler)
 
             # Prepare keyword arguments from args
             kwargs = {}
-            if hasattr(args, 'format'):
-                kwargs['format'] = args.format
-            if hasattr(args, 'hook_type'):
-                kwargs['hook_type'] = args.hook_type
-            if hasattr(args, 'yes'):
-                kwargs['yes'] = args.yes
+            if hasattr(args, "format"):
+                kwargs["format"] = args.format
+            if hasattr(args, "hook_type"):
+                kwargs["hook_type"] = args.hook_type
+            if hasattr(args, "yes"):
+                kwargs["yes"] = args.yes
 
             try:
                 # Invoke handler with arguments

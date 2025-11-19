@@ -19,7 +19,7 @@ DESIGN DECISION: Store errors in JSON file rather than database because:
 
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -94,7 +94,9 @@ class HookErrorMemory:
         except Exception as e:
             self.logger.error(f"Failed to save error memory: {e}")
 
-    def detect_error(self, output: str, stderr: str, returncode: int) -> Optional[Dict[str, str]]:
+    def detect_error(
+        self, output: str, stderr: str, returncode: int
+    ) -> Optional[Dict[str, str]]:
         """Detect if output contains an error.
 
         WHY check both stdout and stderr:
@@ -155,7 +157,7 @@ class HookErrorMemory:
         # Create unique key for this error
         key = f"{error_info['type']}:{hook_type}:{error_info['details']}"
 
-        now = datetime.now().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         if key in self.errors:
             # Update existing error
@@ -175,7 +177,9 @@ class HookErrorMemory:
             }
 
         self._save_errors()
-        self.logger.debug(f"Recorded error: {error_info['type']} (count: {self.errors[key]['count']})")
+        self.logger.debug(
+            f"Recorded error: {error_info['type']} (count: {self.errors[key]['count']})"
+        )
 
     def is_known_failing_hook(self, hook_type: str) -> Optional[Dict[str, Any]]:
         """Check if a hook type is known to fail repeatedly.
@@ -280,7 +284,9 @@ Possible fixes:
 """,
         }
 
-        return suggestions.get(error_type, f"Unknown error type: {error_type}\n\nDetails: {details}")
+        return suggestions.get(
+            error_type, f"Unknown error type: {error_type}\n\nDetails: {details}"
+        )
 
     def clear_errors(self, hook_type: Optional[str] = None):
         """Clear error memory to allow retry of failed hooks.
@@ -297,13 +303,16 @@ Possible fixes:
         else:
             # Clear errors for specific hook type
             keys_to_remove = [
-                key for key, data in self.errors.items()
+                key
+                for key, data in self.errors.items()
                 if data["hook_type"] == hook_type
             ]
             for key in keys_to_remove:
                 del self.errors[key]
             self._save_errors()
-            self.logger.info(f"Cleared {len(keys_to_remove)} error records for {hook_type}")
+            self.logger.info(
+                f"Cleared {len(keys_to_remove)} error records for {hook_type}"
+            )
 
     def get_error_summary(self) -> Dict[str, Any]:
         """Get summary of all recorded errors.

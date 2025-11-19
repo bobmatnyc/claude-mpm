@@ -13,7 +13,6 @@ from pathlib import Path
 import click
 
 from claude_mpm.core.hook_error_memory import get_hook_error_memory
-from claude_mpm.core.logger import get_logger
 
 
 @click.group(name="hook-errors")
@@ -23,7 +22,6 @@ def hook_errors_group():
     The hook error memory system tracks failing hooks to prevent
     repeated execution of known-failing operations.
     """
-    pass
 
 
 @hook_errors_group.command(name="list")
@@ -48,16 +46,13 @@ def list_errors(format, hook_type):
         claude-mpm hook-errors list --format json
         claude-mpm hook-errors list --hook-type PreToolUse
     """
-    logger = get_logger("cli.hook_errors")
     error_memory = get_hook_error_memory()
 
     # Filter errors if hook type specified
     errors = error_memory.errors
     if hook_type:
         errors = {
-            key: data
-            for key, data in errors.items()
-            if data["hook_type"] == hook_type
+            key: data for key, data in errors.items() if data["hook_type"] == hook_type
         }
 
     if not errors:
@@ -110,17 +105,17 @@ def show_summary():
     click.echo("\n" + "=" * 80)
     click.echo("Hook Error Summary")
     click.echo("=" * 80)
-    click.echo(f"\n📊 Statistics:")
+    click.echo("\n📊 Statistics:")
     click.echo(f"   Total Errors: {summary['total_errors']}")
     click.echo(f"   Unique Errors: {summary['unique_errors']}")
 
     if summary["errors_by_type"]:
-        click.echo(f"\n🔍 Errors by Type:")
+        click.echo("\n🔍 Errors by Type:")
         for error_type, count in summary["errors_by_type"].items():
             click.echo(f"   {error_type}: {count}")
 
     if summary["errors_by_hook"]:
-        click.echo(f"\n🎣 Errors by Hook Type:")
+        click.echo("\n🎣 Errors by Hook Type:")
         for hook_type, count in summary["errors_by_hook"].items():
             click.echo(f"   {hook_type}: {count}")
 
@@ -155,8 +150,7 @@ def clear_errors(hook_type, yes):
     # Count errors to be cleared
     if hook_type:
         count = sum(
-            1 for data in error_memory.errors.values()
-            if data["hook_type"] == hook_type
+            1 for data in error_memory.errors.values() if data["hook_type"] == hook_type
         )
         scope = f"for hook type '{hook_type}'"
     else:
@@ -202,9 +196,7 @@ def diagnose_errors(hook_type):
     errors = error_memory.errors
     if hook_type:
         errors = {
-            key: data
-            for key, data in errors.items()
-            if data["hook_type"] == hook_type
+            key: data for key, data in errors.items() if data["hook_type"] == hook_type
         }
 
     if not errors:
