@@ -146,6 +146,61 @@ def execute_command(command: str, args) -> int:
         # Convert CommandResult to exit code
         return result.exit_code if result else 0
 
+    # Handle hook-errors command with lazy import
+    if command == "hook-errors":
+        # Lazy import to avoid loading unless needed
+        from .commands.hook_errors import (
+            list_errors,
+            show_summary,
+            clear_errors,
+            diagnose_errors,
+            show_status,
+        )
+
+        # Get subcommand
+        subcommand = getattr(args, 'hook_errors_command', 'status')
+        if not subcommand:
+            subcommand = 'status'
+
+        # Map subcommands to functions
+        handlers = {
+            'list': list_errors,
+            'summary': show_summary,
+            'clear': clear_errors,
+            'diagnose': diagnose_errors,
+            'status': show_status,
+        }
+
+        # Get handler and invoke
+        handler = handlers.get(subcommand)
+        if handler:
+            # Build Click context programmatically
+            import click
+            ctx = click.Context(command=handler)
+
+            # Prepare keyword arguments from args
+            kwargs = {}
+            if hasattr(args, 'format'):
+                kwargs['format'] = args.format
+            if hasattr(args, 'hook_type'):
+                kwargs['hook_type'] = args.hook_type
+            if hasattr(args, 'yes'):
+                kwargs['yes'] = args.yes
+
+            try:
+                # Invoke handler with arguments
+                with ctx:
+                    handler.invoke(ctx, **kwargs)
+                return 0
+            except SystemExit as e:
+                return e.code if e.code is not None else 0
+            except Exception as e:
+                print(f"Error: {e}")
+                return 1
+        else:
+            print(f"Unknown hook-errors subcommand: {subcommand}")
+            return 1
+
     # Map stable commands to their implementations
     command_map = {
         CLICommands.RUN.value: run_session,

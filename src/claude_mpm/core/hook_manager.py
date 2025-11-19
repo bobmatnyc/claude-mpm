@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from ..core.logger import get_logger
+from .hook_error_memory import get_hook_error_memory
 from .hook_performance_config import get_hook_performance_config
 from .unified_paths import get_package_root
 
@@ -41,6 +42,9 @@ class HookManager:
         self.logger = get_logger("hook_manager")
         self.session_id = self._get_or_create_session_id()
         self.hook_handler_path = self._find_hook_handler()
+
+        # Initialize error memory for tracking and preventing repeated errors
+        self.error_memory = get_hook_error_memory()
 
         # Initialize background hook processing for async execution
         self.performance_config = get_hook_performance_config()
@@ -97,10 +101,30 @@ class HookManager:
         self.logger.debug("Started background hook processor thread")
 
     def _execute_hook_sync(self, hook_data: Dict[str, Any]):
-        """Execute a single hook synchronously in the background thread."""
+        """Execute a single hook synchronously in the background thread with error detection.
+
+        WHY error detection:
+        - Prevents repeated execution of failing hooks
+        - Provides actionable error messages to users
+        - Learns from failures to improve system reliability
+        - Reduces log noise from repeated errors
+        """
         try:
             hook_type = hook_data["hook_type"]
             event_data = hook_data["event_data"]
+
+            # Check if this hook is known to fail repeatedly
+            if self.error_memory.should_skip_hook(hook_type):
+                known_error = self.error_memory.is_known_failing_hook(hook_type)
+                if known_error:
+                    # Log warning but don't spam - only on first skip
+                    if known_error["count"] == 2:  # First time we're skipping
+                        self.logger.warning(
+                            f"⚠️  Skipping {hook_type} hook - failed {known_error['count']} times previously\n"
+                            f"Error: {known_error['match']}\n"
+                            f"To retry: rm {self.error_memory.memory_file}"
+                        )
+                return
 
             # Create the hook event
             hook_event = {
@@ -127,7 +151,26 @@ class HookManager:
                 check=False,
             )
 
-            if result.returncode != 0:
+            # Detect errors in the output
+            error_info = self.error_memory.detect_error(
+                result.stdout or "",
+                result.stderr or "",
+                result.returncode
+            )
+
+            if error_info:
+                # Record the error
+                self.error_memory.record_error(error_info, hook_type)
+
+                # Get fix suggestion
+                suggestion = self.error_memory.suggest_fix(error_info)
+
+                # Log error with suggestion
+                self.logger.warning(
+                    f"Hook {hook_type} error detected:\n{suggestion}"
+                )
+            elif result.returncode != 0:
+                # Non-zero return without detected pattern
                 self.logger.debug(f"Hook {hook_type} returned code {result.returncode}")
                 if result.stderr:
                     self.logger.debug(f"Hook stderr: {result.stderr}")

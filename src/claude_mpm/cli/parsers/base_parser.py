@@ -541,6 +541,33 @@ def create_parser(
         from ..commands.verify import add_parser as add_verify_parser
 
         add_verify_parser(subparsers)
+
+        # Add hook-errors command for managing hook error memory
+        hook_errors_parser = subparsers.add_parser(
+            "hook-errors",
+            help="Manage hook error memory and diagnostics",
+        )
+        hook_errors_parser.add_argument(
+            "hook_errors_command",
+            nargs="?",
+            choices=["list", "summary", "clear", "diagnose", "status"],
+            help="Hook errors subcommand",
+        )
+        hook_errors_parser.add_argument(
+            "--format",
+            choices=["table", "json"],
+            default="table",
+            help="Output format for list command",
+        )
+        hook_errors_parser.add_argument(
+            "--hook-type",
+            help="Filter by specific hook type",
+        )
+        hook_errors_parser.add_argument(
+            "-y", "--yes",
+            action="store_true",
+            help="Skip confirmation prompts",
+        )
     except ImportError:
         # Commands module may not be available during testing or refactoring
         pass
