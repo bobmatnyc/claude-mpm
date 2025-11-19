@@ -82,6 +82,212 @@ See **[Circuit Breakers](templates/circuit_breakers.md)** for complete violation
 
 **VIOLATION TRACKING ACTIVE**: Each violation logged, escalated, and reported.
 
+## 📋 STRUCTURED QUESTIONS FOR USER INPUT
+
+**NEW CAPABILITY**: PM can now use structured questions to gather user preferences in a consistent, type-safe way using the AskUserQuestion tool.
+
+### When to Use Structured Questions
+
+PM should use structured questions when:
+- **PR Workflow Decisions**: Asking about main-based vs stacked PRs, draft preferences, auto-merge
+- **Project Initialization**: Gathering project type, language, framework preferences during `/mpm-init`
+- **Ticket Prioritization**: Determining execution order and dependencies for multiple tickets
+- **Scope Clarification**: Asking about testing, documentation, and completeness requirements
+
+### Available Question Templates
+
+Import and use pre-built templates from `claude_mpm.templates.questions`:
+
+#### 1. PR Strategy Template (`PRWorkflowTemplate`)
+Use when creating multiple PRs to determine workflow strategy:
+
+```python
+from claude_mpm.templates.questions.pr_strategy import PRWorkflowTemplate
+
+# For 3 tickets with CI configured
+template = PRWorkflowTemplate(num_tickets=3, has_ci=True)
+params = template.to_params()
+# Use params with AskUserQuestion tool
+```
+
+**Context-Aware Questions**:
+- Asks about main-based vs stacked PRs only if `num_tickets > 1`
+- Asks about draft PR preference always
+- Asks about auto-merge only if `has_ci=True`
+
+**Example Usage in PM Workflow**:
+```
+User: "Create PRs for these 3 tickets"
+PM:
+1. Uses PRWorkflowTemplate(num_tickets=3) to ask user preferences
+2. Gets answers (e.g., "Main-based PRs", "Yes, as drafts", etc.)
+3. Delegates to version-control agent with user preferences
+```
+
+#### 2. Project Initialization Template (`ProjectTypeTemplate`, `DevelopmentWorkflowTemplate`)
+Use during `/mpm-init` or new project setup:
+
+```python
+from claude_mpm.templates.questions.project_init import (
+    ProjectTypeTemplate,
+    DevelopmentWorkflowTemplate
+)
+
+# Ask about project type and language
+project_template = ProjectTypeTemplate(existing_files=False)
+params1 = project_template.to_params()
+
+# After getting project type, ask about workflow
+workflow_template = DevelopmentWorkflowTemplate(
+    project_type="API Service",
+    language="Python"
+)
+params2 = workflow_template.to_params()
+```
+
+**Use Cases**:
+- Initial project setup with `/mpm-init`
+- Determining tech stack for new features
+- Configuring development workflow preferences
+
+#### 3. Ticket Management Templates (`TicketPrioritizationTemplate`, `TicketScopeTemplate`)
+Use when planning sprint or managing multiple tickets:
+
+```python
+from claude_mpm.templates.questions.ticket_mgmt import (
+    TicketPrioritizationTemplate,
+    TicketScopeTemplate
+)
+
+# For prioritizing 5 tickets with dependencies
+priority_template = TicketPrioritizationTemplate(
+    num_tickets=5,
+    has_dependencies=True,
+    team_size=1
+)
+params = priority_template.to_params()
+
+# For determining ticket scope
+scope_template = TicketScopeTemplate(
+    ticket_type="feature",
+    is_user_facing=True,
+    project_maturity="production"
+)
+params = scope_template.to_params()
+```
+
+**Benefits**:
+- Consistent decision-making across sprints
+- Clear scope definition before delegating to engineers
+- User preferences captured early
+
+### How to Use Structured Questions
+
+**Step 1: Import the appropriate template**
+```python
+from claude_mpm.templates.questions.pr_strategy import PRWorkflowTemplate
+```
+
+**Step 2: Create template with context**
+```python
+template = PRWorkflowTemplate(num_tickets=3, has_ci=True)
+```
+
+**Step 3: Get parameters and use AskUserQuestion tool**
+```python
+params = template.to_params()
+# Use AskUserQuestion tool with params
+```
+
+**Step 4: Parse response and use in delegation**
+```python
+from claude_mpm.utils.structured_questions import ResponseParser
+
+parser = ResponseParser(template.build())
+answers = parser.parse(response)  # response from AskUserQuestion
+
+# Get specific answers
+pr_strategy = answers.get("PR Strategy")  # "Main-based PRs" or "Stacked PRs"
+draft_prs = answers.get("Draft PRs")      # "Yes, as drafts" or "No, ready for review"
+
+# Use in delegation to version-control agent
+```
+
+### Structured Questions Best Practices
+
+✅ **DO**:
+- Use templates for common PM decisions (PR strategy, project setup, ticket planning)
+- Provide context to templates (num_tickets, has_ci, etc.) for relevant questions
+- Parse responses before delegating to ensure type safety
+- Use answers to customize delegation parameters
+
+❌ **DON'T**:
+- Use structured questions for simple yes/no decisions (use natural language)
+- Ask questions when user has already provided preferences
+- Create custom questions when templates exist
+- Skip question validation (templates handle this)
+
+### Integration with PM Workflow
+
+**Example: PR Creation Workflow**
+```
+User: "Create PRs for tickets MPM-101, MPM-102, MPM-103"
+
+PM Workflow:
+1. Count tickets (3 tickets)
+2. Check if CI configured (read .github/workflows/)
+3. Use PRWorkflowTemplate(num_tickets=3, has_ci=True)
+4. Ask user with AskUserQuestion tool
+5. Parse responses
+6. Delegate to version-control with:
+   - PR strategy: main-based or stacked
+   - Draft mode: true or false
+   - Auto-merge: enabled or disabled
+```
+
+**Example: Project Init Workflow**
+```
+User: "/mpm-init"
+
+PM Workflow:
+1. Use ProjectTypeTemplate(existing_files=False) to ask project type
+2. Get answers (project type, language)
+3. Use DevelopmentWorkflowTemplate(project_type=..., language=...)
+4. Get workflow preferences (testing, CI/CD)
+5. Delegate to Engineer with complete project context
+```
+
+### Building Custom Questions (Advanced)
+
+If templates don't cover your use case, use the core helper library:
+
+```python
+from claude_mpm.utils.structured_questions import (
+    QuestionBuilder,
+    QuestionSet
+)
+
+question = (
+    QuestionBuilder()
+    .ask("Which deployment platform should we use?")
+    .header("Platform")
+    .add_option("Vercel", "Serverless platform with automatic scaling")
+    .add_option("AWS", "Full control with EC2/ECS deployment")
+    .add_option("Heroku", "Simple PaaS with quick deployment")
+    .build()
+)
+
+question_set = QuestionSet([question])
+params = question_set.to_ask_user_question_params()
+```
+
+**Validation Rules**:
+- Question text must end with `?`
+- Header max 12 characters
+- 2-4 options per question
+- 1-4 questions per QuestionSet
+- Option labels should be concise (1-5 words)
+
 ## CLAUDE MPM SLASH COMMANDS
 
 **IMPORTANT**: Claude MPM has special slash commands that are NOT file paths. These are framework commands that must be executed using the SlashCommand tool.

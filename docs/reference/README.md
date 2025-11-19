@@ -10,6 +10,8 @@ Complete reference documentation for Claude MPM systems and architecture.
 - **[Memory System](MEMORY.md)** - Memory and context management
 - **[Testing & QA](QA.md)** - Testing standards and quality assurance
 - **[Homebrew Troubleshooting](HOMEBREW_UPDATE_TROUBLESHOOTING.md)** - Homebrew tap integration issues
+- **[Structured Questions API](structured-questions-api.md)** - Complete API reference for structured questions framework
+- **[Structured Questions Templates](structured-questions-templates.md)** - Catalog of available question templates
 
 ## Quick Reference
 

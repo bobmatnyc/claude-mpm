@@ -5,6 +5,7 @@ How-to guides and frequently asked questions for Claude MPM.
 ## Available Guides
 
 - **[FAQ](FAQ.md)** - Frequently asked questions and common issues
+- **[Structured Questions](structured-questions.md)** - Understanding and using the structured questions framework
 
 ## Quick Links
 

@@ -8,6 +8,7 @@ Technical documentation for Claude MPM contributors and extenders.
 - **[Extending](extending.md)** - Build custom agents, hooks, services, and MCP tools
 - **[Skills Versioning System](skills-versioning.md)** - Technical implementation details
 - **[API Reference](api-reference.md)** - Complete API documentation for all services
+- **[Integrating Structured Questions](integrating-structured-questions.md)** - Add structured questions to custom agents
 
 ## Quick Links
 
