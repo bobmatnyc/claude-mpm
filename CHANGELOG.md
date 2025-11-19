@@ -8,6 +8,15 @@
 
 ### Removed
 
+## [4.24.2] - 2025-11-19
+
+### Added
+- **Structured Questions Framework**: Comprehensive system for interactive PM workflows
+  - Core framework with BaseQuestion and StructuredQuestionsManager
+  - Template system for reusable question patterns (PR strategy, project init, ticket management)
+  - Full documentation (design, guides, API reference)
+  - Comprehensive test coverage
+
 ## [4.24.1] - 2025-11-19
 
 ### Added
