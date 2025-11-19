@@ -450,16 +450,25 @@ class TestInteractiveSession:
 
     def test_build_claude_command_basic(self, interactive_session):
         """Test basic Claude command building."""
+        # Mock use_native_agents to True and _build_agents_flag
+        interactive_session.runner.use_native_agents = True
+
         with patch(
             "claude_mpm.core.claude_runner.create_simple_context",
             return_value="simple context",
+        ), patch.object(
+            interactive_session,
+            "_build_agents_flag",
+            return_value=["--agents", "simple context"]
         ):
             result = interactive_session._build_claude_command()
 
-            # Updated expectations: no --model opus anymore
+            # Updated expectations: --agents comes before --append-system-prompt
             expected = [
                 "claude",
                 "--dangerously-skip-permissions",
+                "--agents",
+                "simple context",
                 "--append-system-prompt",
                 "system prompt",
             ]
@@ -468,20 +477,27 @@ class TestInteractiveSession:
     def test_build_claude_command_with_args(self, interactive_session):
         """Test Claude command building with additional arguments."""
         interactive_session.runner.claude_args = ["--verbose", "--timeout", "30"]
+        interactive_session.runner.use_native_agents = True
 
         with patch(
             "claude_mpm.core.claude_runner.create_simple_context",
             return_value="simple context",
+        ), patch.object(
+            interactive_session,
+            "_build_agents_flag",
+            return_value=["--agents", "simple context"]
         ):
             result = interactive_session._build_claude_command()
 
-            # Updated expectations: no --model opus anymore
+            # Updated expectations: --agents comes before --append-system-prompt
             expected = [
                 "claude",
                 "--dangerously-skip-permissions",
                 "--verbose",
                 "--timeout",
                 "30",
+                "--agents",
+                "simple context",
                 "--append-system-prompt",
                 "system prompt",
             ]
@@ -492,17 +508,24 @@ class TestInteractiveSession:
         interactive_session.runner._create_system_prompt.return_value = (
             "custom system prompt"
         )
+        interactive_session.runner.use_native_agents = True
 
         with patch(
             "claude_mpm.core.claude_runner.create_simple_context",
             return_value="simple context",
+        ), patch.object(
+            interactive_session,
+            "_build_agents_flag",
+            return_value=["--agents", "simple context"]
         ):
             result = interactive_session._build_claude_command()
 
-            # Updated expectations: no --model opus anymore
+            # Updated expectations: --agents comes before --append-system-prompt
             expected = [
                 "claude",
                 "--dangerously-skip-permissions",
+                "--agents",
+                "simple context",
                 "--append-system-prompt",
                 "custom system prompt",
             ]

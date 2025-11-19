@@ -528,25 +528,45 @@ class TestOneshotSession:
 
     def test_build_command_basic(self, oneshot_session):
         """Test basic command building."""
-        result = oneshot_session._build_command()
+        oneshot_session.runner.use_native_agents = True
 
-        expected = ["claude", "--dangerously-skip-permissions"]
-        assert result == expected
+        with patch.object(
+            oneshot_session,
+            "_build_agents_flag",
+            return_value=["--agents", "simple context"]
+        ):
+            result = oneshot_session._build_command()
+
+            expected = [
+                "claude",
+                "--dangerously-skip-permissions",
+                "--agents",
+                "simple context",
+            ]
+            assert result == expected
 
     def test_build_command_with_claude_args(self, oneshot_session):
         """Test command building with additional Claude arguments."""
         oneshot_session.runner.claude_args = ["--verbose", "--timeout", "30"]
+        oneshot_session.runner.use_native_agents = True
 
-        result = oneshot_session._build_command()
+        with patch.object(
+            oneshot_session,
+            "_build_agents_flag",
+            return_value=["--agents", "simple context"]
+        ):
+            result = oneshot_session._build_command()
 
-        expected = [
-            "claude",
-            "--dangerously-skip-permissions",
-            "--verbose",
-            "--timeout",
-            "30",
-        ]
-        assert result == expected
+            expected = [
+                "claude",
+                "--dangerously-skip-permissions",
+                "--verbose",
+                "--timeout",
+                "30",
+                "--agents",
+                "simple context",
+            ]
+            assert result == expected
 
     def test_handle_successful_response(self, oneshot_session, capsys):
         """Test successful response handling."""
