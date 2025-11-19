@@ -171,7 +171,7 @@ def setup_logging(args) -> object:
 
     # Set default logging level if not specified
     if not hasattr(args, "logging") or args.logging is None:
-        args.logging = LogLevel.INFO.value
+        args.logging = LogLevel.OFF.value
 
     # Handle deprecated --debug flag
     if hasattr(args, "debug") and args.debug and args.logging == LogLevel.INFO.value:

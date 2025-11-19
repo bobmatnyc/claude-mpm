@@ -85,8 +85,8 @@ class InteractiveSession:
                     self.logger.warning(f"WebSocket initialization failed: {error}")
                     # Continue without WebSocket - not a fatal error
 
-            # Display welcome message
-            self._display_welcome_message()
+            # Banner now displayed in CLI startup - see startup_display.py
+            # Removed duplicate _display_welcome_message() to consolidate with main banner
 
             # Log session start
             if self.runner.project_logger:
@@ -293,7 +293,12 @@ class InteractiveSession:
             return False, f"Unexpected error with Socket.IO: {e}"
 
     def _display_welcome_message(self) -> None:
-        """Display the interactive session welcome message."""
+        """Display the interactive session welcome message.
+
+        DEPRECATED: This method is kept for backward compatibility with tests.
+        The main banner is now displayed in startup_display.py during CLI startup.
+        This consolidated approach prevents duplicate banners.
+        """
         version_str = self.runner._get_version()
 
         # Get output style status

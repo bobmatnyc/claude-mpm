@@ -19,23 +19,34 @@ def setup_early_environment(argv):
     WHY: Some commands need special environment handling before any logging
     or service initialization occurs.
 
+    CRITICAL: Suppress ALL logging by default until setup_mcp_server_logging()
+    configures the user's preference. This prevents early loggers (like
+    ProjectInitializer and service.* loggers) from logging at INFO level before
+    we know the user's logging preference.
+
     Args:
         argv: Command line arguments
 
     Returns:
         Processed argv list
     """
+    import logging
+
     # Disable telemetry and set cleanup flags early
     os.environ.setdefault("DISABLE_TELEMETRY", "1")
     os.environ.setdefault("CLAUDE_MPM_SKIP_CLEANUP", "0")
 
-    # EARLY CHECK: Suppress logging for configure command
+    # CRITICAL: Suppress ALL logging by default
+    # This catches all loggers (claude_mpm.*, service.*, framework_loader, etc.)
+    # This will be overridden by setup_mcp_server_logging() based on user preference
+    logging.getLogger().setLevel(logging.CRITICAL + 1)  # Root logger catches everything
+
+    # Process argv
     if argv is None:
         argv = sys.argv[1:]
-    if "configure" in argv or (len(argv) > 0 and argv[0] == "configure"):
-        import logging
 
-        logging.getLogger("claude_mpm").setLevel(logging.WARNING)
+    # EARLY CHECK: Additional suppression for configure command
+    if "configure" in argv or (len(argv) > 0 and argv[0] == "configure"):
         os.environ["CLAUDE_MPM_SKIP_CLEANUP"] = "1"
 
     return argv

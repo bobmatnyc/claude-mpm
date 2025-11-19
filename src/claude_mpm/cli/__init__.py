@@ -31,6 +31,7 @@ from .startup import (
     setup_mcp_server_logging,
     should_skip_background_services,
 )
+from .startup_display import display_startup_banner, should_show_banner
 from .utils import ensure_directories, setup_logging
 
 # Version resolution
@@ -65,10 +66,19 @@ def main(argv: Optional[list] = None):
 
     setup_configure_command_environment(args)
 
+    # CRITICAL: Setup logging BEFORE any initialization that creates loggers
+    # This ensures that ensure_directories() and run_background_services()
+    # respect the user's logging preference (default: OFF)
+    logger = setup_mcp_server_logging(args)
+
     ensure_directories()
     if not should_skip_background_services(args, processed_argv):
         run_background_services()
-    logger = setup_mcp_server_logging(args)
+
+    # Display startup banner (unless help/version/utility commands)
+    if should_show_banner(args):
+        logging_level = getattr(args, "logging", "OFF")
+        display_startup_banner(__version__, logging_level)
 
     if hasattr(args, "debug") and args.debug:
         logger.debug(f"Command: {args.command}")

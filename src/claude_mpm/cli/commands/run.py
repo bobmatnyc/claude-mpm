@@ -32,7 +32,7 @@ from ..startup_logging import (
     log_startup_status,
     setup_startup_logging,
 )
-from ..utils import get_user_input, list_agent_versions_at_startup
+from ..utils import get_user_input
 
 
 def filter_claude_mpm_args(claude_args):
@@ -703,8 +703,10 @@ def run_session_legacy(args):
     Args:
         args: Parsed command line arguments
     """
-    # Set up startup logging to file early in the process
-    setup_startup_logging(Path.cwd())
+    # Only setup startup logging if user wants logging
+    if args.logging != LogLevel.OFF.value:
+        # Set up startup logging to file early in the process
+        setup_startup_logging(Path.cwd())
 
     logger = get_logger("cli")
     if args.logging != LogLevel.OFF.value:
@@ -712,12 +714,13 @@ def run_session_legacy(args):
         # Log file already announced in startup_logging.py when created
 
     # Clean up old startup logs (using configured retention count)
-    try:
-        deleted_count = cleanup_old_startup_logs(Path.cwd())
-        if deleted_count > 0:
-            logger.debug(f"Cleaned up {deleted_count} old startup log files")
-    except Exception as e:
-        logger.debug(f"Failed to clean up old logs: {e}")
+    if args.logging != LogLevel.OFF.value:
+        try:
+            deleted_count = cleanup_old_startup_logs(Path.cwd())
+            if deleted_count > 0:
+                logger.debug(f"Cleaned up {deleted_count} old startup log files")
+        except Exception as e:
+            logger.debug(f"Failed to clean up old logs: {e}")
 
     # Log MCP and monitor startup status
     if args.logging != LogLevel.OFF.value:
@@ -805,134 +808,127 @@ def run_session_legacy(args):
     if getattr(args, "no_native_agents", False):
         print("Native agents disabled")
     else:
-        # List deployed agent versions at startup
-        list_agent_versions_at_startup()
+        # Agent versions removed from startup display - use /mpm-agents to view
+        # list_agent_versions_at_startup()
+        pass
 
-        # Smart dependency checking - only when needed
-        if getattr(args, "check_dependencies", True):  # Default to checking
-            try:
-                from ...utils.agent_dependency_loader import AgentDependencyLoader
-                from ...utils.dependency_cache import SmartDependencyChecker
-                from ...utils.environment_context import should_prompt_for_dependencies
+    # Smart dependency checking - only when needed
+    if getattr(args, "check_dependencies", True):  # Default to checking
+        try:
+            from ...utils.agent_dependency_loader import AgentDependencyLoader
+            from ...utils.dependency_cache import SmartDependencyChecker
+            from ...utils.environment_context import should_prompt_for_dependencies
 
-                # Initialize smart checker
-                smart_checker = SmartDependencyChecker()
-                loader = AgentDependencyLoader(auto_install=False)
+            # Initialize smart checker
+            smart_checker = SmartDependencyChecker()
+            loader = AgentDependencyLoader(auto_install=False)
 
-                # Check if agents have changed
-                _has_changed, deployment_hash = loader.has_agents_changed()
+            # Check if agents have changed
+            _has_changed, deployment_hash = loader.has_agents_changed()
 
-                # Determine if we should check dependencies
-                should_check, check_reason = smart_checker.should_check_dependencies(
-                    force_check=getattr(args, "force_check_dependencies", False),
-                    deployment_hash=deployment_hash,
+            # Determine if we should check dependencies
+            should_check, check_reason = smart_checker.should_check_dependencies(
+                force_check=getattr(args, "force_check_dependencies", False),
+                deployment_hash=deployment_hash,
+            )
+
+            if should_check:
+                # Check if we're in an environment where prompting makes sense
+                can_prompt, prompt_reason = should_prompt_for_dependencies(
+                    force_prompt=getattr(args, "force_prompt", False),
+                    force_skip=getattr(args, "no_prompt", False),
                 )
 
-                if should_check:
-                    # Check if we're in an environment where prompting makes sense
-                    can_prompt, prompt_reason = should_prompt_for_dependencies(
-                        force_prompt=getattr(args, "force_prompt", False),
-                        force_skip=getattr(args, "no_prompt", False),
-                    )
+                logger.debug(f"Dependency check needed: {check_reason}")
+                logger.debug(f"Interactive prompting: {can_prompt} ({prompt_reason})")
 
-                    logger.debug(f"Dependency check needed: {check_reason}")
-                    logger.debug(
-                        f"Interactive prompting: {can_prompt} ({prompt_reason})"
-                    )
+                # Get or check dependencies
+                results, was_cached = smart_checker.get_or_check_dependencies(
+                    loader=loader,
+                    force_check=getattr(args, "force_check_dependencies", False),
+                )
 
-                    # Get or check dependencies
-                    results, was_cached = smart_checker.get_or_check_dependencies(
-                        loader=loader,
-                        force_check=getattr(args, "force_check_dependencies", False),
-                    )
+                # Show summary if there are missing dependencies
+                if results["summary"]["missing_python"]:
+                    missing_count = len(results["summary"]["missing_python"])
+                    print(f"⚠️  {missing_count} agent dependencies missing")
 
-                    # Show summary if there are missing dependencies
-                    if results["summary"]["missing_python"]:
-                        missing_count = len(results["summary"]["missing_python"])
-                        print(f"⚠️  {missing_count} agent dependencies missing")
+                    if can_prompt and missing_count > 0:
+                        # Interactive prompt for installation
+                        print("\n📦 Missing dependencies detected:")
+                        for dep in results["summary"]["missing_python"][:5]:
+                            print(f"   - {dep}")
+                        if missing_count > 5:
+                            print(f"   ... and {missing_count - 5} more")
 
-                        if can_prompt and missing_count > 0:
-                            # Interactive prompt for installation
-                            print("\n📦 Missing dependencies detected:")
-                            for dep in results["summary"]["missing_python"][:5]:
-                                print(f"   - {dep}")
-                            if missing_count > 5:
-                                print(f"   ... and {missing_count - 5} more")
+                        print("\nWould you like to install them now?")
+                        print("  [y] Yes, install missing dependencies")
+                        print("  [n] No, continue without installing")
+                        print("  [q] Quit")
 
-                            print("\nWould you like to install them now?")
-                            print("  [y] Yes, install missing dependencies")
-                            print("  [n] No, continue without installing")
-                            print("  [q] Quit")
+                        sys.stdout.flush()  # Ensure prompt is displayed before input
 
-                            sys.stdout.flush()  # Ensure prompt is displayed before input
-
-                            # Check if we're in a TTY environment for proper input handling
-                            if not sys.stdin.isatty():
-                                # In non-TTY environment (like pipes), use readline
-                                print("\nChoice [y/n/q]: ", end="", flush=True)
-                                try:
-                                    response = sys.stdin.readline().strip().lower()
-                                    # Handle various line endings and control characters
-                                    response = (
-                                        response.replace("\r", "")
-                                        .replace("\n", "")
-                                        .strip()
-                                    )
-                                except (EOFError, KeyboardInterrupt):
-                                    response = "q"
-                            else:
-                                # In TTY environment, use normal input()
-                                try:
-                                    response = (
-                                        input("\nChoice [y/n/q]: ").strip().lower()
-                                    )
-                                except (EOFError, KeyboardInterrupt):
-                                    response = "q"
-
+                        # Check if we're in a TTY environment for proper input handling
+                        if not sys.stdin.isatty():
+                            # In non-TTY environment (like pipes), use readline
+                            print("\nChoice [y/n/q]: ", end="", flush=True)
                             try:
-                                if response == "y":
-                                    print("\n🔧 Installing missing dependencies...")
-                                    loader.auto_install = True
-                                    (
-                                        success,
-                                        error,
-                                    ) = loader.install_missing_dependencies(
-                                        results["summary"]["missing_python"]
-                                    )
-                                    if success:
-                                        print("✅ Dependencies installed successfully")
-                                        # Invalidate cache after installation
-                                        smart_checker.cache.invalidate(deployment_hash)
-                                    else:
-                                        print(f"❌ Installation failed: {error}")
-                                elif response == "q":
-                                    print("👋 Exiting...")
-                                    return
-                                else:
-                                    print(
-                                        "⏩ Continuing without installing dependencies"
-                                    )
-                            except (EOFError, KeyboardInterrupt):
-                                print("\n⏩ Continuing without installing dependencies")
-                        else:
-                            # Non-interactive environment or prompting disabled
-                            print(
-                                "   Run 'pip install \"claude-mpm[agents]\"' to install all agent dependencies"
-                            )
-                            if not can_prompt:
-                                logger.debug(
-                                    f"Not prompting for installation: {prompt_reason}"
+                                response = sys.stdin.readline().strip().lower()
+                                # Handle various line endings and control characters
+                                response = (
+                                    response.replace("\r", "").replace("\n", "").strip()
                                 )
-                    elif was_cached:
-                        logger.debug("Dependencies satisfied (cached result)")
-                    else:
-                        logger.debug("All dependencies satisfied")
-                else:
-                    logger.debug(f"Skipping dependency check: {check_reason}")
+                            except (EOFError, KeyboardInterrupt):
+                                response = "q"
+                        else:
+                            # In TTY environment, use normal input()
+                            try:
+                                response = input("\nChoice [y/n/q]: ").strip().lower()
+                            except (EOFError, KeyboardInterrupt):
+                                response = "q"
 
-            except Exception as e:
-                if args.logging != LogLevel.OFF.value:
-                    logger.debug(f"Could not check agent dependencies: {e}")
+                        try:
+                            if response == "y":
+                                print("\n🔧 Installing missing dependencies...")
+                                loader.auto_install = True
+                                (
+                                    success,
+                                    error,
+                                ) = loader.install_missing_dependencies(
+                                    results["summary"]["missing_python"]
+                                )
+                                if success:
+                                    print("✅ Dependencies installed successfully")
+                                    # Invalidate cache after installation
+                                    smart_checker.cache.invalidate(deployment_hash)
+                                else:
+                                    print(f"❌ Installation failed: {error}")
+                            elif response == "q":
+                                print("👋 Exiting...")
+                                return
+                            else:
+                                print("⏩ Continuing without installing dependencies")
+                        except (EOFError, KeyboardInterrupt):
+                            print("\n⏩ Continuing without installing dependencies")
+                    else:
+                        # Non-interactive environment or prompting disabled
+                        print(
+                            "   Run 'pip install \"claude-mpm[agents]\"' to install all agent dependencies"
+                        )
+                        if not can_prompt:
+                            logger.debug(
+                                f"Not prompting for installation: {prompt_reason}"
+                            )
+                elif was_cached:
+                    logger.debug("Dependencies satisfied (cached result)")
+                else:
+                    logger.debug("All dependencies satisfied")
+            else:
+                logger.debug(f"Skipping dependency check: {check_reason}")
+
+        except Exception as e:
+            if args.logging != LogLevel.OFF.value:
+                logger.debug(f"Could not check agent dependencies: {e}")
                 # Continue anyway - don't block execution
 
     # Create simple runner

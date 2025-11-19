@@ -9,6 +9,9 @@ ai-code-review-docs/
 # Local development binary (wrapper for scripts/claude-mpm)
 /claude-mpm
 
+# Dev launcher (tracked - convenient root-level dev binary)
+# claude-mpm-dev
+
 # Virtual environments (CRITICAL)
 venv/
 env/

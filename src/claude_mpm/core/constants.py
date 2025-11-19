@@ -215,7 +215,7 @@ class Defaults:
     DEFAULT_TEMPERATURE = 0.5
 
     # Logging defaults
-    DEFAULT_LOG_LEVEL = "INFO"
+    DEFAULT_LOG_LEVEL = "OFF"
     DEFAULT_LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
     # Session defaults
