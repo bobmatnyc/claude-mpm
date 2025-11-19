@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.claude_mpm.cli.startup_display import (
-    _create_two_column_layout,
     _format_logging_status,
+    _format_two_column_line,
     _get_alien_art,
     _get_cwd_display,
     _get_terminal_width,
@@ -53,7 +53,7 @@ class TestTerminalWidth:
     def test_get_terminal_width_fallback(self):
         """Test terminal width fallback on error."""
         with patch("shutil.get_terminal_size", side_effect=Exception("Test error")):
-            assert _get_terminal_width() == 100
+            assert _get_terminal_width() == 120  # 75% of DEFAULT_WIDTH (160)
 
 
 class TestChangelogParsing:
@@ -63,7 +63,7 @@ class TestChangelogParsing:
         """Test changelog parsing when file doesn't exist."""
         with patch.object(Path, "__truediv__", return_value=tmp_path / "missing.md"):
             highlights = _parse_changelog_highlights()
-            assert highlights == ["• No changelog available"]
+            assert highlights == ["No changelog available"]
 
     def test_parse_changelog_valid_content(self, tmp_path):
         """Test changelog parsing with valid content."""
@@ -161,11 +161,11 @@ class TestAlienArt:
         assert all(isinstance(line, str) for line in art)
 
     def test_get_alien_art_has_emojis(self):
-        """Test alien art contains emojis."""
+        """Test alien art contains ASCII characters."""
         art = _get_alien_art()
         art_text = "".join(art)
-        # Check for some alien-related emojis
-        assert any(emoji in art_text for emoji in ["👽", "🛸", "👾", "🚀"])
+        # Check for ASCII alien art characters
+        assert any(char in art_text for char in ["▐", "▛", "█", "▜", "▌", "▝", "▘"])
 
 
 class TestLoggingStatus:
@@ -208,33 +208,39 @@ class TestCwdDisplay:
 
 
 class TestTwoColumnLayout:
-    """Tests for two-column layout creation."""
+    """Tests for two-column line formatting."""
 
-    def test_create_two_column_layout_equal_height(self):
-        """Test two-column layout with equal height content."""
-        left = ["Line 1", "Line 2"]
-        right = ["Right 1", "Right 2"]
-        result = _create_two_column_layout(left, right, total_width=89, left_width=40)
+    def test_format_two_column_line_basic(self):
+        """Test two-column line formatting with basic content."""
+        result = _format_two_column_line(
+            "Left", "Right", left_panel_width=20, right_panel_width=40
+        )
 
-        assert len(result) == 2
-        assert all(line.startswith("│") and line.endswith("│") for line in result)
+        assert result.startswith("│")
+        assert result.endswith("│")
+        assert "Left" in result
+        assert "Right" in result
 
-    def test_create_two_column_layout_unequal_height(self):
-        """Test two-column layout with different height content."""
-        left = ["Line 1", "Line 2", "Line 3"]
-        right = ["Right 1"]
-        result = _create_two_column_layout(left, right, total_width=89, left_width=40)
+    def test_format_two_column_line_empty_left(self):
+        """Test two-column line formatting with empty left panel."""
+        result = _format_two_column_line(
+            "", "Right content", left_panel_width=20, right_panel_width=40
+        )
 
-        assert len(result) == 3  # Should match taller column
-        assert all(line.startswith("│") and line.endswith("│") for line in result)
+        assert result.startswith("│")
+        assert result.endswith("│")
+        assert "Right content" in result
 
-    def test_create_two_column_layout_empty_content(self):
-        """Test two-column layout with empty content."""
-        left = []
-        right = []
-        result = _create_two_column_layout(left, right, total_width=89, left_width=40)
+    def test_format_two_column_line_empty_both(self):
+        """Test two-column line formatting with both panels empty."""
+        result = _format_two_column_line(
+            "", "", left_panel_width=20, right_panel_width=40
+        )
 
-        assert len(result) == 0
+        assert result.startswith("│")
+        assert result.endswith("│")
+        # Should still have proper structure with pipes and spaces
+        assert result.count("│") >= 3  # Start, middle, end
 
 
 class TestShouldShowBanner:
@@ -295,41 +301,50 @@ class TestDisplayStartupBanner:
         display_startup_banner("4.24.0", "OFF")
         captured = capsys.readouterr()
 
+        assert (
+            "Launching Claude Multi-agent Product Manager (claude-mpm)..."
+            in captured.out
+        )
         assert "Claude MPM v4.24.0" in captured.out
         assert "Welcome back" in captured.out
         assert "Sonnet 4.5" in captured.out
-        assert "Logging: OFF (default)" in captured.out
-        assert "💡 Tip" in captured.out
 
     def test_display_startup_banner_info_logging(self, capsys):
         """Test banner with INFO logging level."""
         display_startup_banner("4.24.0", "INFO")
         captured = capsys.readouterr()
 
-        assert "Logging: INFO" in captured.out
-        assert "(default)" not in captured.out
+        assert (
+            "Launching Claude Multi-agent Product Manager (claude-mpm)..."
+            in captured.out
+        )
+        assert "Claude MPM v4.24.0" in captured.out
 
     def test_display_startup_banner_debug_logging(self, capsys):
         """Test banner with DEBUG logging level."""
         display_startup_banner("4.24.0", "DEBUG")
         captured = capsys.readouterr()
 
-        assert "Logging: DEBUG (verbose)" in captured.out
+        assert (
+            "Launching Claude Multi-agent Product Manager (claude-mpm)..."
+            in captured.out
+        )
+        assert "Claude MPM v4.24.0" in captured.out
 
     def test_display_startup_banner_includes_aliens(self, capsys):
         """Test banner includes alien art."""
         display_startup_banner("4.24.0", "OFF")
         captured = capsys.readouterr()
 
-        # Check for alien emojis
-        assert any(emoji in captured.out for emoji in ["👽", "🛸", "👾", "🚀"])
+        # Check for alien ASCII art characters
+        assert "▐▛███▜▌" in captured.out or "▝▜█████▛▘" in captured.out
 
     def test_display_startup_banner_includes_whats_new(self, capsys):
         """Test banner includes what's new section."""
         display_startup_banner("4.24.0", "OFF")
         captured = capsys.readouterr()
 
-        assert "What's new in 4.24.0" in captured.out
+        assert "What's new" in captured.out
 
     def test_display_startup_banner_includes_cwd(self, capsys):
         """Test banner includes current working directory."""

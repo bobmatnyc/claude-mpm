@@ -12,6 +12,7 @@ from typing import List
 
 # ANSI color codes
 CYAN = "\033[36m"  # Cyan for header highlight (Claude Code style)
+DIM = "\033[2m"  # Dim text for subtle launch message
 RESET = "\033[0m"
 
 # Banner dimension defaults (will be calculated based on terminal width)
@@ -142,11 +143,11 @@ def _parse_changelog_highlights(max_items: int = 3, max_width: int = 130) -> Lis
 
 
 def _get_alien_art() -> List[str]:
-    """Return multi-alien ASCII art with measured display widths."""
+    """Return multi-alien ASCII art with teal/cyan highlighting."""
     return [
-        "▐▛███▜▌ ▐▛███▜▌",  # Two aliens - Width: 15 chars
-        "▝▜█████▛▘▝▜█████▛▘",  # Two aliens base - Width: 18 chars
-        "▘▘ ▝▝    ▘▘ ▝▝",  # Two aliens feet - Width: 14 chars
+        f"{CYAN}▐▛███▜▌ ▐▛███▜▌{RESET}",  # Two aliens - Width: 15 chars
+        f"{CYAN}▝▜█████▛▘▝▜█████▛▘{RESET}",  # Two aliens base - Width: 18 chars
+        f"{CYAN}▘▘ ▝▝    ▘▘ ▝▝{RESET}",  # Two aliens feet - Width: 14 chars
     ]
 
 
@@ -218,6 +219,10 @@ def display_startup_banner(version: str, logging_level: str) -> None:
         version: Claude MPM version string
         logging_level: Current logging level (OFF/INFO/DEBUG)
     """
+    # Display launch message (subtle, dim styling)
+    print(f"{DIM}Launching Claude Multi-agent Product Manager (claude-mpm)...{RESET}")
+    print()  # Empty line after launch message
+
     # Get terminal width and calculate panel sizes
     terminal_width = _get_terminal_width()
     left_panel_width = int(terminal_width * 0.25)  # ~25% for left panel
