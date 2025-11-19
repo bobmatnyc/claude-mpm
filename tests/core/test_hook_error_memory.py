@@ -126,7 +126,7 @@ class TestHookErrorMemory:
 
         # Check error was recorded
         assert len(error_memory.errors) == 1
-        recorded = list(error_memory.errors.values())[0]
+        recorded = next(iter(error_memory.errors.values()))
         assert recorded["type"] == "file_not_found"
         assert recorded["hook_type"] == "PreToolUse"
         assert recorded["count"] == 1
@@ -147,7 +147,7 @@ class TestHookErrorMemory:
 
         # Should only have one entry with count=2
         assert len(error_memory.errors) == 1
-        recorded = list(error_memory.errors.values())[0]
+        recorded = next(iter(error_memory.errors.values()))
         assert recorded["count"] == 2
 
     def test_is_known_failing_hook(self, error_memory):

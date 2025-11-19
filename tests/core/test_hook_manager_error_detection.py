@@ -67,7 +67,7 @@ class TestHookManagerErrorDetection:
             # Check error was recorded
             assert len(hook_manager.error_memory.errors) >= 1
             # Verify error type
-            recorded = list(hook_manager.error_memory.errors.values())[0]
+            recorded = next(iter(hook_manager.error_memory.errors.values()))
             assert recorded["type"] in ["file_not_found", "general_error"]
 
     def test_hook_skipped_after_repeated_failures(self, hook_manager):
