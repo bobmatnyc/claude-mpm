@@ -171,6 +171,67 @@ def discover_and_link_runtime_skills():
         # Continue execution - skills discovery failure shouldn't block startup
 
 
+def deploy_output_style_on_startup():
+    """
+    Deploy claude-mpm output style to Claude Code on CLI startup.
+
+    WHY: Automatically deploy and activate the output style to ensure consistent,
+    professional communication without emojis and exclamation points. This ensures
+    the style is available even when using Claude Code directly (not via chat command).
+
+    DESIGN DECISION: This is non-blocking and idempotent. It uses OutputStyleManager
+    which handles version detection, file deployment, and settings activation.
+    Only works for Claude Code >= 1.0.83.
+    """
+    try:
+        from pathlib import Path
+
+        from ..core.output_style_manager import OutputStyleManager
+
+        # Create OutputStyleManager instance
+        output_style_manager = OutputStyleManager()
+
+        # Check if Claude Code supports output styles
+        if not output_style_manager.supports_output_styles():
+            # Silently skip - version too old or Claude not installed
+            return
+
+        # Check if already deployed and active
+        settings_file = Path.home() / ".claude" / "settings.json"
+        output_style_file = Path.home() / ".claude" / "output-styles" / "claude-mpm.md"
+
+        if settings_file.exists() and output_style_file.exists():
+            try:
+                import json
+
+                settings = json.loads(settings_file.read_text())
+                if settings.get("activeOutputStyle") == "claude-mpm":
+                    # Already deployed and active
+                    return
+            except Exception:
+                pass  # Continue with deployment if we can't read settings
+
+        # Read OUTPUT_STYLE.md content
+        output_style_path = Path(__file__).parent.parent / "agents" / "OUTPUT_STYLE.md"
+
+        if not output_style_path.exists():
+            # No output style file to deploy
+            return
+
+        output_style_content = output_style_path.read_text()
+
+        # Deploy the output style (deploys file and activates it)
+        output_style_manager.deploy_output_style(output_style_content)
+
+    except Exception as e:
+        # Non-critical - log but don't fail startup
+        from ..core.logger import get_logger
+
+        logger = get_logger("cli")
+        logger.debug(f"Failed to deploy output style: {e}")
+        # Continue execution - output style deployment shouldn't block startup
+
+
 def run_background_services():
     """
     Initialize all background services on startup.
@@ -183,6 +244,7 @@ def run_background_services():
     check_for_updates_async()
     deploy_bundled_skills()
     discover_and_link_runtime_skills()
+    deploy_output_style_on_startup()
 
 
 def setup_mcp_server_logging(args):
