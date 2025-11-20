@@ -8,6 +8,18 @@
 
 ### Removed
 
+## [4.24.4] - 2025-11-20
+
+### Fixed
+- Dashboard panes not rendering on initial load or when Socket.IO connection is established
+- Historical events not appearing in dashboard panes after connection
+- Socket.IO logging disabled (now enabled for better debugging visibility)
+
+### Added
+- Vite build configuration for modern dashboard bundling
+- package.json for NPM wrapper support with version synchronization
+- historyLoaded event to trigger pane rendering after data load
+
 ## [4.24.3] - 2025-11-19
 
 ### Fixed
