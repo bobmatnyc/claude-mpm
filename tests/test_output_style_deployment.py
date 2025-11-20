@@ -11,13 +11,15 @@ Tests:
 """
 
 import json
+
+# Add project root to path
+import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-# Add project root to path
-import sys
 sys.path.insert(0, str(Path(__file__).parent / "src"))
+
 
 def test_output_style_exists():
     """Test 1: Verify OUTPUT_STYLE.md exists and contains prohibitions."""
@@ -45,12 +47,12 @@ def test_output_style_exists():
     assert "name: Claude MPM" in content, "Missing name in frontmatter"
 
     print(f"✓ OUTPUT_STYLE.md exists ({len(content)} characters)")
-    print(f"✓ Contains emoji prohibition")
-    print(f"✓ Contains exclamation prohibition")
-    print(f"✓ Contains enthusiasm prohibition")
-    print(f"✓ Contains affirmation prohibition")
+    print("✓ Contains emoji prohibition")
+    print("✓ Contains exclamation prohibition")
+    print("✓ Contains enthusiasm prohibition")
+    print("✓ Contains affirmation prohibition")
     print(f"✓ Lists forbidden phrases: {', '.join(forbidden_phrases)}")
-    print(f"✓ Has proper frontmatter with name")
+    print("✓ Has proper frontmatter with name")
     print()
 
 
@@ -69,7 +71,10 @@ def test_deployment_function():
             # Mock OutputStyleManager.supports_output_styles to return True
             from claude_mpm.cli.startup import deploy_output_style_on_startup
 
-            with patch("claude_mpm.core.output_style_manager.OutputStyleManager.supports_output_styles", return_value=True):
+            with patch(
+                "claude_mpm.core.output_style_manager.OutputStyleManager.supports_output_styles",
+                return_value=True,
+            ):
                 # First deployment
                 deploy_output_style_on_startup()
 
@@ -86,11 +91,13 @@ def test_deployment_function():
                 # Check settings.json was created
                 assert settings_file.exists(), "settings.json not created"
                 settings = json.loads(settings_file.read_text())
-                assert settings.get("activeOutputStyle") == "claude-mpm", "activeOutputStyle not set"
+                assert (
+                    settings.get("activeOutputStyle") == "claude-mpm"
+                ), "activeOutputStyle not set"
 
                 print(f"✓ Output style file created at: {output_style_file}")
                 print(f"✓ Content matches source ({len(deployed_content)} characters)")
-                print(f"✓ settings.json created with activeOutputStyle: claude-mpm")
+                print("✓ settings.json created with activeOutputStyle: claude-mpm")
                 print()
 
 
@@ -108,7 +115,10 @@ def test_idempotency():
         with patch("pathlib.Path.home", return_value=temp_home):
             from claude_mpm.cli.startup import deploy_output_style_on_startup
 
-            with patch("claude_mpm.core.output_style_manager.OutputStyleManager.supports_output_styles", return_value=True):
+            with patch(
+                "claude_mpm.core.output_style_manager.OutputStyleManager.supports_output_styles",
+                return_value=True,
+            ):
                 # First deployment
                 deploy_output_style_on_startup()
 
@@ -121,11 +131,13 @@ def test_idempotency():
 
                 # Check file was not modified
                 second_mtime = output_style_file.stat().st_mtime
-                assert first_mtime == second_mtime, "File was modified on second deployment"
+                assert (
+                    first_mtime == second_mtime
+                ), "File was modified on second deployment"
 
-                print(f"✓ First deployment completed")
-                print(f"✓ Second deployment skipped (file not modified)")
-                print(f"✓ Deployment is idempotent")
+                print("✓ First deployment completed")
+                print("✓ Second deployment skipped (file not modified)")
+                print("✓ Deployment is idempotent")
                 print()
 
 
@@ -134,16 +146,19 @@ def test_startup_integration():
     print("Test 4: Verify startup.py integration")
     print("-" * 60)
 
-    from claude_mpm.cli.startup import run_background_services
     import inspect
+
+    from claude_mpm.cli.startup import run_background_services
 
     # Get source code of run_background_services
     source = inspect.getsource(run_background_services)
 
     # Check that deploy_output_style_on_startup is called
-    assert "deploy_output_style_on_startup()" in source, "deploy_output_style_on_startup not called in run_background_services"
+    assert (
+        "deploy_output_style_on_startup()" in source
+    ), "deploy_output_style_on_startup not called in run_background_services"
 
-    print(f"✓ run_background_services() calls deploy_output_style_on_startup()")
+    print("✓ run_background_services() calls deploy_output_style_on_startup()")
 
     # Check order of calls
     calls = [
@@ -153,13 +168,13 @@ def test_startup_integration():
         "check_for_updates_async",
         "deploy_bundled_skills",
         "discover_and_link_runtime_skills",
-        "deploy_output_style_on_startup"
+        "deploy_output_style_on_startup",
     ]
 
     for call in calls:
         assert f"{call}()" in source, f"{call} not found in run_background_services"
 
-    print(f"✓ All background services called in correct order:")
+    print("✓ All background services called in correct order:")
     for i, call in enumerate(calls, 1):
         print(f"  {i}. {call}()")
     print()
@@ -173,7 +188,10 @@ def test_version_check():
     from claude_mpm.cli.startup import deploy_output_style_on_startup
 
     # Mock supports_output_styles to return False
-    with patch("claude_mpm.core.output_style_manager.OutputStyleManager.supports_output_styles", return_value=False):
+    with patch(
+        "claude_mpm.core.output_style_manager.OutputStyleManager.supports_output_styles",
+        return_value=False,
+    ):
         # Mock Path.home() to ensure no file operations
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_home = Path(temp_dir)
@@ -184,10 +202,12 @@ def test_version_check():
 
                 # Verify no files were created
                 output_styles_dir = temp_home / ".claude" / "output-styles"
-                assert not output_styles_dir.exists(), "Output styles directory should not be created"
+                assert (
+                    not output_styles_dir.exists()
+                ), "Output styles directory should not be created"
 
-                print(f"✓ Deployment skipped for unsupported versions")
-                print(f"✓ No files created when version check fails")
+                print("✓ Deployment skipped for unsupported versions")
+                print("✓ No files created when version check fails")
                 print()
 
 
