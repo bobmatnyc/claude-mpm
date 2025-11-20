@@ -8,6 +8,18 @@
 
 ### Removed
 
+## [4.24.3] - 2025-11-19
+
+### Fixed
+- Fixed pytest collection blocker (renamed tests/test_utils.py to tests/_test_utils.py)
+- Updated mypy python_version configuration (3.8 → 3.9) to match actual Python requirements
+- Added pytest norecursedirs configuration to exclude non-test directories
+
+### Technical
+- Resolved ImportError during test collection by prefixing test utility module with underscore
+- Eliminated mypy configuration warning about outdated Python version
+- Improved test suite organization and pytest configuration
+
 ## [4.24.2] - 2025-11-19
 
 ### Added
