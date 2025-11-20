@@ -111,6 +111,7 @@ python_functions = [ "test_*",]
 addopts = [ "--tb=short", "--strict-markers", "--disable-warnings", "--asyncio-mode=auto",]
 markers = [ "unit: Unit tests", "integration: Integration tests", "e2e: End-to-end tests", "regression: Regression tests", "socketio: Socket.IO related tests", "hook: Hook system tests",]
 asyncio_mode = "auto"
+norecursedirs = [ "archive", "benchmarks", "manual", "stress", ".*", "_*",]
 
 [tool.setuptools.packages.find]
 where = [ "src",]
