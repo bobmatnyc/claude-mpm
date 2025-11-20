@@ -633,6 +633,15 @@ class SocketClient {
                 });
                 this.notifyEventUpdate();
                 console.log(`Event history loaded: ${data.events.length} events added to dashboard`);
+
+                // FIX: Dispatch custom event after history is loaded
+                // WHY: Allows dashboard to render panes with initial data
+                document.dispatchEvent(new CustomEvent('historyLoaded', {
+                    detail: {
+                        eventCount: data.events.length,
+                        totalAvailable: data.total_available
+                    }
+                }));
             } else if (Array.isArray(data)) {
                 // Handle legacy format for backward compatibility
                 console.log('Received legacy event history format:', data.length, 'events');
@@ -641,6 +650,14 @@ class SocketClient {
                     this.addEvent(transformedEvent, false);
                 });
                 this.notifyEventUpdate();
+
+                // FIX: Dispatch custom event for legacy format too
+                document.dispatchEvent(new CustomEvent('historyLoaded', {
+                    detail: {
+                        eventCount: data.length,
+                        totalAvailable: data.length
+                    }
+                }));
             }
         });
 

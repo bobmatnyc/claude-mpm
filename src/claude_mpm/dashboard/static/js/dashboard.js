@@ -85,6 +85,11 @@ class Dashboard {
             // Initialize from URL parameters
             this.initializeFromURL();
 
+            // FIX: Render current tab after initialization to display any existing data
+            // WHY: If events were loaded before dashboard init completed, they won't be visible
+            console.log('[Dashboard] Initial render after dashboard initialization');
+            this.renderCurrentTab();
+
             console.log('Claude MPM Dashboard initialized successfully');
         } catch (error) {
             console.error('Error during dashboard initialization:', error);
@@ -340,6 +345,11 @@ class Dashboard {
                 this.workingDirectoryManager.updateGitBranch(
                     this.workingDirectoryManager.getCurrentWorkingDir()
                 );
+
+                // FIX: Force render current tab to display initial/historical event data
+                // WHY: Events are loaded on connection but panes aren't rendered with this data
+                console.log('[Dashboard] Connection established - rendering current tab with initial data');
+                this.renderCurrentTab();
             }
         });
 
@@ -362,6 +372,14 @@ class Dashboard {
 
         // Session changes
         document.addEventListener('sessionFilterChanged', (e) => {
+            this.renderCurrentTab();
+        });
+
+        // FIX: Listen for history loaded event to render initial data
+        // WHY: When historical events are loaded from server, panes need to be rendered
+        document.addEventListener('historyLoaded', (e) => {
+            console.log('[Dashboard] History loaded event received:', e.detail);
+            console.log('[Dashboard] Rendering current tab with historical data');
             this.renderCurrentTab();
         });
     }

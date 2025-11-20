@@ -203,8 +203,8 @@ class UnifiedMonitorServer:
             # Create Socket.IO server with proper ping configuration
             self.sio = socketio.AsyncServer(
                 cors_allowed_origins="*",
-                logger=False,
-                engineio_logger=False,
+                logger=True,  # Enable to see Socket.IO events and connection lifecycle
+                engineio_logger=True,  # Enable to see Engine.IO protocol handshake details
                 ping_interval=30,  # 30 seconds ping interval (matches client expectation)
                 ping_timeout=60,  # 60 seconds ping timeout (generous for stability)
             )

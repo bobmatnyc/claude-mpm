@@ -1,0 +1,70 @@
+{
+  "name": "claude-mpm",
+  "version": "4.24.3",
+  "description": "NPM wrapper for claude-mpm Python package - Requires Python 3.8+. Orchestrate Claude with agent delegation and ticket tracking",
+  "keywords": [
+    "claude",
+    "ai",
+    "orchestration",
+    "multi-agent",
+    "project-management",
+    "cli",
+    "claude-code",
+    "anthropic"
+  ],
+  "homepage": "https://github.com/bobmatnyc/claude-mpm",
+  "bugs": {
+    "url": "https://github.com/bobmatnyc/claude-mpm/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bobmatnyc/claude-mpm.git"
+  },
+  "license": "MIT",
+  "author": "Bob Matsuoka <bob@matsuoka.com>",
+  "bin": {
+    "claude-mpm": "npm-bin/claude-mpm.js"
+  },
+  "files": [
+    "npm-bin/",
+    "README.npm.md",
+    "LICENSE",
+    "scripts/postinstall.js"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:dashboard": "vite build && python -c \"import shutil; shutil.copytree('src/claude_mpm/dashboard/static/dist', 'src/claude_mpm/dashboard/static/built', dirs_exist_ok=True)\"",
+    "clean": "rm -rf src/claude_mpm/dashboard/static/dist src/claude_mpm/dashboard/static/built"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "preferGlobal": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "terser": "^5.24.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "playwright": "^1.55.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-window": "^1.8.8",
+    "react-window-infinite-loader": "^1.0.9",
+    "socket.io-client": "^4.8.1"
+  }
+}
