@@ -8,6 +8,15 @@
 
 ### Removed
 
+## [4.25.1] - 2025-11-21
+
+### Added
+- **Test Parallelization**: Implemented pytest-xdist for parallel test execution, reducing test runtime significantly
+- **MCP-Ticketer Integration**: Enhanced research agent with mcp-ticketer delegation for comprehensive ticket management
+
+### Changed
+- Strengthened "DO THE WORK" directive in PM instructions for more proactive agent behavior
+
 ## [4.25.0] - 2025-11-21
 
 ### Added
