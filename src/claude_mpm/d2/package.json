@@ -1,0 +1,19 @@
+{
+  "name": "claude-mpm-d2",
+  "version": "1.0.0",
+  "description": "Svelte 5-based dashboard for Claude MPM",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^4.0.0",
+    "svelte": "^5.0.0",
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.5"
+  }
+}
